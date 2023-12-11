@@ -17,6 +17,7 @@ $source_directory="."
     "EbpfCore.sys",
     "EbpfCore.pdb",
     "ebpfforwindows.wprp",
+    "ebpfforwindows_memory.wprp",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
     "export_program_info.exe",

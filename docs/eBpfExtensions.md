@@ -99,9 +99,9 @@ invoking an eBPF program. The various fields of this struct are as follows.
 * `end`: Offset (in bytes) to the field in the context structure that is pointing to the end of context data.
 * `meta`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context metadata.
 
-For example, for the XDP program types, the context data structure is as follows:
+For example, for the XDP_TEST program types, the context data structure is as follows:
 ```
-// XDP hook.  We use "struct xdp_md" for cross-platform compatibility.
+// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
 typedef struct xdp_md
 {
     void* data;         ///< Pointer to start of packet data.
@@ -232,7 +232,7 @@ structure from the passed in parameters:
 * `ClientDispatch`: Client dispatch table (see section 2.5 below).
 * `NpiSpecificCharacteristics`: Obtained from `ClientRegistrationInstance` parameter. This contains attach-type
 specific data that may be used by an extension for attaching an eBPF program. For example, when an eBPF program is
-being attached to an XDP hook, the network interface index can be passed via this parameter. This tells the extension
+being attached to an XDP_TEST hook, the network interface index can be passed via this parameter. This tells the extension
 to invoke the eBPF program whenever there are any inbound packets on that network interface. The attach parameter can
 be obtained as follows:
 ```
@@ -248,16 +248,66 @@ the provider must free the per-client context passed in via `ProviderBindingCont
 
 ### 2.5 Invoking an eBPF program from Hook NPI Provider
 To invoke an eBPF program, the extension uses the dispatch table supplied by the Hook NPI client during attaching.
-There is only one function in the client dispatch table, which is of the following type:
+The client dispatch table contains the functions, with the following type prototypes:
 
 ```
 /**
- *  @brief This is the only mandatory function in the eBPF Hook NPI client dispatch table.
+ * @brief Invoke the eBPF program.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in,out] program_context The context for this invocation of the eBPF program.
+ * @param[out] result The result of the eBPF program.
+ *
+ * @retval EBPF_SUCCESS if successful or an appropriate error code.
+ * @retval EBPF_NO_MEMORY if memory allocation fails.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD if required extension is not loaded.
  */
 typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
-    _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result);
+    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
+/**
+ * @brief Prepare the eBPF program for batch invocation.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in] state_size The size of the state to be allocated, which should be greater than or equal to
+ * sizeof(ebpf_execution_context_state_t).
+ * @param[out] state The state to be used for batch invocation.
+ *
+ * @retval EBPF_SUCCESS if successful or an appropriate error code.
+ * @retval EBPF_NO_MEMORY if memory allocation fails.
+ * @retval EBPF_EXTENSION_FAILED_TO_LOAD if required extension is not loaded.
+ */
+typedef ebpf_result_t (*ebpf_program_batch_begin_invoke_function_t)(
+    _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state);
+
+/**
+ * @brief Invoke the eBPF program in batch mode.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in,out] program_context The context for this invocation of the eBPF program.
+ * @param[out] result The result of the eBPF program.
+ * @param[in] state The state to be used for batch invocation.
+ *
+ * @retval EBPF_SUCCESS.
+ */
+typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
+    _In_ const void* extension_client_binding_context,
+    _Inout_ void* program_context,
+    _Out_ uint32_t* result,
+    _In_ const void* state);
+
+/**
+ * @brief Clean up the eBPF program after batch invocation.
+ *
+ * @param[in] extension_client_binding_context The context provided by the extension client when the binding was created.
+ * @param[in,out] state The state to be used for batch invocation.
+ *
+ * @retval EBPF_SUCCESS.
+ */
+typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
+    _In_ const void* extension_client_binding_context, _Inout_ void* state);
 ```
+
 The function pointer can be obtained from the client dispatch table as follows:
 ```
 invoke_program = (ebpf_program_invoke_function_t)client_dispatch_table->function[0];
@@ -269,6 +319,16 @@ must pass the program type specific context data structure. Note that the Progra
 the context descriptor (using the `ebpf_context_descriptor_t` type) to the eBPF verifier and JIT-compiler via the NPI
 client hosted by the Execution Context. The `result` output parameter holds the return value from the eBPF program
 post execution.
+
+In cases where the same eBPF program will be invoked sequentially with different context data (aka batch invocation),
+the caller can reduce the overhead by using the batch invocation APIs. Prior to the first invocation, the batch
+begin API is called, which caches state used by the eBPF program and prevents the program from being unloaded. The
+caller is responsible for providing storage large enough to store an instance of ebpf_execution_context_state_t and
+ensuring that it remain valid until calling the batch end API. Between the begin and end calls, the caller may call
+the batch invoke API multiple times to invoke the BPF program with minimal overhead. Callers must limit the length
+of time a batch is open and must not change IRQL between calling batch begin and end. Batch end cost may scale with
+the number of times the program has been invoked, so callers should limit the number of calls within a batch to
+prevent long delays in batch end.
 
 ### 2.6 Authoring Helper Functions
 An extension can provide an implementation of helper functions that can be invoked by the eBPF programs. The helper
@@ -298,30 +358,13 @@ The parameter and return types for these helper functions must adhere to the `eb
 
 ### 2.7 Registering Program Types and Attach Types - eBPF Store
 The eBPF Execution Context loads an eBPF program from an ELF file that has program section(s) with section names. The
-prefix to these names determines the program type. For example, the section name `"xdp"` implies that the corresponding
-program type is `EBPF_PROGRAM_TYPE_XDP`.
+prefix to these names determines the program type. For example, the section name `"xdp_test"` implies that the corresponding
+program type is `EBPF_PROGRAM_TYPE_XDP_TEST`.
 
 The *Execution Context* discovers the program type associated with a section prefix by reading the data from the ***"eBPF store"***, which is currently kept in the Windows registry.
 When an eBPF extension is installed, it must update the eBPF store with the program types it implements along with the associated section prefixes.
 
 To operate on the eBPF store, the extension must link the `\lib\ebpf_store_helper_km.lib` kernel-mode library and include the related `\include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the extension can use the following APIs to register program types, attach types and helper functions:
-
-- `ebpf_store_update_helper_prototype`: updates the program type specific helper information in the eBPF store, given a pointer to the store key to be initialized and a pointer to the helper function prototype (i.e., `_ebpf_helper_function_prototype`):
-
-    ```c
-    ebpf_result_t
-    ebpf_store_update_helper_prototype(
-        ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
-    ```c
-    ```
-
-- `ebpf_store_update_global_helper_information`: updates the global helper information in the eBPF store, given a pointer to an array of helper function prototypes:
-
-    ```c
-    ebpf_result_t
-    ebpf_store_update_global_helper_information(
-        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
-    ```
 
 - `ebpf_store_update_section_information`: updates the section information in the eBPF store, given a pointer to an array of section information (i.e., `_ebpf_program_section_info`):
 

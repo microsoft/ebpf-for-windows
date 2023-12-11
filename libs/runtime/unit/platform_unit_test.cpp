@@ -64,10 +64,33 @@ typedef struct _free_trampoline_table
 
 typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_trampoline_table_ptr;
 
+typedef class _signal
+{
+  public:
+    void
+    wait()
+    {
+        std::unique_lock l(lock);
+        condition_variable.wait(l, [&]() { return signaled; });
+    }
+    void
+    signal()
+    {
+        std::unique_lock l(lock);
+        signaled = true;
+        condition_variable.notify_all();
+    }
+
+  private:
+    std::mutex lock;
+    std::condition_variable condition_variable;
+    bool signaled = false;
+} signal_t;
+
 class _test_helper
 {
   public:
-    _test_helper() { ebpf_object_tracking_initiate(); }
+    _test_helper() {}
     void
     initialize()
     {
@@ -76,6 +99,8 @@ class _test_helper
         REQUIRE(ebpf_random_initiate() == EBPF_SUCCESS);
         REQUIRE(ebpf_epoch_initiate() == EBPF_SUCCESS);
         epoch_initiated = true;
+        REQUIRE(ebpf_object_tracking_initiate() == EBPF_SUCCESS);
+        object_tracking_initiated = true;
         REQUIRE(ebpf_async_initiate() == EBPF_SUCCESS);
         async_initiated = true;
         REQUIRE(ebpf_state_initiate() == EBPF_SUCCESS);
@@ -89,6 +114,9 @@ class _test_helper
         if (async_initiated) {
             ebpf_async_terminate();
         }
+        if (object_tracking_initiated) {
+            ebpf_object_tracking_terminate();
+        }
         if (epoch_initiated) {
             ebpf_epoch_flush();
             ebpf_epoch_terminate();
@@ -97,7 +125,6 @@ class _test_helper
         if (platform_initiated) {
             ebpf_platform_terminate();
         }
-        ebpf_object_tracking_terminate();
     }
 
   private:
@@ -105,6 +132,7 @@ class _test_helper
     bool epoch_initiated = false;
     bool async_initiated = false;
     bool state_initiated = false;
+    bool object_tracking_initiated = false;
 };
 
 struct ebpf_hash_table_destroyer_t
@@ -368,6 +396,36 @@ TEST_CASE("pinning_test", "[platform]")
     {
         ebpf_core_object_t object{};
         std::string name;
+        bool finalized = true;
+        signal_t signal;
+        ebpf_result_t
+        initialize()
+        {
+            ebpf_result_t return_value = EBPF_OBJECT_INITIALIZE(
+                &object,
+                EBPF_OBJECT_MAP,
+                [](ebpf_core_object_t* object) {
+                    auto some_object = reinterpret_cast<_some_object*>(object);
+                    some_object->signal.signal();
+                },
+                NULL,
+                NULL);
+            if (return_value == EBPF_SUCCESS) {
+                finalized = false;
+            }
+            return return_value;
+        }
+
+        void
+        finalize()
+        {
+            if (!finalized) {
+                EBPF_OBJECT_RELEASE_REFERENCE(&object);
+                finalized = true;
+            }
+        }
+
+        ~_some_object() { finalize(); }
     } some_object_t;
 
     some_object_t an_object;
@@ -376,12 +434,8 @@ TEST_CASE("pinning_test", "[platform]")
     cxplat_utf8_string_t foo = CXPLAT_UTF8_STRING_FROM_CONST_STRING("foo");
     cxplat_utf8_string_t bar = CXPLAT_UTF8_STRING_FROM_CONST_STRING("bar");
 
-    REQUIRE(
-        EBPF_OBJECT_INITIALIZE(
-            &an_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
-    REQUIRE(
-        EBPF_OBJECT_INITIALIZE(
-            &another_object.object, EBPF_OBJECT_MAP, [](ebpf_core_object_t*) {}, NULL) == EBPF_SUCCESS);
+    REQUIRE(an_object.initialize() == EBPF_SUCCESS);
+    REQUIRE(another_object.initialize() == EBPF_SUCCESS);
 
     ebpf_pinning_table_ptr pinning_table;
     {
@@ -405,8 +459,11 @@ TEST_CASE("pinning_test", "[platform]")
     REQUIRE(an_object.object.base.reference_count == 1);
     REQUIRE(another_object.object.base.reference_count == 1);
 
-    EBPF_OBJECT_RELEASE_REFERENCE(&an_object.object);
-    EBPF_OBJECT_RELEASE_REFERENCE(&another_object.object);
+    an_object.finalize();
+    another_object.finalize();
+
+    an_object.signal.wait();
+    another_object.signal.wait();
 }
 
 TEST_CASE("epoch_test_single_epoch", "[platform]")
@@ -443,29 +500,6 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     thread_1.join();
     thread_2.join();
 }
-
-class _signal
-{
-  public:
-    void
-    wait()
-    {
-        std::unique_lock l(lock);
-        condition_variable.wait(l, [&]() { return signaled; });
-    }
-    void
-    signal()
-    {
-        std::unique_lock l(lock);
-        signaled = true;
-        condition_variable.notify_all();
-    }
-
-  private:
-    std::mutex lock;
-    std::condition_variable condition_variable;
-    bool signaled = false;
-};
 
 /**
  * @brief Verify that the stale item worker runs.
@@ -1089,7 +1123,7 @@ TEST_CASE("get_authentication_id", "[platform]")
 
 #define SEQUENCE_LENGTH 1024 * 128
 #define CHI_SQUARED_STATISTIC_THRESHOLD \
-    3.841 // Critical value for Chi-squared test with 2 degrees of freedom with significance level of 0.05.
+    9.210 // Critical value for Chi-squared test with 2 degrees of freedom with significance level of 0.01.
 
 /**
  * @brief Verify that the random number generator passes the chi-squared test.
@@ -1201,12 +1235,22 @@ has_dominant_frequency(size_t sequence_length, std::function<uint32_t()> random_
     return (std::abs(max_frequency) - average_frequency) > 10 * std_dev_frequency;
 }
 
+class _raise_irql_to_dpc_helper
+{
+  public:
+    _raise_irql_to_dpc_helper() { old_irql = KeRaiseIrqlToDpcLevel(); }
+    ~_raise_irql_to_dpc_helper() { KeLowerIrql(old_irql); }
+
+  private:
+    KIRQL old_irql{0};
+};
+
 TEST_CASE("verify random", "[platform]")
 {
-    KIRQL old_irql = KeRaiseIrqlToDpcLevel();
-
     _test_helper test_helper;
     test_helper.initialize();
+
+    _raise_irql_to_dpc_helper irql_helper;
 
     bool odd = false;
     std::function<uint32_t()> ebpf_random_uint32_biased = [&odd]() {
@@ -1249,8 +1293,6 @@ TEST_CASE("verify random", "[platform]")
         }
         std::cout << std::endl;
     }
-
-    KeLowerIrql(old_irql);
 }
 
 TEST_CASE("work_queue", "[platform]")

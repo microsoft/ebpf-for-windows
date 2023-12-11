@@ -96,7 +96,7 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_time_ns,
     (void*)&ebpf_core_csum_diff,
     // Ring buffer output.
-    (void*)&ebpf_ring_buffer_map_output,
+    (void*)&_ebpf_core_ring_buffer_output,
     (void*)&_ebpf_core_trace_printk2,
     (void*)&_ebpf_core_trace_printk3,
     (void*)&_ebpf_core_trace_printk4,
@@ -276,6 +276,9 @@ ebpf_core_terminate()
 
     ebpf_state_terminate();
 
+    // Verify that all ebpf_core_object_t objects have been freed.
+    ebpf_object_tracking_terminate();
+
     // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
     ebpf_epoch_flush();
@@ -286,9 +289,6 @@ ebpf_core_terminate()
     // to be called after ebpf_epoch_terminate() to ensure all the program epoch
     // cleanup work items have been executed by this time.
     ebpf_native_terminate();
-
-    // Verify that all ebpf_core_object_t objects have been freed.
-    ebpf_object_tracking_terminate();
 
     ebpf_trace_terminate();
 
@@ -1061,7 +1061,7 @@ _ebpf_core_protocol_program_test_run(
     options->context_size_in = context_size_in;
     options->context_size_out = context_size_out;
     options->data_size_out = data_size_out;
-    options->repeat_count = request->repeat_count;
+    options->repeat_count = request->repeat_count ? request->repeat_count : 1;
     options->flags = request->flags;
     options->cpu = request->cpu;
     options->batch_size = request->batch_size;
@@ -1210,7 +1210,7 @@ ebpf_core_get_pinned_object(_In_ const cxplat_utf8_string_t* path, _Out_ ebpf_ha
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)object);
-    EBPF_RETURN_RESULT(retval);
+    EBPF_RETURN_FUNCTION_RESULT(retval);
 }
 
 static ebpf_result_t
@@ -1831,7 +1831,8 @@ _ebpf_core_protocol_ring_buffer_map_query_buffer(
         goto Exit;
     }
 
-    result = ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address);
+    result =
+        ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
 
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);

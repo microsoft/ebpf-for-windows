@@ -58,7 +58,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '9B9C4358B05DBD16EF58C0548B1ADBA4B5591FE14DFD3239FC580BB95B39988C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '0E8733AC82CFDEC93A3606AEA586A6BD08980D2301754EC165230FBA353E7B4C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
     please install manually with the link in the [Prerequisites](#prerequisites) section above.
@@ -87,23 +87,18 @@ PE parse directory includes some malformed PE images as a part of the test suite
 
 The following steps need to be executed *once* before the first build on a new clone:
 
-1. Launch `Developer Command Prompt for VS 2022` by running:
+1. Launch a `Developer PowerShell for VS 2022` session.
+1. Change directory to where the project is cloned (e.g. "`cd ebpf-for-windows`").
+1. Run the following script:
 
-   ```cmd
-   "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat"
+   ```ps
+   .\scripts\initialize_ebpf_repo.ps1
    ```
-1. Change directory to where the project is cloned (e.g. `cd ebpf-for-windows`), and run the following commands:
-
-   - `cmake -G "Visual Studio 17 2022" -S external\ebpf-verifier -B external\ebpf-verifier\build`
-   - `cmake -G "Visual Studio 17 2022" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF`
-   - `cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build`
-   - `nuget restore ebpf-for-windows.sln`
-
       >**Note**: you may get the following transitory error, which can be safely ignored as the *WiX Toolset* nuget package will be installed immediately afterwards:
       >
       >    `error : The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable`
 
-   - `del external\ebpf-verifier\build\obj\project.assets.json` (Note: the file may not be present)
+> TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
 #### Building using Developer Command Prompt for VS 2022
 
@@ -163,7 +158,7 @@ This will build the following binaries:
                 and EbpfCore and NetEbpfExt drivers to be loaded.
 - `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 - `sample_ext_app.exe`: A sample application for testing the sample extension driver.
-- `xdp_tests.exe`: Application for testing various XDP functionalities.  This requires the EbpfSvc service to be running,
+- `xdp_tests.exe`: Application for testing various XDP_TEST functionalities.  This requires the EbpfSvc service to be running,
                 and the EbpfCore and NetEbpfExt drivers to be loaded on a remote system to test.
 - `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
@@ -255,17 +250,17 @@ On the attacker machine, do the following:
    ```
 1. Show eBPF byte code for `droppacket.o`:
    ```cmd
-   netsh ebpf show disassembly droppacket.o xdp
+   netsh ebpf show disassembly droppacket.o xdp_test
    ```
 1. Show that the verifier checks the code:
    ```cmd
-   netsh ebpf show verification droppacket.o xdp
+   netsh ebpf show verification droppacket.o xdp_test
    ```
 1. Launch netsh `netsh`
 1. Switch to ebpf context `ebpf`
 1. Load eBPF program, and note the ID:
    ```cmd
-   add program droppacket.o xdp
+   add program droppacket.o xdp_test
    ```
 1. Show UDP datagrams received drop to under 10 per second
 1. Unload program:
@@ -280,11 +275,11 @@ On the attacker machine, do the following:
    ```
 1. Show that the verifier rejects the code:
    ```cmd
-   netsh ebpf show verification droppacket.o xdp
+   netsh ebpf show verification droppacket.o xdp_test
    ```
 1. Show that loading the program fails:
    ```cmd
-   netsh ebpf add program droppacket.o xdp
+   netsh ebpf add program droppacket.o xdp_test
    ```
 
 ## Tests in Ebpf-For-Windows
@@ -303,8 +298,11 @@ by having the mocked extensions emit events.
 This test exercises various eBPF user mode eBPF APIs, including those to load programs,
 enumerate maps and programs etc. This test requires the eBPF user mode service (EbpfSvc), and the
 kernel execution context (`EbpfCore.sys`) and the Network Extension (`NetEbpfExt.sys`) to be running.
-This test is currently *not* part of the CI pipeline. Developers must run this test manually before
-checking in changes.
+There is a group of tests in this suite with tag "*regression-tests*". These tests are used to ensure
+any release of the eBPF framework is backwards compatible, so that a program from
+a previous release can run against the latest release. If this test suite is run manually, then the corresponding
+test from the previous release would need to be copied locally on the test machine. Alternatively `~[regression_tests]`
+can be specified in the command-line to skip these tests.
 
 ### sample_ext_app.exe
 
@@ -330,7 +328,7 @@ Other useful options include:
 
 ### xdp_tests.exe
 
-This application tests various XDP functionalities. These tests require two hosts to run. There are three variations of the XDP tests.
+This application tests various XDP_TEST functionalities. These tests require two hosts to run. There are three variations of the XDP_TEST tests.
 
 #### Reflection Test
 
@@ -340,7 +338,7 @@ This tests the XDP_TX functionality.
    1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
    1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
       ```cmd
-      netsh ebpf add program reflect_packet.o xdp
+      netsh ebpf add program reflect_packet.o xdp_test
       ```
 1. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
@@ -359,7 +357,7 @@ This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP heade
    1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
 
       ```cmd
-      netsh ebpf add program encap_reflect_packet.o xdp
+      netsh ebpf add program encap_reflect_packet.o xdp_test
       ```
 1. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
@@ -376,12 +374,12 @@ This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP heade
 1. On *both* the hosts, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
 1. On the first host load the first test eBPF program by running the following command. and note the ID (see **Note 3** below):
    ```cmd
-   netsh ebpf add program encap_reflect_packet.o xdp
+   netsh ebpf add program encap_reflect_packet.o xdp_test
    ```
 1. On the second host:
    1. Load the second test eBPF program by running the following command, and note the ID (see **Note 3** below):
       ```cmd
-      netsh ebpf add program decap_permit_packet.o xdp
+      netsh ebpf add program decap_permit_packet.o xdp_test
       ```
    2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    3. Run the following command (see **Note 3** below):

@@ -486,7 +486,7 @@ _delete_object_array_map(_Inout_ _Post_invalid_ ebpf_core_map_t* map, ebpf_objec
     for (uint32_t i = 0; i < map->ebpf_map_definition.max_entries; i++) {
         ebpf_id_t id = *(ebpf_id_t*)&map->data[i * map->ebpf_map_definition.value_size];
         if (id) {
-            ebpf_assert_success(EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type));
+            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
         }
     }
 
@@ -697,14 +697,7 @@ _update_array_map_entry_with_handle(
     uint8_t* entry = &map->data[*key * map->ebpf_map_definition.value_size];
     ebpf_id_t old_id = *(ebpf_id_t*)entry;
     if (old_id) {
-
-        // Release the reference on the old ID's id table entry. The object may have been already deleted, so an
-        // error return value of 'stale id' is ok.
-        result = EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
-        ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
-        if (result == EBPF_STALE_ID) {
-            result = EBPF_SUCCESS;
-        }
+        EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
     }
 
     if (value_object) {
@@ -766,13 +759,7 @@ _delete_array_map_entry_with_reference(
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)entry;
         if (id) {
-
-            // The object may have been already deleted, so an error return value of 'stale id' is ok.
-            result = EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
-            ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
-            if (result == EBPF_STALE_ID) {
-                result = EBPF_SUCCESS;
-            }
+            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, value_type);
         }
         _delete_array_map_entry(map, key);
     }
@@ -814,10 +801,9 @@ _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_
         ebpf_object_type_t value_type =
             (map->ebpf_map_definition.type == BPF_MAP_TYPE_PROG_ARRAY) ? EBPF_OBJECT_PROGRAM : EBPF_OBJECT_MAP;
         if (id != 0) {
-
-            // Note that this call might fail and that's fine.  The id might be valid, but the object might have been
-            // since deleted.
-            (void)EBPF_OBJECT_REFERENCE_BY_ID(id, value_type, &object);
+            // Find the object by id.
+            // Ignore the returned status as the object may have been deleted.
+            (void)ebpf_object_pointer_by_id(id, value_type, &object);
         }
     }
 
@@ -915,13 +901,7 @@ _delete_object_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
         }
         ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
-
-            // The object may have been already deleted, so an error return value of 'stale id' is ok.
-            result = EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
-            ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
-            if (result == EBPF_STALE_ID) {
-                result = EBPF_SUCCESS;
-            }
+            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
         }
     }
 
@@ -1293,7 +1273,9 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
     uint8_t* value = NULL;
     if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
-        (void)EBPF_OBJECT_REFERENCE_BY_ID(id, EBPF_OBJECT_MAP, &object);
+        if (ebpf_object_pointer_by_id(id, EBPF_OBJECT_MAP, &object) != EBPF_SUCCESS) {
+            object = NULL;
+        }
     }
 
     return object;
@@ -1426,14 +1408,7 @@ _update_hash_map_entry_with_handle(
 
     // Release the reference on the old ID stored here, if any.
     if (old_id) {
-
-        // Release the reference on the old ID's id table entry. The object may already have been deleted, so an
-        // error return value of 'stale id' is ok.
-        result = EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
-        ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
-        if (result == EBPF_STALE_ID) {
-            result = EBPF_SUCCESS;
-        }
+        EBPF_OBJECT_RELEASE_ID_REFERENCE(old_id, value_type);
     }
 
     // Acquire a reference to the id table entry for the new incoming id. This operation _cannot_ fail as we already
@@ -1470,13 +1445,7 @@ _delete_map_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key
     if (result == EBPF_SUCCESS) {
         ebpf_id_t id = *(ebpf_id_t*)value;
         if (id) {
-
-            // The object may have been already deleted, so an error return value of 'stale id' is ok.
-            result = EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
-            ebpf_assert(result == EBPF_SUCCESS || result == EBPF_STALE_ID);
-            if (result == EBPF_STALE_ID) {
-                result = EBPF_SUCCESS;
-            }
+            EBPF_OBJECT_RELEASE_ID_REFERENCE(id, EBPF_OBJECT_MAP);
         }
     }
 
@@ -1898,8 +1867,10 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer)
+ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
+    size_t producer_offset;
+    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, consumer_offset, &producer_offset);
     return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
 }
 
@@ -2035,7 +2006,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .get_object_from_entry = _get_object_from_hash_map_entry,
         .update_entry_with_handle = _update_map_hash_map_entry_with_handle,
         .delete_entry = _delete_map_hash_map_entry,
-        .next_key = _next_array_map_key,
+        .next_key = _next_hash_map_key,
     },
     {
         .map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
@@ -2183,7 +2154,7 @@ ebpf_map_create(
 
     const ebpf_map_metadata_table_t* table = &ebpf_map_metadata_tables[local_map->ebpf_map_definition.type];
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
-    result = EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, get_program_type);
+    result = EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, get_program_type);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -2250,11 +2221,7 @@ ebpf_map_find_entry(
         }
 
         ebpf_core_object_t* object = ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
-
-        // Release the extra reference obtained.
-        // REVIEW: is this safe?
         if (object) {
-            EBPF_OBJECT_RELEASE_REFERENCE(object);
             return_value = (uint8_t*)object;
         }
     } else {

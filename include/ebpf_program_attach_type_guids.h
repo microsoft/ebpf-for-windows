@@ -4,9 +4,6 @@
 
 #include "ebpf_windows.h"
 
-#include <stdbool.h>
-#include <stdint.h>
-
 #ifdef __cplusplus
 extern "C"
 {
@@ -80,6 +77,13 @@ extern "C"
      */
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_SAMPLE = {
         0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+
+    /** @brief Attach type for handling incoming packets as early as possible.
+     *
+     * Program type: \ref EBPF_PROGRAM_TYPE_XDP_TEST
+     */
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP_TEST = {
+        0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 
     //
     // Program Types.
@@ -157,6 +161,21 @@ extern "C"
      * Attach type(s): \ref EBPF_ATTACH_TYPE_SAMPLE
      */
     __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_SAMPLE = EBPF_PROGRAM_TYPE_SAMPLE_GUID;
+
+#define EBPF_PROGRAM_TYPE_XDP_TEST_GUID                                                \
+    {                                                                                  \
+        0xce8ccef8, 0x4241, 0x4975, { 0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c } \
+    }
+
+    /** @brief Program type for handling incoming packets as early as possible.
+     *
+     * eBPF program prototype: \ref xdp_test_hook_t
+     *
+     * Attach type(s): \ref EBPF_ATTACH_TYPE_XDP_TEST
+     *
+     * Helpers available: see bpf_helpers.h
+     */
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_XDP_TEST = EBPF_PROGRAM_TYPE_XDP_TEST_GUID;
 
 #ifdef __cplusplus
 }

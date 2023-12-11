@@ -667,11 +667,11 @@ TEST_CASE("program", "[execution_context]")
     end_to_end.initialize();
 
     program_info_provider_t program_info_provider;
-    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
-        EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
+        EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, program_name, section_name};
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
@@ -734,20 +734,20 @@ TEST_CASE("program", "[execution_context]")
             program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
-    bind_md_t ctx{0};
+    sample_program_context_t ctx{0};
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
     ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
-    std::vector<uint8_t> input_buffer(10);
-    std::vector<uint8_t> output_buffer(10);
     ebpf_program_test_run_options_t options = {0};
-    options.data_in = input_buffer.data();
-    options.data_size_in = input_buffer.size();
-    options.data_out = output_buffer.data();
-    options.data_size_out = output_buffer.size();
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
     options.repeat_count = 10;
+    options.context_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    options.context_size_in = sizeof(in_ctx);
+    options.context_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    options.context_size_out = sizeof(out_ctx);
 
     ebpf_async_wrapper_t async_context;
     uint64_t unused_completion_context = 0;
@@ -793,30 +793,30 @@ TEST_CASE("program", "[execution_context]")
 
     // Correct attach type, but wrong program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_XDP);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
 
     // Wrong attach type, but correct program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_BIND);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_BIND);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
 
     // Correct attach type and correct program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
 
         // Attach should succeed.
@@ -896,11 +896,13 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
     struct _completion
     {
         uint8_t* buffer = nullptr;
+        size_t consumer_offset = 0;
         ebpf_ring_buffer_map_async_query_result_t async_query_result = {};
         uint64_t value{};
     } completion;
 
-    REQUIRE(ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer) == EBPF_SUCCESS);
+    REQUIRE(
+        ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
 
     REQUIRE(
         ebpf_async_set_completion_callback(

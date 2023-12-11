@@ -99,6 +99,18 @@ extern "C"
             TraceLoggingLong(result, "Error"));                                                 \
     }
 
+#define EBPF_LOG_FUNCTION_RESULT(result)                                                        \
+    if (TraceLoggingProviderEnabled(                                                            \
+            ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE)) { \
+        TraceLoggingWrite(                                                                      \
+            ebpf_tracelog_provider,                                                             \
+            EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                                \
+            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                                          \
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE),                                    \
+            TraceLoggingString(__FUNCTION__ " returned result", "Message"),                     \
+            TraceLoggingLong(result, "Result"));                                                \
+    }
+
 #define EBPF_LOG_ENTRY()                                                                                       \
     if (TraceLoggingProviderEnabled(                                                                           \
             ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_FUNCTION_ENTRY_EXIT)) { \
@@ -208,6 +220,13 @@ extern "C"
                 TraceLoggingInt32(local_fd, #fd));                                                  \
         }                                                                                           \
         return local_fd;                                                                            \
+    } while (false);
+
+#define EBPF_RETURN_FUNCTION_RESULT(result)     \
+    ebpf_result_t local_result = (result);      \
+    do {                                        \
+        EBPF_LOG_FUNCTION_RESULT(local_result); \
+        return local_result;                    \
     } while (false);
 
     void

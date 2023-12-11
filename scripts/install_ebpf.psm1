@@ -34,6 +34,26 @@ function Unregister-eBPFComponents
 
     # Delete the eBPF netsh helper.
     netsh delete helper ebpfnetsh.dll 2>&1 | Write-Log
+
+    # Execute "export_program_info.exe --clear"
+    if (Test-Path -Path "export_program_info.exe") {
+        .\export_program_info.exe --clear
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info.exe --clear'.");
+        } else {
+            Write-Log "'export_program_info.exe --clear' succeeded." -ForegroundColor Green
+        }
+    }
+
+    # Execute "export_program_info_sample.exe --clear"
+    if (Test-Path -Path "export_program_info_sample.exe") {
+        .\export_program_info_sample.exe --clear
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info_sample.exe --clear'.");
+        } else {
+            Write-Log "'export_program_info_sample.exe --clear' succeeded." -ForegroundColor Green
+        }
+    }
 }
 
 #
@@ -44,6 +64,24 @@ function Register-eBPFComponents
 {
     # Uninstall previous installations (if any).
     Unregister-eBPFComponents
+
+    # Export program info.
+    if (Test-Path -Path "export_program_info.exe") {
+        .\export_program_info.exe
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info.exe'.");
+        } else {
+            Write-Log "'export_program_info.exe' succeeded." -ForegroundColor Green
+        }
+    }
+    if (Test-Path -Path "export_program_info_sample.exe") {
+        .\export_program_info_sample.exe
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info_sample.exe'.");
+        } else {
+            Write-Log "'export_program_info_sample.exe' succeeded." -ForegroundColor Green
+        }
+    }
 
     # Install drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
@@ -94,16 +132,71 @@ function Enable-KMDFVerifier
 }
 
 #
+# Start file/memory based wpr tracing (if enabled).
+#
+function Start-WPRTrace
+{
+    param([parameter(Mandatory=$true)][bool] $KmTracing,
+          [parameter(Mandatory=$true)][string] $KmTraceType)
+
+    Write-Log ("kernel mode ETW tracing: " + $KmTracing)
+
+    if ($KmTracing) {
+        if ($KmTraceType -eq "file") {
+            Write-Log "Starting KM ETW tracing (File)"
+            $ProcInfo = Start-Process -FilePath "wpr.exe" `
+                -ArgumentList "-start EbpfForWindows.wprp!EbpfForWindowsProvider-File -filemode" `
+                -NoNewWindow -Wait -PassThru `
+                -RedirectStandardError .\StdErr.txt
+        } else {
+            Write-Log "Starting KM ETW tracing (Memory)"
+            $ProcInfo = Start-Process -FilePath "wpr.exe" `
+                -ArgumentList "-start EbpfForWindows.wprp!EbpfForWindowsProvider-Memory" `
+                -NoNewWindow -Wait -PassThru `
+                -RedirectStandardError .\StdErr.txt
+        }
+
+        if ($ProcInfo.ExitCode -ne 0) {
+            Write-log ("wpr.exe start ETL trace failed. Exit code: " + $ProcInfo.ExitCode)
+            Write-log "wpr.exe (start) error output: "
+            foreach ($line in get-content -Path .\StdErr.txt) {
+                write-log ( "`t" + $line)
+            }
+            throw "Start ETL trace failed."
+        }
+        Write-Log ("Start ETL trace success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n")
+
+        Write-Log "Query ETL tracing status after trace start"
+        $ProcInfo = Start-Process -FilePath "wpr.exe" `
+            -ArgumentList "-status profiles collectors -details" `
+            -NoNewWindow -Wait -PassThru `
+            -RedirectStandardOut .\StdOut.txt -RedirectStandardError .\StdErr.txt
+        if ($ProcInfo.ExitCode -ne 0) {
+            Write-log ("wpr.exe query ETL trace status failed. Exit code: " + $ProcInfo.ExitCode)
+            Write-log "wpr.exe (query) error output: "
+            foreach ($line in get-content -Path .\StdErr.txt) {
+                write-log ( "`t" + $line)
+            }
+            throw "Query ETL trace status failed."
+        } else {
+            Write-log "wpr.exe (query) results: "
+            foreach ($line in get-content -Path .\StdOut.txt) {
+                write-log ( "  `t" + $line)
+            }
+        }
+        Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
+    }
+}
+
+#
 # Start service and drivers.
 #
 function Start-eBPFComponents
 {
-    param([parameter(Mandatory=$false)] [bool] $Tracing = $false)
+    param([parameter(Mandatory=$true)] [bool] $KmTracing,
+          [parameter(Mandatory=$true)] [string] $KmTraceType)
 
-    if ($Tracing) {
-        Write-Log "Starting ETW tracing"
-        Start-Process -FilePath "wpr.exe" -ArgumentList @("-start", "EbpfForWindows.wprp", "-filemode") -NoNewWindow -Wait
-    }
+    Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
 
     # Start drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
@@ -122,7 +215,8 @@ function Start-eBPFComponents
 
 function Install-eBPFComponents
 {
-    param([parameter(Mandatory=$false)] [bool] $Tracing = $false,
+    param([parameter(Mandatory=$true)] [bool] $KmTracing,
+          [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
     # Stop eBPF Components
@@ -148,7 +242,7 @@ function Install-eBPFComponents
     }
 
     # Start all components.
-    Start-eBPFComponents -Tracing $Tracing
+    Start-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType
 }
 
 function Stop-eBPFComponents

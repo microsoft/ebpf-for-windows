@@ -64,18 +64,20 @@ function Update-ExpectedOutput
     $SampleFiles = Get-ChildItem -Path $SamplePath | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
     $CustomSampleFiles = Get-ChildItem -Path $SamplePath\custom_program_type | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
     $UnsafeSampleFiles = Get-ChildItem -Path $SamplePath\unsafe | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
+    $UndockedSampleFiles = Get-ChildItem -Path $SamplePath\undocked | Where-Object {$_.PSIsContainer -eq $false} | Select-Object -Property Name
 
     $SampleFiles += $CustomSampleFiles
     $SampleFiles += $UnsafeSampleFiles
+    $SampleFiles += $UndockedSampleFiles
 
     Set-Location $BuildPath
     foreach ($file in $SampleFiles)
     {
         $additional_options = ""
-        # If file is in the set $CustomSampleFiles, then add the --type xdp option.
+        # If file is in the set $CustomSampleFiles, then add the --type bind option.
         if ($CustomSampleFiles -contains $file)
         {
-            $additional_options = "--type xdp"
+            $additional_options = "--type bind"
         }
 
         # If file is in the set $UnsafeSampleFiles, then add the --no-verify option.
