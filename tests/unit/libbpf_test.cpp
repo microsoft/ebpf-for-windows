@@ -2775,14 +2775,16 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
         attr.value = (uintptr_t)&value;
         REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr)) == 0);
     }
-    // Lookup the first key in the map, so to check it's returned later.
+
+    // Look up the first key in the map, so we can check that it's returned later.
     memset(&attr, 0, sizeof(attr));
     attr.map_fd = map_fd;
     attr.key = NULL;
     attr.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) == 0);
     uint64_t first_key = next_key;
-    // Lookup a key that is not present in the map, and check that the first key is returned.
+
+    // Look up a key that is not present in the map, and check that the first key is returned.
     key = 123;
     memset(&attr, 0, sizeof(attr));
     attr.map_fd = map_fd;
