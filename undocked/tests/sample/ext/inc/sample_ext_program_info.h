@@ -8,11 +8,13 @@
  */
 
 #include "ebpf_program_attach_type_guids.h" // TODO(issue #2305): remove this include.
-#include "ebpf_shared_framework.h"
 #include "ebpf_structs.h"
 #include "sample_ext_helpers.h"
 
 #define SAMPLE_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
+
+#define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
+#define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 
 static const ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),

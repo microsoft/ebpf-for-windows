@@ -14,7 +14,8 @@ static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_fu
     {XDP_EXT_HELPER_FUNCTION_START + 1,
      "bpf_xdp_adjust_head",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
+     HELPER_FUNCTION_REALLOCATE_PACKET}};
 
 // XDP_TEST program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {

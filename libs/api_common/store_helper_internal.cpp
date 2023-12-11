@@ -4,6 +4,7 @@
 #include "..\libs\store_helper\user\ebpf_registry_helper.h"
 #include "ebpf_program_attach_type_guids.h"
 #include "ebpf_serialize.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_utilities.h"
 #include "store_helper_internal.h"
@@ -49,8 +50,9 @@ _load_helper_prototype(
 
         // Read serialized helper prototype information.
         char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
+        bool reallocate_packet = false;
         size_t expected_size = sizeof(helper_prototype->helper_id) + sizeof(helper_prototype->return_type) +
-                               sizeof(helper_prototype->arguments);
+                               sizeof(helper_prototype->arguments) + sizeof(reallocate_packet);
 
         status = ebpf_read_registry_value_binary(
             helper_info_key, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)serialized_data, expected_size);
@@ -69,6 +71,10 @@ _load_helper_prototype(
 
         memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
         offset += sizeof(helper_prototype->arguments);
+
+        memcpy(&reallocate_packet, serialized_data + offset, sizeof(reallocate_packet));
+        helper_prototype->reallocate_packet = reallocate_packet ? HELPER_FUNCTION_REALLOCATE_PACKET : 0;
+        offset += sizeof(reallocate_packet);
 
         helper_prototype->name =
             cxplat_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
@@ -752,6 +758,60 @@ Exit:
     if (root_handle) {
         ebpf_close_registry_key(root_handle);
     }
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_store_key_t root_key = NULL;
+    ebpf_store_key_t provider_key = NULL;
+    ebpf_store_key_t helper_info_key = NULL;
+    wchar_t* helper_name = ebpf_get_wstring_from_string(helper_info->name);
+    if (helper_name == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    // Open root registry key.
+    result = ebpf_open_registry_key(ebpf_store_root_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Open "providers" registry key.
+    result = ebpf_open_registry_key(root_key, EBPF_PROVIDERS_REGISTRY_PATH, REG_CREATE_FLAGS, &provider_key);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    // Open (or create) global helpers key.
+    result =
+        ebpf_open_registry_key(provider_key, EBPF_GLOBAL_HELPERS_REGISTRY_PATH, REG_DELETE_FLAGS, &helper_info_key);
+    if (result != EBPF_SUCCESS) {
+        if (result == EBPF_FILE_NOT_FOUND) {
+            result = EBPF_SUCCESS;
+        }
+        goto Exit;
+    }
+
+    result = ebpf_delete_registry_tree(helper_info_key, helper_name);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+Exit:
+    ebpf_free(helper_name);
+    ebpf_close_registry_key(helper_info_key);
+    ebpf_close_registry_key(provider_key);
 
     return result;
 }

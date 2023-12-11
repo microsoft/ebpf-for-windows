@@ -130,6 +130,7 @@ Helper function IDs for different program types need not be unique.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the
 helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
+* `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
@@ -365,23 +366,6 @@ The *Execution Context* discovers the program type associated with a section pre
 When an eBPF extension is installed, it must update the eBPF store with the program types it implements along with the associated section prefixes.
 
 To operate on the eBPF store, the extension must link the `\lib\ebpf_store_helper_km.lib` kernel-mode library and include the related `\include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the extension can use the following APIs to register program types, attach types and helper functions:
-
-- `ebpf_store_update_helper_prototype`: updates the program type specific helper information in the eBPF store, given a pointer to the store key to be initialized and a pointer to the helper function prototype (i.e., `_ebpf_helper_function_prototype`):
-
-    ```c
-    ebpf_result_t
-    ebpf_store_update_helper_prototype(
-        ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
-    ```c
-    ```
-
-- `ebpf_store_update_global_helper_information`: updates the global helper information in the eBPF store, given a pointer to an array of helper function prototypes:
-
-    ```c
-    ebpf_result_t
-    ebpf_store_update_global_helper_information(
-        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
-    ```
 
 - `ebpf_store_update_section_information`: updates the section information in the eBPF store, given a pointer to an array of section information (i.e., `_ebpf_program_section_info`):
 

@@ -7,7 +7,6 @@
  * Registers as an eBPF extension program information provider and hook provider.
  */
 
-#include "ebpf_platform.h"
 #include "sample_ext.h"
 #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"

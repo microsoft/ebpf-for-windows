@@ -14,7 +14,7 @@ on:
   # Trigger the workflow when a release-tag is created.
   push:
     tags:
-      - 'Release v0.*' # To be updated on GA, and after that on every major release.
+      - 'Release-v0.*' # To be updated on GA, and after that on every major release.
 
   # Permit manual runs of the workflow.
   workflow_dispatch:
