@@ -121,10 +121,10 @@ As a result of creating new release or servicing an existing one, the following 
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
 1. Attach the `.msi`, the (non-redist) `.nupkg`, and the `Build-x64-native-only-[Release|Debug].X.Y.Z.zip` build (from the CI/CD artifacts), by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.11.0` should be:
 
+    - *Build-x64-native-only-Debug.0.11.0.zip*
     - *Build-x64-native-only-Release.0.11.0.zip*
     - *ebpf-for-windows.0.11.0.msi*
     - *eBPF-for-Windows.0.11.0.nupkg*
-    - *Build-x64-native-only-Debug.0.11.0.zip*
 
 1. Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1. Once the uploads are complete, click "`Publish release`".
