@@ -1667,6 +1667,18 @@ Exit:
         _net_ebpf_ext_insert_connection_context_to_list(blocked_connection_context);
 
         InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+    } else {
+        // Remove any 'stale' connection context if found.
+        // A stale context is expected in the case of connected UDP, where the connect()
+        // call results in WFP invoking the callout at the connect_redirect layer, and the
+        // send() call results in WFP invoking the callout at the connect_redirect layer (again),
+        // followed by the connect layer.
+        net_ebpf_extension_connection_context_t* stale_connection_context =
+            _net_ebpf_ext_get_and_remove_connection_context(
+                incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+        if (stale_connection_context) {
+            ExFreePool(stale_connection_context);
+        }
     }
     // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT.
     // If the eBPF program was invoked and it returned a REJECT verdict, it would be enforced by the callout at
