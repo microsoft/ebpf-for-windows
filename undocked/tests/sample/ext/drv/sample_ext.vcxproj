@@ -211,9 +211,6 @@
     <ProjectReference Include="..\..\..\..\..\external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj">
       <Project>{1ebe3966-7dc4-49b4-b840-3d33d63415ec}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\libs\store_helper\kernel\ebpf_store_helper_km.vcxproj">
-      <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -9,7 +9,6 @@
  */
 
 #include "ebpf_shared_framework.h"
-#include "ebpf_store_helper.h"
 #include "net_ebpf_ext_sock_ops.h"
 
 //
@@ -249,38 +248,6 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
-static NTSTATUS
-_net_ebpf_sock_ops_update_store_entries()
-{
-    NTSTATUS status;
-
-    // Update section information.
-    uint32_t section_info_count = sizeof(_ebpf_sock_ops_section_info) / sizeof(ebpf_program_section_info_t);
-    status = ebpf_store_update_section_information(&_ebpf_sock_ops_section_info[0], section_info_count);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-            "ebpf_store_update_section_information failed.",
-            status);
-        goto Exit;
-    }
-
-    // Update program information.
-    status = ebpf_store_update_program_information(&_ebpf_sock_ops_program_info, 1);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-            "ebpf_store_update_program_information failed.",
-            status);
-        goto Exit;
-    }
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
 NTSTATUS
 net_ebpf_ext_sock_ops_register_providers()
 {
@@ -292,16 +259,6 @@ net_ebpf_ext_sock_ops_register_providers()
         &_ebpf_sock_ops_program_info_provider_moduleid, &_ebpf_sock_ops_program_info_provider_data};
 
     NET_EBPF_EXT_LOG_ENTRY();
-
-    status = _net_ebpf_sock_ops_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-            "_net_ebpf_sock_ops_update_store_entries failed.",
-            status);
-        goto Exit;
-    }
 
     // Set the program type as the provider module id.
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;

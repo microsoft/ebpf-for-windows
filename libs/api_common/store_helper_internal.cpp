@@ -11,7 +11,6 @@
 #include "utilities.hpp"
 
 ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
-ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 
 static ebpf_result_t
 _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
@@ -19,13 +18,9 @@ _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
     // Open root registry path.
     *store_key = nullptr;
 
-    // First try to open the HKCU registry key.
+    // Open the HKCU registry key.
     ebpf_result_t result =
         ebpf_open_registry_key(root_registry_key_current_user, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
-    if (result != ERROR_SUCCESS) {
-        // Failed to open ebpf store path in HKCU. Fall back to HKLM.
-        result = ebpf_open_registry_key(root_registry_key_local_machine, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
-    }
 
     return result;
 }

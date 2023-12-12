@@ -240,11 +240,6 @@ ebpf_core_initiate()
         goto Done;
     }
 
-    return_value = ebpf_update_global_helpers(ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
 
 Done:
