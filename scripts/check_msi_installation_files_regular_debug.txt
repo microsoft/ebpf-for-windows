@@ -99,7 +99,6 @@ C:\Program Files\ebpf-for-windows\include\uapi\linux\tcp.h
 C:\Program Files\ebpf-for-windows\JIT\ebpfsvc.exe
 C:\Program Files\ebpf-for-windows\JIT\EbpfSvc.pdb
 C:\Program Files\ebpf-for-windows\lib\EbpfApi.lib
-C:\Program Files\ebpf-for-windows\lib\ebpf_store_helper_km.lib
 C:\Program Files\ebpf-for-windows\scripts\Convert-BpfToNative.ps1
 C:\Program Files\ebpf-for-windows\testing\api_test.exe
 C:\Program Files\ebpf-for-windows\testing\api_test.pdb
