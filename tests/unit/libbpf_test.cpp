@@ -2694,7 +2694,7 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.map_type = BPF_MAP_TYPE_HASH;
     attr.key_size = sizeof(uint32_t);
     attr.value_size = sizeof(uint32_t);
-    attr.max_entries = 2;
+    attr.max_entries = 3;
     attr.map_flags = 0;
     int map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
     REQUIRE(map_fd > 0);
@@ -2764,6 +2764,34 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     attr.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
+
+    // Test that the bpf_map_get_next_key returns the first key of the map if the previous key is not found.
+    // Add 3 entries into the now empty map.
+    for (key = 100; key < 400; key += 100) {
+        value = 0;
+        memset(&attr, 0, sizeof(attr));
+        attr.map_fd = map_fd;
+        attr.key = (uintptr_t)&key;
+        attr.value = (uintptr_t)&value;
+        REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr)) == 0);
+    }
+
+    // Look up the first key in the map, so we can check that it's returned later.
+    memset(&attr, 0, sizeof(attr));
+    attr.map_fd = map_fd;
+    attr.key = NULL;
+    attr.next_key = (uintptr_t)&next_key;
+    REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) == 0);
+    uint64_t first_key = next_key;
+
+    // Look up a key that is not present in the map, and check that the first key is returned.
+    key = 123;
+    memset(&attr, 0, sizeof(attr));
+    attr.map_fd = map_fd;
+    attr.key = (uintptr_t)&key;
+    attr.next_key = (uintptr_t)&next_key;
+    REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) == 0);
+    REQUIRE(next_key == first_key);
 
     Platform::_close(map_fd);
 }
