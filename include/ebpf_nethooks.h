@@ -7,7 +7,7 @@
 // exposed by netebpfext.sys for use by eBPF programs.
 
 // XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
-typedef struct xdp_md_
+typedef struct xdp_md
 {
     void* data;               ///< Pointer to start of packet data.
     void* data_end;           ///< Pointer to end of packet data.
