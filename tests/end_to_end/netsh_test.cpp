@@ -312,7 +312,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
         output == "\n"
                   "\n"
                   "Verification succeeded\n"
-                  "Program terminates within 6 instructions\n");
+                  "Program terminates within 0 loop iterations\n");
 }
 
 TEST_CASE("show verification droppacket.o", "[netsh][verification]")
@@ -327,7 +327,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
         output == "\n"
                   "\n"
                   "Verification succeeded\n"
-                  "Program terminates within 157 instructions\n");
+                  "Program terminates within 0 loop iterations\n");
 }
 
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
