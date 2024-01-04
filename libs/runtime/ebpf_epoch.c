@@ -162,8 +162,9 @@ static KDPC _ebpf_epoch_timer_dpc;
  */
 typedef enum _ebpf_epoch_allocation_type
 {
-    EBPF_EPOCH_ALLOCATION_MEMORY,    ///< Memory allocation.
-    EBPF_EPOCH_ALLOCATION_WORK_ITEM, ///< Work item.
+    EBPF_EPOCH_ALLOCATION_MEMORY,          ///< Memory allocation.
+    EBPF_EPOCH_ALLOCATION_WORK_ITEM,       ///< Work item.
+    EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION, ///< Synchronization object.
 } ebpf_epoch_allocation_type_t;
 
 /**
@@ -188,6 +189,12 @@ typedef struct _ebpf_epoch_work_item
     void* callback_context;                                ///< Context to pass to the callback.
     const void (*callback)(_Inout_ void* context);         ///< Callback to invoke.
 } ebpf_epoch_work_item_t;
+
+typedef struct _ebpf_epoch_synchronization
+{
+    ebpf_epoch_allocation_header_t header; ///< Header used to insert the item into the free list.
+    KEVENT event;                          ///< Event to signal.
+} ebpf_epoch_synchronization_t;
 
 /**
  * @brief Rundown reference used to wait for all work items to complete.
@@ -516,18 +523,26 @@ ebpf_epoch_cancel_work_item(_In_opt_ _Frees_ptr_opt_ ebpf_epoch_work_item_t* wor
     cxplat_release_rundown_protection(&_ebpf_epoch_work_item_rundown_ref);
 }
 
-void
-ebpf_epoch_flush()
+_IRQL_requires_max_(PASSIVE_LEVEL) void ebpf_epoch_synchronize()
 {
     if (!_ebpf_epoch_cpu_table) {
         return;
     }
 
+    // Allocate on stack to avoid out of memory issues.
+    ebpf_epoch_synchronization_t synchronization = {0};
+    synchronization.header.entry_type = EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION;
+
+    KeInitializeEvent(&synchronization.event, NotificationEvent, false);
+    _ebpf_epoch_insert_in_free_list(&synchronization.header);
+
+    // Trigger epoch computation.
     ebpf_epoch_cpu_message_t message = {0};
     message.message_type = EBPF_EPOCH_CPU_MESSAGE_TYPE_PROPOSE_RELEASE_EPOCH;
     message.wake_behavior = EBPF_WORK_QUEUE_WAKEUP_ON_INSERT;
-
     _ebpf_epoch_send_message_and_wait(&message, 0);
+
+    KeWaitForSingleObject(&synchronization.event, Executive, KernelMode, false, NULL);
 }
 
 bool
@@ -567,6 +582,12 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
             case EBPF_EPOCH_ALLOCATION_WORK_ITEM: {
                 ebpf_epoch_work_item_t* work_item = CONTAINING_RECORD(header, ebpf_epoch_work_item_t, header);
                 cxplat_queue_preemptible_work_item(work_item->preemptible_work_item);
+                break;
+            }
+            case EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION: {
+                ebpf_epoch_synchronization_t* synchronization =
+                    CONTAINING_RECORD(header, ebpf_epoch_synchronization_t, header);
+                KeSetEvent(&synchronization->event, 0, false);
                 break;
             }
             default:
@@ -637,6 +658,12 @@ _ebpf_epoch_insert_in_free_list(_In_ ebpf_epoch_allocation_header_t* header)
         case EBPF_EPOCH_ALLOCATION_WORK_ITEM: {
             ebpf_epoch_work_item_t* work_item = CONTAINING_RECORD(header, ebpf_epoch_work_item_t, header);
             cxplat_queue_preemptible_work_item(work_item->preemptible_work_item);
+            break;
+        }
+        case EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION: {
+            ebpf_epoch_synchronization_t* synchronization =
+                CONTAINING_RECORD(header, ebpf_epoch_synchronization_t, header);
+            KeSetEvent(&synchronization->event, 0, false);
             break;
         }
         default:
