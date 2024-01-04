@@ -90,7 +90,8 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     .program_type_specific_helper_function_addresses = &_ebpf_xdp_test_helper_function_address_table,
     .context_create = _ebpf_xdp_context_create,
     .context_destroy = _ebpf_xdp_context_delete,
-    .required_irql = DISPATCH_LEVEL,
+    .minimum_irql = DISPATCH_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
 };
 
 static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {

@@ -401,6 +401,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     bpf_object_ptr unique_object;
     fd_t program_fd;
     bpf_link_ptr link;
+    emulate_dpc_t dpc(0);
 
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
@@ -500,6 +501,111 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook_result == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
+irql_low_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "droppacket_um.dll" : "droppacket.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+    fd_t dropped_packet_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "dropped_packet_map");
+
+    // Tell the program which interface to filter on.
+    fd_t interface_index_map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "interface_index_map");
+    uint32_t key = 0;
+    uint32_t if_index = TEST_IFINDEX;
+    REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Attach only to the single interface being tested.
+    REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+
+    // Create a 0-byte UDP packet.
+    auto packet0 = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
+
+    uint64_t value = 1000;
+    REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+
+    // Test that we drop the packet and increment the map.
+    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+
+    uint32_t hook_result;
+    REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_INVALID_ARGUMENT);
+
+    // Should not have run due IRQL too low.
+    REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value == 1000);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
+irql_high_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    bpf_link_ptr link;
+    fd_t program_fd;
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    // Note: We are deliberately using "bindmonitor_um.dll" here as we want the programs to be loaded from
+    // the individual dll, instead of the combined DLL. This helps in testing the DLL stub which is generated
+    // bpf2c.exe tool.
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_um.dll" : "bindmonitor.o");
+
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
+    uint32_t ifindex = 0;
+    REQUIRE(hook.attach_link(program_fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+
+    bind_md_t ctx = {};
+
+    emulate_dpc_t emulate_dpc(0);
+
+    uint32_t result_value;
+    REQUIRE(hook.fire(&ctx, &result_value) == EBPF_INVALID_ARGUMENT);
 
     hook.detach_and_close_link(&link);
 
@@ -1013,6 +1119,8 @@ DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_b
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
+DECLARE_ALL_TEST_CASES("irql_low_test", "[end_to_end]", irql_low_test);
+DECLARE_ALL_TEST_CASES("irql_high_test", "[end_to_end]", irql_high_test);
 
 TEST_CASE("enum section", "[end_to_end]")
 {
@@ -1691,6 +1799,8 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    emulate_dpc_t dpc(0);
+
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
@@ -1736,6 +1846,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    emulate_dpc_t dpc(0);
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;
@@ -1865,6 +1976,7 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    emulate_dpc_t dpc(0);
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP_TEST, EBPF_ATTACH_TYPE_XDP_TEST);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t xdp_program_info;

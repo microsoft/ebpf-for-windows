@@ -79,7 +79,8 @@ typedef struct _ebpf_program_data
         global_helper_function_addresses;           ///< Pointer to global helper function addresses being overriden.
     ebpf_program_context_create_t context_create;   ///< Pointer to context create function.
     ebpf_program_context_destroy_t context_destroy; ///< Pointer to context destroy function.
-    uint8_t required_irql;                          ///< IRQL at which the program is invoked.
+    uint8_t minimum_irql;                           ///< Minimum IRQL at which the program can be invoked.
+    uint8_t maximum_irql;                           ///< Maximum IRQL at which the program can be invoked.
 } ebpf_program_data_t;
 
 typedef struct _ebpf_program_section_info

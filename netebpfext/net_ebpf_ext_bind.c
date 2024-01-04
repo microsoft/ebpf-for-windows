@@ -60,7 +60,8 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     .program_info = &_ebpf_bind_program_info,
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
-    .required_irql = PASSIVE_LEVEL,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = PASSIVE_LEVEL,
 };
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {

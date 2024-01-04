@@ -73,7 +73,8 @@ functions that override the global helper functions provided by the eBPF runtime
 structure from provided data and context buffers.
 * `context_destroy`: Pointer to `ebpf_program_context_destroy_t` function that destroys a program type specific
 context structure and populates the returned data and context buffers.
-* `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
+* `minimum_irql`: The lowest IRQL at which the eBPF program can be invoked.
+* `maximum_irql`: The highest IRQL at which the eBPF program can be invoked.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
@@ -182,8 +183,7 @@ implementations that override the global helper function implementations provide
 This optional function is used to build a program type specific context structure that is used when an application
 calls `bpf_prog_test_run_opts`. The application optionally passes in flat buffers representing the data and the context
 structure to be passed to the eBPF program. The extension then constructs a context structure to be passed to the eBPF
-program. Note: If `ebpf_program_context_create_t` is present, then `ebpf_program_context_destroy_t` and `required_irql`
-must be set.
+program. Note: If `ebpf_program_context_create_t` is present, then `ebpf_program_context_destroy_t` must be set.
 
 ### `ebpf_program_context_destroy_t` Function
 This optional function is used to populate the flat buffers representing the data and context structures that are

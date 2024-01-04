@@ -484,7 +484,8 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
     .context_create = &_ebpf_sock_addr_context_create,
     .context_destroy = &_ebpf_sock_addr_context_destroy,
-    .required_irql = DISPATCH_LEVEL,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
 };
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {

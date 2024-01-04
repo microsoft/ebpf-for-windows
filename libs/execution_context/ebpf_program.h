@@ -410,6 +410,19 @@ extern "C"
     size_t
     ebpf_program_get_state_index();
 
+    /**
+     * @brief Get the minimum and maximum IRQL at which the program can be invoked.
+     *
+     * @param[in] program The program to query.
+     * @param[out] minimum_irql The minimum IRQL at which the program can be invoked.
+     * @param[out] maximum_irql The maximum IRQL at which the program can be invoked.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The program is not in a valid state.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_get_irql_range(
+        _In_ const ebpf_program_t* program, _Out_ uint8_t* minimum_irql, _Out_ uint8_t* maximum_irql);
+
 #ifdef __cplusplus
 }
 #endif

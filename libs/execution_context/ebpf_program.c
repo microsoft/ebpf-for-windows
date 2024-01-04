@@ -431,11 +431,11 @@ _ebpf_program_type_specific_program_information_attach_provider(
         goto Done;
     }
 
-    if (program_data->required_irql > HIGH_LEVEL) {
+    if (program_data->maximum_irql > HIGH_LEVEL) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "An extension cannot have required_irql higher than HIGH_LEVEL",
+            "An extension cannot have maximum_irql higher than HIGH_LEVEL",
             &program->parameters.program_type);
         status = STATUS_INVALID_PARAMETER;
         goto Done;
@@ -2352,7 +2352,7 @@ ebpf_program_execute_test_run(
 
     test_run_context->program = program;
     test_run_context->program_data = program_data;
-    test_run_context->required_irql = program_data->required_irql;
+    test_run_context->required_irql = program_data->maximum_irql;
     test_run_context->context = context;
     test_run_context->options = options;
     test_run_context->async_context = async_context;
@@ -2438,4 +2438,18 @@ size_t
 ebpf_program_get_state_index()
 {
     return _ebpf_program_state_index;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_get_irql_range(
+    _In_ const ebpf_program_t* program, _Out_ uint8_t* minimum_irql, _Out_ uint8_t* maximum_irql)
+{
+    if (program->info_extension_provider_data == NULL) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_program_data_t* program_data = (ebpf_program_data_t*)program->info_extension_provider_data->data;
+    *minimum_irql = program_data->minimum_irql;
+    *maximum_irql = program_data->maximum_irql;
+    return EBPF_SUCCESS;
 }

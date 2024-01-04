@@ -507,6 +507,30 @@ _ebpf_link_instance_invoke_batch_begin(
     }
     provider_reference_held = true;
 
+    uint8_t maximum_irql;
+    uint8_t minimum_irql;
+
+    return_value = ebpf_program_get_irql_range(link->program, &minimum_irql, &maximum_irql);
+    if (return_value != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Query of program maximum IRQL failed.",
+            return_value);
+        goto Done;
+    }
+
+    if ((execution_context_state->current_irql > maximum_irql) ||
+        (execution_context_state->current_irql < minimum_irql)) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Program cannot be invoked at current IRQL.",
+            execution_context_state->current_irql);
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
 Done:
     if (return_value != EBPF_SUCCESS && provider_reference_held) {
         ebpf_program_dereference_providers(link->program);

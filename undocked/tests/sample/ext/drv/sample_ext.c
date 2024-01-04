@@ -74,7 +74,10 @@ static ebpf_program_data_t _sample_ebpf_extension_program_data = {
     .program_type_specific_helper_function_addresses = &_sample_ebpf_extension_helper_function_address_table,
     .global_helper_function_addresses = &_sample_global_helper_function_address_table,
     .context_create = &_sample_context_create,
-    .context_destroy = &_sample_context_destroy};
+    .context_destroy = &_sample_context_destroy,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
+};
 
 static const ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data = {
     SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION,

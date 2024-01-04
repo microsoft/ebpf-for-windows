@@ -629,40 +629,56 @@ static const ebpf_program_info_t _mock_xdp_program_info = {
     _xdp_test_ebpf_extension_helper_function_prototype};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
-    &_mock_xdp_program_info,
-    &_mock_xdp_helper_function_address_table,
-    nullptr,
-    _xdp_context_create,
-    _xdp_context_destroy};
+    .program_info = &_mock_xdp_program_info,
+    .program_type_specific_helper_function_addresses = &_mock_xdp_helper_function_address_table,
+    .context_create = _xdp_context_create,
+    .context_destroy = _xdp_context_destroy,
+    .minimum_irql = DISPATCH_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _mock_xdp_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_mock_xdp_program_data), &_mock_xdp_program_data};
 
 // XDP_TEST.
 static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-    &_ebpf_xdp_test_program_info,
-    &_mock_xdp_helper_function_address_table,
-    nullptr,
-    _xdp_context_create,
-    _xdp_context_destroy};
+    .program_info = &_ebpf_xdp_test_program_info,
+    .program_type_specific_helper_function_addresses = &_mock_xdp_helper_function_address_table,
+    .context_create = _xdp_context_create,
+    .context_destroy = _xdp_context_destroy,
+    .minimum_irql = DISPATCH_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
 
 // Bind.
-static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
+static ebpf_program_data_t _ebpf_bind_program_data = {
+    .program_info = &_ebpf_bind_program_info,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = PASSIVE_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
 
 // CGROUP_SOCK_ADDR.
-static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_program_info, NULL};
+static ebpf_program_data_t _ebpf_sock_addr_program_data = {
+    .program_info = &_ebpf_sock_addr_program_info,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
 
 // SOCK_OPS.
-static ebpf_program_data_t _ebpf_sock_ops_program_data = {&_ebpf_sock_ops_program_info, NULL};
+static ebpf_program_data_t _ebpf_sock_ops_program_data = {
+    .program_info = &_ebpf_sock_ops_program_info,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_sock_ops_program_info_provider_data = {
     TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_ops_program_data), &_ebpf_sock_ops_program_data};
@@ -682,11 +698,13 @@ static ebpf_helper_function_addresses_t _test_global_helper_function_address_tab
     EBPF_COUNT_OF(_test_global_helper_functions), (uint64_t*)_test_global_helper_functions};
 
 static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
-    &_sample_ebpf_extension_program_info,
-    &_sample_ebpf_ext_helper_function_address_table,
-    &_test_global_helper_function_address_table,
-    _sample_test_context_create,
-    _sample_test_context_destroy};
+    .program_info = &_sample_ebpf_extension_program_info,
+    .program_type_specific_helper_function_addresses = &_sample_ebpf_ext_helper_function_address_table,
+    .global_helper_function_addresses = &_test_global_helper_function_address_table,
+    .context_create = _sample_test_context_create,
+    .context_destroy = _sample_test_context_destroy,
+    .minimum_irql = PASSIVE_LEVEL,
+    .maximum_irql = DISPATCH_LEVEL};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 
