@@ -73,7 +73,7 @@ functions that override the global helper functions provided by the eBPF runtime
 structure from provided data and context buffers.
 * `context_destroy`: Pointer to `ebpf_program_context_destroy_t` function that destroys a program type specific
 context structure and populates the returned data and context buffers.
-* `required_irql`: IRQL that the eBPF program runs at when being invoked via bpf_prog_test_run_opts.
+* `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
