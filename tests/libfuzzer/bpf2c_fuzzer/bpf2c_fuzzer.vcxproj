@@ -126,6 +126,12 @@
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)scripts\create_bpf2c_corpus.bat $(OutDir)</Command>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="..\..\sample\bad\*.o">
+      <FileType>Document</FileType>
+      <DestinationFolders>$(OutDir)bpf2c_fuzzer_corpus</DestinationFolders>
+    </CopyFileToFolders>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
