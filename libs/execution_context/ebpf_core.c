@@ -240,11 +240,6 @@ ebpf_core_initiate()
         goto Done;
     }
 
-    return_value = ebpf_update_global_helpers(ebpf_core_helper_function_prototype, ebpf_core_helper_functions_count);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
     return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
 
 Done:
@@ -281,7 +276,7 @@ ebpf_core_terminate()
 
     // Shut down the epoch tracker and free any remaining memory or work items.
     // Note: Some objects may only be released on epoch termination.
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
     ebpf_epoch_terminate();
 
     // Terminate native module. This is a blocking call and will return only when
@@ -944,6 +939,12 @@ _ebpf_core_protocol_map_get_next_key(
 
     retval = ebpf_map_next_key(
         map, next_key_length, previous_key_length == 0 ? NULL : request->previous_key, reply->next_key);
+
+    // If the previous key was not found, return the first key.
+    if (retval == EBPF_KEY_NOT_FOUND) {
+        ebpf_assert(previous_key_length != 0); // EBPF_KEY_NOT_FOUND is only returned if previous_key_length != 0.
+        retval = ebpf_map_next_key(map, next_key_length, NULL, reply->next_key);
+    }
 
     reply->header.length = reply_length;
 

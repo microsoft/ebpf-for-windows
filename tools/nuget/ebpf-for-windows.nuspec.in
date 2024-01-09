@@ -28,7 +28,6 @@
 		<file src="ebpfapi.dll" target="build\native\bin"/>
 		<file src="ebpfapi.pdb" target="build\native\bin"/>
 		<file src="ebpfapi.lib" target="build\native\lib"/>
-		<file src="ebpf_store_helper_km.lib" target="build\native\lib"/>
 		<file src="..\..\include\**\*.*" target="build\native\include" />
 
 		<!--Cherry-pick files from external projects-->

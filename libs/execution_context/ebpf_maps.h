@@ -134,6 +134,7 @@ extern "C"
      * null indicates that the first key is to be returned.
      * @param[out] next_key Next key on success.
      * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The specified previous key was not found.
      * @retval EBPF_NO_MORE_KEYS There is no key following the specified
      * key in lexicographical order.
      */

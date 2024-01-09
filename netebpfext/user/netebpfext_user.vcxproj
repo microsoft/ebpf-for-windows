@@ -74,7 +74,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;USER_MODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\src;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
@@ -92,7 +92,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;USER_MODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\src;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>
@@ -112,7 +112,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;USER_MODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\src;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(OutputPath);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\user;$(SolutionDir)netebpfext;$(SolutionDir)netebpfext\user;$(SolutionDir)libs\thunk;$(SolutionDir)tests\libs\util;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>/Zc:strictStrings- %(AdditionalOptions)</AdditionalOptions>

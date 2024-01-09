@@ -73,7 +73,7 @@ functions that override the global helper functions provided by the eBPF runtime
 structure from provided data and context buffers.
 * `context_destroy`: Pointer to `ebpf_program_context_destroy_t` function that destroys a program type specific
 context structure and populates the returned data and context buffers.
-* `required_irql`: IRQL that the eBPF program runs at.
+* `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
@@ -130,6 +130,7 @@ Helper function IDs for different program types need not be unique.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the
 helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
+* `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
@@ -361,10 +362,9 @@ The eBPF Execution Context loads an eBPF program from an ELF file that has progr
 prefix to these names determines the program type. For example, the section name `"xdp_test"` implies that the corresponding
 program type is `EBPF_PROGRAM_TYPE_XDP_TEST`.
 
-The *Execution Context* discovers the program type associated with a section prefix by reading the data from the ***"eBPF store"***, which is currently kept in the Windows registry.
-When an eBPF extension is installed, it must update the eBPF store with the program types it implements along with the associated section prefixes.
+The *Execution Context* discovers the program type associated with a section prefix by reading the data from the ***"eBPF store"***, which is currently kept in the Windows registry. An extension developer must author a user mode application which will use eBPF store APIs to update the program types it implements along with the associated section prefixes. eBPF store APIs are exported from ebpfapi.dll.
 
-To operate on the eBPF store, the extension must link the `\lib\ebpf_store_helper_km.lib` kernel-mode library and include the related `\include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the extension can use the following APIs to register program types, attach types and helper functions:
+To operate on the eBPF store, the user mode application needs to link with eBPFApi.dll and include the related `include\ebpf_store_helper.h` header file, both distributed within the [eBPF for Windows NuGet package](https://www.nuget.org/packages/eBPF-for-Windows/). With these, the application can use the following APIs to register program types, attach types, and helper functions:
 
 - `ebpf_store_update_section_information`: updates the section information in the eBPF store, given a pointer to an array of section information (i.e., `_ebpf_program_section_info`):
 

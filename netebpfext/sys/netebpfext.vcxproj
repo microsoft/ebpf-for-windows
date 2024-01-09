@@ -235,11 +235,6 @@
     <ClInclude Include="netebpfext_platform.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\libs\store_helper\kernel\ebpf_store_helper_km.vcxproj">
-      <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

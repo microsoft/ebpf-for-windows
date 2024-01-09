@@ -275,15 +275,6 @@ ebpf_validate_security_descriptor(
     return ntstatus_to_ebpf_result(status);
 }
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_update_global_helpers(
-    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
-{
-    UNREFERENCED_PARAMETER(helper_info);
-    UNREFERENCED_PARAMETER(helper_info_count);
-    return EBPF_SUCCESS;
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     ebpf_platform_get_authentication_id(_Out_ uint64_t* authentication_id)
 {

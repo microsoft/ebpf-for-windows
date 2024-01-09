@@ -11,7 +11,6 @@
 #include "utilities.hpp"
 
 ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
-ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 
 static ebpf_result_t
 _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
@@ -19,13 +18,9 @@ _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
     // Open root registry path.
     *store_key = nullptr;
 
-    // First try to open the HKCU registry key.
+    // Open the HKCU registry key.
     ebpf_result_t result =
         ebpf_open_registry_key(root_registry_key_current_user, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
-    if (result != ERROR_SUCCESS) {
-        // Failed to open ebpf store path in HKCU. Fall back to HKLM.
-        result = ebpf_open_registry_key(root_registry_key_local_machine, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
-    }
 
     return result;
 }
@@ -50,8 +45,9 @@ _load_helper_prototype(
 
         // Read serialized helper prototype information.
         char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
+        bool reallocate_packet = false;
         size_t expected_size = sizeof(helper_prototype->helper_id) + sizeof(helper_prototype->return_type) +
-                               sizeof(helper_prototype->arguments);
+                               sizeof(helper_prototype->arguments) + sizeof(reallocate_packet);
 
         status = ebpf_read_registry_value_binary(
             helper_info_key, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)serialized_data, expected_size);
@@ -70,6 +66,10 @@ _load_helper_prototype(
 
         memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
         offset += sizeof(helper_prototype->arguments);
+
+        memcpy(&reallocate_packet, serialized_data + offset, sizeof(reallocate_packet));
+        helper_prototype->reallocate_packet = reallocate_packet ? HELPER_FUNCTION_REALLOCATE_PACKET : 0;
+        offset += sizeof(reallocate_packet);
 
         helper_prototype->name =
             cxplat_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());

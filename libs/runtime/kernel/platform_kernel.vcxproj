@@ -78,11 +78,6 @@
     <ClInclude Include="stdbool.h" />
     <ClInclude Include="stdint.h" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\store_helper\kernel\ebpf_store_helper_km.vcxproj">
-      <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FC3F9998-4085-4767-8386-5453F07C3AAD}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>

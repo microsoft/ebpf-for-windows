@@ -201,16 +201,21 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "               .text       bind     1768\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "               .text       bind     1064\n"
+#else
+                                        "               .text       bind     1768\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n";
+
+    REQUIRE(output == expected_output);
 }
 
 // Test a DLL with multiple maps in the map section.
@@ -222,19 +227,24 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "          sample_ext     sample     1087\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n"
-                  "      hash_of_maps     4      4        1  outer_map\n"
-                  "             array     4      4        1  port_map\n"
-                  "             array     4      4        1  inner_map\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "          sample_ext     sample      295\n"
+#else
+                                        "          sample_ext     sample     1087\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "      hash_of_maps     4      4        1  outer_map\n"
+                                        "             array     4      4        1  port_map\n"
+                                        "             array     4      4        1  inner_map\n";
+
+    REQUIRE(output == expected_output);
 }
 
 // Test a .dll file with multiple programs.
@@ -247,19 +257,26 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "          sample_ext     sample      413\n"
-                  "        sample_ext/0     sample      413\n"
-                  "        sample_ext/1     sample      190\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n"
-                  "        prog_array     4      4       10  map\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "        sample_ext/0     sample       73\n"
+                                        "        sample_ext/1     sample        6\n"
+                                        "          sample_ext     sample       73\n"
+#else
+                                        "          sample_ext     sample      413\n"
+                                        "        sample_ext/0     sample      413\n"
+                                        "        sample_ext/1     sample      190\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "        prog_array     4      4       10  map\n";
+
+    REQUIRE(output == expected_output);
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -272,21 +289,28 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "     cgroup/connect4  sock_addr      531\n"
-                  "     cgroup/connect6  sock_addr      606\n"
-                  " cgroup/recv_accept4  sock_addr      531\n"
-                  " cgroup/recv_accept6  sock_addr      606\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n"
-                  "              hash    56      4        1  egress_connection_policy_map\n"
-                  "              hash    56      4        1  ingress_connection_policy_map\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "     cgroup/connect4  sock_addr      193\n"
+                                        "     cgroup/connect6  sock_addr      210\n"
+                                        " cgroup/recv_accept4  sock_addr      193\n"
+                                        " cgroup/recv_accept6  sock_addr      210\n"
+#else
+                                        "     cgroup/connect4  sock_addr      531\n"
+                                        "     cgroup/connect6  sock_addr      606\n"
+                                        " cgroup/recv_accept4  sock_addr      531\n"
+                                        " cgroup/recv_accept6  sock_addr      606\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "              hash    56      4        1  egress_connection_policy_map\n"
+                                        "              hash    56      4        1  ingress_connection_policy_map\n";
+    REQUIRE(output == expected_output);
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
@@ -312,7 +336,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
         output == "\n"
                   "\n"
                   "Verification succeeded\n"
-                  "Program terminates within 6 instructions\n");
+                  "Program terminates within 0 loop iterations\n");
 }
 
 TEST_CASE("show verification droppacket.o", "[netsh][verification]")
@@ -327,7 +351,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
         output == "\n"
                   "\n"
                   "Verification succeeded\n"
-                  "Program terminates within 157 instructions\n");
+                  "Program terminates within 0 loop iterations\n");
 }
 
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
@@ -353,6 +377,29 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
                   "2 errors\n"
+                  "\n");
+}
+
+TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"xdp_adjust_head_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:42\n"
+                  ";     ethernet_header->Type = 0x0800;\n"
+                  "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
+                  "\n"
+                  "1 errors\n"
                   "\n");
 }
 
@@ -624,7 +671,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(output == "Unpinned 5 from lookup\n");
     verify_no_programs_exist();
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 
     output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -834,7 +881,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
@@ -871,7 +918,7 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("show processes", "[netsh][processes]")
