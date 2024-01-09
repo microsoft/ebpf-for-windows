@@ -253,7 +253,14 @@ net_ebpf_extension_wfp_filter_context_create(
     memset(local_filter_context, 0, filter_context_size);
     local_filter_context->reference_count = 1; // Initial reference.
     local_filter_context->client_context = client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN((net_ebpf_extension_hook_client_t*)local_filter_context->client_context);
+
+    if (!net_ebpf_extension_hook_client_enter_rundown(
+            (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+
+        // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
+        // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
+        __fastfail(FAST_FAIL_INVALID_ARG);
+    }
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;

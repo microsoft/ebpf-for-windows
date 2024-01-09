@@ -273,7 +273,15 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_allocation_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        attached_client = NULL;
+        goto Exit;
+    }
 
     addr.sin_port =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16;
@@ -313,7 +321,7 @@ net_ebpf_ext_resource_allocation_classify(
 
 Exit:
     if (attached_client) {
-        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
     return;
 }
@@ -356,7 +364,15 @@ net_ebpf_ext_resource_release_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_release_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
+        attached_client = NULL;
+        goto Exit;
+    }
 
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr =
@@ -383,7 +399,7 @@ net_ebpf_ext_resource_release_classify(
 
 Exit:
     if (attached_client) {
-        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
     return;
 }
