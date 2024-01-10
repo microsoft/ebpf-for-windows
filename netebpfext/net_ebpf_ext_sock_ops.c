@@ -421,7 +421,15 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_established_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
+        attached_client = NULL;
+        goto Exit;
+    }
 
     local_flow_context = (net_ebpf_extension_sock_ops_wfp_flow_context_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_sock_ops_wfp_flow_context_t), NET_EBPF_EXTENSION_POOL_TAG);
@@ -500,7 +508,7 @@ Exit:
         ExFreePool(local_flow_context);
     }
     if (attached_client != NULL) {
-        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
 }
 
@@ -533,7 +541,15 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_delete - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
+        attached_client = NULL;
+        goto Exit;
+    }
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     RemoveEntryList(&local_flow_context->link);
@@ -563,7 +579,7 @@ Exit:
     }
 
     if (attached_client != NULL) {
-        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
 }
 
