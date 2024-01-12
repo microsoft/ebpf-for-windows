@@ -952,15 +952,28 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 break;
             case AluOperations::Mod:
                 if (is64bit) {
+                    type = (inst.offset == 1) ? "(int64_t)" : "";
                     output.lines.push_back(std::format(
-                        "{} = {} ? ({} % {}): {} ;", destination, source, destination, source, destination));
+                        "{} = {} ? ({}{} % {}{}) : {}{};",
+                        destination,
+                        source,
+                        type,
+                        destination,
+                        type,
+                        source,
+                        type,
+                        destination));
                 } else {
+                    type = (inst.offset == 1) ? "(int32_t)" : "(uint32_t)";
                     output.lines.push_back(std::format(
-                        "{} = (uint32_t){} ? ((uint32_t){} % (uint32_t){}) : (uint32_t){};",
+                        "{} = (uint32_t){} ? ({}{} % {}{}) : {}{};",
                         destination,
                         source,
+                        type,
                         destination,
+                        type,
                         source,
+                        type,
                         destination));
                 }
                 break;
