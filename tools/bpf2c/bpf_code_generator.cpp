@@ -452,7 +452,11 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
 
         auto map_data = libbtf::parse_btf_map_section(btf_data.value());
         std::map<std::string, size_t> map_offsets;
+        size_t anonymous_map_count = 0;
         for (auto& map : map_data) {
+            if (map.name.empty()) {
+                map.name = "__anonymous_" + std::to_string(++anonymous_map_count);
+            }
             map_offsets.insert({map.name, map_descriptors.size()});
             map_descriptors.push_back({
                 .original_fd = static_cast<int>(map.type_id),
@@ -485,6 +489,16 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 }
             },
             name);
+
+        // Add anonymous maps to the end of the map list.
+        size_t last_map_offset = map_names_by_offset.size() != 0 ? map_names_by_offset.rbegin()->first.second : 1;
+        for (auto& map : map_data) {
+            if (!map.name.starts_with("__anonymous")) {
+                continue;
+            }
+            map_names_by_offset[std::make_pair(last_map_offset, last_map_offset)] = map.name;
+            last_map_offset++;
+        }
 
         for (const auto& [range, unsafe_symbol_name] : map_names_by_offset) {
             if (map_name_to_index.find(unsafe_symbol_name.raw()) == map_name_to_index.end()) {
