@@ -12,6 +12,7 @@ Set-Variable -Name "EbpfTracingPeriodicTaskName" -Value "eBpfTracingPeriodicTask
 Set-Variable -Name "EbpfTracingPeriodicTaskFilename" -Value "ebpf_tracing_periodic_task.xml"
 Set-Variable -Name "EbpfTracingTaskCmd" -Value "ebpf_tracing.cmd"
 Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
+Set-Variable -Name "EbpfBackupPath" -Value "$env:TEMP\ebpf_backup"
 Set-Variable -Name "RegistryPath" -Value "HKLM:\SOFTWARE\Microsoft\Windows Azure"
 Set-Variable -Name "RegistryKey" -Value "EbpfUpgrading"
 Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 60
@@ -339,6 +340,56 @@ function Uninstall-Driver {
     return $res
 }
 
+function Restart-Service {
+    param (
+        [string]$ServiceName
+    )
+
+    Write-Log -level $LogLevelInfo -message "Restart-Service($ServiceName)"
+
+    $res = $EbpfStatusCode_SUCCESS
+    try {
+        $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+
+        if ($null -eq $service) {
+            $res = $EbpfStatusCode_NOT_FOUND
+            Write-Log -level $LogLevelWarning -message "Service '$ServiceName' is not installed -> no action taken."
+        } else {
+            Write-Log -level $LogLevelInfo -message "Restarting service '$ServiceName'..."
+            
+            # Start the service in a background job
+            $job = Start-Job -ScriptBlock {
+                param($serviceName)
+                Restart-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+            } -ArgumentList $ServiceName
+
+            # Wait for the service to start, or timeout.            
+            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+            while ((Get-Service -Name $ServiceName).Status -ne 'Running') {
+                if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
+                    Write-Log -level $LogLevelError -message "Timeout while restarting [$ServiceName] (> $EbpfStartTimeoutSeconds seconds)"
+                    Stop-Job -Job $job
+                    Remove-Job -Job $job
+                    $res = $EbpfStatusCode_RESTARTING_SERVICE_FAILED
+                    break
+                }
+                Start-Sleep -MilliSeconds 100 # releaf the CPU
+            }
+            $stopwatch.Stop()
+
+            if ($res -eq $EbpfStatusCode_SUCCESS) {
+                Write-Log -level $LogLevelInfo -message "Service '$ServiceName' was successfully restarted."
+            }
+        }
+    }
+    catch {
+        $res = $EbpfStatusCode_RESTARTING_SERVICE_FAILED
+        Write-Log -level $LogLevelError -message "An error occurred while restarting service '$ServiceName': $_"
+    }
+
+    return [int]$res
+}
+
 function Copy-Directory {
     param (
         [string]$sourcePath,
@@ -414,154 +465,6 @@ function Create-Scheduled-Task {
 
     return $EbpfStatusCode_SUCCESS
 }
-
-function Set-EbpfUpgradingFlag {
-    param (
-        [switch]$SetFlag,
-        [switch]$ResetFlag
-    )
-
-    try {
-        if ($SetFlag) {
-            # Create or update the registry key
-            New-Item -Path $RegistryPath -Name $RegistryKey -Force
-            Write-Log -level $LogLevelInfo -message "$RegistryKey flag set successfully."
-        }
-        elseif ($ResetFlag) {
-            # Remove the registry key
-            Remove-Item -Path $fullRegistryPath -ErrorAction SilentlyContinue
-            Write-Log -level $LogLevelInfo "$RegistryKey flag reset successfully."
-        }
-        else {
-            Write-Log -level $LogLevelError -message "Please specify either -SetFlag or -ResetFlag switch."
-        }
-    }
-    catch {
-        Write-Log -level $LogLevelError -message "Error: $_"
-    }
-}
-
-function Get-EbpfUpgradingFlag {
-    $fullRegistryPath = Join-Path $RegistryPath  $RegistryKey
-
-    # Check if the registry key exists
-    $flagSet = Test-Path $fullRegistryPath
-    return $flagSet
-}
-
-function Backup-EbpfDeployment {
-    param (
-        [string]$EbpfDefaultInstallPath
-    )
-
-    # Define the backup directory
-    $backupDirectory = Join-Path $env:TEMP "ebpf_backup"
-
-    try {
-        # Check if the installation path exists
-        if (Test-Path $EbpfDefaultInstallPath -PathType Container) {
-            # Create or clear the backup directory
-            if (Test-Path $backupDirectory -PathType Container) {
-                Remove-Item -Recurse -Force -Path $backupDirectory
-            }
-            New-Item -ItemType Directory -Force -Path $backupDirectory | Out-Null
-
-            # Copy installation files to the backup directory
-            Copy-Item -Recurse -Path $EbpfDefaultInstallPath -Destination $backupDirectory -Force
-
-            # Log success
-            $logMessage = "Backup completed successfully. Backup directory: $backupDirectory"
-            Write-Log -Level $LogLevelInfo -Message $logMessage
-
-            return $EbpfStatusCode_SUCCESS
-        } else {
-            # Log error if installation path not found
-            $logMessage = "Error: Installation path not found at $EbpfDefaultInstallPath"
-            Write-Log -Level $LogLevelError -Message $logMessage
-
-            return $EbpfStatusCode_FIND_DIR_FAILED
-        }
-    } catch {
-        # Log error during backup
-        $logMessage = "Error during backup: $_"
-        Write-Log -Level $LogLevelError -Message $logMessage
-
-        return $EbpfStatusCode_ERROR
-    }
-}
-
-function Restore-EbpfDeployment {
-    param (
-        [string]$EbpfDefaultInstallPath
-    )
-
-    # Define the backup directory
-    $backupDirectory = Join-Path $env:TEMP "ebpf_backup"
-
-    try {
-        # Check if a valid backup directory is found
-        if (Test-Path $backupDirectory -PathType Container) {
-            # Remove existing installation directory
-            Remove-Item -Recurse -Force -Path $EbpfDefaultInstallPath -ErrorAction SilentlyContinue
-
-            # Copy files from backup to the installation directory
-            Copy-Item -Recurse -Path $backupDirectory -Destination $EbpfDefaultInstallPath -Force
-
-            # Log success
-            $logMessage = "Restoration completed successfully from backup: $backupDirectory"
-            Write-Log -Level $LogLevelInfo -Message $logMessage
-
-            # Delete the backup directory after successful restoration
-            Remove-Item -Recurse -Force -Path $backupDirectory
-
-            return $EbpfStatusCode_SUCCESS
-        } else {
-            # Log error if no valid backup directory found
-            $logMessage = "Error: No valid backup directory found at $backupDirectory"
-            Write-Log -Level $LogLevelError -Message $logMessage
-
-            return $EbpfStatusCode_FIND_DIR_FAILED
-        }
-    } catch {
-        # Log error during restoration
-        $logMessage = "Error during restoration: $_"
-        Write-Log -Level $LogLevelError -Message $logMessage
-
-        return $EbpfStatusCode_ERROR
-    }
-}
-
-function Remove-EbpfDeployment-Backup {
-    try {
-        # Define the backup directory
-        $backupDirectory = Join-Path $env:TEMP "ebpf_backup"
-
-        # Check if the backup directory exists
-        if (Test-Path $backupDirectory -PathType Container) {
-            # Remove the backup directory
-            Remove-Item -Recurse -Force -Path $backupDirectory
-
-            # Log success
-            $logMessage = "Backup directory removed successfully: $backupDirectory"
-            Write-Log -Level $LogLevelInfo -Message $logMessage
-
-            return $EbpfStatusCode_SUCCESS
-        } else {
-            # Log message if the backup directory does not exist
-            $logMessage = "Backup directory not found: $backupDirectory"
-            Write-Log -Level $LogLevelWarning -Message $logMessage
-
-            return $EbpfStatusCode_FIND_DIR_FAILED
-        }
-    } catch {
-        # Log error during removal
-        $logMessage = "Error during removal of backup directory: $_"
-        Write-Log -Level $LogLevelError -Message $logMessage
-
-        return $EbpfStatusCode_ERROR
-    }
-}
-
 
 #######################################################
 # VM Extension Handler Internal Helper Functions
@@ -646,12 +549,52 @@ function Report-Status {
     Write-Log -level $LogLevelInfo -message "Status file generated: $statusFilePath"
 }
 
-function Delete-Ebpf-Tracing-Tasks {
+function Set-EbpfUpgradingFlag {
+    param (
+        [switch]$SetFlag,
+        [switch]$ResetFlag
+    )
+
+    try {
+        if ($SetFlag) {
+            # Create or update the registry key
+            New-Item -Path $RegistryPath -Name $RegistryKey -Force
+            Write-Log -Level $LogLevelInfo -Message "$RegistryKey flag set successfully."
+            return $EbpfStatusCode_SUCCESS
+        }
+        elseif ($ResetFlag) {
+            # Remove the registry key
+            $fullRegistryPath = Join-Path $RegistryPath $RegistryKey
+            Remove-Item -Path $fullRegistryPath -ErrorAction SilentlyContinue
+            Write-Log -Level $LogLevelInfo -Message "$RegistryKey flag reset successfully."
+            return $EbpfStatusCode_SUCCESS
+        }
+        else {
+            Write-Log -Level $LogLevelError -Message "Please specify either -SetFlag or -ResetFlag switch."
+            return $EbpfStatusCode_ERROR
+        }
+    }
+    catch {
+        Write-Log -Level $LogLevelError -Message "Error: $_"
+        return $EbpfStatusCode_ERROR
+    }
+}
+
+function Get-EbpfUpgradingFlag {
+    $fullRegistryPath = Join-Path $RegistryPath $RegistryKey
+
+    # Check if the registry key exists
+    $flagSet = Test-Path $fullRegistryPath
+
+    return $flagSet
+}
+
+function Delete-EbpfTracingTasks {
     param (
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Delete-Ebpf-Tracing-Tasks($installDirectory)"
+    Write-Log -level $LogLevelInfo -message "Delete-EbpfTracingTasks($installDirectory)"
 
     # In accounting that files & tasks could be manually deleted, we go through all the steps and just log any errors.
     $res = $EbpfStatusCode_SUCCESS
@@ -683,19 +626,19 @@ function Delete-Ebpf-Tracing-Tasks {
     return $res
 }
 
-function Create-Ebpf-Tracing-Tasks {
+function Create-EbpfTracingTasks {
     param (
         [string]$installDirectory
     )
-    Write-Log -level $LogLevelInfo -message "Create-Ebpf-Tracing-Tasks($installDirectory)"
+    Write-Log -level $LogLevelInfo -message "Create-EbpfTracingTasks($installDirectory)"
 
-    Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
+    Delete-EbpfTracingTasks -installDirectory $installDirectory | Out-Null
 
     $res = Create-Scheduled-Task -installDirectory $installDirectory -taskName $EbpfTracingStartupTaskName -taskFile $EbpfTracingStartupTaskFilename
     if ($res -eq  $EbpfStatusCode_SUCCESS) {
         $res = Create-Scheduled-Task -installDirectory $installDirectory -taskName $EbpfTracingPeriodicTaskName -taskFile $EbpfTracingPeriodicTaskFilename
     } else {
-        Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory | Out-Null
+        Delete-EbpfTracingTasks -installDirectory $installDirectory | Out-Null
     }
 
     return $res
@@ -707,7 +650,7 @@ function Enable-EbpfTracing {
     )
 
     Write-Log -level $LogLevelInfo -message "Enable-EbpfTracing($installDirectory)"
-    return Create-Ebpf-Tracing-Tasks -installDirectory $installDirectory
+    return Create-EbpfTracingTasks -installDirectory $installDirectory
 }
 
 function Disable-EbpfTracing {    
@@ -716,7 +659,7 @@ function Disable-EbpfTracing {
     )
 
     Write-Log -level $LogLevelInfo -message "Disable-EbpfTracing($installDirectory)"
-    return Delete-Ebpf-Tracing-Tasks -installDirectory $installDirectory
+    return Delete-EbpfTracingTasks -installDirectory $installDirectory
 }
 
 function Register-EbpfNetshExtension{
@@ -765,9 +708,72 @@ function Unregister-EbpfNetshExtension{
     return $res
 }
 
-function Stop-eBPFDrivers {
+function Start-EbpfDrivers {
 
-    Write-Log -level $LogLevelInfo -message "Stop-eBPFDrivers()"
+    Write-Log -level $LogLevelInfo -message "Start-EbpfDrivers()"
+
+    $statusInfo = [PSCustomObject]@{
+        StatusCode = $EbpfStatusCode_SUCCESS
+        StatusString = $StatusSuccess
+        StatusMessage = "eBPF enabled"
+    }
+
+    try {
+        # Check if the eBPF drivers are registered correctly, and start them.
+        $EbpfDrivers.GetEnumerator() | ForEach-Object {
+            $driverName = $_.Key
+            $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
+            if ($currDriverPath) {
+                if ($?) {
+                    Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
+                    
+                    # Start the service in a background job
+                    $job = Start-Job -ScriptBlock {
+                        param($driverName)
+                        Start-Service -Name $driverName -ErrorAction SilentlyContinue
+                    } -ArgumentList $driverName
+
+                    # Wait for the service to start, or timeout.                
+                    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
+                    while ((Get-Service -Name $driverName).Status -ne 'Running') {
+                        if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
+                            Stop-Job -Job $job
+                            Remove-Job -Job $job
+                            $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
+                            $statusInfo.StatusString = $StatusError
+                            $statusInfo.StatusMessage = "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
+                            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                            break
+                        }
+                        Start-Sleep -MilliSeconds 100 # releaf the CPU
+                    }
+                    $stopwatch.Stop()
+
+                    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                        Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
+                    }
+                } else {
+                    $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
+                    $statusInfo.StatusString = $StatusError
+                    $statusInfo.StatusMessage = "[$driverName] is NOT registered correctly!"
+                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                }
+            }
+        }
+    }
+    catch {
+        $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
+        $statusInfo.StatusString = $StatusError
+        $statusInfo.StatusMessage = "An error occurred while starting the eBPF drivers: $_"
+        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+    }
+
+    return $statusInfo
+}
+
+function Stop-EbpfDrivers {
+
+    Write-Log -level $LogLevelInfo -message "Stop-EbpfDrivers()"
 
     $statusCode = $EbpfStatusCode_SUCCESS
     $originalStartupType = @{} # Store original startup types
@@ -802,12 +808,12 @@ function Stop-eBPFDrivers {
     return [int]$statusCode
 }
 
-function Install-eBPF-Drivers {
+function Install-EbpfDrivers {
     param (
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Install-eBPF-Drivers($installDirectory)"
+    Write-Log -level $LogLevelInfo -message "Install-EbpfDrivers($installDirectory)"
 
     $statusCode = $EbpfStatusCode_SUCCESS
 
@@ -842,12 +848,19 @@ function Install-eBPF-Drivers {
     return [int]$statusCode
 }
 
-function Uninstall-eBPF-Drivers {
+function Uninstall-EbpfDrivers {
     param (
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Drivers($installDirectory)"
+    Write-Log -level $LogLevelInfo -message "Uninstall-EbpfDrivers($installDirectory)"
+
+    # First, stop the drivers
+    $statusCode = Stop-EbpfDrivers
+    if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
+        Write-Log -level $LogLevelError -message "Failed to stop eBPF drivers."
+        return [int]$statusCode
+    }
 
     # Uninstall the eBPF drivers and use the results to generate the log message.
     $failedServices = @() 
@@ -893,8 +906,13 @@ function Install-eBPF {
     if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
 
         # Install the eBPF services and use the results to generate the status file.
-        $statusCode = Install-eBPF-Drivers -installDirectory $destinationPath      
+        $statusCode = Install-EbpfDrivers -installDirectory $destinationPath      
         if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
+
+            # Accounting for any error on the following operations is not worth the risk of leaving the system in a bad state, 
+            # i.e. if this is called during a rollback, we cannot fail a potential succesful system functionality restoration
+            # because of accessory operations, being just the drivers the essential part for having the data path active.
+            # Therefore, we just log any errors and proceed with the installation of the rest of the components.
 
             # Add the eBPF installation directory to the system PATH.
             Add-DirectoryToSystemPath -directoryPath $destinationPath | Out-Null 
@@ -925,19 +943,15 @@ function Uninstall-eBPF {
 
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF($installDirectory)"
     
-    # Within any VM Agent operation, uninstall is called after the Disable operation, so we don't need to stop the drivers here.
-    # TBC: Although, the VM-Agent will anyways call uninstall after the disable operation, so we can't give for granted that the drivers are stopped!!
-    # Stop the eBPF drivers
-    $statusCode = Stop-eBPFDrivers
-    if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
-        Write-Log -level $LogLevelError -message "Failed to stop eBPF drivers."
-        exit $statusCode
-    }
-
     # Uninstall the eBPF drivers and use the results to generate the log message.
-    $statusCode = Uninstall-eBPF-Drivers -installDirectory $installDirectory
+    $statusCode = Uninstall-EbpfDrivers -installDirectory $installDirectory
     if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
         # If all drivers were successfully uninstalled, then we can proceed with the rest of the uninstallation.
+        
+        # Accounting for any error on the following operations is not worth the risk of leaving the system in a bad state, 
+        # i.e. if this is called during a rollback, we cannot fail a potential succesful system functionality restoration
+        # because of accessory operations, being just the drivers the essential part for having the data path active.
+        # Therefore, we just log any errors and proceed with the installation of the rest of the components.
 
         # Unregister the trace providers
         Disable-EbpfTracing -installDirectory $installDirectory | Out-Null
@@ -969,7 +983,7 @@ function Upgrade-eBPF {
         Write-Log -level $LogLevelInfo -message "Performing eBPF [$operationName]."
 
         # For the moment, we just uninstall and install from/to the given installation folder.
-        $statusCode = Uninstall-eBPF-Handler -installDirectory "$installDirectory" -createStatusFile $false
+        $statusCode = Uninstall-eBPF -installDirectory "$installDirectory" -createStatusFile $false
         if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
             $statusMessage = "eBPF $operationName FAILED (Uninstall failed)."
             Write-Log -level $LogLevelError -message $statusMessage
@@ -1053,7 +1067,7 @@ function InstallOrUpdate-eBPF {
                 Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
                 [int]$statusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
             } elseif ($comparison -gt 0) {
-                # If the product version is greater than the version distributed with the VM extension AND downgrade is not allowed, then return an error.
+                # If the product version is greater than the version distributed with the VM extension and downgrade is NOT allowed, then return an error.
                 Write-Log -level $LogLevelError -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will NOT be downgraded!"
                 $statusCode = $EbpfStatusCode_INSTALLATION_UNALLOWED
             } elseif ($comparison -lt 0) {
@@ -1081,52 +1095,180 @@ function InstallOrUpdate-eBPF {
     return [int]$statusCode
 }
 
-function Restart-Service {
+function Backup-EbpfDeployment {
     param (
-        [string]$ServiceName
+        [string]$EbpfDefaultInstallPath
     )
 
-    Write-Log -level $LogLevelInfo -message "Restart-Service($ServiceName)"
-
-    $res = $EbpfStatusCode_SUCCESS
     try {
-        $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+        # Check if the installation path exists
+        if (Test-Path $EbpfDefaultInstallPath -PathType Container) {
+            # Create or clear the backup directory
+            if (Test-Path $EbpfBackupPath -PathType Container) {
+                Remove-Item -Recurse -Force -Path $EbpfBackupPath
+            }
+            New-Item -ItemType Directory -Force -Path $EbpfBackupPath | Out-Null
 
-        if ($null -eq $service) {
-            # If the service is not installed, then we return a success code, as if the operation was successful.
-            Write-Log -level $LogLevelWarning -message "Service '$ServiceName' is not installed -> no action taken."
+            # Copy installation files to the backup directory
+            Copy-Item -Recurse -Path $EbpfDefaultInstallPath -Destination $EbpfBackupPath -Force
+
+            # Log success
+            $logMessage = "Backup completed successfully. Backup directory: $EbpfBackupPath"
+            Write-Log -Level $LogLevelInfo -Message $logMessage
+
+            return $EbpfStatusCode_SUCCESS
         } else {
-            Write-Log -level $LogLevelInfo -message "Restarting service '$ServiceName'..."
-            
-            # Start the service in a background job
-            $job = Start-Job -ScriptBlock {
-                param($serviceName)
-                Restart-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
-            } -ArgumentList $ServiceName
+            # Log error if installation path not found
+            $logMessage = "Error: Installation path not found at $EbpfDefaultInstallPath"
+            Write-Log -Level $LogLevelError -Message $logMessage
 
-            # Wait for the service to start, or timeout.
-            
-            $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-            while ((Get-Service -Name $ServiceName).Status -ne 'Running') {
-                if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
-                    Write-Log -level $LogLevelError -message "Timeout while restarting [$ServiceName] (> $EbpfStartTimeoutSeconds seconds)"
-                    Stop-Job -Job $job
-                    Remove-Job -Job $job
-                    $res = $EbpfStatusCode_RESTARTING_SERVICE_FAILED
-                    break
-                }
-                Start-Sleep -MilliSeconds 100 # releaf the CPU
-            }
-            $stopwatch.Stop()
-
-            if ($res -eq $EbpfStatusCode_SUCCESS) {
-                Write-Log -level $LogLevelInfo -message "Service '$ServiceName' was successfully restarted."
-            }
+            return $EbpfStatusCode_FIND_DIR_FAILED
         }
+    } catch {
+        # Log error during backup
+        $logMessage = "Error during backup: $_"
+        Write-Log -Level $LogLevelError -Message $logMessage
+
+        return $EbpfStatusCode_ERROR
     }
-    catch {
-        $res = $EbpfStatusCode_RESTARTING_SERVICE_FAILED
-        Write-Log -level $LogLevelError -message "An error occurred while restarting service '$ServiceName': $_"
+}
+
+function Restore-EbpfDeployment {
+    param (
+        [string]$EbpfDefaultInstallPath
+    )
+
+    try {
+        # Check if a valid backup directory is found
+        if (Test-Path $EbpfBackupPath -PathType Container) {
+            # Remove existing installation directory
+            Remove-Item -Recurse -Force -Path $EbpfDefaultInstallPath -ErrorAction SilentlyContinue
+
+            # Copy files from backup to the installation directory
+            Copy-Item -Recurse -Path $EbpfBackupPath -Destination $EbpfDefaultInstallPath -Force
+
+            # Log success
+            $logMessage = "Restoration completed successfully from backup: $EbpfBackupPath"
+            Write-Log -Level $LogLevelInfo -Message $logMessage
+
+            # Delete the backup directory after successful restoration
+            Remove-EbpfDeploymentBackup | Out-Null
+
+            return $EbpfStatusCode_SUCCESS
+        } else {
+            # Log error if no valid backup directory found
+            $logMessage = "Error: No valid backup directory found at $EbpfBackupPath"
+            Write-Log -Level $LogLevelError -Message $logMessage
+
+            return $EbpfStatusCode_FIND_DIR_FAILED
+        }
+    } catch {
+        # Log error during restoration
+        $logMessage = "Error during restoration: $_"
+        Write-Log -Level $LogLevelError -Message $logMessage
+
+        return $EbpfStatusCode_ERROR
+    }
+}
+
+function Remove-EbpfDeploymentBackup {
+    try {
+
+        # Check if the backup directory exists
+        if (Test-Path $EbpfBackupPath -PathType Container) {
+            # Remove the backup directory
+            Remove-Item -Recurse -Force -Path $EbpfBackupPath
+
+            # Log success
+            $logMessage = "Backup directory removed successfully: $EbpfBackupPath"
+            Write-Log -Level $LogLevelInfo -Message $logMessage
+
+            return $EbpfStatusCode_SUCCESS
+        } else {
+            # Log message if the backup directory does not exist
+            $logMessage = "Backup directory not found: $EbpfBackupPath"
+            Write-Log -Level $LogLevelWarning -Message $logMessage
+
+            return $EbpfStatusCode_FIND_DIR_FAILED
+        }
+    } catch {
+        # Log error during removal
+        $logMessage = "Error during removal of backup directory: $_"
+        Write-Log -Level $LogLevelError -Message $logMessage
+
+        return $EbpfStatusCode_ERROR
+    }
+}
+
+function Rollback-EbpfInstallation {
+    params(
+        [string]$installDirectory
+    )
+
+    Write-Log -level $LogLevelInfo -message "Rollback-EbpfInstallation()"
+
+    # Define a status info object.
+    $statusInfo = [PSCustomObject]@{
+        StatusCode = $EbpfStatusCode_ERROR
+        StatusString = $StatusError
+        StatusMessage = "<none>"
+    }
+
+    # Uninstall eBPF, scraping out anything we can (restore is called when things are broken, so we can't rely on the state of the system).
+    $statusInfo.StatusCode = Uninstall-eBPF -installDirectory "$installDirectory"
+    if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+        # CATASTROPHIC FAILURE: If the uninstallation fails, we can't proceed with the restoration.
+        $statusInfo.StatusString = $StatusError
+        $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameRestore FAILED (Uninstalling the updated version failed)."
+        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+        return $statusInfo
+    } else {
+        # Attempt to re-nstall everything using the backup files.
+        $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameInstall -sourcePath "$EbpfBackupPath" -destinationPath "$installDirectory" -allowDowngrade $true
+        if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                # Enable eBPF (attempt to start the eBPF drivers).
+                $statusInfo = Start-EbpfDrivers
+                if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                    # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
+                    $statusInfo.StatusCode = Restart-GuestProxyAgent
+                    if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+                        $statusInfo.StatusString = $StatusError
+                        $statusInfo.StatusMessage = "eBPF was successfully installed, but restarting the '$serviceName' service FAILED -> Failing the overall rollback operation."
+                        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                    } else {
+                        $statusInfo.StatusString = $StatusSuccess
+                        $statusInfo.StatusMessage = "eBPF $OperationNameUpdate succeeded."
+                        Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
+                    } 
+                } else {
+                    # CATASTROPHIC FAILURE: If the restore fails, we return a fatal error.
+                    Set-EbpfUpgradingFlag -ResetFlag | Out-Null
+                    $statusInfo.StatusString = $StatusError
+                    $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (Rollback to previous version failed)."
+                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                }
+        } else {
+            # CATASTROPHIC FAILURE: If the installation fails, we return a fatal error.
+            Set-EbpfUpgradingFlag -ResetFlag | Out-Null
+            $statusInfo.StatusString = $StatusError
+            $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (REinstall of the backup installation failed)."
+            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+        }
+    }    
+
+    return $statusInfo
+}
+
+function Restart-GuestProxyAgent {
+
+    Write-Log -level $LogLevelInfo -message "Restart-GuestProxyAgent()"
+
+    $serviceName = "GuestProxyAgent"
+    $res = Restart-Service -ServiceName $serviceName
+
+    # If the service is not found, we return success.
+    if ($res -eq $EbpfStatusCode_SERVICE_NOT_FOUND) {
+        $res = $EbpfStatusCode_SUCCESS
     }
 
     return [int]$res
@@ -1139,7 +1281,6 @@ function Reset-eBPF-Handler {
     Write-Log -level $LogLevelInfo -message "Reset-eBPF-Handler() -> NOP"
     
     # NOP for this current implementation.
-    # Reset does not need to generate a status file.
     return $EbpfStatusCode_SUCCESS
 }
 
@@ -1147,75 +1288,32 @@ function Enable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler()"
 
-    # Check if the handler is being invoked from the VM Agent within the Update Operation.
-    if (Get-EbpfUpgradingFlag()) {
-
-        # TBD: distinguish between the different operations, i.e. when called within the update command, or within all the other operations.
-        Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
-        return $EbpfStatusCode_SUCCESS
-    }
-
     $statusInfo = [PSCustomObject]@{
         StatusCode = $EbpfStatusCode_SUCCESS
         StatusString = $StatusSuccess
         StatusMessage = "eBPF enabled"
     }
 
-    try {
-        # Check if the eBPF drivers are registered correctly, and start them.
-        $EbpfDrivers.GetEnumerator() | ForEach-Object {
-            $driverName = $_.Key
-            $currDriverPath = Get-FullDiskPathFromService -serviceName $driverName
-            if ($currDriverPath) {
-                if ($?) {
-                    Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
-                    
-                    # Start the service in a background job
-                    $job = Start-Job -ScriptBlock {
-                        param($driverName)
-                        Start-Service -Name $driverName -ErrorAction SilentlyContinue
-                    } -ArgumentList $driverName
+    # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
+    if (Get-EbpfUpgradingFlag()) {
 
-                    # Wait for the service to start, or timeout.                
-                    $stopwatch = [System.Diagnostics.Stopwatch]::StartNew()
-                    while ((Get-Service -Name $driverName).Status -ne 'Running') {
-                        if ($stopwatch.Elapsed.TotalSeconds -ge $EbpfStartTimeoutSeconds) {
-                            Stop-Job -Job $job
-                            Remove-Job -Job $job
-                            $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
-                            $statusInfo.StatusString = $StatusError
-                            $statusInfo.StatusMessage = "Timeout while starting driver [$driverName] (> $EbpfStartTimeoutSeconds seconds)"
-                            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-                            break
-                        }
-                        Start-Sleep -MilliSeconds 100 # releaf the CPU
-                    }
-                    $stopwatch.Stop()
+        # If we are here, it means that the Update commans did NOT return an error (otherwise the VM Agent would have aborted the Update operation).
+        # Therefore, being the Enable command the last command of the Update operation sequence: reset the "updating to newer version" persistent flag.
+        Set-EbpfUpgradingFlag -ResetFlag | Out-Null
 
-                    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
-                        Write-Log -level $LogLevelInfo -message "Started driver [$driverName]"
-                    }
-                } else {
-                    $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
-                    $statusInfo.StatusString = $StatusError
-                    $statusInfo.StatusMessage = "[$driverName] is NOT registered correctly!"
-                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-                }
-            }
-        }
-    }
-    catch {
-        $statusInfo.StatusCode = $EbpfStatusCode_STARTING_DRIVER_FAILED
-        $statusInfo.StatusString = $StatusError
-        $statusInfo.StatusMessage = "An error occurred while starting the eBPF drivers: $_"
-        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-    }
+        # If the handler is being invoked from the VM Agent within the Update Operation, we don't need to do anything.
+        Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
+        return $EbpfStatusCode_SUCCESS
+    } else {
+
+    # Attempt to start the eBPF drivers.
+    $statusInfo = Start-EbpfDrivers
 
     # Check if the eBPF drivers were started correctly, otherwise stop them and return an error.
     if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+
         # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
-        $serviceName = "GuestProxyAgent"
-        $res = Restart-Service -ServiceName $serviceName
+        $res = Restart-GuestProxyAgent
         if ($res -ne $EbpfStatusCode_SUCCESS) {
             $statusInfo.StatusCode = $res
             $statusInfo.StatusString = $StatusError
@@ -1223,7 +1321,7 @@ function Enable-eBPF-Handler {
             Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
         }
     } else {
-        Stop-eBPFDrivers | Out-Null
+        Stop-EbpfDrivers | Out-Null
         $statusInfo.StatusString = $StatusError
     }
 
@@ -1237,8 +1335,7 @@ function Disable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
 
-    # Disable does not need to generate a status file.
-    $statusCode = Stop-eBPFDrivers
+    $statusCode = Stop-EbpfDrivers
    
     return [int]$statusCode
 }
@@ -1247,7 +1344,7 @@ function Uninstall-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
 
-    # Check if the handler is being invoked from the VM Agent within the Update Operation.
+    # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
     if (Get-EbpfUpgradingFlag()) {
         Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
         return $EbpfStatusCode_SUCCESS
@@ -1262,54 +1359,91 @@ function Install-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Install-eBPF-Handler()"
 
-    # Check if the handler is being invoked from the VM Agent within the Update Operation.
-    if (Get-EbpfUpgradingFlag()) {
-        Write-Log -level $LogLevelInfo -message "Install-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
-        return $EbpfStatusCode_SUCCESS
-    }
-
     # Install or Update eBPF for Windows.
-    # NOTE: The install operation does not generate a status file, since the VM Agent will afterwards call the enable operation.
     return InstallOrUpdate-eBPF -operationName $OperationNameInstall -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade $false
 }
 
 function Update-eBPF-Handler {
 
-    Write-Log -level $LogLevelInfo -message "Update-eBPF-Handler() -> NOP"
+    Write-Log -level $LogLevelInfo -message "Update-eBPF-Handler()"
 
-    # Note: Update does not need to generate a status file.
+    # IMPLEMENTATION NOTE:
+    # Due to the current implementation of the VM Extrnsion Platform and Auto-Update requirements, toghether with the dependency taken by the GuestProxy agent,
+    # the Update operation has to forcily implement ALL the command sequence invoked within the Update opertion (i.e. Disable, Uninstall, Update, Install and Enable).
+    # This is because the VM Agent may invoke the Update operation in a disconnected state, in case the GuestProxyAgent fails to restart.
+    # Therefore, a global persistent flag is used by all of the commands within the Update operation, to determine they are being invoked from the VM Agent within the Update operation scope, and if so, do NOP.
+    
+    # Define a status info object.
+    $statusInfo = [PSCustomObject]@{
+        StatusCode = $EbpfStatusCode_ERROR
+        StatusString = $StatusError
+        StatusMessage = "<none>"
+    }
 
-    # Set the "updating to newer version" persistent flag.
-    Set-EbpfUpgradingFlag -SetFlag
-
-    # Backup the current installation.
-    $statusCode = Backup-EbpfDeployment -installDirectory "$EbpfDefaultInstallPath"
-    if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
-        $statusMessage = "eBPF $OperationNameUpdate FAILED (Backup failed)."
-        Write-Log -level $LogLevelError -message $statusMessage
-        [int]$statusCode = $EbpfStatusCode_ERROR
-    } else {
-        Write-Log -level $LogLevelInfo -message "eBPF backup completed successfully."
-
-        $statusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade $Get-EbpfUpgradingFlag()
-        if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
-            $statusMessage = "eBPF $OperationNameUpdate FAILED (Uninstall failed)."
+    try {
+        # Set the "updating to newer version" persistent flag.
+        $statusInfo.StatusCode = Set-EbpfUpgradingFlag -SetFlag
+        if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+            $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED (Set-EbpfUpgradingFlag failed) -> Operation aborted."
             Write-Log -level $LogLevelError -message $statusMessage
-            [int]$statusCode = $EbpfStatusCode_ERROR
-
-            # If the uninstall fails, we need to attempt restore the backup.
-            $statusCode = Restore-EbpfDeployment -installDirectory "$EbpfDefaultInstallPath"
         } else {
-            # If the upgrade is successful, call the Enable command:
-            $statusCode = Enable-eBPF-Handler
 
-            # Reset the "updating to newer version" persistent flag.
-            Set-EbpfUpgradingFlag -ResetFlag
-            Write-Log -level $LogLevelInfo -message "eBPF uninstalled successfully."
-        } 
+            # Backup the current installation.
+            $statusInfo.StatusCode = Backup-EbpfDeployment -installDirectory "$EbpfDefaultInstallPath"
+            if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                Write-Log -level $LogLevelInfo -message "eBPF backup completed successfully."
+
+                # Implement the Update Operation sequence, i.e. Disable, Uninstall, Update, Install and Enable.
+                ###############################################################################################
+
+                # The Disable command has already been invoked by the VM Agent (it preceeds the Update command in the Update operation sequence), so we don't need to do anything here.
+
+                # Install or Update eBPF.
+                $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade Get-EbpfUpgradingFlag()
+                if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                    # Enable eBPF (attempt to start the eBPF drivers).
+                    $statusInfo = Start-EbpfDrivers
+                    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                        # If the eBPF drivers are started successfully, attempt to restart the GuestProxyAgent service.
+                        $statusInfo.StatusCode = Restart-GuestProxyAgent
+                        if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                            $statusInfo.StatusString = $StatusSuccess
+                            $statusInfo.StatusMessage = "eBPF $OperationNameUpdate succeeded."
+                            Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
+                        }
+                    }                    
+                }
+
+                # If anything fails, we need to attempt to rollback the backup installation.
+                if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+                    $statusInfo = Rollback-EbpfInstallation -installDirectory "$EbpfDefaultInstallPath"
+                    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                        # If the restoring to the previous version and restarting the GuestProxyAgent succeeded, 
+                        # we anyways return an error indicating that the update failed.
+                        $statusInfo.StatusString = $StatusError
+                        $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED -> Restoring to the previous version succeeded."
+                        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage                 
+                    }
+                }
+            } else {
+                $statusInfo.StatusString = $StatusError
+                $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED (Backup failed) -> Nothing changed in the system."
+                Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+
+                # Remove the backup directory.
+                Remove-EbpfDeploymentBackup | Out-Null
+            }
+        }
+    } finally {
+        
+        # If the Update command fails, generate the status file (otherwise, the Enable command will generate it).
+        if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+            # Note: Update does not need to generate a status file, but in order to support Auto-Upate in a disconnected state, it will in place of the Enable command (which will not be invoked).
+            Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage $statusInfo.StatusMessage
+        }        
     }
     
-    return $EbpfStatusCode_SUCCESS
+    return [int]$statusInfo.StatusCode
 }
 
 #######################################################
