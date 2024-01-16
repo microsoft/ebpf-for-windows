@@ -1,5 +1,5 @@
 # Change the working directory to the root of the test environment, so to simulate the actual env that will be set up by the VM Agent.
-Set-Variable -Name "testRootFolder" -Value "C:\work\eBPFForWindows\.internal\vm_extension\src\tests"
+Set-Variable -Name "testRootFolder" -Value "C:\work\eBPFForWindows\.internal\vm-extension\src\tests"
 $currentDirectory = Get-Location
 Set-Location "$testRootFolder"
 
@@ -24,6 +24,7 @@ function Exit-Tests {
     exit $testPass
 }
 
+# Test command: nuget install eBPF-for-Windows-Redist -version 0.9.0 -Source https://mscodehub.pkgs.visualstudio.com/eBPFForWindows/_packaging/eBPFForWindows/nuget/v3/index.json -OutputDirectory .\_ebpf-redist
 function DownloadAndUnpackEbpfRedistPackage {
     param (
         [string]$packageVersion,

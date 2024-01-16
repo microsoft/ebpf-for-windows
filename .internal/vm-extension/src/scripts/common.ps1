@@ -1062,7 +1062,7 @@ function InstallOrUpdate-eBPF {
 
             # Depending on the version comparison, we either install/upgrade, downgrade or do nothing if the version is the same.
             $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
-            if ($comparison -gt 0 && $allowDowngrade) {
+            if ($comparison -gt 0 -and $allowDowngrade) {
                 # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow the downgrade.
                 Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
                 [int]$statusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
@@ -1346,7 +1346,7 @@ function Uninstall-eBPF-Handler {
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
 
     # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
-    if (Get-EbpfUpgradingFlag()) {
+    if (Get-EbpfUpgradingFlag) {
         Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
         return $EbpfStatusCode_SUCCESS
     }
@@ -1401,7 +1401,7 @@ function Update-eBPF-Handler {
                 # The Disable command has already been invoked by the VM Agent (it preceeds the Update command in the Update operation sequence), so we don't need to do anything here.
 
                 # Install or Update eBPF.
-                $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade Get-EbpfUpgradingFlag()
+                $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade Get-EbpfUpgradingFlag
                 if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                     # Enable eBPF (attempt to start the eBPF drivers).
                     $statusInfo = Start-EbpfDrivers
