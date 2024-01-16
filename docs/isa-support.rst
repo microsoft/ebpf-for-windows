@@ -11,7 +11,7 @@ opcode  src   imm   off   description                                           
 0x00    0x0   any   0     (additional immediate value)                               Y      Y      Y    arsh32-high-shift
 0x04    0x0   any   0     dst = (u32)((u32)dst + (u32)imm)                           Y      Y      Y    add
 0x05    0x0   0x00  any   goto +offset                                               Y      Y      Y    exit-not-last
-0x06    0x0   any   0     goto +imm                                                  Y      Y      Y    exit-not-last
+0x06    0x0   any   0     goto +imm                                                  Y      no     no   ja32
 0x07    0x0   any   0     dst += imm                                                 Y      Y      Y    add64
 0x0c    any   0x00  0     dst = (u32)((u32)dst + (u32)src)                           Y      Y      Y    add
 0x0f    any   0x00  0     dst += src                                                 Y      Y      Y    alu64-arith
