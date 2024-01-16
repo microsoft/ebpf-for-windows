@@ -1,5 +1,5 @@
 # Change the working directory to the root of the test environment, so to simulate the actual env that will be set up by the VM Agent.
-Set-Variable -Name "testRootFolder" -Value "C:\_ebpf\vm_ext\tests"
+Set-Variable -Name "testRootFolder" -Value "C:\work\eBPFForWindows\.internal\vm_extension\src\tests"
 $currentDirectory = Get-Location
 Set-Location "$testRootFolder"
 
@@ -196,7 +196,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
         Exit-Tests -testPass 1
     }
 
-    # Update to a newer version, i.e. handler's update is called (Disable and Update).
+    # Attempt to update to a newer version
     Write-Log -level $LogLevelInfo -message "= Update to newer version ================================================================================================="
     if ((Setup-Test-Package -packageVersion "0.11.0.2" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
@@ -204,34 +204,73 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # Always NOP on update
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
         Exit-Tests -testPass 1
     }
     
-    # Downgrade to an older version
-    Write-Log -level $LogLevelInfo -message "= Downgrade to an older version =============================================================================="
+    # Attempt to update to an older version (downgrade is not allowed)
+    Write-Log -level $LogLevelInfo -message "= Update to an older version =============================================================================================="
     if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    # if ((Set-EnvironmentVariable -variableName $VmAgentEnvVar_VERSION -variableValue "0.9.0.0") -ne 0) {
-    #     Exit-Tests -testPass 1
-    # }
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # Always NOP on update
+    if ((Update-eBPF-Handler) -eq $EbpfStatusCode_SUCCESS) { # Downgrade is not allowed
         Exit-Tests -testPass 1
     }
-    if ((Install-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
         Exit-Tests -testPass 1
     }
-    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
+        Exit-Tests -testPass 1
+    }
+
+    # Attempt to update to an newer version, with a corrupted package (i.e. bad eBPF driver), so to test the rollback.
+    Write-Log -level $LogLevelInfo -message "= Update to an older version with injected failure and rollback ==========================================================="
+    if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
+        Exit-Tests -testPass 1
+    }
+    # Alter the package to simulate a corrupted package.
+    $packagePath = Join-Path $EbpfPackagePath "v0.9.1\bin"
+    Rename-Item $packagePath\drivers\eBPFCore.sys $packagePath\drivers\eBPFCore.sys.bak | Out-Null
+
+    if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+        Exit-Tests -testPass 1
+    }
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+        Exit-Tests -testPass 1
+    }
+    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
+        Exit-Tests -testPass 1
+    }
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
+        Exit-Tests -testPass 1
+    }
+
+    # Attempt to update to an newer version, with a corrupted package (i.e. bad eBPF driver), so to test the FAILURE of the rollback.
+    Write-Log -level $LogLevelInfo -message "= Update to an older version with injected failure and rollback ==========================================================="
+    if ((Setup-Test-Package -packageVersion "0.9.1" -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
+        Exit-Tests -testPass 1
+    }
+    # Alter the backup package to simulate a rollback failure.
+    Rename-Item $env:TEMP\drivers\eBPFCore.sys $env:TEMP\drivers\eBPFCore.sys.bak | Out-Null    
+    if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+        Exit-Tests -testPass 1
+    }
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
+        Exit-Tests -testPass 1
+    }
+    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
+        Exit-Tests -testPass 1
+    }
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
         Exit-Tests -testPass 1
     }
     

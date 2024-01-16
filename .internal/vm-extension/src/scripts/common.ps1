@@ -1295,16 +1295,17 @@ function Enable-eBPF-Handler {
     }
 
     # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
-    if (Get-EbpfUpgradingFlag()) {
+    if (Get-EbpfUpgradingFlag) {
 
         # If we are here, it means that the Update commans did NOT return an error (otherwise the VM Agent would have aborted the Update operation).
         # Therefore, being the Enable command the last command of the Update operation sequence: reset the "updating to newer version" persistent flag.
         Set-EbpfUpgradingFlag -ResetFlag | Out-Null
 
         # If the handler is being invoked from the VM Agent within the Update Operation, we don't need to do anything.
-        Write-Log -level $LogLevelInfo -message "Enable-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
-        return $EbpfStatusCode_SUCCESS
-    } else {
+        $statusInfo.StatusMessage = "Enable-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
+        Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
+        return [int]$statusInfo.StatusCode
+    }
 
     # Attempt to start the eBPF drivers.
     $statusInfo = Start-EbpfDrivers
@@ -1371,7 +1372,8 @@ function Update-eBPF-Handler {
     # Due to the current implementation of the VM Extrnsion Platform and Auto-Update requirements, toghether with the dependency taken by the GuestProxy agent,
     # the Update operation has to forcily implement ALL the command sequence invoked within the Update opertion (i.e. Disable, Uninstall, Update, Install and Enable).
     # This is because the VM Agent may invoke the Update operation in a disconnected state, in case the GuestProxyAgent fails to restart.
-    # Therefore, a global persistent flag is used by all of the commands within the Update operation, to determine they are being invoked from the VM Agent within the Update operation scope, and if so, do NOP.
+    # Therefore, a global persistent flag is used by all of the commands within the Update operation, to determine they are being invoked from the VM Agent
+    # within the Update operation scope, and if so, do NOP.
     
     # Define a status info object.
     $statusInfo = [PSCustomObject]@{
