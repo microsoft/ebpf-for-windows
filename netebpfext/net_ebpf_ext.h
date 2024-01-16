@@ -98,31 +98,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         }                                                                             \
     }
 
-#define ENTER_HOOK_CLIENT_RUNDOWN(hook_client)                                                                       \
-    {                                                                                                                \
-        /*                                                                                                           \
-         * In certain locations, invocation of the following call cannot ever return false. We always have a valid   \
-         * filter_context in these locations so this call cannot fail as the hook_client rundown object is also used \
-         * to ensure validity of the filter_context. Using an additional rundown object for this purpose would be    \
-         * overkill and and inefficient use of already available resources.                                          \
-         *                                                                                                           \
-         * In such instances, a 'false' return value indicates a fatal internal error. This convenience macro checks \
-         * for this condition and triggers an immediate bugcheck.                                                    \
-         *                                                                                                           \
-         * To be clear, it is ok to call the underlying call directly in other use cases that _do_ _not_ involve     \
-         * accessing the filter_context, with the explicit caveat that the caller be thoroughly aware of the         \
-         * consequences of this call returning false.                                                                \
-         */                                                                                                          \
-        if (!net_ebpf_extension_hook_client_enter_rundown((hook_client))) {                                          \
-            __fastfail(FAST_FAIL_INVALID_ARG);                                                                       \
-        }                                                                                                            \
-    }
-
-#define LEAVE_HOOK_CLIENT_RUNDOWN(hook_client)                       \
-    {                                                                \
-        net_ebpf_extension_hook_client_leave_rundown((hook_client)); \
-    }
-
 /**
  * @brief This function allocates and initializes a net ebpf extension WFP filter context. This should be invoked when
  * the hook client is being attached.
