@@ -2,15 +2,15 @@
     {
         "version": 1.0,
         "handlerEnvironment": {
-            "logFolder": "c:\\_ebpf\\vm_ext\\tests\\logs",
-            "configFolder": "c:\\_ebpf\\vm_ext\\tests\\config",
-            "statusFolder": "c:\\_ebpf\\vm_ext\\tests\\status",
-            "heartbeatFile": "c:\\_ebpf\\vm_ext\\tests\\heartbeat",
+            "logFolder": "C:\\work\\eBPFForWindows\\.internal\\vm-extension\\src\\tests\\logs",
+            "configFolder": "C:\\work\\eBPFForWindows\\.internal\\vm-extension\\src\\tests\\config",
+            "statusFolder": "C:\\work\\eBPFForWindows\\.internal\\vm-extension\\src\\tests\\status",
+            "heartbeatFile": "C:\\work\\eBPFForWindows\\.internal\\vm-extension\\src\\tests\\heartbeat",
             "deploymentid": "1234",
             "rolename": "role_name",
             "instance": "Instance_name",
             "hostResolverAddress": "1.1.1.1",
-            "eventsFolder": "c:\\_ebpf\\vm_ext\\tests\\events"
+            "eventsFolder": "C:\\work\\eBPFForWindows\\.internal\\vm-extension\\src\\tests\\events"
         }
     }
 ]

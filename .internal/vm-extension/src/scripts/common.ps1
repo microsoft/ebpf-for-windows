@@ -558,26 +558,26 @@ function Set-EbpfUpgradingFlag {
     try {
         if ($SetFlag) {
             # Create or update the registry key
-            New-Item -Path $RegistryPath -Name $RegistryKey -Force
+            New-Item -Path $RegistryPath -Name $RegistryKey -Force | Out-Null
             Write-Log -Level $LogLevelInfo -Message "$RegistryKey flag set successfully."
             return $EbpfStatusCode_SUCCESS
         }
         elseif ($ResetFlag) {
             # Remove the registry key
             $fullRegistryPath = Join-Path $RegistryPath $RegistryKey
-            Remove-Item -Path $fullRegistryPath -ErrorAction SilentlyContinue
+            Remove-Item -Path $fullRegistryPath -ErrorAction SilentlyContinue | Out-Null
             Write-Log -Level $LogLevelInfo -Message "$RegistryKey flag reset successfully."
             return $EbpfStatusCode_SUCCESS
         }
         else {
             Write-Log -Level $LogLevelError -Message "Please specify either -SetFlag or -ResetFlag switch."
-            return $EbpfStatusCode_ERROR
         }
     }
     catch {
         Write-Log -Level $LogLevelError -Message "Error: $_"
-        return $EbpfStatusCode_ERROR
     }
+
+    return $EbpfStatusCode_ERROR
 }
 
 function Get-EbpfUpgradingFlag {
@@ -726,6 +726,9 @@ function Start-EbpfDrivers {
             if ($currDriverPath) {
                 if ($?) {
                     Write-Log -level $LogLevelInfo -message "[$driverName] is registered correctly, starting the driver service..."
+
+                    # Set the startup type to automatic.
+                    Set-Service -Name $driverName -StartupType Automatic -ErrorAction SilentlyContinue
                     
                     # Start the service in a background job
                     $job = Start-Job -ScriptBlock {
@@ -1097,12 +1100,12 @@ function InstallOrUpdate-eBPF {
 
 function Backup-EbpfDeployment {
     param (
-        [string]$EbpfDefaultInstallPath
+        [string]$installDirectory
     )
 
     try {
         # Check if the installation path exists
-        if (Test-Path $EbpfDefaultInstallPath -PathType Container) {
+        if (Test-Path -Path $installDirectory -PathType Container) {
             # Create or clear the backup directory
             if (Test-Path $EbpfBackupPath -PathType Container) {
                 Remove-Item -Recurse -Force -Path $EbpfBackupPath
@@ -1110,7 +1113,7 @@ function Backup-EbpfDeployment {
             New-Item -ItemType Directory -Force -Path $EbpfBackupPath | Out-Null
 
             # Copy installation files to the backup directory
-            Copy-Item -Recurse -Path $EbpfDefaultInstallPath -Destination $EbpfBackupPath -Force
+            Copy-Item -Recurse -Path $installDirectory -Destination $EbpfBackupPath -Force
 
             # Log success
             $logMessage = "Backup completed successfully. Backup directory: $EbpfBackupPath"
@@ -1135,17 +1138,17 @@ function Backup-EbpfDeployment {
 
 function Restore-EbpfDeployment {
     param (
-        [string]$EbpfDefaultInstallPath
+        [string]$installDirectory
     )
 
     try {
         # Check if a valid backup directory is found
         if (Test-Path $EbpfBackupPath -PathType Container) {
             # Remove existing installation directory
-            Remove-Item -Recurse -Force -Path $EbpfDefaultInstallPath -ErrorAction SilentlyContinue
+            Remove-Item -Recurse -Force -Path $installDirectory -ErrorAction SilentlyContinue
 
             # Copy files from backup to the installation directory
-            Copy-Item -Recurse -Path $EbpfBackupPath -Destination $EbpfDefaultInstallPath -Force
+            Copy-Item -Recurse -Path $EbpfBackupPath -Destination $installDirectory -Force
 
             # Log success
             $logMessage = "Restoration completed successfully from backup: $EbpfBackupPath"
@@ -1401,7 +1404,7 @@ function Update-eBPF-Handler {
                 # The Disable command has already been invoked by the VM Agent (it preceeds the Update command in the Update operation sequence), so we don't need to do anything here.
 
                 # Install or Update eBPF.
-                $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade Get-EbpfUpgradingFlag
+                $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade (Get-EbpfUpgradingFlag)
                 if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                     # Enable eBPF (attempt to start the eBPF drivers).
                     $statusInfo = Start-EbpfDrivers

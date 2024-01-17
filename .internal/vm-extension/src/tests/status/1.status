@@ -1,16 +1,16 @@
 [
     {
         "status":  {
-                       "operation":  "enable",
+                       "operation":  "test",
                        "code":  0,
                        "name":  "EbpfForWindows",
-                       "status":  "success",
+                       "status":  "transitioning",
                        "formattedMessage":  {
-                                                "message":  "eBPF enabled",
+                                                "message":  "-",
                                                 "lang":  "en-US"
                                             }
                    },
-        "timestampUTC":  "2023-09-29T22:19:32Z",
+        "timestampUTC":  "2024-01-17T01:59:47Z",
         "version":  "1.0"
     }
 ]
