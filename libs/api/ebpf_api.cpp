@@ -499,6 +499,128 @@ Exit:
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+static _Must_inspect_result_ ebpf_result_t
+_ebpf_map_lookup_element_batch_helper(
+    fd_t map_fd,
+    _In_opt_ const void* in_batch,
+    _Out_ void* out_batch,
+    _Out_ void* keys,
+    _Out_ void* values,
+    _Inout_ uint32_t* count,
+    bool find_and_delete) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle;
+    uint32_t key_size_u32;
+    uint32_t value_size_u32;
+    uint32_t max_entries_u32;
+    uint32_t type;
+
+    size_t input_count = *count;
+    size_t count_returned = 0;
+    size_t max_entries_per_batch;
+    size_t key_size;
+    size_t value_size;
+
+    const uint8_t* previous_key = reinterpret_cast<const uint8_t*>(in_batch);
+
+    ebpf_assert(keys);
+    ebpf_assert(values);
+    ebpf_assert(count);
+
+    if (map_fd <= 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if (*count == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        goto Exit;
+    }
+
+    // Get map properties, either from local cache or from EC.
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size_u32, &value_size_u32, &max_entries_u32);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    key_size = key_size_u32;
+    value_size = value_size_u32;
+
+    // Compute the maximum number of entries that can be updated in a single batch.
+    max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_reply, data);
+    max_entries_per_batch /= (key_size + value_size);
+
+    while (count_returned < input_count) {
+        // Fetch the next batch of entries.
+        size_t entries_to_fetch = min(input_count - count_returned, max_entries_per_batch);
+
+        ebpf_protocol_buffer_t request_buffer(
+            EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_request, previous_key) +
+            (previous_key ? key_size : 0));
+        auto request = reinterpret_cast<_ebpf_operation_map_get_next_key_value_batch_request*>(request_buffer.data());
+        ebpf_protocol_buffer_t reply_buffer(
+            EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_reply, data) +
+            entries_to_fetch * (key_size + value_size));
+        auto reply = reinterpret_cast<_ebpf_operation_map_get_next_key_value_batch_reply*>(reply_buffer.data());
+
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH;
+        request->handle = map_handle;
+        request->find_and_delete = find_and_delete;
+        if (previous_key) {
+            std::copy(previous_key, previous_key + key_size, request->previous_key);
+        }
+
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        size_t entries_returned =
+            reply->header.length - EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_reply, data);
+        entries_returned /= (key_size + value_size);
+
+        // Add this check to make the static analyzer happy.
+        if (entries_returned == 0) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
+        for (uint32_t index = 0; index < entries_returned; index++) {
+            uint8_t* key_data = reply->data + index * (key_size + value_size);
+            uint8_t* value_data = reply->data + index * (key_size + value_size) + key_size;
+            std::copy(key_data, key_data + key_size, (uint8_t*)keys + (count_returned + index) * key_size);
+            std::copy(value_data, value_data + value_size, (uint8_t*)values + (count_returned + index) * value_size);
+        }
+        count_returned += entries_returned;
+
+        // Point previous_key to the last key in the batch.
+        previous_key = (uint8_t*)keys + (count_returned - 1) * key_size;
+
+        // Partial return signals last no more entries.
+        if (entries_returned != entries_to_fetch) {
+            break;
+        }
+    }
+
+    // Copy previous key into out_batch.
+    std::copy(previous_key, previous_key + key_size, (uint8_t*)out_batch);
+
+    *count = static_cast<uint32_t>(count_returned);
+
+Exit:
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) NO_EXCEPT_TRY
 {
@@ -514,6 +636,42 @@ ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ 
 {
     EBPF_LOG_ENTRY();
     auto result = _ebpf_map_lookup_element_helper(map_fd, true, key, value);
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_lookup_element_batch(
+    fd_t map_fd,
+    _In_opt_ const void* in_batch,
+    _Out_ void* out_batch,
+    _Out_ void* keys,
+    _Out_ void* values,
+    _Inout_ uint32_t* count,
+    uint64_t flags) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(flags);
+    ebpf_result_t result =
+        _ebpf_map_lookup_element_batch_helper(map_fd, in_batch, out_batch, keys, values, count, false);
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_lookup_and_delete_element_batch(
+    fd_t map_fd,
+    _In_opt_ const void* in_batch,
+    _Out_ void* out_batch,
+    _Out_ void* keys,
+    _Out_ void* values,
+    _Inout_ uint32_t* count,
+    uint64_t flags) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(flags);
+    ebpf_result_t result =
+        _ebpf_map_lookup_element_batch_helper(map_fd, in_batch, out_batch, keys, values, count, true);
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -549,6 +707,84 @@ _update_map_element(
         std::copy((uint8_t*)value, (uint8_t*)value + value_size, request->data + key_size);
 
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+static ebpf_result_t
+_update_map_element_batch(
+    ebpf_handle_t map_handle,
+    _In_opt_ const void* key,
+    size_t key_size,
+    _In_ const void* value,
+    size_t value_size,
+    _Inout_ uint32_t* count,
+    uint64_t flags) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_map_update_element_batch_request_t* request;
+    ebpf_operation_map_update_element_batch_reply_t reply;
+    size_t input_count = *count;
+
+    ebpf_assert(value);
+    ebpf_assert(key || !key_size);
+
+    // Compute the maximum number of entries that can be updated in a single batch.
+    size_t max_entries_per_batch = 0;
+    max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data);
+    max_entries_per_batch /= (key_size + value_size);
+
+    try {
+        for (size_t key_index = 0; key_index < input_count;) {
+            // Compute the number of entries to update in this batch.
+            size_t entries_to_update = min(input_count - key_index, max_entries_per_batch);
+
+            request_buffer.resize(
+                EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data) +
+                entries_to_update * (key_size + value_size));
+            request = reinterpret_cast<ebpf_operation_map_update_element_batch_request_t*>(request_buffer.data());
+
+            request->header.length = static_cast<uint16_t>(request_buffer.size());
+            request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_UPDATE_ELEMENT_BATCH;
+            request->handle = (uint64_t)map_handle;
+            request->option = static_cast<ebpf_map_option_t>(flags);
+
+            for (size_t index = 0; index < entries_to_update; index++) {
+                uint8_t* source_key = (uint8_t*)key + (key_index + index) * key_size;
+                uint8_t* source_value = (uint8_t*)value + (key_index + index) * value_size;
+                uint8_t* destination_key = request->data + index * (key_size + value_size);
+                uint8_t* destination_value = request->data + index * (key_size + value_size) + key_size;
+                if (key_size > 0) {
+                    std::copy(source_key, source_key + key_size, destination_key);
+                }
+                std::copy(source_value, source_value + value_size, destination_value);
+            }
+
+            result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply));
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+
+            // Check number of entries updated in this batch.
+            if (reply.count_of_elements_processed != entries_to_update) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+
+            key_index += entries_to_update;
+        }
+        result = EBPF_SUCCESS;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -651,6 +887,89 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_map_update_element_batch(
+    fd_t map_fd, _In_opt_ const void* keys, _In_ const void* values, _Inout_ uint32_t* count, uint64_t flags)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle;
+    uint32_t key_size_u32;
+    uint32_t value_size_u32;
+    uint32_t max_entries_u32;
+    size_t key_size;
+    size_t value_size;
+    size_t input_count = *count;
+
+    uint32_t type;
+
+    ebpf_assert(values);
+    if (map_fd <= 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    switch (flags) {
+    case EBPF_ANY:
+    case EBPF_NOEXIST:
+    case EBPF_EXIST:
+        break;
+    default:
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_FD);
+    }
+
+    // Get map properties, either from local cache or from EC.
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size_u32, &value_size_u32, &max_entries_u32);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    key_size = key_size_u32;
+    value_size = value_size_u32;
+
+    if ((keys == nullptr) != (key_size == 0)) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    assert(value_size != 0);
+    assert(type != 0);
+
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
+    }
+
+    if ((type == BPF_MAP_TYPE_PROG_ARRAY) || (type == BPF_MAP_TYPE_HASH_OF_MAPS) ||
+        (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
+        for (size_t index = 0; index < input_count; index++) {
+            fd_t fd = reinterpret_cast<const fd_t*>(values)[index];
+            const uint8_t* key = reinterpret_cast<const uint8_t*>(keys) + index * key_size;
+            ebpf_handle_t handle = ebpf_handle_invalid;
+            // If the fd is valid, resolve it to a handle, else pass ebpf_handle_invalid to the IOCTL.
+            if (fd != ebpf_fd_invalid) {
+                handle = _get_handle_from_file_descriptor(fd);
+                if (handle == ebpf_handle_invalid) {
+                    EBPF_RETURN_RESULT(EBPF_INVALID_FD);
+                }
+            }
+
+            assert(key_size != 0);
+            __analysis_assume(key_size != 0);
+            result = _update_map_element_with_handle(map_handle, static_cast<uint32_t>(key_size), key, handle, flags);
+            if (result != EBPF_SUCCESS) {
+                EBPF_RETURN_RESULT(result);
+            }
+        }
+        EBPF_RETURN_RESULT(result);
+    } else {
+        EBPF_RETURN_RESULT(_update_map_element_batch(map_handle, keys, key_size, values, value_size, count, flags));
+    }
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -698,6 +1017,101 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
         if (result == EBPF_INVALID_OBJECT) {
             result = EBPF_INVALID_FD;
+        }
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    } catch (...) {
+        result = EBPF_FAILED;
+        goto Exit;
+    }
+
+Exit:
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32_t* count, uint64_t flags) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle;
+    uint32_t key_size_u32;
+    uint32_t value_size_u32;
+    uint32_t max_entries_u32;
+    uint32_t type;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_map_delete_element_batch_request_t* request;
+    ebpf_operation_map_delete_element_batch_reply_t reply;
+    size_t key_size;
+    size_t value_size;
+    size_t input_count = *count;
+    size_t max_entries_per_batch;
+
+    UNREFERENCED_PARAMETER(flags);
+
+    ebpf_assert(keys);
+    if (map_fd <= 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        goto Exit;
+    }
+
+    // Get map properties, either from local cache or from EC.
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size_u32, &value_size_u32, &max_entries_u32);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    key_size = key_size_u32;
+    value_size = value_size_u32;
+
+    if (key_size == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+    assert(value_size != 0);
+
+    // Compute the maximum number of entries that can be updated in a single batch.
+    max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys);
+    max_entries_per_batch /= key_size;
+
+    try {
+        for (size_t key_index = 0; key_index < input_count;) {
+            // Compute the number of entries to update in this batch.
+            size_t entries_to_delete = min(input_count - key_index, max_entries_per_batch);
+
+            request_buffer.resize(
+                EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys) + key_size * entries_to_delete);
+            request = reinterpret_cast<ebpf_operation_map_delete_element_batch_request_t*>(request_buffer.data());
+
+            request->header.length = static_cast<uint16_t>(request_buffer.size());
+            request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_DELETE_ELEMENT_BATCH;
+            request->handle = (uint64_t)map_handle;
+
+            std::copy(
+                (uint8_t*)keys + key_size * key_index,
+                (uint8_t*)keys + key_size * (entries_to_delete + key_index),
+                request->keys);
+
+            result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply));
+            if (result == EBPF_INVALID_OBJECT) {
+                result = EBPF_INVALID_FD;
+            }
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+            if (reply.count_of_elements_processed != entries_to_delete) {
+                result = EBPF_INVALID_ARGUMENT;
+                goto Exit;
+            }
+            key_index += reply.count_of_elements_processed;
         }
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;

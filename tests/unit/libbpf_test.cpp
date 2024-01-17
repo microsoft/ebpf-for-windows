@@ -3148,3 +3148,82 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
 
     usersim_trace_logging_set_enabled(false, 0, 0);
 }
+
+TEST_CASE("libbpf map batch", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Create a hash map.
+    union bpf_attr attr = {};
+    attr.map_type = BPF_MAP_TYPE_HASH;
+    attr.key_size = sizeof(uint32_t);
+    attr.value_size = sizeof(uint64_t);
+    attr.max_entries = 1024 * 1024;
+
+    fd_t map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
+    REQUIRE(map_fd > 0);
+
+    uint32_t batch_size = 20000;
+    std::vector<uint32_t> keys(batch_size);
+    std::vector<uint64_t> values(batch_size);
+    for (uint32_t i = 0; i < batch_size; i++) {
+        keys[i] = i;
+        values[i] = static_cast<uint64_t>(i) * 2ul;
+    }
+
+    // Update the map with the batch.
+    bpf_map_batch_opts opts = {.elem_flags = BPF_NOEXIST};
+
+    uint32_t update_batch_size = batch_size;
+
+    // Insert keys in batch.
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == 0);
+    REQUIRE(update_batch_size == batch_size);
+
+    // Fetch the batch.
+    uint32_t fetched_batch_size = batch_size;
+    std::vector<uint32_t> fetched_keys(batch_size);
+    std::vector<uint64_t> fetched_values(batch_size);
+    uint32_t next_key = 0;
+    opts.elem_flags = 0;
+
+    // Fetch all keys in one batch.
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+
+    // Request more keys than present.
+    uint32_t large_fetched_batch_size = fetched_batch_size * 2;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &large_fetched_batch_size, &opts) ==
+        0);
+    REQUIRE(fetched_batch_size == batch_size);
+
+    // Search at end of map.
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd,
+            &next_key,
+            &next_key,
+            fetched_keys.data(),
+            fetched_values.data(),
+            &large_fetched_batch_size,
+            &opts) == -ENOENT);
+
+    // Delete the batch.
+    uint32_t delete_batch_size = batch_size;
+    opts.elem_flags = 0;
+
+    // Delete all keys in one batch.
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == 0);
+    REQUIRE(delete_batch_size == batch_size);
+
+    // Fetch all keys in one batch.
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -ENOENT);
+}
