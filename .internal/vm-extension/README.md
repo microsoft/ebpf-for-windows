@@ -276,27 +276,13 @@ Remove-AzVMExtension -ResourceGroupName $vmResourceGroup -Name $vmExtName -VMNam
 
 ## Appendix
 
-### Undefined topics in the official docs
+In the following, we report the sequence diagrams for the main operations performed by the VM Extension Handler, not yet present in the official docs (see [this GitHub Issue](https://github.com/Azure/azure-vmextension-publishing/issues/2)).
 
-#### 1.0 Partner Guide Overview
+### Update Sequence diagram
 
-[1.3 AggregateStatus Architecture Overview](https://github.com/Azure/azure-vmextension-publishing/wiki/1.0-Partner-Guide-Overview#13aggregatestatus-architecture-overview): `images/extensionarchitecture.png` link is broken.
+[![Update Sequence Diagram](./doc/update_sequence_diagram.png)](./images/update-sequence-diagram.png)
 
-#### 2.3.4 Update Command (empty - WIP)
+### Auto-Update Sequence diagram
 
-<https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#234-update-command>
+[![Auto-Update Sequence Diagram](./doc/auto-update_sequence_diagram.png)](./images/auto-update-sequence-diagram.png)
 
-For example, does the `Update` call `Enable`, like the `Install`? Looks not clarified also in [2.2.3 Update a handler to different version](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#223update-a-handler-to-different-version)
-
-#### 2.3.6 Summary
-
-<https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary>
-
-- The "Reserved Exit Code" & "Recommended Exit Code" paragraphs are WIP -> is the publisher free to use any?
-- In the "`VM Agent Contracts Expectations for Handler Commands Window VM"`, the `Disable` & `Reset` commands have a `"Yes?"`, which does not uniquely define the column "Extension writes status file".
-    > NOTE: A follow up with the VM Extension Team confirmed **No**.
-- The `Uninstall` handler command has conflicting information in the [2.3.6 Summary](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary):
-  - In the "`VM Agent Contracts Expectations for Handler Commands Window VM`" table, the `Uninstall` command has a `"Yes"` in the column "Extension writes status file".
-  - In the "`ConfigSequenceNumber`" environment variable table, the `Uninstall` command is not present, therefore indicating that it could not write a status file.
-    > NOTE: A follow up with the VM Extension Team confirmed that `Uninstall` should **Not** write a status file.
-- Although the [2.2.1 Add a new handler on the VM (Install and Enable)](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#221-add-a-new-handler-on-the-vm-install-and-enable) specifies that the `Enable` command will be called and required to generate a Status file, in the summary it is defined as "NA", and [here](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#231-install-command) is undocumented.

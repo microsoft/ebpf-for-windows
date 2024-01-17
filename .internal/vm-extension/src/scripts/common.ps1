@@ -28,21 +28,24 @@ Set-Variable -Name "EbpfStatusCode_SUCCESS" -Value 0
 Set-Variable -Name "EbpfStatusCode_ERROR" -Value 1001
 Set-Variable -Name "EbpfStatusCode_BAD_ENV_FILE" -Value 1002
 Set-Variable -Name "EbpfStatusCode_ENV_FILE_NOT_FOUND" -Value 1003
-Set-Variable -Name "EbpfStatusCode_INSTALLATION_UNALLOWED" -Value 1004
-Set-Variable -Name "EbpfStatusCode_COPY_FAILED" -Value 1005
-Set-Variable -Name "EbpfStatusCode_DELETE_DIR_FAILED" -Value 1006
-Set-Variable -Name "EbpfStatusCode_CREATE_DIR_FAILED" -Value 1007
-Set-Variable -Name "EbpfStatusCode_FIND_DIR_FAILED" -Value 1008
-Set-Variable -Name "EbpfStatusCode_CREATE_TASK_FAILED" -Value 1009
-Set-Variable -Name "EbpfStatusCode_DELETE_TASK_FAILED" -Value 1010
-Set-Variable -Name "EbpfStatusCode_STARTING_DRIVER_FAILED" -Value 1011
-Set-Variable -Name "EbpfStatusCode_STOPPING_DRIVER_FAILED" -Value 1012
-Set-Variable -Name "EbpfStatusCode_DISABLING_DRIVER_FAILED" -Value 1013
-Set-Variable -Name "EbpfStatusCode_INSTALLING_DRIVER_FAILED" -Value 1014
-Set-Variable -Name "EbpfStatusCode_UNINSTALLING_DRIVER_FAILED" -Value 1015
-Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 1016
-Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1017
-Set-Variable -Name "EbpfStatusCode_RESTARTING_SERVICE_FAILED" -Value 1018
+Set-Variable -Name "EbpfStatusCode_INSTALLATION_UP_TO_DATE" -Value 1004
+Set-Variable -Name "EbpfStatusCode_INSTALLATION_DOWNGRADE_UNALLOWED" -Value 1005
+Set-Variable -Name "EbpfStatusCode_INSTALLATION_UNALLOWED" -Value 1006
+Set-Variable -Name "EbpfStatusCode_COPY_FAILED" -Value 1007
+Set-Variable -Name "EbpfStatusCode_DELETE_DIR_FAILED" -Value 1008
+Set-Variable -Name "EbpfStatusCode_CREATE_DIR_FAILED" -Value 1009
+Set-Variable -Name "EbpfStatusCode_FIND_DIR_FAILED" -Value 1010
+Set-Variable -Name "EbpfStatusCode_CREATE_TASK_FAILED" -Value 1011
+Set-Variable -Name "EbpfStatusCode_DELETE_TASK_FAILED" -Value 1012
+Set-Variable -Name "EbpfStatusCode_STARTING_DRIVER_FAILED" -Value 1013
+Set-Variable -Name "EbpfStatusCode_STOPPING_DRIVER_FAILED" -Value 1014
+Set-Variable -Name "EbpfStatusCode_DISABLING_DRIVER_FAILED" -Value 1015
+Set-Variable -Name "EbpfStatusCode_INSTALLING_DRIVER_FAILED" -Value 1016
+Set-Variable -Name "EbpfStatusCode_UNINSTALLING_DRIVER_FAILED" -Value 1017
+Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 1018
+Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1019
+Set-Variable -Name "EbpfStatusCode_RESTARTING_SERVICE_FAILED" -Value 1020
+
 
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
@@ -550,7 +553,7 @@ function Report-Status {
     Write-Log -level $LogLevelInfo -message "Status file generated: $statusFilePath"
 }
 
-function Set-EbpfUpgradingFlag {
+function Set-EbpfUpdatingFlag {
     param (
         [switch]$SetFlag,
         [switch]$ResetFlag
@@ -581,7 +584,7 @@ function Set-EbpfUpgradingFlag {
     return $EbpfStatusCode_ERROR
 }
 
-function Get-EbpfUpgradingFlag {
+function Get-EbpfUpdatingFlag {
     $fullRegistryPath = Join-Path $RegistryPath $RegistryKey
 
     # Check if the registry key exists
@@ -1072,14 +1075,14 @@ function InstallOrUpdate-eBPF {
             } elseif ($comparison -gt 0) {
                 # If the product version is greater than the version distributed with the VM extension and downgrade is NOT allowed, then return an error.
                 Write-Log -level $LogLevelError -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will NOT be downgraded!"
-                $statusCode = $EbpfStatusCode_INSTALLATION_UNALLOWED
+                $statusCode = $EbpfStatusCode_INSTALLATION_DOWNGRADE_UNALLOWED
             } elseif ($comparison -lt 0) {
                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                 [int]$statusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
             } else {
                 # If the product version is the same as the version distributed with the VM extension, then we return a success code, as if the operation was successful.
                 # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
-                $statusCode = $EbpfStatusCode_SUCCESS
+                $statusCode = $EbpfStatusCode_INSTALLATION_UP_TO_DATE
                 Write-Log -level $LogLevelInfo -message "eBPF version is up to date (v$currProductVersion)."
             }
         }
@@ -1203,64 +1206,6 @@ function Remove-EbpfDeploymentBackup {
     }
 }
 
-function Rollback-EbpfInstallation {
-    params(
-        [string]$installDirectory
-    )
-
-    Write-Log -level $LogLevelInfo -message "Rollback-EbpfInstallation()"
-
-    # Define a status info object.
-    $statusInfo = [PSCustomObject]@{
-        StatusCode = $EbpfStatusCode_ERROR
-        StatusString = $StatusError
-        StatusMessage = "<none>"
-    }
-
-    # Uninstall eBPF, scraping out anything we can (restore is called when things are broken, so we can't rely on the state of the system).
-    $statusInfo.StatusCode = Uninstall-eBPF -installDirectory "$installDirectory"
-    if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
-        # CATASTROPHIC FAILURE: If the uninstallation fails, we can't proceed with the restoration.
-        $statusInfo.StatusString = $StatusError
-        $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (Uninstalling the updated version failed)."
-        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-        return $statusInfo
-    } else {
-        # Attempt to re-install everything using the backup files.
-        $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameInstall -sourcePath "$EbpfBackupPath" -destinationPath "$installDirectory" -allowDowngrade $true
-        if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
-            # Enable eBPF (attempt to start the eBPF drivers).
-            $statusInfo = Start-EbpfDrivers
-            if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
-                # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
-                $statusInfo.StatusCode = Restart-GuestProxyAgent
-                if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
-                    $statusInfo.StatusString = $StatusError
-                    $statusInfo.StatusMessage = "eBPF was successfully installed, but restarting the '$serviceName' service FAILED -> Failing the overall rollback operation."
-                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-                } else {
-                    $statusInfo.StatusString = $StatusSuccess
-                    $statusInfo.StatusMessage = "eBPF $OperationNameUpdate succeeded."
-                    Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
-                } 
-            } else {
-                # CATASTROPHIC FAILURE: If the restore fails, we return a fatal error.
-                Set-EbpfUpgradingFlag -ResetFlag | Out-Null
-                $statusInfo.StatusString = $StatusError
-                $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (Rollback to previous version failed)."
-                Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-            }
-        } else {
-            # CATASTROPHIC FAILURE: If the installation fails, we return a fatal error.
-            $statusInfo.StatusString = $StatusError
-            $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (REinstall of the backup installation failed)."
-            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
-        }
-    }    
-
-    return $statusInfo
-}
-
 function Restart-GuestProxyAgent {
 
     Write-Log -level $LogLevelInfo -message "Restart-GuestProxyAgent()"
@@ -1297,11 +1242,11 @@ function Enable-eBPF-Handler {
     }
 
     # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
-    if (Get-EbpfUpgradingFlag) {
+    if (Get-EbpfUpdatingFlag) {
 
         # If we are here, it means that the Update commans did NOT return an error (otherwise the VM Agent would have aborted the Update operation).
         # Therefore, being the Enable command the last command of the Update operation sequence: reset the "updating to newer version" persistent flag.
-        Set-EbpfUpgradingFlag -ResetFlag | Out-Null
+        Set-EbpfUpdatingFlag -ResetFlag | Out-Null
 
         # If the handler is being invoked from the VM Agent within the Update Operation, we don't need to do anything.
         $statusInfo.StatusMessage = "Enable-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
@@ -1348,7 +1293,7 @@ function Uninstall-eBPF-Handler {
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler()"
 
     # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
-    if (Get-EbpfUpgradingFlag) {
+    if (Get-EbpfUpdatingFlag) {
         Write-Log -level $LogLevelInfo -message "Uninstall-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
         return $EbpfStatusCode_SUCCESS
     }
@@ -1387,14 +1332,14 @@ function Update-eBPF-Handler {
 
     try {
 
-        # Before setting the "updating to newer version" persistent flag, detect if the handler is being invoked for the first time,
+        # BEFORE setting the "EbpfUpdatingFlag" persistent flag, detect if the handler is being invoked for the first time,
         # so that InstallOrUpdate-eBPF can be invoked to allow or not downgrades.
-        $allowDowngrade = Get-EbpfUpgradingFlag
+        $allowDowngrade = Get-EbpfUpdatingFlag
 
-        # Set the "updating to newer version" persistent flag.
-        $statusInfo.StatusCode = Set-EbpfUpgradingFlag -SetFlag
+        # Set the "EbpfUpdatingFlag" persistent flag.
+        $statusInfo.StatusCode = Set-EbpfUpdatingFlag -SetFlag
         if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
-            $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED (Set-EbpfUpgradingFlag failed) -> Operation aborted."
+            $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED (Set-EbpfUpdatingFlag failed) -> Operation aborted."
             Write-Log -level $LogLevelError -message $statusMessage
         } else {
 
@@ -1410,8 +1355,11 @@ function Update-eBPF-Handler {
                 # so we don't need to do anything here.
 
                 # Install or Update eBPF.
+                $rollback = $true
                 $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade $allowDowngrade
-                if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS -or $statusInfo.StatusCode -eq $EbpfStatusCode_INSTALLATION_UNALLOWED) {
+                if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS -or 
+                    $statusInfo.StatusCode -eq $EbpfStatusCode_INSTALLATION_UP_TO_DATE -or
+                    $statusInfo.StatusCode -eq $EbpfStatusCode_INSTALLATION_UNALLOWED) {
                     # If the installation was not allowed, store the error so to return it to the caller.
                     $res = $statusInfo.StatusCode   
 
@@ -1422,14 +1370,16 @@ function Update-eBPF-Handler {
                         $statusInfo.StatusCode = Restart-GuestProxyAgent
                         if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                             $statusInfo.StatusCode = $res # Restore the original error code: eventhough all is ok, we need to return that the operation was not allowed.
-                            if ($res -eq $EbpfStatusCode_INSTALLATION_UNALLOWED) {
-                                $statusInfo.StatusString = $StatusError
-                                $statusInfo.StatusMessage = "eBPF $OperationNameUpdate was not allowed -> No change to the system."
-                            } else {
+                            if ($res -eq $EbpfStatusCode_SUCCESS) {
+                                $rollback = $false
                                 $statusInfo.StatusString = $StatusSuccess
                                 $statusInfo.StatusMessage = "eBPF $OperationNameUpdate succeeded."
+                                Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
+                            } else {                                
+                                $statusInfo.StatusString = $StatusError
+                                $statusInfo.StatusMessage = "eBPF $OperationNameUpdate was not allowed -> No change to the system."                                
+                                Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
                             }
-                            Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
                         } else {
                             # Rollback the installation below.
                         }
@@ -1438,16 +1388,51 @@ function Update-eBPF-Handler {
                     }                 
                 } 
                 
-                # If anything failed, we need to attempt to rollback the backup installation.
-                if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS -and $statusInfo.StatusCode -ne $EbpfStatusCode_INSTALLATION_UNALLOWED) {
-                    $statusInfo = Rollback-EbpfInstallation -installDirectory "$EbpfDefaultInstallPath"
-                    if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
-                        # If the restoring to the previous version and restarting the GuestProxyAgent succeeded, 
-                        # we anyways return an error indicating that the update failed.
-                        # TBD: If a rollback succeeds, should we return a success code? Otherwise, how does the system know that the rollback succeeded?
+                # If anything failed, we need to attempt to rollback to the backup installation.
+                if ($rollback) {
+                    Write-Log -level $LogLevelError -message "The eBPF $OperationNameUpdate Operation FAILED -> Attempting to rollback to the previous backed up version."
+
+                    # Uninstall eBPF, scraping out anything we can (restore is called when things are broken, so we can't rely on the state of the system).
+                    $statusInfo.StatusCode = Uninstall-eBPF -installDirectory "$installDirectory"
+                    if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+                        # CATASTROPHIC FAILURE: If the uninstallation fails, we can't proceed with the restoration.
                         $statusInfo.StatusString = $StatusError
-                        $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED, but restoring to the previous version succeeded."
-                        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage                 
+                        $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (Uninstalling the updated version failed)."
+                        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                        return $statusInfo
+                    } else {
+                        # Attempt to re-install everything using the backup files.
+                        $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfBackupPath" -destinationPath "$installDirectory" -allowDowngrade $true
+                        if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                            # Enable eBPF (attempt to start the eBPF drivers).
+                            $statusInfo = Start-EbpfDrivers
+                            if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                                # If the eBPF drivers are started successfully, we need to restart the GuestProxyAgent service.
+                                $statusInfo.StatusCode = Restart-GuestProxyAgent
+                                if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+                                    $statusInfo.StatusString = $StatusError
+                                    $statusInfo.StatusMessage = "eBPF was successfully installed, but restarting the '$serviceName' service FAILED -> Failing the overall rollback operation."
+                                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                                } else {
+                                    # If the restoring to the previous version and restarting the GuestProxyAgent succeeded, 
+                                    # we anyways return an error indicating that the update operation failed.
+                                    $statusInfo.StatusString = $StatusError
+                                    $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED, but restoring to the previous version succeeded."
+                                    Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                                } 
+                            } else {
+                                # CATASTROPHIC FAILURE: If the restore fails, we return a fatal error.
+                                Set-EbpfUpdatingFlag -ResetFlag | Out-Null
+                                $statusInfo.StatusString = $StatusError
+                                $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (Rollback to previous version failed)."
+                                Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                            }
+                        } else {
+                            # CATASTROPHIC FAILURE: If the installation of the backup fails, we return a fatal error.
+                            $statusInfo.StatusString = $StatusError
+                            $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $OperationNameUpdate FAILED (REinstall of the backup installation failed)."
+                            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                        }
                     }
                 }
             } else {
