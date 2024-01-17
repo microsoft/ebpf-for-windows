@@ -167,36 +167,34 @@ opcode  src   imm   off   description                                           
 0xbf    any   0x00  16    dst = (s64) (s16) src                                      Y      no     no   ???
 0xbf    any   0x00  32    dst = (s64) (s32) src                                      Y      no     no   ???
 0xc3    any   0x00  any   lock \*(u32 \*)(dst + offset) += src                       no     no     Y    lock_add32
-0xc3    any   0x01  any   lock::                                                     no     no     Y    lock_fetch_add32
-
-                             *(u32 *)(dst + offset) += src
-                             src = *(u32 *)(dst + offset)
+0xc3    any   0x01  any   | lock                                                     no     no     Y    lock_fetch_add32
+                          | temp = \*(u32 \*)(dst + offset)
+                          | \*(u32 \*)(dst + offset) += src
+                          | src = temp
 0xc3    any   0x40  any   lock \*(u32 \*)(dst + offset) \|= src                      no     no     Y    lock_or32
-0xc3    any   0x41  any   lock::                                                     no     no     Y    lock_fetch_or32
-
-                             *(u32 *)(dst + offset) |= src
-                             src = *(u32 *)(dst + offset)
+0xc3    any   0x41  any   | lock                                                     no     no     Y    lock_fetch_or32
+                          | temp = \*(u32 \*)(dst + offset)
+                          | \*(u32 \*)(dst + offset) |= src
+                          | src = temp
 0xc3    any   0x50  any   lock \*(u32 \*)(dst + offset) &= src                       no     no     Y    lock_and32
-0xc3    any   0x51  any   lock::                                                     no     no     Y    lock_fetch_and32
-
-                             *(u32 *)(dst + offset) &= src
-                             src = *(u32 *)(dst + offset)
+0xc3    any   0x51  any   | lock                                                     no     no     Y    lock_fetch_and32
+                          | temp = \*(u32 \*)(dst + offset)
+                          | \*(u32 *)(dst + offset) &= src
+                          | src = temp
 0xc3    any   0xa0  any   lock \*(u32 \*)(dst + offset) ^= src                       no     no     Y    lock_xor32
-0xc3    any   0xa1  any   lock::                                                     no     no     Y    lock_fetch_xor32
-
-                             *(u32 *)(dst + offset) ^= src
-                             src = *(u32 *)(dst + offset)
-0xc3    any   0xe1  any   lock::                                                     no     no     Y    lock_xchg32
-
-                             temp = *(u32 *)(dst + offset)
-                             *(u32 *)(dst + offset) = src
-                             src = temp
-0xc3    any   0xf1  any   lock::                                                     no     no     Y    lock_cmpxchg32
-
-                             temp = *(u32 *)(dst + offset)
-                             if *(u32)(dst + offset) == R0
-                                *(u32)(dst + offset) = src
-                             R0 = temp
+0xc3    any   0xa1  any   | lock                                                     no     no     Y    lock_fetch_xor32
+                          | temp = \*(u32 \*)(dst + offset)
+                          | \*(u32 \*)(dst + offset) ^= src
+                          | src = temp
+0xc3    any   0xe1  any   | lock                                                     no     no     Y    lock_xchg32
+                          | temp = \*(u32 \*)(dst + offset)
+                          | \*(u32 \*)(dst + offset) = src
+                          | src = temp
+0xc3    any   0xf1  any   | lock                                                     no     no     Y    lock_cmpxchg32
+                          | temp = \*(u32 \*)(dst + offset)
+                          | if \*(u32)(dst + offset) == R0
+                          |    \*(u32)(dst + offset) = src
+                          | R0 = temp
 0xc4    0x0   any   0     dst = (u32)(dst s>> imm)                                   Y      Y      Y    arsh
 0xc5    0x0   any   any   if dst s< imm goto +offset                                 Y      Y      Y    jslt-imm
 0xc6    0x0   any   any   if (s32)dst s< (s32)imm goto +offset                       Y      Y      Y    jslt32-imm
@@ -214,36 +212,34 @@ opcode  src   imm   off   description                                           
 0xd7    0x0   0x20  0     dst = bswap32(dst)                                         Y      no     no   ???
 0xd7    0x0   0x40  0     dst = bswap64(dst)                                         Y      no     no   ???
 0xdb    any   0x00  any   lock \*(u64 \*)(dst + offset) += src                       no     no     Y    lock_add
-0xdb    any   0x01  any   lock::                                                     no     no     Y    lock_fetch_add
-
-                             *(u64 *)(dst + offset) += src
-                             src = *(u64 *)(dst + offset)
+0xdb    any   0x01  any   | lock                                                     no     no     Y    lock_fetch_add
+                          | temp = \*(u64 \*)(dst + offset)
+                          | \*(u64 \*)(dst + offset) += src
+                          | src = temp
 0xdb    any   0x40  any   lock \*(u64 \*)(dst + offset) \|= src                      no     no     Y    lock_or
-0xdb    any   0x41  any   lock::                                                     no     no     Y    lock_fetch_or
-
-                             *(u64 *)(dst + offset) |= src
-                             src = *(u64 *)(dst + offset)
+0xdb    any   0x41  any   | lock                                                     no     no     Y    lock_fetch_or
+                          | temp = \*(u64 \*)(dst + offset)
+                          | \*(u64 \*)(dst + offset) |= src
+                          | src = temp
 0xdb    any   0x50  any   lock \*(u64 \*)(dst + offset) &= src                       no     no     Y    lock_and
-0xdb    any   0x51  any   lock::                                                     no     no     Y    lock_fetch_and
-
-                             *(u64 *)(dst + offset) &= src
-                             src = *(u64 *)(dst + offset)
+0xdb    any   0x51  any   | lock                                                     no     no     Y    lock_fetch_and
+                          | temp = \*(u64 \*)(dst + offset)
+                          | \*(u64 \*)(dst + offset) &= src
+                          | src = temp
 0xdb    any   0xa0  any   lock \*(u64 \*)(dst + offset) ^= src                       no     no     Y    lock_xor
-0xdb    any   0xa1  any   lock::                                                     no     no     Y    lock_fetch_xor
-
-                             *(u64 *)(dst + offset) ^= src
-                             src = *(u64 *)(dst + offset)
-0xdb    any   0xe1  any   lock::                                                     no     no     Y     lock_xchg
-
-                             temp = *(u64 *)(dst + offset)
-                             *(u64 *)(dst + offset) = src
-                             src = temp
-0xdb    any   0xf1  any   lock::                                                     no     no     Y     lock_cmpxchg
-
-                             temp = *(u64 *)(dst + offset)
-                             if *(u64)(dst + offset) == R0
-                                *(u64)(dst + offset) = src
-                             R0 = temp
+0xdb    any   0xa1  any   | lock                                                     no     no     Y    lock_fetch_xor
+                          | temp = \*(u64 \*)(dst + offset)
+                          | \*(u64 \*)(dst + offset) ^= src
+                          | src = temp
+0xdb    any   0xe1  any   | lock                                                     no     no     Y     lock_xchg
+                          | temp = \*(u64 \*)(dst + offset)
+                          | \*(u64 \*)(dst + offset) = src
+                          | src = temp
+0xdb    any   0xf1  any   | lock                                                     no     no     Y     lock_cmpxchg
+                          | temp = \*(u64 \*)(dst + offset)
+                          | if \*(u64)(dst + offset) == R0
+                          |    \*(u64)(dst + offset) = src
+                          | R0 = temp
 0xdc    0x0   0x10  0     dst = htobe16(dst)                                         Y      Y     Y     be16
 0xdc    0x0   0x20  0     dst = htobe32(dst)                                         Y      Y     Y     be32
 0xdc    0x0   0x40  0     dst = htobe64(dst)                                         Y      Y     Y     be64
