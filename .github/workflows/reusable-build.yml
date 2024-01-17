@@ -111,7 +111,7 @@ jobs:
       # Add cache entry for any choco packages that are installed.
       # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
       env:
         cache-name: cache-choco-packages
       with:
@@ -128,7 +128,7 @@ jobs:
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
       env:
         cache-name: cache-nuget-modules
       with:
@@ -138,7 +138,7 @@ jobs:
     - name: Cache verifier project
       # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
       env:
         cache-name: cache-verifier-project
       with:
