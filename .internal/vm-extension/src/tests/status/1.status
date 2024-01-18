@@ -2,15 +2,15 @@
     {
         "status":  {
                        "operation":  "enable",
-                       "code":  0,
+                       "code":  1013,
                        "name":  "EbpfForWindows",
-                       "status":  "success",
+                       "status":  "error",
                        "formattedMessage":  {
-                                                "message":  "eBPF enabled",
+                                                "message":  "eBPF update FAILED, but restoring the previous version succeeded.",
                                                 "lang":  "en-US"
                                             }
                    },
-        "timestampUTC":  "2024-01-18T00:29:12Z",
+        "timestampUTC":  "2024-01-18T02:01:45Z",
         "version":  "1.0"
     }
 ]

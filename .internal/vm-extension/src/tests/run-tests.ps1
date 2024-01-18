@@ -218,12 +218,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Update-eBPF-Handler) -eq $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }    
-    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
-        Exit-Tests -testPass 1
-    }
-    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
-        Exit-Tests -testPass 1
-    }
+    # If the update failed, the VM Agent will not call any other handler operation.
     
     # Attempt to update to an older version (downgrade is not allowed)
     Write-Log -level $LogLevelInfo -message "= Attempt to update to older version V1 =============================================================================================="
@@ -236,12 +231,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Update-eBPF-Handler) -eq $EbpfStatusCode_SUCCESS) { # Downgrade is not allowed
         Exit-Tests -testPass 1
     }
-    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
-        Exit-Tests -testPass 1
-    }
-    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
-        Exit-Tests -testPass 1
-    }
+    # If the update failed, the VM Agent will not call any other handler operation.
 
     # Rollback tests
     Write-Log -level $LogLevelInfo -message "= Rollback tests =========================================================================================================="
@@ -275,15 +265,10 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # Update will fail and rollback the previous installation: return code will be succesful as the GuestProxyAgent is not installed
+    if ((Update-eBPF-Handler) -eq $EbpfStatusCode_SUCCESS) { # Update will fail and rollback the previous installation
         Exit-Tests -testPass 1
     }
-    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
-        Exit-Tests -testPass 1
-    }
-    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
-        Exit-Tests -testPass 1
-    }
+    # If the update failed, the VM Agent will not call any other handler operation.
     
     # Uninstall eBPF
     Write-Log -level $LogLevelInfo -message "= Uninstall all ==============================================================================================================="
