@@ -15,8 +15,7 @@ Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
 Set-Variable -Name "EbpfBackupPath" -Value "$env:TEMP\ebpf_backup"
 Set-Variable -Name "RegistryPath" -Value "HKLM:\SOFTWARE\Microsoft\Windows Azure"
 Set-Variable -Name "RegistryKey" -Value "EbpfUpgrading"
-Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 60
-Set-Variable -Name "GpaStartTimeoutSeconds" -Value 60
+Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 10
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
@@ -1113,13 +1112,14 @@ function Backup-EbpfDeployment {
             if (Test-Path $EbpfBackupPath -PathType Container) {
                 Remove-Item -Recurse -Force -Path $EbpfBackupPath
             }
-            New-Item -ItemType Directory -Force -Path $EbpfBackupPath | Out-Null
+            $destinationDirectory = [System.IO.Path]::Combine($env:TEMP, "ebpf_backup\bin")
+            New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
 
             # Copy installation files to the backup directory
-            Copy-Item -Recurse -Path $installDirectory -Destination $EbpfBackupPath -Force
+            Copy-Item -Recurse -Path $installDirectory\* -Destination $destinationDirectory -Force
 
             # Log success
-            $logMessage = "Backup completed successfully. Backup directory: $EbpfBackupPath"
+            $logMessage = "Backup completed successfully. Backup directory: $destinationDirectory"
             Write-Log -Level $LogLevelInfo -Message $logMessage
 
             return $EbpfStatusCode_SUCCESS
@@ -1359,6 +1359,7 @@ function Update-eBPF-Handler {
                 $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade $allowDowngrade
                 if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS -or 
                     $statusInfo.StatusCode -eq $EbpfStatusCode_INSTALLATION_UP_TO_DATE -or
+                    $statusInfo.StatusCode -eq $EbpfStatusCode_INSTALLATION_DOWNGRADE_UNALLOWED -or
                     $statusInfo.StatusCode -eq $EbpfStatusCode_INSTALLATION_UNALLOWED) {
                     # If the installation was not allowed, store the error so to return it to the caller.
                     $res = $statusInfo.StatusCode   
@@ -1370,8 +1371,7 @@ function Update-eBPF-Handler {
                         $statusInfo.StatusCode = Restart-GuestProxyAgent
                         if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                             $statusInfo.StatusCode = $res # Restore the original error code: eventhough all is ok, we need to return that the operation was not allowed.
-                            if ($res -eq $EbpfStatusCode_SUCCESS) {
-                                $rollback = $false
+                            if ($res -eq $EbpfStatusCode_SUCCESS) {                                
                                 $statusInfo.StatusString = $StatusSuccess
                                 $statusInfo.StatusMessage = "eBPF $OperationNameUpdate succeeded."
                                 Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
@@ -1380,6 +1380,8 @@ function Update-eBPF-Handler {
                                 $statusInfo.StatusMessage = "eBPF $OperationNameUpdate was not allowed -> No change to the system."                                
                                 Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
                             }
+                            # No rollback required
+                            $rollback = $false
                         } else {
                             # Rollback the installation below.
                         }
@@ -1393,7 +1395,7 @@ function Update-eBPF-Handler {
                     Write-Log -level $LogLevelError -message "The eBPF $OperationNameUpdate Operation FAILED -> Attempting to rollback to the previous backed up version."
 
                     # Uninstall eBPF, scraping out anything we can (restore is called when things are broken, so we can't rely on the state of the system).
-                    $statusInfo.StatusCode = Uninstall-eBPF -installDirectory "$installDirectory"
+                    $statusInfo.StatusCode = Uninstall-eBPF -installDirectory "$EbpfDefaultInstallPath"
                     if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
                         # CATASTROPHIC FAILURE: If the uninstallation fails, we can't proceed with the restoration.
                         $statusInfo.StatusString = $StatusError
@@ -1402,7 +1404,7 @@ function Update-eBPF-Handler {
                         return $statusInfo
                     } else {
                         # Attempt to re-install everything using the backup files.
-                        $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfBackupPath" -destinationPath "$installDirectory" -allowDowngrade $true
+                        $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfBackupPath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade $true
                         if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                             # Enable eBPF (attempt to start the eBPF drivers).
                             $statusInfo = Start-EbpfDrivers

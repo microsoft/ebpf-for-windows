@@ -2,15 +2,15 @@
     {
         "status":  {
                        "operation":  "enable",
-                       "code":  1011,
+                       "code":  0,
                        "name":  "EbpfForWindows",
-                       "status":  "error",
+                       "status":  "success",
                        "formattedMessage":  {
-                                                "message":  "Timeout while starting driver [EbpfCore] (\u003e 60 seconds)",
+                                                "message":  "eBPF enabled",
                                                 "lang":  "en-US"
                                             }
                    },
-        "timestampUTC":  "2024-01-17T06:41:13Z",
+        "timestampUTC":  "2024-01-18T00:29:12Z",
         "version":  "1.0"
     }
 ]
