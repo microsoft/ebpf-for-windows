@@ -90,13 +90,14 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # Mock the VM-Agent provisioning the SequenceNumber environment variable.
     Set-Item -Path Env:\$VmAgentEnvVar_SEQUENCE_NO -Value "1" | Out-Null
 
+    #######################################################
     # Test cases
     #######################################################
-    # Raw environment cleanup.    
-    $null = Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1
-    # Re-run just to log the HandlerEnvironment contents (in path not available before reading it)
-    Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironmentFilePath"
-    Write-Log -level $LogLevelInfo -message "= Cleaning up environment =================================================================================================="        
+
+    # Raw environment cleanup.
+    Write-Log -level $LogLevelInfo -message "= Cleaning up environment =================================================================================================="
+    $null = Remove-Item -Path "$global:LogFilePath" -Recurse -Force 2>&1    
+    Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironmentFilePath" # Re-run just to log the HandlerEnvironment contents (in path not available before reading it)
     $null = net stop eBPFCore 2>&1
     $null = sc.exe delete eBPFCore 2>&1
     $null = net stop NetEbpfExt 2>&1
@@ -105,7 +106,8 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     $null = Remove-DirectoryFromSystemPath "$EbpfDefaultInstallPath" 2>&1
     $null = Remove-Item -Path "$EbpfDefaultInstallPath" -Recurse -Force 2>&1
 
-    # Clean-up and set up the test environment with two versions of the eBPF redist package.
+    # Download the required versions of the eBPF redist package, directly from MsCodeHub.
+    Write-Log -level $LogLevelInfo -message "= Downloading the required versions of the eBPF redist package, directly from MsCodeHub ===================================="
     $testRedistTargetDirectory = ".\_ebpf-redist"
     Delete-Directory -destinationPath $testRedistTargetDirectory | Out-Null
     $res = DownloadAndUnpackEbpfRedistPackage -packageVersion $versionV1 -targetDirectory $testRedistTargetDirectory
@@ -121,7 +123,8 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
         Exit-Tests -testPass 1
     }
 
-    # Spcific test cases regarding version comparing.
+    # Specific test cases regarding version comparing.
+    Write-Log -level $LogLevelInfo -message "= Specific test cases regarding version comparing =========================================================================="
     $currProductVersion = "0.9.0"
     $newProductVersion = "0.10.0"
     $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
@@ -144,7 +147,8 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
         Exit-Tests -testPass 1
     }
     
-    # # Spcific test cases regarding version comparing for hanler-only updates.
+    # Specific test cases regarding version comparing for hanler-only updates.
+    Write-Log -level $LogLevelInfo -message "= Specific test cases regarding version comparing for  handler-only updates ================================================"
     $currProductVersion = "0.9.0"
     $newProductVersion = "0.9.0.1"
     $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
@@ -168,6 +172,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     }
 
     # Test that the status file name has the right sequence number ($EbpfExtensionName.1002.settings is artificially set to the one modified last).
+    Write-Log -level $LogLevelInfo -message "= Test status file sequencing =============================================================================================="
     Report-Status -name $StatusName -operation "test" -status $StatusTransitioning -statusCode 0 -$statusMessage "Dummy status"
     $statusFileName = Get-ChildItem -Path "$($global:eBPFHandlerEnvObj.handlerEnvironment.statusFolder)" -Filter "*.status" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if ($statusFileName.Name -ne "1.status") {
@@ -178,7 +183,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     }
 
     # Install an old version, i.e. Add a new handler on the VM (Install and Enable)
-    Write-Log -level $LogLevelInfo -message "= Install version V1 =================================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Install version V1 ======================================================================================================="
     if ((Setup-Test-Package -packageVersion $versionV1 -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
@@ -190,7 +195,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     }
 
     # Attempt to update to a newer version
-    Write-Log -level $LogLevelInfo -message "= Update to version V2 ================================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Update to version V2 ====================================================================================================="
     if ((Setup-Test-Package -packageVersion $versionV2 -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
@@ -208,7 +213,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     }
 
     # Simulate a handler-only update (update is distinguished by the fourth digit in the version number).
-    Write-Log -level $LogLevelInfo -message "= Simulate a V2 handler-only update =========================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Simulate a V2 handler-only update ========================================================================================"
     if ((Setup-Test-Package -packageVersion $versionV2Handler -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
@@ -221,7 +226,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # If the update failed, the VM Agent will not call any other handler operation.
     
     # Attempt to update to an older version (downgrade is not allowed)
-    Write-Log -level $LogLevelInfo -message "= Attempt to update to older version V1 =============================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Attempt to update to older version V1 ===================================================================================="
     if ((Setup-Test-Package -packageVersion $versionV1 -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
@@ -234,16 +239,15 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # If the update failed, the VM Agent will not call any other handler operation.
 
     # Rollback tests
-    Write-Log -level $LogLevelInfo -message "= Rollback tests =========================================================================================================="
-    # Uninstall eBPF, and install an old version
-    Write-Log -level $LogLevelInfo -message "= Uninstall all ==============================================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Rollback tests ==========================================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Uninstall all ============================================================================================================"
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # The VM Agent will first call 'Disable' on the handler
         Exit-Tests -testPass 1
     }  
     if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    Write-Log -level $LogLevelInfo -message "= Install version V1 =================================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Install version V1 ======================================================================================================="
     if ((Setup-Test-Package -packageVersion $versionV1 -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
@@ -255,7 +259,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     }
 
     # Attempt to update to an newer version, with a corrupted package (i.e. bad eBPF driver), so to test the rollback.
-    Write-Log -level $LogLevelInfo -message "= Update to version V2 with injected package corruption and rollback ==========================================================="
+    Write-Log -level $LogLevelInfo -message "= Update to version V2 with injected package corruption and rollback ======================================================="
     if ((Setup-Test-Package -packageVersion $versionV2 -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
@@ -271,7 +275,7 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     # If the update failed, the VM Agent will not call any other handler operation.
     
     # Uninstall eBPF
-    Write-Log -level $LogLevelInfo -message "= Uninstall all ==============================================================================================================="
+    Write-Log -level $LogLevelInfo -message "= Uninstall all ============================================================================================================"
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) { # The VM Agent will first call 'Disable' on the handler
         Exit-Tests -testPass 1
     }  
