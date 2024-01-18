@@ -45,7 +45,6 @@ Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 10
 Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1019
 Set-Variable -Name "EbpfStatusCode_RESTARTING_SERVICE_FAILED" -Value 1020
 
-
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
 
@@ -1355,6 +1354,7 @@ function Update-eBPF-Handler {
                 # so we don't need to do anything here.
 
                 # Install or Update eBPF.
+                $res = $EbpfStatusCode_SUCCESS
                 $rollback = $true
                 $statusInfo.StatusCode = InstallOrUpdate-eBPF -operationName $OperationNameUpdate -sourcePath "$EbpfPackagePath" -destinationPath "$EbpfDefaultInstallPath" -allowDowngrade $allowDowngrade
                 if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS -or 
@@ -1418,6 +1418,7 @@ function Update-eBPF-Handler {
                                 } else {
                                     # If the restoring to the previous version and restarting the GuestProxyAgent succeeded, 
                                     # we anyways return an error indicating that the update operation failed.
+                                    $statusInfo.StatusCode = $res
                                     $statusInfo.StatusString = $StatusError
                                     $statusInfo.StatusMessage = "eBPF $OperationNameUpdate FAILED, but restoring to the previous version succeeded."
                                     Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
