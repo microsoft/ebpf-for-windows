@@ -39,7 +39,7 @@ jobs:
 
 
     - name: Cache nuget packages
-      uses: actions/cache@e12d46a63a90f2fae62d114769bbf2a179198b5c
+      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
       env:
         cache-name: cache-nuget-modules
       with:
