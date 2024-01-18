@@ -11,7 +11,7 @@ opcode  src   imm   off   description                                           
 0x00    0x0   any   0     (additional immediate value)                               Y      Y      Y    arsh32-high-shift
 0x04    0x0   any   0     dst = (u32)((u32)dst + (u32)imm)                           Y      Y      Y    add
 0x05    0x0   0x00  any   goto +offset                                               Y      Y      Y    exit-not-last
-0x06    0x0   any   0     goto +imm                                                  Y      Y      Y    exit-not-last
+0x06    0x0   any   0     goto +imm                                                  Y      no     no   ja32
 0x07    0x0   any   0     dst += imm                                                 Y      Y      Y    add64
 0x0c    any   0x00  0     dst = (u32)((u32)dst + (u32)src)                           Y      Y      Y    add
 0x0f    any   0x00  0     dst += src                                                 Y      Y      Y    alu64-arith
@@ -51,21 +51,21 @@ opcode  src   imm   off   description                                           
 0x32    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x33    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x34    0x0   any   0     dst = (u32)((imm != 0) ? ((u32)dst / (u32)imm) : 0)        Y      Y      Y    alu-arith
-0x34    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s/ imm) : 0)            Y      no     no   ???
+0x34    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s/ imm) : 0)            Y      no     Y    sdiv32-imm
 0x35    0x0   any   any   if dst >= imm goto +offset                                 Y      Y      Y    jge-imm
 0x36    0x0   any   any   if (u32)dst >= imm goto +offset                            Y      Y      Y    jge32-imm
 0x37    0x0   any   0     dst = (imm != 0) ? (dst / (u32)imm) : 0                    Y      Y      Y    alu64-arith
-0x37    0x0   any   1     dst = (imm != 0) ? (dst s/ imm) : 0                        Y      no     no   ???
+0x37    0x0   any   1     dst = (imm != 0) ? (dst s/ imm) : 0                        Y      no     Y    sdiv64-imm
 0x38    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x39    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x3a    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x3b    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x3c    any   0x00  0     dst = (u32)((src != 0) ? ((u32)dst / (u32)src) : 0)        Y      Y      Y    alu-arith
-0x3c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s/ (s32)src) : 0)       Y      no     no   ???
+0x3c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s/ (s32)src) : 0)       Y      no     Y    sdiv32-reg
 0x3d    any   0x00  any   if dst >= src goto +offset                                 Y      Y      Y    prime
 0x3e    any   0x00  any   if (u32)dst >= (u32)src goto +offset                       Y      Y      Y    jge32-reg
 0x3f    any   0x00  0     dst = (src !+ 0) ? (dst / src) : 0                         Y      Y      Y    alu64-arith
-0x3f    any   0x00  1     dst = (src !+ 0) ? (dst s/ src) : 0                        Y      no     no   ???
+0x3f    any   0x00  1     dst = (src !+ 0) ? (dst s/ src) : 0                        Y      no     Y    sdiv64-reg
 0x40    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x41    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x42    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
@@ -132,14 +132,14 @@ opcode  src   imm   off   description                                           
 0x85    0x2   any   0     call helper function by BTF ID                             no     no     no   ???
 0x87    0x0   0x00  0     dst = -dst                                                 Y      Y      Y    neg64
 0x94    0x0   any   0     dst = (u32)((imm != 0) ? ((u32)dst % (u32)imm) : dst)      Y      Y      Y    mod
-0x94    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s% imm) : dst)          Y      no     no   ???
+0x94    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s% imm) : dst)          Y      no     Y    smod32-neg-by-neg-imm
 0x95    0x0   0x00  0     return                                                     Y      Y      Y    exit
 0x97    0x0   any   0     dst = (imm != 0) ? (dst % (u32)imm) : dst                  Y      Y      Y    mod64
-0x97    0x0   any   1     dst = (imm != 0) ? (dst s% imm) : dst                      Y      no     no   ???
+0x97    0x0   any   1     dst = (imm != 0) ? (dst s% imm) : dst                      Y      no     Y    smod64-neg-by-neg-imm
 0x9c    any   0x00  0     dst = (u32)((src != 0) ? ((u32)dst % (u32)src) : dst)      Y      Y      Y    mod
-0x9c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s% (s32)src) : dst)     Y      no     no   ???
+0x9c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s% (s32)src) : dst)     Y      no     Y    smod32-neg-by-neg-reg
 0x9f    any   0x00  0     dst = (src != 0) ? (dst % src) : dst                       Y      Y      Y    mod64
-0x9f    any   0x00  1     dst = (src != 0) ? (dst s% src) : dst                      Y      no     no   ???
+0x9f    any   0x00  1     dst = (src != 0) ? (dst s% src) : dst                      Y      no     Y    smod64-neg-by-neg-reg
 0xa4    0x0   any   0     dst = (u32)(dst ^ imm)                                     Y      Y      Y    alu-bit
 0xa5    0x0   any   any   if dst < imm goto +offset                                  Y      Y      Y    jlt-imm
 0xa6    0x0   any   any   if (u32)dst < imm goto +offset                             Y      Y      Y    jlt32-imm
