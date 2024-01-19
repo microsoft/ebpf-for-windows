@@ -880,6 +880,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             bool is64bit = (inst.opcode & EBPF_CLS_MASK) == EBPF_CLS_ALU64;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
             std::string swap_function;
+            std::string type;
             switch (operation) {
             case AluOperations::Add:
                 output.lines.push_back(std::format("{} += {};", destination, source));
@@ -892,15 +893,13 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 break;
             case AluOperations::Div:
                 if (is64bit) {
-                    output.lines.push_back(
-                        std::format("{} = {} ? ({} / {}) : 0;", destination, source, destination, source));
-                } else {
+                    type = (inst.offset == 1) ? "(int64_t)" : "";
                     output.lines.push_back(std::format(
-                        "{} = (uint32_t){} ? (uint32_t){} / (uint32_t){} : 0;",
-                        destination,
-                        source,
-                        destination,
-                        source));
+                        "{} = {} ? ({}{} / {}{}) : 0;", destination, source, type, destination, type, source));
+                } else {
+                    type = (inst.offset == 1) ? "(int32_t)" : "(uint32_t)";
+                    output.lines.push_back(std::format(
+                        "{} = (uint32_t){} ? {}{} / {}{} : 0;", destination, source, type, destination, type, source));
                 }
                 break;
             case AluOperations::Or:
@@ -953,15 +952,28 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 break;
             case AluOperations::Mod:
                 if (is64bit) {
+                    type = (inst.offset == 1) ? "(int64_t)" : "";
                     output.lines.push_back(std::format(
-                        "{} = {} ? ({} % {}): {} ;", destination, source, destination, source, destination));
+                        "{} = {} ? ({}{} % {}{}) : {}{};",
+                        destination,
+                        source,
+                        type,
+                        destination,
+                        type,
+                        source,
+                        type,
+                        destination));
                 } else {
+                    type = (inst.offset == 1) ? "(int32_t)" : "(uint32_t)";
                     output.lines.push_back(std::format(
-                        "{} = (uint32_t){} ? ((uint32_t){} % (uint32_t){}) : (uint32_t){};",
+                        "{} = (uint32_t){} ? ({}{} % {}{}) : {}{};",
                         destination,
                         source,
+                        type,
                         destination,
+                        type,
                         source,
+                        type,
                         destination));
                 }
                 break;

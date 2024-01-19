@@ -11,7 +11,7 @@ opcode  src   imm   off   description                                           
 0x00    0x0   any   0     (additional immediate value)                               Y      Y      Y    arsh32-high-shift
 0x04    0x0   any   0     dst = (u32)((u32)dst + (u32)imm)                           Y      Y      Y    add
 0x05    0x0   0x00  any   goto +offset                                               Y      Y      Y    exit-not-last
-0x06    0x0   any   0     goto +imm                                                  Y      Y      Y    exit-not-last
+0x06    0x0   any   0     goto +imm                                                  Y      no     no   ja32
 0x07    0x0   any   0     dst += imm                                                 Y      Y      Y    add64
 0x0c    any   0x00  0     dst = (u32)((u32)dst + (u32)src)                           Y      Y      Y    add
 0x0f    any   0x00  0     dst += src                                                 Y      Y      Y    alu64-arith
@@ -51,21 +51,21 @@ opcode  src   imm   off   description                                           
 0x32    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x33    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x34    0x0   any   0     dst = (u32)((imm != 0) ? ((u32)dst / (u32)imm) : 0)        Y      Y      Y    alu-arith
-0x34    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s/ imm) : 0)            Y      no     no   ???
+0x34    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s/ imm) : 0)            Y      no     Y    sdiv32-imm
 0x35    0x0   any   any   if dst >= imm goto +offset                                 Y      Y      Y    jge-imm
 0x36    0x0   any   any   if (u32)dst >= imm goto +offset                            Y      Y      Y    jge32-imm
 0x37    0x0   any   0     dst = (imm != 0) ? (dst / (u32)imm) : 0                    Y      Y      Y    alu64-arith
-0x37    0x0   any   1     dst = (imm != 0) ? (dst s/ imm) : 0                        Y      no     no   ???
+0x37    0x0   any   1     dst = (imm != 0) ? (dst s/ imm) : 0                        Y      no     Y    sdiv64-imm
 0x38    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x39    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x3a    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x3b    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x3c    any   0x00  0     dst = (u32)((src != 0) ? ((u32)dst / (u32)src) : 0)        Y      Y      Y    alu-arith
-0x3c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s/ (s32)src) : 0)       Y      no     no   ???
+0x3c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s/ (s32)src) : 0)       Y      no     Y    sdiv32-reg
 0x3d    any   0x00  any   if dst >= src goto +offset                                 Y      Y      Y    prime
 0x3e    any   0x00  any   if (u32)dst >= (u32)src goto +offset                       Y      Y      Y    jge32-reg
 0x3f    any   0x00  0     dst = (src !+ 0) ? (dst / src) : 0                         Y      Y      Y    alu64-arith
-0x3f    any   0x00  1     dst = (src !+ 0) ? (dst s/ src) : 0                        Y      no     no   ???
+0x3f    any   0x00  1     dst = (src !+ 0) ? (dst s/ src) : 0                        Y      no     Y    sdiv64-reg
 0x40    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x41    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
 0x42    any   any   any   (deprecated, implementation-specific)                      no     no     no   (none)
@@ -132,14 +132,14 @@ opcode  src   imm   off   description                                           
 0x85    0x2   any   0     call helper function by BTF ID                             no     no     no   ???
 0x87    0x0   0x00  0     dst = -dst                                                 Y      Y      Y    neg64
 0x94    0x0   any   0     dst = (u32)((imm != 0) ? ((u32)dst % (u32)imm) : dst)      Y      Y      Y    mod
-0x94    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s% imm) : dst)          Y      no     no   ???
+0x94    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s% imm) : dst)          Y      no     Y    smod32-neg-by-neg-imm
 0x95    0x0   0x00  0     return                                                     Y      Y      Y    exit
 0x97    0x0   any   0     dst = (imm != 0) ? (dst % (u32)imm) : dst                  Y      Y      Y    mod64
-0x97    0x0   any   1     dst = (imm != 0) ? (dst s% imm) : dst                      Y      no     no   ???
+0x97    0x0   any   1     dst = (imm != 0) ? (dst s% imm) : dst                      Y      no     Y    smod64-neg-by-neg-imm
 0x9c    any   0x00  0     dst = (u32)((src != 0) ? ((u32)dst % (u32)src) : dst)      Y      Y      Y    mod
-0x9c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s% (s32)src) : dst)     Y      no     no   ???
+0x9c    any   0x00  1     dst = (u32)((src != 0) ? ((s32)dst s% (s32)src) : dst)     Y      no     Y    smod32-neg-by-neg-reg
 0x9f    any   0x00  0     dst = (src != 0) ? (dst % src) : dst                       Y      Y      Y    mod64
-0x9f    any   0x00  1     dst = (src != 0) ? (dst s% src) : dst                      Y      no     no   ???
+0x9f    any   0x00  1     dst = (src != 0) ? (dst s% src) : dst                      Y      no     Y    smod64-neg-by-neg-reg
 0xa4    0x0   any   0     dst = (u32)(dst ^ imm)                                     Y      Y      Y    alu-bit
 0xa5    0x0   any   any   if dst < imm goto +offset                                  Y      Y      Y    jlt-imm
 0xa6    0x0   any   any   if (u32)dst < imm goto +offset                             Y      Y      Y    jlt32-imm
@@ -149,23 +149,23 @@ opcode  src   imm   off   description                                           
 0xae    any   0x00  any   if (u32)dst < (u32)src goto +offset                        Y      Y      Y    jlt32-reg
 0xaf    any   0x00  0     dst ^= src                                                 Y      Y      Y    alu64-bit
 0xb4    0x0   any   0     dst = (u32) imm                                            Y      Y      Y    mov
-0xb4    0x0   any   8     dst = (u32) (s32) (s8) imm                                 Y      no     no   ???
-0xb4    0x0   any   16    dst = (u32) (s32) (s16) imm                                Y      no     no   ???
+0xb4    0x0   any   8     dst = (u32) (s32) (s8) imm                                 Y      no     no   movsx832-imm
+0xb4    0x0   any   16    dst = (u32) (s32) (s16) imm                                Y      no     no   movsx1632-imm
 0xb5    0x0   any   any   if dst <= imm goto +offset                                 Y      Y      Y    jle-imm
 0xb6    0x0   any   any   if (u32)dst <= imm goto +offset                            Y      Y      Y    jle32-imm
 0xb7    0x0   any   0     dst = imm                                                  Y      Y      Y    mov64-sign-extend
-0xb7    0x0   any   8     dst = (s64) (s8) imm                                       Y      no     no   ???
-0xb7    0x0   any   16    dst = (s64) (s16) imm                                      Y      no     no   ???
-0xb7    0x0   any   32    dst = (s64) (s32) imm                                      Y      no     no   ???
+0xb7    0x0   any   8     dst = (s64) (s8) imm                                       Y      no     no   movsx864-imm
+0xb7    0x0   any   16    dst = (s64) (s16) imm                                      Y      no     no   movsx1664-imm
+0xb7    0x0   any   32    dst = (s64) (s32) imm                                      Y      no     no   movsx3264-imm
 0xbc    any   0x00  0     dst = (u32) src                                            Y      Y      Y    mov
-0xbc    any   0x00  8     dst = (u32) (s32) (s8) src                                 Y      no     no   ???
-0xbc    any   0x00  16    dst = (u32) (s32) (s16) src                                Y      no     no   ???
+0xbc    any   0x00  8     dst = (u32) (s32) (s8) src                                 Y      no     no   movsx832-reg
+0xbc    any   0x00  16    dst = (u32) (s32) (s16) src                                Y      no     no   movsx1632-reg
 0xbd    any   0x00  any   if dst <= src goto +offset                                 Y      Y      Y    jle-reg
 0xbe    any   0x00  any   if (u32)dst <= (u32)src goto +offset                       Y      Y      Y    jle32-reg
 0xbf    any   0x00  0     dst = src                                                  Y      Y      Y    ldxb-all
-0xbf    any   0x00  8     dst = (s64) (s8) src                                       Y      no     no   ???
-0xbf    any   0x00  16    dst = (s64) (s16) src                                      Y      no     no   ???
-0xbf    any   0x00  32    dst = (s64) (s32) src                                      Y      no     no   ???
+0xbf    any   0x00  8     dst = (s64) (s8) src                                       Y      no     no   movsx864-reg
+0xbf    any   0x00  16    dst = (s64) (s16) src                                      Y      no     no   movsx1664-reg
+0xbf    any   0x00  32    dst = (s64) (s32) src                                      Y      no     no   movsx3264-reg
 0xc3    any   0x00  any   lock \*(u32 \*)(dst + offset) += src                       no     no     Y    lock_add32
 0xc3    any   0x01  any   | lock                                                     no     no     Y    lock_fetch_add32
                           | temp = \*(u32 \*)(dst + offset)
@@ -208,9 +208,9 @@ opcode  src   imm   off   description                                           
 0xd4    0x0   0x40  0     dst = htole64(dst)                                         Y      Y      Y    le64
 0xd5    0x0   any   any   if dst s<= imm goto +offset                                Y      Y      Y    jsle-imm
 0xd6    0x0   any   any   if (s32)dst s<= (s32)imm goto +offset                      Y      Y      Y    jsle32-imm
-0xd7    0x0   0x10  0     dst = bswap16(dst)                                         Y      no     no   ???
-0xd7    0x0   0x20  0     dst = bswap32(dst)                                         Y      no     no   ???
-0xd7    0x0   0x40  0     dst = bswap64(dst)                                         Y      no     no   ???
+0xd7    0x0   0x10  0     dst = bswap16(dst)                                         Y      no     no   swap16
+0xd7    0x0   0x20  0     dst = bswap32(dst)                                         Y      no     no   swap32
+0xd7    0x0   0x40  0     dst = bswap64(dst)                                         Y      no     no   swap64
 0xdb    any   0x00  any   lock \*(u64 \*)(dst + offset) += src                       no     no     Y    lock_add
 0xdb    any   0x01  any   | lock                                                     no     no     Y    lock_fetch_add
                           | temp = \*(u64 \*)(dst + offset)
@@ -231,11 +231,11 @@ opcode  src   imm   off   description                                           
                           | temp = \*(u64 \*)(dst + offset)
                           | \*(u64 \*)(dst + offset) ^= src
                           | src = temp
-0xdb    any   0xe1  any   | lock                                                     no     no     Y     lock_xchg
+0xdb    any   0xe1  any   | lock                                                     no     no     Y    lock_xchg
                           | temp = \*(u64 \*)(dst + offset)
                           | \*(u64 \*)(dst + offset) = src
                           | src = temp
-0xdb    any   0xf1  any   | lock                                                     no     no     Y     lock_cmpxchg
+0xdb    any   0xf1  any   | lock                                                     no     no     Y    lock_cmpxchg
                           | temp = \*(u64 \*)(dst + offset)
                           | if \*(u64)(dst + offset) == R0
                           |    \*(u64)(dst + offset) = src
