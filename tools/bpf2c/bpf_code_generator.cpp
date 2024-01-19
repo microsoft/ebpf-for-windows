@@ -997,7 +997,29 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 break;
             case AluOperations::ByteOrder: {
                 std::string size_type = "";
-                if (output.instruction.opcode & INST_SRC_REG) {
+                if ((inst.opcode & INST_CLS_MASK) == INST_CLS_ALU64) {
+                    if (output.instruction.opcode & INST_END_BE) {
+                        throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
+                    } else {
+                        switch (inst.imm) {
+                        case 16:
+                            swap_function = "swap16";
+                            size_type = "uint16_t";
+                            break;
+                        case 32:
+                            swap_function = "swap32";
+                            size_type = "uint32_t";
+                            break;
+                        case 64:
+                            is64bit = true;
+                            swap_function = "swap64";
+                            size_type = "uint64_t";
+                            break;
+                        default:
+                            throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
+                        }
+                    }
+                } else if (output.instruction.opcode & INST_END_BE) {
                     switch (inst.imm) {
                     case 16:
                         swap_function = "htobe16";
@@ -1009,8 +1031,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         break;
                     case 64:
                         is64bit = true;
-                        size_type = "uint64_t";
                         swap_function = "htobe64";
+                        size_type = "uint64_t";
                         break;
                     default:
                         throw bpf_code_generator_exception("invalid operand", output.instruction_offset);

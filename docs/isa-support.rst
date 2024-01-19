@@ -203,9 +203,9 @@ opcode  src   imm   off   description                                           
 0xd4    0x0   0x40  0     dst = htole64(dst)                                         Y      Y      Y    le64
 0xd5    0x0   any   any   if dst s<= imm goto +offset                                Y      Y      Y    jsle-imm
 0xd6    0x0   any   any   if (s32)dst s<= (s32)imm goto +offset                      Y      Y      Y    jsle32-imm
-0xd7    0x0   0x10  0     dst = bswap16(dst)                                         Y      no     no   swap16
-0xd7    0x0   0x20  0     dst = bswap32(dst)                                         Y      no     no   swap32
-0xd7    0x0   0x40  0     dst = bswap64(dst)                                         Y      no     no   swap64
+0xd7    0x0   0x10  0     dst = bswap16(dst)                                         Y      no     Y    swap16
+0xd7    0x0   0x20  0     dst = bswap32(dst)                                         Y      no     Y    swap32
+0xd7    0x0   0x40  0     dst = bswap64(dst)                                         Y      no     Y    swap64
 0xdb    any   0x00  any   lock \*(u64 \*)(dst + offset) += src                       no     no     Y    lock_add
 0xdb    any   0x01  any   | lock                                                     no     no     Y    lock_fetch_add
                           | temp = \*(u64 \*)(dst + offset)
