@@ -1497,6 +1497,30 @@ _test_bind_fd_to_prog_array(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("disallow setting bind fd in sample prog array", "[libbpf]", _test_bind_fd_to_prog_array);
 
+static void
+_load_inner_map(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "inner_map_um.dll" : "inner_map.o");
+    struct bpf_object* sample_object = bpf_object__open(file_name);
+    REQUIRE(sample_object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(sample_object) == 0);
+
+    struct bpf_map* map = bpf_object__find_map_by_name(sample_object, "outer_map");
+    REQUIRE(map != nullptr);
+    REQUIRE(bpf_map__type(map) == BPF_MAP_TYPE_HASH_OF_MAPS);
+
+    bpf_object__close(sample_object);
+}
+
+DECLARE_ALL_TEST_CASES("Test loading BPF program with anonymous inner map", "[libbpf]", _load_inner_map);
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
 {
