@@ -149,14 +149,9 @@ opcode  src   imm   off   description                                           
 0xae    any   0x00  any   if (u32)dst < (u32)src goto +offset                        Y      Y      Y    jlt32-reg
 0xaf    any   0x00  0     dst ^= src                                                 Y      Y      Y    alu64-bit
 0xb4    0x0   any   0     dst = (u32) imm                                            Y      Y      Y    mov
-0xb4    0x0   any   8     dst = (u32) (s32) (s8) imm                                 Y      no     no   movsx832-imm
-0xb4    0x0   any   16    dst = (u32) (s32) (s16) imm                                Y      no     no   movsx1632-imm
 0xb5    0x0   any   any   if dst <= imm goto +offset                                 Y      Y      Y    jle-imm
 0xb6    0x0   any   any   if (u32)dst <= imm goto +offset                            Y      Y      Y    jle32-imm
 0xb7    0x0   any   0     dst = imm                                                  Y      Y      Y    mov64-sign-extend
-0xb7    0x0   any   8     dst = (s64) (s8) imm                                       Y      no     no   movsx864-imm
-0xb7    0x0   any   16    dst = (s64) (s16) imm                                      Y      no     no   movsx1664-imm
-0xb7    0x0   any   32    dst = (s64) (s32) imm                                      Y      no     no   movsx3264-imm
 0xbc    any   0x00  0     dst = (u32) src                                            Y      Y      Y    mov
 0xbc    any   0x00  8     dst = (u32) (s32) (s8) src                                 Y      no     no   movsx832-reg
 0xbc    any   0x00  16    dst = (u32) (s32) (s16) src                                Y      no     no   movsx1632-reg
