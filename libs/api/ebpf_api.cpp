@@ -430,7 +430,7 @@ _get_map_descriptor_properties(
     // First check if the map is present in the cache.
     map = _get_ebpf_map_from_handle(handle);
     if (map == nullptr) {
-        // Map is not present in the local cache. Query map descriptor from EC.
+        // Map is not present in the local cache. Query map descriptor from execution context.
         ebpf_id_t id;
         ebpf_id_t inner_map_id;
         result = query_map_definition(handle, &id, type, key_size, value_size, max_entries, &inner_map_id);
@@ -475,7 +475,7 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
         goto Exit;
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -545,7 +545,7 @@ _ebpf_map_lookup_element_batch_helper(
         goto Exit;
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size_u32, &value_size_u32, &max_entries_u32);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -850,7 +850,7 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
         EBPF_RETURN_RESULT(EBPF_INVALID_FD);
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
@@ -922,7 +922,7 @@ ebpf_map_update_element_batch(
         EBPF_RETURN_RESULT(EBPF_INVALID_FD);
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size_u32, &value_size_u32, &max_entries_u32);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
@@ -994,7 +994,7 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
         goto Exit;
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -1063,7 +1063,7 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
         goto Exit;
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size_u32, &value_size_u32, &max_entries_u32);
     if (result != EBPF_SUCCESS) {
         goto Exit;
@@ -1154,7 +1154,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
         goto Exit;
     }
 
-    // Get map properties, either from local cache or from EC.
+    // Get map properties, either from local cache or from execution context.
     result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
     if (result != EBPF_SUCCESS) {
         goto Exit;
