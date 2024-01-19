@@ -981,7 +981,23 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(std::format("{} ^= {};", destination, source));
                 break;
             case AluOperations::Mov:
-                output.lines.push_back(std::format("{} = {};", destination, source));
+                type = (is64bit) ? "(uint64_t)(int64_t)" : "(uint32_t)(int32_t)";
+                switch (inst.offset) {
+                case 0:
+                    output.lines.push_back(std::format("{} = {};", destination, source));
+                    break;
+                case 8:
+                    output.lines.push_back(std::format("{} = {}(int8_t){};", destination, type, source));
+                    break;
+                case 16:
+                    output.lines.push_back(std::format("{} = {}(int16_t){};", destination, type, source));
+                    break;
+                case 32:
+                    output.lines.push_back(std::format("{} = {}(int32_t){};", destination, type, source));
+                    break;
+                default:
+                    throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
+                }
                 break;
             case AluOperations::Arsh:
                 if (is64bit) {

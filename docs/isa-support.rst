@@ -153,14 +153,14 @@ opcode  src   imm   off   description                                           
 0xb6    0x0   any   any   if (u32)dst <= imm goto +offset                            Y      Y      Y    jle32-imm
 0xb7    0x0   any   0     dst = imm                                                  Y      Y      Y    mov64-sign-extend
 0xbc    any   0x00  0     dst = (u32) src                                            Y      Y      Y    mov
-0xbc    any   0x00  8     dst = (u32) (s32) (s8) src                                 Y      no     no   movsx832-reg
-0xbc    any   0x00  16    dst = (u32) (s32) (s16) src                                Y      no     no   movsx1632-reg
+0xbc    any   0x00  8     dst = (u32) (s32) (s8) src                                 Y      no     Y    movsx832-reg
+0xbc    any   0x00  16    dst = (u32) (s32) (s16) src                                Y      no     Y    movsx1632-reg
 0xbd    any   0x00  any   if dst <= src goto +offset                                 Y      Y      Y    jle-reg
 0xbe    any   0x00  any   if (u32)dst <= (u32)src goto +offset                       Y      Y      Y    jle32-reg
 0xbf    any   0x00  0     dst = src                                                  Y      Y      Y    ldxb-all
-0xbf    any   0x00  8     dst = (s64) (s8) src                                       Y      no     no   movsx864-reg
-0xbf    any   0x00  16    dst = (s64) (s16) src                                      Y      no     no   movsx1664-reg
-0xbf    any   0x00  32    dst = (s64) (s32) src                                      Y      no     no   movsx3264-reg
+0xbf    any   0x00  8     dst = (s64) (s8) src                                       Y      no     Y    movsx864-reg
+0xbf    any   0x00  16    dst = (s64) (s16) src                                      Y      no     Y    movsx1664-reg
+0xbf    any   0x00  32    dst = (s64) (s32) src                                      Y      no     Y    movsx3264-reg
 0xc3    any   0x00  any   lock \*(u32 \*)(dst + offset) += src                       no     no     Y    lock_add32
 0xc3    any   0x01  any   | lock                                                     no     no     Y    lock_fetch_add32
                           | temp = \*(u32 \*)(dst + offset)
