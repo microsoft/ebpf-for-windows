@@ -812,10 +812,12 @@ bpf_code_generator::generate_labels()
         if (output.instruction.opcode == INST_OP_EXIT) {
             continue;
         }
-        if ((i + output.instruction.offset + 1) >= program_output.size()) {
+        int32_t offset =
+            ((output.instruction.opcode == INST_OP_JA32) ? output.instruction.imm : output.instruction.offset);
+        if ((i + offset + 1) >= program_output.size()) {
             throw bpf_code_generator_exception("invalid jump target", i);
         }
-        program_output[i + output.instruction.offset + 1].jump_target = true;
+        program_output[i + offset + 1].jump_target = true;
     }
 
     // Add labels to instructions that are targets of jumps
@@ -1241,7 +1243,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 std::string target = program_output[i + inst.offset + 1].label;
                 output.lines.push_back("goto " + target + ";");
             } else if (inst.opcode == INST_OP_JA32) {
-                // TODO
+                std::string target = program_output[i + inst.imm + 1].label;
+                output.lines.push_back("goto " + target + ";");
             } else if (inst.opcode == INST_OP_CALL) {
                 std::string function_name;
                 if (output.relocation.empty()) {
