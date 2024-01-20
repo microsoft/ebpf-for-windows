@@ -1,1 +1,1 @@
-powershell.exe .\scripts\install.ps1
+powershell.exe  -File ".\scripts\install.ps1"
