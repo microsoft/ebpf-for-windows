@@ -220,10 +220,15 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
-    if ((Update-eBPF-Handler) -eq $EbpfStatusCode_SUCCESS) {
+    if ((Update-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
-    }    
-    # If the update failed, the VM Agent will not call any other handler operation.
+    }
+    if ((Uninstall-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
+        Exit-Tests -testPass 1
+    }
+    if ((Enable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {  # NOP on update
+        Exit-Tests -testPass 1
+    }
     
     # Attempt to update to an older version (downgrade is not allowed)
     Write-Log -level $LogLevelInfo -message "= Attempt to update to older version V1 ===================================================================================="
