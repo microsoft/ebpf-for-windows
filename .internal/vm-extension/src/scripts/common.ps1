@@ -15,7 +15,7 @@ Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
 Set-Variable -Name "EbpfBackupPath" -Value "$env:TEMP\ebpf_backup"
 Set-Variable -Name "RegistryPath" -Value "HKLM:\SOFTWARE\Microsoft\Windows Azure"
 Set-Variable -Name "RegistryKey" -Value "EbpfUpgrading"
-Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 10
+Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 60
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
@@ -1106,45 +1106,56 @@ function InstallOrUpdate-eBPF {
         if ($null -ne $currProductVersion) {
             Write-Log -level $LogLevelInfo -message "Found eBPF v$currProductVersion already installed."
 
-            # Backup the current installation (e.g. an existing installation from WinPA may be present).        
-            $statusInfo.StatusCode = Backup-EbpfDeployment -installDirectory "$currInstallPath"
-            if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
-                $rollback = $true # Since there is an existing installation, we may need to rollback.
-                Write-Log -level $LogLevelInfo -message "Backup of the current eBPF installation succeeded."
-            } else {
+            # Stop eBPF the eBPF drivers
+            $statusInfo.StatusCode = Stop-EbpfDrivers
+            if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
+                # If stopping the eBPF drivers failed, then we attempt to restart them in best-effort and return an error.
+                Start-EbpfDrivers -restartGuestProxyAgentService $true | Out-Null
                 $statusInfo.StatusString = $StatusError
-                $statusInfo.StatusMessage = "eBPF $operationName FAILED (Backing up the current installation failed) -> Nothing changed in the system."
-                Write-Log -level $LogLevelError -message            
-            }
-
-            $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
-            if ($comparison -eq 2) {
-                # If the product version is the same as the version distributed with the VM extension package up to the 3rd digit then it's a handler-only update,
-                # so we don't need to do anything to the current eBPF installation.
-                $statusInfo.StatusCode = $EbpfStatusCode_SUCCESS
-                Write-Log -level $LogLevelInfo -message "This is a handler-only update to v($updateToVersion) -> no action taken."
+                $statusInfo.StatusMessage = "eBPF $operationName FAILED (Stopping eBPF drivers failed) -> Nothing changed in the system."
+                Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+                return $statusInfo
             } else {
-
-                # Depending on the version comparison, we either install/upgrade, downgrade or do nothing if the version is the same.
-                if ($comparison -gt 0 -and $allowDowngrade) {
-                    # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow the downgrade.
-                    Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
-                    $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
-                } elseif ($comparison -gt 0) {
-                    # If the product version is greater than the version distributed with the VM extension and downgrade is NOT allowed, then return an error.
-                    $rollback = $false # Rollback is not required in this case.
-                    $statusInfo.StatusCode = $EbpfStatusCode_INSTALLATION_DOWNGRADE_UNALLOWED
-                    Write-Log -level $LogLevelError -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will NOT be downgraded!"
-                } elseif ($comparison -lt 0) {
-                    # If the product version is lower than the version distributed with the VM extension, then upgrade it.
-                    $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
+                # Backup the current installation (e.g. an existing installation from WinPA may be present).        
+                $statusInfo.StatusCode = Backup-EbpfDeployment -installDirectory "$currInstallPath"
+                if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+                    $rollback = $true # Since there is an existing installation, we may need to rollback.
+                    Write-Log -level $LogLevelInfo -message "Backup of the current eBPF installation succeeded."
                 } else {
-                    # If the product version is the same as the version distributed with the VM extension, then we return a success code, as if the operation was successful.
-                    # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
-                    $statusInfo.StatusCode = $EbpfStatusCode_SUCCESS
-                    Write-Log -level $LogLevelInfo -message "eBPF version is up to date (v$currProductVersion)."
+                    $statusInfo.StatusString = $StatusError
+                    $statusInfo.StatusMessage = "eBPF $operationName FAILED (Backing up the current installation failed) -> Nothing changed in the system."
+                    Write-Log -level $LogLevelError -message            
                 }
-            }        
+
+                $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
+                if ($comparison -eq 2) {
+                    # If the product version is the same as the version distributed with the VM extension package up to the 3rd digit then it's a handler-only update,
+                    # so we don't need to do anything to the current eBPF installation.
+                    $statusInfo.StatusCode = $EbpfStatusCode_SUCCESS
+                    Write-Log -level $LogLevelInfo -message "This is a handler-only update to v($updateToVersion) -> no action taken."
+                } else {
+
+                    # Depending on the version comparison, we either install/upgrade, downgrade or do nothing if the version is the same.
+                    if ($comparison -gt 0 -and $allowDowngrade) {
+                        # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow the downgrade.
+                        Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
+                        $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
+                    } elseif ($comparison -gt 0) {
+                        # If the product version is greater than the version distributed with the VM extension and downgrade is NOT allowed, then return an error.
+                        $rollback = $false # Rollback is not required in this case.
+                        $statusInfo.StatusCode = $EbpfStatusCode_INSTALLATION_DOWNGRADE_UNALLOWED
+                        Write-Log -level $LogLevelError -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will NOT be downgraded!"
+                    } elseif ($comparison -lt 0) {
+                        # If the product version is lower than the version distributed with the VM extension, then upgrade it.
+                        $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
+                    } else {
+                        # If the product version is the same as the version distributed with the VM extension, then we return a success code, as if the operation was successful.
+                        # This because it's a handler-only update, so we don't need to do anything to the current eBPF installation.
+                        $statusInfo.StatusCode = $EbpfStatusCode_SUCCESS
+                        Write-Log -level $LogLevelInfo -message "eBPF version is up to date (v$currProductVersion)."
+                    }
+                }
+            }
         } else {
             Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."
             
@@ -1359,16 +1370,16 @@ function Enable-eBPF-Handler {
         Set-EbpfUpdatingFlag -ResetFlag | Out-Null
 
         # If the handler is being invoked from the VM Agent within the Update Operation, we don't need to do anything,
-        # as the eBPF drivers and GuestProxyAgent are already started.
+        # as all the operations have been already performed by the Update command.
         $statusInfo.StatusMessage = "Enable-eBPF-Handler() invoked from the VM Agent within the Update Operation -> NOP."
         Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
     } else {
         # Attempt to start the eBPF drivers.
         $statusInfo = Start-EbpfDrivers -restartGuestProxyAgentService $true
+        
+        # Generate the status file
+        Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage $statusInfo.StatusMessage
     }
-
-    # Generate the status file
-    Report-Status -name $StatusName -operation $OperationNameEnable -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage $statusInfo.StatusMessage
 
     return [int]$statusInfo.StatusCode
 }
@@ -1377,7 +1388,12 @@ function Disable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
 
-    $statusCode = Stop-EbpfDrivers
+    # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
+    # If so, do NOP as the drivers are stopped by the InstallOrUpdate-eBPF function.
+    if (Get-EbpfUpdatingFlag -eq $false) {
+        # Attempt to stop the eBPF drivers.
+        $statusCode = Stop-EbpfDrivers
+    }
    
     return [int]$statusCode
 }
@@ -1458,13 +1474,13 @@ function Update-eBPF-Handler {
         Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
     } finally {
 
-        # If the Update command failed, generate the status file (which would have been generated by the Enable command, which is NOP during an update).
+        # If the Update command failed, reset the "updating" persistent flag as the Enable command will not be invoked.
         if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
-            Set-EbpfUpdatingFlag -ResetFlag | Out-Null 
-
-            # Note: Update does not need to generate a status file, but in order to support Auto-Upate in a disconnected state, it will in place of the Enable command (which will not be invoked).
-            Report-Status -name $StatusName -operation $OperationNameUpdate -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage $statusInfo.StatusMessage
+            Set-EbpfUpdatingFlag -ResetFlag | Out-Null
         }
+
+        # Update does not need to generate a status file, but in order to support Auto-Upate in a disconnected state, it will in place of the Enable command (which will not be invoked in case of failure).
+        Report-Status -name $StatusName -operation $OperationNameUpdate -status $statusInfo.StatusString -statusCode $statusInfo.StatusCode -statusMessage $statusInfo.StatusMessage
     }
     
     return [int]$statusInfo.StatusCode
