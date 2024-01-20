@@ -76,33 +76,51 @@ The VM Agent will call the VM Extension Handler's commands, whenever the VM Exte
 Given the by-design command-sequence invoked by the VM Agent in the 3 main scenarios, the VM Extension Handler will perform the following actions for each command, in order to achieve the best performance:
 
 - **Install operation**:
-    1. Calls the handler's *install command* -> install/update eBPF.
-    1. Calls the handler's *enable command* -> start eBPF drivers, restart the GuestProxyAgent service.
+    1. Calls the handler's *install command* ->
+        - Backup the current installation (if existing).
+        - Attempt to install/update the current eBPF installation (after checking that in case of an update, it's to a newer version only).
+        - Attempt to restart eBPF drivers and GuestProxyAgent service.
+        - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
+        - Remove the backed up installation.        
+        - Return result code of the overall operation.
+    2. Calls the handler's *enable command* ->
+        - Start the eBPF drivers
+        - Write the status file with the result code of the overall operation (always successful).
 
 - **Update operation**:
-    1. Calls the handler's *disable command* (on the old handler) -> stop eBPF drivers.
+    1. Calls the handler's *disable command* (on the old handler) -> NOP.
     1. Calls the handler's *update command* (on the new handler) ->
         - Create a global "updating" state.
         - Backup the current installation.
-        - Attempt to update the current eBPF installation (after checking that the update is to a newer version only)
-        - Attempt to restart the GuestProxyAgent
+        - Attempt to update the current eBPF installation (after checking that the update is to a newer version only) - If the new version is lower than the current one, the update is aborted.
+        - Attempt to restart eBPF drivers and GuestProxyAgent service.
         - If any operation fails, attempt to rollback to the backed up installation.
         - Remove the global "updating" state.
+        - Remove the backed up installation.
         - Write the status file with the result code of the overall operation.
-    1. Calls the handler's *uninstall command* (on the old handler) -> NOP.
-    1. Calls the handler's *install command* (on the new handler) -> call is suppressed by the *UpdateWithoutInstall* option in the `HandlerManifest.xml`.
-    1. Calls the handler's *enable command* (on the new handler) -> NOP.
-
+    3. Calls the handler's *uninstall command* (on the old handler) -> NOP.
+    4. ~~Calls the handler's *install command* (on the new handler)~~ This call is suppressed by the *UpdateWithoutInstall* option in the `HandlerManifest.xml`.
+    5. Calls the handler's *enable command* (on the new handler) -> Write the status file with the result code of the overall operation (always successful).
+ 
 - **Uninstall operation**:
     1. Calls the handler's *disable command* -> stop eBPF drivers.
     1. Calls the handler's *uninstall command* -> uninstall eBPF.
 
-- **Enable operation**, **Disable operation** and **Reset operation** simply call the corresponding handler command.
+- **Enable operation**
+  - Calls the handler's *enable command* -> 
+    1. Start the eBPF drivers, when not called by the *Update operation*, NOP otherwise.
+    1. Write the status file with the result code of the overall operation.
 
->**NOTE**: the *enable command* will start the eBPF drivers, and upon success, it will also attempt to restart the GuestProxyAgent service.
-> Although restarting the GuestProxyAgent service is an extended operation that is not part of the eBPF VM Extension's specific scope, we account success/failure of this operation in the overall update status, so that the VM Agent will stop rolling out updates.
->
->By design, if the GuestProxyAgent fails to restart, eBPF will *not* be uninstalled, as upon this failure, the VM Agent will rollback by calling the *Update operation* on the old handler, thus, downgrading eBPF to the previous version.
+- **Disable operation**
+  - Calls the handler's *disable command* -> When not called by the *Update operation*, stop eBPF drivers.
+
+- **Reset operation** 
+  1. Calls the handler's *reset command* -> NOP.
+
+>Within any of the operations, if a command fails, the VM Agent will stop the workflow and report the failure to the user, i.e. no other subsequent command will be executed.
+
+>**NOTE**: Starting the eBPF drivers will also trigger the restart of the GuestProxyAgent service.
+> Although restarting the GuestProxyAgent service is an extended operation that is not part of the eBPF VM Extension's specific scope, we account success/failure of this task in the overall operations status, so that the VM Agent will stop rolling out updates.
 
 ## Releasing the eBPF VM Extension Handler
 
