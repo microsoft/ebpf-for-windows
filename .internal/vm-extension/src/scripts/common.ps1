@@ -785,10 +785,12 @@ function Start-EbpfDrivers {
 
         # If all drivers were started successfully, attempt to start the Guest Proxy Agent service.
         # Note: although restarting the GuestProxyAgent service is an extended operation that is not part of the eBPF VM Extension's scope,
-        # we account success/failure of this operation in the overall update status, so that the VM Agent will stop rolling out updates to Azure VMs.
-        if ($restartGuestProxyAgentService) {
-            if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
-                Write-Log -level $LogLevelInfo -message "eBPF drivers started successfully, attempting to start the Guest Proxy Agent service..."
+        # it has a dependency on the eBPF drivers, so we need to make sure to start the Guest Proxy Agent service to ensure the VM's connectivity.
+        # Therefore, we account success/failure of this operation in the overall result, so that the platform will stop rolling out updates to Azure VMs.
+        if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
+            Write-Log -level $LogLevelInfo -message "eBPF drivers started successfully."
+            if ($restartGuestProxyAgentService) {
+                Write-Log -level $LogLevelInfo -message "Attempting to start the Guest Proxy Agent service..."
                 $statusInfo.StatusCode = Restart-GuestProxyAgent
                 if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                     $statusInfo.StatusString = $StatusSuccess
@@ -796,10 +798,14 @@ function Start-EbpfDrivers {
                     Write-Log -level $LogLevelInfo -message $statusInfo.StatusMessage
                 } else {
                     $statusInfo.StatusString = $StatusError
-                    $statusInfo.StatusMessage = "Failed to start Guest Proxy Agent service."
+                    $statusInfo.StatusMessage = "FAILED to start Guest Proxy Agent service."
                     Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
                 }
             }
+        } else {
+            $statusInfo.StatusString = $StatusError
+            $statusInfo.StatusMessage = "FAILED to start eBPF drivers."
+            Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
         }
     }
     catch {
@@ -1057,7 +1063,7 @@ function InstallOrUpdate-eBPF {
         [bool]$allowDowngrade
     )
 
-    Write-Log -level $LogLevelInfo -message "InstallOrUpdate-eBPF($operationName, $sourcePath, $destinationPath)"
+    Write-Log -level $LogLevelInfo -message "InstallOrUpdate-eBPF($operationName, $sourcePath, $destinationPath, $allowDowngrade)"
 
     # Define a status info object.
     $statusInfo = [PSCustomObject]@{
@@ -1083,9 +1089,7 @@ function InstallOrUpdate-eBPF {
 
         # Firstly, check if the eBPF driver is installed and registered (as a test for eBPF to be installed).
         $currDriverPath = Get-FullDiskPathFromService -serviceName $EbpfDriverName
-        if ($currDriverPath) {
-            Write-Log -level $LogLevelInfo -message "Found eBPF driver installed and registered from: '$currDriverPath'"
-
+        if ($null -ne $currDriverPath) {
             # Check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
             $currInstallPath = Split-Path -Path $currDriverPath -Parent | Split-Path -Parent
             if ($currInstallPath -ne $EbpfDefaultInstallPath) {
@@ -1094,20 +1098,31 @@ function InstallOrUpdate-eBPF {
 
             # Retrieve the product version of the installed driver.
             $currProductVersion = Get-ProductVersionFromFile -filePath "$currDriverPath"
+            Write-Log -level $LogLevelInfo -message "Found eBPF '$EbpfDriverName' driver v$currProductVersion installed and registered from: '$currDriverPath'."
 
         } else {
-            Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver not registered on this machine, checking installation in the default folder..."
-
-            # Check if there's a driver in the default installation folder, and get its product version.
+            # If no eBPF driver is registered, before proceeding with a new installation from the artifact package within the extension's ZIP file,
+            # we check if there's a previous installation in the default installation folder, and if so, we use that as the current installation path.
+            Write-Log -level $LogLevelInfo -message "No '$EbpfDriverName' driver registered on this machine. Checking if there's a driver in the default installation folder: '$EbpfDefaultInstallPath'..."
             $currProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path $EbpfDefaultInstallPath -ChildPath "drivers\$EbpfDriverName.sys")
+            if ($currProductVersion) {
+                Write-Log -level $LogLevelInfo -message "Found eBPF '$EbpfDriverName' driver v$currProductVersion installed in the default installation folder: '$EbpfDefaultInstallPath'."
+                $currInstallPath = $EbpfDefaultInstallPath
+            } else {
+                Write-Log -level $LogLevelInfo -message "No '$EbpfDriverName' driver found in the default installation folder: '$EbpfDefaultInstallPath'."
+            }           
         }
         
         # If $currProductVersion has a value, then a version of eBPF is already installed, let's check if it needs to be updated.
         if ($null -ne $currProductVersion) {
             Write-Log -level $LogLevelInfo -message "Found eBPF v$currProductVersion already installed."
 
-            # Stop eBPF the eBPF drivers
-            $statusInfo.StatusCode = Stop-EbpfDrivers
+            # If the eBPF drivers are registered (i.e., not just present in the default installation folder), stop them.
+            if ($null -ne $currDriverPath) {
+                $statusInfo.StatusCode = Stop-EbpfDrivers
+            } else {
+                $statusInfo.StatusCode = $EbpfStatusCode_SUCCESS
+            }
             if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
                 # If stopping the eBPF drivers failed, then we attempt to restart them in best-effort and return an error.
                 Start-EbpfDrivers -restartGuestProxyAgentService $true | Out-Null
@@ -1127,24 +1142,25 @@ function InstallOrUpdate-eBPF {
                     Write-Log -level $LogLevelError -message            
                 }
 
+                # Compare the product version of the installed driver with the one in the extension package.
                 $comparison = Compare-VersionNumbers -version1 $currProductVersion -version2 $newProductVersion
                 if ($comparison -eq 2) {
-                    # If the product version is the same as the version distributed with the VM extension package up to the 3rd digit then it's a handler-only update,
-                    # so we don't need to do anything to the current eBPF installation.
+                    # If the product version is the same as the version distributed with the VM extension package up to the 3rd digit (comparison == 2),
+                    # then it's a handler-only update, and we don't need to do anything to the current eBPF installation.
                     $statusInfo.StatusCode = $EbpfStatusCode_SUCCESS
                     Write-Log -level $LogLevelInfo -message "This is a handler-only update to v($updateToVersion) -> no action taken."
                 } else {
 
                     # Depending on the version comparison, we either install/upgrade, downgrade or do nothing if the version is the same.
                     if ($comparison -gt 0 -and $allowDowngrade) {
-                        # If the product version is greater than the version distributed with the VM extension, then just issue a warning, but allow the downgrade.
+                        # If the product version is greater than the version distributed with the VM extension, but downgrate is allowed, then just issue a warning.
                         Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will be downgraded to (v$newProductVersion)!."
                         $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
                     } elseif ($comparison -gt 0) {
                         # If the product version is greater than the version distributed with the VM extension and downgrade is NOT allowed, then return an error.
                         $rollback = $false # Rollback is not required in this case.
                         $statusInfo.StatusCode = $EbpfStatusCode_INSTALLATION_DOWNGRADE_UNALLOWED
-                        Write-Log -level $LogLevelError -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF will NOT be downgraded!"
+                        Write-Log -level $LogLevelError -message "The installed eBPF version (v$currProductVersion) is newer than the one in the VM Extension package (v$newProductVersion) -> eBPF downgrades are not allowed!"
                     } elseif ($comparison -lt 0) {
                         # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                         $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $currProductVersion -newProductVersion $newProductVersion -installDirectory "$currInstallPath"
@@ -1157,9 +1173,8 @@ function InstallOrUpdate-eBPF {
                 }
             }
         } else {
-            Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."
-            
-            # Proceed with a new installation from the artifact package within the extension ZIP file.
+            # If no eBPF version is installed, proceed with a new installation from the artifact package within the extension's ZIP file.
+            Write-Log -level $LogLevelInfo -message "No eBPF installation found in [$destinationPath]: installing (v$newProductVersion)."            
             $statusInfo.StatusCode = Install-eBPF -sourcePath "$sourcePath" -destinationPath "$currInstallPath"
             if ($statusInfo.StatusCode -ne $EbpfStatusCode_SUCCESS) {
                 Write-Log -level $LogLevelError -message "Failed to install eBPF v$newProductVersion (new installation)."
@@ -1170,7 +1185,7 @@ function InstallOrUpdate-eBPF {
 
         # If the installation was successful, attempt to start the eBPF drivers and restart the GuestProxyAgent service.    
         if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {        
-            # Enable eBPF (attempt to start the eBPF drivers and restart the GuestProxyAgent service).
+            # Attempt to start the eBPF drivers and restart the GuestProxyAgent service (i.e. what would be done in the Enable command).
             $statusInfo = Start-EbpfDrivers -restartGuestProxyAgentService $true
             if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {                                                 
                 $rollback = $false
@@ -1187,12 +1202,11 @@ function InstallOrUpdate-eBPF {
         
         # If anything failed, attempt to rollback the installation, if there was a previous installation.
         if ($rollback) {
-
             # Save the current error code that caused the installation failure, so that we can return it to the caller.
             $prevStatusCode = $statusInfo.StatusCode
 
             # Uninstall eBPF: we are in a faling path, so we don't account for any error during the uninstallation of what's on the system,
-            # and attempt scraping out anything we can.
+            # and attempt scraping out anything we can, and re-installing the previous version.
             Uninstall-eBPF -installDirectory "$currInstallPath" | Out-Null
 
             # Attempt to rinstall the previous version of eBPF tht was backed up.
@@ -1204,7 +1218,6 @@ function InstallOrUpdate-eBPF {
                     $statusInfo.StatusString = $StatusError
                     $statusInfo.StatusMessage = "eBPF $operationName FAILED, but rollback succeeded."
                 } else {
-                    # Restore the error so to return it to the caller and rollback the installation below.
                     $statusInfo.StatusString = $StatusError
                     $statusInfo.StatusMessage = "CATASTROPHIC FAILURE: eBPF $operationName FAILED and rollback FAILED."
                 }
@@ -1213,10 +1226,9 @@ function InstallOrUpdate-eBPF {
             }
             Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
 
-            # Return the original error code and message that caused the rollback.
+            # Return the original error code that caused the rollback.
             $statusInfo.StatusCode = $prevStatusCode
         }
-
     } catch {
         $statusInfo.StatusString = $StatusError
         $statusInfo.StatusMessage = "An error occurred during the '$operationName' operation eBPF: $_"
