@@ -1400,8 +1400,12 @@ function Disable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
 
-    # Attempt to stop the eBPF drivers.
+    # Attempt to stop the eBPF drivers (and GuestProxyAgent service).
     $statusCode = Stop-EbpfDrivers
+    if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
+        Write-Log -level $LogLevelError -message "Failed to stop eBPF drivers, attempting to restart them with the GuestProxyAgent service."
+        Start-EbpfDrivers -restartGuestProxyAgentService $true | Out-Null
+    }
 
     return [int]$statusCode
 }

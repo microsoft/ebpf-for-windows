@@ -112,7 +112,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     1. Write the status file with the result code of the overall operation.
 
 - **Disable operation**
-  - Calls the handler's *disable command* -> When not called by the *Update operation*, stop eBPF drivers (and GuestProxyAgent service).
+  - Calls the handler's *disable command* -> Stop eBPF drivers (and GuestProxyAgent service). In case of failure, it will attempt to restart the eBPF drivers and GuestProxyAgent service, and will fail on exit.
 
 - **Reset operation** 
   1. Calls the handler's *reset command* -> NOP.
