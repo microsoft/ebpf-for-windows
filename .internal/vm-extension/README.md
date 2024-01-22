@@ -78,19 +78,19 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 - **Install operation**:
     1. Calls the handler's *install command* ->
         - Backup the current installation (if existing).
-        - Attempt to install/update the current eBPF installation (after checking that in case of an update, it's to a newer version only).
+        - Attempt to install/update the current eBPF installation (after checking that it's to a newer version only).
         - Attempt to restart eBPF drivers and GuestProxyAgent service.
         - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
         - Remove the backed up installation.        
         - Return result code of the overall operation.
     2. Calls the handler's *enable command* ->
         - Start the eBPF drivers
-        - Write the status file with the result code of the overall operation (always successful).
+        - Write the status file with the result code of the overall operation.
 
 - **Update operation**:
-    1. Calls the handler's *disable command* (on the old handler) -> NOP.
+    1. Calls the handler's *disable command* (on the old handler) -> Stop eBPF drivers (and GuestProxyAgent service).
     1. Calls the handler's *update command* (on the new handler) ->
-        - Create a global "updating" state.
+        - Create a global "updating" state (used later by the *uninstall command* and *enable command*).
         - Backup the current installation.
         - Attempt to update the current eBPF installation (after checking that the update is to a newer version only) - If the new version is lower than the current one, the update is aborted.
         - Attempt to restart eBPF drivers and GuestProxyAgent service.
@@ -103,7 +103,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     5. Calls the handler's *enable command* (on the new handler) -> Write the status file with the result code of the overall operation (always successful).
  
 - **Uninstall operation**:
-    1. Calls the handler's *disable command* -> stop eBPF drivers.
+    1. Calls the handler's *disable command* -> stop eBPF drivers (and GuestProxyAgent service).
     1. Calls the handler's *uninstall command* -> uninstall eBPF.
 
 - **Enable operation**
@@ -112,7 +112,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     1. Write the status file with the result code of the overall operation.
 
 - **Disable operation**
-  - Calls the handler's *disable command* -> When not called by the *Update operation*, stop eBPF drivers.
+  - Calls the handler's *disable command* -> When not called by the *Update operation*, stop eBPF drivers (and GuestProxyAgent service).
 
 - **Reset operation** 
   1. Calls the handler's *reset command* -> NOP.

@@ -1400,13 +1400,9 @@ function Disable-eBPF-Handler {
 
     Write-Log -level $LogLevelInfo -message "Disable-eBPF-Handler()"
 
-    # Check if the handler is being invoked from the VM Agent within the context of and Update Operation.
-    # If so, do NOP as the drivers are stopped by the InstallOrUpdate-eBPF function.
-    if (Get-EbpfUpdatingFlag -eq $false) {
-        # Attempt to stop the eBPF drivers.
-        $statusCode = Stop-EbpfDrivers
-    }
-   
+    # Attempt to stop the eBPF drivers.
+    $statusCode = Stop-EbpfDrivers
+
     return [int]$statusCode
 }
 
