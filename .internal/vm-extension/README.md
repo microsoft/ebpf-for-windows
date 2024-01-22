@@ -301,10 +301,6 @@ Remove-AzVMExtension -ResourceGroupName $vmResourceGroup -Name $vmExtName -VMNam
 
 In the following, we report the sequence diagrams for the main operations performed by the VM Extension Handler, not yet present in the official docs (see [this GitHub Issue](https://github.com/Azure/azure-vmextension-publishing/issues/2)).
 
-### Update Sequence diagram
-
-[![Update Sequence Diagram](./doc/update_sequence_diagram.png)](./images/update-sequence-diagram.png)
-
 ### Auto-Update Sequence diagram
 
 [![Auto-Update Sequence Diagram](./doc/auto-update_sequence_diagram.png)](./images/auto-update-sequence-diagram.png)
