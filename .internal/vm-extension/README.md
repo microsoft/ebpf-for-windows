@@ -81,7 +81,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
         - Attempt to install/update the current eBPF installation (after checking that it's to a newer version only).
         - Attempt to restart eBPF drivers and GuestProxyAgent service.
         - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
-        - Remove the backed up installation.        
+        - Remove the backed up installation.
         - Return result code of the overall operation.
     2. Calls the handler's *enable command* ->
         - Start the eBPF drivers
@@ -89,7 +89,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 - **Update operation**:
     1. Calls the handler's *disable command* (on the old handler) -> Stop eBPF drivers (and GuestProxyAgent service).
-    1. Calls the handler's *update command* (on the new handler) ->
+    2. Calls the handler's *update command* (on the new handler) ->
         - Create a global "updating" state (used later by the *uninstall command* and *enable command*).
         - Backup the current installation.
         - Attempt to update the current eBPF installation (after checking that the update is to a newer version only) - If the new version is lower than the current one, the update is aborted.
@@ -101,20 +101,20 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     3. Calls the handler's *uninstall command* (on the old handler) -> NOP.
     4. ~~Calls the handler's *install command* (on the new handler)~~ This call is suppressed by the *UpdateWithoutInstall* option in the `HandlerManifest.xml`.
     5. Calls the handler's *enable command* (on the new handler) -> Write the status file with the result code of the overall operation (always successful).
- 
+
 - **Uninstall operation**:
     1. Calls the handler's *disable command* -> stop eBPF drivers (and GuestProxyAgent service).
     1. Calls the handler's *uninstall command* -> uninstall eBPF.
 
 - **Enable operation**
-  - Calls the handler's *enable command* -> 
+  - Calls the handler's *enable command* ->
     1. Start the eBPF drivers, when not called by the *Update operation*, NOP otherwise.
     1. Write the status file with the result code of the overall operation.
 
 - **Disable operation**
   - Calls the handler's *disable command* -> Stop eBPF drivers (and GuestProxyAgent service). In case of failure, it will attempt to restart the eBPF drivers and GuestProxyAgent service, and will fail on exit.
 
-- **Reset operation** 
+- **Reset operation**
   1. Calls the handler's *reset command* -> NOP.
 
 >Within any of the operations, if a command fails, the VM Agent will stop the workflow and report the failure to the user, i.e. no other subsequent command will be executed.
@@ -308,4 +308,3 @@ In the following, we report the sequence diagrams for the main operations perfor
 ### Auto-Update Sequence diagram
 
 [![Auto-Update Sequence Diagram](./doc/auto-update_sequence_diagram.png)](./images/auto-update-sequence-diagram.png)
-
