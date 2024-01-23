@@ -1078,9 +1078,19 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     }
     assert(value_size != 0);
 
+    if (key_size == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     // Compute the maximum number of entries that can be updated in a single batch.
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys);
     max_entries_per_batch /= key_size;
+
+    if (max_entries_per_batch == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     try {
         for (size_t key_index = 0; key_index < input_count;) {
@@ -1095,10 +1105,8 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
             request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_DELETE_ELEMENT_BATCH;
             request->handle = (uint64_t)map_handle;
 
-            std::copy(
-                (uint8_t*)keys + key_size * key_index,
-                (uint8_t*)keys + key_size * (entries_to_delete + key_index),
-                request->keys);
+            // Copy keys into request buffer.
+            memcpy(request->keys, (uint8_t*)keys + key_size * key_index, key_size * entries_to_delete);
 
             result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply));
             if (result == EBPF_INVALID_OBJECT) {

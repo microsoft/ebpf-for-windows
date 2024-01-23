@@ -270,7 +270,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags) noexcept;
 
 /**
- * @brief Update a collection  of keys and values in the map.
+ * @brief Update a collection of keys and values in the map.
  *
  * @param[in] map_fd File descriptor for the eBPF map.
  * @param[in] keys Pointer to buffer containing keys.
