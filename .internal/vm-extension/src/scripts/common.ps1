@@ -615,19 +615,19 @@ function Get-EbpfVersionInfo {
         # Check if the driver is registered in the default folder, if not, log a warning and proceed with the installation in the current folder.
         $versionInfo.currInstallPath = Split-Path -Path $versionInfo.currDriverPath -Parent | Split-Path -Parent
         if ($versionInfo.currInstallPath -ne $EbpfDefaultInstallPath) {
-            Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver registered from a non-default folder: [$versionInfo.currInstallPath] instead of [$EbpfDefaultInstallPath]"
+            Write-Log -level $LogLevelWarning -message "'$EbpfDriverName' driver registered from a non-default folder: '$($versionInfo.currInstallPath)' instead of [$EbpfDefaultInstallPath]"
         }
 
         # Retrieve the product version of the installed driver.
-        $versionInfo.currProductVersion = Get-ProductVersionFromFile -filePath "$versionInfo.currDriverPath"
-        Write-Log -level $LogLevelInfo -message "Found eBPF '$EbpfDriverName' driver v$versionInfo.currProductVersion installed and registered from: '$versionInfo.currDriverPath'."
+        $versionInfo.currProductVersion = Get-ProductVersionFromFile -filePath "$($versionInfo.currDriverPath)"
+        Write-Log -level $LogLevelInfo -message "Found eBPF '$EbpfDriverName' driver v$($versionInfo.currProductVersion) installed and registered from: '$($versionInfo.currDriverPath)'."
     } else {
         # If no eBPF driver is registered, before proceeding with a new installation from the artifact package within the extension's ZIP file,
         # we check if there's a previous installation in the default installation folder, and if so, we use that as the current installation path.
         Write-Log -level $LogLevelInfo -message "No '$EbpfDriverName' driver registered on this machine. Checking if there's a driver in the default installation folder: '$EbpfDefaultInstallPath'..."
         $versionInfo.currProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path $EbpfDefaultInstallPath -ChildPath "drivers\$EbpfDriverName.sys")
         if ($versionInfo.currProductVersion) {
-            Write-Log -level $LogLevelInfo -message "Found eBPF '$EbpfDriverName' driver v$versionInfo.currProductVersion installed in the default installation folder: '$EbpfDefaultInstallPath'."
+            Write-Log -level $LogLevelInfo -message "Found eBPF '$EbpfDriverName' driver v$($versionInfo.currProductVersion) installed in the default installation folder: '$EbpfDefaultInstallPath'."
             $versionInfo.currInstallPath = $EbpfDefaultInstallPath
         } else {
             Write-Log -level $LogLevelInfo -message "No '$EbpfDriverName' driver found in the default installation folder: '$EbpfDefaultInstallPath'."
@@ -1182,13 +1182,13 @@ function InstallOrUpdate-eBPF {
                         if ($statusInfo.StatusCode -eq $EbpfStatusCode_SUCCESS) {
                             Write-Log -level $LogLevelInfo -message "Backup of the current eBPF installation succeeded."
 
-                            # Since there is an existing installation, we may need to rollback.
+                            # Since there is an existing installation, we may need to rollback to the backed up version in case of failure.
                             $rollback = $true
 
                             # Log differently if Upgrade or Downgrade the current eBPF installation.
                             if ($versionInfo.comparison -gt 0 -and $allowDowngrade) {
                                 # If the product version is greater than the version distributed with the VM extension, but downgrate is allowed, then just issue a warning.
-                                Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$($versionInfo.currProductVersion) is newer than the one in the VM Extension package (v$($versionInfo.newProductVersion)) -> eBPF will be downgraded to (v$$($versionInfo.newProductVersion))."
+                                Write-Log -level $LogLevelWarning -message "The installed eBPF version (v$($versionInfo.currProductVersion) is newer than the one in the VM Extension package (v$($versionInfo.newProductVersion)) -> eBPF will be downgraded to (v$($versionInfo.newProductVersion))."
                             } else {
                                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                                 Write-Log -level $LogLevelInfo -message "The installed eBPF version (v$($versionInfo.currProductVersion)) is older than the one in the VM Extension package (v$($versionInfo.newProductVersion)) -> eBPF will be upgraded to (v$($versionInfo.newProductVersion))."

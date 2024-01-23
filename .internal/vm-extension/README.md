@@ -77,8 +77,13 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 - **Install operation**:
     1. Calls the handler's *install command* ->
+        - Checks if the current VM Extension package contains a newer version of eBPF for Windows (if already installed):
+          - If the version is the same, the install simply returns success.
+          - If the version is lower than the current one, the install is aborted.
+          - If the version is higher than the current one (if an existing version of eBPF is already installed), the install proceeds.
+          - If there is no existing version of eBPF installed, the install proceeds.
         - Backup the current installation (if existing).
-        - Attempt to install/update the current eBPF installation (after checking that it's to a newer version only).
+        - Attempt to install/update the current eBPF installation.
         - Attempt to restart eBPF drivers and GuestProxyAgent service.
         - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
         - Remove the backed up installation.
@@ -90,11 +95,16 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 - **Update operation**:
     1. Calls the handler's *disable command* (on the old handler) -> Stop eBPF drivers (and GuestProxyAgent service).
     2. Calls the handler's *update command* (on the new handler) ->
-        - Create a global "updating" state (used later by the *uninstall command* and *enable command*).
+        - Checks if the current VM Extension package contains a newer version of eBPF for Windows (if already installed):
+          - If the version is the same, the update simply returns success.
+          - If the version is lower than the current one, the update is aborted.
+          - If the version is higher than the current one (if an existing version of eBPF is already installed), the update proceeds.
+          - If there is no existing version of eBPF installed, the update proceeds.
+        Create a global "updating" state (used later by the *uninstall command* and *enable command*).
         - Backup the current installation.
-        - Attempt to update the current eBPF installation (after checking that the update is to a newer version only) - If the new version is lower than the current one, the update is aborted.
+        - Attempt to update the current eBPF installation.
         - Attempt to restart eBPF drivers and GuestProxyAgent service.
-        - If any operation fails, attempt to rollback to the backed up installation.
+        - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
         - Remove the global "updating" state.
         - Remove the backed up installation.
         - Write the status file with the result code of the overall operation.
