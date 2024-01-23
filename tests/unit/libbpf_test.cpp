@@ -3226,4 +3226,71 @@ TEST_CASE("libbpf map batch", "[libbpf]")
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
         -ENOENT);
+
+    // Negative tests.
+    // Batch size 0
+
+    update_batch_size = 0;
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EINVAL);
+
+    fetched_batch_size = 0;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -EINVAL);
+
+    delete_batch_size = 0;
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == -EINVAL);
+
+    // opts.flags has invalid value.
+    opts.flags = 0x100;
+    update_batch_size = batch_size;
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EINVAL);
+
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -EINVAL);
+
+    delete_batch_size = batch_size;
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == -EINVAL);
+
+    // opts.elem_flags has invalid value.
+    opts.elem_flags = 0x100;
+    opts.flags = 0;
+    update_batch_size = batch_size;
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EINVAL);
+
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -EINVAL);
+
+    delete_batch_size = batch_size;
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == -EINVAL);
+
+    // invalid map fd.
+    fd_t invalid_map_fd = 0x10000000;
+
+    opts.flags = 0;
+    opts.elem_flags = 0;
+    update_batch_size = batch_size;
+
+    REQUIRE(bpf_map_update_batch(invalid_map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EBADF);
+
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            invalid_map_fd,
+            nullptr,
+            &next_key,
+            fetched_keys.data(),
+            fetched_values.data(),
+            &fetched_batch_size,
+            &opts) == -EBADF);
+
+    delete_batch_size = batch_size;
+    REQUIRE(bpf_map_delete_batch(invalid_map_fd, keys.data(), &delete_batch_size, &opts) == -EBADF);
 }

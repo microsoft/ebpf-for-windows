@@ -656,7 +656,9 @@ ebpf_map_lookup_element_batch(
     uint64_t flags) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(flags);
+    if (flags != 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
     ebpf_result_t result =
         _ebpf_map_lookup_element_batch_helper(map_fd, in_batch, out_batch, keys, values, count, false);
     EBPF_RETURN_RESULT(result);
@@ -674,7 +676,9 @@ ebpf_map_lookup_and_delete_element_batch(
     uint64_t flags) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(flags);
+    if (flags != 0) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
     ebpf_result_t result =
         _ebpf_map_lookup_element_batch_helper(map_fd, in_batch, out_batch, keys, values, count, true);
     EBPF_RETURN_RESULT(result);
@@ -1059,7 +1063,10 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     size_t input_count = *count;
     size_t max_entries_per_batch;
 
-    UNREFERENCED_PARAMETER(flags);
+    if (flags != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     ebpf_assert(keys);
     if (map_fd <= 0) {
@@ -1082,7 +1089,7 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     key_size = key_size_u32;
     value_size = value_size_u32;
 
-    if (key_size == 0) {
+    if (key_size == 0 || value_size == 0 || input_count == 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
