@@ -554,6 +554,11 @@ _ebpf_map_lookup_element_batch_helper(
     key_size = key_size_u32;
     value_size = value_size_u32;
 
+    if (key_size == 0 || value_size == 0 || input_count == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     // Compute the maximum number of entries that can be updated in a single batch.
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_reply, data);
     max_entries_per_batch /= (key_size + value_size);
@@ -739,6 +744,11 @@ _update_map_element_batch(
 
     ebpf_assert(value);
     ebpf_assert(key || !key_size);
+
+    if (key_size == 0 || value_size == 0 || input_count == 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     // Compute the maximum number of entries that can be updated in a single batch.
     size_t max_entries_per_batch = 0;
@@ -1077,11 +1087,6 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
         goto Exit;
     }
     assert(value_size != 0);
-
-    if (key_size == 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     // Compute the maximum number of entries that can be updated in a single batch.
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(ebpf_operation_map_delete_element_batch_request_t, keys);
