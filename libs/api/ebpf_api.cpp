@@ -741,6 +741,7 @@ _update_map_element_batch(
     ebpf_operation_map_update_element_batch_request_t* request;
     ebpf_operation_map_update_element_batch_reply_t reply;
     size_t input_count = *count;
+    size_t max_entries_per_batch = 0;
 
     ebpf_assert(value);
     ebpf_assert(key || !key_size);
@@ -751,7 +752,6 @@ _update_map_element_batch(
     }
 
     // Compute the maximum number of entries that can be updated in a single batch.
-    size_t max_entries_per_batch = 0;
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(ebpf_operation_map_update_element_batch_request_t, data);
     max_entries_per_batch /= (key_size + value_size);
 
