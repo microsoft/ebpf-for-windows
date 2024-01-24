@@ -50,6 +50,9 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_LOAD_NATIVE_MODULE,
     EBPF_OPERATION_LOAD_NATIVE_PROGRAMS,
     EBPF_OPERATION_PROGRAM_TEST_RUN,
+    EBPF_OPERATION_MAP_UPDATE_ELEMENT_BATCH,
+    EBPF_OPERATION_MAP_DELETE_ELEMENT_BATCH,
+    EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -469,3 +472,50 @@ typedef struct _ebpf_operation_program_test_run_reply
     uint64_t context_offset;
     uint8_t data[1];
 } ebpf_operation_program_test_run_reply_t;
+
+typedef struct _ebpf_operation_map_update_element_batch_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t handle;
+    ebpf_map_option_t option;
+    // Count of elements is derived from the length of the request.
+    // Data is a concatenation of key+value.
+    uint8_t data[1];
+} ebpf_operation_map_update_element_batch_request_t;
+
+typedef struct _ebpf_operation_map_update_element_batch_reply
+{
+    struct _ebpf_operation_header header;
+    uint32_t count_of_elements_processed;
+} ebpf_operation_map_update_element_batch_reply_t;
+
+typedef struct _ebpf_operation_map_delete_element_batch_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t handle;
+    // Count of elements is derived from the length of the request.
+    // Data is a concatenation of keys.
+    uint8_t keys[1];
+} ebpf_operation_map_delete_element_batch_request_t;
+
+typedef struct _ebpf_operation_map_delete_element_batch_reply
+{
+    struct _ebpf_operation_header header;
+    uint32_t count_of_elements_processed;
+} ebpf_operation_map_delete_element_batch_reply_t;
+
+typedef struct _ebpf_operation_map_get_next_key_value_batch_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t handle;
+    bool find_and_delete;
+    uint8_t previous_key[1];
+} ebpf_operation_map_get_next_key_value_batch_request_t;
+
+typedef struct _ebpf_operation_map_get_next_key_value_batch_reply
+{
+    struct _ebpf_operation_header header;
+    // Count of elements is derived from the length of the reply.
+    // Data is a concatenation of key+value.
+    uint8_t data[1];
+} ebpf_operation_map_get_next_key_value_batch_reply_t;

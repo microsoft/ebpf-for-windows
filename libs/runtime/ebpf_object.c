@@ -309,11 +309,11 @@ void
 ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, uint32_t file_id, uint32_t line)
 {
     int64_t new_ref_count;
-    _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
-
     if (!object) {
         return;
     }
+
+    _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
 
     if (object->base.marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);
