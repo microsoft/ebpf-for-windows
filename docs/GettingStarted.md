@@ -199,9 +199,13 @@ This section shows how to use eBPF for Windows in a demo that lets us control a 
 
 #### Prep
 
-1. Build the ``port_leak`` and ``port_quota`` applications from under the tools project.
-1. Copy both the exe's to a machine that has eBPF installed. See
-   [Installing eBPF for Windows](#installing-ebpf-for-windows)
+1. Build the solution with the Release configuration. (Debug will also work for the usermode components.)
+1. Copy the entire contents of the build folder to your test machine; this is more than is minimally necessary, but
+   reduces the risk of missing necessary binaries.
+1. Install eBPF on the test machine; see [Installing eBPF for Windows](#installing-ebpf-for-windows), using method 2.
+
+If the script mechanism is unavailable, install the MSI that you copied over, then run `ebpfSvc.exe install` to register
+the usermode service, which is required for `port_quota.exe` to work.
 
 #### Demo
 
