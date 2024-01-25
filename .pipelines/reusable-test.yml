@@ -94,6 +94,12 @@ jobs:
         condition: eq('${{parameters.environment}}', 'ebpf_cicd_tests')
         displayName: 'Shallow Checkout Repo'
 
+      - powershell: |
+          $value = "true"
+          Write-Host "##vso[task.setvariable variable=ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE;]$value"
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Set ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE'
+
       - bash: |
           choco install -y procdump
           where procdump.exe
@@ -107,6 +113,12 @@ jobs:
         condition: and(eq('${{parameters.code_coverage}}', 'true'), ne('${{parameters.environment}}', 'ebpf_cicd_tests'))
         name: set_up_opencppcoverage
         displayName:  'Set up OpenCppCoverage and add to PATH'
+
+      - bash: |
+          echo "*** All environment variables ***"
+          env | sort
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Dump Environment variables'
 
       - powershell: |
           mkdir $(DUMP_PATH)
@@ -155,6 +167,14 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)
         name: configure_ebpf_store
         displayName: Configure eBPF store
+
+      - script: |
+          .\export_program_info_sample.exe --clear
+          .\export_program_info_sample.exe
+        workingDirectory: $(Build.SourcesDirectory)/$(PROJECT_NAME)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)
+        condition: ne(variables.buildConfiguration, 'FuzzerDebug')
+        name: configure_ebpf_store_sample
+        displayName: Configure eBPF store (undocked)
 
       - script: |
           $(PRE_COMMAND)

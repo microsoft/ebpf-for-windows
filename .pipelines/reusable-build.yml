@@ -71,6 +71,12 @@ jobs:
         name: msvc_variables
         displayName: 'Set MSVC Environment Variables'
 
+      - powershell: |
+          $value = "true"
+          Write-Host "##vso[task.setvariable variable=ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE;]$value"
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Set ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE'
+
       - checkout: self
         displayName: 'Checkout Repo'
         submodules: 'recursive'
@@ -89,35 +95,10 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
         displayName:  'Install tools'
 
-      - task: NuGetCommand@2
-        inputs:
-          command: 'restore'
-          restoreSolution: $(SOLUTION_FILE_PATH)
-        displayName: 'Restore Nuget Packages'
-
-      - bash: |
-          cmake -G "Visual Studio 17 2022" -S external/ebpf-verifier -B external/ebpf-verifier/build
-        env:
-          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
-          LDFLAGS: $(LD_FLAGS)
+      - powershell: |
+          .\scripts\initialize_ebpf_repo.ps1
         workingDirectory: $(Build.SourcesDirectory)
-        displayName: 'Create verifier project'
-
-      - bash: |
-          cmake -G "Visual Studio 17 2022" -S external/catch2 -B external/catch2/build -DBUILD_TESTING=OFF
-        env:
-          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
-          LDFLAGS: $(LD_FLAGS)
-        workingDirectory: $(Build.SourcesDirectory)
-        displayName: 'Create catch2 project'
-
-      - bash: |
-          cmake -G "Visual Studio 17 2022" -S external/ubpf -B external/ubpf/build
-        env:
-          CXXFLAGS: '$(CXX_FLAGS) /ZH:SHA_256'
-          LDFLAGS: $(LD_FLAGS)
-        workingDirectory: $(Build.SourcesDirectory)
-        displayName: 'Create ubpf project'
+        displayName: 'Configuring repo for first build'
 
       - script: |
           "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration=$(BUILD_CONFIGURATION) /p:Platform=$(BUILD_PLATFORM) $(SOLUTION_FILE_PATH) $(BUILD_OPTIONS)
