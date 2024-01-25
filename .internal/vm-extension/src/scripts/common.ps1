@@ -593,7 +593,7 @@ function Get-EbpfUpdatingFlag {
 function Get-EbpfVersionInfo {
     param (
         
-        [string]$sourcePath
+        [string]$sourcePath,
         [string]$destinationPath
     )
 
