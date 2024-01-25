@@ -160,20 +160,22 @@ function Get-FullDiskPathFromService {
 
     Write-Log -level $LogLevelInfo -message "Get-FullDiskPathFromService($serviceName)"
 
-    $scQueryOutput = & "sc.exe" qc $serviceName
-
-    # Search for the BINARY_PATH_NAME line using regex.
-    $binaryPathLine = $scQueryOutput -split "`n" | Where-Object { $_ -match "BINARY_PATH_NAME\s+:\s+(.*)" }
-
-    if ($binaryPathLine) {
-
-        # Extract the full disk path using regex.
-        $binaryPath = $matches[1]
-        $fullDiskPath = [regex]::Match($binaryPath, '(?<=\\)\w:.+')
-
-        if ($fullDiskPath.Success) {
-            return $fullDiskPath.Value
+    try {
+        # Define the registry path
+        $registryPath = "HKLM:\SYSTEM\CurrentControlSet\Services\$serviceName"
+        
+        # Check if the registry key exists
+        if (Test-Path $registryPath) {
+            # Retrieve the BINARY_PATH_NAME value from the registry
+            $binaryPath = Get-ItemProperty -Path $registryPath -Name ImagePath | Select-Object -ExpandProperty ImagePath
+            if ($binaryPath -match '(?<=\\)\w:.+') {
+                return $matches[0]
+            }
+        } else {
+            Write-Log -level $LogLevelWarning -message "Service '$serviceName' is not installed -> no action taken."
         }
+    }  catch {
+        Write-Log -level $LogLevelError-message "An error occurred while retrieving the registry key for service '$serviceName': $_"
     }
     
     return $null
@@ -609,7 +611,7 @@ function Get-EbpfVersionInfo {
     # Retrieve the product version of the driver in the extension package (anyone will do, as they should all have the same product version, so we don't have to hardcode a specific driver name)
     # Note: the "install" command is always run on the *new* version of the handler, so we can retrieve the target product version of the driver in the extension package.
     $EbpfDriverName = ($EbpfDrivers.GetEnumerator() | Select-Object -First 1).Key
-    $versionInfo.newProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path "$sourcePath\bin" -ChildPath "drivers\$EbpfDriverName.sys")
+    $versionInfo.newProductVersion = Get-ProductVersionFromFile -filePath (Join-Path -Path "$sourcePath" -ChildPath "drivers\$EbpfDriverName.sys")
 
     # Firstly, check if the eBPF driver is installed and registered (as a test for eBPF to be installed).
     $versionInfo.currDriverPath = Get-FullDiskPathFromService -serviceName $EbpfDriverName
@@ -922,7 +924,7 @@ function Install-EbpfDrivers {
     $failedServices = @() 
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         $driverName = $_.Key
-        $installResult = Install-Driver -serviceName $driverName -servicePath "$installDirectory\drivers\$driverName.sys"
+        $installResult = Install-Driver -serviceName $driverName -servicePath "$installDirectory\drivers\$($_.Value)"
         if ($installResult -ne $EbpfStatusCode_SUCCESS) {
             $failedServices += $driverName
         }
@@ -983,7 +985,7 @@ function Uninstall-EbpfDrivers {
         # If any of the drivers failed to uninstall, attempt to re-install the drivers that were successfully uninstalled.
         $failedServices | ForEach-Object {
             $driverName = $_
-            $installResult = Install-Driver -serviceName $driverName -servicePath "$installDirectory\drivers\$driverName.sys"
+            $installResult = Install-Driver -serviceName $driverName -servicePath "$installDirectory\drivers\$($_.Value)"
             if ($installResult -ne $EbpfStatusCode_SUCCESS) {
                 Write-Log -level $LogLevelError -message "Failed to re-install service: $driverName."
                 $statusCode = $EbpfStatusCode_INSTALLING_DRIVER_FAILED
@@ -1003,7 +1005,7 @@ function Install-eBPF {
     Write-Log -level $LogLevelInfo -message "Install-eBPF($sourcePath, $destinationPath)"
 
     # Copy the eBPF files to the destination folder.
-    $statusCode = Copy-Directory -sourcePath "$sourcePath\bin" -destinationPath $destinationPath
+    $statusCode = Copy-Directory -sourcePath "$sourcePath" -destinationPath $destinationPath
     if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
 
         # Install the eBPF services and use the results to generate the status file.
@@ -1287,14 +1289,13 @@ function Backup-EbpfDeployment {
             if (Test-Path $EbpfBackupPath -PathType Container) {
                 Remove-Item -Recurse -Force -Path $EbpfBackupPath
             }
-            $destinationDirectory = [System.IO.Path]::Combine($env:TEMP, "ebpf_backup\bin")
-            New-Item -ItemType Directory -Force -Path $destinationDirectory | Out-Null
+            New-Item -ItemType Directory -Force -Path $EbpfBackupPath | Out-Null
 
             # Copy installation files to the backup directory
-            Copy-Item -Recurse -Path $installDirectory\* -Destination $destinationDirectory -Force
+            Copy-Item -Recurse -Path $installDirectory\* -Destination $EbpfBackupPath -Force
 
             # Log success
-            $logMessage = "Backup completed successfully. Backup directory: $destinationDirectory"
+            $logMessage = "Backup completed successfully. Backup directory: $EbpfBackupPath"
             Write-Log -Level $LogLevelInfo -Message $logMessage
 
             return $EbpfStatusCode_SUCCESS

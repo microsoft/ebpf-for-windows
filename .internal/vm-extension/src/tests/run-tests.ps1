@@ -51,7 +51,7 @@ function DownloadAndUnpackEbpfRedistPackage {
         Expand-Archive -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\eBPF-for-Windows-Redist.$packageVersion.nupkg.zip" -DestinationPath "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp" | Out-Null
 
         # Copy the eBPF package to the target directory (in a "bin" subfolder), and remove the temp folder.
-        Copy-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp\package\bin" -Destination "$targetDirectory\v$packageVersion\bin" -Recurse -Force | Out-Null
+        Copy-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion\temp\package\bin" -Destination "$targetDirectory\v$packageVersion" -Recurse -Force | Out-Null
         Remove-Item -Path "$targetDirectory\eBPF-for-Windows-Redist.$packageVersion" -Recurse -Force | Out-Null
     }
     catch {
@@ -268,9 +268,8 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     if ((Setup-Test-Package -packageVersion $versionV2 -testRedistTargetDirectory $testRedistTargetDirectory) -ne 0) {
         Exit-Tests -testPass 1
     }
-    # Alter the package to simulate a corrupted package.
-    $packagePath = Join-Path $EbpfPackagePath "bin"    
-    Move-Item $packagePath\drivers\eBPFCore.sys $packagePath\drivers\eBPFCore.sys.bak -Force | Out-Null
+    # Alter the package to simulate a corrupted package. 
+    Move-Item $EbpfPackagePath\drivers\eBPFCore.sys $EbpfPackagePath\drivers\eBPFCore.sys.bak -Force | Out-Null
     if ((Disable-eBPF-Handler) -ne $EbpfStatusCode_SUCCESS) {
         Exit-Tests -testPass 1
     }
