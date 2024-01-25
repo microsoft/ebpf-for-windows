@@ -259,6 +259,55 @@ _test_crud_operations(ebpf_map_type_t map_type)
             reinterpret_cast<const uint8_t*>(&previous_key),
             reinterpret_cast<uint8_t*>(&next_key)) == EBPF_NO_MORE_KEYS);
 
+    std::vector<size_t> batch_test_sizes = {
+        1,
+        17,
+        _test_map_size / 4,
+        _test_map_size,
+        _test_map_size * 2,
+    };
+    for (size_t batch_count : batch_test_sizes) {
+
+        keys.clear();
+        size_t effective_key_size = ebpf_map_get_definition(map.get())->key_size;
+        size_t effective_value_size = ebpf_map_get_definition(map.get())->value_size;
+        std::vector<uint8_t> batch_data(batch_count * (effective_key_size + effective_value_size));
+        ebpf_result_t return_value = EBPF_SUCCESS;
+
+        for (uint32_t index = 0; return_value == EBPF_SUCCESS; index++) {
+            size_t batch_data_size = batch_data.size();
+            return_value = ebpf_map_get_next_key_and_value_batch(
+                map.get(),
+                sizeof(previous_key),
+                index == 0 ? nullptr : reinterpret_cast<uint8_t*>(&previous_key),
+                &batch_data_size,
+                batch_data.data(),
+                0);
+
+            if (return_value == EBPF_NO_MORE_KEYS) {
+                break;
+            }
+
+            REQUIRE(return_value == EBPF_SUCCESS);
+
+            REQUIRE(batch_data_size <= batch_data.size());
+            size_t returned_batch_count = batch_data_size / (effective_key_size + effective_value_size);
+
+            // Verify that all keys are returned.
+            for (uint32_t batch_index = 0; batch_index < returned_batch_count; batch_index++) {
+                uint32_t current_key = *reinterpret_cast<uint32_t*>(
+                    &batch_data[batch_index * (effective_key_size + effective_value_size)]);
+                uint64_t current_value = *reinterpret_cast<uint64_t*>(
+                    &batch_data[batch_index * (effective_key_size + effective_value_size) + effective_key_size]);
+                keys.insert(current_key);
+                REQUIRE(current_value == current_key * current_key);
+            }
+            previous_key = *reinterpret_cast<uint32_t*>(
+                &batch_data[(returned_batch_count - 1) * (effective_key_size + effective_value_size)]);
+        }
+        REQUIRE(keys.size() == _test_map_size);
+    }
+
     for (const auto key : keys) {
         REQUIRE(
             ebpf_map_delete_entry(map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), 0) == EBPF_SUCCESS);
