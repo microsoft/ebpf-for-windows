@@ -592,6 +592,8 @@ function Get-EbpfUpdatingFlag {
 
 function Get-EbpfVersionInfo {
     param (
+        
+        [string]$sourcePath
         [string]$destinationPath
     )
 
@@ -1138,7 +1140,7 @@ function InstallOrUpdate-eBPF {
         $rollback = $false
 
         # Retrieve the current installation version info.        
-        $versionInfo = Get-EbpfVersionInfo -destinationPath $destinationPath
+        $versionInfo = Get-EbpfVersionInfo -sourcePath $sourcePath -destinationPath $destinationPath
 
         # If $currProductVersion has a value, then a version of eBPF is already installed, let's check if it needs to (or can) be updated.
         if ($null -ne $versionInfo.currProductVersion) {
