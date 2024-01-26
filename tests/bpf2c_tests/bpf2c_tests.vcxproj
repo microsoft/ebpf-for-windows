@@ -239,8 +239,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <CopyFileToFolders Include="..\sample\bad\*">
-      <FileType>Object</FileType>
+    <CopyFileToFolders Include="..\sample\bad\*.o">
+      <FileType>Document</FileType>
+      <DestinationFolders>$(OutDir)bad</DestinationFolders>
     </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
