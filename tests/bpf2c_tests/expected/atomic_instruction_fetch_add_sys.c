@@ -270,7 +270,7 @@ func(void* context)
     r1 = IMMEDIATE(1);
     // EBPF_OP_ATOMIC64_ADD pc=9 dst=r0 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/atomic_instruction_fetch_add.c"
-    _InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r0 + OFFSET(0)), (uint64_t)r1);
+    InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r0 + OFFSET(0)), (uint64_t)r1);
 label_1:
     // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
 #line 32 "sample/undocked/atomic_instruction_fetch_add.c"
