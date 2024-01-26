@@ -257,5 +257,3 @@ C:\Program Files\ebpf-for-windows\testing\usersim.dll
 C:\Program Files\ebpf-for-windows\testing\usersim.pdb
 C:\Program Files\ebpf-for-windows\testing\xdp_tests.exe
 C:\Program Files\ebpf-for-windows\testing\xdp_tests.pdb
-C:\Program Files\ebpf-for-windows\testing\bad\bad1.o
-C:\Program Files\ebpf-for-windows\testing\bad\bad2.o

@@ -17,9 +17,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Malformed Object Files">
-      <UniqueIdentifier>{9deeb5b3-156d-434a-9948-4f245a14c322}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="libfuzz_harness.cpp">
@@ -47,16 +44,5 @@
     <CustomBuild Include="$(SolutionDir)scripts\create_bpf2c_corpus.bat">
       <Filter>Source Files</Filter>
     </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <Object Include="..\..\sample\bad\bad1.o">
-      <Filter>Malformed Object Files</Filter>
-    </Object>
-    <Object Include="..\..\sample\bad\bad2.o">
-      <Filter>Malformed Object Files</Filter>
-    </Object>
-    <Object Include="..\..\sample\bad\bad3.o">
-      <Filter>Malformed Object Files</Filter>
-    </Object>
   </ItemGroup>
 </Project>
