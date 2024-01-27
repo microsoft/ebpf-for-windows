@@ -1191,7 +1191,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_ADD:
                 case EBPF_ATOMIC_ADD_FETCH:
                     line = std::format(
-                        "_InterlockedExchangeAdd{}(({}*)(uintptr_t)({} + {}), {});",
+                        "InterlockedExchangeAdd{}(({}*)(uintptr_t)({} + {}), {});",
                         size_num,
                         lock_type,
                         destination,
@@ -1201,7 +1201,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_OR:
                 case EBPF_ATOMIC_OR_FETCH:
                     line = std::format(
-                        "_InterlockedOr{}(({}*)(uintptr_t)({} + {}), {});",
+                        "InterlockedOr{}(({}*)(uintptr_t)({} + {}), {});",
                         size_num,
                         lock_type,
                         destination,
@@ -1211,7 +1211,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_AND:
                 case EBPF_ATOMIC_AND_FETCH:
                     line = std::format(
-                        "_InterlockedAnd{}(({}*)(uintptr_t)({} + {}), {});",
+                        "InterlockedAnd{}(({}*)(uintptr_t)({} + {}), {});",
                         size_num,
                         lock_type,
                         destination,
@@ -1221,7 +1221,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_XOR:
                 case EBPF_ATOMIC_XOR_FETCH:
                     line = std::format(
-                        "_InterlockedXor{}(({}*)(uintptr_t)({} + {}), {});",
+                        "InterlockedXor{}(({}*)(uintptr_t)({} + {}), {});",
                         size_num,
                         lock_type,
                         destination,
@@ -1231,7 +1231,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_XCHG:
                     is_complex = true;
                     line = std::format(
-                        "_InterlockedExchange{}(({}*)(uintptr_t)({} + {}), {});",
+                        "InterlockedExchange{}(({}*)(uintptr_t)({} + {}), {});",
                         size_num,
                         lock_type,
                         destination,
@@ -1241,7 +1241,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_CMPXCHG:
                     is_complex = true;
                     line = std::format(
-                        "r0 = ({})_InterlockedCompareExchange{}(({}*)(uintptr_t)({} + {}), {}, r0);",
+                        "r0 = ({})InterlockedCompareExchange{}(({}*)(uintptr_t)({} + {}), {}, r0);",
                         size_type,
                         size_num,
                         lock_type,
