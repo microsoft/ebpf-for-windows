@@ -97,7 +97,7 @@ jobs:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
+      uses: microsoft/setup-msbuild@031090342aeefe171e49f3820f3b52110c66e402
 
     - name: Setup choco cache folder
       # Set the choco cache to a local folder so that it can be cached.
