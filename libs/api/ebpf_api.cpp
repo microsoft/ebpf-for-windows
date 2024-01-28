@@ -123,6 +123,9 @@ typedef class _ebpf_signal
 
 _Requires_lock_not_held_(_ebpf_state_mutex) static void _clean_up_ebpf_objects() noexcept;
 
+// Used to serialize access to the pe-parse library.
+static std::mutex _pe_parse_mutex;
+
 static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
@@ -2738,10 +2741,13 @@ _ebpf_enumerate_native_sections(
     try {
         *infos = nullptr;
         *error_message = nullptr;
-
+        std::scoped_lock pe_parse_lock(_pe_parse_mutex);
         parsed_pe* pe = ParsePEFromFile(file);
         if (pe == nullptr) {
-            EBPF_RETURN_RESULT(EBPF_FILE_NOT_FOUND);
+            std::string message_string {GetPEErrLoc()};
+            message_string += GetPEErrString();
+            *error_message = cxplat_duplicate_string(message_string.c_str());
+            EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
         }
 
         ebpf_pe_context_t context = {
@@ -2820,6 +2826,12 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t 
     ebpf_result_t result =
         _initialize_ebpf_object_from_file(path, object_name, pin_root_path, new_object, error_message);
     if (result != EBPF_SUCCESS) {
+        std::string log_message = "ebpf_object_open: error loading file:";
+        log_message += path;
+        log_message += ", error message:";
+        log_message += *error_message;
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "*** ERROR *** ", log_message.c_str());
         goto Done;
     }
 
