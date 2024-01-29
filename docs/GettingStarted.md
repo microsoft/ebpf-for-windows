@@ -200,12 +200,13 @@ This section shows how to use eBPF for Windows in a demo that lets us control a 
 #### Prep
 
 1. Build the solution with the Release configuration. (Debug will also work for the usermode components.)
-1. Copy the entire contents of the build folder to your test machine; this is more than is minimally necessary, but
-   reduces the risk of missing necessary binaries.
-1. Install eBPF on the test machine; see [Installing eBPF for Windows](#installing-ebpf-for-windows), using method 2.
+1. Install eBPF on the test machine; see [Installing eBPF for Windows](#installing-ebpf-for-windows), using [Method 2](InstallEbpf.md#method-2-install-files-you-built-yourself)
 
-If the script mechanism is unavailable, install the MSI that you copied over, then run `ebpfSvc.exe install` to register
-the usermode service, which is required for `port_quota.exe` to work.
+> [!NOTE]
+> If Method 2 will not work for your envrionment for whatever reason (you aren't using a local Hyper-V VM, for instance),
+> manually copy over the contents of the build folder, then proceed with the instructions above from the target VM. If the
+> script is unavailable, install the MSI that you copied over on the VM, then run `ebpfSvc.exe install` to register
+> the usermode service, which is required for `port_quota.exe` to work.
 
 #### Demo
 
