@@ -69,7 +69,6 @@ SPDX-License-Identifier: MIT
 			</Feature>
 			<Feature Id="eBPF_Testing" Level="2" Title="Testing components" Absent="allow" AllowAdvertise="no">
 				<ComponentGroupRef Id="eBPF_Testing_Components" />
-				<ComponentGroupRef Id="eBPF_Testing_Components_bad" />
 				<ComponentGroupRef Id="sample_ebpf_ext_Driver" />
 			</Feature>
 		</Feature>
@@ -594,14 +593,6 @@ SPDX-License-Identifier: MIT
 
 	<!-- Define the product's <Testing> components -->
 	<Fragment>
-		<ComponentGroup Id="eBPF_Testing_Components_bad" Directory="dir_testing_bad">
-			<Component Id="BAD1.O" DiskId="1" Guid="{06A6BC9F-B4C6-43B5-953B-F890F257F136}">
-				<File Id="BAD1.O" Name="bad1.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad\bad1.o" />
-			</Component>
-			<Component Id="BAD2.O" DiskId="1" Guid="{3B9F0887-05CE-48A9-85CA-77D0A611700D}">
-				<File Id="BAD2.O" Name="bad2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad\bad2.o" />
-			</Component>
-		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Testing_Components" Directory="dir_testing">
 			<Component Id="API_TEST.EXE" DiskId="1" Guid="{70AA4D35-45C4-466A-AE08-64A38E4C50F2}">
 				<File Id="API_TEST.EXE" Name="api_test.exe" Source="$(var.api_test.TargetDir)api_test.exe" />

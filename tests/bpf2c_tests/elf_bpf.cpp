@@ -289,3 +289,44 @@ TEST_CASE("bad --hash", "[bpf2c_cli]")
     REQUIRE(result_value != 0);
     REQUIRE(!err.empty());
 }
+
+// List of malformed ELF files and the expected error message.
+// Files are named after the SHA1 hash of the ELF file to avoid duplicates and merge conflicts.
+const std::map<std::string, std::string> _malformed_elf_expected_output{
+    {"0BB5D8637905866F80790C88104CFD580258052E",
+     "Failed parsing in struct _E_IDENT field SEVEN.refinement reason constraint failed"},
+    {"2775DA65BC9DC1B1BD6558C1B456C7532CD1BE02",
+     "Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none reason constraint failed"},
+    {"3688AF1375D9360872B65D0E67F31E5D9AA8166B", "Can't perform relocation at offset  at offset 0"},
+    {"9A0D5CC0FB24BC6AFB0415DC648388B961FE3E38", "Can't perform relocation at offset  at offset 48"},
+};
+
+TEST_CASE("bad malformed ELF", "[bpf2c_cli]")
+{
+    // For each file in bad\*.o run bpf2c.exe --bpf <file>
+    std::filesystem::path bad_path("bad");
+    for (const auto& entry : std::filesystem::directory_iterator(bad_path)) {
+        std::vector<const char*> argv;
+        argv.push_back("bpf2c.exe");
+        argv.push_back("--bpf");
+        std::string file_path = entry.path().string();
+
+        // Check if we have an expected error for this file.
+        auto expected_error_entry = _malformed_elf_expected_output.find(entry.path().filename().stem().string());
+        if (expected_error_entry == _malformed_elf_expected_output.end()) {
+            // No expected error, fail the test.
+            REQUIRE(entry.path().filename().stem().string() == "Update the expected error");
+        }
+
+        std::string expected_error = expected_error_entry->second;
+        argv.push_back(file_path.c_str());
+
+        // Run bpf2c.exe --bpf <file>
+        auto [out, err, result_value] = run_test_main(argv);
+        REQUIRE(result_value != 0);
+        REQUIRE(!err.empty());
+        // Split err on \n and only keep the first line.
+        err = err.substr(0, err.find('\n'));
+        REQUIRE(err == expected_error);
+    }
+}

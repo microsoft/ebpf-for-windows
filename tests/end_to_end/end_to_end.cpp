@@ -1085,39 +1085,6 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
-void
-verify_bad_section(const char* path, const std::string& expected_error_message)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    const char* error_message = nullptr;
-    const char* report = nullptr;
-    uint32_t result;
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-    ebpf_api_verifier_stats_t stats;
-    result = ebpf_api_elf_verify_section_from_file(path, "sample", nullptr, false, &report, &error_message, &stats);
-    REQUIRE(result != 0);
-    REQUIRE(report == nullptr);
-    REQUIRE((error_message != nullptr && std::string(error_message) == expected_error_message));
-    ebpf_free_string(report);
-    ebpf_free_string(error_message);
-}
-TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]")
-{
-    verify_bad_section(
-        SAMPLE_PATH "bad\\bad1.o",
-        "error: ELF file bad\\bad1.o is malformed: Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none "
-        "reason constraint failed");
-}
-TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]")
-{
-    verify_bad_section(
-        SAMPLE_PATH "bad\\bad2.o",
-        "error: ELF file bad\\bad2.o is malformed: Failed parsing in struct _E_IDENT field SEVEN.refinement reason "
-        "constraint failed");
-}
-
 static void
 _cgroup_load_test(
     _In_z_ const char* file,
