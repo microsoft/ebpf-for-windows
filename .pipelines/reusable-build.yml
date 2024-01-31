@@ -54,6 +54,7 @@ jobs:
     variables:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ebpf-for-windows.sln
+      REDISTRIBUTABLE_PROJECT_FILE_PATH: .\tools\redist-package.vcxproj
       BUILD_ARTIFACT_NAME: ${{parameters.build_artifact}}
       BUILD_CONFIGURATION: $(buildConfiguration)
       BUILD_PLATFORM: x64
@@ -105,6 +106,26 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
         displayName: 'Build'
 
+      # Firstly, we need to build the redistributable package, so that we can create the VM Extension package and then inject the common.ps1 file.
+      - script: |
+          "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration=$(BUILD_CONFIGURATION) /p:Platform=$(BUILD_PLATFORM) $(REDISTRIBUTABLE_PROJECT_FILE_PATH) $(BUILD_OPTIONS)
+        workingDirectory: $(Build.SourcesDirectory)
+        displayName: 'Build the eBPF Redis Package (internal-only)'
+
+      # Create the VM Extension package
+      - powershell: |
+          .\.internal\vm-extension\src\.azure\create-vm-extension-package.ps1 -redistPackagePath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
+        workingDirectory: $(Build.SourcesDirectory)
+        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
+        displayName: 'Package the eBPF VM Extension (internal-only)'
+
+      # NOTE: this must be done AFTER packaging the VM extention, so that it will not contein the injected file.
+      - powershell: |
+          .\.internal\vm-extension\src\.azure\inject-vmextension-lib-in-redist-package.ps1 -redistPackagePath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration) -fileToInjectPath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/.internal/vm-extension/src/scripts/common.ps1
+        workingDirectory: $(Build.SourcesDirectory)
+        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
+        displayName: 'Inject the eBPF VM Extension library in the Redist package (internal-only)'
+
       - script: |
           copy "$(msvc_variables.msvc_tools_path)\bin\Hostx64\x64\clang*"" .
         workingDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
@@ -136,6 +157,16 @@ jobs:
         artifact: "ebpf-for-windows - MSI installer (${{parameters.build_artifact}}_$(buildConfiguration))"
         condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
         displayName: 'Upload the MSI package'
+
+      - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/Microsoft.EbpfForWindows.EbpfForWindows.*.zip
+        artifact: "ebpf-for-windows - MSI installer (${{parameters.build_artifact}}_$(buildConfiguration))"
+        condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
+        displayName: 'Upload the VM Extension package'
+
+      - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/eBPF-for-Windows-Redist.*.nupkg
+        artifact: "ebpf-for-windows - MSI installer (${{parameters.build_artifact}}_$(buildConfiguration))"
+        condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
+        displayName: 'Upload the Redist NuGet package'
 
       - script: |
           "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)" /t:tools\nuget

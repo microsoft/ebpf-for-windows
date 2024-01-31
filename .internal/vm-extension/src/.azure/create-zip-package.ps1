@@ -12,20 +12,20 @@ param (
 $publisherName = "Microsoft.EbpfForWindows"
 $typeName = "EbpfForWindows"
 
-# Verify that the specified source path exists
-if (-not (Test-Path -Path $ebpfBinPackagePath -PathType Container)) {
-    Write-Host "Error: The source path '$ebpfBinPackagePath' does not exist."
-    exit 1
-}
-
-# Get the current directory where the script is executed
-$currentDirectory = Get-Location
-
 # Create a temporary directory to store the files
 $tempDir = [System.IO.Path]::Combine($currentDirectory, [System.IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Path $tempDir | Out-Null
 
 try {
+    # Verify that the specified source path exists
+    if (-not (Test-Path -Path $ebpfBinPackagePath -PathType Container)) {
+        Write-Host "Error: The source path '$ebpfBinPackagePath' does not exist."
+        exit 1
+    }
+
+    # Get the current directory where the script is executed
+    $currentDirectory = Get-Location
+
     # Copy the contents of the source directory to a "bin" folder within the temporary directory
     $binFolder = [System.IO.Path]::Combine($tempDir, "bin")
     New-Item -ItemType Directory -Path $binFolder | Out-Null
