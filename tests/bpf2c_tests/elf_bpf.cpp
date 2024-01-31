@@ -219,6 +219,7 @@ DECLARE_TEST("droppacket", _test_mode::Verify)
 DECLARE_TEST("droppacket_unsafe", _test_mode::NoVerify)
 DECLARE_TEST("empty", _test_mode::NoVerify)
 DECLARE_TEST("encap_reflect_packet", _test_mode::Verify)
+DECLARE_TEST("hash_of_map", _test_mode::Verify)
 DECLARE_TEST("inner_map", _test_mode::Verify)
 DECLARE_TEST("invalid_helpers", _test_mode::NoVerify);
 DECLARE_TEST("invalid_maps1", _test_mode::NoVerify);

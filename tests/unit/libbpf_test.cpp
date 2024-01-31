@@ -8,6 +8,7 @@
 #pragma warning(pop)
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
+#include "common_tests.h"
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_vm_isa.hpp"
@@ -3293,4 +3294,64 @@ TEST_CASE("libbpf map batch", "[libbpf]")
 
     delete_batch_size = batch_size;
     REQUIRE(bpf_map_delete_batch(invalid_map_fd, keys.data(), &delete_batch_size, &opts) == -EBADF);
+}
+
+void
+_hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    std::string file_name = std::format("hash_of_map{}", execution_type == EBPF_EXECUTION_NATIVE ? "_um.dll" : ".o");
+
+    bpf_object_ptr object(bpf_object__open(file_name.c_str()));
+    REQUIRE(object != nullptr);
+
+    REQUIRE(ebpf_object_set_execution_type(object.get(), execution_type) == EBPF_SUCCESS);
+
+    // Load the BPF program.
+    REQUIRE(bpf_object__load(object.get()) == 0);
+
+    // Get the outer map.
+    bpf_map* outer_map = bpf_object__find_map_by_name(object.get(), "outer_map");
+    REQUIRE(outer_map != nullptr);
+
+    bpf_map* inner_map = bpf_object__find_map_by_name(object.get(), "inner_map");
+    REQUIRE(inner_map != nullptr);
+
+    fd_t outer_map_fd = bpf_map__fd(outer_map);
+    REQUIRE(outer_map_fd > 0);
+
+    fd_t inner_map_fd = bpf_map__fd(inner_map);
+    REQUIRE(inner_map_fd > 0);
+
+    // Issue: https://github.com/microsoft/ebpf-for-windows/issues/3210
+    // Only native execution supports map of maps with static initializers.
+    if (execution_type != EBPF_EXECUTION_NATIVE) {
+        return;
+    }
+
+    uint32_t key = 0;
+    uint32_t inner_map_id = 0;
+
+    // Get the map at index 0.
+    REQUIRE(bpf_map_lookup_elem(outer_map_fd, &key, &inner_map_id) == 0);
+
+    // Get id of the inner map.
+    bpf_map_info info;
+    uint32_t info_length = sizeof(info);
+    memset(&info, 0, sizeof(info));
+    REQUIRE(bpf_obj_get_info_by_fd(inner_map_fd, &info, &info_length) == 0);
+
+    // Verify that the id of the inner map matches the id in the outer map.
+    REQUIRE(inner_map_id == info.id);
+}
+
+TEST_CASE("hash_of_map", "[libbpf]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    _hash_of_map_initial_value_test(EBPF_EXECUTION_JIT);
+
+#endif
+    _hash_of_map_initial_value_test(EBPF_EXECUTION_NATIVE);
 }

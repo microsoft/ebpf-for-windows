@@ -923,7 +923,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
 
             ebpf_handle_t handle_to_insert = ebpf_handle_invalid;
 
-            if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
+            if (_ebpf_native_is_map_in_map(native_map_to_update)) {
                 ebpf_native_map_t* native_map_to_insert =
                     _ebpf_native_find_map_by_name(module, map_initial_values[i].values[j]);
                 if (native_map_to_update == NULL) {
