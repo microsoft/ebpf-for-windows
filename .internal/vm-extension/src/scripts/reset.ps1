@@ -10,4 +10,4 @@
 #
 # https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#235-resetstate
 #
-return Reset-eBPF-Handler
+exit Reset-eBPF-Handler

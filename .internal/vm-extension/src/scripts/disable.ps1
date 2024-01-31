@@ -14,4 +14,4 @@
 # https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#233-disable-command
 # https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#222-remove-a-handler-from-the-vm-disable-and-uninstall
 #
-return Disable-eBPF-Handler
+exit Disable-eBPF-Handler

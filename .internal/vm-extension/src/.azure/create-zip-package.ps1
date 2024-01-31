@@ -1,6 +1,6 @@
 
 # Usage:
-# .\create-zip-package.ps1 -versionNumber "<x.y.z.p>"" -ebpfBinPackagePath "<full path to the eBPF binaries root from the eBPF Redist package>" -zipDestinationFolder "<full path to the destination folder for the ZIP package file>"
+# .\create-zip-package.ps1 -versionNumber "<x.y.z.p>" -ebpfBinPackagePath "<full path to the eBPF binaries root from the eBPF Redist package>" -zipDestinationFolder "<full path to the destination folder for the ZIP package file>"
 
 param (
     [string]$versionNumber,
