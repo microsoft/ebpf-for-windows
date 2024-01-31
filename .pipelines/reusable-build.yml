@@ -106,18 +106,18 @@ jobs:
         displayName: 'Build'
 
       # FIRSTLY, create the VM Extension package before we inject the VM Extension library module into the Redist-package
-      - displayName: 'Package the eBPF VM Extension (internal-only)'
+      - powershell: |
+          .\.internal\vm-extension\src\.azure\create-vm-extension-package.ps1 -redistPackagePath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
+        displayName: 'Package the eBPF VM Extension (internal-only)'
         condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
         workingDirectory: $(Build.SourcesDirectory)
-        powershell: |
-          .\.internal\vm-extension\src\.azure\create-vm-extension-package.ps1 -redistPackagePath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)
 
       # NOTE: this must be done AFTER packaging the VM extension, so that it will not contain the injected VM Extension library module.
-      - displayName: 'Inject the eBPF VM Extension library in the Redist package (internal-only)'
-        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
-        workingDirectory: $(Build.SourcesDirectory)
-        powershell: |
+      - powershell: |
           .\.internal\vm-extension\src\.azure\inject-vmextension-lib-in-redist-package.ps1 -redistPackagePath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration) -fileToInjectPath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/.internal/vm-extension/src/scripts/common.ps1
+        displayName: 'Inject the eBPF VM Extension library in the Redist package (internal-only)'
+        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
+        workingDirectory: $(Build.SourcesDirectory)        
 
       - script: |
           copy "$(msvc_variables.msvc_tools_path)\bin\Hostx64\x64\clang*"" .
