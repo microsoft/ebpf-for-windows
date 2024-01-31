@@ -1,1 +1,1 @@
-powershell.exe .\scripts\update.ps1
+powershell.exe -File ".\scripts\update.ps1"

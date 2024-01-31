@@ -1,1 +1,1 @@
-powershell.exe .\scripts\reset.ps1
+powershell.exe -File ".\scripts\reset.ps1"

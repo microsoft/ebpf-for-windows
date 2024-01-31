@@ -1,1 +1,1 @@
-powershell.exe .\scripts\enable.ps1
+powershell.exe  -File ".\scripts\enable.ps1"

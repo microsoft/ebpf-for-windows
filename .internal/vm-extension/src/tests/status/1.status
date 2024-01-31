@@ -1,16 +1,16 @@
 [
     {
         "status":  {
-                       "operation":  "enable",
-                       "code":  0,
+                       "operation":  "update",
+                       "code":  1013,
                        "name":  "EbpfForWindows",
-                       "status":  "success",
+                       "status":  "error",
                        "formattedMessage":  {
-                                                "message":  "eBPF enabled",
+                                                "message":  "eBPF install FAILED, but rollback succeeded.",
                                                 "lang":  "en-US"
                                             }
                    },
-        "timestampUTC":  "2023-09-29T22:19:32Z",
+        "timestampUTC":  "2024-01-25T19:51:16Z",
         "version":  "1.0"
     }
 ]

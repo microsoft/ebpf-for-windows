@@ -11,4 +11,4 @@
 #
 # https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#232-enable-command
 #
-return Enable-eBPF-Handler
+exit Enable-eBPF-Handler

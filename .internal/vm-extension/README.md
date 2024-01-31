@@ -1,6 +1,6 @@
 # eBPF for Windows Azure VM Extension for IaaS
 
->Ref. docs: https://github.com/Azure/azure-vmextension-publishing/wiki
+>Ref. docs: <https://github.com/Azure/azure-vmextension-publishing/wiki>
 
 This project implements the eBPF for Windows Azure VM Extension for IaaS. This extension allows you to deploy eBPF programs to Azure VMs running Windows.
 The extension also relies on the Azure VM Agent to execute a number of Powershell scripts to install the eBPF runtime and default eBPF programs.
@@ -22,86 +22,126 @@ The eBPF VM Extension Handler functionalities are implemented through PowerShell
 All Handler commands relay on a single `common.ps1` script library, while keeping all the command scripts such enable/disable/install/update as one-liners, for better readability and maintainability.
 
 ### Versioning
->Ref. docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing#about-extension-versioning
+>
+>Ref. docs: <https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing#about-extension-versioning>
 
 The VM Extension is versioned using the following format, `<MajorVersion.MinorVersion.PatchVersion.HotfixVersion>`, which nicely overlaps with the `<Major.Minor.Patch>` [Semantic Versioning](https://semver.org/) specification used in eBPF For Windows. We therefore leverage the last fourth digit for the VM Extension Handler updating only, so that it will be possible to update the handler itself, while maintaining the same eBPF version.
 
 >**IMPORTANT**: the VM Extension platform only supports 2 digits for the version number, when installed from the client, so in practice, it will not be possible to control the deployment of the eBPF bits down to the *Patch* level, i.e., the VM-Agent will always pick the latest version of the VM Extension Handler for a given *<Major.Minor>* version, and will not be able to pick a specific "*<\*.\*.PatchVersion.HotfixVersion>*" version. This is a by-design constraint of the VM Extension platform, and it is not expected to be changed in the near future.
 
 ### Handler logic
->Ref. docs: https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary
+>
+>Ref. docs: <https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary>
 
 The VM Agent will call the VM Extension Handler's commands, whenever the VM Extension is enabled, disabled, reset, installed, updated, or uninstalled. From a theoretical point, it's worth noting that these commands are always pertaining to the VM Extension itself, and not to the eBPF runtime or eBPF programs that are installed by the VM Extension. We though use these commands to install, update, and uninstall the eBPF runtime and eBPF programs, conditionally to the logical connections between the VM Extension and the eBPF runtime and eBPF programs.
 
 #### VM Extension Handler commands
 
-- **Install command**: This operation will install the eBPF runtime and eBPF programs, and will NOT create a `.status` file, since the VM Agent will subsequently call the Handler with the `Enable` command.
-The install command is actually implemented by the `Install-eBPF-Handler` function, which will install the eBPF runtime and eBPF programs, if not already installed, or update them, if already installed.. If for any reason eBPF is installed in a different location from the default, it will maintain the same location, and will update the eBPF runtime and eBPF programs in that location.
+- **Install command**: This operation will install the eBPF runtime and eBPF programs, and is actually implemented by the `Install-eBPF-Handler` function. Specifically, it will install the eBPF runtime and eBPF programs, if not already installed, or update them, if already installed. If for any reason eBPF is installed in a different location from the default, it will maintain the same location, and will update the eBPF runtime and eBPF programs in that location.
 
-    - Return codes - 0: success, Non-0: failure.
-    - Writes status file: **No**.
+  - Return codes - 0: success, Non-0: failure.
+  - Writes status file: **No**.
 
 - **Update command**: The update command is actually implemented by the `Update-eBPF-Handler` function (see *"Update operation"* sequence below).
 
-    - Return codes - 0: success, Non-0: failure.
-    - Writes status file: **No**.
+  - Return codes - 0: success, Non-0: failure.
+  - Writes status file: **No**.
 
-- **Uninstall command**: This operation will uninstall the eBPF runtime and eBPF programs, and will create a `.status` file, and is actually implemented by the `Update-eBPF-Handler` function.
+- **Uninstall command**: This operation will uninstall the eBPF runtime and eBPF programs, and is actually implemented by the `Uninstall-eBPF-Handler` function.
 
-    - Return codes - 0: success, Non-0: failure.
-    - Writes status file: **No**.
+  - Return codes - 0: success, Non-0: failure.
+  - Writes status file: **No**.
 
-- **Enable command**: This operation will **start** the eBPF services, and create a `.status` file, and is actually implemented by the `Enable-eBPF-Handler` function.
+- **Enable command**: This operation will **start** the eBPF driver services, report a `.status` file, and is actually implemented by the `Enable-eBPF-Handler` function.
 
-    - Return codes - 0: success, Non-0: failure.
-    - Writes status file: **Yes**
+  - Return codes - 0: success, Non-0: failure.
+  - Writes status file: **Yes**.
 
-- **Disable command**: This operation will **stop** the eBPF services, and create a `.status` file, and is actually implemented by the `Disable-eBPF-Handler` function.
+- **Disable command**: This operation will **stop** the eBPF driver services, and is actually implemented by the `Disable-eBPF-Handler` function.
 
-    - Return codes - 0: success, Non-0: failure.
-    - Writes status file: **No**
+  - Return codes - 0: success, Non-0: failure.
+  - Writes status file: **No**
 
-- **Reset**: Currently, no action is performed.
+- **Reset**: Currently, no action is performed, and is actually implemented by the `Reset-eBPF-Handler` function.
 
-    - Return codes - 0: success.
-    - Writes status file: **No**
+  - Return codes - 0: success.
+  - Writes status file: **No**
 
 #### VM Agent lifecycle operations
->Ref. docs: https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#22-handler-lifecycle-management 
 
->Note: see Feature request: https://msazure.visualstudio.com/One/_workitems/edit/25279093
+>Ref. docs: <https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#22-handler-lifecycle-management>
+
+>Note: see Feature request: <https://msazure.visualstudio.com/One/_workitems/edit/25279093>
 
 Given the by-design command-sequence invoked by the VM Agent in the 3 main scenarios, the VM Extension Handler will perform the following actions for each command, in order to achieve the best performance:
 
 - **Install operation**:
-    1. Calls the handler's *install command* -> install/update eBPF.
-    1. Calls the handler's *enable command* -> start eBPF drivers.
+    1. Calls the handler's *install command* ->
+        - Checks if the current VM Extension package contains a newer version of eBPF for Windows (if already installed):
+          - If the version is the same, the install simply returns success.
+          - If the version is lower than the current one, the install is aborted.
+          - If the version is higher than the current one (if an existing version of eBPF is already installed), the install proceeds.
+          - If there is no existing version of eBPF installed, the install proceeds.
+        - Backup the current installation (if existing).
+        - Attempt to install/update the current eBPF installation.
+        - Attempt to restart eBPF drivers and GuestProxyAgent service.
+        - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
+        - Remove the backed up installation.
+        - Return result code of the overall operation.
+    2. Calls the handler's *enable command* ->
+        - Start the eBPF drivers
+        - Write the status file with the result code of the overall operation.
 
 - **Update operation**:
-    1. Calls the handler's *disable command* (on the old handler) -> stop eBPF drivers.
-    1. Calls the handler's *update command* (on the new handler) -> NOP.
-    1. Calls the handler's *uninstall command* (on the old handler) -> uninstall eBPF.
-    1. Calls the handler's *install command* (on the new handler) -> install/update eBPF.
-    1. Calls the handler's *enable command* (on the new handler) -> start eBPF drivers.
+    1. Calls the handler's *disable command* (on the old handler) -> Stop eBPF drivers (and GuestProxyAgent service).
+    2. Calls the handler's *update command* (on the new handler) ->
+        - Checks if the current VM Extension package contains a newer version of eBPF for Windows (if already installed):
+          - If the version is the same, the update simply returns success.
+          - If the version is lower than the current one, the update is aborted.
+          - If the version is higher than the current one (if an existing version of eBPF is already installed), the update proceeds.
+          - If there is no existing version of eBPF installed, the update proceeds.
+        Create a global "updating" state (used later by the *uninstall command* and *enable command*).
+        - Backup the current installation.
+        - Attempt to update the current eBPF installation.
+        - Attempt to restart eBPF drivers and GuestProxyAgent service.
+        - If any operation fails, attempt to rollback to the backed up installation and fail on exit.
+        - Remove the global "updating" state.
+        - Remove the backed up installation.
+        - Write the status file with the result code of the overall operation.
+    3. Calls the handler's *uninstall command* (on the old handler) -> NOP.
+    4. ~~Calls the handler's *install command* (on the new handler)~~ This call is suppressed by the *UpdateWithoutInstall* option in the `HandlerManifest.xml`.
+    5. Calls the handler's *enable command* (on the new handler) -> Write the status file with the result code of the overall operation (always successful).
 
 - **Uninstall operation**:
-    1. Calls the handler's *disable command* -> stop eBPF drivers.
+    1. Calls the handler's *disable command* -> stop eBPF drivers (and GuestProxyAgent service).
     1. Calls the handler's *uninstall command* -> uninstall eBPF.
 
-- **Enable operation**, **Disable operation** and **Reset operation** simply call the corresponding handler command.
+- **Enable operation**
+  - Calls the handler's *enable command* ->
+    1. Start the eBPF drivers, when not called by the *Update operation*, NOP otherwise.
+    1. Write the status file with the result code of the overall operation.
 
->**NOTE**: for each of the above operations, if the goal is to update the VM Extension only, then the eBPF Team will publish a new VM Extension with the same eBPF version number, but with a higher `HotfixVersion` number. The VM Agent will then call the VM Extension Handler with the `Update operation` command-sequence, in which the *install command* will recon if the eBPF bits' version is the same of the one currently installed, and in that case, it will not perform any action on the eBPF installation itself.
+- **Disable operation**
+  - Calls the handler's *disable command* -> Stop eBPF drivers (and GuestProxyAgent service). In case of failure, it will attempt to restart the eBPF drivers and GuestProxyAgent service, and will fail on exit.
+
+- **Reset operation**
+  1. Calls the handler's *reset command* -> NOP.
+
+>Within any of the operations, if a command fails, the VM Agent will stop the workflow and report the failure to the user, i.e. no other subsequent command will be executed.
+
+>**NOTE**: Starting the eBPF drivers will also trigger the restart of the GuestProxyAgent service.
+> Although restarting the GuestProxyAgent service is an extended operation that is not part of the eBPF VM Extension's specific scope, we account success/failure of this task in the overall operations status, so that the VM Agent will stop rolling out updates.
 
 ## Releasing the eBPF VM Extension Handler
 
->Ref. docs: https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing
+>Ref. docs: <https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing>
 
 ### Prerequisites
 
 - Ask to be "`Azure Service Deploy Release Management Contributor`" of the Team's Azure Prod subscription, currently "`eBPF for Windows`", SubscriptionID: `78a9bec8-945c-4cc0-83bf-77c6d384d2ca`.
 - Create a resource group named "`EbpfVmExtension`" in the Azure Prod subscription.
-- Create as Azure Storage Account account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`EbpfVmExtension`" resource group.
-- Create an Azure Blob Container named "`ebpf-ext-container`" within the "`ebpfstorageaccount`" Storage Account.
+- Create an *Azure Storage Account* account in the Azure Prod subscription, named "`ebpfstorageaccount`", within the "`EbpfVmExtension`" resource group.
+- Create an *Azure Blob Container* named "`ebpf-ext-container`" within the "`ebpfstorageaccount`" Storage Account. See [here](https://github.com/Azure/azure-vmextension-publishing/wiki/Extension-Handler-Publishing#packaging-an-extension-handler-for-registration) for how to create a Storage Account and a Blob Container.
 
 ### Creating the VM Extension Handler Package
 
@@ -114,10 +154,10 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
     # Example: creating the package for eBPF v0.9.1, with the extension handler patch v1 for that eBPF version -> v0.9.1.1
     PS> .\create-zip-package.ps1 -versionNumber "0.9.1.1" -ebpfBinPackagePath "D:\work\_scratch\v0.9.1" -zipDestinationFolder "D:\work\_scratch"
-
     ```
+
     The resulting ZIP file will be named after the following format:
-    
+
     ```bash
     <publisher>.<extension name>.<version>.zip # e.g.: Microsoft.EbpfForWindows.EbpfForWindows.0.9.1.1.zip
     ```
@@ -128,7 +168,7 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
     - `<extension name>` is the extension name, i.e. `EbpfForWindows`.
     - `<version>` is the VM Extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1` (`<MajorVersion.MinorVersion.PatchVersion.HotfixVersion>`, which we overlap with the `<Major.Minor.Patch>` versioning for eBPF).
 
-1. Upload the zip file to the Azure Storage Account container named "`ebpf-vm-extension-artifacts`" within the "`eBPF-vm-extension`" resource group (see [Prerequisites](#Prerequisites)).
+1. Upload the zip file into the Azure Blob Container named "`ebpf-vm-extension-artifacts`" (see [Prerequisites](#prerequisites)).
 
 ### Registering the VM Extension
 
@@ -140,7 +180,7 @@ From your SAW Machine, register the [*`.azure\eBpfArmRegistrationTemplate.json`*
 # Make sure you install the latest Az PowerShell v6 (only needed once)
 Install-Module az 
 
-# Ensure you are logged in with the correct subscription
+# Ensure you are logged in with with your @ame.gbl account to the correct subscription (named "eBPF for Windows")
 Connect-AzAccount
 Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
@@ -158,11 +198,12 @@ Make sure to update the following variables in the [*`.azure\eBpfArmPublishingTe
 "mediaLink": "https://ebpfextstorageaccount.blob.core.windows.net/ebpf-ext-container/Microsoft.EbpfForWindows.EbpfForWindows.0.9.1.1.zip", // The URL of the ZIP file containing the VM Extension Handler
 "regions": ["East US 2 EUAP", ...], // List of regions in which the extension will be published
 "isInternalExtension": "true/fase", // Whether the extension is internal or not. IMPORTANT!! This flag cannot be reverted once the extension has been made public!
-``` 
+```
+
 > NOTE: Canary regions can be either "`East US 2 EUAP`" or "`Central US EUAP`".
 
 From your SAW Machine, publish the *`eBpfArmPublishingTemplate.json`* ARM template using the using the following PowerShell commands:
-    
+
 ```PS
 # Ensure you are logged in with the correct subscription
 Connect-AzAccount
@@ -200,13 +241,13 @@ Request to be "`owner`" of the Team's Azure Prod subscription, currently "`eBPF 
 
 Follow the steps below to create a Test-VM for testing the eBPF VM Extension:
 
-- The Test-VM for testing the VM Extension Handler must be created **from within the Team's Azure Production subscription**. 
+- The Test-VM for testing the VM Extension Handler must be created **from within the Team's Azure Production subscription**.
 - Create the Test-VM within the same resource group named "`EbpfVmExtension`", in which the storage account was created earlier.
 - The Test-VM **must** be created within the ***same region in which the VM Extension has been registered an published***, otherwise the VM Extension will not be found.
 - Due to the Production subscription's limitations, creating a VM from the Azure portal is denied, so it must be created it from PowerShell:
 
     ```PS
-    # Ensure you are logged in with the correct subscription
+    # Ensure you are logged in with with your @ame.gbl account to the correct subscription (named "eBPF for Windows")
     Connect-AzAccount
     Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
@@ -221,12 +262,12 @@ Follow the steps below to create a Test-VM for testing the eBPF VM Extension:
     New-AzVM -Name $vmName -Credential $credential -ResourceGroupName $resourceGroupName -Location $location -Size $vmSize -Image $image
     ```
 
-### Installing the eBPF VM Extension on the Test-VM
+### Install the eBPF VM Extension on the Test-VM
 
->Ref. docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0
+>Ref. docs: <https://learn.microsoft.com/en-us/powershell/module/az.compute/set-azvmextension?view=azps-10.3.0>
 
 ```PS
-# Ensure you are logged in with the correct subscription
+# Ensure you are logged in with with your @ame.gbl account to the correct subscription (named "eBPF for Windows")
 Connect-AzAccount
 Select-AzSubscription -SubscriptionId 78a9bec8-945c-4cc0-83bf-77c6d384d2ca
 
@@ -245,15 +286,19 @@ $extSettings = @{"temp" = "";}; # NOTE! A dummy settings file is necessary for t
 Set-AzVMExtension -Publisher $publisherName -ExtensionType $typeName -Name $vmExtName -TypeHandlerVersion $version -Location $vmLocation -ResourceGroupName $vmResourceGroup -VMName $vmName -Settings $extSettings
 ```
 
-The logs from the VM-Agent will be located under `C:\WindowsAzure\Plugins\<full VM Extension namespace>\<version>\`:
+#### Verifying the eBPF VM Extension installation
 
-- "`CommandExecution.log`": contains the logs from the "`Windows Azure Guest Agent`" Windows service, whish handles all VM Extension Handlers command execution.
-- "`ebpf_handler.log`": contains the logs of the eBPF VM Extension Handler execution.
+The eBPF VM Extension packages are deployed under `C:\Packages\Plugins\<full VM Extension namespace>\<version>\`.
+
+The logs are instead located under `C:\WindowsAzure\Plugins\<full VM Extension namespace>\<version>\`, where:
+
+- "`CommandExecution.log`": contains the logs from the "`Windows Azure Guest Agent`" Windows service, which handles all VM Extension Handler's command execution.
+- "`ebpf_handler.log`": contains the logs generated by the eBPF VM Extension Handler.
 
 
-### Removing the eBPF VM Extension from the Test-VM
+### Remove the eBPF VM Extension from the Test-VM
 
->Ref. docs: https://learn.microsoft.com/en-us/powershell/module/az.compute/remove-azvmextension?view=azps-10.3.0
+>Ref. docs: <https://learn.microsoft.com/en-us/powershell/module/az.compute/remove-azvmextension?view=azps-10.3.0>
 
 ```PS
 $vmExtName = "EbpfForWindows" # NOTE: this is the given name of the extension on the Test-VM, not the VM Extension name!
@@ -263,24 +308,9 @@ Remove-AzVMExtension -ResourceGroupName $vmResourceGroup -Name $vmExtName -VMNam
 ```
 
 ## Appendix
-### Undefined topics in the official docs
 
-#### 1.0 Partner Guide Overview
-[1.3 AggregateStatus Architecture Overview](https://github.com/Azure/azure-vmextension-publishing/wiki/1.0-Partner-Guide-Overview#13aggregatestatus-architecture-overview): `images/extensionarchitecture.png` link is broken.
+In the following, we report the sequence diagrams for the main operations performed by the VM Extension Handler, not yet present in the official docs (see [this GitHub Issue](https://github.com/Azure/azure-vmextension-publishing/issues/2)).
 
-#### 2.3.4 Update Command (empty - WIP)
-https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#234-update-command
+### Auto-Update Sequence diagram
 
-For example, does the `Update` call `Enable`, like the `Install`? Looks not clarified also in [2.2.3 Update a handler to different version](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#223update-a-handler-to-different-version)
-
-#### 2.3.6 Summary
-https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary
-
-- The "Reserved Exit Code" & "Recommended Exit Code" paragraphs are WIP -> is the publisher free to use any?
-- In the "`VM Agent Contracts Expectations for Handler Commands Window VM"`, the `Disable` & `Reset` commands have a `"Yes?"`, which does not uniquely define the column "Extension writes status file".
-    > NOTE: A follow up with the VM Extension Team confirmed **No**.
-- The `Uninstall` handler command has conflicting information in the [2.3.6 Summary](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#236-summary):
-    - In the "`VM Agent Contracts Expectations for Handler Commands Window VM`" table, the `Uninstall` command has a `"Yes"` in the column "Extension writes status file".
-    - In the "`ConfigSequenceNumber`" environment variable table, the `Uninstall` command is not present, therefore indicating that it could not write a status file.
-    > NOTE: A follow up with the VM Extension Team confirmed that `Uninstall` should **Not** write a status file.
-- Although the [2.2.1 Add a new handler on the VM (Install and Enable)](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#221-add-a-new-handler-on-the-vm-install-and-enable) specifies that the `Enable` command will be called and required to generate a Status file, in the summary it is defined as "NA", and [here](https://github.com/Azure/azure-vmextension-publishing/wiki/2.0-Partner-Guide-Handler-Design-Details#231-install-command) is undocumented.
+[![Auto-Update Sequence Diagram](./doc/auto-update_sequence_diagram.png)](./images/auto-update-sequence-diagram.png)
