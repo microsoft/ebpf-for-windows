@@ -151,44 +151,49 @@ jobs:
         condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
         displayName: 'Upload the MSI package'
 
+      # Locate and upload the VM Extension package
       - bash: |
           echo "##vso[task.setvariable variable=REL_VM_EXTENSION_PACKAGE_PATH;isOutput=true]$(ls $(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)/Microsoft.EbpfForWindows.EbpfForWindows.*.zip)"
-        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
+        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
         name: vm_extension_package
         displayName: 'Locate the VM Extension package'
+
       - publish: $(vm_extension_package.REL_VM_EXTENSION_PACKAGE_PATH)
         artifact: "ebpf-for-windows - VM Extension package (${{parameters.build_artifact}}_$(buildConfiguration))"
         condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
         displayName: 'Upload the VM Extension package'
 
+      # Locate and upload the Redist NuGet package
       - bash: |
           echo "##vso[task.setvariable variable=REL_REDIST_NUGET_PACKAGE_PATH;isOutput=true]$(ls $(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)/eBPF-for-Windows-Redist.*.nupkg)"
-        condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
+        condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
         name: redist_nuget_package
-        displayName: 'Locate the Redist package'
+        displayName: 'Locate the Redist NuGet package'
+
       - publish: $(redist_nuget_package.REL_REDIST_NUGET_PACKAGE_PATH)
         artifact: "ebpf-for-windows - Redist package (${{parameters.build_artifact}}_$(buildConfiguration))"
         condition: or(eq(variables.buildConfiguration, 'Release'), eq(variables.buildConfiguration, 'NativeOnlyRelease'))
-        displayName: 'Upload the Redist package'
+        displayName: 'Upload the Redist NuGet package'
 
+      # Build, locate and upload the development NuGet package
       - script: |
           "$(MSBUILD_PATH)\msbuild.exe" /m /p:Configuration="$(BUILD_CONFIGURATION)" /p:Platform="$(BUILD_PLATFORM)" "$(SOLUTION_FILE_PATH)" "$(BUILD_OPTIONS)" /t:tools\nuget
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
         workingDirectory: $(Build.SourcesDirectory)
-        displayName: 'Build the NuGet package'
+        displayName: 'Build the development NuGet package'
 
       - bash: |
           echo "##vso[task.setvariable variable=REL_NUGET_PACKAGE_PATH;isOutput=true]$(ls $(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)/eBPF-for-Windows.*.nupkg)"
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'))
         name: nuget_package
-        displayName: 'Locate the nuget package'
+        displayName: 'Locate the development NuGet package'
 
       - publish: $(nuget_package.REL_NUGET_PACKAGE_PATH)
         artifact: 'ebpf-for-windows nuget'
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'), eq('${{parameters.build_artifact}}', 'Build-x64'))
-        displayName: 'Upload the nuget package'
+        displayName: 'Upload the development NuGet package'
 
       - publish: $(nuget_package.REL_NUGET_PACKAGE_PATH)
         artifact: 'ebpf-for-windows-native nuget'
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'), eq('${{parameters.build_artifact}}', 'Build-x64-native-only'))
-        displayName: 'Upload the nuget package'
+        displayName: 'Upload the development NuGet package'
