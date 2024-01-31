@@ -152,12 +152,12 @@ jobs:
         displayName: 'Upload the MSI package'
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/Microsoft.EbpfForWindows.EbpfForWindows.*.zip
-        artifact: "ebpf-for-windows - MSI installer (${{parameters.build_artifact}}_$(buildConfiguration))"
+        artifact: "ebpf-for-windows - VM Extension package (${{parameters.build_artifact}}_$(buildConfiguration))"
         condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
         displayName: 'Upload the VM Extension package'
 
       - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/eBPF-for-Windows-Redist.*.nupkg
-        artifact: "ebpf-for-windows - MSI installer (${{parameters.build_artifact}}_$(buildConfiguration))"
+        artifact: "ebpf-for-windows - Redist Package (${{parameters.build_artifact}}_$(buildConfiguration))"
         condition: and(eq('${{parameters.build_msi}}', 'true'), ne(variables.buildConfiguration, 'FuzzerDebug'))
         displayName: 'Upload the Redist NuGet package'
 
