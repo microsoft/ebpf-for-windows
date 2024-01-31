@@ -147,26 +147,17 @@ Given the by-design command-sequence invoked by the VM Agent in the 3 main scena
 
 >IMPORTANT: ensure that all the VM Extension Handler's PowerShell scripts in the "`\scripts`" folder, are code-signed before zipping the package. The signing can be done through the [ESRP portal](https://portal.esrp.microsoft.com/), using the "`Legacy COPS 400`" certificate (aka `CP-230012`), which is recommended [here - "Parameters for signing task"](https://eng.ms/docs/cloud-ai-platform/azure-edge-platform-aep/aep-engineering-systems/productivity-and-experiences/onebranch-platform-services/onebranch/signing/containerbuildsigning).
 
-1. Once you have the eBPF redistributable package to be released from the CI/CD pipeline, create the VM Extension ZIP file by executing the following PowerShell script from the `.azure` folder:
-
-    ```PS
-    PS> .\create-zip-package.ps1 -versionNumber <x.y.z.p> -ebpfBinPackagePath "<full path to the eBPF binaries root from the eBPF Redist package>" -zipDestinationFolder "<full path to the destination folder for the ZIP package file>"
-
-    # Example: creating the package for eBPF v0.9.1, with the extension handler patch v1 for that eBPF version -> v0.9.1.1
-    PS> .\create-zip-package.ps1 -versionNumber "0.9.1.1" -ebpfBinPackagePath "D:\work\_scratch\v0.9.1" -zipDestinationFolder "D:\work\_scratch"
-    ```
-
-    The resulting ZIP file will be named after the following format:
+1. The VM Extension package is automatically created by the mscodehub's CI/CD pipeline, and is located in the CI/CD's artifacts folder, named after the following format:
 
     ```bash
-    <publisher>.<extension name>.<version>.zip # e.g.: Microsoft.EbpfForWindows.EbpfForWindows.0.9.1.1.zip
+    <publisher>.<extension name>.<version>.zip
+    # e.g.: Microsoft.EbpfForWindows.EbpfForWindows.0.11.0.1.zip
     ```
-
     where:
 
     - `<publisher>` is the publisher name, i.e. `Microsoft.EbpfForWindows`.
     - `<extension name>` is the extension name, i.e. `EbpfForWindows`.
-    - `<version>` is the VM Extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.9.1.1` (`<MajorVersion.MinorVersion.PatchVersion.HotfixVersion>`, which we overlap with the `<Major.Minor.Patch>` versioning for eBPF).
+    - `<version>` is the VM Extension version, conventionally matching its first 3 digits with the eBPF version, e.g. `0.11.0.1` (`<MajorVersion.MinorVersion.PatchVersion.HotfixVersion>`, which we overlap with the `<Major.Minor.Patch>` versioning for eBPF).
 
 1. Upload the zip file into the Azure Blob Container named "`ebpf-vm-extension-artifacts`" (see [Prerequisites](#prerequisites)).
 
@@ -194,8 +185,8 @@ New-AzResourceGroupDeployment -Name ExtensionPublishing -ResourceGroupName $reso
 Make sure to update the following variables in the [*`.azure\eBpfArmPublishingTemplate.json`*](./src/.azure/eBpfArmPublishingTemplate.json) ARM template, with all the required information for the current version of the VM Extension, e.g.:
 
 ```json
-"version": "0.9.1.1", // The version of the VM Extension
-"mediaLink": "https://ebpfextstorageaccount.blob.core.windows.net/ebpf-ext-container/Microsoft.EbpfForWindows.EbpfForWindows.0.9.1.1.zip", // The URL of the ZIP file containing the VM Extension Handler
+"version": "0.11.0.1", // The version of the VM Extension
+"mediaLink": "https://ebpfextstorageaccount.blob.core.windows.net/ebpf-ext-container/Microsoft.EbpfForWindows.EbpfForWindows.0.11.0.1.zip", // The URL of the ZIP file containing the VM Extension Handler
 "regions": ["East US 2 EUAP", ...], // List of regions in which the extension will be published
 "isInternalExtension": "true/fase", // Whether the extension is internal or not. IMPORTANT!! This flag cannot be reverted once the extension has been made public!
 ```
@@ -223,7 +214,7 @@ You can check/verify the regional status by using the following PowerShell comma
 ```PS
 $publisherName="Microsoft.EbpfForWindows"
 $typeName="EbpfForWindows"
-$version="0.9.1.1"
+$version="0.11.0.1"
 $resourceGroupName = "EbpfVmExtension"
 $name = $publisherName + "." + $typeName + "/" + $version
 (Get-AzResource -ResourceGroupName $resourceGroupName -Name $name -ExpandProperties).Properties.replicationStatus.summary | Sort-Object -Property "region" | Format-Table

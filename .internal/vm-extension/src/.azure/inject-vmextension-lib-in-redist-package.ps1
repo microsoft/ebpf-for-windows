@@ -15,11 +15,11 @@ try {
         throw "File to inject not found at '$fileToInjectPath'."
     }
 
-    # Check if the redist package file exists
+    # Check if the redist package file exists in the given directory
     if (-not (Test-Path $redistPackagePath)) {
         throw "Redistibutable package path not found at '$redistPackagePath'."
-    }
-    $redistFile = Get-ChildItem -Path $redistPackagePath -Filter "eBPF-for-Windows-Redist*.nupkg" | Select-Object -First 1
+    }    
+    $redistFile = Get-ChildItem -Path $redistPackagePath -Filter "eBPF-for-Windows-Redist.*.nupkg" | Select-Object -First 1
     if ($null -eq $redistFile) {
         throw "No 'eBPF-for-Windows-Redist' package found at '$redistFile'."
     }
@@ -58,7 +58,7 @@ try {
     $newDirectoryPath = "package\.internal\lib\"
     $null = $updatedZipArchive.CreateEntry($newDirectoryPath)
 
-    # Add the common.ps1 to the updated zip file within the new directory (to be used by the Guest Proxy Agent VM extension as a library)
+    # Add the common.ps1 library to the updated zip file, within the new directory (to be used by the Guest Proxy Agent VM extension as a library)
     $updatedEntryPath = "$newDirectoryPath$((Get-Item $fileToInjectPath).Name)"
     $updatedEntry = $updatedZipArchive.CreateEntry($updatedEntryPath)
     $updatedEntryStream = $updatedEntry.Open()

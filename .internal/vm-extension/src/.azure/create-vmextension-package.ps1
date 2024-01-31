@@ -8,22 +8,20 @@ param (
     [string]$redistPackagePath
 )
 
-# Define constants for publisher name and type name
+# Define the constants for the VM Extension publisher and type names
 $publisherName = "Microsoft.EbpfForWindows"
 $typeName = "EbpfForWindows"
 
-# Create a temporary directory to store the files
+# Create a temporary working directory
 $tempDir = [System.IO.Path]::Combine($PSScriptRoot, [System.IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Path $tempDir | Out-Null
 
 try {
-    # Check if the redist package directory exists
+    # Check if the redist package file exists in the given directory
     if (-not (Test-Path $redistPackagePath)) {
-        throw "Original package directory not found at '$redistPackagePath'."
-    }
-
-    # Get the first .nupkg file in the redist package directory
-    $redistFile = Get-ChildItem -Path $redistPackagePath -Filter "eBPF-for-Windows-Redist*.nupkg" | Select-Object -First 1
+        throw "Redistibutable package path not found at '$redistPackagePath'."
+    } 
+    $redistFile = Get-ChildItem -Path $redistPackagePath -Filter "eBPF-for-Windows-Redist.*.nupkg" | Select-Object -First 1
     if ($null -eq $redistFile) {
         throw "No 'eBPF-for-Windows-Redist' package found in '$redistPackagePath'."
     }
@@ -37,18 +35,18 @@ try {
     New-Item -ItemType Directory -Path $tempExtractionFolder | Out-Null
     Expand-Archive -Path $redistTempFileName -DestinationPath $tempExtractionFolder -Force
 
-    # Copy the subdirectory to the destination path
+    # Copy only the '\package\bin' subdirectory to the destination path
     Copy-Item -Path "$tempExtractionFolder\package\bin" -Destination $tempDir -Recurse -Force
     Remove-Item -Path $tempExtractionFolder -Recurse -Force
 
     # Restore the original file name
     Rename-Item -Path $redistTempFileName -NewName $redistFile.FullName -Force
 
-    # Copy the "scripts" directory to the temporary directory
+    # Copy the 'scripts' directory to the temporary directory
     $scriptsPath = Join-Path -Path $PSScriptRoot -ChildPath "..\scripts"
     Copy-Item -Path $scriptsPath -Destination $tempDir -Recurse -Force
 
-    # Copy the "..\HandlerManifest.json" file to the temporary directory
+    # Copy the '..\HandlerManifest.json' file to the temporary directory
     $manifestPath = Join-Path -Path $PSScriptRoot -ChildPath "..\HandlerManifest.json"
     Copy-Item -Path $manifestPath -Destination $tempDir -Force
 
