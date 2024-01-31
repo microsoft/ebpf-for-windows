@@ -826,6 +826,18 @@ SPDX-License-Identifier: MIT
 				<File Id="INVALID_HELPERS_UM.PDB" Name="invalid_helpers_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\invalid_helpers_um.pdb" />
 			</Component>
 			<?endif?>
+			<Component Id="HAS_OF_MAP.O" DiskId="1" Guid="{c363ade6-46ef-48e7-8f8b-71c90896e0b3}">
+				<File Id="HAS_OF_MAP.O" Name="hash_of_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map.o" />
+			</Component>
+			<Component Id="HAS_OF_MAP.SYS" DiskId="1" Guid="{37a23ba5-313e-42e0-9328-ff2cc9c72745}">
+				<File Id="HAS_OF_MAP.SYS" Name="hash_of_map.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map.sys" />
+			</Component>
+			<Component Id="HAS_OF_MAP_UM.DLL" DiskId="1" Guid="{8c9ad5ef-7507-452d-a3f5-25e3d8cd0baf}">
+				<File Id="HAS_OF_MAP_UM.DLL" Name="hash_of_map_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map_um.dll" />
+			</Component>
+			<Component Id="HAS_OF_MAP_UM.PDB" DiskId="1" Guid="{1ba1063b-438e-4ce6-b1a5-c049c702265d}">
+				<File Id="HAS_OF_MAP_UM.PDB" Name="hash_of_map_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map_um.pdb" />
+			</Component>
 			<Component Id="MAP.O" DiskId="1" Guid="{C0461A4A-1195-4965-9710-8EED78A271F6}">
 				<File Id="MAP.O" Name="map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map.o" />
 			</Component>
