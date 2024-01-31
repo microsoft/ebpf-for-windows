@@ -3,6 +3,11 @@
 
 #include "api_internal.h"
 #include "bpf/libbpf.h"
+
+// NOTE: We have disabled Watson Error Reporting for this stress test to avoid potential issues when trying to create
+// process dumps (for a hung test run) via procdump64.exe. The VS project file for this test defines the
+// EBPF_WER_NOT_NEEDED manifest constant to inhibit inclusion of the wer_report.hpp header file (conditionally
+// included by the following header).
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_mt_stress.h"

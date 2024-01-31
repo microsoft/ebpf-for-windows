@@ -20,4 +20,6 @@
 #endif
 #pragma warning(pop)
 
+#if (!defined EBPF_WER_NOT_NEEDED)
 #include "wer_report.hpp"
+#endif
