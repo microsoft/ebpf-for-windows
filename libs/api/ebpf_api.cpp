@@ -2744,7 +2744,7 @@ _ebpf_enumerate_native_sections(
         std::scoped_lock pe_parse_lock(_pe_parse_mutex);
         parsed_pe* pe = ParsePEFromFile(file);
         if (pe == nullptr) {
-            std::string message_string {GetPEErrLoc()};
+            std::string message_string{GetPEErrLoc()};
             message_string += GetPEErrString();
             *error_message = cxplat_duplicate_string(message_string.c_str());
             EBPF_RETURN_RESULT(EBPF_INVALID_OBJECT);
@@ -2829,7 +2829,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t 
         std::string log_message = "ebpf_object_open: error loading file:";
         log_message += path;
         log_message += ", error message:";
-        log_message += *error_message;
+        log_message += *error_message != NULL ? *error_message : "none";
         EBPF_LOG_MESSAGE_STRING(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "*** ERROR *** ", log_message.c_str());
         goto Done;
