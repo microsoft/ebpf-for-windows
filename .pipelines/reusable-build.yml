@@ -54,7 +54,6 @@ jobs:
     variables:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ebpf-for-windows.sln
-      REDISTRIBUTABLE_PROJECT_FILE_PATH: tools\redist-package\redist-package.vcxproj
       BUILD_ARTIFACT_NAME: ${{parameters.build_artifact}}
       BUILD_CONFIGURATION: $(buildConfiguration)
       BUILD_PLATFORM: x64
