@@ -35,12 +35,12 @@ try {
     New-Item -ItemType Directory -Path $tempExtractionFolder | Out-Null
     Expand-Archive -Path $redistTempFileName -DestinationPath $tempExtractionFolder -Force
 
+    # Restore the original file name
+    Rename-Item -Path $redistTempFileName -NewName $redistFile.FullName -Force
+
     # Copy only the '\package\bin' subdirectory to the destination path
     Copy-Item -Path "$tempExtractionFolder\package\bin" -Destination $tempDir -Recurse -Force
     Remove-Item -Path $tempExtractionFolder -Recurse -Force
-
-    # Restore the original file name
-    Rename-Item -Path $redistTempFileName -NewName $redistFile.FullName -Force
 
     # Copy the 'scripts' directory to the temporary directory
     $scriptsPath = Join-Path -Path $PSScriptRoot -ChildPath "..\scripts"
