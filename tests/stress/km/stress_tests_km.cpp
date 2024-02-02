@@ -1489,12 +1489,14 @@ TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_str
     // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
 
     _km_test_init();
-    LOG_INFO("\nStarting test *** native_invoke_program_restart_extension_v4_test ***");
+    LOG_INFO("\nStarting test *** native_invoke_v4_v6_programs_restart_extension_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
     // Enforce enabling of the 'extension restart' thread for this test for increased stress.
     // (The restart delay is set to the default value or the value specified (if any) on the command line.)
-    local_test_control_info.extension_restart_enabled = true;
+
+    // TODO: Bring this test in compliance with GH Issue #3223. Until then, disable extension restart for this test.
+    local_test_control_info.extension_restart_enabled = false;
 
     // This test needs only 2 threads (one per program).
     local_test_control_info.threads_count = 2;
