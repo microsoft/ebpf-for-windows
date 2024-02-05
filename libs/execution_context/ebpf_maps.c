@@ -1651,7 +1651,10 @@ _update_lpm_map_entry(
 
     ebpf_result_t result = _update_hash_map_entry(map, key, data, option);
     if (result == EBPF_SUCCESS) {
-        ebpf_bitmap_set_bit((ebpf_bitmap_t*)trie_map->data, prefix_length, true);
+        // Test if the bit is set before setting it. This avoids the overhead of a the interlocked operation.
+        if (!ebpf_bitmap_test_bit((ebpf_bitmap_t*)trie_map->data, prefix_length)) {
+            ebpf_bitmap_set_bit((ebpf_bitmap_t*)trie_map->data, prefix_length, true);
+        }
     }
     return result;
 }
