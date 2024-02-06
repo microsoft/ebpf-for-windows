@@ -2966,7 +2966,7 @@ _ebpf_object_reuse_map(_Inout_ ebpf_map_t* map) NO_EXCEPT_TRY
     // If there is no map at this pin path, then we can (re)use the map.
     fd_t map_fd = ebpf_fd_invalid;
     result = ebpf_object_get(map->pin_path, &map_fd);
-    if (map_fd == ebpf_fd_invalid) {
+    if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 

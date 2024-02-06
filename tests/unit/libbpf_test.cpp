@@ -530,7 +530,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EEXIST);
 
-    // Test bpf_obj_get() to return the fd and correctly set 'errno'
+    // Test bpf_obj_get() to return the fd and correctly set 'errno'.
     fd_t obj_fd = bpf_obj_get(pin_path);
     REQUIRE(obj_fd != ebpf_fd_invalid);
     REQUIRE(errno == EEXIST);
