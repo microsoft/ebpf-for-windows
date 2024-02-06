@@ -1436,8 +1436,10 @@ ebpf_object_get(_In_z_ const char* path, _Out_ fd_t* fd) NO_EXCEPT_TRY
     *fd = _create_file_descriptor_for_handle(handle);
     if (*fd == ebpf_fd_invalid) {
         Platform::CloseHandle(handle);
+        result = EBPF_NO_MEMORY;
     }
-    EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(GetLastError()));
+
+    EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(result));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
