@@ -2210,10 +2210,9 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     irql_raised = true;
 
     // Convert the input buffer to a program type specific context structure.
-    return_value = context->program_data->context_create(
+    result = context->program_data->context_create(
         options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context->context);
-    if (return_value != EBPF_SUCCESS) {
-        return_value = EBPF_INVALID_ARGUMENT;
+    if (result != EBPF_SUCCESS) {
         goto Done;
     }
 
