@@ -2167,7 +2167,6 @@ typedef struct _ebpf_program_test_run_context
 {
     const ebpf_program_t* program;
     ebpf_program_data_t* program_data;
-    void* context;
     ebpf_program_test_run_options_t* options;
     uint8_t required_irql;
     bool canceled;
@@ -2197,6 +2196,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     bool irql_raised = false;
     bool thread_affinity_set = false;
     bool state_stored = false;
+    void* program_context = NULL;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
@@ -2211,7 +2211,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
 
     // Convert the input buffer to a program type specific context structure.
     result = context->program_data->context_create(
-        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context->context);
+        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &program_context);
     if (result != EBPF_SUCCESS) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -2257,7 +2257,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
+        ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
     }
     end_time = ebpf_query_time_since_boot(false);
 
@@ -2276,9 +2276,9 @@ Done:
         ebpf_epoch_exit(&epoch_state);
     }
 
-    if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
+    if (context->program_data && context->program_data->context_destroy != NULL && program_context != NULL) {
         context->program_data->context_destroy(
-            context->context,
+            program_context,
             options->data_out,
             &options->data_size_out,
             options->context_out,
@@ -2353,7 +2353,6 @@ ebpf_program_execute_test_run(
     test_run_context->program = program;
     test_run_context->program_data = program_data;
     test_run_context->required_irql = program_data->required_irql;
-    test_run_context->context = NULL;
     test_run_context->options = options;
     test_run_context->async_context = async_context;
     test_run_context->completion_context = completion_context;
