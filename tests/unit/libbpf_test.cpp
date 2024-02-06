@@ -511,6 +511,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
     const char* pin_path = "\\temp\\test";
+    const char* bad_pin_path = "\\bad\\path";
 
     struct bpf_object* object = bpf_object__open("test_sample_ebpf.o");
     REQUIRE(object != nullptr);
@@ -528,6 +529,14 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     result = bpf_program__pin(program, pin_path);
     REQUIRE(result < 0);
     REQUIRE(errno == EEXIST);
+
+    // Test bpf_obj_get() to return the fd and correctly set 'errno'
+    fd_t obj_fd = bpf_obj_get(pin_path);
+    REQUIRE(obj_fd != ebpf_fd_invalid);
+    REQUIRE(errno == 0);
+    obj_fd = bpf_obj_get(bad_pin_path);
+    REQUIRE(obj_fd == ebpf_fd_invalid);
+    REQUIRE(errno == ENOENT);
 
     result = bpf_program__unpin(program, pin_path);
     REQUIRE(result == 0);
