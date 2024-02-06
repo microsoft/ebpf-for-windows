@@ -2209,6 +2209,14 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
 
+    // Convert the input buffer to a program type specific context structure.
+    return_value = context->program_data->context_create(
+        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context->context);
+    if (return_value != EBPF_SUCCESS) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
 
@@ -2268,14 +2276,6 @@ Done:
         ebpf_epoch_exit(&epoch_state);
     }
 
-    if (irql_raised) {
-        ebpf_lower_irql(old_irql);
-    }
-
-    if (thread_affinity_set) {
-        ebpf_restore_current_thread_affinity(old_thread_affinity);
-    }
-
     if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
         context->program_data->context_destroy(
             context->context,
@@ -2284,6 +2284,15 @@ Done:
             options->context_out,
             &options->context_size_out);
     }
+
+    if (irql_raised) {
+        ebpf_lower_irql(old_irql);
+    }
+
+    if (thread_affinity_set) {
+        ebpf_restore_current_thread_affinity(old_thread_affinity);
+    }
+
     context->completion_callback(
         result, context->program, context->options, context->completion_context, context->async_context);
     ebpf_program_dereference_providers((ebpf_program_t*)context->program);
@@ -2311,7 +2320,6 @@ ebpf_program_execute_test_run(
 
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_program_test_run_context_t* test_run_context = NULL;
-    void* context = NULL;
     cxplat_preemptible_work_item_t* work_item = NULL;
     ebpf_program_data_t* program_data = NULL;
     bool provider_data_referenced = false;
@@ -2335,14 +2343,6 @@ ebpf_program_execute_test_run(
         goto Exit;
     }
 
-    // Convert the input buffer to a program type specific context structure.
-    return_value = program_data->context_create(
-        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context);
-    if (return_value != 0) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_test_run_context_t), EBPF_POOL_TAG_PROGRAM);
     if (test_run_context == NULL) {
@@ -2353,7 +2353,7 @@ ebpf_program_execute_test_run(
     test_run_context->program = program;
     test_run_context->program_data = program_data;
     test_run_context->required_irql = program_data->required_irql;
-    test_run_context->context = context;
+    test_run_context->context = NULL;
     test_run_context->options = options;
     test_run_context->async_context = async_context;
     test_run_context->completion_context = completion_context;
@@ -2376,15 +2376,9 @@ ebpf_program_execute_test_run(
     test_run_context = NULL;
     // This thread no longer owns the reference to the provider data.
     provider_data_referenced = false;
-    // This thread no longer owns the BPF context.
-    context = NULL;
     return_value = EBPF_PENDING;
 
 Exit:
-    if (program_data && program_data->context_destroy != NULL && context != NULL) {
-        program_data->context_destroy(
-            context, options->data_out, &options->data_size_out, options->context_out, &options->context_size_out);
-    }
     ebpf_free(test_run_context);
 
     if (provider_data_referenced) {
