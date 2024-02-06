@@ -2213,6 +2213,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     result = context->program_data->context_create(
         options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context->context);
     if (result != EBPF_SUCCESS) {
+        result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
