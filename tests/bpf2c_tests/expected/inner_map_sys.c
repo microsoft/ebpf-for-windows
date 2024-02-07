@@ -278,7 +278,7 @@ lookup_update(void* context)
     if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
 #line 41 "sample/undocked/inner_map.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=7 dst=r6 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=7 dst=r6 src=r0 offset=0 imm=1
 #line 41 "sample/undocked/inner_map.c"
     r6 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=9 imm=0
@@ -286,7 +286,7 @@ lookup_update(void* context)
     if (r0 == IMMEDIATE(0))
 #line 42 "sample/undocked/inner_map.c"
         goto label_1;
-        // EBPF_OP_STXW pc=9 dst=r10 src=r7 offset=-8 imm=0
+    // EBPF_OP_STXW pc=9 dst=r10 src=r7 offset=-8 imm=0
 #line 43 "sample/undocked/inner_map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r7;
     // EBPF_OP_MOV64_REG pc=10 dst=r2 src=r10 offset=0 imm=0
@@ -307,12 +307,12 @@ lookup_update(void* context)
     if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
 #line 44 "sample/undocked/inner_map.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
+    // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
 #line 45 "sample/undocked/inner_map.c"
     if (r0 == IMMEDIATE(0))
 #line 45 "sample/undocked/inner_map.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
 #line 45 "sample/undocked/inner_map.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=16 dst=r0 src=r1 offset=0 imm=0
@@ -363,7 +363,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 14;
     version->revision = 0;
 }
 

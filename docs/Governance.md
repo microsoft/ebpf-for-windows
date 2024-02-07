@@ -82,7 +82,7 @@ Responsibilities:
 In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
 
-Personnel: @gtrevi
+Personnel: @gtrevi @shpalani @matthewige
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
