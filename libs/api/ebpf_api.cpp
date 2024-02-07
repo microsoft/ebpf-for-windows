@@ -1409,10 +1409,12 @@ ebpf_map_unpin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-fd_t
-ebpf_object_get(_In_z_ const char* path) NO_EXCEPT_TRY
+ebpf_result_t
+ebpf_object_get(_In_z_ const char* path, _Out_ fd_t* fd) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
+    ebpf_assert(fd);
+
     size_t path_length = strlen(path);
     ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_get_pinned_object_request_t, path) + path_length);
     auto request = reinterpret_cast<ebpf_operation_get_pinned_object_request_t*>(request_buffer.data());
@@ -1424,19 +1426,22 @@ ebpf_object_get(_In_z_ const char* path) NO_EXCEPT_TRY
     std::copy(path, path + path_length, request->path);
     auto result = invoke_ioctl(request_buffer, reply);
     if (result != ERROR_SUCCESS) {
-        EBPF_RETURN_FD(ebpf_fd_invalid);
+        *fd = (fd_t)ebpf_fd_invalid;
+        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(result));
     }
 
     ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_PINNED_OBJECT);
 
     ebpf_handle_t handle = reply.handle;
-    fd_t fd = _create_file_descriptor_for_handle(handle);
-    if (fd == ebpf_fd_invalid) {
+    *fd = _create_file_descriptor_for_handle(handle);
+    if (*fd == ebpf_fd_invalid) {
         Platform::CloseHandle(handle);
+        result = EBPF_NO_MEMORY;
     }
-    EBPF_RETURN_FD(fd);
+
+    EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(result));
 }
-CATCH_NO_MEMORY_FD
+CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_query_info(
@@ -2958,9 +2963,10 @@ _ebpf_object_reuse_map(_Inout_ ebpf_map_t* map) NO_EXCEPT_TRY
 
     ebpf_assert(map);
 
-    // Check if a map is already present with this pin path.
-    fd_t map_fd = ebpf_object_get(map->pin_path);
-    if (map_fd == ebpf_fd_invalid) {
+    // If there is no map at this pin path, then we can (re)use the map.
+    fd_t map_fd = ebpf_fd_invalid;
+    result = ebpf_object_get(map->pin_path, &map_fd);
+    if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
