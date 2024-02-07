@@ -104,7 +104,7 @@ typedef struct _ebpf_core_lpm_map
     ebpf_core_map_t core_map;
     uint32_t max_prefix;
     // Bitmap of prefix lengths inserted into the map.
-    uint8_t data[1];
+    uint64_t data[1];
 } ebpf_core_lpm_map_t;
 
 typedef struct _ebpf_core_ring_buffer_map
