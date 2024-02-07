@@ -18,11 +18,11 @@ eBPF for Windows, and how to service it later.
     A successful run of the script will produce output similar to the following:
 
     ```ps
-    PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 14 0
+    PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 12 0
     Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h' file...
-    Version number updated to '0.14.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
     Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs' file...
-    Version number updated to '0.14.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
     Rebuilding the solution, please wait...
     Regenerating the expected 'bpf2c' output...
     Generating output for atomic_instruction_fetch_add.o
@@ -30,7 +30,7 @@ eBPF for Windows, and how to service it later.
     ...
     Generating output for printk_unsafe.o
     Expected 'bpf2c' output regenerated.
-    Please verify all the changes then submit the pull-request into the 'release/0.14' branch.
+    Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
     ```
 1. Verify all the changes then commit all in the working branch.
     >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
