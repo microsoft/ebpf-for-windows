@@ -2063,7 +2063,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     //   b. Helper name.
     //   c. Helper return type.
     //   d. Helper argument types.
-    //   e. reallocate_packet flag (if set).
 
     // Note:
     // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
@@ -2125,13 +2124,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
 
         for (uint32_t j = 0; j < EBPF_COUNT_OF(helper_function_prototype->arguments); j++) {
             result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->arguments[j]);
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
-        }
-
-        if (helper_function_prototype->reallocate_packet) {
-            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(cryptographic_hash, "reallocate_packet");
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
