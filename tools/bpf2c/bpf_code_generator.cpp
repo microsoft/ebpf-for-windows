@@ -529,11 +529,6 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 // Compute the offset of the values array and resize the vector
                 // to hold the initial values.
                 if (member.name == "values") {
-                    // If the map is statically initialized, then the keys must be uint32_t.
-                    if (map_definition.key_size != sizeof(uint32_t)) {
-                        throw bpf_code_generator_exception("map keys must be uint32_t for static initialization");
-                    }
-
                     map_names_to_values_offset[unsafe_symbol_name] = member.offset_from_start_in_bits / 8;
                     if (map_names_to_values_offset[unsafe_symbol_name] > (range.second - range.first)) {
                         throw bpf_code_generator_exception("map values offset is outside of map range");
@@ -546,6 +541,10 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                         ((range.second - range.first) - map_names_to_values_offset[unsafe_symbol_name]) /
                         sizeof(uintptr_t);
                     if (value_count > 0) {
+                        // If the map is statically initialized, then the keys must be uint32_t.
+                        if (map_definition.key_size != sizeof(uint32_t)) {
+                            throw bpf_code_generator_exception("map keys must be uint32_t for static initialization");
+                        }
                         map_initial_values[unsafe_symbol_name].resize(value_count);
                     }
                 }
