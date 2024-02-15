@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation
 // SPDX-License-Identifier: MIT
 
+#include "ebpf_program_types.h"
 #include "ebpf_registry_helper.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
@@ -40,7 +41,6 @@ _ebpf_store_update_helper_prototype(
     uint32_t offset;
     ebpf_store_key_t helper_function_key = NULL;
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
-    const bool reallocate_packet = helper_info->reallocate_packet;
 
     wchar_t* wide_helper_name = ebpf_get_wstring_from_string(helper_info->name);
     if (wide_helper_name == NULL) {
@@ -62,9 +62,6 @@ _ebpf_store_update_helper_prototype(
 
     memcpy(serialized_data + offset, helper_info->arguments, sizeof(helper_info->arguments));
     offset += sizeof(helper_info->arguments);
-
-    memcpy(serialized_data + offset, &reallocate_packet, sizeof(reallocate_packet));
-    offset += sizeof(reallocate_packet);
 
     // Save the helper prototype data.
     result = ebpf_write_registry_value_binary(
