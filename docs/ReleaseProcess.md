@@ -40,9 +40,8 @@ eBPF for Windows, and how to service it later.
 1. Create a **Draft** pull-request for your branch into the main repo's "`main`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
-1. Extract the `*.msi` and `*.nupkg` files, respectively, out of them, and rename them in the following format (replace "`X.Y.Z`" with the version number being released):
+1. Extract the `*.nupkg` file, and rename it in the following format (replace "`X.Y.Z`" with the version number being released):
 
-    - `eBPF-for-Windows.X.Y.Z.msi`
     - `eBPF-for-Windows.X.Y.Z.nupkg`
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
 1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y" with the version number being released).
@@ -119,12 +118,14 @@ As a result of creating new release or servicing an existing one, the following 
 1. Click on the "`Choose a tag`" combo box and select the tag with new "`Release vX.Y.Z`" version number, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`" (replace "`X.Y.Z`" with the version number being released).
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
-1. Attach the `.msi`, the (non-redist) `.nupkg`, and the `Build-x64-native-only-[Release|Debug].X.Y.Z.zip` build (from the CI/CD artifacts), by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.11.0` should be:
+1. Attach the `.msi`, the (non-redist) `.nupkg`, the `Build-x64-[Release|Debug].zip` and the `Build-x64-native-only-[Release|Debug].X.Y.Z.zip` build (from the CI/CD artifacts), by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.11.0` should be:
 
     - *Build-x64-native-only-Debug.0.11.0.zip*
     - *Build-x64-native-only-Release.0.11.0.zip*
     - *ebpf-for-windows.0.11.0.msi*
     - *eBPF-for-Windows.0.11.0.nupkg*
+    - *Build-x64-Debug.zip*
+    - *Build-x64-Release.zip*
 
 1. Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1. Once the uploads are complete, click "`Publish release`".
