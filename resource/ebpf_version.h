@@ -3,7 +3,7 @@
 
 #define EBPF_VERSION_MAJOR 0
 #define EBPF_VERSION_MINOR 14
-#define EBPF_VERSION_REVISION 0
+#define EBPF_VERSION_REVISION 1
 
 #define QUOTE(str) #str
 #define EXPAND_AND_QUOTE(str) QUOTE(str)

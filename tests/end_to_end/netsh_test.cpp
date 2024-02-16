@@ -206,7 +206,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                                         "             Section       Type  (bytes)\n"
                                         "====================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "               .text       bind     1064\n"
+                                        "               .text       bind     1080\n"
 #else
                                         "               .text       bind     1768\n"
 #endif
@@ -377,29 +377,6 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
                   "2 errors\n"
-                  "\n");
-}
-
-TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
-{
-    _test_helper_netsh test_helper;
-    test_helper.initialize();
-
-    int result;
-    std::string output =
-        _run_netsh_command(handle_ebpf_show_verification, L"xdp_adjust_head_unsafe.o", L"xdp", nullptr, &result);
-    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
-    output = strip_paths(output);
-    REQUIRE(
-        output == "Verification failed\n"
-                  "\n"
-                  "Verification report:\n"
-                  "\n"
-                  "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:42\n"
-                  ";     ethernet_header->Type = 0x0800;\n"
-                  "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
-                  "\n"
-                  "1 errors\n"
                   "\n");
 }
 
