@@ -58,7 +58,11 @@ ebpf_timed_work_queue_create(
         goto Done;
     }
 
-    KeSetTargetProcessorDpcEx(&local_work_queue->dpc, &processor_number);
+    status = KeSetTargetProcessorDpcEx(&local_work_queue->dpc, &processor_number);
+    if (!NT_SUCCESS(status)) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     *work_queue = local_work_queue;
     local_work_queue = NULL;
