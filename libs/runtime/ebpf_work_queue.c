@@ -50,7 +50,15 @@ ebpf_timed_work_queue_create(
 
     KeInitializeTimer(&local_work_queue->timer);
     KeInitializeDpc(&local_work_queue->dpc, _ebpf_timed_work_queue_timer_callback, local_work_queue);
-    KeSetTargetProcessorDpc(&local_work_queue->dpc, (CCHAR)cpu_id);
+
+    PROCESSOR_NUMBER processor_number;
+    NTSTATUS status = KeGetProcessorNumberFromIndex(cpu_id, &processor_number);
+    if (!NT_SUCCESS(status)) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    KeSetTargetProcessorDpcEx(&local_work_queue->dpc, &processor_number);
 
     *work_queue = local_work_queue;
     local_work_queue = NULL;
