@@ -151,7 +151,8 @@ ebpf_object_tracking_initiate()
     ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(ebpf_id_t),
         .value_size = sizeof(ebpf_id_entry_t),
-        .max_entries = 1024,
+        .max_entries = EBPF_HASH_TABLE_NO_LIMIT,
+        .minimum_bucket_count = 1024,
     };
 
     memset(_ebpf_object_reference_history, 0, sizeof(_ebpf_object_reference_history));
