@@ -173,6 +173,11 @@ function Export-BuildArtifactsToVMs
 {
     param([Parameter(Mandatory=$True)] $VMList)
 
+    $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
+    Write-Log "Creating $tempFileName containing files in $pwd"
+    &tar @("cfz", "$tempFileName", "*")
+    Write-Log "Created $tempFileName containing files in $pwd"
+
     # Copy the MSI to the given VM list.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
