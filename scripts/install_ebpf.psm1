@@ -7,6 +7,8 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 Push-Location $WorkingDirectory
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
+$MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
+
 # eBPF Drivers.
 $EbpfDrivers =
 @{
@@ -90,9 +92,8 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     $arguments = "/i $MsiPath /qn /norestart /log msi-install.log ADDLOCAL=ALL"
-    Write-Host "Installing MSI package with arguments: '$arguments'..."
+    Write-Host "Installing MSI package at '$MsiPath' with arguments: '$arguments'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
-
     if ($process.ExitCode -eq 0) {
         Write-Host "Installation successful!"
     } else {
@@ -120,7 +121,7 @@ function Install-eBPFComponents
 function Uninstall-eBPFComponents
 {
     # Uninstall the MSI package.
-    Write-Host "Uninstalling eBPF MSI package..."
+    Write-Host "Uninstalling eBPF MSI at '$MsiPath' package..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /log msi-uninstall.log" -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Host "Uninstallation successful!"
