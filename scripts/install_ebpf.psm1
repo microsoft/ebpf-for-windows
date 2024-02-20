@@ -5,9 +5,6 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 Push-Location $WorkingDirectory
-
-$BinaryPath = "$Env:systemroot\system32";
-
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 # eBPF Drivers.
@@ -16,109 +13,6 @@ $EbpfDrivers =
     "EbpfCore" = "ebpfcore.sys";
     "NetEbpfExt" = "netebpfext.sys";
     "SampleEbpfExt" = "sample_ebpf_ext.sys"
-}
-
-#
-# Uninstall eBPF components.
-#
-function Unregister-eBPFComponents
-{
-    # Uninstall drivers.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        # New-Service does not support installing drivers.
-        sc.exe delete $_.Name 2>&1 | Write-Log
-    }
-
-    # Uninstall user mode service.
-    sc.exe delete eBPFSvc 2>&1 | Write-Log
-
-    # Delete the eBPF netsh helper.
-    netsh delete helper ebpfnetsh.dll 2>&1 | Write-Log
-
-    # Execute "export_program_info.exe --clear"
-    if (Test-Path -Path "export_program_info.exe") {
-        .\export_program_info.exe --clear
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to run 'export_program_info.exe --clear'.");
-        } else {
-            Write-Log "'export_program_info.exe --clear' succeeded." -ForegroundColor Green
-        }
-    }
-
-    # Execute "export_program_info_sample.exe --clear"
-    if (Test-Path -Path "export_program_info_sample.exe") {
-        .\export_program_info_sample.exe --clear
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to run 'export_program_info_sample.exe --clear'.");
-        } else {
-            Write-Log "'export_program_info_sample.exe --clear' succeeded." -ForegroundColor Green
-        }
-    }
-}
-
-#
-# Install eBPF components.
-#
-
-function Register-eBPFComponents
-{
-    # Uninstall previous installations (if any).
-    Unregister-eBPFComponents
-
-    # Export program info.
-    if (Test-Path -Path "export_program_info.exe") {
-        .\export_program_info.exe
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to run 'export_program_info.exe'.");
-        } else {
-            Write-Log "'export_program_info.exe' succeeded." -ForegroundColor Green
-        }
-    }
-    if (Test-Path -Path "export_program_info_sample.exe") {
-        .\export_program_info_sample.exe
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to run 'export_program_info_sample.exe'.");
-        } else {
-            Write-Log "'export_program_info_sample.exe' succeeded." -ForegroundColor Green
-        }
-    }
-
-    # Install drivers.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        if (Test-Path -Path ("$BinaryPath\{0}" -f $_.Value)) {
-            Write-Log ("Installing {0}..." -f $_.Name) -ForegroundColor Green
-            # New-Service does not support installing drivers.
-            sc.exe create $_.Name type=kernel start=demand binpath=("$BinaryPath\{0}" -f $_.Value) 2>&1 | Write-Log
-            if ($LASTEXITCODE -ne 0) {
-                throw ("Failed to create $_.Name driver.")
-            } else {
-                Write-Log ("{0} driver created." -f $_.Name) -ForegroundColor Green
-            }
-        }
-        if (Test-Path -Path ("$BinaryPath\drivers\{0}" -f $_.Value)) {
-            Write-Log ("Installing {0}..." -f $_.Name) -ForegroundColor Green
-            # New-Service does not support installing drivers.
-            sc.exe create $_.Name type=kernel start=demand binpath=("$BinaryPath\drivers\{0}" -f $_.Value) 2>&1 | Write-Log
-            if ($LASTEXITCODE -ne 0) {
-                throw ("Failed to create $_.Name driver.")
-            } else {
-                Write-Log ("{0} driver created." -f $_.Name) -ForegroundColor Green
-            }
-        }
-    }
-
-    # Install user mode service.
-    if (Test-Path -Path "ebpfsvc.exe") {
-        .\eBPFSvc.exe install 2>&1 | Write-Log
-        if ($LASTEXITCODE -ne 0) {
-            throw ("Failed to create eBPF user mode service.")
-        } else {
-            Write-Log "eBPF user mode service created." -ForegroundColor Green
-        }
-    }
-
-    # Add the eBPF netsh helper.
-    netsh add helper ebpfnetsh.dll 2>&1 | Write-Log
 }
 
 function Enable-KMDFVerifier
@@ -188,79 +82,60 @@ function Start-WPRTrace
     }
 }
 
-#
-# Start service and drivers.
-#
-function Start-eBPFComponents
-{
-    param([parameter(Mandatory=$true)] [bool] $KmTracing,
-          [parameter(Mandatory=$true)] [string] $KmTraceType)
-
-    Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
-
-    # Start drivers.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        if (Test-Path -Path ("$BinaryPath\drivers\{0}" -f $_.Value)) {
-            Start-Service $_.Name -ErrorAction Stop | Write-Log
-            Write-Host ("{0} Driver started." -f $_.Name)
-        }
-    }
-
-    if (Test-Path -Path "ebpfsvc.exe") {
-        # Start user mode service.
-        Start-Service "eBPFSvc" -ErrorAction Stop | Write-Log
-        Write-Host "eBPFSvc service started."
-    }
-}
-
 function Install-eBPFComponents
 {
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
-    # Stop eBPF Components
-    Stop-eBPFComponents
+    # Install the MSI package.
+    $arguments = "/i $MsiPath /qn /norestart /log msi-install.log ADDLOCAL=ALL"
+    Write-Host "Installing MSI package with arguments: '$arguments'..."
+    $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
 
-    # Copy all binaries to system32.
-    Copy-Item *.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
-    if (Test-Path -Path "drivers") {
-        Copy-Item drivers\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
+    if ($process.ExitCode -eq 0) {
+        Write-Host "Installation successful!"
+    } else {
+        $exceptionMessage = "Installation FAILED. Exit code: $($process.ExitCode)"
+        Write-Host $exceptionMessage
+        $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
+        if ($logContents) {
+            Write-Host "Contents of msi-install.log:"
+            Write-Host $logContents
+        } else {
+            Write-Host "msi-install.log not found or empty."
+        }
     }
-    if (Test-Path -Path "testing\testing") {
-        Copy-Item testing\testing\*.sys -Destination "$Env:systemroot\system32\drivers" -Force -ErrorAction Stop 2>&1 | Write-Log
-    }
-    Copy-Item *.dll -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
-    Copy-Item *.exe -Destination "$Env:systemroot\system32" -Force -ErrorAction Stop 2>&1 | Write-Log
 
-    # Register all components.
-    Register-eBPFComponents
-
+    # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
-        # Enable KMDF verifier and tag tracking.
         Enable-KMDFVerifier
     }
 
-    # Start all components.
-    Start-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType
+    # Start KM tracing.
+    Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
 }
 
-function Stop-eBPFComponents
-{
-    # Stop user mode service.
-    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
-
-    # Stop the drivers.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
-    }
-}
 
 function Uninstall-eBPFComponents
 {
-    Stop-eBPFComponents
-    Unregister-eBPFComponents
-    Remove-Item "$Env:systemroot\system32\drivers\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
-    Remove-Item "$Env:systemroot\system32\*bpf*" -Force -ErrorAction Stop 2>&1 | Write-Log
+    # Uninstall the MSI package.
+    Write-Host "Uninstalling eBPF MSI package..."
+    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /log msi-uninstall.log" -Wait -PassThru
+    if ($process.ExitCode -eq 0) {
+        Write-Host "Uninstallation successful!"
+    } else {
+        $exceptionMessage = "Uninstallation FAILED. Exit code: $($process.ExitCode)"
+        Write-Host $exceptionMessage
+        $logContents = Get-Content -Path "msi-uninstall.log" -ErrorAction SilentlyContinue
+        if ($logContents) {
+            Write-Host "Contents of msi-uninstall.log:"
+            Write-Host $logContents
+        } else {
+            Write-Host "msi-uninstall.log not found or empty."
+        }
+    }
+
+    # Stop KM tracing.
     wpr.exe -cancel
 }

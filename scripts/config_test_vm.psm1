@@ -174,9 +174,9 @@ function Export-BuildArtifactsToVMs
     param([Parameter(Mandatory=$True)] $VMList)
 
     $tempFileName = [System.IO.Path]::GetTempFileName() + ".tgz"
-    Write-Log "Creating $tempFileName containing files in $pwd"
-    &tar @("cfz", "$tempFileName", "*")
-    Write-Log "Created $tempFileName containing files in $pwd"
+    # Write-Log "Creating $tempFileName containing files in $pwd"
+    # &tar @("cfz", "$tempFileName", "*")
+    # Write-Log "Created $tempFileName containing files in $pwd"
 
     foreach($VM in $VMList) {
         $VMName = $VM.Name
@@ -193,16 +193,18 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
-        Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        # Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        # Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
+        # Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Write-Log "Copying ebpf-for-windows.MSI to $VMSystemDrive\eBPF on $VMName"
+        Copy-Item -ToSession $VMSession -Path ebpf-for-windows.msi -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
 
-        Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            cd $Env:SystemDrive\eBPF
-            &tar @("xf", "ebpf.tgz")
-        }
-        Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        # Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        # Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        #     cd $Env:SystemDrive\eBPF
+        #     &tar @("xf", "ebpf.tgz")
+        # }
+        # Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
     }
 
