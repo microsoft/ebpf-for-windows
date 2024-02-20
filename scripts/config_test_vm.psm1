@@ -189,9 +189,23 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Copying 'ebpf-for-windows.msi' to '$VMSystemDrive\eBPF' to VM '$VMName'..."
-        Copy-Item -ToSession $VMSession -Path ebpf-for-windows.msi -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
-        Write-Log "Copy completed." -ForegroundColor Green
+        Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
+        Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
+
+        Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+            cd $Env:SystemDrive\eBPF
+            &tar @("xf", "ebpf.tgz")
+        }
+        Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        Write-Log "Export completed." -ForegroundColor Green
+
+        # Write-Log "Copying 'ebpf-for-windows.msi' to '$VMSystemDrive\eBPF' on VM '$VMName'..."
+        # Copy-Item -ToSession $VMSession -Path ebpf-for-windows.msi -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
+        # Write-Log "Copying utilities..." -ForegroundColor Green
+        # Copy-Item -ToSession $VMSession -Path "$pwd\corenet-ci" -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
+        # Write-Log "Copy completed." -ForegroundColor Green
     }
 }
 
@@ -339,6 +353,9 @@ function Import-ResultsFromVM
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
+#
+# Configure network adapters on VMs.
+#
 function Initialize-NetworkInterfacesOnVMs
 {
     param([parameter(Mandatory=$true)] $VMMap)
