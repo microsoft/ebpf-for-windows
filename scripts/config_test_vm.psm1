@@ -207,6 +207,7 @@ function Export-BuildArtifactsToVMs
         # Copy-Item -ToSession $VMSession -Path "$pwd\corenet-ci" -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
         # Write-Log "Copy completed." -ForegroundColor Green
     }
+    Remove-Item -Force $tempFileName
 }
 
 #
