@@ -189,10 +189,37 @@ function Export-BuildArtifactsToVMs
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
-        Write-Log "Copying ebpf-for-windows.MSI to $VMSystemDrive\eBPF on $VMName"
+        Write-Log "Copying 'ebpf-for-windows.msi' to '$VMSystemDrive\eBPF' to VM '$VMName'..."
         Copy-Item -ToSession $VMSession -Path ebpf-for-windows.msi -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
         Write-Log "Copy completed." -ForegroundColor Green
     }
+}
+
+#
+# Install eBPF components on VM.
+#
+
+function Install-eBPFComponentsOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName,
+          [parameter(Mandatory=$true)][bool] $KmTracing,
+          [parameter(Mandatory=$true)][string] $KmTraceType)
+
+    Write-Log "Installing eBPF components on $VMName"
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$True)] [string] $LogFileName,
+              [Parameter(Mandatory=$true)] [bool] $KmTracing,
+              [Parameter(Mandatory=$true)] [string] $KmTraceType)
+        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true
+    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
+    Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
 #
@@ -310,30 +337,6 @@ function Import-ResultsFromVM
     # Move runner test logs to TestLogs folder.
     Write-Host ("Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs")
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
-}
-
-function Install-eBPFComponentsOnVM
-{
-    param([parameter(Mandatory=$true)][string] $VMName,
-          [parameter(Mandatory=$true)][bool] $KmTracing,
-          [parameter(Mandatory=$true)][string] $KmTraceType)
-
-    Write-Log "Installing eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-
-    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-              [Parameter(Mandatory=$True)] [string] $LogFileName,
-              [Parameter(Mandatory=$true)] [bool] $KmTracing,
-              [Parameter(Mandatory=$true)] [string] $KmTraceType)
-        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true
-        Enable-KMDFVerifier
-    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
-    Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
 function Initialize-NetworkInterfacesOnVMs
