@@ -28,7 +28,7 @@ Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 foreach($VM in $VMList) {
        $VMName = $VM.Name
        Write-Host "Uninstalling eBPF components on VM $VMName..."
-       Uninstall-eBPFComponentsOnVM -VMName $VMname -WorkingDirectory $WorkingDirectory -ErrorAction Stop
+       Uninstall-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
 }
 
 # Stop the VMs.
