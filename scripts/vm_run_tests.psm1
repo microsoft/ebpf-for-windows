@@ -35,7 +35,7 @@ function Invoke-CICDTestsOnVM
               [parameter(Mandatory=$True)][string[]] $Options)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
-        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\tests"
+        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\testing"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
@@ -81,7 +81,7 @@ function Add-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
-        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\tests"
+        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\testing"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
@@ -116,7 +116,7 @@ function Set-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
-        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\tests"
+        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\testing"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
@@ -139,7 +139,7 @@ function Remove-eBPFProgramFromVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
-        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\tests"
+        $TestDirectory = "$env:ProgramFiles\ebpf-for-windows\testing"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
