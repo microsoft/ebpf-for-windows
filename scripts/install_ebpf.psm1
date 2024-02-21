@@ -9,6 +9,7 @@ Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -War
 
 $VcRedist = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
+$MsiInstallPath = Join-Path $env:ProgramFiles "ebpf-for-windows"
 
 # eBPF Drivers.
 $EbpfDrivers =
@@ -99,7 +100,7 @@ function Install-eBPFComponents
     Write-Verbose "Visual C++ Redistributable installation completed."
 
     # Install the MSI package.
-    $arguments = "/i $MsiPath /qn /norestart /log msi-install.log ADDLOCAL=ALL"
+    $arguments = "/i $MsiPath INSTALLFOLDER=$MsiInstallPath /qn /norestart /log msi-install.log ADDLOCAL=ALL"
     Write-Host "Installing MSI package at '$MsiPath' with arguments: '$arguments'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {
@@ -139,7 +140,7 @@ function Stop-eBPFComponents
 function Uninstall-eBPFComponents
 {
     # Uninstall the MSI package.
-    Write-Host "Uninstalling eBPF MSI at '$MsiPath' package..."
+    Write-Host "Uninstalling eBPF MSI package at '$MsiPath'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /log msi-uninstall.log" -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Host "Uninstallation successful!"
