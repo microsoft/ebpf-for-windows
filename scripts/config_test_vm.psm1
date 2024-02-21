@@ -423,7 +423,7 @@ function Get-Duonic {
 # Download the Visual C++ Redistributable.
 function Get-VCRedistributable {
     $url = "https://aka.ms/vs/16/release/vc_redist.x64.exe"
-    $DownloadPath = "$env:TEMP\vc-redist"
+    $DownloadPath = "$pwd\vc-redist"
     mkdir $DownloadPath
     Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
     Invoke-WebRequest -Uri $url -OutFile "$DownloadPath\vc_redist.x64.exe"
