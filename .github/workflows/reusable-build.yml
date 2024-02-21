@@ -8,6 +8,9 @@ name: Reusable MSBuild Workflow
 on:
   workflow_call:
     inputs:
+      ref:
+        required: true
+        type: string
       # Name associated with the output of this build.
       build_artifact:
         required: true
@@ -79,7 +82,9 @@ jobs:
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
+        repository: microsoft/ebpf-for-windows
         submodules: 'recursive'
+        ref: ${{inputs.ref}}
 
     - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
       id: configure_windows_error_reporting

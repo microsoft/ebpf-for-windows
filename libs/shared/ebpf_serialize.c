@@ -29,7 +29,6 @@ typedef struct _ebpf_serialized_helper_function_prototype
     uint32_t helper_id;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
-    uint8_t reallocate_packet;
     size_t name_length;
     uint8_t name[1];
 } ebpf_serialized_helper_function_prototype_t;
@@ -463,8 +462,6 @@ ebpf_serialize_program_info(
             for (uint16_t index = 0; index < EBPF_COUNT_OF(helper_prototype->arguments); index++) {
                 serialized_helper_prototype->arguments[index] = helper_prototype->arguments[index];
             }
-            serialized_helper_prototype->reallocate_packet =
-                helper_prototype->reallocate_packet ? HELPER_FUNCTION_REALLOCATE_PACKET : 0;
             serialized_helper_prototype->name_length = helper_function_name_length;
             // Copy the program type descriptor name buffer.
             memcpy(serialized_helper_prototype->name, helper_prototype->name, helper_function_name_length);
@@ -630,14 +627,12 @@ ebpf_deserialize_program_info(
             goto Exit;
         }
 
-        // Deserialize helper prototype.
+        // Serialize helper prototype.
         helper_prototype->helper_id = serialized_helper_prototype->helper_id;
         helper_prototype->return_type = serialized_helper_prototype->return_type;
         for (int i = 0; i < EBPF_COUNT_OF(helper_prototype->arguments); i++) {
             helper_prototype->arguments[i] = serialized_helper_prototype->arguments[i];
         }
-        helper_prototype->reallocate_packet =
-            serialized_helper_prototype->reallocate_packet == HELPER_FUNCTION_REALLOCATE_PACKET;
 
         // Adjust remaining buffer length.
         result = ebpf_safe_size_t_subtract(

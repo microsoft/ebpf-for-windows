@@ -116,9 +116,6 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
                 hash_t::append_byte_range(
                     byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
             }
-            if (program_info->program_type_specific_helper_prototype[index].reallocate_packet) {
-                hash_t::append_byte_range(byte_range, reinterpret_cast<const char*>("reallocate_packet"));
-            }
         }
     }
     hash_t hash(algorithm);

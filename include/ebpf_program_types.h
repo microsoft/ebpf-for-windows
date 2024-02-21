@@ -7,14 +7,12 @@
 
 #include <guiddef.h>
 #if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
-#include <stdbool.h>
 #include <stdint.h>
 #else
 typedef unsigned char uint8_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 typedef unsigned short wchar_t;
-#define bool _Bool
 #endif
 
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
@@ -29,15 +27,12 @@ typedef struct _ebpf_program_type_descriptor
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
-#define HELPER_FUNCTION_REALLOCATE_PACKET 0x1
-
 typedef struct _ebpf_helper_function_prototype
 {
     uint32_t helper_id;
     const char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
-    bool reallocate_packet : 1;
 } ebpf_helper_function_prototype_t;
 
 typedef struct _ebpf_program_info
