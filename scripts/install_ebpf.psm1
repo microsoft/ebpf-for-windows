@@ -100,7 +100,7 @@ function Install-eBPFComponents
     Write-Verbose "Visual C++ Redistributable installation completed."
 
     # Install the MSI package.
-    $arguments = "/i $MsiPath INSTALLFOLDER=$MsiInstallPath /qn /norestart /log msi-install.log ADDLOCAL=ALL"
+    $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" /qn /norestart /log msi-install.log ADDLOCAL=ALL"
     Write-Host "Installing MSI package at '$MsiPath' with arguments: '$arguments'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {
