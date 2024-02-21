@@ -178,7 +178,7 @@ function Export-BuildArtifactsToVMs
     &tar @("cfz", "$tempFileName", "*")
     Write-Log "Created $tempFileName containing files in $pwd"
 
-    # Copy the MSI to the given VM list.
+    # Copy artifacts to the given VM list.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -205,12 +205,6 @@ function Export-BuildArtifactsToVMs
         }
         Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
-
-        # Write-Log "Copying 'ebpf-for-windows.msi' to '$VMSystemDrive\eBPF' on VM '$VMName'..."
-        # Copy-Item -ToSession $VMSession -Path ebpf-for-windows.msi -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
-        # Write-Log "Copying utilities..." -ForegroundColor Green
-        # Copy-Item -ToSession $VMSession -Path "$pwd\corenet-ci" -Destination "$VMSystemDrive\eBPF" -Force 2>&1 -ErrorAction Stop | Write-Log
-        # Write-Log "Copy completed." -ForegroundColor Green
     }
     Remove-Item -Force $tempFileName
 }
@@ -423,5 +417,16 @@ function Get-Duonic {
     Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile "$DownloadPath\corenet-ci.zip"
     Expand-Archive -Path "$DownloadPath\corenet-ci.zip" -DestinationPath $DownloadPath -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
+    Remove-Item -Path $DownloadPath -Force -Recurse
+}
+
+# Download the Visual C++ Redistributable.
+function Get-VCRedistributable {
+    $url = "https://aka.ms/vs/16/release/vc_redist.x64.exe"
+    $DownloadPath = "$pwd\vc-redist"
+    mkdir $DownloadPath
+    Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
+    Invoke-WebRequest -Uri $url -OutFile $DownloadPath
+    Move-Item -Path "$DownloadPath\vc-redist\vc_redist.x64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }

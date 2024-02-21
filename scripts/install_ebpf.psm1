@@ -7,6 +7,7 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 Push-Location $WorkingDirectory
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
+$VcRedist = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 
 # eBPF Drivers.
@@ -89,6 +90,13 @@ function Install-eBPFComponents
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
+
+    # Install the Visual C++ Redistributable.
+    Write-Verbose "Installing Visual C++ Redistributable"
+    Start-Process -FilePath $VcRedist -ArgumentList "/quiet", "/norestart" -Wait
+    Write-Verbose "Cleaning up"
+    Remove-Item $VcRedist -Force
+    Write-Verbose "Visual C++ Redistributable installation completed."
 
     # Install the MSI package.
     $arguments = "/i $MsiPath /qn /norestart /log msi-install.log ADDLOCAL=ALL"
