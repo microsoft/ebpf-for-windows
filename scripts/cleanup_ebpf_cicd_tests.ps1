@@ -27,7 +27,8 @@ Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 # Uninstall eBPF Components on the test VM.
 foreach($VM in $VMList) {
        $VMName = $VM.Name
-       Uninstall-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
+       Write-Host "Uninstalling eBPF components on VM $VMName..."
+       Uninstall-eBPFComponentsOnVM -VMName $VMname -WorkingDirectory $WorkingDirectory -ErrorAction Stop
 }
 
 # Stop the VMs.

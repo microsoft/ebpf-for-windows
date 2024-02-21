@@ -9,6 +9,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
+$TestDirectory = "$env:ProgramFiles\ebpf-for-windows\testing"
 $CodeCoverage = "$env:ProgramFiles\OpenCppCoverage\OpenCppCoverage.exe"
 
 #
@@ -102,7 +103,7 @@ function Invoke-CICDTests
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
           [parameter(Mandatory = $false)][bool] $Coverage = $false)
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     try {
@@ -113,7 +114,7 @@ function Invoke-CICDTests
             "socket_tests.exe")
 
         foreach ($Test in $TestList) {
-            Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
+            Invoke-Test -TestName "$TestDirectory\$Test" -VerboseLogs $VerboseLogs -Coverage $Coverage
         }
 
         if ($Coverage) {
@@ -136,7 +137,7 @@ function Invoke-CICDTests
         throw
     }
 
-    popd
+    Pop-Location
 }
 
 function Invoke-XDPTest
@@ -146,7 +147,7 @@ function Invoke-XDPTest
           [parameter(Mandatory=$true)][string] $XDPTestName,
           [parameter(Mandatory=$true)][string] $WorkingDirectory)
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address."
     $LASTEXITCODE = 0
@@ -164,7 +165,7 @@ function Invoke-XDPTest
 
     Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
 
-    popd
+    Pop-Location
 }
 
 function Invoke-ConnectRedirectTest
@@ -182,7 +183,7 @@ function Invoke-ConnectRedirectTest
           [parameter(Mandatory=$true)][string] $UserType,
           [parameter(Mandatory=$true)][string] $WorkingDirectory)
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
 
     ## First run the test with both v4 and v6 programs attached.
     $Parameters = "--virtual-ip-v4 $VirtualIPv4Address --virtual-ip-v6 $VirtualIPv6Address --local-ip-v4 $LocalIPv4Address --local-ip-v6 $LocalIPv6Address --remote-ip-v4 $RemoteIPv4Address --remote-ip-v6 $RemoteIPv6Address --destination-port $DestinationPort --proxy-port $ProxyPort --user-type $UserType"
@@ -242,7 +243,7 @@ function Invoke-ConnectRedirectTest
 
     Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
 
-    popd
+    Pop-Location
 }
 
 function Invoke-CICDStressTests
@@ -251,7 +252,7 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][bool] $Coverage = $false,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
@@ -271,7 +272,7 @@ function Invoke-CICDStressTests
         throw "*** ERROR *** eBPF kernel mode multi-threaded stress tests FAILED (restart extension:$RestartExtension)"
     }
 
-    popd
+    Pop-Location
 }
 
 function Invoke-CICDPerformanceTests
