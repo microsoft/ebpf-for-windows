@@ -426,7 +426,7 @@ function Get-VCRedistributable {
     $DownloadPath = "$env:TEMP\vc-redist"
     mkdir $DownloadPath
     Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
-    Invoke-WebRequest -Uri $url -OutFile $DownloadPath
+    Invoke-WebRequest -Uri $url -OutFile "$DownloadPath\vc_redist.x64.exe"
     Move-Item -Path "$DownloadPath\vc_redist.x64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
