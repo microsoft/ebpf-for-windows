@@ -231,9 +231,28 @@ function Install-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -ErrorAction Stop
     } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
+}
+
+function Uninstall-eBPFComponentsOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName)
+
+    Write-Log "Unnstalling eBPF components on $VMName"
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$True)] [string] $LogFileName)
+        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Uninstall-eBPFComponents
+    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+    Write-Log "eBPF components uninstalled on $VMName" -ForegroundColor Green
 }
 
 #
