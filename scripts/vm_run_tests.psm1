@@ -35,8 +35,9 @@ function Invoke-CICDTestsOnVM
               [parameter(Mandatory=$True)][string[]] $Options)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        $TestDirectory = "$Env:SystemDrive\$env:ProgramFiles\ebpf-for-windows\tests"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         $TestMode = $TestMode.ToLower()
         switch ($TestMode)
@@ -80,8 +81,9 @@ function Add-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        $TestDirectory = "$Env:SystemDrive\$env:ProgramFiles\ebpf-for-windows\tests"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         if ([System.String]::IsNullOrEmpty($Interface)){
             Write-Log "Loading $Program on $VM."
@@ -114,8 +116,9 @@ function Set-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        $TestDirectory = "$Env:SystemDrive\$env:ProgramFiles\ebpf-for-windows\tests"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Setting program $ProgId at interface $Interface on $VM."
         Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
@@ -136,6 +139,7 @@ function Remove-eBPFProgramFromVM
               [Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        $TestDirectory = "$Env:SystemDrive\$env:ProgramFiles\ebpf-for-windows\tests"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
