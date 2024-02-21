@@ -9,7 +9,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-$CodeCoverage = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+$CodeCoverage = "$env:ProgramFiles\OpenCppCoverage\OpenCppCoverage.exe"
 
 #
 # Execute tests on VM.
