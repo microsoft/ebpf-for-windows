@@ -25,7 +25,12 @@ typedef struct _ebpf_program_section_info_with_count
 static const ebpf_program_info_t* _program_information_array[] = {&_sample_ebpf_extension_program_info};
 
 ebpf_program_section_info_t _sample_ext_section_info[] = {
-    {L"sample_ext", &EBPF_PROGRAM_TYPE_SAMPLE, &EBPF_ATTACH_TYPE_SAMPLE, BPF_PROG_TYPE_SAMPLE, BPF_ATTACH_TYPE_SAMPLE}};
+    {{EBPF_PROGRAM_SECTION_INFORMATION_VERSION_0, sizeof(ebpf_program_section_info_t)},
+     L"sample_ext",
+     &EBPF_PROGRAM_TYPE_SAMPLE,
+     &EBPF_ATTACH_TYPE_SAMPLE,
+     BPF_PROG_TYPE_SAMPLE,
+     BPF_ATTACH_TYPE_SAMPLE}};
 
 static std::vector<ebpf_program_section_info_with_count_t> _section_information = {
     {&_sample_ext_section_info[0], _countof(_sample_ext_section_info)},

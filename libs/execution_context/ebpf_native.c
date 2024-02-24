@@ -121,7 +121,7 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics 
     _ebpf_native_provider_detach_client_callback,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &_ebpf_native_npi_id,
         &_ebpf_native_provider_module_id,
