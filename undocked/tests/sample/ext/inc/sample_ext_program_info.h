@@ -24,18 +24,21 @@ static const ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
 
 // Sample Extension Helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_function_prototype[] = {
-    {SAMPLE_EXT_HELPER_FUNCTION_START + 1,
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, sizeof(ebpf_helper_function_prototype_t)},
+     SAMPLE_EXT_HELPER_FUNCTION_START + 1,
      "sample_ebpf_extension_helper_function1",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {SAMPLE_EXT_HELPER_FUNCTION_START + 2,
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, sizeof(ebpf_helper_function_prototype_t)},
+     SAMPLE_EXT_HELPER_FUNCTION_START + 2,
      "sample_ebpf_extension_find",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
       EBPF_ARGUMENT_TYPE_CONST_SIZE}},
-    {SAMPLE_EXT_HELPER_FUNCTION_START + 3,
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, sizeof(ebpf_helper_function_prototype_t)},
+     SAMPLE_EXT_HELPER_FUNCTION_START + 3,
      "sample_ebpf_extension_replace",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
@@ -46,10 +49,21 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_func
 
 // Global helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _sample_ebpf_extension_global_helper_function_prototype[] = {
-    {BPF_FUNC_get_current_pid_tgid, "bpf_get_current_pid_tgid", EBPF_RETURN_TYPE_INTEGER, {0}}};
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, sizeof(ebpf_helper_function_prototype_t)},
+     BPF_FUNC_get_current_pid_tgid,
+     "bpf_get_current_pid_tgid",
+     EBPF_RETURN_TYPE_INTEGER,
+     {0}}};
 
+static const ebpf_program_type_descriptor_t _sample_ebpf_extension_program_type_descriptor = {
+    {EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0, sizeof(ebpf_program_type_descriptor_t)},
+    "sample",
+    &_sample_ebpf_context_descriptor,
+    EBPF_PROGRAM_TYPE_SAMPLE_GUID,
+    BPF_PROG_TYPE_SAMPLE};
 static const ebpf_program_info_t _sample_ebpf_extension_program_info = {
-    {"sample", &_sample_ebpf_context_descriptor, EBPF_PROGRAM_TYPE_SAMPLE_GUID, BPF_PROG_TYPE_SAMPLE},
+    {EBPF_PROGRAM_INFORMATION_VERSION_0, sizeof(ebpf_program_info_t)},
+    &_sample_ebpf_extension_program_type_descriptor,
     EBPF_COUNT_OF(_sample_ebpf_extension_helper_function_prototype),
     _sample_ebpf_extension_helper_function_prototype,
     EBPF_COUNT_OF(_sample_ebpf_extension_global_helper_function_prototype),

@@ -16,8 +16,15 @@
 #include "ebpf_general_helpers.c"
 
 // Export XDP program information to allow for our unit tests to mock the XDP API surface.
+static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
+    {EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0, sizeof(ebpf_program_type_descriptor_t)},
+    "xdp",
+    &_ebpf_xdp_test_context_descriptor,
+    EBPF_PROGRAM_TYPE_XDP_GUID,
+    BPF_PROG_TYPE_XDP};
 static const ebpf_program_info_t _mock_xdp_program_info = {
-    {"xdp", &_ebpf_xdp_test_context_descriptor, EBPF_PROGRAM_TYPE_XDP_GUID, BPF_PROG_TYPE_XDP},
+    {EBPF_PROGRAM_INFORMATION_VERSION_0, sizeof(ebpf_program_info_t)},
+    &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype};
 
@@ -35,7 +42,12 @@ static const ebpf_program_info_t* _program_information_array[] = {
     &_ebpf_xdp_test_program_info};
 
 ebpf_program_section_info_t _mock_xdp_section_info[] = {
-    {L"xdp", &EBPF_PROGRAM_TYPE_XDP, &EBPF_ATTACH_TYPE_XDP, BPF_PROG_TYPE_XDP, BPF_XDP}};
+    {{EBPF_PROGRAM_SECTION_INFORMATION_VERSION_0, sizeof(ebpf_program_section_info_t)},
+     L"xdp",
+     &EBPF_PROGRAM_TYPE_XDP,
+     &EBPF_ATTACH_TYPE_XDP,
+     BPF_PROG_TYPE_XDP,
+     BPF_XDP}};
 
 static std::vector<ebpf_program_section_info_with_count_t> _section_information = {
     {&_ebpf_bind_section_info[0], _countof(_ebpf_bind_section_info)},

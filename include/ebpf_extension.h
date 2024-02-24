@@ -87,13 +87,13 @@ typedef struct _ebpf_extension_program_dispatch_table
 
 typedef struct _ebpf_extension_data
 {
-    uint16_t version;
-    size_t size;
+    ebpf_extension_header_t header;
     const void* data;
 } ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data
 {
+    ebpf_extension_header_t header;
     ebpf_program_type_t supported_program_type;
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
@@ -119,8 +119,3 @@ typedef struct _ebpf_execution_context_state
         uint32_t count;
     } tail_call_state;
 } ebpf_execution_context_state_t;
-
-#define EBPF_ATTACH_CLIENT_DATA_VERSION 0
-#define EBPF_ATTACH_PROVIDER_DATA_VERSION 1
-#define EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION 0
-#define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
