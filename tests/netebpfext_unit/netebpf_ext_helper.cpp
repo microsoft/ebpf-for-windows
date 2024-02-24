@@ -134,7 +134,7 @@ _netebpf_ext_helper::program_info_provider_guids()
     return guids;
 }
 
-ebpf_extension_data_t
+ebpf_program_data_t*
 _netebpf_ext_helper::get_program_info_provider_data(_In_ const GUID& program_info_provider)
 {
     auto iter = program_info_providers.find(program_info_provider);
@@ -142,7 +142,7 @@ _netebpf_ext_helper::get_program_info_provider_data(_In_ const GUID& program_inf
     // We might not find the provider if some allocation failed during initialization.
     REQUIRE(iter != program_info_providers.end());
 
-    return *iter->second->provider_data;
+    return const_cast<ebpf_program_data_t*>(iter->second->program_data);
 }
 
 NTSTATUS
@@ -155,8 +155,8 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     auto client_binding_context = std::make_unique<program_info_provider_t>();
     client_binding_context->module_id = *provider_registration_instance->ModuleId;
     client_binding_context->parent = &helper;
-    client_binding_context->provider_data =
-        reinterpret_cast<const ebpf_extension_data_t*>(provider_registration_instance->NpiSpecificCharacteristics);
+    client_binding_context->program_data =
+        reinterpret_cast<const ebpf_program_data_t*>(provider_registration_instance->NpiSpecificCharacteristics);
 
     NTSTATUS status = NmrClientAttachProvider(
         nmr_binding_handle,
@@ -199,9 +199,7 @@ _netebpf_ext_helper::_hook_client_attach_provider(
     }
     const ebpf_extension_dispatch_table_t client_dispatch_table = {
         .version = 1, .count = 1, .function = base_client_context->helper->hook_invoke_function};
-    auto provider_characteristics =
-        (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    auto provider_data = (const ebpf_attach_provider_data_t*)provider_characteristics->data;
+    auto provider_data = (const ebpf_attach_provider_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
     if (base_client_context->desired_attach_type != BPF_ATTACH_TYPE_UNSPEC &&
         provider_data->bpf_attach_type != base_client_context->desired_attach_type) {
         return STATUS_ACCESS_DENIED;
