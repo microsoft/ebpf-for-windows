@@ -969,7 +969,7 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     // The success/failure of the [native_close_cleanup_tests] tests can only be (indirectly) checked by attempting to
     // stop the ebpf-core driver after executing this class of tests.  If the clean-up by the ebpf-core driver is not
     // successful, it cannot be stopped/unloaded.  This step is performed automatically by the CI/CD test pass runs and
-    // will need to be perfomed as an explicit manual step after a manually initiated test-run.
+    // will need to be performed as an explicit manual step after a manually initiated test-run.
     //
     // On a final note, each test in the [native_close_cleanup_tests] set _must_ load a .sys driver (if it needs one)
     // that either has not been loaded yet, or was loaded but has since been unloaded (before start of the test). Given
@@ -1012,6 +1012,7 @@ test_sock_addr_native_program_load_attach(const char* file_name)
     int result;
     struct bpf_object* object = nullptr;
     fd_t program_fd;
+    uint32_t old_id = 0;
     uint32_t next_id;
     std::string file_name_string = std::string("regression\\") + std::string(file_name);
     const char* file_name_with_path = file_name_string.c_str();
@@ -1024,6 +1025,19 @@ test_sock_addr_native_program_load_attach(const char* file_name)
 
     bpf_program* v6_program = bpf_object__find_program_by_name(object, "connect_redirect6");
     REQUIRE(v6_program != nullptr);
+
+    // Get program ids for both v4 and v6 programs.
+    struct bpf_prog_info prog_info_v4 = {0};
+    uint32_t info_len = sizeof(prog_info_v4);
+    result = bpf_obj_get_info_by_fd(bpf_program__fd(v4_program), &prog_info_v4, &info_len);
+    REQUIRE(result == 0);
+    REQUIRE(prog_info_v4.id != 0);
+
+    struct bpf_prog_info prog_info_v6 = {0};
+    info_len = sizeof(prog_info_v6);
+    result = bpf_obj_get_info_by_fd(bpf_program__fd(v6_program), &prog_info_v6, &info_len);
+    REQUIRE(result == 0);
+    REQUIRE(prog_info_v6.id != 0);
 
     // Attach both v4 and v6 programs.
     bpf_link* v4_link = bpf_program__attach(v4_program);
@@ -1042,7 +1056,18 @@ test_sock_addr_native_program_load_attach(const char* file_name)
     bpf_object__close(object);
 
     // We have closed handles to the programs. Program should be unloaded now.
-    REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+    // Since for prog array maps, the program IDs are cleaned up asynchronously,
+    // it is possible we sometimes find some _other_ program IDs. To work around
+    // this, validate that at least the program IDs of interest are not found.
+    while (true) {
+        result = bpf_prog_get_next_id(old_id, &next_id);
+        if (result == -ENOENT) {
+            break;
+        }
+
+        REQUIRE(((result == 0) && (next_id != prog_info_v4.id) && (next_id != prog_info_v6.id)));
+        old_id = next_id;
+    }
 }
 
 #define DECLARE_REGRESSION_TEST_CASE(version)                                                         \
