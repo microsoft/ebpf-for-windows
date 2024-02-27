@@ -32,6 +32,11 @@ jobs:
 
     steps:
     # Check out the main repo.
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
         # Only check out main repo, not submodules.
