@@ -292,7 +292,6 @@ ebpf_core_terminate()
     ebpf_platform_terminate();
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_load_code(
     ebpf_handle_t program_handle,
@@ -318,7 +317,6 @@ Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
     EBPF_RETURN_RESULT(retval);
 }
-#endif
 
 static ebpf_result_t
 _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
@@ -417,6 +415,7 @@ _ebpf_core_protocol_resolve_helper(
 #if defined(CONFIG_BPF_JIT_DISABLED)
     UNREFERENCED_PARAMETER(request);
     UNREFERENCED_PARAMETER(reply);
+    UNREFERENCED_PARAMETER(reply_length);
     EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
 #else
     uint32_t* request_helper_ids = NULL;
@@ -514,6 +513,7 @@ _ebpf_core_protocol_resolve_map(
 #if defined(CONFIG_BPF_JIT_DISABLED)
     UNREFERENCED_PARAMETER(request);
     UNREFERENCED_PARAMETER(reply);
+    UNREFERENCED_PARAMETER(reply_length);
     EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
 #else
     size_t map_handle_length;
@@ -2430,13 +2430,17 @@ typedef struct _ebpf_protocol_handler
 // #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_INTERPRET_MODE 4
 // #endif
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_JIT_OR_INTERPRET_MODE (PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
 #define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
 #elif !defined(CONFIG_BPF_JIT_DISABLED)
 #define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_JIT_MODE
 #define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE)
+#elif !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+#define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_INTERPRET_MODE
+#define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_INTERPRET_MODE)
 #else
+#define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_NATIVE_MODE
 #define PROTOCOL_ALL_MODES PROTOCOL_NATIVE_MODE
 #endif
 
