@@ -121,3 +121,16 @@ static const ebpf_program_section_info_t _ebpf_sock_ops_section_info[] = {
      &EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
      BPF_PROG_TYPE_SOCK_OPS,
      BPF_CGROUP_SOCK_OPS}};
+
+static const ebpf_context_descriptor_t _ebpf_process_context_descriptor = {
+    sizeof(process_md_t), EBPF_OFFSET_OF(process_md_t, command_start), EBPF_OFFSET_OF(process_md_t, command_end), -1};
+
+static const ebpf_program_info_t _ebpf_process_program_info = {
+    {"process", &_ebpf_process_context_descriptor, EBPF_PROGRAM_TYPE_PROCESS_GUID, BPF_PROG_TYPE_PROCESS}, 0, NULL};
+
+static const ebpf_program_section_info_t _ebpf_process_section_info[] = {
+    {L"process",
+     &EBPF_PROGRAM_TYPE_PROCESS,
+     &EBPF_ATTACH_TYPE_PROCESS,
+     BPF_PROG_TYPE_PROCESS,
+     BPF_ATTACH_TYPE_PROCESS}};

@@ -19,6 +19,7 @@ Environment:
 
 #include "net_ebpf_ext.h"
 #include "net_ebpf_ext_bind.h"
+#include "net_ebpf_ext_process.h"
 #include "net_ebpf_ext_sock_addr.h"
 #include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
@@ -34,6 +35,7 @@ static bool _net_ebpf_xdp_providers_registered = false;
 static bool _net_ebpf_bind_providers_registered = false;
 static bool _net_ebpf_sock_addr_providers_registered = false;
 static bool _net_ebpf_sock_ops_providers_registered = false;
+static bool _net_ebpf_process_providers_registered = false;
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
     {&EBPF_DEFAULT_SUBLAYER, L"EBPF Sub-Layer", L"Sub-Layer for use by eBPF callouts", 0, SUBLAYER_WEIGHT_MAXIMUM},
@@ -811,6 +813,17 @@ net_ebpf_ext_register_providers()
     }
     _net_ebpf_sock_ops_providers_registered = true;
 
+    status = net_ebpf_ext_process_register_providers();
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_process_register_providers failed.",
+            status);
+        goto Exit;
+    }
+    _net_ebpf_process_providers_registered = true;
+
 Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_unregister_providers();
@@ -836,5 +849,9 @@ net_ebpf_ext_unregister_providers()
     if (_net_ebpf_sock_ops_providers_registered) {
         net_ebpf_ext_sock_ops_unregister_providers();
         _net_ebpf_sock_ops_providers_registered = false;
+    }
+    if (_net_ebpf_process_providers_registered) {
+        net_ebpf_ext_process_unregister_providers();
+        _net_ebpf_process_providers_registered = false;
     }
 }

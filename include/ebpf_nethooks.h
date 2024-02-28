@@ -265,6 +265,39 @@ typedef struct _bpf_sock_ops
 typedef int
 sock_ops_hook_t(bpf_sock_ops_t* context);
 
+typedef enum _process_operation
+{
+    PROCESS_OPERATION_CREATE, ///< Process creation.
+    PROCESS_OPERATION_DELETE, ///< Process deletion.
+} process_operation_t;
+
+typedef struct _process_md
+{
+    uint8_t* command_start;        ///< Pointer to start of the command line.
+    uint8_t* command_end;          ///< Pointer to end of the command line.
+    uint64_t process_id;           ///< Process ID.
+    uint64_t parent_process_id;    ///< Parent process ID.
+    uint64_t creating_process_id;  ///< Creating process ID.
+    uint64_t creating_thread_id;   ///< Creating thread ID.
+    process_operation_t operation; ///< Operation to do.
+} process_md_t;
+
+/*
+ * @brief Handle process creation and deletion.
+ *
+ * Program type: \ref EBPF_PROGRAM_TYPE_PROCESS
+ *
+ * Attach type(s):
+ * \ref EBPF_ATTACH_TYPE_PROCESS
+ *
+ * @param[in] context \ref process_md_t
+ * @return STATUS_SUCCESS to permit the operation, or a failure NTSTATUS value to deny the operation.
+ * Value of STATUS_SUCCESS is 0x0.
+ * For PROCESS_OPERATION_DELETE operation, the return value is ignored.
+ */
+typedef int
+process_hook_t(process_md_t* context);
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

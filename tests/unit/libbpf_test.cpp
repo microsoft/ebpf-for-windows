@@ -9,6 +9,7 @@
 #include "capture_helper.hpp"
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
+#include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_vm_isa.hpp"
@@ -3406,3 +3407,71 @@ _utility_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("utility_test", "[libbf]", _utility_test);
+
+typedef struct
+{
+    uint64_t parent_process_id;
+    uint8_t command_line[256];
+} proces_entry_t;
+
+static void
+_process_hook_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    const char dll_name[] = "process_monitor_um.dll";
+    const char obj_name[] = "process_monitor.o";
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_PROCESS, EBPF_ATTACH_TYPE_PROCESS);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_PROCESS) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
+    struct bpf_object* process_object = bpf_object__open(file_name);
+    REQUIRE(process_object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(process_object) == 0);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(process_object, "ProcessMonitor");
+    REQUIRE(caller != nullptr);
+
+    struct bpf_map* process_map = bpf_object__find_map_by_name(process_object, "process_map");
+    REQUIRE(process_map != nullptr);
+
+    bpf_link_ptr link(bpf_program__attach(caller));
+    REQUIRE(link != nullptr);
+
+    // Now run the ebpf program.
+    process_md_t ctx{0};
+    ctx.process_id = 1234;
+    ctx.operation = PROCESS_OPERATION_CREATE;
+    ctx.parent_process_id = 5678;
+    ctx.command_start = (uint8_t*)"test_process";
+    ctx.command_end = ctx.command_start + strlen((char*)ctx.command_start);
+
+    uint32_t result;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+
+    // Check if the entry was added to the map.
+    uint64_t key = 1234;
+    proces_entry_t value;
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(process_map), &key, &value) == 0);
+
+    // Verify the entry.
+    REQUIRE(value.parent_process_id == 5678);
+    REQUIRE(strcmp((char*)value.command_line, "test_process") == 0);
+
+    // Test process termination.
+    ctx.operation = PROCESS_OPERATION_DELETE;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+
+    // Check if the entry was removed from the map.
+    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(process_map), &key, &value) != 0);
+
+    result = bpf_link__destroy(link.release());
+    REQUIRE(result == 0);
+    bpf_object__close(process_object);
+}
+
+DECLARE_ALL_TEST_CASES("process_hook", "[libbf]", _process_hook_test);

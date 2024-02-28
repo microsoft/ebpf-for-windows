@@ -53,6 +53,9 @@
     <ClCompile Include="..\guid.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\net_ebpf_ext_process.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="NetEbpfExt.inf">
@@ -96,6 +99,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="netebpfext_platform.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\net_ebpf_ext_process.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
