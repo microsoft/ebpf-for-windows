@@ -120,6 +120,7 @@ jobs:
       gather_dumps: true
       capture_etw: true
       leak_detection: true
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
