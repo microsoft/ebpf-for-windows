@@ -104,7 +104,7 @@ jobs:
       capture_etw: true
       leak_detection: true
 
-    # Run the unit tests for NativeOnly build in GitHub.
+  # Run the unit tests for NativeOnly build in GitHub.
   unit_tests_native_only:
     # Always run this job.
     needs: regular_native-only

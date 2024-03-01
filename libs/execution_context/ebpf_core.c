@@ -501,7 +501,6 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_resolve_map(
     _In_ const struct _ebpf_operation_resolve_map_request* request,
@@ -545,7 +544,6 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 #endif // CONFIG_BPF_JIT_DISABLED
 }
-// #endif
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_create_map(
@@ -596,7 +594,6 @@ _ebpf_core_protocol_create_map(
     EBPF_RETURN_RESULT(retval);
 }
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_create_program(
     _In_ const ebpf_operation_create_program_request_t* request, _Inout_ ebpf_operation_create_program_reply_t* reply)
@@ -646,7 +643,6 @@ Done:
     EBPF_RETURN_RESULT(retval);
 #endif // CONFIG_BPF_JIT_DISABLED && CONFIG_BPF_INTERPRETER_DISABLED
 }
-// #endif
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
@@ -1622,7 +1618,6 @@ _ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_
     EBPF_RETURN_RESULT(ebpf_handle_close(request->handle));
 }
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED)
 static uint64_t
 _ebpf_core_protocol_get_ec_function(
     _In_ const ebpf_operation_get_ec_function_request_t* request, _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
@@ -1642,7 +1637,6 @@ _ebpf_core_protocol_get_ec_function(
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 #endif // CONFIG_BPF_JIT_DISABLED
 }
-// #endif
 
 // Get helper info for a program or program type.  This is used by the jitter/verifier,
 // not by libbpf which instead uses ebpf_program_get_info
@@ -2424,12 +2418,9 @@ typedef struct _ebpf_protocol_handler
 } const ebpf_protocol_handler_t;
 
 #define PROTOCOL_NATIVE_MODE 1
-// #if !defined(CONFIG_BPF_JIT_DISABLED)
 #define PROTOCOL_JIT_MODE 2
-// #endif
-// #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_INTERPRET_MODE 4
-// #endif
+
 #if !defined(CONFIG_BPF_JIT_DISABLED) && !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_JIT_OR_INTERPRET_MODE (PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
 #define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
