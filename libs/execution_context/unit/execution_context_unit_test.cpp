@@ -1316,7 +1316,76 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
     resolve_map_request->program_handle = program_handles[0];
     REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    auto resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
+
+    // Invalid handle.
+    resolve_helper_request->program_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Invalid helper id.
+    resolve_helper_request->program_handle = program_handles[0];
+    resolve_helper_request->helper_id[0] = UINT32_MAX;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    reply.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address));
+    // Reply too small.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Set no helper functions.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id));
+    resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Set helper function multiple times.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
+    reply.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
+    resolve_helper_request->program_handle = program_handles[0];
+    resolve_helper_request->helper_id[0] = 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_HELPER, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+}
+
+TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(
+        EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle) + sizeof(ebpf_handle_t) * 2);
+    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t) * 2);
+    auto resolve_map_request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request.data());
+
+    // Invalid handle.
+    resolve_map_request->program_handle = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // 1 invalid map.
+    resolve_map_request->program_handle = program_handles[0];
+    resolve_map_request->map_handle[0] = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    resolve_map_request->program_handle = program_handles[0];
+    resolve_map_request->map_handle[0] = map_handles["BPF_MAP_TYPE_HASH"];
+    resolve_map_request->map_handle[1] = ebpf_handle_invalid;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Reply too small.
+    reply.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // 0 maps.
+    request.resize(EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle));
+    resolve_map_request = reinterpret_cast<ebpf_operation_resolve_map_request_t*>(request.data());
+    resolve_map_request->program_handle = program_handles[0];
+    REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
@@ -1373,7 +1442,62 @@ TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
     create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
     REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+
+    std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_create_program_reply_t));
+    auto create_program_request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request.data());
+    create_program_request->program_type = _program_types[0];
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    // No name, no section offset, no filename - Should be permitted.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    request.resize(request.size() + 10);
+    create_program_request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request.data());
+
+    // Section name before start of valid region.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data) - 1;
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Program name before start of valid region.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data) - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Section name past end of valid region.
+    create_program_request->section_name_offset = create_program_request->header.length + 1;
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Section name past end of valid region.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = create_program_request->header.length + 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    request.resize(request.size() + 1024);
+    create_program_request = reinterpret_cast<ebpf_operation_create_program_request_t*>(request.data());
+
+    // Large file name.
+    create_program_request->section_name_offset = create_program_request->header.length;
+    create_program_request->program_name_offset = create_program_request->header.length;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Large section name - Permitted.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = create_program_request->header.length;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+
+    // Large program name.
+    create_program_request->section_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
@@ -1465,7 +1589,51 @@ TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
     }
     _ebpf_platform_code_integrity_enabled = false;
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
+{
+
+    // Test with type jit.
+    {
+        NEGATIVE_TEST_PROLOG();
+
+        ebpf_operation_load_code_request_t load_code_request{
+            {sizeof(ebpf_operation_load_code_request_t), EBPF_OPERATION_LOAD_CODE},
+            program_handles[0],
+            EBPF_CODE_JIT,
+            static_cast<uint8_t>('0xcc')};
+
+        // Invalid handle.
+        load_code_request.program_handle = ebpf_handle_invalid;
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_OPERATION_NOT_SUPPORTED);
+        load_code_request.program_handle = program_handles[0];
+
+        load_code_request.code_type = EBPF_CODE_NATIVE;
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_OPERATION_NOT_SUPPORTED);
+        load_code_request.code_type = EBPF_CODE_JIT;
+
+        load_code_request.code_type = static_cast<ebpf_code_type_t>(-1);
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_OPERATION_NOT_SUPPORTED);
+        load_code_request.code_type = EBPF_CODE_JIT;
+    }
+
+    // HVCI can only be changed at init time.
+    _ebpf_platform_code_integrity_enabled = true;
+    {
+        NEGATIVE_TEST_PROLOG();
+
+        ebpf_operation_load_code_request_t load_code_request{
+            {sizeof(ebpf_operation_load_code_request_t), EBPF_OPERATION_LOAD_CODE},
+            program_handles[0],
+            EBPF_CODE_JIT,
+            static_cast<uint8_t>('0xcc')};
+
+        // HVCI on.
+        REQUIRE(invoke_protocol(EBPF_OPERATION_LOAD_CODE, load_code_request) == EBPF_OPERATION_NOT_SUPPORTED);
+    }
+    _ebpf_platform_code_integrity_enabled = false;
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE", "[execution_context][negative]")
 {
@@ -1737,6 +1905,17 @@ TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
     request.function = static_cast<ebpf_ec_function_t>(EBPF_EC_FUNCTION_LOG + 1);
     // Wrong EC function.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_EC_FUNCTION, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+#else
+TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_get_ec_function_request_t request;
+    ebpf_operation_get_ec_function_reply_t reply;
+
+    request.function = static_cast<ebpf_ec_function_t>(EBPF_EC_FUNCTION_LOG + 1);
+    // Wrong EC function.
+    REQUIRE(invoke_protocol(EBPF_OPERATION_GET_EC_FUNCTION, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
 }
 #endif
 
