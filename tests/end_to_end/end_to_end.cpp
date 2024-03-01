@@ -1831,21 +1831,6 @@ DECLARE_ALL_TEST_CASES("xdp-reflect-v6", "[xdp_tests]", _xdp_reflect_packet_test
 DECLARE_ALL_TEST_CASES("xdp-encap-reflect-v4", "[xdp_tests]", _xdp_encap_reflect_packet_test_v4);
 DECLARE_ALL_TEST_CASES("xdp-encap-reflect-v6", "[xdp_tests]", _xdp_encap_reflect_packet_test_v6);
 
-// TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test_v4(EBPF_EXECUTION_JIT); }
-// TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test_v6(EBPF_EXECUTION_JIT); }
-// TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
-// TEST_CASE("xdp-reflect-v6-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
-// } TEST_CASE("xdp-encap-reflect-v4-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET);
-// } TEST_CASE("xdp-encap-reflect-v6-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT,
-// AF_INET6); } TEST_CASE("xdp-encap-reflect-v4-interpret", "[xdp_tests]")
-// {
-//     _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
-// }
-// TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
-// {
-//     _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
-// }
-
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED) || !defined(CONFIG_BPF_JIT_DISABLED)
 static void
 _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)

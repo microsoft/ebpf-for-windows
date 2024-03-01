@@ -66,7 +66,6 @@ typedef enum _ebpf_ec_function
     EBPF_EC_FUNCTION_LOG
 } ebpf_ec_function_t;
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED)
 typedef struct _ebpf_operation_resolve_helper_request
 {
     struct _ebpf_operation_header header;
@@ -92,9 +91,7 @@ typedef struct _ebpf_operation_resolve_map_reply
     struct _ebpf_operation_header header;
     uintptr_t address[1];
 } ebpf_operation_resolve_map_reply_t;
-// #endif
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 typedef struct _ebpf_operation_create_program_request
 {
     struct _ebpf_operation_header header;
@@ -109,9 +106,7 @@ typedef struct _ebpf_operation_create_program_reply
     struct _ebpf_operation_header header;
     ebpf_handle_t program_handle;
 } ebpf_operation_create_program_reply_t;
-// #endif
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 typedef struct _ebpf_operation_load_code_request
 {
     struct _ebpf_operation_header header;
@@ -119,7 +114,6 @@ typedef struct _ebpf_operation_load_code_request
     ebpf_code_type_t code_type;
     uint8_t code[1];
 } ebpf_operation_load_code_request_t;
-// #endif
 
 typedef struct _ebpf_operation_create_map_request
 {
@@ -275,7 +269,6 @@ typedef struct _ebpf_operation_close_handle_request
     ebpf_handle_t handle;
 } ebpf_operation_close_handle_request_t;
 
-// #if !defined(CONFIG_BPF_JIT_DISABLED)
 typedef struct _ebpf_operation_get_ec_function_request
 {
     struct _ebpf_operation_header header;
@@ -287,7 +280,6 @@ typedef struct _ebpf_operation_get_ec_function_reply
     struct _ebpf_operation_header header;
     uintptr_t address;
 } ebpf_operation_get_ec_function_reply_t;
-// #endif
 
 typedef struct _ebpf_operation_get_program_info_request
 {
