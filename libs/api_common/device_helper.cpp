@@ -27,7 +27,7 @@ typedef struct _async_ioctl_completion_context
 } async_ioctl_completion_context_t;
 
 // Handle used for synchronous calls to the driver.
-static ebpf_handle_t _device_handle = ebpf_handle_invalid;
+static ebpf_handle_t _sync_device_handle = ebpf_handle_invalid;
 // Handle used for asynchronous calls to the driver.
 static ebpf_handle_t _async_device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
@@ -37,7 +37,7 @@ initialize_device_handle()
 {
     std::scoped_lock lock(_mutex);
 
-    if (_device_handle != ebpf_handle_invalid) {
+    if (_sync_device_handle != ebpf_handle_invalid) {
         return EBPF_ALREADY_INITIALIZED;
     }
 
@@ -46,10 +46,10 @@ initialize_device_handle()
     }
 
     // Open the device handle without the FILE_FLAG_OVERLAPPED flag for synchronous calls.
-    _device_handle =
+    _sync_device_handle =
         Platform::CreateFile(EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, 0);
 
-    if (_device_handle == ebpf_handle_invalid) {
+    if (_sync_device_handle == ebpf_handle_invalid) {
         return win32_error_code_to_ebpf_result(GetLastError());
     }
 
@@ -58,8 +58,8 @@ initialize_device_handle()
         EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
 
     if (_async_device_handle == ebpf_handle_invalid) {
-        Platform::CloseHandle(_device_handle);
-        _device_handle = ebpf_handle_invalid;
+        Platform::CloseHandle(_sync_device_handle);
+        _sync_device_handle = ebpf_handle_invalid;
         return win32_error_code_to_ebpf_result(GetLastError());
     }
 
@@ -71,21 +71,21 @@ clean_up_device_handle()
 {
     std::scoped_lock lock(_mutex);
 
-    if (_device_handle != ebpf_handle_invalid) {
-        Platform::CloseHandle(_device_handle);
-        _device_handle = ebpf_handle_invalid;
+    if (_sync_device_handle != ebpf_handle_invalid) {
+        Platform::CloseHandle(_sync_device_handle);
+        _sync_device_handle = ebpf_handle_invalid;
     }
 }
 
 ebpf_handle_t
 get_device_handle()
 {
-    if (_device_handle == ebpf_handle_invalid) {
+    if (_sync_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
         (void)initialize_device_handle();
     }
 
-    return _device_handle;
+    return _sync_device_handle;
 }
 
 ebpf_handle_t
