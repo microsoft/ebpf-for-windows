@@ -35,7 +35,7 @@ void
 clean_up_device_handle();
 
 ebpf_handle_t
-get_device_handle();
+get_sync_device_handle();
 
 ebpf_handle_t
 get_async_device_handle();
@@ -104,7 +104,7 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
     }
 
     auto success = Platform::DeviceIoControl(
-        overlapped ? get_async_device_handle() : get_device_handle(),
+        overlapped ? get_async_device_handle() : get_sync_device_handle(),
         IOCTL_EBPF_CTL_METHOD_BUFFERED,
         request_ptr,
         request_size,

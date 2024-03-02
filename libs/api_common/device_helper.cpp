@@ -78,7 +78,7 @@ clean_up_device_handle()
 }
 
 ebpf_handle_t
-get_device_handle()
+get_sync_device_handle()
 {
     if (_sync_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
