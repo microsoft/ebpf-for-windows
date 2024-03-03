@@ -84,9 +84,9 @@ _ebpf_core_memcpy(
 
 static int32_t
 _ebpf_core_memcmp(
-    _In_reads_(length) const void* buffer1,
+    _In_reads_(buffer1_length) const void* buffer1,
     size_t buffer1_length,
-    _In_reads_(length) const void* buffer2,
+    _In_reads_(buffer2_length) const void* buffer2,
     size_t buffer2_length);
 
 static uintptr_t
@@ -94,7 +94,10 @@ _ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value);
 
 static int32_t
 _ebpf_core_memmove(
-    _Out_writes_(length) void* destination, size_t length, _In_reads_(length) const void* source, size_t source_length);
+    _Out_writes_(destination_length) void* destination,
+    size_t destination_length,
+    _In_reads_(source_length) const void* source,
+    size_t source_length);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -2385,9 +2388,9 @@ _ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value)
 
 static int32_t
 _ebpf_core_memcmp(
-    _In_reads_(length) const void* buffer1,
+    _In_reads_(buffer1_length) const void* buffer1,
     size_t buffer1_length,
-    _In_reads_(length) const void* buffer2,
+    _In_reads_(buffer2_length) const void* buffer2,
     size_t buffer2_length)
 {
     int32_t result = memcmp(buffer1, buffer2, buffer1_length < buffer2_length ? buffer1_length : buffer2_length);
@@ -2404,17 +2407,17 @@ _ebpf_core_memcmp(
     return result;
 }
 
-static ebpf_result_t
+static int32_t
 _ebpf_core_memmove(
-    _Out_writes_bytes_all_(length) void* destination,
-    size_t destination_size,
-    _In_reads_bytes_(length) const void* source,
+    _Out_writes_(destination_length) void* destination,
+    size_t destination_length,
+    _In_reads_(source_length) const void* source,
     size_t source_length)
 {
-    if (source_length > destination_size) {
+    if (source_length > destination_length) {
         return -EINVAL;
     }
-    return memmove_s(destination, destination_size, source, source_length);
+    return memmove_s(destination, destination_length, source, source_length);
 }
 
 typedef enum _ebpf_protocol_call_type
