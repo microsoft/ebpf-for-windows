@@ -52,30 +52,6 @@ struct
     __uint(max_entries, 1024 * 64);
 } process_ringbuf SEC(".maps");
 
-// For debug builds, limit the number of iterations in the loop to 16 to prevent the verifier from
-// running for too long. For release builds, limit the number of iterations to 256.
-#if defined(NDEBUG)
-#define BOUNDED_MEMCPY_LIMIT 256
-#else
-#define BOUNDED_MEMCPY_LIMIT 16
-#endif
-
-__attribute__((always_inline))
-// Copy the first 'source_size' bytes from 'source' to 'destination' and bound the copy to 'destination_size' bytes.
-void
-bounded_memcpy(uint8_t* destination, const uint8_t* source, uint32_t destination_size, uint32_t source_size)
-{
-// Prevail verifier doesn't correctly compute the number of iterations in the loop.
-// Unroll the loop to avoid the verifier error.
-// Issue: https://github.com/vbpf/ebpf-verifier/issues/441
-#pragma unroll
-    for (uint32_t index = 0; index < BOUNDED_MEMCPY_LIMIT; index++) {
-        if (index < destination_size && index < source_size) {
-            destination[index] = source[index];
-        }
-    }
-}
-
 // The following line is optional, but is used to verify
 // that the ProcesMonitor prototype is correct or the compiler
 // would complain when the function is actually defined below.
@@ -92,10 +68,10 @@ ProcessMonitor(process_md_t* ctx)
         create_event.process_id = ctx->process_id;
         uint64_t process_id = ctx->process_id;
 
-        bounded_memcpy(
+        memcpy_s(
             create_event.entry.command_line,
-            ctx->command_start,
             sizeof(create_event.entry.command_line),
+            ctx->command_start,
             (uint32_t)(ctx->command_end - ctx->command_start));
 
         bpf_map_update_elem(&process_map, &process_id, &create_event.entry, BPF_ANY);
