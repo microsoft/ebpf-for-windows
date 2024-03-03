@@ -94,6 +94,37 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {BPF_FUNC_is_current_admin, "bpf_is_current_admin", EBPF_RETURN_TYPE_INTEGER, {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
+    {BPF_FUNC_memcpy,
+     "bpf_memcpy",
+     EBPF_RETURN_TYPE_INTEGER,
+     {
+         EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+         EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
+         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+     }},
+    {BPF_FUNC_memcmp,
+     "bpf_memcmp",
+     EBPF_RETURN_TYPE_INTEGER,
+     {
+         EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+         EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+     }},
+    {BPF_FUNC_memset,
+     "bpf_memset",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO, EBPF_ARGUMENT_TYPE_ANYTHING}},
+    {BPF_FUNC_memmove,
+     "bpf_memmove",
+     EBPF_RETURN_TYPE_INTEGER,
+     {
+         EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
+         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+         EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
+     }},
 };
 
 #ifdef __cplusplus
