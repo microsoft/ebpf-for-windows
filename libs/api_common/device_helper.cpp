@@ -75,6 +75,11 @@ clean_up_device_handle()
         Platform::CloseHandle(_sync_device_handle);
         _sync_device_handle = ebpf_handle_invalid;
     }
+
+    if (_async_device_handle != ebpf_handle_invalid) {
+        Platform::CloseHandle(_async_device_handle);
+        _async_device_handle = ebpf_handle_invalid;
+    }
 }
 
 ebpf_handle_t
