@@ -23,59 +23,59 @@ SEC("bind")
 bind_action_t
 UtilityTest(bind_md_t* ctx)
 {
-    // Memcmp test
     char test1[] = "test";
     char test2[] = "test";
     char test3[] = "1234567890";
 
-    // Test equal
+    // Verify that the memcmp function returns 0 when the strings are equal.
     if (memcmp(test1, test2, 4) != 0) {
         return 1;
     }
 
     test1[0] = 'T';
-    // Test less than
+    // Verify that the memcmp function returns < 0 when the first string is less than the second.
     if (memcmp(test1, test2, 4) >= 0) {
         return 2;
     }
 
-    // Test bpf_memcmp with different lengths.
-    // This should return > 0 because the first 3 characters are the same and the second string is longer.
+    // Verify that bpf_memcmp handles the case where the first string is shorter than the second.
+    // The overlapping portion of the strings is equal, but the first string is shorter, so it should return < 0.
     if (bpf_memcmp(test1, 3, test2, 4) >= 0) {
         return 3;
     }
 
+    // Alter the first string so that it is no longer equal to the second.
     test1[0] = 'T';
     test1[1] = 'E';
     test1[2] = 'S';
     test1[3] = 'T';
 
-    // Test bpf_memcpy
+    // Use memcpy to overwrite the first string with the second.
     if (memcpy(test1, test2, 4) < 0) {
         return 4;
     }
 
-    // Check if the copy worked
+    // Verify that the first string is now equal to the second.
     if (test1[0] != 't' || test1[1] != 'e' || test1[2] != 's' || test1[3] != 't') {
         return 5;
     }
 
-    // Test bpf_memset
+    // Verify that memset overwrites the first string with 0.
     if (memset(test1, 4, 0) == 0) {
         return 6;
     }
 
-    // Check if the memset worked
+    // Verify that all characters in the first string are now 0.
     if (test1[0] != 0 || test1[1] != 0 || test1[2] != 0 || test1[3] != 0) {
         return 7;
     }
 
-    // Test bpf_memmove
+    // Verify that memmove can move the second string to the first string when the strings overlap.
     if (memmove(test3 + 2, test3, 4) < 0) {
         return 8;
     }
 
-    // Check if the move worked
+    // Verify that the contents of the second string are now in the first string.
     if (test3[2] != '1' || test3[3] != '2' || test3[4] != '3' || test3[5] != '4') {
         return 9;
     }

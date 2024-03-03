@@ -364,8 +364,8 @@ EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, con
  * @param[in] memory2 Second memory region.
  * @param[in] memory2_size Size of the second memory region.
  *
- * @returns 0 if the memory regions are equal, a negative value if memory1 is less than memory2, or a positive value if
- * memory1 is greater than memory2.
+ * @returns 0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the
+ * contents memory2, or a positive value if the contents memory1 is greater than the contents memory2.
  */
 
 EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const void* memory2, uint32_t memory2_size));
@@ -389,7 +389,7 @@ EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
 #endif
 
 /**
- * @brief Move memory from one location to another.
+ * @brief Copy memory from one location to another, handling overlapping regions.
  *
  * @param[in] destination Destination buffer.
  * @param[in] destination_size Size of the destination buffer.
