@@ -19,33 +19,37 @@
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
+// The non variable fields from the process_md_t struct.
 typedef struct
 {
+    uint64_t process_id;
     uint64_t parent_process_id;
-    uint8_t command_line[256];
-} proces_entry_t;
+    uint64_t creating_process_id;
+    uint64_t creating_thread_id;
+    uint64_t operation;
+} process_info_t;
 
-typedef struct
-{
-    uint64_t process_id;
-    proces_entry_t entry;
-} process_create_event_t;
+#define MAX_PATH (496 - sizeof(process_info_t))
 
-typedef struct
-{
-    uint64_t process_id;
-} process_delete_event_t;
-
-// Map for running processes.
+// LRU hash for storing the image path of a process.
 struct
 {
-    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
     __type(key, uint64_t);
-    __type(value, proces_entry_t);
+    __type(value, char[MAX_PATH]);
     __uint(max_entries, 1024);
 } process_map SEC(".maps");
 
-// Ringbuffer for process events.
+// LRU hash for storing the command line of a process.
+struct
+{
+    __uint(type, BPF_MAP_TYPE_LRU_HASH);
+    __type(key, uint64_t);
+    __type(value, char[MAX_PATH]);
+    __uint(max_entries, 1024);
+} command_map SEC(".maps");
+
+// Ring-buffer for process_info_t.
 struct
 {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -61,26 +65,29 @@ SEC("process")
 int
 ProcessMonitor(process_md_t* ctx)
 {
+    process_info_t process_info = {
+        .process_id = ctx->process_id,
+        .parent_process_id = ctx->parent_process_id,
+        .creating_process_id = ctx->creating_process_id,
+        .creating_thread_id = ctx->creating_thread_id,
+        .operation = ctx->operation,
+    };
+
     if (ctx->operation == PROCESS_OPERATION_CREATE) {
-        process_create_event_t create_event;
-        __builtin_memset(&create_event, 0, sizeof(create_event));
-        create_event.entry.parent_process_id = ctx->parent_process_id;
-        create_event.process_id = ctx->process_id;
-        uint64_t process_id = ctx->process_id;
+        uint8_t buffer[MAX_PATH];
 
-        memcpy_s(
-            create_event.entry.command_line,
-            sizeof(create_event.entry.command_line),
-            ctx->command_start,
-            (uint32_t)(ctx->command_end - ctx->command_start));
+        memset(buffer, sizeof(buffer), 0);
 
-        bpf_map_update_elem(&process_map, &process_id, &create_event.entry, BPF_ANY);
-        bpf_ringbuf_output(&process_ringbuf, &create_event, sizeof(create_event), 0);
-    } else if (ctx->operation == PROCESS_OPERATION_DELETE) {
-        process_delete_event_t delete_event = {.process_id = ctx->process_id};
-        uint64_t process_id = ctx->process_id;
-        bpf_map_delete_elem(&process_map, &process_id);
-        bpf_ringbuf_output(&process_ringbuf, &delete_event, sizeof(delete_event), 0);
+        memcpy_s(buffer, sizeof(buffer), ctx->command_start, ctx->command_end - ctx->command_start);
+        bpf_map_update_elem(&command_map, &process_info.process_id, buffer, BPF_ANY);
+
+        // Reset the buffer.
+        memset(buffer, sizeof(buffer), 0);
+
+        // Copy image path into the LRU hash.
+        bpf_process_get_image_path(ctx, buffer, sizeof(buffer));
+        bpf_map_update_elem(&process_map, &process_info.process_id, buffer, BPF_ANY);
     }
+    bpf_ringbuf_output(&process_ringbuf, &process_info, sizeof(process_info), 0);
     return 0;
 }

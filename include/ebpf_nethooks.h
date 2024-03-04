@@ -273,8 +273,8 @@ typedef enum _process_operation
 
 typedef struct _process_md
 {
-    uint8_t* command_start;        ///< Pointer to start of the command line.
-    uint8_t* command_end;          ///< Pointer to end of the command line.
+    uint8_t* command_start;        ///< Pointer to start of the command line as UTF-8 string.
+    uint8_t* command_end;          ///< Pointer to end of the command line as UTF-8 string.
     uint64_t process_id;           ///< Process ID.
     uint64_t parent_process_id;    ///< Parent process ID.
     uint64_t creating_process_id;  ///< Creating process ID.
@@ -297,6 +297,33 @@ typedef struct _process_md
  */
 typedef int
 process_hook_t(process_md_t* context);
+
+// Process helper functions.
+#define PROCESS_EXT_HELPER_FN_BASE 0xFFFF
+
+#ifndef __doxygen
+#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
+#endif
+
+typedef enum
+{
+    BPF_FUNC_process_get_image_path = PROCESS_EXT_HELPER_FN_BASE + 1,
+} ebpf_process_helper_id_t;
+
+/**
+ * @brief Get the image path of the process.
+ *
+ * @param[in] context Process metadata.
+ * @param[out] path Buffer to store the image path.
+ * @param[in] path_length Length of the buffer.
+ *
+ * @retval >=0 The length of the image path.
+ * @retval <0 A failure occurred.
+ */
+EBPF_HELPER(int, bpf_process_get_image_path, (process_md_t * ctx, uint8_t* path, uint32_t path_length));
+#ifndef __doxygen
+#define bpf_process_get_image_path ((bpf_process_get_image_path_t)BPF_FUNC_process_get_image_path)
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(pop)

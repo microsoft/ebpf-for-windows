@@ -18,43 +18,56 @@ extern "C"
     int
     process_monitor_history_callback(void* ctx, void* data, size_t size);
 }
+typedef enum _process_operation
+{
+    PROCESS_OPERATION_CREATE, ///< Process creation.
+    PROCESS_OPERATION_DELETE, ///< Process deletion.
+} process_operation_t;
 
 typedef struct
 {
+    uint64_t process_id;
     uint64_t parent_process_id;
-    uint8_t command_line[256];
-} proces_entry_t;
+    uint64_t creating_process_id;
+    uint64_t creating_thread_id;
+    uint64_t operation;
+} process_info_t;
 
-typedef struct
-{
-    uint64_t process_id;
-    proces_entry_t entry;
-} process_create_event_t;
-
-typedef struct
-{
-    uint64_t process_id;
-} process_delete_event_t;
+struct bpf_map* process_map;
+struct bpf_map* command_map;
 
 int
 process_monitor_history_callback(void* ctx, void* data, size_t size)
 {
     UNREFERENCED_PARAMETER(ctx);
+    if (size != sizeof(process_info_t)) {
+        return 0;
+    }
+    process_info_t* event = (process_info_t*)data;
+    std::string file_name;
+    std::string command_line;
 
-    switch (size) {
-    case sizeof(process_create_event_t): {
-        process_create_event_t* event = (process_create_event_t*)data;
-        std::wcout << L"Process created: " << event->process_id << L" "
-                   << reinterpret_cast<wchar_t*>(event->entry.command_line) << std::endl;
+    file_name.resize(1024);
+    command_line.resize(1024);
+
+    // Get the process name.
+    bpf_map_lookup_elem(bpf_map__fd(process_map), &event->process_id, file_name.data());
+    bpf_map_lookup_elem(bpf_map__fd(command_map), &event->process_id, command_line.data());
+
+    // Trim the strings.
+    file_name.resize(strlen(file_name.c_str()));
+    command_line.resize(strlen(command_line.c_str()));
+
+    switch (event->operation) {
+    case PROCESS_OPERATION_CREATE: {
+        std::cout << "Process created: " << event->process_id << "\n" << file_name << "\n" << command_line << std::endl;
         break;
     }
-    case sizeof(process_delete_event_t): {
-        process_delete_event_t* event = (process_delete_event_t*)data;
-        std::wcout << L"Process deleted: " << event->process_id << std::endl;
+    case PROCESS_OPERATION_DELETE: {
+        std::cout << "Process deleted: " << event->process_id << "\n" << file_name << std::endl;
         break;
     }
     default:
-        std::wcout << L"Unknown event size: " << size << std::endl;
         break;
     }
 
@@ -87,6 +100,9 @@ main(int argc, char** argv)
         return 1;
     }
 
+    // Command line and image path are UTF8.
+    SetConsoleOutputCP(CP_UTF8);
+
     std::cerr << "Press Ctrl-C to shutdown" << std::endl;
 
     // Load process_monitor.sys BPF program.
@@ -98,6 +114,18 @@ main(int argc, char** argv)
 
     if (bpf_object__load(object) < 0) {
         std::cerr << "bpf_object__load for process_monitor.sys failed: " << errno << std::endl;
+        return 1;
+    }
+
+    process_map = bpf_object__find_map_by_name(object, "process_map");
+    if (!process_map) {
+        std::cerr << "bpf_object__find_map_by_name for \"process_map\" failed: " << errno << std::endl;
+        return 1;
+    }
+
+    command_map = bpf_object__find_map_by_name(object, "command_map");
+    if (!command_map) {
+        std::cerr << "bpf_object__find_map_by_name for \"command_map\" failed: " << errno << std::endl;
         return 1;
     }
 

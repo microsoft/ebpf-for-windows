@@ -3424,7 +3424,9 @@ _process_hook_test(ebpf_execution_type_t execution_type)
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_PROCESS, EBPF_ATTACH_TYPE_PROCESS);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_PROCESS) == EBPF_SUCCESS);
+    REQUIRE(
+        sample_program_info.initialize(EBPF_PROGRAM_TYPE_PROCESS, &_test_process_program_info_provider_data) ==
+        EBPF_SUCCESS);
 
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
     struct bpf_object* process_object = bpf_object__open(file_name);
@@ -3439,6 +3441,9 @@ _process_hook_test(ebpf_execution_type_t execution_type)
     struct bpf_map* process_map = bpf_object__find_map_by_name(process_object, "process_map");
     REQUIRE(process_map != nullptr);
 
+    struct bpf_map* command_map = bpf_object__find_map_by_name(process_object, "command_map");
+    REQUIRE(command_map != nullptr);
+
     bpf_link_ptr link(bpf_program__attach(caller));
     REQUIRE(link != nullptr);
 
@@ -3447,7 +3452,7 @@ _process_hook_test(ebpf_execution_type_t execution_type)
     ctx.process_id = 1234;
     ctx.operation = PROCESS_OPERATION_CREATE;
     ctx.parent_process_id = 5678;
-    ctx.command_start = (uint8_t*)"test_process";
+    ctx.command_start = (uint8_t*)"notepad foo.bar.txt";
     ctx.command_end = ctx.command_start + strlen((char*)ctx.command_start);
 
     uint32_t result;
@@ -3455,19 +3460,21 @@ _process_hook_test(ebpf_execution_type_t execution_type)
 
     // Check if the entry was added to the map.
     uint64_t key = 1234;
-    proces_entry_t value;
-    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(process_map), &key, &value) == 0);
+    uint8_t value[512] = {0};
+    bpf_map_lookup_elem(bpf_map__fd(command_map), &key, &value);
 
-    // Verify the entry.
-    REQUIRE(value.parent_process_id == 5678);
-    REQUIRE(strcmp((char*)value.command_line, "test_process") == 0);
+    std::string returned_command = (char*)value;
 
-    // Test process termination.
-    ctx.operation = PROCESS_OPERATION_DELETE;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    // Verify the result.
+    REQUIRE(returned_command == "notepad foo.bar.txt");
 
-    // Check if the entry was removed from the map.
-    REQUIRE(bpf_map_lookup_elem(bpf_map__fd(process_map), &key, &value) != 0);
+    // Get the image path.
+    bpf_map_lookup_elem(bpf_map__fd(process_map), &key, &value);
+
+    returned_command = (char*)value;
+
+    // Verify the result.
+    REQUIRE(returned_command == "C:\\Windows\\System32\\notepad.exe");
 
     result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);

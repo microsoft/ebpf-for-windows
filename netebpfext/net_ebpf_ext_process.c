@@ -9,6 +9,8 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_process.h"
 
+#include <errno.h>
+
 static ebpf_result_t
 _ebpf_process_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
@@ -29,11 +31,20 @@ void
 _ebpf_process_create_process_notify_routine_ex(
     _Inout_ PEPROCESS process, _In_ HANDLE process_id, _Inout_opt_ PPS_CREATE_NOTIFY_INFO create_info);
 
+static int32_t
+_ebpf_process_get_image_path(_In_ process_md_t* process_md, _Out_ uint8_t* path, uint32_t path_length);
+
+static const void* _ebpf_process_helper_functions[] = {(void*)&_ebpf_process_get_image_path};
+
+static ebpf_helper_function_addresses_t _ebpf_process_helper_function_address_table = {
+    EBPF_COUNT_OF(_ebpf_process_helper_functions), (uint64_t*)_ebpf_process_helper_functions};
+
 //
 // Process Program Information NPI Provider.
 //
 static ebpf_program_data_t _ebpf_process_program_data = {
     .program_info = &_ebpf_process_program_info,
+    .program_type_specific_helper_function_addresses = &_ebpf_process_helper_function_address_table,
     .context_create = _ebpf_process_context_create,
     .context_destroy = _ebpf_process_context_destroy,
     .required_irql = PASSIVE_LEVEL,
@@ -304,6 +315,8 @@ typedef struct _process_notify_context
     process_md_t process_md;
     PEPROCESS process;
     PPS_CREATE_NOTIFY_INFO create_info;
+    UTF8_STRING command_line_utf8;
+    UTF8_STRING image_file_name_utf8;
 } process_notify_context_t;
 
 void
@@ -315,21 +328,26 @@ _ebpf_process_create_process_notify_routine_ex(
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    if (create_info != NULL && create_info->CommandLine != NULL) {
-        process_notify_context.process_md.command_start = (uint8_t*)create_info->CommandLine->Buffer;
+    if (create_info != NULL) {
+        if (create_info->CommandLine != NULL) {
+            RtlUnicodeStringToUTF8String(&process_notify_context.command_line_utf8, create_info->CommandLine, TRUE);
+        }
+        if (create_info->ImageFileName != NULL) {
+            RtlUnicodeStringToUTF8String(
+                &process_notify_context.image_file_name_utf8, create_info->ImageFileName, TRUE);
+        }
+        process_notify_context.process_md.operation = PROCESS_OPERATION_CREATE;
+        process_notify_context.process_md.process_id = (uint64_t)process_id;
+        process_notify_context.process_md.parent_process_id = (uint64_t)create_info->ParentProcessId;
+        process_notify_context.process_md.creating_process_id = (uint64_t)create_info->CreatingThreadId.UniqueProcess;
+        process_notify_context.process_md.creating_thread_id = (uint64_t)create_info->CreatingThreadId.UniqueThread;
+        process_notify_context.process_md.command_start = (uint8_t*)process_notify_context.command_line_utf8.Buffer;
         process_notify_context.process_md.command_end =
-            (uint8_t*)create_info->CommandLine->Buffer + create_info->CommandLine->Length;
+            (uint8_t*)process_notify_context.command_line_utf8.Buffer + process_notify_context.command_line_utf8.Length;
+    } else {
+        process_notify_context.process_md.operation = PROCESS_OPERATION_DELETE;
+        process_notify_context.process_md.process_id = (uint64_t)process_id;
     }
-
-    process_notify_context.process_md.operation =
-        (create_info != NULL) ? PROCESS_OPERATION_CREATE : PROCESS_OPERATION_DELETE;
-    process_notify_context.process_md.process_id = (uint64_t)process_id;
-    process_notify_context.process_md.parent_process_id =
-        (create_info != NULL) ? (uint64_t)create_info->ParentProcessId : 0;
-    process_notify_context.process_md.creating_process_id =
-        (create_info != NULL) ? (uint64_t)create_info->CreatingThreadId.UniqueProcess : 0;
-    process_notify_context.process_md.creating_thread_id =
-        (create_info != NULL) ? (uint64_t)create_info->CreatingThreadId.UniqueThread : 0;
 
     // For each attached client call the process hook.
     ebpf_result_t result;
@@ -363,5 +381,33 @@ _ebpf_process_create_process_notify_routine_ex(
             net_ebpf_extension_hook_get_next_attached_client(_ebpf_process_hook_provider_context, client_context);
     }
 
+    if (process_notify_context.command_line_utf8.Buffer != NULL) {
+        RtlFreeUTF8String(&process_notify_context.command_line_utf8);
+    }
+
+    if (process_notify_context.image_file_name_utf8.Buffer != NULL) {
+        RtlFreeUTF8String(&process_notify_context.image_file_name_utf8);
+    }
+
     NET_EBPF_EXT_LOG_EXIT();
+}
+
+static int32_t
+_ebpf_process_get_image_path(_In_ process_md_t* process_md, _Out_ uint8_t* path, uint32_t path_length)
+{
+    process_notify_context_t* process_notify_context = (process_notify_context_t*)process_md;
+    int32_t result = 0;
+    if (process_notify_context->image_file_name_utf8.Length > path_length) {
+        return -EINVAL;
+    }
+    if (process_notify_context->image_file_name_utf8.Buffer != NULL) {
+        if (path_length >= process_notify_context->image_file_name_utf8.Length) {
+            memcpy(
+                path,
+                process_notify_context->image_file_name_utf8.Buffer,
+                process_notify_context->image_file_name_utf8.Length);
+            result = process_notify_context->image_file_name_utf8.Length;
+        }
+    }
+    return result;
 }
