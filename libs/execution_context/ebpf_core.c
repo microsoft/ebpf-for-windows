@@ -323,7 +323,6 @@ static ebpf_result_t
 _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
 {
     EBPF_LOG_ENTRY();
-
     ebpf_result_t retval;
     uint8_t* code = NULL;
     size_t code_length = 0;
@@ -409,7 +408,6 @@ _ebpf_core_protocol_resolve_helper(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-
     uint32_t* request_helper_ids = NULL;
     size_t required_reply_length = 0;
     size_t helper_id_length;
@@ -501,7 +499,6 @@ _ebpf_core_protocol_resolve_map(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-
     size_t map_handle_length;
     ebpf_result_t return_value = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle), &map_handle_length);
@@ -587,7 +584,6 @@ _ebpf_core_protocol_create_program(
     _In_ const ebpf_operation_create_program_request_t* request, _Inout_ ebpf_operation_create_program_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-
     ebpf_result_t retval;
     ebpf_program_parameters_t parameters = {0};
     uint8_t* file_name = NULL;
@@ -1607,7 +1603,6 @@ _ebpf_core_protocol_get_ec_function(
     _In_ const ebpf_operation_get_ec_function_request_t* request, _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
-
     if (request->function != EBPF_EC_FUNCTION_LOG) {
         return EBPF_INVALID_ARGUMENT;
     }
