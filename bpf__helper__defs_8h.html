@@ -145,6 +145,18 @@ Functions</h2></td></tr>
 <tr class="memitem:a1cf21c253fa4ea868ddeefba950b1469"><td class="memItemLeft" align="right" valign="top">int32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a1cf21c253fa4ea868ddeefba950b1469">bpf_is_current_admin</a> (const void *ctx)</td></tr>
 <tr class="memdesc:a1cf21c253fa4ea868ddeefba950b1469"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get whether the current user is admin. In case of sock_addr attach types, returns whether the user initiating the request is admin or not. In other cases, returns whether the current thread user is admin or not.  <a href="bpf__helper__defs_8h.html#a1cf21c253fa4ea868ddeefba950b1469">More...</a><br /></td></tr>
 <tr class="separator:a1cf21c253fa4ea868ddeefba950b1469"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a40f52fbbeec82a25a1987641816bb5eb"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a40f52fbbeec82a25a1987641816bb5eb">bpf_memcpy</a> (void *destination, uint32_t destination_size, const void *source, uint32_t source_size)</td></tr>
+<tr class="memdesc:a40f52fbbeec82a25a1987641816bb5eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another.  <a href="bpf__helper__defs_8h.html#a40f52fbbeec82a25a1987641816bb5eb">More...</a><br /></td></tr>
+<tr class="separator:a40f52fbbeec82a25a1987641816bb5eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa94070613a8c287facfae0b1e945259f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#aa94070613a8c287facfae0b1e945259f">bpf_memcmp</a> (const void *memory1, uint32_t memory1_size, const void *memory2, uint32_t memory2_size)</td></tr>
+<tr class="memdesc:aa94070613a8c287facfae0b1e945259f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Compare two memory regions.  <a href="bpf__helper__defs_8h.html#aa94070613a8c287facfae0b1e945259f">More...</a><br /></td></tr>
+<tr class="separator:aa94070613a8c287facfae0b1e945259f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afca1f6c72f9e91cda8fde377c50e2df9"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#afca1f6c72f9e91cda8fde377c50e2df9">bpf_memset</a> (void *memory, uint32_t size, int value)</td></tr>
+<tr class="memdesc:afca1f6c72f9e91cda8fde377c50e2df9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set memory to a specific value.  <a href="bpf__helper__defs_8h.html#afca1f6c72f9e91cda8fde377c50e2df9">More...</a><br /></td></tr>
+<tr class="separator:afca1f6c72f9e91cda8fde377c50e2df9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a761216d9ea8f44b31f064e238b3f2f75"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a761216d9ea8f44b31f064e238b3f2f75">bpf_memmove</a> (void *destination, uint32_t destination_size, const void *source, uint32_t source_size)</td></tr>
+<tr class="memdesc:a761216d9ea8f44b31f064e238b3f2f75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another, handling overlapping regions.  <a href="bpf__helper__defs_8h.html#a761216d9ea8f44b31f064e238b3f2f75">More...</a><br /></td></tr>
+<tr class="separator:a761216d9ea8f44b31f064e238b3f2f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -682,6 +694,219 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="aa94070613a8c287facfae0b1e945259f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa94070613a8c287facfae0b1e945259f">&#9670;&nbsp;</a></span>bpf_memcmp()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_memcmp </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>memory1</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>memory1_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>memory2</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>memory2_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Compare two memory regions. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory1</td><td>First memory region. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory1_size</td><td>Size of the first memory region. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory2</td><td>Second memory region. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory2_size</td><td>Size of the second memory region.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the contents memory2, or a positive value if the contents memory1 is greater than the contents memory2. </dd></dl>
+
+</div>
+</div>
+<a id="a40f52fbbeec82a25a1987641816bb5eb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a40f52fbbeec82a25a1987641816bb5eb">&#9670;&nbsp;</a></span>bpf_memcpy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_memcpy </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>destination</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>destination_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>source</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>source_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy memory from one location to another. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">destination</td><td>Destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">destination_size</td><td>Size of the destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">source</td><td>Source buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">source_size</td><td>Size of the source buffer.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are invalid. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a761216d9ea8f44b31f064e238b3f2f75"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a761216d9ea8f44b31f064e238b3f2f75">&#9670;&nbsp;</a></span>bpf_memmove()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_memmove </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>destination</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>destination_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>source</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>source_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy memory from one location to another, handling overlapping regions. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">destination</td><td>Destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">destination_size</td><td>Size of the destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">source</td><td>Source buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">source_size</td><td>Size of the source buffer.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are invalid. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="afca1f6c72f9e91cda8fde377c50e2df9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afca1f6c72f9e91cda8fde377c50e2df9">&#9670;&nbsp;</a></span>bpf_memset()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">long bpf_memset </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>memory</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>value</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set memory to a specific value. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">memory</td><td>Memory region to set. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Size of the memory region. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">value</td><td>Value to set the memory region to.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to the memory region, or a negative error in case of failure. </dd></dl>
 
 </div>
 </div>
