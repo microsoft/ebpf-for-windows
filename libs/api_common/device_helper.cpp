@@ -60,9 +60,9 @@ clean_up_device_handle()
 }
 
 ebpf_handle_t
-get_device_handle()
+get_sync_device_handle()
 {
-    if (_device_handle == ebpf_handle_invalid) {
+    if (_sync_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
         (void)initialize_device_handle();
     }
@@ -151,7 +151,7 @@ get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
 {
     unsigned long dummy;
     if (!GetOverlappedResult(
-            reinterpret_cast<HANDLE>(get_device_handle()),
+            reinterpret_cast<HANDLE>(get_async_device_handle()),
             get_async_ioctl_operation_overlapped(ioctl_completion),
             &dummy,
             FALSE))
@@ -219,5 +219,5 @@ Exit:
 bool
 cancel_async_ioctl(_Inout_opt_ OVERLAPPED* overlapped = nullptr)
 {
-    return Platform::CancelIoEx(get_device_handle(), overlapped);
+    return Platform::CancelIoEx(get_async_device_handle(), overlapped);
 }
