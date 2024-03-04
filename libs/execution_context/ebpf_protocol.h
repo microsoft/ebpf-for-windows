@@ -79,7 +79,6 @@ typedef struct _ebpf_operation_resolve_helper_reply
     struct _ebpf_operation_header header;
     uintptr_t address[1];
 } ebpf_operation_resolve_helper_reply_t;
-#endif
 
 typedef struct _ebpf_operation_resolve_map_request
 {
@@ -93,6 +92,7 @@ typedef struct _ebpf_operation_resolve_map_reply
     struct _ebpf_operation_header header;
     uintptr_t address[1];
 } ebpf_operation_resolve_map_reply_t;
+#endif
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 typedef struct _ebpf_operation_create_program_request
