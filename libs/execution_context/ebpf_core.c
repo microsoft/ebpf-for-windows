@@ -318,15 +318,12 @@ Done:
     EBPF_RETURN_RESULT(retval);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* request)
 {
     EBPF_LOG_ENTRY();
 
-#if defined(CONFIG_BPF_JIT_DISABLED) && defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    UNREFERENCED_PARAMETER(request);
-    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-#else
     ebpf_result_t retval;
     uint8_t* code = NULL;
     size_t code_length = 0;
@@ -363,8 +360,8 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
 
 Done:
     EBPF_RETURN_RESULT(retval);
-#endif // CONFIG_BPF_JIT_DISABLED && CONFIG_BPF_INTERPRETER_DISABLED
 }
+#endif
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_helper(
@@ -404,6 +401,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_resolve_helper(
     _In_ const ebpf_operation_resolve_helper_request_t* request,
@@ -412,12 +410,6 @@ _ebpf_core_protocol_resolve_helper(
 {
     EBPF_LOG_ENTRY();
 
-#if defined(CONFIG_BPF_JIT_DISABLED)
-    UNREFERENCED_PARAMETER(request);
-    UNREFERENCED_PARAMETER(reply);
-    UNREFERENCED_PARAMETER(reply_length);
-    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-#else
     uint32_t* request_helper_ids = NULL;
     size_t required_reply_length = 0;
     size_t helper_id_length;
@@ -457,8 +449,8 @@ Done:
 
     ebpf_free(request_helper_ids);
     EBPF_RETURN_RESULT(return_value);
-#endif // CONFIG_BPF_JIT_DISABLED
 }
+#endif
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_resolve_maps(
@@ -501,6 +493,7 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_resolve_map(
     _In_ const struct _ebpf_operation_resolve_map_request* request,
@@ -509,12 +502,6 @@ _ebpf_core_protocol_resolve_map(
 {
     EBPF_LOG_ENTRY();
 
-#if defined(CONFIG_BPF_JIT_DISABLED)
-    UNREFERENCED_PARAMETER(request);
-    UNREFERENCED_PARAMETER(reply);
-    UNREFERENCED_PARAMETER(reply_length);
-    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-#else
     size_t map_handle_length;
     ebpf_result_t return_value = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(ebpf_operation_resolve_map_request_t, map_handle), &map_handle_length);
@@ -542,8 +529,8 @@ _ebpf_core_protocol_resolve_map(
 
 Done:
     EBPF_RETURN_RESULT(return_value);
-#endif // CONFIG_BPF_JIT_DISABLED
 }
+#endif
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_core_create_map(
@@ -594,17 +581,13 @@ _ebpf_core_protocol_create_map(
     EBPF_RETURN_RESULT(retval);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_create_program(
     _In_ const ebpf_operation_create_program_request_t* request, _Inout_ ebpf_operation_create_program_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
 
-#if defined(CONFIG_BPF_JIT_DISABLED) && defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    UNREFERENCED_PARAMETER(request);
-    UNREFERENCED_PARAMETER(reply);
-    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-#else
     ebpf_result_t retval;
     ebpf_program_parameters_t parameters = {0};
     uint8_t* file_name = NULL;
@@ -641,8 +624,8 @@ _ebpf_core_protocol_create_program(
 
 Done:
     EBPF_RETURN_RESULT(retval);
-#endif // CONFIG_BPF_JIT_DISABLED && CONFIG_BPF_INTERPRETER_DISABLED
 }
+#endif
 
 static ebpf_result_t
 _ebpf_core_protocol_load_native_module(
@@ -1618,25 +1601,21 @@ _ebpf_core_protocol_close_handle(_In_ const ebpf_operation_close_handle_request_
     EBPF_RETURN_RESULT(ebpf_handle_close(request->handle));
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 static uint64_t
 _ebpf_core_protocol_get_ec_function(
     _In_ const ebpf_operation_get_ec_function_request_t* request, _Inout_ ebpf_operation_get_ec_function_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
 
-#if defined(CONFIG_BPF_JIT_DISABLED)
-    UNREFERENCED_PARAMETER(request);
-    UNREFERENCED_PARAMETER(reply);
-    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-#else
     if (request->function != EBPF_EC_FUNCTION_LOG) {
         return EBPF_INVALID_ARGUMENT;
     }
 
     reply->address = (uint64_t)ebpf_log_function;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
-#endif // CONFIG_BPF_JIT_DISABLED
 }
+#endif
 
 // Get helper info for a program or program type.  This is used by the jitter/verifier,
 // not by libbpf which instead uses ebpf_program_get_info
@@ -2418,7 +2397,9 @@ typedef struct _ebpf_protocol_handler
 } const ebpf_protocol_handler_t;
 
 #define PROTOCOL_NATIVE_MODE 1
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 #define PROTOCOL_JIT_MODE 2
+#endif
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_INTERPRET_MODE 4
 #endif
@@ -2428,11 +2409,7 @@ typedef struct _ebpf_protocol_handler
 #elif !defined(CONFIG_BPF_JIT_DISABLED)
 #define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_JIT_MODE
 #define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE)
-#elif !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-#define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_INTERPRET_MODE
-#define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_INTERPRET_MODE)
 #else
-#define PROTOCOL_JIT_OR_INTERPRET_MODE PROTOCOL_NATIVE_MODE
 #define PROTOCOL_ALL_MODES PROTOCOL_NATIVE_MODE
 #endif
 
@@ -2491,6 +2468,11 @@ typedef struct _ebpf_protocol_handler
             EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
     }
 
+#define DECLARE_PROTOCOL_HANDLER_INVALID(type) \
+    {                                          \
+        type, NULL, 0, 0, .flags.value = 0     \
+    }
+
 #define ALIAS_TYPES(X, Y)                                                  \
     typedef ebpf_operation_##X##_request_t ebpf_operation_##Y##_request_t; \
     typedef ebpf_operation_##X##_reply_t ebpf_operation_##Y##_reply_t;
@@ -2503,11 +2485,24 @@ ALIAS_TYPES(get_handle_by_id, get_map_handle_by_id)
 ALIAS_TYPES(get_handle_by_id, get_program_handle_by_id)
 
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_helper, helper_id, address, PROTOCOL_JIT_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_map, map_handle, address, PROTOCOL_JIT_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
+#endif
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_program, data, PROTOCOL_JIT_OR_INTERPRET_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY),
+#endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_map, data, PROTOCOL_ALL_MODES),
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(load_code, code, PROTOCOL_JIT_OR_INTERPRET_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
+#endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(map_find_element, key, value, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_update_element, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_update_element_with_handle, key, PROTOCOL_ALL_MODES),
@@ -2520,7 +2515,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(link_program, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(unlink_program, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(close_handle, PROTOCOL_ALL_MODES),
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_ec_function, PROTOCOL_JIT_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY),
+#endif
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_program_info, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_pinned_map_info, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_link_handle_by_id, PROTOCOL_ALL_MODES),
@@ -2631,6 +2630,11 @@ ebpf_core_invoke_protocol_handler(
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < 0) {
         retval = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
+    }
+
+    // If the dispatch function is NULL, the operation is not supported.
+    if (_ebpf_protocol_handlers[operation_id].dispatch.default_case == NULL) {
+        return EBPF_BLOCKED_BY_POLICY;
     }
 
     if (input_buffer_length > UINT16_MAX) {
