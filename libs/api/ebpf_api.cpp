@@ -4513,3 +4513,16 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
+
+void
+ebpf_api_thread_local_cleanup() noexcept
+{
+    clean_up_sync_device_handle();
+}
+
+void
+ebpf_api_thread_local_initialize() noexcept
+{
+    // Nothing to do.
+    // Added for symmetry with ebpf_api_thread_local_cleanup.
+}
