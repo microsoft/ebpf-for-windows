@@ -4472,7 +4472,8 @@ ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options)
     if (result == EBPF_PENDING) {
         unsigned long bytes_returned;
         completion_event.wait();
-        if (GetOverlappedResult(reinterpret_cast<HANDLE>(get_device_handle()), &overlapped, &bytes_returned, FALSE)) {
+        if (GetOverlappedResult(
+                reinterpret_cast<HANDLE>(get_async_device_handle()), &overlapped, &bytes_returned, FALSE)) {
             result = EBPF_SUCCESS;
         } else {
             result = win32_error_code_to_ebpf_result(GetLastError());
