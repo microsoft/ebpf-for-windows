@@ -75,6 +75,29 @@ static uint64_t
 _ebpf_core_get_current_logon_id(_In_ const void* ctx);
 static int32_t
 _ebpf_core_is_current_admin(_In_ const void* ctx);
+static int32_t
+_ebpf_core_memcpy(
+    _Out_writes_(destination_size) void* destination,
+    size_t destination_size,
+    _In_reads_(source_size) const void* source,
+    size_t source_size);
+
+static int32_t
+_ebpf_core_memcmp(
+    _In_reads_(buffer1_length) const void* buffer1,
+    size_t buffer1_length,
+    _In_reads_(buffer2_length) const void* buffer2,
+    size_t buffer2_length);
+
+static uintptr_t
+_ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value);
+
+static int32_t
+_ebpf_core_memmove(
+    _Out_writes_(destination_length) void* destination,
+    size_t destination_length,
+    _In_reads_(source_length) const void* source,
+    size_t source_length);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -107,6 +130,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_pid_tgid,
     (void*)&_ebpf_core_get_current_logon_id,
     (void*)&_ebpf_core_is_current_admin,
+    (void*)&_ebpf_core_memcpy,
+    (void*)&_ebpf_core_memcmp,
+    (void*)&_ebpf_core_memset,
+    (void*)&_ebpf_core_memmove,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -2338,6 +2365,59 @@ static uint64_t
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
     return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
+}
+
+static int32_t
+_ebpf_core_memcpy(
+    _Out_writes_(destination_size) void* destination,
+    size_t destination_size,
+    _In_reads_(source_size) const void* source,
+    size_t source_size)
+{
+    if (source_size > destination_size) {
+        return -EINVAL;
+    }
+    return memcpy_s(destination, destination_size, source, source_size);
+}
+
+static uintptr_t
+_ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value)
+{
+    return (uintptr_t)memset(buffer, value, length);
+}
+
+static int32_t
+_ebpf_core_memcmp(
+    _In_reads_(buffer1_length) const void* buffer1,
+    size_t buffer1_length,
+    _In_reads_(buffer2_length) const void* buffer2,
+    size_t buffer2_length)
+{
+    int32_t result = memcmp(buffer1, buffer2, buffer1_length < buffer2_length ? buffer1_length : buffer2_length);
+
+    if (result == 0) {
+        if (buffer1_length < buffer2_length) {
+            result = -1;
+        } else if (buffer1_length > buffer2_length) {
+            result = 1;
+        }
+    } else {
+        result = result < 0 ? -1 : 1;
+    }
+    return result;
+}
+
+static int32_t
+_ebpf_core_memmove(
+    _Out_writes_(destination_length) void* destination,
+    size_t destination_length,
+    _In_reads_(source_length) const void* source,
+    size_t source_length)
+{
+    if (source_length > destination_length) {
+        return -EINVAL;
+    }
+    return memmove_s(destination, destination_length, source, source_length);
 }
 
 typedef enum _ebpf_protocol_call_type

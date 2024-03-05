@@ -3364,3 +3364,45 @@ TEST_CASE("hash_of_map", "[libbpf]")
 #endif
     _hash_of_map_initial_value_test(EBPF_EXECUTION_NATIVE);
 }
+
+static void
+_utility_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    const char dll_name[] = "utility_um.dll";
+    const char obj_name[] = "utility.o";
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
+    struct bpf_object* process_object = bpf_object__open(file_name);
+    REQUIRE(process_object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(process_object) == 0);
+
+    struct bpf_program* caller = bpf_object__find_program_by_name(process_object, "UtilityTest");
+    REQUIRE(caller != nullptr);
+
+    bpf_link_ptr link(bpf_program__attach(caller));
+    REQUIRE(link != nullptr);
+
+    // Now run the ebpf program.
+    bind_md_t ctx = {0};
+    ctx.operation = BIND_OPERATION_BIND;
+
+    uint32_t result;
+    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+
+    // Verify the result.
+    REQUIRE(result == 0);
+
+    result = bpf_link__destroy(link.release());
+    REQUIRE(result == 0);
+    bpf_object__close(process_object);
+}
+
+DECLARE_ALL_TEST_CASES("utility_test", "[libbf]", _utility_test);

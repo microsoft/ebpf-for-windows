@@ -339,3 +339,78 @@ EBPF_HELPER(int32_t, bpf_is_current_admin, (const void* ctx));
 #ifndef __doxygen
 #define bpf_is_current_admin ((bpf_is_current_admin_t)BPF_FUNC_is_current_admin)
 #endif
+
+/**
+ * @brief Copy memory from one location to another.
+ *
+ * @param[in] destination Destination buffer.
+ * @param[in] destination_size Size of the destination buffer.
+ * @param[in] source Source buffer.
+ * @param[in] source_size Size of the source buffer.
+ *
+ * @retval 0 The operation was successful.
+ * @retval -EINVAL One or more parameters are invalid.
+ */
+EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+#ifndef __doxygen
+#define bpf_memcpy ((bpf_memcpy_t)BPF_FUNC_memcpy)
+#endif
+
+/**
+ * @brief Compare two memory regions.
+ *
+ * @param[in] memory1 First memory region.
+ * @param[in] memory1_size Size of the first memory region.
+ * @param[in] memory2 Second memory region.
+ * @param[in] memory2_size Size of the second memory region.
+ *
+ * @returns 0 if the contents of memory regions are equal, a negative value if the contents of memory1 is less than the
+ * contents memory2, or a positive value if the contents memory1 is greater than the contents memory2.
+ */
+
+EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const void* memory2, uint32_t memory2_size));
+#ifndef __doxygen
+#define bpf_memcmp ((bpf_memcmp_t)BPF_FUNC_memcmp)
+#endif
+
+/**
+ * @brief Set memory to a specific value.
+ *
+ * @param[in] memory Memory region to set.
+ * @param[in] size Size of the memory region.
+ * @param[in] value Value to set the memory region to.
+ *
+ * @returns Pointer to the memory region, or a negative error in case of failure.
+ */
+
+EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
+#ifndef __doxygen
+#define bpf_memset ((bpf_memset_t)BPF_FUNC_memset)
+#endif
+
+/**
+ * @brief Copy memory from one location to another, handling overlapping regions.
+ *
+ * @param[in] destination Destination buffer.
+ * @param[in] destination_size Size of the destination buffer.
+ * @param[in] source Source buffer.
+ * @param[in] source_size Size of the source buffer.
+ *
+ * @retval 0 The operation was successful.
+ * @retval -EINVAL One or more parameters are invalid.
+ */
+
+EBPF_HELPER(
+    long, bpf_memmove, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+#ifndef __doxygen
+#define bpf_memmove ((bpf_memmove_t)BPF_FUNC_memmove)
+#endif
+
+#if __clang__
+#define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
+#define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)
+#define memset(mem, mem_size, value) bpf_memset(mem, mem_size, value)
+#define memmove(dest, src, dest_size) bpf_memmove(dest, dest_size, src, dest_size)
+#define memcpy_s bpf_memcpy
+#define memmove_s bpf_memmove
+#endif
