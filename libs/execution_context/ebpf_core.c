@@ -2543,6 +2543,11 @@ typedef struct _ebpf_protocol_handler
             EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
     }
 
+#define DECLARE_PROTOCOL_HANDLER_INVALID(type) \
+    {                                          \
+        type, NULL, 0, 0, .flags.value = 0     \
+    }
+
 #define ALIAS_TYPES(X, Y)                                                  \
     typedef ebpf_operation_##X##_request_t ebpf_operation_##Y##_request_t; \
     typedef ebpf_operation_##X##_reply_t ebpf_operation_##Y##_reply_t;
@@ -2558,13 +2563,20 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_helper, helper_id, address, PROTOCOL_JIT_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_map, map_handle, address, PROTOCOL_JIT_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
 #endif
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_program, data, PROTOCOL_JIT_OR_INTERPRET_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_map, data, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(load_code, code, PROTOCOL_JIT_OR_INTERPRET_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(map_find_element, key, value, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_update_element, data, PROTOCOL_ALL_MODES),
@@ -2580,6 +2592,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(close_handle, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_ec_function, PROTOCOL_JIT_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_program_info, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_pinned_map_info, data, PROTOCOL_ALL_MODES),
@@ -2691,6 +2705,11 @@ ebpf_core_invoke_protocol_handler(
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < 0) {
         retval = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
+    }
+
+    // If the dispatch function is NULL, the operation is not supported.
+    if (_ebpf_protocol_handlers[operation_id].dispatch.default_case == NULL) {
+        return EBPF_BLOCKED_BY_POLICY;
     }
 
     if (input_buffer_length > UINT16_MAX) {
