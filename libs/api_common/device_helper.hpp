@@ -29,10 +29,16 @@ typedef struct empty_reply
 static empty_reply_t _empty_reply;
 
 _Must_inspect_result_ ebpf_result_t
-initialize_device_handle();
+initialize_sync_device_handle();
+
+_Must_inspect_result_ ebpf_result_t
+initialize_async_device_handle();
 
 void
-clean_up_device_handle();
+clean_up_sync_device_handle();
+
+void
+clean_up_async_device_handle();
 
 ebpf_handle_t
 get_sync_device_handle();

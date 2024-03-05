@@ -23,6 +23,7 @@ DllMain(HMODULE hModule, unsigned long ul_reason_for_call, void* lpReserved)
     case DLL_THREAD_ATTACH:
         break;
     case DLL_THREAD_DETACH:
+        ebpf_clear_thread_local_storage();
         break;
     case DLL_PROCESS_DETACH:
         ebpf_api_terminate();

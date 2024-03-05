@@ -232,7 +232,7 @@ ebpf_api_initiate() NO_EXCEPT_TRY
 
     // This is best effort. If device handle does not initialize,
     // it will be re-attempted before an IOCTL call is made.
-    (void)initialize_device_handle();
+    (void)initialize_async_device_handle();
 
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
@@ -243,7 +243,7 @@ ebpf_api_terminate() noexcept
 {
     clear_ebpf_provider_data();
     _clean_up_ebpf_objects();
-    clean_up_device_handle();
+    clean_up_async_device_handle();
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     clean_up_rpc_binding();
 #endif
