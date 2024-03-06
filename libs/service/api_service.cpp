@@ -421,7 +421,7 @@ ebpf_service_initialize() noexcept
     // it will be re-attempted before an IOCTL call is made.
     // This is needed to ensure the service can successfully start
     // even if the driver is not installed.
-    (void)initialize_device_handle();
+    (void)initialize_async_device_handle();
 
     return ERROR_SUCCESS;
 }
@@ -429,5 +429,5 @@ ebpf_service_initialize() noexcept
 void
 ebpf_service_cleanup() noexcept
 {
-    clean_up_device_handle();
+    clean_up_async_device_handle();
 }

@@ -27,21 +27,35 @@ typedef struct _async_ioctl_completion_context
 } async_ioctl_completion_context_t;
 
 // Handle used for synchronous calls to the driver.
-static ebpf_handle_t _sync_device_handle = ebpf_handle_invalid;
+static thread_local ebpf_handle_t _sync_device_handle = ebpf_handle_invalid;
 // Handle used for asynchronous calls to the driver.
 static ebpf_handle_t _async_device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
 
 _Must_inspect_result_ ebpf_result_t
-initialize_device_handle()
+initialize_async_device_handle()
 {
     std::scoped_lock lock(_mutex);
 
-    if (_sync_device_handle != ebpf_handle_invalid) {
+    if (_async_device_handle != ebpf_handle_invalid) {
         return EBPF_ALREADY_INITIALIZED;
     }
 
-    if (_async_device_handle != ebpf_handle_invalid) {
+    // Open the device handle with the FILE_FLAG_OVERLAPPED flag for asynchronous calls.
+    _async_device_handle = Platform::CreateFile(
+        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
+
+    if (_async_device_handle == ebpf_handle_invalid) {
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+initialize_sync_device_handle()
+{
+    if (_sync_device_handle != ebpf_handle_invalid) {
         return EBPF_ALREADY_INITIALIZED;
     }
 
@@ -53,32 +67,26 @@ initialize_device_handle()
         return win32_error_code_to_ebpf_result(GetLastError());
     }
 
-    // Open the device handle with the FILE_FLAG_OVERLAPPED flag for asynchronous calls.
-    _async_device_handle = Platform::CreateFile(
-        EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
-
-    if (_async_device_handle == ebpf_handle_invalid) {
-        Platform::CloseHandle(_sync_device_handle);
-        _sync_device_handle = ebpf_handle_invalid;
-        return win32_error_code_to_ebpf_result(GetLastError());
-    }
-
     return EBPF_SUCCESS;
 }
 
 void
-clean_up_device_handle()
+clean_up_async_device_handle()
 {
     std::scoped_lock lock(_mutex);
-
-    if (_sync_device_handle != ebpf_handle_invalid) {
-        Platform::CloseHandle(_sync_device_handle);
-        _sync_device_handle = ebpf_handle_invalid;
-    }
 
     if (_async_device_handle != ebpf_handle_invalid) {
         Platform::CloseHandle(_async_device_handle);
         _async_device_handle = ebpf_handle_invalid;
+    }
+}
+
+void
+clean_up_sync_device_handle()
+{
+    if (_sync_device_handle != ebpf_handle_invalid) {
+        Platform::CloseHandle(_sync_device_handle);
+        _sync_device_handle = ebpf_handle_invalid;
     }
 }
 
@@ -87,7 +95,7 @@ get_sync_device_handle()
 {
     if (_sync_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
-        (void)initialize_device_handle();
+        (void)initialize_sync_device_handle();
     }
 
     return _sync_device_handle;
@@ -98,7 +106,7 @@ get_async_device_handle()
 {
     if (_async_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
-        (void)initialize_device_handle();
+        (void)initialize_async_device_handle();
     }
     return _async_device_handle;
 }
