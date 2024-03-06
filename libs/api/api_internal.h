@@ -714,3 +714,15 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) noexcept;
  */
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
+
+/**
+ * @brief Initialize the eBPF library's thread local storage.
+ */
+void
+ebpf_api_thread_local_cleanup() noexcept;
+
+/**
+ * @brief Cleanup the eBPF library's thread local storage.
+ */
+void
+ebpf_api_thread_local_initialize() noexcept;

@@ -1097,4 +1097,110 @@ TEST_CASE("load_native_program_invalid5", "[native][negative]")
     _load_invalid_program("invalid_maps3.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 
+TEST_CASE("ioctl_stress", "[stress]")
+{
+    // Load bindmonitor_ringbuf.sys
+
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+
+    REQUIRE(
+        _program_load_helper(
+            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+
+    // Create a test array map to provide target for the ioctl stress test.
+    fd_t test_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+
+    // Get fd of process_map map
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+
+    // Subscribe to the ring buffer with empty callback
+    auto ring = ring_buffer__new(
+        process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr);
+
+    // Run 4 threads per cpu
+    // Get cpu count
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+
+    std::atomic<size_t> failure_count = 0;
+    std::vector<std::jthread> threads;
+    std::atomic<bool> stop_requested;
+    for (DWORD i = 0; i < sysinfo.dwNumberOfProcessors; i++) {
+        for (int j = 0; j < 4; j++) {
+            threads.emplace_back([&]() {
+                while (!stop_requested) {
+                    int test_case = rand() % 4;
+                    uint32_t key = 0;
+                    uint32_t value;
+                    bpf_test_run_opts opts = {};
+                    bind_md_t ctx = {};
+                    int result;
+                    switch (test_case) {
+                    case 0:
+                        // Test bpf_map_lookup_elem
+                        result = bpf_map_lookup_elem(test_map_fd, &key, &value);
+                        if (result != 0) {
+                            std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
+                            failure_count++;
+                        }
+                        break;
+                    case 1:
+                        // Test bpf_map_update_elem
+                        result = bpf_map_update_elem(test_map_fd, &key, &value, 0);
+                        if (result != 0) {
+                            std::cout << "bpf_map_update_elem failed with " << result << std::endl;
+                            failure_count++;
+                        }
+                        break;
+                    case 2:
+                        // Test bpf_map_delete_elem
+                        result = bpf_map_delete_elem(test_map_fd, &key);
+                        if (result != 0) {
+                            std::cout << "bpf_map_delete_elem failed with " << result << std::endl;
+                            failure_count++;
+                        }
+                        break;
+                    case 3:
+                        // Run the program to trigger a ring buffer event
+                        std::string app_id = "api_test.exe";
+
+                        opts.ctx_in = &ctx;
+                        opts.ctx_size_in = sizeof(ctx);
+                        opts.ctx_out = &ctx;
+                        opts.ctx_size_out = sizeof(ctx);
+                        opts.data_in = app_id.data();
+                        opts.data_size_in = static_cast<uint32_t>(app_id.size());
+                        opts.data_out = app_id.data();
+                        opts.data_size_out = static_cast<uint32_t>(app_id.size());
+
+                        result = bpf_prog_test_run_opts(program_fd, &opts);
+                        if (result != 0) {
+                            std::cout << "bpf_prog_test_run_opts failed with " << result << std::endl;
+                            failure_count++;
+                        }
+                        break;
+                    }
+                };
+            });
+        }
+    }
+
+    // Wait for 10 seconds
+    std::this_thread::sleep_for(std::chrono::seconds(60));
+
+    stop_requested = true;
+
+    for (auto& t : threads) {
+        t.join();
+    }
+    REQUIRE(failure_count == 0);
+
+    // Unsubscribe from the ring buffer
+    ring_buffer__free(ring);
+
+    // Clean up
+    bpf_object__close(object);
+}
+
 #endif
