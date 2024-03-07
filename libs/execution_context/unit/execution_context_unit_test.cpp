@@ -123,7 +123,9 @@ _test_crud_operations(ebpf_map_type_t map_type)
     core.initialize();
     bool is_array;
     bool supports_find_and_delete;
+    // bool replace_or_insert_on_full
     bool replace_on_full;
+    bool insert_on_full;
     bool run_at_dpc;
     ebpf_result_t error_on_full;
     switch (map_type) {
@@ -131,6 +133,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
         is_array = false;
         supports_find_and_delete = true;
         replace_on_full = false;
+        insert_on_full = true;
         run_at_dpc = false;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
@@ -144,7 +147,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     case BPF_MAP_TYPE_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        replace_on_full = false;
+        replace_on_full = true;
         run_at_dpc = true;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
