@@ -154,4 +154,5 @@ ebpf_clear_thread_local_storage() noexcept
     clear_program_info_cache();
     set_program_under_verification(ebpf_handle_invalid);
     set_verification_in_progress(false);
+    clean_up_sync_device_handle();
 }
