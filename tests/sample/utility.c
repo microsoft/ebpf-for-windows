@@ -61,7 +61,7 @@ UtilityTest(bind_md_t* ctx)
     }
 
     // Verify that memset overwrites the first string with 0.
-    if (memset(test1, 4, 0) == 0) {
+    if (memset(test1, 0, 4) == 0) {
         return 6;
     }
 

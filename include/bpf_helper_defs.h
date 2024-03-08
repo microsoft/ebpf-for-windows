@@ -409,7 +409,7 @@ EBPF_HELPER(
 #if __clang__
 #define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
 #define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)
-#define memset(mem, mem_size, value) bpf_memset(mem, mem_size, value)
+#define memset(mem, value, mem_size) bpf_memset(mem, mem_size, value)
 #define memmove(dest, src, dest_size) bpf_memmove(dest, dest_size, src, dest_size)
 #define memcpy_s bpf_memcpy
 #define memmove_s bpf_memmove
