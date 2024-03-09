@@ -8,8 +8,9 @@ static bool
 _ebpf_validate_helper_function_prototype(const ebpf_helper_function_prototype_t* helper_prototype)
 {
     return (
-        (helper_prototype != NULL) && (helper_prototype->header.size >= EBPF_HELPER_FUNCTION_PROTOTYPE_MINIMUM_SIZE) &&
-        (helper_prototype->header.version <= EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_LATEST) &&
+        (helper_prototype != NULL) &&
+        (helper_prototype->header.version == EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_LATEST) &&
+        (helper_prototype->header.size >= EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0_MINIMUM_SIZE) &&
         (helper_prototype->name != NULL));
 }
 
@@ -38,8 +39,8 @@ _ebpf_validate_program_type_descriptor(_In_ const ebpf_program_type_descriptor_t
 {
     return (
         (program_type_descriptor != NULL) &&
-        (program_type_descriptor->header.size >= EBPF_PROGRAM_TYPE_DESCRIPTOR_MINIMUM_SIZE) &&
-        (program_type_descriptor->header.version <= EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_LATEST) &&
+        (program_type_descriptor->header.version == EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_LATEST) &&
+        (program_type_descriptor->header.size >= EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0_MINIMUM_SIZE) &&
         (program_type_descriptor->name != NULL) &&
         _ebpf_validate_context_descriptor(program_type_descriptor->context_descriptor));
 }
@@ -48,8 +49,8 @@ bool
 ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info)
 {
     return (
-        (program_info != NULL) && (program_info->header.size >= EBPF_PROGRAM_INFO_MINIMUM_SIZE) &&
-        (program_info->header.version <= EBPF_PROGRAM_INFORMATION_VERSION_LATEST) &&
+        (program_info != NULL) && (program_info->header.version == EBPF_PROGRAM_INFORMATION_VERSION_LATEST) &&
+        (program_info->header.size >= EBPF_PROGRAM_INFO_VERSION_0_MINIMUM_SIZE) &&
         _ebpf_validate_program_type_descriptor(program_info->program_type_descriptor) &&
         ebpf_validate_helper_function_prototype_array(
             program_info->program_type_specific_helper_prototype,
@@ -63,7 +64,7 @@ ebpf_validate_program_section_info(_In_ const ebpf_program_section_info_t* secti
 {
     return (
         (section_info != NULL) && (section_info->header.size >= sizeof(ebpf_program_section_info_t)) &&
-        (section_info->header.version <= EBPF_PROGRAM_SECTION_VERSION_LATEST) && (section_info->section_name != NULL) &&
+        (section_info->header.version == EBPF_PROGRAM_SECTION_VERSION_LATEST) && (section_info->section_name != NULL) &&
         (section_info->program_type != NULL) && (section_info->attach_type != NULL));
 }
 
