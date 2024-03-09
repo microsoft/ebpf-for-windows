@@ -66,18 +66,16 @@ typedef enum _net_ebpf_ext_tracelog_level
             TraceLoggingString(__FUNCTION__ " returned success", "Message")); \
     }
 
-#define NET_EBPF_EXT_LOG_FUNCTION_ERROR(result)                                 \
-    if (TraceLoggingProviderEnabled(                                            \
-            net_ebpf_ext_tracelog_provider,                                     \
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                                \
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE)) {                              \
-        TraceLoggingWrite(                                                      \
-            net_ebpf_ext_tracelog_provider,                                     \
-            NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_ERROR,                          \
-            TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                            \
-            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE),            \
-            TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"), \
-            TraceLoggingLong(result, "Error"));                                 \
+#define NET_EBPF_EXT_LOG_FUNCTION_ERROR(result)                                                                       \
+    if (TraceLoggingProviderEnabled(                                                                                  \
+            net_ebpf_ext_tracelog_provider, NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_BASE)) { \
+        TraceLoggingWrite(                                                                                            \
+            net_ebpf_ext_tracelog_provider,                                                                           \
+            NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_ERROR,                                                                \
+            TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                                                  \
+            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE),                                                  \
+            TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"),                                       \
+            TraceLoggingLong(result, "Error"));                                                                       \
     }
 
 #define NET_EBPF_EXT_LOG_ENTRY()                                                    \
