@@ -34,15 +34,17 @@ CXPLAT_EXTERN_C_BEGIN
 #define EBPF_PROGRAM_SECTION_VERSION_LATEST EBPF_PROGRAM_SECTION_VERSION_0
 
 // Minumum length of the eBPF extension program information data structures.
-#define EBPF_PROGRAM_DATA_MINIMUM_SIZE (EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t))
-#define EBPF_PROGRAM_INFO_MINIMUM_SIZE \
+#define EBPF_PROGRAM_DATA_VERSION_0_MINIMUM_SIZE (EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t))
+#define EBPF_PROGRAM_INFO_VERSION_0_MINIMUM_SIZE \
     (EBPF_OFFSET_OF(ebpf_program_info_t, global_helper_prototype) + sizeof(ebpf_helper_function_prototype_t*))
-#define EBPF_PROGRAM_TYPE_DESCRIPTOR_MINIMUM_SIZE \
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0_MINIMUM_SIZE \
     (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
-#define EBPF_CONTEXT_DESCRIPTOR_MINIMUM_SIZE \
+#define EBPF_CONTEXT_DESCRIPTOR_VERSION_0_MINIMUM_SIZE \
     (EBPF_OFFSET_OF(ebpf_context_descriptor_t, context_destroy) + sizeof(ebpf_program_context_destroy_t))
-#define EBPF_HELPER_FUNCTION_PROTOTYPE_MINIMUM_SIZE \
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0_MINIMUM_SIZE \
     (EBPF_OFFSET_OF(ebpf_helper_function_prototype_t, arguments) + 5 * sizeof(ebpf_argument_type_t))
+#define EBPF_PROGRAM_SECTION_VERSION_0_MINIMUM_SIZE \
+    (EBPF_OFFSET_OF(ebpf_program_section_info_t, bpf_attach_type) + sizeof(uint32_t))
 
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
