@@ -69,7 +69,7 @@ This is a mandatory header that is common to all data structures needed by eBPF 
 
 #### `ebpf_program_data_t` Struct
 The various fields of this structure should be set as follows:
-* `header`: Version () and size.
+* `header`: Version and size.
 * `program_info`: Pointer to `ebpf_program_info_t`.
 * `program_type_specific_helper_function_addresses`: Pointer to `ebpf_helper_function_addresses_t`. This structure
 provides the helper functions that are exclusive to this program type.
@@ -202,8 +202,11 @@ resources allocated in the `ebpf_program_context_create_t` call.
 ### 2.2 Backward compatibility of the Extension data structures
 All the extension data structures are versioned. New fields can be added to the end of a data structure to maintain backward compatibility
 with the existing extensions. In such cases, the size field of the header will be updated but the version of the structure *will not change*.
-If the change in data structure is such that it is no longer backward compatible (such as change field type or position),
-then the version number will be updated. All previous versions of extension structure will continue to be supported.
+Existing eBPF extensions will continue to work without requiring recompilation.
+
+If the change in data structure is such that it is no longer backward compatible (such as changing field type or position),
+then the version number will be updated. Existing eBPF extensions would need to be updated to use the new types.
+
 The set of supported version numbers for the various extension structures are listed in `ebpf_windows.h`.
 
 ### 2.3 Program Information NPI Client Attach and Detach Callbacks

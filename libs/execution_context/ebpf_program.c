@@ -237,16 +237,16 @@ _ebpf_program_verify_provider_program_data(
     }
 
     // Verify that that the program information version is supported.
-    if (program_data->header.version > EBPF_PROGRAM_DATA_VERSION_LATEST ||
-        program_data->header.size < sizeof(ebpf_program_data_t)) {
+    if (!(program_data->header.version == EBPF_PROGRAM_DATA_VERSION_LATEST) &&
+        (program_data->header.size >= EBPF_PROGRAM_DATA_VERSION_0_MINIMUM_SIZE)) {
         EBPF_LOG_MESSAGE(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "Program information provider version not supported.");
+            "Program information provider version not supported or size incorrect.");
         goto Done;
     }
 
-    if (program_data->header.size < EBPF_PROGRAM_DATA_MINIMUM_SIZE) {
+    if (program_data->header.size < EBPF_PROGRAM_DATA_VERSION_0_MINIMUM_SIZE) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_PROGRAM,

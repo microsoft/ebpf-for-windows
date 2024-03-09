@@ -9,10 +9,11 @@
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
 
+// This is the type definition for the eBPF program type descriptor
+// when version is EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0.
 typedef struct _ebpf_program_type_descriptor
 {
     ebpf_extension_header_t header;
-    // The following fields are available in version EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0 and later.
     const char* name;
     const ebpf_context_descriptor_t* context_descriptor;
     GUID program_type;
@@ -20,16 +21,19 @@ typedef struct _ebpf_program_type_descriptor
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
+// This is the type definition for the eBPF helper function prototype
+// when version is EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0.
 typedef struct _ebpf_helper_function_prototype
 {
     ebpf_extension_header_t header;
-    // The following fields are available in version EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0 and later.
     uint32_t helper_id;
     const char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
 } ebpf_helper_function_prototype_t;
 
+// This is the type definition for the eBPF program information
+// when version is EBPF_PROGRAM_INFO_VERSION_0.
 typedef struct _ebpf_program_info
 {
     ebpf_extension_header_t header;
@@ -40,6 +44,8 @@ typedef struct _ebpf_program_info
     const ebpf_helper_function_prototype_t* global_helper_prototype;
 } ebpf_program_info_t;
 
+// This is the type definition for the eBPF helper function addresses
+// when version is EBPF_HELPER_FUNCTION_ADDRESSES_VERSION_0.
 typedef struct _ebpf_helper_function_addresses
 {
     ebpf_extension_header_t header;
@@ -61,6 +67,8 @@ typedef void (*ebpf_program_context_destroy_t)(
     _Out_writes_bytes_to_opt_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out);
 
+// This is the type definition for the eBPF program data
+// when version is EBPF_PROGRAM_DATA_VERSION_0.
 typedef struct _ebpf_program_data
 {
     ebpf_extension_header_t header;
@@ -75,6 +83,8 @@ typedef struct _ebpf_program_data
     uint8_t required_irql;                          ///< IRQL at which the program is invoked.
 } ebpf_program_data_t;
 
+// This is the type definition for the eBPF program section information
+// when version is EBPF_PROGRAM_SECTION_INFORMATION_VERSION_0.
 typedef struct _ebpf_program_section_info
 {
     ebpf_extension_header_t header;

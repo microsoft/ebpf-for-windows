@@ -75,7 +75,7 @@ typedef enum _ebpf_helper_function
 /**
  * @brief Header of an eBPF extension data structure.
  * Every eBPF extension data structure must start with this header.
- * New fields can be added to the end eBPF extension data structure
+ * New fields can be added to the end of an eBPF extension data structure
  * without breaking backward compatibility. The version field must be
  * updated only if the new data structure is not backward compatible.
  */
