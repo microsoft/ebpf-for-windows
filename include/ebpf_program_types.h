@@ -30,6 +30,10 @@ typedef struct _ebpf_helper_function_prototype
     const char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
+    struct
+    {
+        bool reallocate_packet : 1;
+    } flags;
 } ebpf_helper_function_prototype_t;
 
 // This is the type definition for the eBPF program information

@@ -23,6 +23,7 @@ typedef unsigned short wchar_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 typedef unsigned long long size_t;
+#define bool _Bool
 #endif
 
 // This file contains eBPF definitions needed by eBPF programs as well as
@@ -52,6 +53,7 @@ typedef unsigned long long size_t;
 #define EBPF_PROGRAM_DATA_HELPER_COUNT L"HelperCount"
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
+#define EBPF_HELPER_DATA_REALLOCATE_PACKET L"ReallocatePacket"
 
 #define EBPF_DATA_BPF_PROG_TYPE L"BpfProgType"
 #define EBPF_DATA_BPF_ATTACH_TYPE L"BpfAttachType"
@@ -81,7 +83,7 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION 1
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE \
-    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, arguments)
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, flags)
 
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION 1
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE \

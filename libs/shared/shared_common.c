@@ -34,12 +34,12 @@ size_t _ebpf_attach_provider_data_supported_size[] = {EBPF_ATTACH_PROVIDER_DATA_
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0 EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char)
 size_t _ebpf_program_type_descriptor_supported_size[] = {EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0};
 
-#define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0 \
-    EBPF_OFFSET_OF(ebpf_helper_function_prototype_t, arguments) + 5 * sizeof(ebpf_argument_type_t)
-size_t _ebpf_helper_function_prototype_supported_size[] = {EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0};
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, arguments)
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, flags)
+size_t _ebpf_helper_function_prototype_supported_size[] = {
+    EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0, EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1};
 
-#define EBPF_PROGRAM_INFO_SIZE_0 \
-    EBPF_OFFSET_OF(ebpf_program_info_t, global_helper_prototype) + sizeof(ebpf_helper_function_prototype_t*)
+#define EBPF_PROGRAM_INFO_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)
 size_t _ebpf_program_info_supported_size[] = {EBPF_PROGRAM_INFO_SIZE_0};
 
 #define EBPF_HELPER_FUNCTION_ADDRESSES_SIZE_0 \
@@ -49,7 +49,7 @@ size_t _ebpf_helper_function_addresses_supported_size[] = {EBPF_HELPER_FUNCTION_
 #define EBPF_PROGRAM_DATA_SIZE_0 EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t)
 size_t _ebpf_program_data_supported_size[] = {EBPF_PROGRAM_DATA_SIZE_0};
 
-#define EBPF_PROGRAM_SECTION_SIZE_0 EBPF_OFFSET_OF(ebpf_program_section_info_t, bpf_attach_type) + sizeof(uint32_t)
+#define EBPF_PROGRAM_SECTION_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)
 size_t _ebpf_program_section_supported_size[] = {EBPF_PROGRAM_SECTION_SIZE_0};
 
 struct _ebpf_extension_data_structure_supported_sizes

@@ -64,5 +64,7 @@ get_helper_prototype_windows(int32_t n)
         verifier_prototype.argument_type[i] = raw_prototype->arguments[i];
     }
 
+    verifier_prototype.reallocate_packet = raw_prototype->flags.reallocate_packet == TRUE;
+
     return verifier_prototype;
 }

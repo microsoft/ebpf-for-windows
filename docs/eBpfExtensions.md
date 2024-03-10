@@ -141,6 +141,19 @@ in the context descriptor.
 
 #### `ebpf_helper_function_prototype_t` Struct
 This structure is used to describe the prototypes of the various helper functions implemented by the extension.
+```c
+typedef struct _ebpf_helper_function_prototype
+{
+    ebpf_extension_header_t header;
+    uint32_t helper_id;
+    const char* name;
+    ebpf_return_type_t return_type;
+    ebpf_argument_type_t arguments[5];
+    struct {
+        bool reallocate_packet : 1;
+    } flags;
+} ebpf_helper_function_prototype_t;
+```
 * `header`: Version and size.
 * `helper_id`: Integer signifying the helper function ID. (See section 2.6).
 Helper function IDs for different program types need not be unique.
@@ -148,6 +161,9 @@ Helper function IDs for different program types need not be unique.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the
 helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
+* `flags`: Bit field of flags.
+   * `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
+
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
