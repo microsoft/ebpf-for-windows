@@ -66,6 +66,11 @@ _load_helper_prototype(
         memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
         offset += sizeof(helper_prototype->arguments);
 
+        uint32_t reallocate_packet_value = 0;
+        (void)ebpf_read_registry_value_dword(
+            helper_info_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, &reallocate_packet_value);
+        helper_prototype->reallocate_packet = !!reallocate_packet_value;
+
         helper_prototype->name =
             cxplat_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
         if (helper_prototype->name == nullptr) {

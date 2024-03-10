@@ -42,6 +42,7 @@ _ebpf_store_update_helper_prototype(
     uint32_t offset;
     ebpf_store_key_t helper_function_key = NULL;
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
+    const bool reallocate_packet = helper_info->reallocate_packet;
 
     wchar_t* wide_helper_name = ebpf_get_wstring_from_string(helper_info->name);
     if (wide_helper_name == NULL) {
@@ -69,6 +70,16 @@ _ebpf_store_update_helper_prototype(
         helper_function_key, EBPF_HELPER_DATA_PROTOTYPE, (uint8_t*)&serialized_data[0], offset);
     if (!IS_SUCCESS(result)) {
         goto Exit;
+    }
+
+    if (helper_info->header.size == sizeof(ebpf_helper_function_prototype_t)) {
+        // Save the reallocate_packet flag.
+        uint32_t reallocate_packet_value = helper_info->reallocate_packet ? 1 : 0;
+        result = ebpf_write_registry_value_dword(
+            helper_function_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, helper_info->reallocate_packet);
+        if (!IS_SUCCESS(result)) {
+            goto Exit;
+        }
     }
 
 Exit:
