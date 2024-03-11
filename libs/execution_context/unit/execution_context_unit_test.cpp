@@ -123,11 +123,11 @@ _test_crud_operations(ebpf_map_type_t map_type)
     core.initialize();
     bool is_array;
     bool supports_find_and_delete;
-    // bool replace_or_insert_on_full
     bool replace_on_full;
-    bool insert_on_full;
+    bool insert_on_full = false;
     bool run_at_dpc;
     ebpf_result_t error_on_full;
+    ebpf_result_t expected_result;
     switch (map_type) {
     case BPF_MAP_TYPE_HASH:
         is_array = false;
@@ -181,6 +181,9 @@ _test_crud_operations(ebpf_map_type_t map_type)
         dpc = {emulate_dpc_t(1)};
     }
 
+    // For each map type, maximum only one of replace_on_full and insert_on_full should be true.
+    REQUIRE((replace_on_full && insert_on_full == false));
+
     ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), _test_map_size};
     map_ptr map;
     {
@@ -218,16 +221,17 @@ _test_crud_operations(ebpf_map_type_t map_type)
             0) == (replace_on_full ? EBPF_SUCCESS : error_on_full));
 
     if (!replace_on_full) {
-        ebpf_result_t expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
+        expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
         REQUIRE(
             ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
             expected_result);
     }
 
     for (uint32_t key = 0; key < _test_map_size; key++) {
-        ebpf_result_t expected_result;
         if (replace_on_full) {
             expected_result = key == 0 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
+        } else if (insert_on_full) {
+            expected_result = EBPF_SUCCESS;
         } else {
             expected_result = key == _test_map_size ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
         }
@@ -255,12 +259,18 @@ _test_crud_operations(ebpf_map_type_t map_type)
         keys.insert(previous_key);
     }
     REQUIRE(keys.size() == _test_map_size);
+
+    if (insert_on_full) {
+        expected_result = EBPF_SUCCESS;
+    } else {
+        expected_result = EBPF_NO_MORE_KEYS;
+    }
     REQUIRE(
         ebpf_map_next_key(
             map.get(),
             sizeof(previous_key),
             reinterpret_cast<const uint8_t*>(&previous_key),
-            reinterpret_cast<uint8_t*>(&next_key)) == EBPF_NO_MORE_KEYS);
+            reinterpret_cast<uint8_t*>(&next_key)) == expected_result);
 
     std::vector<size_t> batch_test_sizes = {
         1,
