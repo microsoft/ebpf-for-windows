@@ -75,13 +75,30 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters_array
 /**
  * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
  */
+
+typedef enum _net_ebpf_ext_wfp_filter_state
+{
+    NET_EBPF_EXT_WFP_FILTER_ADDED = 1,
+    NET_EBPF_EXT_WFP_FILTER_DELETED = 2,
+
+} net_ebpf_ext_wfp_filter_state_t;
+
+typedef struct _net_ebpf_ext_wfp_filter_id
+{
+    wchar_t* name;
+    uint64_t id;
+    net_ebpf_ext_wfp_filter_state_t state;
+} net_ebpf_ext_wfp_filter_id_t;
+
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
     volatile long reference_count;                                ///< Reference count.
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
-    uint64_t* filter_ids;                                         ///< Array of WFP filter Ids.
-    uint32_t filter_ids_count;                                    ///< Number of WFP filter Ids.
-    bool client_detached : 1;                                     ///< True if client has detached.
+
+    net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
+    uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
+
+    bool client_detached : 1; ///< True if client has detached.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -94,6 +111,9 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {          \
             net_ebpf_extension_hook_client_leave_rundown(                             \
                 (net_ebpf_extension_hook_client_t*)(filter_context)->client_context); \
+            if ((filter_context)->filter_ids != NULL) {                               \
+                ExFreePool((filter_context)->filter_ids);                             \
+            }                                                                         \
             ExFreePool((filter_context));                                             \
         }                                                                             \
     }
@@ -193,7 +213,7 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids);
+    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids);
 
 /**
  * @brief Deletes WFP filters with specified filter IDs.
@@ -202,7 +222,8 @@ net_ebpf_extension_add_wfp_filters(
  * @param[in]  filter_ids ID of the filter being deleted.
  */
 void
-net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids);
+net_ebpf_extension_delete_wfp_filters(
+    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162

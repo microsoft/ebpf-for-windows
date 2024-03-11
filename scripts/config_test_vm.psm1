@@ -119,8 +119,9 @@ function Restore-AllVMs
 {
     param ([Parameter(Mandatory=$True)] $VMList)
     foreach ($VM in $VMList) {
+        $VMName = $VM.Name
         Write-Log "Restoring VM $VMName"
-        Restore-VMSnapshot -Name 'baseline' -VMName $VM.Name -Confirm:$false
+        Restore-VMSnapshot -Name 'baseline' -VMName $VMName -Confirm:$false
     }
 }
 
@@ -380,7 +381,17 @@ function Get-RegressionTestArtifacts
 {
     $ArifactVersionList = @("0.11.0")
     $RegressionTestArtifactsPath = "$pwd\regression"
+    if (Test-Path -Path $RegressionTestArtifactsPath) {
+        Remove-Item -Path $RegressionTestArtifactsPath -Recurse -Force
+    }
     mkdir $RegressionTestArtifactsPath
+
+    # verify Artifacts' folder presense
+    if (-not (Test-Path -Path $RegressionTestArtifactsPath)) {
+        $ErrorMessage = "*** ERROR *** Regression test artifacts folder not found: $RegressionTestArtifactsPath)"
+        Write-Log $ErrorMessage
+        throw $ErrorMessage
+    }
 
     # Download regression test artifacts for each version.
     foreach ($ArtifactVersion in $ArifactVersionList)
@@ -407,9 +418,11 @@ function Get-Duonic {
     # Download and extract https://github.com/microsoft/corenet-ci.
     $DownloadPath = "$pwd\corenet-ci"
     mkdir $DownloadPath
-    Write-Host "Downloading CoreNet-CI"
+    Write-Host "Downloading CoreNet-CI to $DownloadPath"
     Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile "$DownloadPath\corenet-ci.zip"
     Expand-Archive -Path "$DownloadPath\corenet-ci.zip" -DestinationPath $DownloadPath -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
+    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
+    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
