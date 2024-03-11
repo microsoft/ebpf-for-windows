@@ -347,6 +347,12 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     lock_held = true;
 
     if (!link->provider_attached) {
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Program failed to attach to extension hook.",
+            &link->program_type,
+            &link->attach_type);
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }

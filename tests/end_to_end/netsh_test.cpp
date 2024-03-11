@@ -467,6 +467,7 @@ verify_no_programs_exist()
                   "======  ====  =====  =========  =============  ====================\n");
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("pin first program", "[netsh][programs]")
 {
     _test_helper_netsh test_helper;
@@ -949,6 +950,7 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
 
     ebpf_epoch_synchronize();
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("show processes", "[netsh][processes]")
 {
