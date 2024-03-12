@@ -125,17 +125,17 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 28 "sample/undocked/atomic_instruction_fetch_add.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=2 imm=0
 #line 29 "sample/undocked/atomic_instruction_fetch_add.c"
     if (r0 == IMMEDIATE(0))
 #line 29 "sample/undocked/atomic_instruction_fetch_add.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
 #line 29 "sample/undocked/atomic_instruction_fetch_add.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_ATOMIC64_ADD pc=9 dst=r0 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/atomic_instruction_fetch_add.c"
-    _InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r0 + OFFSET(0)), (uint64_t)r1);
+    InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r0 + OFFSET(0)), (uint64_t)r1);
 label_1:
     // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
 #line 32 "sample/undocked/atomic_instruction_fetch_add.c"
@@ -178,7 +178,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 14;
     version->revision = 0;
 }
 

@@ -73,7 +73,7 @@ functions that override the global helper functions provided by the eBPF runtime
 structure from provided data and context buffers.
 * `context_destroy`: Pointer to `ebpf_program_context_destroy_t` function that destroys a program type specific
 context structure and populates the returned data and context buffers.
-* `required_irql`: IRQL that the eBPF program runs at.
+* `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
@@ -130,7 +130,6 @@ Helper function IDs for different program types need not be unique.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the
 helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
-* `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the

@@ -40,9 +40,8 @@ eBPF for Windows, and how to service it later.
 1. Create a **Draft** pull-request for your branch into the main repo's "`main`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
-1. Extract the `*.msi` and `*.nupkg` files, respectively, out of them, and rename them in the following format (replace "`X.Y.Z`" with the version number being released):
+1. Extract the `*.nupkg` file, and rename it in the following format (replace "`X.Y.Z`" with the version number being released):
 
-    - `eBPF-for-Windows.X.Y.Z.msi`
     - `eBPF-for-Windows.X.Y.Z.nupkg`
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
 1. On the main `ebpf-for-windows` repo, create a new release branch from `main` **corresponding to the previous PR's commit**, name it "`release/X.Y`" (replace "X.Y" with the version number being released).

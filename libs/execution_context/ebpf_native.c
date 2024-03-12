@@ -923,7 +923,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_t* module)
 
             ebpf_handle_t handle_to_insert = ebpf_handle_invalid;
 
-            if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
+            if (_ebpf_native_is_map_in_map(native_map_to_update)) {
                 ebpf_native_map_t* native_map_to_insert =
                     _ebpf_native_find_map_by_name(module, map_initial_values[i].values[j]);
                 if (native_map_to_update == NULL) {
@@ -1675,6 +1675,7 @@ ebpf_native_load_programs(
     wchar_t* local_service_name = NULL;
     bool module_referenced = false;
     bool maps_created = false;
+    bool programs_created = false;
     bool cleanup_context_created = false;
 
     if ((count_of_map_handles > 0 && map_handles == NULL) ||
@@ -1770,6 +1771,7 @@ ebpf_native_load_programs(
             module_id);
         goto Done;
     }
+    programs_created = true;
 
     // Set initial map values.
     result = _ebpf_native_set_initial_map_values(module);
@@ -1821,6 +1823,16 @@ Done:
             module->maps = NULL;
             module->map_count = 0;
         }
+
+        if (programs_created) {
+            for (uint32_t i = 0; i < module->program_count; i++) {
+                module->handle_cleanup_context.handle_information->program_handles[i] = module->programs[i].handle;
+            }
+            _ebpf_native_clean_up_programs(module->programs, module->program_count, false);
+            module->programs = NULL;
+            module->program_count = 0;
+        }
+
         ebpf_free(local_service_name);
 
         if (cleanup_context_created) {

@@ -483,7 +483,9 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .program_type_specific_helper_function_addresses = &_ebpf_sock_addr_specific_helper_function_address_table,
     .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
     .context_create = &_ebpf_sock_addr_context_create,
-    .context_destroy = &_ebpf_sock_addr_context_destroy};
+    .context_destroy = &_ebpf_sock_addr_context_destroy,
+    .required_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
@@ -1176,7 +1178,15 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
+        attached_client = NULL;
+        goto Exit;
+    }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -1215,7 +1225,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
 
 Exit:
     if (attached_client) {
-        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -1548,7 +1558,15 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    ENTER_HOOK_CLIENT_RUNDOWN(attached_client);
+    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_redirect_connection_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
+        attached_client = NULL;
+        goto Exit;
+    }
 
     // Get the redirect handle for this filter.
     redirect_handle = filter_context->redirect_handle;
@@ -1691,7 +1709,7 @@ Exit:
     }
 
     if (attached_client) {
-        LEAVE_HOOK_CLIENT_RUNDOWN(attached_client);
+        net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
 
     if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {

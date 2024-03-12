@@ -82,7 +82,9 @@ bpf_obj_pin(int fd, const char* pathname)
 int
 bpf_obj_get(const char* pathname)
 {
-    return (int)ebpf_object_get(pathname);
+    fd_t fd = -1;
+    libbpf_result_err(ebpf_object_get(pathname, &fd)); // set the errno
+    return fd;
 }
 
 struct bpf_object*

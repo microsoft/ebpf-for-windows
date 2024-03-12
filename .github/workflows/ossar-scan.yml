@@ -35,6 +35,11 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
     - id: skip_check
       uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
       with:
@@ -50,7 +55,7 @@ jobs:
 
     - name: Download build artifact
       if: (steps.skip_check.outputs.should_skip != 'true') && success()
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       id: download_artifact
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -71,7 +76,7 @@ jobs:
 
     - name: Run OSSAR (Open Source Static Analysis Runner)
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: github/ossar-action@b51f8b4adb5a0d5dbcb24d9ae33488c56a4bd5dd
+      uses: github/ossar-action@fae13e456b9973657a670eef6bccc3a4c2b5153d
       id: ossar
 
     - name: Upload results to Security tab

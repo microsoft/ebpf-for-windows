@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+#include <winnt.h>
 
 #define metadata_table ___METADATA_TABLE___##_metadata_table
 extern metadata_table_t metadata_table;

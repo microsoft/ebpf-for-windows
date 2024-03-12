@@ -223,31 +223,31 @@ test(void* context)
     // EBPF_OP_MOV64_REG pc=12 dst=r2 src=r1 offset=0 imm=0
     r2 = r1;
     // EBPF_OP_ATOMIC64_ADD_FETCH pc=13 dst=r10 src=r2 offset=-16 imm=1
-    r2 = (uint64_t)_InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    r2 = (uint64_t)InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_MOV64_IMM pc=14 dst=r2 src=r0 offset=0 imm=2
     r2 = IMMEDIATE(2);
     // EBPF_OP_ATOMIC64_OR_FETCH pc=15 dst=r10 src=r2 offset=-16 imm=65
-    r2 = (uint64_t)_InterlockedOr64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    r2 = (uint64_t)InterlockedOr64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_MOV64_REG pc=16 dst=r2 src=r0 offset=0 imm=0
     r2 = r0;
     // EBPF_OP_ATOMIC64_AND_FETCH pc=17 dst=r10 src=r2 offset=-16 imm=81
-    r2 = (uint64_t)_InterlockedAnd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    r2 = (uint64_t)InterlockedAnd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_MOV64_IMM pc=18 dst=r2 src=r0 offset=0 imm=4
     r2 = IMMEDIATE(4);
     // EBPF_OP_ATOMIC64_XOR pc=19 dst=r10 src=r2 offset=-16 imm=160
-    _InterlockedXor64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    InterlockedXor64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_ATOMIC_OR pc=20 dst=r10 src=r1 offset=-36 imm=64
-    _InterlockedOr((volatile long*)(uintptr_t)(r10 + OFFSET(-36)), (uint32_t)r1);
+    InterlockedOr((volatile long*)(uintptr_t)(r10 + OFFSET(-36)), (uint32_t)r1);
     // EBPF_OP_LDXDW pc=21 dst=r1 src=r10 offset=-24 imm=0
     r1 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24));
     // EBPF_OP_ATOMIC64_XCHG pc=22 dst=r10 src=r1 offset=-16 imm=225
-    _InterlockedExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1);
+    InterlockedExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1);
     // EBPF_OP_STXDW pc=23 dst=r10 src=r1 offset=-32 imm=0
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
     // EBPF_OP_MOV64_IMM pc=24 dst=r1 src=r0 offset=0 imm=5
     r1 = IMMEDIATE(5);
     // EBPF_OP_ATOMIC64_CMPXCHG pc=25 dst=r10 src=r1 offset=-16 imm=241
-    r0 = (uint64_t)_InterlockedCompareExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1, r0);
+    r0 = (uint64_t)InterlockedCompareExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1, r0);
     // EBPF_OP_LDXDW pc=26 dst=r0 src=r10 offset=-56 imm=0
     r0 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56));
     // EBPF_OP_EXIT pc=27 dst=r0 src=r0 offset=0 imm=0
@@ -286,7 +286,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 14;
     version->revision = 0;
 }
 

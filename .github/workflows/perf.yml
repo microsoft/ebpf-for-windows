@@ -28,6 +28,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64
       build_options: /p:ReleaseJIT='False'
       configurations: '["Release"]'

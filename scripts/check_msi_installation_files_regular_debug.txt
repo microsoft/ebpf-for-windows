@@ -172,6 +172,10 @@ C:\Program Files\ebpf-for-windows\testing\empty_um.dll
 C:\Program Files\ebpf-for-windows\testing\empty_um.pdb
 C:\Program Files\ebpf-for-windows\testing\encap_reflect_packet.o
 C:\Program Files\ebpf-for-windows\testing\encap_reflect_packet.sys
+C:\Program Files\ebpf-for-windows\testing\hash_of_map_um.dll
+C:\Program Files\ebpf-for-windows\testing\hash_of_map_um.pdb
+C:\Program Files\ebpf-for-windows\testing\hash_of_map.o
+C:\Program Files\ebpf-for-windows\testing\hash_of_map.sys
 C:\Program Files\ebpf-for-windows\testing\invalid_helpers_um.dll
 C:\Program Files\ebpf-for-windows\testing\invalid_helpers_um.pdb
 C:\Program Files\ebpf-for-windows\testing\invalid_maps1_um.dll
@@ -257,5 +261,3 @@ C:\Program Files\ebpf-for-windows\testing\usersim.dll
 C:\Program Files\ebpf-for-windows\testing\usersim.pdb
 C:\Program Files\ebpf-for-windows\testing\xdp_tests.exe
 C:\Program Files\ebpf-for-windows\testing\xdp_tests.pdb
-C:\Program Files\ebpf-for-windows\testing\bad\bad1.o
-C:\Program Files\ebpf-for-windows\testing\bad\bad2.o

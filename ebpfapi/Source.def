@@ -31,12 +31,16 @@ EXPORTS
     bpf_map__unpin
     bpf_map__value_size
     bpf_map_create
+    bpf_map_delete_batch
     bpf_map_delete_elem
     bpf_map_get_fd_by_id
     bpf_map_get_next_id
     bpf_map_get_next_key
+    bpf_map_lookup_and_delete_batch
     bpf_map_lookup_and_delete_elem
+    bpf_map_lookup_batch
     bpf_map_lookup_elem
+    bpf_map_update_batch
     bpf_map_update_elem
     bpf_obj_get
     bpf_obj_get_info_by_fd

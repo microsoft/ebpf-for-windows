@@ -48,6 +48,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64
       generate_release_package: true
       build_msi: true
@@ -61,6 +62,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-native-only
       build_msi: true
       build_nuget: true
@@ -102,6 +104,24 @@ jobs:
       capture_etw: true
       leak_detection: true
 
+  # Run the unit tests for NativeOnly build in GitHub.
+  unit_tests_native_only:
+    # Always run this job.
+    needs: regular_native-only
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: unit_tests
+      pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+      # Exclude [processes] test that CodeCoverage can't work with.
+      test_command: .\unit_tests.exe -d yes ~[processes]
+      build_artifact: Build-x64-native-only
+      environment: windows-2022
+      code_coverage: true
+      gather_dumps: true
+      capture_etw: true
+      leak_detection: true
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
     # Always run this job.
@@ -142,8 +162,8 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
-      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --exclude_regex lock* --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
+      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.5/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
+      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --exclude_regex local --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
       name: bpf2c_conformance
       build_artifact: Build-x64
       environment: windows-2022
@@ -245,6 +265,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-Analyze
       # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
       build_options: /p:Analysis='True' /p:AnalysisOnExternal='False'
@@ -255,6 +276,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
 
@@ -453,6 +475,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-CodeQl
       build_codeql: true
 

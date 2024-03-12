@@ -42,6 +42,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64
       generate_release_package: true
       build_msi: true
@@ -54,6 +55,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-native-only
       build_msi: true
       build_nuget: true
@@ -113,8 +115,8 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.4/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
-      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --exclude_regex lock* --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
+      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.5/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
+      test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --exclude_regex local --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
       name: bpf2c_conformance
       build_artifact: Build-x64
       environment: windows-2022
@@ -208,6 +210,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-Analyze
       # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
       build_options: /p:Analysis='True' /p:AnalysisOnExternal='False'
@@ -217,6 +220,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
 
@@ -312,6 +316,7 @@ jobs:
   codeql:
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64-CodeQl
       build_codeql: true
 

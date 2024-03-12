@@ -329,7 +329,7 @@ handle_ebpf_show_verification(
         filename.c_str(), section.c_str(), &program_type, level == VL_VERBOSE, &report, &error_message, &stats);
     if (status == ERROR_SUCCESS) {
         std::cout << report;
-        std::cout << "\nProgram terminates within " << stats.max_instruction_count << " instructions\n";
+        std::cout << "\nProgram terminates within " << stats.max_loop_count << " loop iterations\n";
         ebpf_free_string(report);
         return NO_ERROR;
     } else {

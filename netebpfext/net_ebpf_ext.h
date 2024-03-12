@@ -75,13 +75,30 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters_array
 /**
  * "Base class" for all WFP filter contexts used by net ebpf extension hooks.
  */
+
+typedef enum _net_ebpf_ext_wfp_filter_state
+{
+    NET_EBPF_EXT_WFP_FILTER_ADDED = 1,
+    NET_EBPF_EXT_WFP_FILTER_DELETED = 2,
+
+} net_ebpf_ext_wfp_filter_state_t;
+
+typedef struct _net_ebpf_ext_wfp_filter_id
+{
+    wchar_t* name;
+    uint64_t id;
+    net_ebpf_ext_wfp_filter_state_t state;
+} net_ebpf_ext_wfp_filter_id_t;
+
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
     volatile long reference_count;                                ///< Reference count.
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
-    uint64_t* filter_ids;                                         ///< Array of WFP filter Ids.
-    uint32_t filter_ids_count;                                    ///< Number of WFP filter Ids.
-    bool client_detached : 1;                                     ///< True if client has detached.
+
+    net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
+    uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
+
+    bool client_detached : 1; ///< True if client has detached.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -94,33 +111,11 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {          \
             net_ebpf_extension_hook_client_leave_rundown(                             \
                 (net_ebpf_extension_hook_client_t*)(filter_context)->client_context); \
+            if ((filter_context)->filter_ids != NULL) {                               \
+                ExFreePool((filter_context)->filter_ids);                             \
+            }                                                                         \
             ExFreePool((filter_context));                                             \
         }                                                                             \
-    }
-
-#define ENTER_HOOK_CLIENT_RUNDOWN(hook_client)                                                                       \
-    {                                                                                                                \
-        /*                                                                                                           \
-         * In certain locations, invocation of the following call cannot ever return false. We always have a valid   \
-         * filter_context in these locations so this call cannot fail as the hook_client rundown object is also used \
-         * to ensure validity of the filter_context. Using an additional rundown object for this purpose would be    \
-         * overkill and and inefficient use of already available resources.                                          \
-         *                                                                                                           \
-         * In such instances, a 'false' return value indicates a fatal internal error. This convenience macro checks \
-         * for this condition and triggers an immediate bugcheck.                                                    \
-         *                                                                                                           \
-         * To be clear, it is ok to call the underlying call directly in other use cases that _do_ _not_ involve     \
-         * accessing the filter_context, with the explicit caveat that the caller be thoroughly aware of the         \
-         * consequences of this call returning false.                                                                \
-         */                                                                                                          \
-        if (!net_ebpf_extension_hook_client_enter_rundown((hook_client))) {                                          \
-            __fastfail(FAST_FAIL_INVALID_ARG);                                                                       \
-        }                                                                                                            \
-    }
-
-#define LEAVE_HOOK_CLIENT_RUNDOWN(hook_client)                       \
-    {                                                                \
-        net_ebpf_extension_hook_client_leave_rundown((hook_client)); \
     }
 
 /**
@@ -218,7 +213,7 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids);
+    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids);
 
 /**
  * @brief Deletes WFP filters with specified filter IDs.
@@ -227,7 +222,8 @@ net_ebpf_extension_add_wfp_filters(
  * @param[in]  filter_ids ID of the filter being deleted.
  */
 void
-net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids);
+net_ebpf_extension_delete_wfp_filters(
+    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162

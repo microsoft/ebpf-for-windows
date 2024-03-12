@@ -6,7 +6,7 @@ SPDX-License-Identifier: MIT
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
-	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.13.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
+	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="0.14.0" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
 		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
 					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
@@ -69,7 +69,6 @@ SPDX-License-Identifier: MIT
 			</Feature>
 			<Feature Id="eBPF_Testing" Level="2" Title="Testing components" Absent="allow" AllowAdvertise="no">
 				<ComponentGroupRef Id="eBPF_Testing_Components" />
-				<ComponentGroupRef Id="eBPF_Testing_Components_bad" />
 				<ComponentGroupRef Id="sample_ebpf_ext_Driver" />
 			</Feature>
 		</Feature>
@@ -594,14 +593,6 @@ SPDX-License-Identifier: MIT
 
 	<!-- Define the product's <Testing> components -->
 	<Fragment>
-		<ComponentGroup Id="eBPF_Testing_Components_bad" Directory="dir_testing_bad">
-			<Component Id="BAD1.O" DiskId="1" Guid="{06A6BC9F-B4C6-43B5-953B-F890F257F136}">
-				<File Id="BAD1.O" Name="bad1.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad\bad1.o" />
-			</Component>
-			<Component Id="BAD2.O" DiskId="1" Guid="{3B9F0887-05CE-48A9-85CA-77D0A611700D}">
-				<File Id="BAD2.O" Name="bad2.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\bad\bad2.o" />
-			</Component>
-		</ComponentGroup>
 		<ComponentGroup Id="eBPF_Testing_Components" Directory="dir_testing">
 			<Component Id="API_TEST.EXE" DiskId="1" Guid="{70AA4D35-45C4-466A-AE08-64A38E4C50F2}">
 				<File Id="API_TEST.EXE" Name="api_test.exe" Source="$(var.api_test.TargetDir)api_test.exe" />
@@ -835,6 +826,18 @@ SPDX-License-Identifier: MIT
 				<File Id="INVALID_HELPERS_UM.PDB" Name="invalid_helpers_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\invalid_helpers_um.pdb" />
 			</Component>
 			<?endif?>
+			<Component Id="HAS_OF_MAP.O" DiskId="1" Guid="{c363ade6-46ef-48e7-8f8b-71c90896e0b3}">
+				<File Id="HAS_OF_MAP.O" Name="hash_of_map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map.o" />
+			</Component>
+			<Component Id="HAS_OF_MAP.SYS" DiskId="1" Guid="{37a23ba5-313e-42e0-9328-ff2cc9c72745}">
+				<File Id="HAS_OF_MAP.SYS" Name="hash_of_map.sys" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map.sys" />
+			</Component>
+			<Component Id="HAS_OF_MAP_UM.DLL" DiskId="1" Guid="{8c9ad5ef-7507-452d-a3f5-25e3d8cd0baf}">
+				<File Id="HAS_OF_MAP_UM.DLL" Name="hash_of_map_um.dll" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map_um.dll" />
+			</Component>
+			<Component Id="HAS_OF_MAP_UM.PDB" DiskId="1" Guid="{1ba1063b-438e-4ce6-b1a5-c049c702265d}">
+				<File Id="HAS_OF_MAP_UM.PDB" Name="hash_of_map_um.pdb" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\hash_of_map_um.pdb" />
+			</Component>
 			<Component Id="MAP.O" DiskId="1" Guid="{C0461A4A-1195-4965-9710-8EED78A271F6}">
 				<File Id="MAP.O" Name="map.o" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\map.o" />
 			</Component>

@@ -1085,39 +1085,6 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
-void
-verify_bad_section(const char* path, const std::string& expected_error_message)
-{
-    _test_helper_end_to_end test_helper;
-    test_helper.initialize();
-    const char* error_message = nullptr;
-    const char* report = nullptr;
-    uint32_t result;
-    program_info_provider_t sample_program_info;
-    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
-    ebpf_api_verifier_stats_t stats;
-    result = ebpf_api_elf_verify_section_from_file(path, "sample", nullptr, false, &report, &error_message, &stats);
-    REQUIRE(result != 0);
-    REQUIRE(report == nullptr);
-    REQUIRE((error_message != nullptr && std::string(error_message) == expected_error_message));
-    ebpf_free_string(report);
-    ebpf_free_string(error_message);
-}
-TEST_CASE("verify bad1.o", "[end_to_end][fuzzed]")
-{
-    verify_bad_section(
-        SAMPLE_PATH "bad\\bad1.o",
-        "error: ELF file bad\\bad1.o is malformed: Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none "
-        "reason constraint failed");
-}
-TEST_CASE("verify bad2.o", "[end_to_end][fuzzed]")
-{
-    verify_bad_section(
-        SAMPLE_PATH "bad\\bad2.o",
-        "error: ELF file bad\\bad2.o is malformed: Failed parsing in struct _E_IDENT field SEVEN.refinement reason "
-        "constraint failed");
-}
-
 static void
 _cgroup_load_test(
     _In_z_ const char* file,
@@ -1696,15 +1663,10 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "reflect_packet_um.dll" : "reflect_packet.o");
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
-        SAMPLE_PATH "reflect_packet.o",
-        BPF_PROG_TYPE_XDP_TEST,
-        "reflect_packet",
-        execution_type,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, BPF_PROG_TYPE_XDP_TEST, "reflect_packet", execution_type, &ifindex, sizeof(ifindex), hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(address_family);
@@ -1732,6 +1694,18 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
 }
 
 static void
+_xdp_reflect_packet_test_v4(ebpf_execution_type_t execution_type)
+{
+    _xdp_reflect_packet_test(execution_type, AF_INET);
+}
+
+static void
+_xdp_reflect_packet_test_v6(ebpf_execution_type_t execution_type)
+{
+    _xdp_reflect_packet_test(execution_type, AF_INET6);
+}
+
+static void
 _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
     _test_helper_end_to_end test_helper;
@@ -1741,15 +1715,11 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     program_info_provider_t xdp_program_info;
     REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP_TEST) == EBPF_SUCCESS);
     uint32_t ifindex = 0;
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "encap_reflect_packet_um.dll" : "encap_reflect_packet.o");
     program_load_attach_helper_t program_helper;
     program_helper.initialize(
-        SAMPLE_PATH "encap_reflect_packet.o",
-        BPF_PROG_TYPE_XDP_TEST,
-        "encap_reflect_packet",
-        execution_type,
-        &ifindex,
-        sizeof(ifindex),
-        hook);
+        file_name, BPF_PROG_TYPE_XDP_TEST, "encap_reflect_packet", execution_type, &ifindex, sizeof(ifindex), hook);
 
     // Dummy UDP datagram with fake IP and MAC addresses.
     udp_packet_t packet(address_family);
@@ -1784,6 +1754,18 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
         REQUIRE(memcmp(inner_ipv6->SourceAddress, &_test_destination_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
         REQUIRE(memcmp(inner_ipv6->DestinationAddress, &_test_source_ipv6, sizeof(ebpf::ipv6_address_t)) == 0);
     }
+}
+
+static void
+_xdp_encap_reflect_packet_test_v4(ebpf_execution_type_t execution_type)
+{
+    _xdp_encap_reflect_packet_test(execution_type, AF_INET);
+}
+
+static void
+_xdp_encap_reflect_packet_test_v6(ebpf_execution_type_t execution_type)
+{
+    _xdp_encap_reflect_packet_test(execution_type, AF_INET6);
 }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
@@ -1844,20 +1826,10 @@ TEST_CASE("printk", "[end_to_end]")
 }
 #endif
 
-TEST_CASE("xdp-reflect-v4-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
-TEST_CASE("xdp-reflect-v6-jit", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
-TEST_CASE("xdp-reflect-v4-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET); }
-TEST_CASE("xdp-reflect-v6-interpret", "[xdp_tests]") { _xdp_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6); }
-TEST_CASE("xdp-encap-reflect-v4-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET); }
-TEST_CASE("xdp-encap-reflect-v6-jit", "[xdp_tests]") { _xdp_encap_reflect_packet_test(EBPF_EXECUTION_JIT, AF_INET6); }
-TEST_CASE("xdp-encap-reflect-v4-interpret", "[xdp_tests]")
-{
-    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET);
-}
-TEST_CASE("xdp-encap-reflect-v6-interpret", "[xdp_tests]")
-{
-    _xdp_encap_reflect_packet_test(EBPF_EXECUTION_INTERPRET, AF_INET6);
-}
+DECLARE_ALL_TEST_CASES("xdp-reflect-v4", "[xdp_tests]", _xdp_reflect_packet_test_v4);
+DECLARE_ALL_TEST_CASES("xdp-reflect-v6", "[xdp_tests]", _xdp_reflect_packet_test_v6);
+DECLARE_ALL_TEST_CASES("xdp-encap-reflect-v4", "[xdp_tests]", _xdp_encap_reflect_packet_test_v4);
+DECLARE_ALL_TEST_CASES("xdp-encap-reflect-v6", "[xdp_tests]", _xdp_encap_reflect_packet_test_v6);
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED) || !defined(CONFIG_BPF_JIT_DISABLED)
 static void

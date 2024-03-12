@@ -131,6 +131,9 @@
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)$(Platform)\Debug\usersim.dll $(OutDir) /F /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
@@ -174,6 +177,9 @@
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)$(Platform)\Release\usersim.dll $(OutDir) /F /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
@@ -241,25 +247,6 @@
     <ClInclude Include="..\end_to_end\helpers.h" />
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
     <ClCompile Include="wer_report_test_wrapper.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="..\sample\bad\bad1.o">
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)bad</DestinationFolders>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\sample\bad\bad2.o">
-      <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)bad</DestinationFolders>
-    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
