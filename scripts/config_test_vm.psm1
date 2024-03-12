@@ -230,6 +230,7 @@ function Install-eBPFComponentsOnVM
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
               [Parameter(Mandatory=$true)] [string] $KmTraceType)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+        Write-Host "Working Directory: $WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 

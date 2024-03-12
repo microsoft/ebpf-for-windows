@@ -95,18 +95,15 @@ function Install-eBPFComponents
     # Install the Visual C++ Redistributable.
     try {
         Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
-        if (-not (Test-Path $VcRedistPath)) {
-            Write-Host "Visual C++ Redistributable not found at '$VcRedistPath'."
-            exit 1;
-        }
-        $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait
-        if ($process.ExitCode -ne 0) {
-            Write-Host "Visual C++ Redistributable installation failed. Exit code: $($process.ExitCode)"
-            exit 1;
+        & "Path\To\VcRedist.exe" /quiet /norestart
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -eq 0) {
+            Write-Host "Visual C++ Redistributable installation completed successfully."
+        } else {
+            Write-Host "Visual C++ Redistributable installation failed. Exit code: $exitCode"
         }
     } catch {
-        Write-Host "An error occurred while installing Visual C++ Redistributable: $_"
-        exit 1;
+        Write-Host "An exception occurred while installing Visual C++ Redistributable: $_"
     }
     Write-Host "Cleaning up..."
     Remove-Item $VcRedistPath -Force
