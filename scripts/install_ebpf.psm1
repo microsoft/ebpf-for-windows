@@ -112,7 +112,7 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     try {
-        $arguments = "/i $MsiPath /qn /norestart /l*vx /log msi-install.log ADDLOCAL=ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
+        $arguments = "/i $MsiPath /qn /norestart /l*v msi-install.log ADDLOCAL=ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
         Write-Host "Installing the eBPF MSI package with arguments: '$arguments'..."
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
