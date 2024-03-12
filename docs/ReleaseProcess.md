@@ -32,11 +32,14 @@ eBPF for Windows, and how to service it later.
     Expected 'bpf2c' output regenerated.
     Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
     ```
+
 1. Verify all the changes then commit all in the working branch.
     >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
+
     >```bash
     >git commit --no-verify
     >```
+
 1. Create a **Draft** pull-request for your branch into the main repo's "`main`" branch (which you created in step 1), and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Once the CI/CD pipeline for the PR completes, download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    (accessible via the "`Actions`" tab on GitHub).
@@ -62,25 +65,30 @@ Servicing a release has two main scenarios:
     # Replace "X.Y.Z" with the new version number being released
     .\scripts\update-release-version.ps1 X Y Z
     ```
+
 1. Cherry pick the commits from `main` that you want to add to the release (patches/hot-fixes, etc.):
 
     ```bash
     git cherry-pick main <commit number> ... <commit number>
     ```
+
     If there are conflicts, resolve them. For example, via:
+
     ```bash
     git mergetool
     ```
+
 1. Verify all the changes then commit all in the working branch.
     >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
+
     >```bash
     >git commit --no-verify
     >```
+
 1. Create a **Draft** pull-request for your working branch into the main repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for  the CI/CD pipeline for the PR to complete successfully.
 1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`release/X.Y`" branch.
 1. Publish the release as per the "[Publishing a Release](ReleaseProcess.md#publishing-a-release)" process.
-
 
 ### Updating the main brach with patches/hot-fixes from a Release branch (*Reverse/Backwards Integration*)
 
@@ -92,10 +100,13 @@ Servicing a release has two main scenarios:
     ```bash
     git cherry-pick release/X.Y <commit number> ... <commit number>
     ```
+
     If there are conflicts, resolve them. For example, via:
+
     ```bash
     git mergetool
     ```
+
 1. Commit all the changes in the working branch.
 1. Create a **Draft** pull-request for your working branch into the main repo's "`main`" branch, and title the PR as *"Backwards Integration of Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
 1. Wait for the CI/CD pipeline for the PR to complete successfully.
