@@ -9,7 +9,6 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-$TestDirectory = "$env:ProgramFiles\ebpf-for-windows\testing"
 $CodeCoverage = "$env:ProgramFiles\OpenCppCoverage\OpenCppCoverage.exe"
 
 #
@@ -114,7 +113,7 @@ function Invoke-CICDTests
             "socket_tests.exe")
 
         foreach ($Test in $TestList) {
-            Invoke-Test -TestName "$TestDirectory\$Test" -VerboseLogs $VerboseLogs -Coverage $Coverage
+            Invoke-Test -TestName "$Test" -VerboseLogs $VerboseLogs -Coverage $Coverage
         }
 
         if ($Coverage) {

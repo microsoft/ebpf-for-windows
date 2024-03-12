@@ -115,7 +115,7 @@ function Set-eBPFProgramOnVM
               [Parameter(Mandatory=$True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($TestDWorkingDirectoryirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Write-Log "Setting program $ProgId at interface $Interface on $VM."
         Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
