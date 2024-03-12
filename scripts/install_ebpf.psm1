@@ -7,7 +7,7 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 Push-Location $WorkingDirectory
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-$VcRedist = Join-Path $WorkingDirectory "vc_redist.x64.exe"
+$VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 $MsiInstallPath = Join-Path $env:ProgramFiles "ebpf-for-windows"
 
@@ -93,31 +93,42 @@ function Install-eBPFComponents
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
     # Install the Visual C++ Redistributable.
-    Write-Host "Installing Visual C++ Redistributable"
-    $process = Start-Process -FilePath $VcRedist -ArgumentList "/quiet", "/norestart" -Wait
-    if ($process.ExitCode -ne 0) {
-        Write-Host "Visual C++ Redistributable installation failed. Exit code: $($process.ExitCode)"
+    try {
+        Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
+        $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait
+        Write-Host "Exit Code: $LASTEXITCODE"
+        if ($process.ExitCode -ne 0) {
+            Write-Host "Visual C++ Redistributable installation failed. Exit code: $($process.ExitCode)"
+            exit 1;
+        }
+    } catch {
+        Write-Host "An error occurred while installing Visual C++ Redistributable: $_"
         exit 1;
     }
     Write-Host "Cleaning up..."
-    Remove-Item $VcRedist -Force
+    Remove-Item $VcRedistPath -Force
     Write-Host "Visual C++ Redistributable installation completed."
 
     # Install the MSI package.
-    $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
-    Write-Host "Installing MSI package at '$MsiPath' with arguments: '$arguments'..."
-    $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
-    if ($process.ExitCode -eq 0) {
-        Write-Host "Installation successful!"
-    } else {
-        Write-Host "Installation FAILED. Exit code: $($process.ExitCode)"
-        $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
-        if ($logContents) {
-            Write-Host "Contents of msi-install.log:"
-            Write-Host $logContents
+    try {
+        $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
+        Write-Host "Installing MSI package: '$MsiPath $arguments'..."
+        $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -eq 0) {
+            Write-Host "Installation successful!"
         } else {
-            Write-Host "msi-install.log not found or empty."
+            Write-Host "MSI installation FAILED. Exit code: $($process.ExitCode)"
+            $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
+            if ($logContents) {
+                Write-Host "Contents of msi-install.log:"
+                Write-Host $logContents
+            } else {
+                Write-Host "msi-install.log not found or empty."
+            }
+            exit 1;
         }
+    } catch {
+        Write-Host "An error occurred while installing the MSI package: $_"
         exit 1;
     }
 
