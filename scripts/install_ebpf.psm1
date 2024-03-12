@@ -102,7 +102,7 @@ function Install-eBPFComponents
     # Install the Visual C++ Redistributable.
     try {
         Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
-        & "Path\To\VcRedist.exe" /quiet /norestart
+        & $VcRedistPath /quiet /norestart
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
             Write-Host "Visual C++ Redistributable installation completed successfully."
