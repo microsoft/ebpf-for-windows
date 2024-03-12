@@ -112,7 +112,7 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     try {
-        $arguments = "/i $MsiPath /qn /norestart /l*v msi-install.log ADDLOCAL=ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
+        $arguments = "/i $MsiPath /qn /norestart /l*v msi-install.log ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
         Write-Host "Installing the eBPF MSI package with arguments: '$arguments'..."
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
@@ -156,7 +156,7 @@ function Uninstall-eBPFComponents
 {
     # Uninstall the MSI package.
     Write-Host "Uninstalling eBPF MSI package at '$MsiPath'..."
-    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /log msi-uninstall.log" -Wait -PassThru
+    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /l*v msi-uninstall.log" -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Host "Uninstallation successful!"
     } else {
