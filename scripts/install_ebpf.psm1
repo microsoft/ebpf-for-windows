@@ -113,11 +113,12 @@ function Install-eBPFComponents
     try {
         $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
         Write-Host "Installing MSI package: '$MsiPath $arguments'..."
-        $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
-        if ($process.ExitCode -eq 0) {
+        & "msiexec.exe" $arguments
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -eq 0) {
             Write-Host "Installation successful!"
         } else {
-            Write-Host "MSI installation FAILED. Exit code: $($process.ExitCode)"
+            Write-Host "MSI installation FAILED. Exit code: $exitCode"
             $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
             if ($logContents) {
                 Write-Host "Contents of msi-install.log:"
