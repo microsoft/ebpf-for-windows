@@ -75,7 +75,7 @@ function Install-MsiPackage {
 
     $res = $true
 
-    $arguments = "/i $MsiPath /qn /norestart /l*v msi-install.log $MsiAdditionalArguments"
+    $arguments = "/i $MsiPath /qn /norestart /l*vx msi-install.log $MsiAdditionalArguments"
     Write-Host "Installing MSI package with arguments: '$arguments'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {

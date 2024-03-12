@@ -9,9 +9,6 @@ Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -War
 
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
-$MsiInstallPath = Join-Path $env:ProgramFiles "ebpf-for-windows"
-
-Write-Host "install_ebpf - Modules imported"
 
 # eBPF Drivers.
 $EbpfDrivers =
@@ -123,7 +120,7 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     try {
-        $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*v msi-install.log"
+        $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*vx msi-install.log"
         Write-Host "Installing the eBPF MSI package with arguments: '$arguments'..."
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
