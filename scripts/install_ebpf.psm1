@@ -97,12 +97,12 @@ function Install-eBPFComponents
 
     $CurrentDirectory = $PWD
     Write-Host "Current directory: $CurrentDirectory"
-    Get-ChildItem -Path $CurrentDirectory -File
+    Get-ChildItem -Path $PWD -File -Include *.msi, *.exe
 
     # Install the Visual C++ Redistributable.
     try {
         Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
-        & $VcRedistPath /quiet /norestart
+        Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
             Write-Host "Visual C++ Redistributable installation completed successfully."
@@ -121,7 +121,7 @@ function Install-eBPFComponents
     # Install the MSI package.
     try {
         $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
-        Write-Host "Installing MSI package: '$MsiPath $arguments'..."
+        Write-Host "Installing MSI package: 'msiexec.exe $arguments'..."
         & "msiexec.exe" $arguments
         $exitCode = $LASTEXITCODE
         if ($exitCode -eq 0) {
