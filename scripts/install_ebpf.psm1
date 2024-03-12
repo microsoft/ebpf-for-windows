@@ -5,7 +5,6 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 Push-Location $WorkingDirectory
-Write-Host "install_ebpf - Working Directory: $WorkingDirectory"
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
@@ -95,23 +94,17 @@ function Install-eBPFComponents
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
-    $CurrentDirectory = $PWD
-    Write-Host "Current directory: $CurrentDirectory"
-    Get-ChildItem -Path $PWD -File
-
     # Install the Visual C++ Redistributable.
     try {
         Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
         $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
-        if ($process.ExitCode -eq 0) {
-            Write-Host "Visual C++ Redistributable installation completed successfully."
-        } else {
-            Write-Host "Visual C++ Redistributable installation failed. Exit code: $($process.ExitCode)"
+        if ($process.ExitCode -ne 0) {
+            Write-Host "Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)"
             exit 1
         }
         Write-Host "Cleaning up..."
         Remove-Item $VcRedistPath -Force
-        Write-Host "Visual C++ Redistributable installation completed."
+        Write-Host "Visual C++ Redistributable installation completed successfully!"
     } catch {
         Write-Host "An exception occurred while installing Visual C++ Redistributable: $_"
         exit 1
@@ -119,12 +112,10 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     try {
-        $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
-        Write-Host "Installing MSI package with arguments: '$arguments'..."
+        $arguments = "/i $MsiPath /qn /norestart /l*vx /log msi-install.log ADDLOCAL=ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
+        Write-Host "Installing the eBPF MSI package with arguments: '$arguments'..."
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
-        if ($process.ExitCode -eq 0) {
-            Write-Host "Installation successful!"
-        } else {
+        if ($process.ExitCode -ne 0) {
             Write-Host "MSI installation FAILED. Exit code: $($process.ExitCode)"
             $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
             if ($logContents) {
@@ -135,6 +126,7 @@ function Install-eBPFComponents
             }
             exit 1;
         }
+        Write-Host "eBPF MSI installation completed successfully!"
     } catch {
         Write-Host "An error occurred while installing the MSI package: $_"
         exit 1;
