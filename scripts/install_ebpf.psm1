@@ -141,9 +141,9 @@ function Install-eBPFComponents
     }
 
     # Debugging information.
-    sc.exe queryx ebpfcore | Write-Host
-    sc.exe queryx netebpfext | Write-Host
-    sc.exe queryx ebpfsvc | Write-Host
+    sc.exe query ebpfcore | Write-Host
+    sc.exe query netebpfext | Write-Host
+    sc.exe query ebpfsvc | Write-Host
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
