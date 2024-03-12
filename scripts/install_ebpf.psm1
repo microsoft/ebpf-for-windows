@@ -93,21 +93,24 @@ function Install-eBPFComponents
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
     # Install the Visual C++ Redistributable.
-    Write-Verbose "Installing Visual C++ Redistributable"
-    Start-Process -FilePath $VcRedist -ArgumentList "/quiet", "/norestart" -Wait
-    Write-Verbose "Cleaning up"
+    Write-Host "Installing Visual C++ Redistributable"
+    $process = Start-Process -FilePath $VcRedist -ArgumentList "/quiet", "/norestart" -Wait
+    if ($process.ExitCode -ne 0) {
+        Write-Host "Visual C++ Redistributable installation failed. Exit code: $($process.ExitCode)"
+        exit 1;
+    }
+    Write-Host "Cleaning up..."
     Remove-Item $VcRedist -Force
-    Write-Verbose "Visual C++ Redistributable installation completed."
+    Write-Host "Visual C++ Redistributable installation completed."
 
     # Install the MSI package.
-    $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" /qn /norestart /log msi-install.log ADDLOCAL=ALL"
+    $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
     Write-Host "Installing MSI package at '$MsiPath' with arguments: '$arguments'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Host "Installation successful!"
     } else {
-        $exceptionMessage = "Installation FAILED. Exit code: $($process.ExitCode)"
-        Write-Host $exceptionMessage
+        Write-Host "Installation FAILED. Exit code: $($process.ExitCode)"
         $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
         if ($logContents) {
             Write-Host "Contents of msi-install.log:"
@@ -115,6 +118,7 @@ function Install-eBPFComponents
         } else {
             Write-Host "msi-install.log not found or empty."
         }
+        exit 1;
     }
 
     # Optionally enable KMDF verifier and tag tracking.

@@ -207,6 +207,7 @@ function Export-BuildArtifactsToVMs
         Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Write-Log "Export completed." -ForegroundColor Green
     }
+
     Remove-Item -Force $tempFileName
 }
 
