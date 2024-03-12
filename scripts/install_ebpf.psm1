@@ -5,11 +5,14 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
        [Parameter(Mandatory=$True)] [string] $LogFileName)
 
 Push-Location $WorkingDirectory
+Write-Host "install_ebpf - Working Directory: $WorkingDirectory"
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 $MsiInstallPath = Join-Path $env:ProgramFiles "ebpf-for-windows"
+
+Write-Host "install_ebpf - Modules imported"
 
 # eBPF Drivers.
 $EbpfDrivers =
@@ -92,6 +95,10 @@ function Install-eBPFComponents
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
+    $CurrentDirectory = $PWD
+    Write-Host "Current directory: $CurrentDirectory"
+    Get-ChildItem -Path $CurrentDirectory -File
+
     # Install the Visual C++ Redistributable.
     try {
         Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
@@ -101,13 +108,15 @@ function Install-eBPFComponents
             Write-Host "Visual C++ Redistributable installation completed successfully."
         } else {
             Write-Host "Visual C++ Redistributable installation failed. Exit code: $exitCode"
+            exit 1
         }
+        Write-Host "Cleaning up..."
+        Remove-Item $VcRedistPath -Force
+        Write-Host "Visual C++ Redistributable installation completed."
     } catch {
         Write-Host "An exception occurred while installing Visual C++ Redistributable: $_"
+        exit 1
     }
-    Write-Host "Cleaning up..."
-    Remove-Item $VcRedistPath -Force
-    Write-Host "Visual C++ Redistributable installation completed."
 
     # Install the MSI package.
     try {

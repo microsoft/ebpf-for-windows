@@ -234,6 +234,7 @@ function Install-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
+        Write-Host "Invoke-Command - Modules imported"
         Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -ErrorAction Stop
     } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
