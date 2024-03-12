@@ -88,6 +88,17 @@ function Start-WPRTrace
     }
 }
 
+function Stop-eBPFComponents
+{
+    # Stop user mode service.
+    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
+
+    # Stop the drivers.
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
+    }
+}
+
 function Install-eBPFComponents
 {
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
@@ -112,7 +123,7 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     try {
-        $arguments = "/i $MsiPath /qn /norestart /l*v msi-install.log ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
+        $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*v msi-install.log"
         Write-Host "Installing the eBPF MSI package with arguments: '$arguments'..."
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
@@ -132,6 +143,11 @@ function Install-eBPFComponents
         exit 1;
     }
 
+    # Debugging information.
+    sc.exe queryx ebpfcore | Write-Host
+    sc.exe queryx netebpfext | Write-Host
+    sc.exe queryx ebpfsvc | Write-Host
+
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
         Enable-KMDFVerifier
@@ -141,16 +157,6 @@ function Install-eBPFComponents
     Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
 }
 
-function Stop-eBPFComponents
-{
-    # Stop user mode service.
-    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
-
-    # Stop the drivers.
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
-    }
-}
 
 function Uninstall-eBPFComponents
 {
