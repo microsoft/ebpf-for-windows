@@ -1,15 +1,18 @@
 ﻿# Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory=$false)][string] $AdminTarget = "TEST_VM",
-       [parameter(Mandatory=$false)][string] $StandardUserTarget = "TEST_VM_STANDARD",
-       [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
-       [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
-       [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][bool] $Coverage = $false,
-       [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
-       [parameter(Mandatory=$false)][string[]] $Options = @("None"),
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
+param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
+       [parameter(Mandatory = $false)][string] $StandardUserTarget = "TEST_VM_STANDARD",
+       [parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
+       [parameter(Mandatory = $false)][string] $WorkingDirectory = $pwd.ToString(),
+       [parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
+       [parameter(Mandatory = $false)][bool] $Coverage = $false,
+       [parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
+       [parameter(Mandatory = $false)][string[]] $Options = @("None"),
+       [parameter(Mandatory = $false)][string] $SelfHostedRunnerName,
+       [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
+       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+)
 
 Push-Location $WorkingDirectory
 
@@ -30,6 +33,8 @@ foreach ($VM in $VMList) {
         -VMName $VM.Name `
         -Coverage $Coverage `
         -TestMode $TestMode `
+        -TestHangTimeout $TestHangTimeout `
+        -UserModeDumpFolder $UserModeDumpFolder `
         -Options $Options
 }
 
@@ -38,13 +43,28 @@ foreach ($VM in $VMList) {
 if ($TestMode -eq "CI/CD") {
 
     # Run XDP Tests.
-    Invoke-XDPTestsOnVM $Config.Interfaces $VMList[0].Name
+    Invoke-XDPTestsOnVM `
+        -Interfaces $Config.Interfaces `
+        -VMName $VMList[0].Name `
+        -TestHangTimeout $TestHangTimeout `
+        -UserModeDumpFolder $UserModeDumpFolder
 
     # Run Connect Redirect Tests.
-    Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest `
-        -UserType "Administrator" $VMList[0].Name
-    Invoke-ConnectRedirectTestsOnVM $Config.Interfaces $Config.ConnectRedirectTest `
-        -UserType "StandardUser" $VMList[0].Name
+    Invoke-ConnectRedirectTestsOnVM `
+        -Interfaces $Config.Interfaces `
+        -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+        -UserType "Administrator" `
+        -VMName $VMList[0].Name `
+        -TestHangTimeout $TestHangTimeout `
+        -UserModeDumpFolder $UserModeDumpFolder
+
+    Invoke-ConnectRedirectTestsOnVM `
+        -Interfaces $Config.Interfaces `
+        -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+        -UserType "StandardUser" `
+        -VMName $VMList[0].Name `
+        -TestHangTimeout $TestHangTimeout `
+        -UserModeDumpFolder $UserModeDumpFolder
 }
 
 # Stop eBPF components on test VMs.

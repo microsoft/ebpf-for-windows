@@ -75,6 +75,29 @@ static uint64_t
 _ebpf_core_get_current_logon_id(_In_ const void* ctx);
 static int32_t
 _ebpf_core_is_current_admin(_In_ const void* ctx);
+static int32_t
+_ebpf_core_memcpy(
+    _Out_writes_(destination_size) void* destination,
+    size_t destination_size,
+    _In_reads_(source_size) const void* source,
+    size_t source_size);
+
+static int32_t
+_ebpf_core_memcmp(
+    _In_reads_(buffer1_length) const void* buffer1,
+    size_t buffer1_length,
+    _In_reads_(buffer2_length) const void* buffer2,
+    size_t buffer2_length);
+
+static uintptr_t
+_ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value);
+
+static int32_t
+_ebpf_core_memmove(
+    _Out_writes_(destination_length) void* destination,
+    size_t destination_length,
+    _In_reads_(source_length) const void* source,
+    size_t source_length);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -107,6 +130,10 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_get_pid_tgid,
     (void*)&_ebpf_core_get_current_logon_id,
     (void*)&_ebpf_core_is_current_admin,
+    (void*)&_ebpf_core_memcpy,
+    (void*)&_ebpf_core_memcmp,
+    (void*)&_ebpf_core_memset,
+    (void*)&_ebpf_core_memmove,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -2340,6 +2367,59 @@ _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
     return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
+static int32_t
+_ebpf_core_memcpy(
+    _Out_writes_(destination_size) void* destination,
+    size_t destination_size,
+    _In_reads_(source_size) const void* source,
+    size_t source_size)
+{
+    if (source_size > destination_size) {
+        return -EINVAL;
+    }
+    return memcpy_s(destination, destination_size, source, source_size);
+}
+
+static uintptr_t
+_ebpf_core_memset(_Out_writes_(length) void* buffer, size_t length, int value)
+{
+    return (uintptr_t)memset(buffer, value, length);
+}
+
+static int32_t
+_ebpf_core_memcmp(
+    _In_reads_(buffer1_length) const void* buffer1,
+    size_t buffer1_length,
+    _In_reads_(buffer2_length) const void* buffer2,
+    size_t buffer2_length)
+{
+    int32_t result = memcmp(buffer1, buffer2, buffer1_length < buffer2_length ? buffer1_length : buffer2_length);
+
+    if (result == 0) {
+        if (buffer1_length < buffer2_length) {
+            result = -1;
+        } else if (buffer1_length > buffer2_length) {
+            result = 1;
+        }
+    } else {
+        result = result < 0 ? -1 : 1;
+    }
+    return result;
+}
+
+static int32_t
+_ebpf_core_memmove(
+    _Out_writes_(destination_length) void* destination,
+    size_t destination_length,
+    _In_reads_(source_length) const void* source,
+    size_t source_length)
+{
+    if (source_length > destination_length) {
+        return -EINVAL;
+    }
+    return memmove_s(destination, destination_length, source, source_length);
+}
+
 typedef enum _ebpf_protocol_call_type
 {
     EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY,
@@ -2463,6 +2543,11 @@ typedef struct _ebpf_protocol_handler
             EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
     }
 
+#define DECLARE_PROTOCOL_HANDLER_INVALID(type) \
+    {                                          \
+        type, NULL, 0, 0, .flags.value = 0     \
+    }
+
 #define ALIAS_TYPES(X, Y)                                                  \
     typedef ebpf_operation_##X##_request_t ebpf_operation_##Y##_request_t; \
     typedef ebpf_operation_##X##_reply_t ebpf_operation_##Y##_reply_t;
@@ -2478,13 +2563,20 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_helper, helper_id, address, PROTOCOL_JIT_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_map, map_handle, address, PROTOCOL_JIT_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
 #endif
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_program, data, PROTOCOL_JIT_OR_INTERPRET_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_map, data, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(load_code, code, PROTOCOL_JIT_OR_INTERPRET_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(map_find_element, key, value, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_update_element, data, PROTOCOL_ALL_MODES),
@@ -2500,6 +2592,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(close_handle, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_ec_function, PROTOCOL_JIT_MODE),
+#else
+    DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY),
 #endif
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_program_info, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(get_pinned_map_info, data, PROTOCOL_ALL_MODES),
@@ -2611,6 +2705,11 @@ ebpf_core_invoke_protocol_handler(
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < 0) {
         retval = EBPF_OPERATION_NOT_SUPPORTED;
         goto Done;
+    }
+
+    // If the dispatch function is NULL, the operation is not supported.
+    if (_ebpf_protocol_handlers[operation_id].dispatch.default_case == NULL) {
+        return EBPF_BLOCKED_BY_POLICY;
     }
 
     if (input_buffer_length > UINT16_MAX) {

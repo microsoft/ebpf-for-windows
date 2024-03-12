@@ -1245,6 +1245,25 @@ extern bool _ebpf_platform_code_integrity_enabled;
     std::map<std::string, ebpf_handle_t> map_handles;                                 \
     create_various_objects(program_handles, map_handles);
 
+#if defined(CONFIG_BPF_JIT_DISABLED) || defined(CONFIG_BPF_INTERPRETER_DISABLED)
+void
+test_blocked_by_policy(ebpf_operation_id_t operation)
+{
+    NEGATIVE_TEST_PROLOG();
+
+    ebpf_result_t expected_result = EBPF_BLOCKED_BY_POLICY;
+
+    std::vector<uint8_t> request(sizeof(ebpf_operation_header_t));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_header_t));
+
+    REQUIRE(invoke_protocol(operation, request, reply) == expected_result);
+
+    // Use a request buffer larger than ebpf_operation_header_t, and try again.
+    request.resize(request.size() + 10);
+    REQUIRE(invoke_protocol(operation, request, reply) == expected_result);
+}
+#endif
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 // These tests exist to verify ebpf_core's parsing of messages.
 // See libbpf_test.cpp for invalid parameter but correctly formed message cases.
@@ -1316,7 +1335,17 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
     resolve_map_request->program_handle = program_handles[0];
     REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_RESOLVE_HELPER);
+}
+
+TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_RESOLVE_MAP);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
@@ -1373,7 +1402,12 @@ TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
     create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
     REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_CREATE_PROGRAM);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
@@ -1465,7 +1499,12 @@ TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
     }
     _ebpf_platform_code_integrity_enabled = false;
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_LOAD_CODE);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE", "[execution_context][negative]")
 {
@@ -1737,6 +1776,11 @@ TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
     request.function = static_cast<ebpf_ec_function_t>(EBPF_EC_FUNCTION_LOG + 1);
     // Wrong EC function.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_EC_FUNCTION, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+#else
+TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_GET_EC_FUNCTION);
 }
 #endif
 

@@ -14,6 +14,7 @@
 
 #include <winsock2.h>
 #include <windows.h>
+#include <iostream>
 #include <netsh.h>
 #include <regex>
 #include <sstream>
@@ -380,6 +381,57 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n");
 }
 
+TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"xdp_datasize_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "4:  (r3.type in {number, ctx, stack, packet, shared})\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "5:  (r3.type == non_map_fd)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "6:  (r2.type in {ctx, stack, packet, shared})\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "7:  (r1.type == number)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "8:  (r1.type == number)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:43\n"
+                  ";     return rc;\n"
+                  "10:  (r0.type == number)\n"
+                  "\n"
+                  "9 errors\n"
+                  "\n");
+}
+
 TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
 {
     _test_helper_netsh test_helper;
@@ -415,6 +467,7 @@ verify_no_programs_exist()
                   "======  ====  =====  =========  =============  ====================\n");
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("pin first program", "[netsh][programs]")
 {
     _test_helper_netsh test_helper;
@@ -897,6 +950,7 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
 
     ebpf_epoch_synchronize();
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("show processes", "[netsh][processes]")
 {

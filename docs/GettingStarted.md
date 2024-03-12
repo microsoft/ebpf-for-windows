@@ -28,7 +28,7 @@ The following must be installed in order to build this project:
    - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
-1. [The WiX Toolset v3.11.2 build tools](https://github.com/wixtoolset/wix3/releases)
+1. [The WiX Toolset v3.14 build tools](https://github.com/wixtoolset/wix3/releases)
     > Note: The *WiX Toolset* has a dependency on the **.NET 3.5 Framework**: you can either enable from the Start menu -> "*Turn Windows features on or off*" and then select "*.NET Framework 3.5 (includes .NET 2.0 and 3.0)*" (recommended), *or*
 install it directly from [here](https://www.microsoft.com/en-us/download/details.aspx?id=21).
 1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
@@ -60,6 +60,7 @@ Alternative install steps (for *basic* Visual Studio Community edition):
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
    if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '0E8733AC82CFDEC93A3606AEA586A6BD08980D2301754EC165230FBA353E7B4C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
+
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
     please install manually with the link in the [Prerequisites](#prerequisites) section above.
 
@@ -74,14 +75,16 @@ Clone the eBPF for Windows projects and its submodules by running:
    ```cmd
    git clone --recurse-submodules https://github.com/microsoft/ebpf-for-windows.git
    ```
+
 >Note: by default this will clone the project under the `ebpf-for-windows` directory.
 
 #### Exclusion of PE parse directory from Windows Defender Antivirus
 
 PE parse directory includes some malformed PE images as a part of the test suite for PE image parser and Windows Defender flags these files as viruses. Please note that similar exclusions have to be done for other Antivirus products as needed. The following steps are needed to exempt PE directory from Windows Defender Antivirus:
+
 1. Select *Start*, then open *Settings*. Under *Privacy & Security*, select *Virus & threat protection*.
-2. Under *Virus & threat protection* settings, select *Manage settings*, and then under *Exclusions*, select *Add or remove exclusions*.
-3. Select *Add an exclusion*, and then select from files, folders, file types, or processes. Choose the following directory ```ebpf-for-windows/external/pe-parse``` to exclude the folder and subfolders to get flagged by the antivirus.
+1. Under *Virus & threat protection* settings, select *Manage settings*, and then under *Exclusions*, select *Add or remove exclusions*.
+1. Select *Add an exclusion*, and then select from files, folders, file types, or processes. Choose the following directory ```ebpf-for-windows/external/pe-parse``` to exclude the folder and subfolders to get flagged by the antivirus.
 
 #### Prepare for first build
 
@@ -94,9 +97,10 @@ The following steps need to be executed *once* before the first build on a new c
    ```ps
    .\scripts\initialize_ebpf_repo.ps1
    ```
+
       >**Note**: you may get the following transitory error, which can be safely ignored as the *WiX Toolset* nuget package will be installed immediately afterwards:
       >
-      >    `error : The WiX Toolset v3.11 build tools must be installed to build this project. To download the WiX Toolset, see https://wixtoolset.org/releases/v3.11/stable`
+      >    `error : The WiX Toolset v3.14 build tools must be installed to build this project. To download the WiX Toolset, see https://github.com/wixtoolset/wix3/releases/tag/wix314rtm`
 
 > TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
@@ -250,39 +254,54 @@ On the attacker machine, do the following:
 1. Show that 200K packets per second are being received
 1. Show & explain code of `droppacket.c`
 1. Compile `droppacket.c`:
+
    ```cmd
    clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o
    ```
+
 1. Show eBPF byte code for `droppacket.o`:
+
    ```cmd
    netsh ebpf show disassembly droppacket.o xdp_test
    ```
+
 1. Show that the verifier checks the code:
+
    ```cmd
    netsh ebpf show verification droppacket.o xdp_test
    ```
+
 1. Launch netsh `netsh`
 1. Switch to ebpf context `ebpf`
 1. Load eBPF program, and note the ID:
+
    ```cmd
    add program droppacket.o xdp_test
    ```
+
 1. Show UDP datagrams received drop to under 10 per second
 1. Unload program:
+
    ```bash
    delete program <id>     #Note: where `<id>` is the ID noted above.
    ```
+
 1. Show UDP datagrams received drop to back up to ~200K per second
 1. Modify `droppacket.c` to be unsafe - **Comment out line 20 & 21**
 1. Compile `droppacket.c`:
+
    ```cmd
    clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o
    ```
+
 1. Show that the verifier rejects the code:
+
    ```cmd
    netsh ebpf show verification droppacket.o xdp_test
    ```
+
 1. Show that loading the program fails:
+
    ```cmd
    netsh ebpf add program droppacket.o xdp_test
    ```
@@ -342,9 +361,11 @@ This tests the XDP_TX functionality.
 1. On the first host:
    1. [Install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
    1. Load the test eBPF program by running the following command, and note the ID (see **Note 3** below):
+
       ```cmd
       netsh ebpf add program reflect_packet.o xdp_test
       ```
+
 1. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    1. Run (see **Note 2** below):
@@ -364,6 +385,7 @@ This uses `bpf_xdp_adjust_head` helper function to encapsulate an outer IP heade
       ```cmd
       netsh ebpf add program encap_reflect_packet.o xdp_test
       ```
+
 1. On the second host:
    1. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    1. Run  (see **Note 3** below):
@@ -378,23 +400,31 @@ This uses `bpf_xdp_adjust_head` helper function to decapsulate an outer IP heade
 
 1. On *both* the hosts, [install eBPF for Windows](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/InstallEbpf.md).
 1. On the first host load the first test eBPF program by running the following command. and note the ID (see **Note 3** below):
+
    ```cmd
    netsh ebpf add program encap_reflect_packet.o xdp_test
    ```
+
 1. On the second host:
    1. Load the second test eBPF program by running the following command, and note the ID (see **Note 3** below):
+
       ```cmd
       netsh ebpf add program decap_permit_packet.o xdp_test
       ```
+
    2. Allow inbound traffic for `xdp_tests.exe` through Windows Defender Firewall. See **Note 1** below.
    3. Run the following command (see **Note 3** below):
+
       ```cmd
       xdp_tests.exe xdp_reflect_test --remote-ip <IP on the first host>
       ```
+
       **Note 1:** To allow inbound traffic to `xdp_tests.exe`, in a Windows Powershell with administrative privilege, run:
+
       ```cmd
       New-NetFirewallRule -DisplayName "XDP_Test" -Program "<Full path to xdp_tests.exe>" -Direction Inbound -Action Allow
       ```
+
       **Note 2:** For the `--remote-ip` parameter to `xdp_tests.exe` program that is run on the second host,
        pass an IPv4 or IPv6 address of an Ethernet-like interface on the first host in string format.
 
@@ -418,21 +448,27 @@ eBPF for Windows uses ETW for tracing.  A trace can be captured in a file, or vi
 To capture a trace in a file use the following commands:
 
 1. Start tracing:
+
    ```cmd
    wpr.exe -start "%ProgramFiles%\ebpf-for-windows\ebpfforwindows.wprp" -filemode
    ```
+
    This will capture traces from eBPF execution context and the network eBPF extension drivers.
     >**Note**: The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file, using the default installation folder.
          If you installed it in another folder or via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.
 1. Run the scenario to be traced.
 1. Stop tracing:
+
    ```cmd
    wpr.exe -stop ebpfforwindows.etl
    ```
+
 1. Convert the traces to text format:
+
    ```cmd
    netsh trace convert ebpfforwindows.etl overwrite=yes
    ```
+
    or, to convert to CSV format, use:
 
    ```cmd
@@ -448,13 +484,17 @@ section above) or just copy the two executables into the VM.
 To view all eBPF trace events that would be captured to a file, use the following commands:
 
 1. Create a trace session with some name such as MyTrace:
+
    ```cmd
    tracelog -start MyTrace -guid "%ProgramFiles%\[eBPF for Windows install folder]ebpf-all.guid" -rt
    ```
+
 1. View the session in real-time on stdout:
+
    ```cmd
    tracefmt -rt MyTrace -displayonly -jsonMeta 0
    ```
+
    This will continue until you break out of the executable with Ctrl-C.
 1. Close the trace session:
 
@@ -467,14 +507,17 @@ Often when tracing eBPF programs, it is useful to only view output generated by 
 To do so, use `ebpf-printk.guid` instead of `ebpf-all.guid` when creating a trace session. That is:
 
 1. Create a trace session with some name such as MyTrace:
+
    ```cmd
    tracelog -start MyTrace -guid "%ProgramFiles%\[eBPF for Windows install folder]\ebpf-printk.guid" -rt
    ```
+
 1. View the session in real-time on stdout:
 
    ```cmd
    tracefmt -rt MyTrace -displayonly -jsonMeta 0
    ```
+
    This will continue until you break out of the executable with Ctrl-C.
 
 1. Close the trace session:
@@ -513,12 +556,16 @@ To view all trace events from the network eBPF extension (`netebpfext.sys`), use
    ```cmd
    tracelog -start MyTrace -guid net-ebpf-ext.guid -rt
    ```
+
 1. View the session in real-time on stdout:
+
    ```cmd
    tracefmt -rt NetEbpfExtTrace -displayonly -jsonMeta 0
    ```
+
    This will continue until you break out of the executable with Ctrl-C.
 1. Close the trace session:
+
    ```cmd
    tracelog -stop NetEbpfExtTrace
    ```

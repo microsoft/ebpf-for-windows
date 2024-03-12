@@ -35,6 +35,11 @@ jobs:
       BUILD_PLATFORM: x64
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
     - id: skip_check
       uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
       with:
@@ -50,7 +55,7 @@ jobs:
 
     - name: Download build artifact
       if: (steps.skip_check.outputs.should_skip != 'true') && success()
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       id: download_artifact
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}

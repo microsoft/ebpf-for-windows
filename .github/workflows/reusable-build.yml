@@ -65,6 +65,11 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
     - id: skip_check
       uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
       with:
@@ -116,7 +121,7 @@ jobs:
       # Add cache entry for any choco packages that are installed.
       # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+      uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
       env:
         cache-name: cache-choco-packages
       with:
@@ -133,7 +138,7 @@ jobs:
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+      uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
       env:
         cache-name: cache-nuget-modules
       with:
@@ -143,7 +148,7 @@ jobs:
     - name: Cache verifier project
       # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2
+      uses: actions/cache@ab5e6d0c87105b4c9c2047343972218f562e4319
       env:
         cache-name: cache-verifier-project
       with:
