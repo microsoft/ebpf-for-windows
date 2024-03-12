@@ -97,17 +97,16 @@ function Install-eBPFComponents
 
     $CurrentDirectory = $PWD
     Write-Host "Current directory: $CurrentDirectory"
-    Get-ChildItem -Path $PWD -File -Include *.msi, *.exe
+    Get-ChildItem -Path $PWD -File
 
     # Install the Visual C++ Redistributable.
     try {
         Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
-        Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait
-        $exitCode = $LASTEXITCODE
-        if ($exitCode -eq 0) {
+        $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
+        if ($process.ExitCode -eq 0) {
             Write-Host "Visual C++ Redistributable installation completed successfully."
         } else {
-            Write-Host "Visual C++ Redistributable installation failed. Exit code: $exitCode"
+            Write-Host "Visual C++ Redistributable installation failed. Exit code: $($process.ExitCode)"
             exit 1
         }
         Write-Host "Cleaning up..."
@@ -121,13 +120,12 @@ function Install-eBPFComponents
     # Install the MSI package.
     try {
         $arguments = "/i `"$MsiPath`" INSTALLFOLDER=`"$MsiInstallPath`" ADDLOCAL=ALL /qn /norestart /l*vx /log msi-install.log"
-        Write-Host "Installing MSI package: 'msiexec.exe $arguments'..."
-        & "msiexec.exe" $arguments
-        $exitCode = $LASTEXITCODE
-        if ($exitCode -eq 0) {
+        Write-Host "Installing MSI package with arguments: '$arguments'..."
+        $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -eq 0) {
             Write-Host "Installation successful!"
         } else {
-            Write-Host "MSI installation FAILED. Exit code: $exitCode"
+            Write-Host "MSI installation FAILED. Exit code: $($process.ExitCode)"
             $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
             if ($logContents) {
                 Write-Host "Contents of msi-install.log:"
