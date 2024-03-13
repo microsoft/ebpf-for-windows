@@ -34,6 +34,13 @@ _ring_get_consumer_offset(_In_ const ebpf_ring_buffer_t* ring)
     return ring->consumer_offset % ring->length;
 }
 
+inline static size_t
+_ring_get_used_capacity(_In_ const ebpf_ring_buffer_t* ring)
+{
+    ebpf_assert(ring->producer_offset >= ring->consumer_offset);
+    return ring->producer_offset - ring->consumer_offset;
+}
+
 inline static void
 _ring_advance_producer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
@@ -94,6 +101,9 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 
     local_ring_buffer->length = capacity;
 
+    // Allocate twice the capacity of the ring buffer to allow for the producer and consumer to wrap around.
+    // capacity *= 2;
+
     local_ring_buffer->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
     if (!local_ring_buffer->ring_descriptor) {
         result = EBPF_NO_MEMORY;
@@ -146,10 +156,12 @@ Done:
 }
 
 void
-ebpf_ring_buffer_query(_In_ const ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _Out_ size_t* producer)
+ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _Out_ size_t* producer)
 {
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
     *consumer = ring->consumer_offset;
     *producer = ring->producer_offset;
+    ebpf_lock_unlock(&ring->lock, state);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -160,9 +172,13 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
     size_t local_length = length;
     size_t offset = _ring_get_consumer_offset(ring);
 
-    // Check if length is valid.
-    if ((length > _ring_get_length(ring)) ||
-        (length + _ring_get_consumer_offset(ring) > _ring_get_producer_offset(ring))) {
+    if ((length > _ring_get_length(ring)) || length > _ring_get_used_capacity(ring)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_ring_buffer_return: Invalid length",
+            ring->producer_offset,
+            ring->consumer_offset);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -178,6 +194,11 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
     }
     // Did it end on a record boundary?
     if (local_length != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_ring_buffer_return: Invalid length",
+            local_length);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -187,7 +208,7 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 
 Done:
     ebpf_lock_unlock(&ring->lock, state);
-    return result;
+    EBPF_RETURN_RESULT(result);
 }
 
 _Must_inspect_result_ ebpf_result_t
