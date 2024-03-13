@@ -14,7 +14,7 @@ $InstallPath = "$env:ProgramFiles\ebpf-for-windows";
 # - The expected file lists for each build artifact
 $buildArtifactParams = @{
     "Build-x64_Debug" = @{
-        "InstallComponents" = "ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing"
+        "InstallComponents" = "ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
         "ExpectedFileList" = "..\..\scripts\check_msi_installation_files_regular_debug.txt"
     }
     "Build-x64-native-only_NativeOnlyRelease" = @{

@@ -16,31 +16,25 @@ Do the following from within the VM:
     * **Runtime Components** (mandatory): this feature adds the eBPF runtime and core components, which are also required by the other components. If you select only this
       feature, only [native code generation](NativeCodeGeneration.md) is enabled.
         * **JIT** (optional): this sub-feature adds support for JIT-compiled eBPF programs and (in a Debug build only) interpreted eBPF programs.
-    * **Development** (optional): this feature adds headers and libraries used for development. If you only want to use eBPF for development
-      rather than running programs, you can [use the NuGet package](GettingStarted.md#using-ebpf-in-development)
-      instead of the MSI.
-    * **Testing** (optional): this feature adds tests for the eBPF runtime for use by eBPF runtime developers.
 
 An **command line install/uninstall** is also supported, through the direct use of `C:\Windows\system32\msiexec.exe` from an *administrative Command Prompt*:
 
-- The installation folder can be customized by assigning the desired path to the `INSTALLFOLDER` parameter (path with spaces must be put between double quotes), i.e.:
+* The installation folder can be customized by assigning the desired path to the `INSTALLFOLDER` parameter (path with spaces must be put between double quotes), i.e.:
+
     ```bash
     INSTALLFOLDER="C:\Program Files\ebpf-for-windows"
     ```
 
-- The following feature-components are available for customization, and must be assigned as comma-separated values to the `ADDLOCAL` parameter:
+* The following feature-components are available for customization, and must be assigned as comma-separated values to the `ADDLOCAL` parameter:
 
-    - `eBPF_Runtime_Components` (**mandatory**): runtime components (installed in `[Installation folder]\*`, `[Installation folder]\drivers`).
-    - `eBPF_Runtime_Components_JIT` (optional): JIT compiler service (installed in `[Installation folder]\JIT`).
-    - `eBPF_Development` (optional): header files, scripts and libraries for development (installed in `[Installation folder]\include`,`[Installation folder]\lib`,`[Installation folder]\scripts`).
-    - `eBPF_Testing` (optional): header files for development (installed in `[Installation folder]\testing`).
+  * `eBPF_Runtime_Components` (**mandatory**): runtime components (installed in `[Installation folder]\*`, `[Installation folder]\drivers`).
+  * `eBPF_Runtime_Components_JIT` (optional): JIT compiler service (installed in `[Installation folder]\JIT`).
 
     e.g., (full featured):
 
     ```bash
-    ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing
+    ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
     ```
-
 
 Below are some examples of CLI installations/uninstallation, using "`C:\Program Files\ebpf-for-windows`" as the installation folder:
 
@@ -48,17 +42,14 @@ Below are some examples of CLI installations/uninstallation, using "`C:\Program 
     > **Note**: add the "`/qn`" switch for **unattended install**.
 
     ```bash
-    # Debug MSI - fully-featured installation
-    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing
+    # Debug MSI - fully-featured installation, including the JIT compiler (available on pre-release versions only)
+    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
 
-    # Debug MSI - fully-featured installation, no JIT compiler
-    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Development,eBPF_Testing
+    # Debug MSI - minimal installation (only runtime components)
+    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components
 
     # Release MSI - fully-featured installation, including the JIT compiler (available on pre-release versions only)
-    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing
-
-    # Release MSI - fully-featured installation (no JIT compiler on future post-release versions)
-    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Development,eBPF_Testing
+    C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT
 
     # Release MSI - minimal installation (only runtime components)
     C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi INSTALLFOLDER="C:\Program Files\ebpf-for-windows" ADDLOCAL=eBPF_Runtime_Components
@@ -79,27 +70,33 @@ C:\Windows\system32\msiexec.exe /i eBPF-for-Windows.x.x.x.msi <other options> /l
 ```
 
 ### Method 2 (Install files you built yourself)
+
 This method uses a machine that
 has already built the binaries for `x64/Debug` or `x64/Release`.
 
 1. Deploy the binaries to `C:\Temp` in your VM, as follows (from within a "*Developer PowerShell for VS 2022*"):
 
-    - If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, run:
+    * If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, run:
 
         ```ps
         .\x64\debug\deploy-ebpf -l
         ```
-    - Otherwise, if you **built the binaries on the host machine**, then from your `ebpf-for-windows`
+
+    * Otherwise, if you **built the binaries on the host machine**, then from your `ebpf-for-windows`
         directory on the host machine, start an admin Powershell on the host machine and run:
 
         ```ps
         .\x64\debug\deploy-ebpf --vm="<test-vm-name>"
         ```
+
         or, to also copy files needed to run various tests, run:
+
         ```ps
         .\x64\debug\deploy-ebpf --vm="<test-vm-name>" -t
         ```
+
         or, to copy files to a specific directory, including file shares, run:
+
         ```ps
         .\x64\debug\deploy-ebpf -l="c:\some\path"
         ```
@@ -112,24 +109,31 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
 
    powershell -ExecutionPolicy Bypass .\scripts\setup-ebpf.ps1
    ```
+
 ### Method 3 (Install files you built yourself, with a VM checkpoint)
+
 This method uses a machine that
 has already built the binaries for `x64/Debug` or `x64/Release`.
 
 Copy the build output in `\x64\[Debug|Release]` to the host of the test VM and run the following in a Powershell
 command prompt:
+
 1. Create a snapshot of the test VM named **baseline**, by running:
 
     ```ps
     Checkpoint-VM -Name <test-vm-name> -CheckpointName baseline
     ```
+
 1. Store the VM administrator credential, by running the following commands:
+
    ```ps
    Install-Module CredentialManager -force
    ```
+
    ```ps
    New-StoredCredential -Target TEST_VM -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine
    ```
+
    > Note that "`TEST_VM`" is literal and is used in step 5 below; it need not be the name of any actual test VM.
 1. Enter the `\x64\[Debug|Release]` directory (`cd`) where the build artifacts are stored.
 1. Modify `.\vm_list.json` to specify the name of the test VM under `VMList`, eg:
@@ -146,11 +150,14 @@ command prompt:
         ]
     }
     ```
+
 1. Run the following commands to setup to use the credentials saved with `TEST_VM` in step 2,
  for logging into each of the VMs named in `vm_list.json`:
+
     ```ps
     Set-ExecutionPolicy unrestricted -Force
     ```
+
     ```ps
     .\setup_ebpf_cicd_tests.ps1
     ```
@@ -161,7 +168,6 @@ The following instructions will build an ebpf-for-windows image and deploy a dae
 to install eBPF on all Windows nodes in a Kubernetes cluster.
 
 1. Download the `.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases) and copy it over to [images](../images) directory.
-
 
 2. Build ebpf-for-windows image.
 
@@ -174,7 +180,8 @@ Start an admin Powershell on the Windows Host and run the following command and 
 
     * To **build the image on a Linux machine** (e.g. Ubuntu), make sure docker is installed (see [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)), and do the following:
 
-      - Run the following command and provide parameters for `repository`, `tag` and `OSVersion`:
+      * Run the following command and provide parameters for `repository`, `tag` and `OSVersion`:
+
           ```bash
           $HOME/ebpf-for-windows-image/build-images.sh
           ````
@@ -182,6 +189,7 @@ Start an admin Powershell on the Windows Host and run the following command and 
 3. Push the `ebpf-for-windows` image to your repository.
 
 4. Update `manifests/Kubernetes/ebpf-for-windows-daemonset.yaml` with the container image pointing to your image path. Run the following command:
+
     ```cmd
     kubectl apply -f manifests/Kubernetes/ebpf-for-windows-daemonset.yaml
     ```
