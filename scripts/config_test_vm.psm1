@@ -234,6 +234,9 @@ function Install-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -ErrorAction Stop
+        if ($LASTEXITCODE -ne 0) {
+            throw "Install-eBPFComponents failed with exit code $LASTEXITCODE"
+        }
     } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
@@ -253,6 +256,9 @@ function Uninstall-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Uninstall-eBPFComponents
+        if ($LASTEXITCODE -ne 0) {
+            throw "Uninstall-eBPFComponents failed with exit code $LASTEXITCODE"
+        }
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components uninstalled on $VMName" -ForegroundColor Green
 }

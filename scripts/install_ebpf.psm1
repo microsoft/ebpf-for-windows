@@ -18,6 +18,21 @@ $EbpfDrivers =
     "SampleEbpfExt" = "sample_ebpf_ext.sys"
 }
 
+# eBPF Debug Runtime DLLs.
+$VCDebugRuntime = @(
+    "concrt140d.dll",
+    "msvcp140d.dll",
+    "msvcp140d_atomic_wait.dll",
+    "msvcp140d_codecvt_ids.dll",
+    "msvcp140_1d.dll",
+    "msvcp140_2d.dll",
+    "vccorlib140d.dll",
+    "vcruntime140d.dll",
+    "vcruntime140_1d.dll",
+    "vcruntime140_threadsd.dll",
+    "ucrtbased.dll"
+)
+
 function Enable-KMDFVerifier
 {
     # Install drivers.
@@ -102,48 +117,67 @@ function Install-eBPFComponents
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
-    # Install the Visual C++ Redistributable.
+    # Install the Visual C++ Redistributable (Release version, which is required for the MSI installation).
     try {
-        Write-Host "Installing Visual C++ Redistributable from '$VcRedistPath'..."
+        Write-Log("Installing Visual C++ Redistributable from '$VcRedistPath'...")
         $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
         if ($process.ExitCode -ne 0) {
-            Write-Host "Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)"
+            Write-Log("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)") -ForegroundColor Red
             exit 1
         }
-        Write-Host "Cleaning up..."
+        Write-Log("Cleaning up...")
         Remove-Item $VcRedistPath -Force
-        Write-Host "Visual C++ Redistributable installation completed successfully!"
+        Write-Log("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
     } catch {
-        Write-Host "An exception occurred while installing Visual C++ Redistributable: $_"
+        Write-Log("An exception occurred while installing Visual C++ Redistributable: $_") -ForegroundColor Red
+        exit 1
+    }
+
+    # Copy the VC debug runtime DLLs to the system32 directory,
+    # so that debug versions of the MSI can be installed (i.e. export_program_info.exe will not fail).
+    try {
+        $system32Path = Join-Path $env:SystemRoot "System32"
+        Write-Log("Copying VC debug runtime DLLs to the $system32Path directory...")
+        $VCDebugRuntime | ForEach-Object {
+            $sourcePath = Join-Path $WorkingDirectory $_
+            $destinationPath = Join-Path $system32Path $_
+            Write-Log("Copying '$sourcePath' to '$destinationPath'...")
+            Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+        }
+        Write-Log("VC debug runtime DLLs copied successfully!") -ForegroundColor Green
+    }
+    catch {
+        Write-Log("An exception occurred while copying VC debug runtime DLLs: $_") -ForegroundColor Red
         exit 1
     }
 
     # Install the MSI package.
     try {
         $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*vx msi-install.log"
-        Write-Host "Installing the eBPF MSI package with arguments: '$arguments'..."
+        Write-Log("Installing the eBPF MSI package: 'msiexec.exe $arguments'...")
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
-            Write-Host "MSI installation FAILED. Exit code: $($process.ExitCode)"
+            Write-Log("MSI installation FAILED. Exit code: $($process.ExitCode)") -ForegroundColor Red
             $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
             if ($logContents) {
-                Write-Host "Contents of msi-install.log:"
-                Write-Host $logContents
+                Write-Log("Contents of msi-install.log:")
+                Write-Log($logContents)
             } else {
-                Write-Host "msi-install.log not found or empty."
+                Write-Log("msi-install.log not found or empty.") -ForegroundColor Red
             }
             exit 1;
         }
-        Write-Host "eBPF MSI installation completed successfully!"
+        Write-Log("eBPF MSI installation completed successfully!") -ForegroundColor Green
     } catch {
-        Write-Host "An error occurred while installing the MSI package: $_"
+        Write-Log("An error occurred while installing the MSI package: $_") -ForegroundColor Red
         exit 1;
     }
 
     # Debugging information.
-    sc.exe query ebpfcore | Write-Host
-    sc.exe query netebpfext | Write-Host
-    sc.exe query ebpfsvc | Write-Host
+    Write-Log("Querying the status of eBPF services...")
+    sc.exe query ebpfcore | Write-Log
+    sc.exe query netebpfext | Write-Log
+    sc.exe query ebpfsvc | Write-Log
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
@@ -154,23 +188,22 @@ function Install-eBPFComponents
     Start-WPRTrace -KmTracing $KmTracing -KmTraceType $KmTraceType
 }
 
-
 function Uninstall-eBPFComponents
 {
     # Uninstall the MSI package.
-    Write-Host "Uninstalling eBPF MSI package at '$MsiPath'..."
+    Write-Log("Uninstalling eBPF MSI package at '$MsiPath'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /l*v msi-uninstall.log" -Wait -PassThru
     if ($process.ExitCode -eq 0) {
-        Write-Host "Uninstallation successful!"
+        Write-Log("Uninstallation successful!") -ForegroundColor Green
     } else {
         $exceptionMessage = "Uninstallation FAILED. Exit code: $($process.ExitCode)"
-        Write-Host $exceptionMessage
+        Write-Log($exceptionMessage) -ForegroundColor Red
         $logContents = Get-Content -Path "msi-uninstall.log" -ErrorAction SilentlyContinue
         if ($logContents) {
-            Write-Host "Contents of msi-uninstall.log:"
-            Write-Host $logContents
+            Write-Log("Contents of msi-uninstall.log:")
+            Write-Log($logContents)
         } else {
-            Write-Host "msi-uninstall.log not found or empty."
+            Write-Log("msi-uninstall.log not found or empty.") -ForegroundColor Red
         }
     }
 
