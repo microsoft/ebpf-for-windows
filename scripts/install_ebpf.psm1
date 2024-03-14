@@ -240,7 +240,6 @@ function Install-eBPFComponents
         }
     }
 
-
     # Debugging information.
     Write-Log("Querying the status of eBPF drivers and services...")
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
@@ -274,6 +273,48 @@ function Uninstall-eBPFComponents
             Write-Log("msi-uninstall.log not found or empty.") -ForegroundColor Red
         }
     }
+
+    # Uninstall the extra drivers that are not installed by the MSI package.
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        if (-not $_.Value.InstalledByMsi) {
+            # Stop the service
+            Write-Log ("Stopping $($_.Key) service...") -ForegroundColor Green
+            $stopServiceOutput = sc.exe stop $_.Key 2>&1
+            Write-Log $stopServiceOutput
+
+            if ($LASTEXITCODE -ne 0) {
+                Write-Log ("Failed to stop $($_.Key) service.") -ForegroundColor Red
+            } else {
+                Write-Log ("$($_.Key) service stopped.") -ForegroundColor Green
+
+                # Delete the service
+                Write-Log ("Deleting $($_.Key) service...") -ForegroundColor Green
+                $deleteServiceOutput = sc.exe delete $_.Key 2>&1
+                Write-Log $deleteServiceOutput
+
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Log ("Failed to delete $($_.Key) service.") -ForegroundColor Red
+                } else {
+                    Write-Log ("$($_.Key) service deleted.") -ForegroundColor Green
+                }
+            }
+
+            # Check if the driver file exists and delete it
+            $driverPath = if (Test-Path -Path ("$pwd\{0}" -f $_.Value.Name)) {
+                "$pwd\{0}" -f $_.Value.Name
+            } elseif (Test-Path -Path ("$pwd\drivers\{0}" -f $_.Value.Name)) {
+                "$pwd\drivers\{0}" -f $_.Value.Name
+            }
+
+            if ($driverPath -ne $null) {
+                Write-Log ("Deleting driver file: $driverPath") -ForegroundColor Green
+                Remove-Item -Path $driverPath -Force -ErrorAction SilentlyContinue
+            } else {
+                Write-Log ("Driver file not found for $($_.Key).") -ForegroundColor Red
+            }
+        }
+    }
+
 
     # Stop KM tracing.
     wpr.exe -cancel
