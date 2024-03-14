@@ -11,11 +11,27 @@ $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 
 # eBPF Drivers.
-$EbpfDrivers =
-@{
-    "EbpfCore" = "ebpfcore.sys";
-    "NetEbpfExt" = "netebpfext.sys";
-    "SampleEbpfExt" = "sample_ebpf_ext.sys"
+$EbpfDrivers = @{
+    "EbpfCore" = [PSCustomObject]@{
+        "Name" = "ebpfcore.sys"
+        "IsDriver" = $true
+        "InstalledByMsi" = $true
+    }
+    "NetEbpfExt" = [PSCustomObject]@{
+        "Name" = "netebpfext.sys"
+        "IsDriver" = $true
+        "InstalledByMsi" = $true
+    }
+    "SampleEbpfExt" = [PSCustomObject]@{
+        "Name" = "sample_ebpf_ext.sys"
+        "IsDriver" = $true
+        "InstalledByMsi" = $false
+    }
+    "EbpfSvc" = [PSCustomObject]@{
+        "Name" = "ebpfsvc.exe"
+        "IsDriver" = $false
+        "InstalledByMsi" = $true
+    }
 }
 
 # eBPF Debug Runtime DLLs.
@@ -35,11 +51,14 @@ $VCDebugRuntime = @(
 
 function Enable-KMDFVerifier
 {
-    # Install drivers.
+    # Enable KMDF verifier for the eBPF drivers.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        New-Item -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Force -ErrorAction Stop
-        New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "VerifierOn" -Value 1 -PropertyType DWord -Force -ErrorAction Stop
-        New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "TrackHandles" -Value "*" -PropertyType MultiString -Force  -ErrorAction Stop
+        if ($_.Value.IsDriver) {
+            Write-Log ("Enabling KMDF verifier for $($_.Key)...")
+            New-Item -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Force -ErrorAction Stop
+            New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "VerifierOn" -Value 1 -PropertyType DWord -Force -ErrorAction Stop
+            New-ItemProperty -Path ("HKLM:\System\CurrentControlSet\Services\{0}\Parameters\Wdf" -f $_.Name) -Name "TrackHandles" -Value "*" -PropertyType MultiString -Force  -ErrorAction Stop
+        }
     }
 }
 
@@ -102,10 +121,7 @@ function Start-WPRTrace
 
 function Stop-eBPFComponents
 {
-    # Stop user mode service.
-    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
-
-    # Stop the drivers.
+     # Stop the drivers and services.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
     }
@@ -123,14 +139,14 @@ function Install-eBPFComponents
         $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
         if ($process.ExitCode -ne 0) {
             Write-Log("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)") -ForegroundColor Red
-            exit 1
+            throw ("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)")
         }
         Write-Log("Cleaning up...")
         Remove-Item $VcRedistPath -Force
         Write-Log("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
     } catch {
         Write-Log("An exception occurred while installing Visual C++ Redistributable: $_") -ForegroundColor Red
-        exit 1
+        throw ("An exception occurred while installing Visual C++ Redistributable: $_")
     }
 
     # Copy the VC debug runtime DLLs to the system32 directory,
@@ -154,7 +170,7 @@ function Install-eBPFComponents
     }
     catch {
         Write-Log("An exception occurred while copying VC debug runtime DLLs: $_") -ForegroundColor Red
-        exit 1
+        throw ("An exception occurred while copying VC debug runtime DLLs: $_")
     }
 
     # Install the MSI package.
@@ -171,19 +187,65 @@ function Install-eBPFComponents
             } else {
                 Write-Log("msi-install.log not found or empty.") -ForegroundColor Red
             }
-            exit 1;
+            throw ("MSI installation FAILED. Exit code: $($process.ExitCode)")
         }
         Write-Log("eBPF MSI installation completed successfully!") -ForegroundColor Green
     } catch {
         Write-Log("An error occurred while installing the MSI package: $_") -ForegroundColor Red
-        exit 1;
+        throw ("An error occurred while installing the MSI package: $_")
     }
 
+    # Install the extra drivers that are not installed by the MSI package.
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        if (-not $_.Value.InstalledByMsi) {
+            $driverPath = if (Test-Path -Path ("$pwd\{0}" -f $_.Value.Name)) {
+                "$pwd\{0}" -f $_.Value.Name
+            } elseif (Test-Path -Path ("$pwd\drivers\{0}" -f $_.Value.Name)) {
+                "$pwd\drivers\{0}" -f $_.Value.Name
+            } else {
+                throw ("Driver file not found for $($_.Key).")
+            }
+
+            Write-Log ("Installing $($_.Key)...") -ForegroundColor Green
+            $createServiceOutput = sc.exe create $_.Key type=kernel start=demand binpath=$driverPath 2>&1
+            Write-Log $createServiceOutput
+
+            if ($LASTEXITCODE -ne 0) {
+                throw ("Failed to create $($_.Key) driver.")
+            } else {
+                Write-Log ("$($_.Key) driver created.") -ForegroundColor Green
+
+                # Start the service
+                Write-Log ("Starting $($_.Key) service...") -ForegroundColor Green
+                $startServiceOutput = sc.exe start $_.Key 2>&1
+                Write-Log $startServiceOutput
+
+                if ($LASTEXITCODE -ne 0) {
+                    throw ("Failed to start $($_.Key) service.")
+                } else {
+                    Write-Log ("$($_.Key) service started.") -ForegroundColor Green
+                }
+            }
+        }
+    }
+
+    # Export program info for the sample driver.
+    Write-Log("Running 'export_program_info_sample.exe'...")
+    if (Test-Path -Path "export_program_info_sample.exe") {
+        .\export_program_info_sample.exe
+        if ($LASTEXITCODE -ne 0) {
+            throw ("Failed to run 'export_program_info_sample.exe'.");
+        } else {
+            Write-Log "'export_program_info_sample.exe' succeeded." -ForegroundColor Green
+        }
+    }
+
+
     # Debugging information.
-    Write-Log("Querying the status of eBPF services...")
-    sc.exe query ebpfcore | Write-Log
-    sc.exe query netebpfext | Write-Log
-    sc.exe query ebpfsvc | Write-Log
+    Write-Log("Querying the status of eBPF drivers and services...")
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        sc.exe query $_.Key | Write-Log
+    }
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
