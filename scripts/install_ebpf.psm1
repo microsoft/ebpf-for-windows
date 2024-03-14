@@ -257,24 +257,7 @@ function Install-eBPFComponents
 
 function Uninstall-eBPFComponents
 {
-    # Uninstall the MSI package.
-    Write-Log("Uninstalling eBPF MSI package at '$MsiPath'...")
-    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /l*v msi-uninstall.log" -Wait -PassThru
-    if ($process.ExitCode -eq 0) {
-        Write-Log("Uninstallation successful!") -ForegroundColor Green
-    } else {
-        $exceptionMessage = "Uninstallation FAILED. Exit code: $($process.ExitCode)"
-        Write-Log($exceptionMessage) -ForegroundColor Red
-        $logContents = Get-Content -Path "msi-uninstall.log" -ErrorAction SilentlyContinue
-        if ($logContents) {
-            Write-Log("Contents of msi-uninstall.log:")
-            Write-Log($logContents)
-        } else {
-            Write-Log("msi-uninstall.log not found or empty.") -ForegroundColor Red
-        }
-    }
-
-    # Uninstall the extra drivers that are not installed by the MSI package.
+    # Firstly, uninstall the extra drivers that are not installed by the MSI package.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         if (-not $_.Value.InstalledByMsi) {
             # Stop the service
@@ -315,6 +298,22 @@ function Uninstall-eBPFComponents
         }
     }
 
+    # Uninstall the MSI package.
+    Write-Log("Uninstalling eBPF MSI package at '$MsiPath'...")
+    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /l*v msi-uninstall.log" -Wait -PassThru
+    if ($process.ExitCode -eq 0) {
+        Write-Log("Uninstallation successful!") -ForegroundColor Green
+    } else {
+        $exceptionMessage = "Uninstallation FAILED. Exit code: $($process.ExitCode)"
+        Write-Log($exceptionMessage) -ForegroundColor Red
+        $logContents = Get-Content -Path "msi-uninstall.log" -ErrorAction SilentlyContinue
+        if ($logContents) {
+            Write-Log("Contents of msi-uninstall.log:")
+            Write-Log($logContents)
+        } else {
+            Write-Log("msi-uninstall.log not found or empty.") -ForegroundColor Red
+        }
+    }
 
     # Stop KM tracing.
     wpr.exe -cancel
