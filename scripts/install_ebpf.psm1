@@ -136,15 +136,21 @@ function Install-eBPFComponents
     # Copy the VC debug runtime DLLs to the system32 directory,
     # so that debug versions of the MSI can be installed (i.e. export_program_info.exe will not fail).
     try {
-        $system32Path = Join-Path $env:SystemRoot "System32"
         Write-Log("Copying VC debug runtime DLLs to the $system32Path directory...")
-        $VCDebugRuntime | ForEach-Object {
-            $sourcePath = Join-Path $WorkingDirectory $_
-            $destinationPath = Join-Path $system32Path $_
-            Write-Log("Copying '$sourcePath' to '$destinationPath'...")
-            Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+        # Test is the VC debuf runtime DLLs are present in the working directory (indicating a debug build).
+        $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
+        if (-not $VCDebugRuntime) {
+            Write-Log("VC debug runtime DLLs not found in the working directory (i.e. release build). Skipping this step.") -ForegroundColor Yellow
+        } else {
+            $system32Path = Join-Path $env:SystemRoot "System32"
+            $VCDebugRuntime | ForEach-Object {
+                $sourcePath = Join-Path $WorkingDirectory $_
+                $destinationPath = Join-Path $system32Path $_
+                Write-Log("Copying '$sourcePath' to '$destinationPath'...")
+                Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+            }
+            Write-Log("VC debug runtime DLLs copied successfully!") -ForegroundColor Green
         }
-        Write-Log("VC debug runtime DLLs copied successfully!") -ForegroundColor Green
     }
     catch {
         Write-Log("An exception occurred while copying VC debug runtime DLLs: $_") -ForegroundColor Red
