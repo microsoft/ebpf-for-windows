@@ -178,17 +178,17 @@ function Install-eBPFComponents
 
     # Install the MSI package.
     try {
-        $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*vx msi-install.log"
+        $arguments = "/i $MsiPath ADDLOCAL=ALL /qn /norestart /l*v msi-install.log"
         Write-Log("Installing the eBPF MSI package: 'msiexec.exe $arguments'...")
         $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
         if ($process.ExitCode -ne 0) {
             Write-Log("MSI installation FAILED. Exit code: $($process.ExitCode)") -ForegroundColor Red
-            $logContents = Get-Content -Path "msi-install.log" -ErrorAction SilentlyContinue
-            if ($logContents) {
-                Write-Log("Contents of msi-install.log:")
-                Write-Log($logContents)
-            } else {
-                Write-Log("msi-install.log not found or empty.") -ForegroundColor Red
+
+            # For clear readability within the CICD pipeline and final uploaded log output,
+            # read each line of the log file and print it (otherwise all the log content is printed as a single line).
+            Write-Log("Contents of msi-install.log:")
+            Get-Content -Path "msi-install.log" | ForEach-Object {
+                Write-Log($_)
             }
             throw ("MSI installation FAILED. Exit code: $($process.ExitCode)")
         }
@@ -309,12 +309,12 @@ function Uninstall-eBPFComponents
     } else {
         $exceptionMessage = "Uninstallation FAILED. Exit code: $($process.ExitCode)"
         Write-Log($exceptionMessage) -ForegroundColor Red
-        $logContents = Get-Content -Path "msi-uninstall.log" -ErrorAction SilentlyContinue
-        if ($logContents) {
-            Write-Log("Contents of msi-uninstall.log:")
-            Write-Log($logContents)
-        } else {
-            Write-Log("msi-uninstall.log not found or empty.") -ForegroundColor Red
+
+        # For clear readability within the CICD pipeline and final uploaded log output,
+        # read each line of the log file and print it (otherwise all the log content is printed as a single line).
+        Write-Log("Contents of msi-uninstall.log:")
+        Get-Content -Path "msi-uninstall.log" | ForEach-Object {
+            Write-Log($_)
         }
     }
 
