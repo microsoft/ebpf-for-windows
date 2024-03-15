@@ -87,16 +87,15 @@ extern "C"
             TraceLoggingString(__FUNCTION__ " returned success", "Message"));                   \
     }
 
-#define EBPF_LOG_FUNCTION_ERROR(result)                                                         \
-    if (TraceLoggingProviderEnabled(                                                            \
-            ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE)) { \
-        TraceLoggingWrite(                                                                      \
-            ebpf_tracelog_provider,                                                             \
-            EBPF_TRACELOG_EVENT_GENERIC_ERROR,                                                  \
-            TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                            \
-            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE),                                    \
-            TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"),                 \
-            TraceLoggingLong(result, "Error"));                                                 \
+#define EBPF_LOG_FUNCTION_ERROR(result)                                                                               \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE)) { \
+        TraceLoggingWrite(                                                                                            \
+            ebpf_tracelog_provider,                                                                                   \
+            EBPF_TRACELOG_EVENT_GENERIC_ERROR,                                                                        \
+            TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                                                  \
+            TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_BASE),                                                          \
+            TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"),                                       \
+            TraceLoggingLong(result, "Error"));                                                                       \
     }
 
 #define EBPF_LOG_FUNCTION_RESULT(result)                                                        \
