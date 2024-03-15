@@ -101,9 +101,6 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 
     local_ring_buffer->length = capacity;
 
-    // Allocate twice the capacity of the ring buffer to allow for the producer and consumer to wrap around.
-    // capacity *= 2;
-
     local_ring_buffer->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
     if (!local_ring_buffer->ring_descriptor) {
         result = EBPF_NO_MEMORY;
