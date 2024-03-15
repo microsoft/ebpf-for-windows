@@ -121,6 +121,9 @@ function Start-WPRTrace
 
 function Stop-eBPFComponents
 {
+    # First, stop user mode service, so that EbpfCore does not hang on stop.
+    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
+
      # Stop the drivers and services.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
