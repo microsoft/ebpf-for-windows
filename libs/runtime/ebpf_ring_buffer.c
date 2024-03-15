@@ -174,7 +174,7 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_ring_buffer_return: Invalid length",
+            "ebpf_ring_buffer_return: Buffer too large",
             ring->producer_offset,
             ring->consumer_offset);
         result = EBPF_INVALID_ARGUMENT;
@@ -195,7 +195,7 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_ring_buffer_return: Invalid length",
+            "ebpf_ring_buffer_return: Invalid buffer length",
             local_length);
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
