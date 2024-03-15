@@ -1231,7 +1231,7 @@ TEST_CASE("ioctl_stress", "[stress]")
 
 TEST_CASE("test_ringbuffer_wraparound", "[stress]")
 {
-    // Load bindmonitor_ringbuf.sys
+    // Load bindmonitor_ringbuf.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     uint32_t event_count = 0;
@@ -1245,7 +1245,7 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
             native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
         0);
 
-    // Get fd of process_map map
+    // Get fd of process_map map.
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
 
     uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "process_map"));
@@ -1264,7 +1264,7 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
         &event_count,
         nullptr);
 
-    // Create 2 threads that invoke the program to trigger ring buffer events
+    // Create 2 threads that invoke the program to trigger ring buffer events.
     std::vector<std::jthread> threads;
     for (uint32_t i = 0; i < thread_count; i++) {
         threads.emplace_back([&]() {
@@ -1286,15 +1286,15 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
         });
     }
 
-    // Wait for threads to complete
+    // Wait for threads to complete.
     for (auto& t : threads) {
         t.join();
     }
     REQUIRE(event_count == max_iterations);
 
-    // Unsubscribe from the ring buffer
+    // Unsubscribe from the ring buffer.
     ring_buffer__free(ring);
 
-    // Clean up
+    // Clean up.
     bpf_object__close(object);
 }

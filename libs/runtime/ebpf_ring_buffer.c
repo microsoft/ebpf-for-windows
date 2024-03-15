@@ -164,6 +164,7 @@ ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _O
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
+    EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
     size_t local_length = length;
