@@ -147,7 +147,8 @@ _test_crud_operations(ebpf_map_type_t map_type)
     case BPF_MAP_TYPE_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        replace_on_full = true;
+        replace_on_full = false;
+        insert_on_full = true;
         run_at_dpc = true;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
@@ -182,7 +183,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     }
 
     // For each map type, maximum only one of replace_on_full and insert_on_full should be true.
-    REQUIRE((replace_on_full && insert_on_full == false));
+    REQUIRE(((replace_on_full && insert_on_full) == false));
 
     ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), _test_map_size};
     map_ptr map;
@@ -218,17 +219,20 @@ _test_crud_operations(ebpf_map_type_t map_type)
             value.size(),
             value.data(),
             EBPF_ANY,
-            0) == (replace_on_full ? EBPF_SUCCESS : error_on_full));
+            0) == ((replace_on_full || insert_on_full) ? EBPF_SUCCESS : error_on_full));
 
     if (!replace_on_full) {
-        expected_result = is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND;
+        expected_result = insert_on_full ? EBPF_SUCCESS : (is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND);
         REQUIRE(
             ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
             expected_result);
     }
 
+    // Now the map has `_test_map_size` entries.
+
     for (uint32_t key = 0; key < _test_map_size; key++) {
         if (replace_on_full) {
+            // If replace_on_full is true, then 0th entry would have been evicted.
             expected_result = key == 0 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
         } else if (insert_on_full) {
             expected_result = EBPF_SUCCESS;
@@ -260,17 +264,12 @@ _test_crud_operations(ebpf_map_type_t map_type)
     }
     REQUIRE(keys.size() == _test_map_size);
 
-    if (insert_on_full) {
-        expected_result = EBPF_SUCCESS;
-    } else {
-        expected_result = EBPF_NO_MORE_KEYS;
-    }
     REQUIRE(
         ebpf_map_next_key(
             map.get(),
             sizeof(previous_key),
             reinterpret_cast<const uint8_t*>(&previous_key),
-            reinterpret_cast<uint8_t*>(&next_key)) == expected_result);
+            reinterpret_cast<uint8_t*>(&next_key)) == EBPF_NO_MORE_KEYS);
 
     std::vector<size_t> batch_test_sizes = {
         1,
@@ -399,15 +398,6 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         uint32_t prefix_length;
         uint8_t value[4];
     } lpm_trie_key_t;
-    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
-    map_ptr map;
-    {
-        ebpf_map_t* local_map;
-        cxplat_utf8_string_t map_name = {0};
-        REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
-        map.reset(local_map);
-    }
 
     std::vector<std::pair<lpm_trie_key_t, const char*>> keys{
         {{24, 192, 168, 15, 0}, "192.168.15.0/24"},
@@ -432,6 +422,18 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
         {{32, 10, 11, 10, 10}, "10.0.0.0/8"},
         {{32, 11, 0, 0, 0}, "0.0.0.0/0"},
     };
+
+    uint32_t max_entries = static_cast<uint32_t>(keys.size());
+    ebpf_map_definition_in_memory_t map_definition{
+        BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, max_entries};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
 
     for (auto& [key, value] : keys) {
         std::string local_value = value;
@@ -459,6 +461,20 @@ TEST_CASE("map_crud_operations_lpm_trie_32", "[execution_context]")
                 EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
         REQUIRE(std::string(value) == result);
     }
+
+    // Add a new entry to the map, it should succeed.
+    lpm_trie_key_t new_key = {32, 192, 168, 15, 1};
+    std::string new_value = "19.168.15.1/32";
+    new_value.resize(max_string);
+    REQUIRE(
+        ebpf_map_update_entry(
+            map.get(),
+            0,
+            reinterpret_cast<const uint8_t*>(&new_key),
+            0,
+            reinterpret_cast<const uint8_t*>(new_value.c_str()),
+            EBPF_ANY,
+            EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
 }
 
 void
@@ -483,16 +499,6 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
         uint32_t prefix_length;
         uint8_t value[16];
     } lpm_trie_key_t;
-
-    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, 10};
-    map_ptr map;
-    {
-        ebpf_map_t* local_map;
-        cxplat_utf8_string_t map_name = {0};
-        REQUIRE(
-            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
-        map.reset(local_map);
-    }
 
     std::vector<std::pair<lpm_trie_key_t, const char*>> keys{
         {{96}, "CC/96"},
@@ -520,6 +526,19 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
             generate_prefix(keys[index].first.prefix_length, values[index], keys[index].first.value);
         }
     }
+
+    uint32_t max_entries = static_cast<uint32_t>(keys.size());
+    ebpf_map_definition_in_memory_t map_definition{
+        BPF_MAP_TYPE_LPM_TRIE, sizeof(lpm_trie_key_t), max_string, max_entries};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
     std::vector<std::pair<lpm_trie_key_t, std::string>> tests{
         {{96}, "CC/96"},
         {{96}, "CD/96"},
@@ -574,6 +593,19 @@ TEST_CASE("map_crud_operations_lpm_trie_128", "[execution_context]")
                 EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
         REQUIRE(std::string(value) == result);
     }
+
+    // Add a new entry to the map, it should succeed.
+    lpm_trie_key_t new_key = {{32}, "BB/32"};
+    std::string new_value = "BB/32";
+    REQUIRE(
+        ebpf_map_update_entry(
+            map.get(),
+            0,
+            reinterpret_cast<const uint8_t*>(&new_key),
+            0,
+            reinterpret_cast<const uint8_t*>(new_value.c_str()),
+            EBPF_ANY,
+            EBPF_MAP_FLAG_HELPER) == EBPF_SUCCESS);
 }
 
 TEST_CASE("map_crud_operations_queue", "[execution_context]")
