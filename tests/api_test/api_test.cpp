@@ -1237,10 +1237,13 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
     uint32_t event_count = 0;
     std::string app_id = "api_test.exe";
     uint32_t thread_count = 2;
+    native_module_helper_t native_helper;
+    native_helper.initialize("bindmonitor_ringbuf", EBPF_EXECUTION_NATIVE);
 
     REQUIRE(
         _program_load_helper(
-            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+            native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
+        0);
 
     // Get fd of process_map map
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
