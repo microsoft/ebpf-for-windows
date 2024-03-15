@@ -1121,6 +1121,7 @@ TEST_CASE("load_native_program_invalid5", "[native][negative]")
 {
     _load_invalid_program("invalid_maps3.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
+#endif // _DEBUG
 
 TEST_CASE("ioctl_stress", "[stress]")
 {
@@ -1211,7 +1212,7 @@ TEST_CASE("ioctl_stress", "[stress]")
         }
     }
 
-    // Wait for 10 seconds
+    // Wait for 60 seconds
     std::this_thread::sleep_for(std::chrono::seconds(60));
 
     stop_requested = true;
@@ -1228,4 +1229,69 @@ TEST_CASE("ioctl_stress", "[stress]")
     bpf_object__close(object);
 }
 
-#endif
+TEST_CASE("test_ringbuffer_wraparound", "[stress]")
+{
+    // Load bindmonitor_ringbuf.sys
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    uint32_t event_count = 0;
+    std::string app_id = "api_test.exe";
+    uint32_t thread_count = 2;
+
+    REQUIRE(
+        _program_load_helper(
+            "bindmonitor_ringbuf.sys", BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+
+    // Get fd of process_map map
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+
+    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "process_map"));
+    uint32_t max_iterations = static_cast<uint32_t>(10 * (max_entries / app_id.size()));
+    printf("max_iterations: %d\n", max_iterations);
+    REQUIRE(max_iterations % thread_count == 0);
+    uint32_t iterations_per_thread = max_iterations / thread_count;
+
+    // Subscribe to the ring buffer.
+    auto ring = ring_buffer__new(
+        process_map_fd,
+        [](void* ctx, void*, size_t) {
+            (*((uint32_t*)ctx))++;
+            return 0;
+        },
+        &event_count,
+        nullptr);
+
+    // Create 2 threads that invoke the program to trigger ring buffer events
+    std::vector<std::jthread> threads;
+    for (uint32_t i = 0; i < thread_count; i++) {
+        threads.emplace_back([&]() {
+            bind_md_t ctx = {};
+            bpf_test_run_opts opts = {};
+            opts.ctx_in = &ctx;
+            opts.ctx_size_in = sizeof(ctx);
+            opts.ctx_out = &ctx;
+            opts.ctx_size_out = sizeof(ctx);
+            opts.data_in = app_id.data();
+            opts.data_size_in = static_cast<uint32_t>(app_id.size());
+            opts.data_out = app_id.data();
+            opts.data_size_out = static_cast<uint32_t>(app_id.size());
+
+            for (uint32_t i = 0; i < iterations_per_thread; i++) {
+                int result = bpf_prog_test_run_opts(program_fd, &opts);
+                REQUIRE(result == 0);
+            }
+        });
+    }
+
+    // Wait for threads to complete
+    for (auto& t : threads) {
+        t.join();
+    }
+    REQUIRE(event_count == max_iterations);
+
+    // Unsubscribe from the ring buffer
+    ring_buffer__free(ring);
+
+    // Clean up
+    bpf_object__close(object);
+}
