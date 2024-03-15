@@ -303,7 +303,6 @@ function Import-ResultsFromVM
         if (!(Test-Path ".\TestLogs\$VMName\Logs")) {
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName\Logs"
         }
-
         $VMTemp = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:TEMP}
         Write-Log ("Copy $LogFileName from $VMTemp on $VMName to $pwd\TestLogs")
         Copy-Item -FromSession $VMSession "$VMTemp\$LogFileName" -Destination ".\TestLogs\$VMName\Logs" -Recurse -Force -ErrorAction Ignore 2>&1 | Write-Log

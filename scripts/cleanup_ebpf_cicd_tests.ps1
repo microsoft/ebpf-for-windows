@@ -21,15 +21,15 @@ Import-Module .\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName
 $TestExecutionConfig = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 $VMList = $TestExecutionConfig.VMMap.$SelfHostedRunnerName
 
-# Import logs from VMs.
-Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
-
 # Uninstall eBPF Components on the test VM.
 foreach($VM in $VMList) {
        $VMName = $VM.Name
        Write-Host "Uninstalling eBPF components on VM $VMName..."
        Uninstall-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
 }
+
+# Import logs from VMs.
+Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
 
 # Stop the VMs.
 Stop-AllVMs -VMList $VMList
