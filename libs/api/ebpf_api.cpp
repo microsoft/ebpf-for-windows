@@ -4177,7 +4177,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
         // Async IOCTL operation returned with success status. Read the ring buffer records and indicate it to the
         // subscriber.
 
-        size_t ring_buffer_size;
+        size_t ring_buffer_size = 0;
         uint32_t dummy;
 
         result = _get_map_descriptor_properties(
