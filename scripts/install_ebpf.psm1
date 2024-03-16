@@ -130,11 +130,24 @@ function Stop-eBPFComponents
     }
 }
 
+function Print-eBPFComponentsStatus
+{
+    # Print the status of the eBPF drivers and services.
+    Write-Log("Querying the status of eBPF drivers and services...")
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        sc.exe query $_.Key  2>&1 | Write-Log
+    }
+}
+
 function Install-eBPFComponents
 {
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
           [parameter(Mandatory=$true)] [string] $KmTraceType,
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
+
+    # Print the status of the eBPF drivers and services before installation.
+    # This is useful for detecting issues with the runner baselines!!
+    Print-eBPFComponentsStatus
 
     # Install the Visual C++ Redistributable (Release version, which is required for the MSI installation).
     Write-Log("Installing Visual C++ Redistributable from '$VcRedistPath'...")
@@ -221,11 +234,8 @@ function Install-eBPFComponents
         }
     }
 
-    # Debugging information.
-    Write-Log("Querying the status of eBPF drivers and services...")
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        sc.exe query $_.Key  2>&1 | Write-Log
-    }
+    # Print the status of the eBPF drivers and services after installation.
+    Print-eBPFComponentsStatus
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
