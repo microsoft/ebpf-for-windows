@@ -3214,3 +3214,84 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
 
     bpf_object__close(unique_object.release());
 }
+
+void
+test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
+{
+    uint32_t max_entries = 2;
+    fd_t inner_map_fd = ebpf_fd_invalid;
+    fd_t map_fd = ebpf_fd_invalid;
+    bool nested_map = (type == BPF_MAP_TYPE_HASH_OF_MAPS);
+    void* value = nullptr;
+
+#define IS_LRU_MAP(type) ((type) == BPF_MAP_TYPE_LRU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+
+    typedef struct _lpm_trie_key
+    {
+        uint32_t prefix_length;
+        uint8_t value[4];
+    } lpm_trie_key_t;
+
+    if (nested_map) {
+        // First create and pin the maps manually.
+        inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(int32_t), sizeof(int32_t), 1, nullptr);
+        REQUIRE(inner_map_fd > 0);
+
+        bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(int32_t), sizeof(fd_t), 1, &opts);
+        REQUIRE(map_fd > 0);
+    } else {
+        size_t key_size = (type == BPF_MAP_TYPE_LPM_TRIE) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
+        map_fd = bpf_map_create(type, nullptr, (uint32_t)key_size, sizeof(int32_t), max_entries, nullptr);
+        REQUIRE(map_fd > 0);
+    }
+
+    // Add `max_entries` entries to the map.
+    for (uint32_t i = 0; i < max_entries; i++) {
+        value = nested_map ? &inner_map_fd : (int32_t*)&i;
+        REQUIRE(bpf_map_update_elem(map_fd, &i, value, 0) == 0);
+    }
+
+    // Add one more entry to the map.
+    value = nested_map ? &inner_map_fd : (int32_t*)&max_entries;
+    // In case of LRU_HASH, insert will succeed, but the oldest entry will be removed.
+    int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
+    REQUIRE(bpf_map_update_elem(map_fd, &max_entries, value, 0) == (max_entries_limited ? expected_error : 0));
+
+    // In case of LRU_HASH, check that the number of entries is still `max_entries`.
+    if (IS_LRU_MAP(type) && max_entries_limited) {
+        uint32_t entries_count = 0;
+        lpm_trie_key_t key = {0};
+        void* old_key = nullptr;
+        void* next_key = &key;
+
+        while (bpf_map_get_next_key(map_fd, old_key, next_key) == 0) {
+            old_key = next_key;
+            entries_count++;
+        }
+        REQUIRE(entries_count == max_entries);
+    }
+}
+
+// This test case tests the various hash table based map implementation
+TEST_CASE("no_limit_map_entries", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // The below hash table based map types do not have a limit on the number of entries.
+    // 1. BPF_MAP_TYPE_HASH
+    // 2. BPF_MAP_TYPE_PERCPU_HASH
+    // 3. BPF_MAP_TYPE_HASH_OF_MAPS
+    // 4. BPF_MAP_TYPE_LPM_TRIE
+    test_no_limit_map_entries(BPF_MAP_TYPE_HASH, false);
+    test_no_limit_map_entries(BPF_MAP_TYPE_PERCPU_HASH, false);
+    test_no_limit_map_entries(BPF_MAP_TYPE_HASH_OF_MAPS, false);
+    test_no_limit_map_entries(BPF_MAP_TYPE_LPM_TRIE, false);
+
+    // The below hash table based map types have a limit on the number of entries.
+    // 1. BPF_MAP_TYPE_LRU_HASH
+    // 2. BPF_MAP_TYPE_LRU_PERCPU_HASH
+    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_HASH, true);
+    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_PERCPU_HASH, true);
+}
