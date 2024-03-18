@@ -13,6 +13,8 @@
 #include "socket_helper.h"
 #include "socket_tests_common.h"
 
+constexpr uint32_t EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS = 60;
+
 // Note: The 'program' and 'execution' types are not required for km tests.
 static const std::map<std::string, test_program_attributes> _test_program_info = {
     {{"cgroup_sock_addr"},
@@ -231,10 +233,9 @@ _start_extension_restart_thread(
             while (sc::now() < endtime) {
 
                 // Drivers can sometimes take some time to stop and (re)start and we need to poll until we can determine
-                // the final status. 10 (ten) seconds seems a reasonable time for this polling.
-                constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
+                // the final status. Make the timeout value generous enough to account for heavily loaded test machines.
                 LOG_VERBOSE("Toggling extension state for {} extension...", extension_name);
-                if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
+                if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
                     exit(-1);
                 }
 
@@ -1416,6 +1417,12 @@ TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]"
     LOG_INFO("\nStarting test *** jit_load_attach_detach_unload_random_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
+    // Ensure NetEbpfExt extension is running prior to this test.
+    std::string extension_name = {"netebpfext"};
+    if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
+        exit(-2);
+    }
+
     _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
 }
@@ -1436,6 +1443,12 @@ TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_
     // Enforce enabling of the 'extension restart' thread for this test for increased stress.
     // (The restart delay is set to the default value or the value specified (if any) on the command line.)
     local_test_control_info.extension_restart_enabled = true;
+
+    // Ensure NetEbpfExt extension is running prior to this test.
+    std::string extension_name = {"netebpfext"};
+    if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
+        exit(-3);
+    }
 
     _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
@@ -1460,6 +1473,12 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
 
     // Use a unique native driver for each 'creator' thread.
     local_test_control_info.use_unique_native_programs = true;
+
+    // Ensure NetEbpfExt extension is running prior to this test.
+    std::string extension_name = {"netebpfext"};
+    if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
+        exit(-4);
+    }
 
     _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
@@ -1501,6 +1520,12 @@ TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_str
     // This test needs only 2 threads (one per program).
     local_test_control_info.threads_count = 2;
 
+    // Ensure NetEbpfExt extension is running prior to this test.
+    std::string extension_name = {"netebpfext"};
+    if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
+        exit(-5);
+    }
+
     _print_test_control_info(local_test_control_info);
     _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
 }
@@ -1529,6 +1554,12 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
     LOG_INFO("\nStarting test *** sockaddr_invoke_program_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
 
+    // Ensure NetEbpfExt extension is running prior to this test.
+    std::string extension_name = {"netebpfext"};
+    if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
+        exit(-6);
+    }
+
     _print_test_control_info(local_test_control_info);
     _mt_sockaddr_invoke_program_test(local_test_control_info);
 }
@@ -1545,6 +1576,12 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     _km_test_init();
     LOG_INFO("\nStarting test *** bindmonitor_tailcall_invoke_program_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
+
+    // Ensure NetEbpfExt extension is running prior to this test.
+    std::string extension_name = {"netebpfext"};
+    if (!_restart_extension(extension_name, EBPF_EXTENSION_RESTART_TIMEOUT_SECONDS)) {
+        exit(-7);
+    }
 
     _print_test_control_info(local_test_control_info);
     _mt_bindmonitor_tail_call_invoke_program_test(local_test_control_info);
