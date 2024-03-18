@@ -2,7 +2,7 @@
 
 This document outlines the steps to create, publish and service a release of eBPF for Windows.
 
-The eBPF project follows [Semantic Versioning 1.0](https://semver.org) for versioning releases in the format `X.Y.Z`, where "`X`" and "`Y`" are the major and minor versions respectively. "`Z`" is the patch version for servicing releases. A release is usually made once every month. Pre-release binaries are test signed. Official releases will be production signed using Microsoft certificates.
+The eBPF project follows [Semantic Versioning 2.0](https://semver.org) for versioning releases in the format `X.Y.Z`, where "`X`" and "`Y`" are the major and minor versions respectively. "`Z`" is the patch version for servicing releases. A release is usually made once every month. Pre-release binaries are test signed. Official releases will be production signed using Microsoft certificates.
 
 >**Note**: Currently the *major version* for all releases are set to "`0`" (i.e. "`0.Y.Z`") until the first official release is published with version `1.0.0`.
 
@@ -17,14 +17,14 @@ An issue with the title `Scheduled eBPF release is due` is created on the first 
     .\scripts\update-release-version.ps1 X Y 0
     ```
 
-    For example, the successful run of the script for version 0.11.0 produces the following output:
+    For example, the successful run of the script for version 0.12.0 produces the following output:
 
     ```ps
     PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 12 0
     Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h' file...
-    Version number updated to '0.11.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
     Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs' file...
-    Version number updated to '0.11.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
     Rebuilding the solution, please wait...
     Regenerating the expected 'bpf2c' output...
     ...
@@ -40,15 +40,15 @@ An issue with the title `Scheduled eBPF release is due` is created on the first 
 1. Create a pull-request from your topic branch into the `main` branch of the original repo, with the title of the PR as *"Release v`X.Y.0`"* (replace "`X`" and "`Y`" with the version number being released).
 1. Once the PR is approved and merged into the "`main`" branch, of the original `ebpf-for-windows` repo, create a new release branch from `main` from the **previous PR's commit**, and name it "`release/X.Y.`".
 1. **IMPORTANT:** Once the release branch is created, no new feature work is allowed to be merged. However, bug fixes can be taken as deemed necessary by the maintainers and the release manager. Whenever applicable, these bug fixer should first be made in the main branch, and cherry-picked to the release branch. In case a bug-fix PRs are merged into the `release/X.Y` branch, the **latest commit** in the `release/X.Y` branch must be designated as the commit for the release.
-11. Follow the process in the [Release Branch Validation](ReleaseProcess.md#release-branch-validation) to ensure the quality of the release branch.
+1. Follow the process in the [Release Branch Validation](ReleaseProcess.md#release-branch-validation) to ensure the quality of the release branch.
 1. In the triage meeting after successful creation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release. If not, move to the following steps.
 1. The `sign-off` label will be added to the issue created in step 1 of the [Creating a new release](ReleaseProcess.md#creating-a-new-release) process. Next create a tag for the *latest commit on the `release/X.Y` branch*. The tag should reflect the version number being released and adhere to the following notation: "`Release-vX.Y.0`".
 1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the `release/X.Y` branch. In case of failure, Follow the process in the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
-11. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
+1. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
 
 ## Release Branch Validation
 
-The `CI/CD - Release validation` worfklow (`cicd-release-validation.yml`) is used to validate a release branch. It contains more tests than the regular CI/CD pipeline, including longer duration fuzz tests, fault injection tests, stress tests, performance tests etc. These tests can be manually scheduled. Release manager must run these tests on the release manager. Due to the non-deterministic nature of some of the tests, it is recommended that the tests are run at least three times on the branch. If any of the tests fail, the release manager must investigate the failure and follow up with issues in github. Once potential fixes are merged to the release branch repeat the process until the workflow completes successfully.
+The `CI/CD - Release validation` worfklow (`cicd-release-validation.yml`) is used to validate a release branch. It contains more tests than the regular CI/CD pipeline, including longer duration fuzz tests, fault injection tests, stress tests, performance tests etc. These tests can be manually scheduled. Release manager must run these tests on the release manager. Due to the non-deterministic nature of some of the tests, it is recommended that the tests are run at least three times on the branch. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub. Once potential fixes are merged to the release branch repeat the process until the workflow completes successfully.
 
 ## Publishing the Release to GitHub
 
@@ -56,17 +56,17 @@ The `CI/CD - Release validation` worfklow (`cicd-release-validation.yml`) is use
 1. Click on the "`Choose a tag`" combo box and select the tag with version number for the release, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`". Note "`Z`" must be `0` for the monthly release. Otherwise, it should be the patch number.
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
-1. Microsoft maintains an internal mirror of the eBPF for Windows project. For a given release branch in github, the mirror repo will have a corresponding one. The release manager must download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
+1. Microsoft maintains an internal mirror of the eBPF for Windows project. For a given release branch in GitHub, the mirror repo will have a corresponding one. The release manager must download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build artifacts
    from the Microsoft internal repository's build pipeline. Extract the `*.nupkg` file from it, and rename it to `eBPF-for-Windows.X.Y.0.nupkg`
     - **NOTE** : The Microsoft internal build pipeline has two flavors of nuget package. The release manager must pick the one that *does not* contain "Redist" in the name.
-1.  Attach the `Build-x64-[Release|Debug].zip`, the `Build-x64-native-only-[Release|Debug].X.Y.Z.zip`, the `.msi`, and the `.nupkg`, by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.11.0` should be:
+1.  Attach the `Build-x64-[Release|Debug].zip`, the `Build-x64-native-only-[Release|Debug].X.Y.Z.zip`, the `.msi`, and the `.nupkg`, by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.12.0` should be:
 
     - *Build-x64-Debug.zip*
     - *Build-x64-Release.zip*
-    - *Build-x64-native-only-Debug.0.11.0.zip*
-    - *Build-x64-native-only-Release.0.11.0.zip*
-    - *ebpf-for-windows.0.11.0.msi*
-    - *eBPF-for-Windows.0.11.0.nupkg*
+    - *Build-x64-native-only-Debug.0.12.0.zip*
+    - *Build-x64-native-only-Release.0.12.0.zip*
+    - *ebpf-for-windows.0.12.0.msi*
+    - *eBPF-for-Windows.0.12.0.nupkg*
 
 1.  Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
 1.  Once the uploads are complete, click "`Publish release`".
