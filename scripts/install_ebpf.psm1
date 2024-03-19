@@ -130,11 +130,12 @@ function Stop-eBPFComponents
     }
 }
 
-function Print-eBPFComponentsStatus
+function Print-eBPFComponentsStatus([string] $message = "")
 {
     # Print the status of the eBPF drivers and services.
-    Write-Log("Querying the status of eBPF drivers and services...")
+    Write-Log($message)
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        Write-Log "Querying the status of $($_.Key)..."
         sc.exe query $_.Key  2>&1 | Write-Log
     }
 }
@@ -147,7 +148,7 @@ function Install-eBPFComponents
 
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines!!
-    Print-eBPFComponentsStatus
+    Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (all should not be present)..." | Out-Null
 
     # Install the Visual C++ Redistributable (Release version, which is required for the MSI installation).
     Write-Log("Installing Visual C++ Redistributable from '$VcRedistPath'...")
@@ -163,7 +164,7 @@ function Install-eBPFComponents
     # Copy the VC debug runtime DLLs to the system32 directory,
     # so that debug versions of the MSI can be installed (i.e. export_program_info.exe will not fail).
     Write-Log("Copying VC debug runtime DLLs to the $system32Path directory...")
-    # Test is the VC debuf runtime DLLs are present in the working directory (indicating a debug build).
+    # Test is the VC debug runtime DLLs are present in the working directory (indicating a debug build).
     $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
     if (-not $VCDebugRuntime) {
         Write-Log("VC debug runtime DLLs not found in the working directory (i.e. release build). Skipping this step.") -ForegroundColor Yellow
@@ -235,7 +236,7 @@ function Install-eBPFComponents
     }
 
     # Print the status of the eBPF drivers and services after installation.
-    Print-eBPFComponentsStatus
+    Print-eBPFComponentsStatus "Verifing the status of eBPF drivers and services after the installation..." | Out-Null
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
