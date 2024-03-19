@@ -262,7 +262,7 @@ Disassembly of section .text:
 
 We see that the code the ntohs() function in [tests\sample\ebpf.h](../tests/sample/ebpf.h):
 
-```
+```c
 uint16_t
 ntohs(uint16_t us)
 {

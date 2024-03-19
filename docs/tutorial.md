@@ -25,7 +25,7 @@ However, we'll do this walkthrough assuming one is only using Windows.
 
 **Step 1)** Author a new file by putting some content into a file, say `bpf.c`:
 
-```
+```c
 int func()
 {
     return 0;
@@ -166,7 +166,7 @@ reached.  In this way, there can even be multiple sections per source file.
 Author a new file, say in `bpf2.c` this time, with another function and a
 pragma above each one:
 
-```
+```c
 #pragma clang section text="myprog"
 
 int func()
@@ -493,7 +493,7 @@ hook-specific context structure passed as one argument.)
 
 The "xdp_test" hook point has the following prototype in `ebpf_nethooks.h`:
 
-```
+```c
 typedef struct xdp_md
 {
     void* data;               // Pointer to start of packet data.
@@ -514,7 +514,7 @@ typedef xdp_action_t xdp_hook_t(xdp_md_t* context);
 
 A sample eBPF program might look like this:
 
-```
+```c
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
@@ -596,7 +596,7 @@ What would have happened had the prototype not matched?  Let's say the
 verifier is the same as above but XDP_TEST instead had a different struct
 definition:
 
-```
+```c
 typedef struct _xdp_md_t
 {
     uint64_t more;
@@ -641,7 +641,7 @@ can vary by platform.  For comparison, helpers for Linux are documented in the
 
 Let's say the following helper function prototype is exposed by Windows:
 
-```
+```c
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
 EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void* value, uint64_t flags));
 ```
@@ -649,7 +649,7 @@ EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void
 We'll cover in section 6.3 what this function does, but for now we only care about the prototype.
 We can create a sample (but, as we will see, invalid) program like so:
 
-```
+```c
 #include "bpf_helpers.h"
 
 int func()
@@ -758,7 +758,7 @@ of eBPF programs, or to expose information (e.g., statistics) to applications.
 To see how maps are exposed to eBPF programs, let's first start from a
 plain eBPF program:
 
-```
+```c
 SEC("myprog")
 int func()
 {
@@ -773,7 +773,7 @@ if multiple instances of our program are simultaneously running on different
 CPUs.
 
 
-```
+```c
 #include "bpf_helpers.h"
 
 struct {
@@ -810,7 +810,7 @@ Contents of section maps:
 ```
 
 Now to make use of the map, we have to use helper functions to access it:
-```
+```c
 void *bpf_map_lookup_elem(struct bpf_map* map, const void* key);
 int bpf_map_update_elem(struct bpf_map* map, const void* key, const void* value, uint64_t flags);
 int bpf_map_delete_elem(struct bpf_map* map, const void* key);
@@ -818,7 +818,7 @@ int bpf_map_delete_elem(struct bpf_map* map, const void* key);
 
 Let's update the program to write the value "42" to the map section for the
 current CPU, by changing the "myprog" section to the following:
-```
+```c
 SEC("myprog")
 int func1()
 {
@@ -882,7 +882,7 @@ Above shows "call 2", but `netsh` shows more details
 ; C:\your\path\here/map.c:13
 ;     return result;
       12:       exit
-````
+```
 
 Notice from instruction 11 that `netsh` understands that `bpf_map_update_elem()` expects
 a map file descriptor (FD) in R1, a map key in R2, and a map value in R3.

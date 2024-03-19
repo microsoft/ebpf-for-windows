@@ -94,7 +94,7 @@ required, and to import the helper functions.
 
 Every generated C file contains a single global entry point of type metadata_table_t:
 
-```
+```c
 typedef struct _metadata_table
 {
     void (*programs)(program_entry_t** programs, size_t* count);
@@ -111,7 +111,7 @@ is not valid in a C variable name. This variable is the only globally visible va
 ## Exported programs
 
 Each program in the generated C file is exported via a program_entry_t:
-```
+```c
 typedef struct _program_entry
 {
     uint64_t (*function)(void*);
@@ -138,7 +138,7 @@ The skeleton framework then uses NMR to publish this information to the eBPF exe
 The generated C code exposes a table containing the address of each helper function, name, ID, and additional meta-data
 of the helper function. The C code generator emits a table for the helper functions referenced by the program:
 
-```
+```c
 typedef struct _helper_function_entry
 {
     uint64_t (*address)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
@@ -161,7 +161,7 @@ in the generated code are called indirectly via the address field.
 
 Each map referenced by any of the eBPF programs is added as a map_entry_t:
 
-```
+```c
 typedef struct _map_entry
 {
     void* address;
