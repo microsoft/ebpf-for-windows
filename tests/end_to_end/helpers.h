@@ -695,6 +695,12 @@ static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_d
     sizeof(_test_ebpf_sample_extension_program_data),
     &_test_ebpf_sample_extension_program_data};
 
+// Process.
+static ebpf_program_data_t _ebpf_process_program_data = {&_ebpf_process_program_info, NULL};
+
+static ebpf_extension_data_t _ebpf_process_program_info_provider_data = {
+    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_process_program_data), &_ebpf_process_program_data};
+
 typedef class _program_info_provider
 {
   public:
@@ -722,6 +728,8 @@ typedef class _program_info_provider
             provider_data = &_ebpf_sock_ops_program_info_provider_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
             provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
+        } else if (program_type == EBPF_PROGRAM_TYPE_PROCESS) {
+            provider_data = &_ebpf_process_program_info_provider_data;
         } else {
             // Unsupported program type.
             return EBPF_INVALID_ARGUMENT;

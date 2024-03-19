@@ -48,8 +48,10 @@ TEST_CASE("query program info", "[netebpfext]")
         EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR,
         EBPF_PROGRAM_TYPE_SOCK_OPS,
         EBPF_PROGRAM_TYPE_BIND,
-        EBPF_PROGRAM_TYPE_XDP_TEST};
-    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp_test"};
+        EBPF_PROGRAM_TYPE_XDP_TEST,
+        EBPF_PROGRAM_TYPE_PROCESS,
+    };
+    std::vector<std::string> expected_program_names = {"sock_addr", "sockops", "bind", "xdp_test", "process"};
 
     auto guid_less = [](const GUID& lhs, const GUID& rhs) { return memcmp(&lhs, &rhs, sizeof(lhs)) < 0; };
 
@@ -883,3 +885,81 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
     REQUIRE(output_context.interface_luid == 0x1234567890abcdee);
 }
 #pragma endregion sock_ops
+
+#pragma region process
+
+typedef struct test_process_client_context_t
+{
+    netebpfext_helper_base_client_context_t base;
+    process_md_t process_context;
+} test_process_client_context_t;
+
+_Must_inspect_result_ ebpf_result_t
+netebpfext_unit_invoke_process_program(
+    _In_ const void* client_process_context, _In_ const void* context, _Out_ uint32_t* result)
+{
+    process_md_t* process_context = (process_md_t*)context;
+    test_process_client_context_t* client_context = (test_process_client_context_t*)client_process_context;
+
+    client_context->process_context = *process_context;
+    *result = STATUS_ACCESS_DENIED;
+    return EBPF_SUCCESS;
+}
+
+TEST_CASE("process_invoke", "[netebpfext]")
+{
+    ebpf_extension_data_t npi_specific_characteristics = {};
+    test_process_client_context_t client_context = {};
+
+    netebpf_ext_helper_t helper(
+        &npi_specific_characteristics,
+        (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_process_program,
+        (netebpfext_helper_base_client_context_t*)&client_context);
+
+    // Test process creation.
+    std::wstring process_name = L"notepad.exe";
+    std::wstring command_line = L"notepad.exe foo.txt";
+    UNICODE_STRING process_name_unicode = {};
+    UNICODE_STRING command_line_unicode = {};
+
+    PS_CREATE_NOTIFY_INFO create_info = {};
+    create_info.CommandLine = &command_line_unicode;
+    create_info.ImageFileName = &process_name_unicode;
+    create_info.ParentProcessId = (HANDLE)4;
+    create_info.CreatingThreadId.UniqueProcess = (HANDLE)5;
+    create_info.CreatingThreadId.UniqueThread = (HANDLE)6;
+    create_info.CreationStatus = STATUS_SUCCESS;
+
+    RtlInitUnicodeString(&process_name_unicode, process_name.c_str());
+    RtlInitUnicodeString(&command_line_unicode, command_line.c_str());
+
+    struct
+    {
+        uint64_t some_value;
+    } fake_eprocess = {};
+
+    usersime_invoke_process_creation_notify_routine(
+        reinterpret_cast<PEPROCESS>(&fake_eprocess), (HANDLE)1, &create_info);
+
+    std::wstring test_command_line = std::wstring(
+        reinterpret_cast<wchar_t*>(client_context.process_context.command_start),
+        reinterpret_cast<wchar_t*>(client_context.process_context.command_end));
+
+    REQUIRE(test_command_line == command_line);
+
+    REQUIRE(client_context.process_context.process_id == 1);
+    REQUIRE((HANDLE)client_context.process_context.parent_process_id == create_info.ParentProcessId);
+    REQUIRE((HANDLE)client_context.process_context.creating_process_id == create_info.CreatingThreadId.UniqueProcess);
+    REQUIRE((HANDLE)client_context.process_context.creating_thread_id == create_info.CreatingThreadId.UniqueThread);
+    REQUIRE(create_info.CreationStatus == STATUS_ACCESS_DENIED);
+    REQUIRE(client_context.process_context.operation == PROCESS_OPERATION_CREATE);
+
+    // Test process termination.
+    // Just verify that it doesn't crash.
+    usersime_invoke_process_creation_notify_routine(reinterpret_cast<PEPROCESS>(&fake_eprocess), (HANDLE)1, nullptr);
+
+    REQUIRE(client_context.process_context.process_id == 1);
+    REQUIRE(client_context.process_context.operation == PROCESS_OPERATION_DELETE);
+}
+
+#pragma endregion process

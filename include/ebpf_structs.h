@@ -222,6 +222,17 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_SOCK_OPS,
 
+    /** @brief Program type for handling process creation and destruction events.
+     *
+     * **eBPF program prototype:** \ref process_md_t
+     *
+     * **Attach type(s):**
+     *  \ref BPF_ATTACH_TYPE_PROCESS
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_PROCESS,
+
     /** @brief Program type for handling incoming packets as early as possible.
      *
      * **eBPF program prototype:** \ref xdp_hook_t
@@ -323,6 +334,12 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
      */
     BPF_XDP_TEST,
+
+    /** @brief Attach type for handling process events.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_PROCESS
+     */
+    BPF_ATTACH_TYPE_PROCESS,
 
     __MAX_BPF_ATTACH_TYPE,
 };
