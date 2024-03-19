@@ -123,8 +123,7 @@ This label represents highest priority. This label should be used for bugs impac
 ### P2:
 This label is used for the next level of priority. Issues marked as P2 for the current milestone may be moved to the *next milestone* after discussing in the weekly triage meeting.
 ### P3:
-This label is used for low priority issues. Issues marked with this label may be moved to the *backlog* milestone.
-Note that triage drivers, maintainers, and project admins can change the priority of issues as deemed necessary.
+This label is used for low priority issues. Issues marked with this label may be moved to the *next milestone* or the *backlog* milestone, without needing further discussion in the weekly triage meeting.
 
 ## Reviewing Pull Requests
 
