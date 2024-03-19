@@ -81,7 +81,7 @@ Responsibilities:
 
 In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
-The release manager for this project must be a Microsoft full time employee.
+The release manager for this project must be a Microsoft full time employee in order to build Microsoft signed-binaries that Windows will load.
 
 Personnel: @gtrevi @shpalani @matthewige
 
