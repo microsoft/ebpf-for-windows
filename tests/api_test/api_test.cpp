@@ -27,6 +27,7 @@
 #include <ntsecapi.h>
 #include <thread>
 #include <vector>
+using namespace std::chrono_literals;
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
@@ -1204,12 +1205,19 @@ TEST_CASE("ioctl_stress", "[stress]")
     bpf_object__close(object);
 }
 
+typedef struct _ring_buffer_test_context
+{
+    uint32_t event_count = 0;
+    uint32_t expected_event_count = 0;
+    std::promise<void> promise;
+} ring_buffer_test_context_t;
+
 TEST_CASE("test_ringbuffer_wraparound", "[stress]")
 {
     // Load bindmonitor_ringbuf.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd;
-    uint32_t event_count = 0;
+    ring_buffer_test_context_t context;
     std::string app_id = "api_test.exe";
     uint32_t thread_count = 2;
     native_module_helper_t native_helper;
@@ -1229,14 +1237,21 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
     REQUIRE(max_iterations % thread_count == 0);
     uint32_t iterations_per_thread = max_iterations / thread_count;
 
+    // Initialize context.
+    context.event_count = 0;
+    context.expected_event_count = max_iterations;
+    auto ring_buffer_event_callback = context.promise.get_future();
     // Subscribe to the ring buffer.
     auto ring = ring_buffer__new(
         process_map_fd,
         [](void* ctx, void*, size_t) {
-            (*((uint32_t*)ctx))++;
+            ring_buffer_test_context_t* context = reinterpret_cast<ring_buffer_test_context_t*>(ctx);
+            if (++context->event_count == context->expected_event_count) {
+                context->promise.set_value();
+            }
             return 0;
         },
-        &event_count,
+        &context,
         nullptr);
 
     // Create 2 threads that invoke the program to trigger ring buffer events.
@@ -1265,7 +1280,8 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
     for (auto& t : threads) {
         t.join();
     }
-    REQUIRE(event_count == max_iterations);
+    // Wait for 1 second for the ring buffer to receive all events.
+    REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Unsubscribe from the ring buffer.
     ring_buffer__free(ring);
