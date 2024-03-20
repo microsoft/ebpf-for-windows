@@ -21,7 +21,7 @@ $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget
 
 # Load other utility modules.
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module $PSScriptRoot\vm_run_tests.psm1
+Import-Module $PSScriptRoot\vm_run_tests.psm1 `
     -Force `
     -ArgumentList (
         $AdminTestVMCredential.UserName,
