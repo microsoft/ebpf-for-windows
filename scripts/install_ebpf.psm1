@@ -255,7 +255,7 @@ function Uninstall-eBPFComponents
             Write-Log("Stopping $($_.Key) service...") -ForegroundColor Green
             sc.exe stop $_.Key 2>&1 | Write-Log
             if ($LASTEXITCODE -ne 0) {
-                Write-Log("Failed to stop $($_.Key) service.") -ForegroundColor Red
+                throw ("Failed to stop $($_.Key) service.")
             } else {
                 Write-Log("$($_.Key) service stopped.") -ForegroundColor Green
             }
@@ -285,7 +285,7 @@ function Uninstall-eBPFComponents
     if (Test-Path -Path "export_program_info_sample.exe --clear") {
         .\export_program_info_sample.exe --clear
         if ($LASTEXITCODE -ne 0) {
-        Write-Log("Failed to run 'export_program_info_sample.exe --clear'.") -ForegroundColor Red
+            throw ("Failed to run 'export_program_info_sample.exe --clear'.")
         } else {
             Write-Log("'export_program_info_sample.exe --clear' succeeded.") -ForegroundColor Green
         }
