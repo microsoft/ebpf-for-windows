@@ -100,7 +100,7 @@ invoking an eBPF program. The various fields of this struct are as follows.
 * `meta`: Offset (in bytes) to the field in the context structure that is pointing to the beginning of context metadata.
 
 For example, for the XDP_TEST program types, the context data structure is as follows:
-```
+```c
 // XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
 typedef struct xdp_md
 {
@@ -113,7 +113,7 @@ typedef struct xdp_md
 } xdp_md_t;
 ```
 The corresponding context descriptor looks like:
-```
+```c
 const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
                                                             EBPF_OFFSET_OF(xdp_md_t, data),
                                                             EBPF_OFFSET_OF(xdp_md_t, data_end),
@@ -134,7 +134,7 @@ helper function.
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
 [PREVAIL Verifier](https://github.com/vbpf/ebpf-verifier) project.
-```
+```c
 typedef enum _ebpf_argument_type {
     EBPF_ARGUMENT_TYPE_DONTCARE = 0,
     EBPF_ARGUMENT_TYPE_ANYTHING,
@@ -154,7 +154,7 @@ typedef enum _ebpf_argument_type {
 #### `ebpf_return_type` Enum
 This enum describes the various return types from an eBPF helper function. This is defined in the
 [PREVAIL Verifier](https://github.com/vbpf/ebpf-verifier) project.
-```
+```c
 typedef enum _ebpf_return_type {
     EBPF_RETURN_TYPE_INTEGER = 0,
     EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
@@ -235,7 +235,7 @@ specific data that may be used by an extension for attaching an eBPF program. Fo
 being attached to an XDP_TEST hook, the network interface index can be passed via this parameter. This tells the extension
 to invoke the eBPF program whenever there are any inbound packets on that network interface. The attach parameter can
 be obtained as follows:
-```
+```c
 ebpf_extension_data_t* extension_data = (ebpf_extension_data_t*)ClientRegistrationInstance->NpiSpecificCharacteristics;
 attach_parameter = extension_data->data;
 ```
@@ -250,7 +250,7 @@ the provider must free the per-client context passed in via `ProviderBindingCont
 To invoke an eBPF program, the extension uses the dispatch table supplied by the Hook NPI client during attaching.
 The client dispatch table contains the functions, with the following type prototypes:
 
-```
+```c
 /**
  * @brief Invoke the eBPF program.
  *
@@ -309,7 +309,7 @@ typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
 ```
 
 The function pointer can be obtained from the client dispatch table as follows:
-```
+```c
 invoke_program = (ebpf_program_invoke_function_t)client_dispatch_table->function[0];
 ```
 When an extension invokes this function pointer, then the call flows through the eBPF Execution Context and eventually
@@ -344,7 +344,7 @@ itself. However, if a program type so chooses, it may provide implementations fo
 the extension would have to provide another Program Information NPI provider, which *does not* provide any program
 context descriptor. Instead, it only supplies the prototypes and addresses of the general helper functions. The NPI ID
 of this module defined as:
-```
+```c
 GUID ebpf_general_helper_function_module_id = {/* 8d2a1d3f-9ce6-473d-b48e-17aa5c5581fe */
                                                   0x8d2a1d3f,
                                                   0x9ce6,

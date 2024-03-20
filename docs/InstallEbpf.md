@@ -176,7 +176,7 @@ Start an admin Powershell on the Windows Host and run the following command and 
 
         ```ps
         .\images\build-images.ps1
-        ````
+        ```
 
     * To **build the image on a Linux machine** (e.g. Ubuntu), make sure docker is installed (see [install docker on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)), and do the following:
 
@@ -184,7 +184,7 @@ Start an admin Powershell on the Windows Host and run the following command and 
 
           ```bash
           $HOME/ebpf-for-windows-image/build-images.sh
-          ````
+          ```
 
 3. Push the `ebpf-for-windows` image to your repository.
 
