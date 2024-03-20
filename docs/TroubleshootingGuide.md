@@ -95,7 +95,7 @@ invoked, see [troubleshooting eBPF program issues](#Troubleshooting-general-eBPF
 
 ### Expected WFP objects for the program type BPF_PROG_TYPE_CGROUP_SOCK_ADDR
 The following are the expected `sublayer` objects for this program type:
-```
+```xml
 <item>
     <subLayerKey>{7c7b3fb9-3331-436a-98e1-b901df457fff}</subLayerKey>
     <displayData>
@@ -141,7 +141,7 @@ In this scenario, the `FWPM_LAYER_ALE_CONNECT_REDIRECT_V6` layer objects are nec
 handles dual-stack sockets.
 
 This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_CONNECT_REDIRECT_V4` layer:
-```
+```xml
 <item>
     <calloutKey>{98849e0f-b07d-11ec-9a30-18602489beee}</calloutKey>
     <displayData>
@@ -186,7 +186,7 @@ This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_CONNECT_REDIR
 ```
 
 This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_CONNECT_REDIRECT_V6` layer:
-```
+```xml
 <item>
     <calloutKey>{98849e10-b07d-11ec-9a30-18602489beee}</calloutKey>
     <displayData>
@@ -232,7 +232,7 @@ This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_CONNECT_REDIR
 ```
 
 This is the expected `callout` and `filter` at the `FWPM_LAYER_ALE_AUTH_CONNECT_V4` layer:
-```
+```xml
 <item>
     <calloutKey>{98849e0b-b07d-11ec-9a30-18602489beee}</calloutKey>
     <displayData>
@@ -298,7 +298,7 @@ In this output, check that you see the expected eBPF program, looking at the `na
 and `map_ids` for the next set of checks.
 
 Example Output:
-```
+```json
 [{
     "id": 196867,
     "type": "sock_addr",
@@ -319,8 +319,7 @@ In this output, check for an entry with the `prog_id` which matches the `id` fro
 the `attach_type` is as expected.
 
 Example output:
-```
-bpftool.exe -p link
+```json
 [{
     "id": 262403,
     "type": 2,
@@ -341,7 +340,7 @@ bpftool.exe -p map show id <id>
 In this output, use the `map_ids` from the above output. Map usage is up to the eBPF program developer, so you should
 confirm that the `type` and `name` is as expected for the scenario. This example output is from invoking the bpftool
 for each map:
-```
+```json
 {
     "id": 66054,
     "type": "hash",
@@ -519,7 +518,7 @@ callout here. If you see more than 1, then another WFP callout driver may be att
 that your eBPF program is, which may affect the final connection.
 
 Sample output:
-```
+```xml
 <callouts numItems="2">
     <item>
         <calloutKey>{98849e0f-b07d-11ec-9a30-18602489beee}</calloutKey>
