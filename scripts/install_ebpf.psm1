@@ -119,14 +119,25 @@ function Start-WPRTrace
     }
 }
 
-function Stop-eBPFComponents
-{
+# This function specifically tests that all eBPF components can be stopped.
+function Stop-eBPFComponents {
     # First, stop user mode service, so that EbpfCore does not hang on stop.
-    Stop-Service "eBPFSvc" -ErrorAction Ignore 2>&1 | Write-Log
+    try {
+        Stop-Service "eBPFSvc" -ErrorAction Stop 2>&1 | Write-Log
+        Write-Log "eBPFSvc service stopped." -ForegroundColor Green
+    } catch {
+        throw "Failed to stop 'eBPFSvc' service: $_"
+    }
 
-     # Stop the drivers and services.
+    # Stop the drivers and services.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        Stop-Service $_.Name -ErrorAction Ignore 2>&1 | Write-Log
+        try {
+            Write-Log "Stopping $($_.Key) service..." -ForegroundColor Green
+            Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
+            Write-Log "$($_.Key) service stopped." -ForegroundColor Green
+        } catch {
+            throw "Failed to stop $($_.Key) service: $_"
+        }
     }
 }
 
@@ -249,33 +260,30 @@ function Install-eBPFComponents
 
 function Uninstall-eBPFComponents
 {
+    # This section double-checks that all drivers and services are stopped before proceeding with uninstallation.
+    # It iterates through each driver and service, retrieving its status, and if any service is found to be running, it throws an error.
+    $allStopped = $true
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        $serviceName = $_.Name
+        $serviceStatus = (Get-Service $serviceName).Status
+        if ($serviceStatus -ne "Stopped") {
+            Write-Log "$serviceName service is not stopped." -ForegroundColor Red
+            $allStopped = $false
+        }
+    }
+    if (-not $allStopped) {
+        throw "One or more services are not stopped."
+    }
+
     # Firstly, uninstall the extra drivers that are not installed by the MSI package.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         if (-not $_.Value.InstalledByMsi) {
-            Write-Log("Stopping $($_.Key) service...") -ForegroundColor Green
-            sc.exe stop $_.Key 2>&1 | Write-Log
-            if ($LASTEXITCODE -ne 0) {
-                Write-Log("Failed to stop $($_.Key) service.") -ForegroundColor Red
-            } else {
-                Write-Log("$($_.Key) service stopped.") -ForegroundColor Green
-            }
             Write-Log("Deleting $($_.Key) service...") -ForegroundColor Green
             sc.exe delete $_.Key 2>&1 | Write-Log
             if ($LASTEXITCODE -ne 0) {
-                Write-Log("Failed to delete $($_.Key) service.") -ForegroundColor Red
+                throw ("Failed to delete $($_.Key) service.")
             } else {
                 Write-Log("$($_.Key) service deleted.") -ForegroundColor Green
-            }
-            $driverPath = if (Test-Path -Path ("$pwd\{0}" -f $_.Value.Name)) {
-                "$pwd\{0}" -f $_.Value.Name
-            } elseif (Test-Path -Path ("$pwd\drivers\{0}" -f $_.Value.Name)) {
-                "$pwd\drivers\{0}" -f $_.Value.Name
-            }
-            if ($null -ne $driverPath) {
-                Write-Log("Deleting driver file: $driverPath") -ForegroundColor Green
-                Remove-Item -Path $driverPath -Force -ErrorAction SilentlyContinue
-            } else {
-                Write-Log("Driver file not found for $($_.Key).") -ForegroundColor Red
             }
         }
     }
