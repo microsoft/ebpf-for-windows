@@ -113,7 +113,7 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
 ### Method 3 (Install files you built yourself, with a VM checkpoint)
 
 This method uses a machine that has already built the binaries for
- the desired build configuration, i.e. `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]`.
+ the desired build configuration, i.e., `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]`.
 
 Copy the build output in `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]` to the host of the test VM and run the following in a Powershell
  command prompt:
@@ -134,8 +134,8 @@ Copy the build output in `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]
    New-StoredCredential -Target TEST_VM -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine
    ```
 
-   > Note that "`TEST_VM`" is literal and is later used to lookup the actual VM name; it need not be the name of any actual test VM.
-1. Enter the desired directory (`cd`) where the build artifacts are stored (i.e. `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]`).
+   > Note that "`TEST_VM`" is literal and is later used to look up the actual VM name; it need not be the name of any actual test VM.
+1. Enter the desired directory (`cd`) where the build artifacts are stored (i.e., `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]`).
 1. Modify `.\test_execution.json` to specify the name of the test VM under the `VMMap` attribute, e.g.:
 
     ```json

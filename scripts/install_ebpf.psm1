@@ -10,7 +10,7 @@ Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -War
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 
-# eBPF Drivers.
+# eBPF drivers and services.
 $EbpfDrivers = @{
     "EbpfCore" = [PSCustomObject]@{
         "Name" = "ebpfcore.sys"
@@ -147,8 +147,8 @@ function Install-eBPFComponents
           [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
 
     # Print the status of the eBPF drivers and services before installation.
-    # This is useful for detecting issues with the runner baselines!!
-    Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (all should not be present)..." | Out-Null
+    # This is useful for detecting issues with the runner baselines.
+    Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (none should be present)..." | Out-Null
 
     # Install the Visual C++ Redistributable (Release version, which is required for the MSI installation).
     Write-Log("Installing Visual C++ Redistributable from '$VcRedistPath'...")
@@ -162,12 +162,12 @@ function Install-eBPFComponents
     Write-Log("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
 
     # Copy the VC debug runtime DLLs to the system32 directory,
-    # so that debug versions of the MSI can be installed (i.e. export_program_info.exe will not fail).
+    # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
     Write-Log("Copying VC debug runtime DLLs to the $system32Path directory...")
-    # Test is the VC debug runtime DLLs are present in the working directory (indicating a debug build).
+    # Test if the VC debug runtime DLLs are present in the working directory (indicating a debug build).
     $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
     if (-not $VCDebugRuntime) {
-        Write-Log("VC debug runtime DLLs not found in the working directory (i.e. release build). Skipping this step.") -ForegroundColor Yellow
+        Write-Log("VC debug runtime DLLs not found in the working directory (i.e., release build). Skipping this step.") -ForegroundColor Yellow
     } else {
         $system32Path = Join-Path $env:SystemRoot "System32"
         $VCDebugRuntime | ForEach-Object {
@@ -212,7 +212,7 @@ function Install-eBPFComponents
                 throw ("Failed to create $($_.Key) driver.")
             } else {
                 Write-Log("$($_.Key) driver created.") -ForegroundColor Green
-                # Start the service
+                # Start the service.
                 Write-Log("Starting $($_.Key) service...") -ForegroundColor Green
                 sc.exe start $_.Key 2>&1 | Write-Log
                 if ($LASTEXITCODE -ne 0) {
@@ -236,7 +236,7 @@ function Install-eBPFComponents
     }
 
     # Print the status of the eBPF drivers and services after installation.
-    Print-eBPFComponentsStatus "Verifing the status of eBPF drivers and services after the installation..." | Out-Null
+    Print-eBPFComponentsStatus "Verifying the status of eBPF drivers and services after the installation..." | Out-Null
 
     # Optionally enable KMDF verifier and tag tracking.
     if ($KMDFVerifier) {
@@ -255,7 +255,7 @@ function Uninstall-eBPFComponents
             Write-Log("Stopping $($_.Key) service...") -ForegroundColor Green
             sc.exe stop $_.Key 2>&1 | Write-Log
             if ($LASTEXITCODE -ne 0) {
-                throw ("Failed to stop $($_.Key) service.")
+                Write-Log("Failed to stop $($_.Key) service.") -ForegroundColor Red
             } else {
                 Write-Log("$($_.Key) service stopped.") -ForegroundColor Green
             }
