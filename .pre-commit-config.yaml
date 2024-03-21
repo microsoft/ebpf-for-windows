@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation
+# SPDX-License-Identifier: MIT
+
 repos:
 - repo: https://github.com/gitleaks/gitleaks
   rev: v8.16.3

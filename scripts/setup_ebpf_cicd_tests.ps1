@@ -40,6 +40,7 @@ if ($TestMode -eq "CI/CD") {
 }
 
 Get-Duonic
+Get-VCRedistributable
 
 # Export build artifacts to the test VMs.
 Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
