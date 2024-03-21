@@ -78,25 +78,9 @@ SPDX-License-Identifier: MIT
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
       <RefTargetDir>INSTALLFOLDER</RefTargetDir>
     </ProjectReference>
-    <ProjectReference Include="..\ebpfcore\usersim\EbpfCore_Usersim.vcxproj">
-      <Name>EbpfCore_Usersim</Name>
-      <Project>{1fdad2fd-ebd8-462a-b285-ed5174e55079}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
     <ProjectReference Condition="'$(Configuration)' == 'Debug' Or '$(Configuration)' == 'Release'" Include="..\ebpfsvc\eBPFSvc.vcxproj">
       <Name>ebpfsvc</Name>
       <Project>{ba065b6a-38f8-4197-8f66-87c84afad513}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\external\usersim\src\usersim.vcxproj">
-      <Name>usersim</Name>
-      <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>
       <Private>True</Private>
       <DoNotHarvest>True</DoNotHarvest>
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
@@ -118,89 +102,9 @@ SPDX-License-Identifier: MIT
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
       <RefTargetDir>INSTALLFOLDER</RefTargetDir>
     </ProjectReference>
-    <ProjectReference Include="..\tests\api_test\api_test.vcxproj">
-      <Name>api_test</Name>
-      <Project>{12161211-5463-4aa9-9b6e-552552b475dc}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\bpftool_tests\bpftool_tests.vcxproj">
-      <Name>bpftool_tests</Name>
-      <Project>{8b5b061b-3170-4d1b-8c5b-e86b890c14b8}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\sample\ext\app\sample_ext_app.vcxproj">
-      <Name>sample_ext_app</Name>
-      <Project>{7358d8bd-4123-4b2d-86c0-87f6ba6ced76}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\undocked\tests\sample\ext\drv\sample_ext.vcxproj">
-      <Name>sample_ebpf_ext</Name>
-      <Project>{c8d46543-5ae5-4e66-b9ce-8b84588b1c9e}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\sample\sample.vcxproj">
-      <Name>sample</Name>
-      <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\stress\km\ebpf_stress_tests_km.vcxproj">
-      <Name>ebpf_stress_tests_km</Name>
-      <Project>{4f082524-9496-44fa-8cba-4bc0bdc62568}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\stress\um\ebpf_stress_tests_um.vcxproj">
-      <Name>ebpf_stress_tests_um</Name>
-      <Project>{e51a27f5-a1d5-40da-a09b-850203d6b13d}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\unit\test.vcxproj">
-      <Name>unit_tests</Name>
-      <Project>{a4037e5d-b00c-4af1-9398-76b3ece95f62}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\xdp\xdp_tests.vcxproj">
-      <Name>xdp_tests</Name>
-      <Project>{07dc6181-84a2-4a14-a806-5e9af6c929c2}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
     <ProjectReference Include="..\tools\bpf2c\bpf2c.vcxproj">
       <Name>bpf2c</Name>
       <Project>{69b97e52-18dc-434e-a6e4-4c0f3e88c44a}</Project>
-      <Private>True</Private>
-      <DoNotHarvest>True</DoNotHarvest>
-      <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
-      <RefTargetDir>INSTALLFOLDER</RefTargetDir>
-    </ProjectReference>
-    <ProjectReference Include="..\tests\bpf2c_tests\bpf2c_tests.vcxproj">
-      <Name>bpf2c_tests</Name>
-      <Project>{61df9973-81b9-4006-9148-52f58259bbcf}</Project>
       <Private>True</Private>
       <DoNotHarvest>True</DoNotHarvest>
       <RefProjectOutputGroups>Binaries;Content;Satellites</RefProjectOutputGroups>
