@@ -179,8 +179,16 @@ if (-not $WaitResult) {
     $DriveFreeSpaceGB = GetDriveFreeSpaceGB -DriveSpecification $Env:SystemDrive
     Write-Log "Current available disk space: $DriveFreeSpaceGB GB`n"
 
+    # $TestProcess refers to 'cmd.exe' which ends up running the real test application.
+    # (This is done so that we can capture the stdout and stderr outputs from the test application
+    # itself. I have not been able to get Powershell's 'built-in' redirection mechanisms for the
+    # 'Process' object to play well in our scenario).
+    # We therefore need pass the test application's id to procdump64.exe
+    $TestCommandId = (Get-Process -Name $TestCommand).Id
+    Write-Log "Test Command:$TestCommand, Id:$TestCommandId"
+
     Write-Log "Creating User mode dump @ $UserModeDumpFilePath"
-    $ProcDumpArguments = "-r -ma $($TestProcess.Id) $UserModeDumpFilePath"
+    $ProcDumpArguments = "-r -ma $($TestCommandId) $UserModeDumpFilePath"
     Write-Log "Dump Command: $ProcDumpBinaryPath $ProcDumpArguments"
     $ProcDumpProcess = Start-Process -NoNewWindow `
         -FilePath $ProcDumpBinaryPath `
