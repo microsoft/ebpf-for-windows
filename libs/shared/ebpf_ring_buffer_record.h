@@ -29,6 +29,7 @@ typedef struct _ebpf_ring_buffer_record
 inline const ebpf_ring_buffer_record_t*
 ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, size_t consumer, size_t producer)
 {
+    ebpf_assert(producer >= consumer);
     if (producer == consumer) {
         return NULL;
     }
