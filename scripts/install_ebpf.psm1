@@ -127,7 +127,7 @@ function Stop-eBPFComponents {
             Stop-Service "eBPFSvc" -ErrorAction Stop 2>&1 | Write-Log
             Write-Log "eBPFSvc service stopped." -ForegroundColor Green
         } catch {
-            throw "Failed to stop 'eBPFSvc' service: $_"
+            throw "Failed to stop 'eBPFSvc' service: $_."
         }
     } else {
         Write-Log "'eBPFSvc' service is not present (i.e., release build), skipping stopping." -ForegroundColor Green
@@ -140,7 +140,7 @@ function Stop-eBPFComponents {
                 Write-Log "$($_.Key) driver stopped." -ForegroundColor Green
             }
         } catch {
-            throw "Failed to stop $($_.Key) driver: $_"
+            throw "Failed to stop $($_.Key) driver: $_."
         }
     }
 }
@@ -169,8 +169,8 @@ function Install-eBPFComponents
     Write-Log("Installing Visual C++ Redistributable from '$VcRedistPath'...")
     $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
     if ($process.ExitCode -ne 0) {
-        Write-Log("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)") -ForegroundColor Red
-        throw ("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode)")
+        Write-Log("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode).") -ForegroundColor Red
+        throw ("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode).")
     }
     Write-Log("Cleaning up...")
     Remove-Item $VcRedistPath -Force
@@ -199,7 +199,7 @@ function Install-eBPFComponents
     Write-Log("Installing the eBPF MSI package: 'msiexec.exe $arguments'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -ne 0) {
-        Write-Log("MSI installation FAILED. Exit code: $($process.ExitCode)") -ForegroundColor Red
+        Write-Log("MSI installation FAILED. Exit code: $($process.ExitCode).") -ForegroundColor Red
 
         # For clear readability within the CICD pipeline and final uploaded log output,
         # read each line of the log file and print it (otherwise all the log content is printed as a single line).
@@ -207,7 +207,7 @@ function Install-eBPFComponents
         Get-Content -Path "msi-install.log" | ForEach-Object {
             Write-Log($_)
         }
-        throw ("MSI installation FAILED. Exit code: $($process.ExitCode)")
+        throw ("MSI installation FAILED. Exit code: $($process.ExitCode).")
     }
     Write-Log("eBPF MSI installation completed successfully!") -ForegroundColor Green
 
@@ -267,12 +267,23 @@ function Uninstall-eBPFComponents
     # This section double-checks that all drivers and services are stopped before proceeding with uninstallation.
     # It iterates through each driver and service, retrieving its status, and if any service is found to be running, it throws an error.
     $allStopped = $true
-    $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        $serviceName = $_.Name
-        $serviceStatus = (Get-Service $serviceName).Status
+    if (Get-Service "eBPFSvc" -ErrorAction SilentlyContinue) {
+        $serviceStatus = (Get-Service "eBPFSvc").Status
         if ($serviceStatus -ne "Stopped") {
-            Write-Log "$serviceName service is not stopped." -ForegroundColor Red
+            Write-Log "eBPFSvc service is not stopped." -ForegroundColor Red
             $allStopped = $false
+        }
+        Write-Log "eBPFSvc service stopped." -ForegroundColor Green
+    } else {
+        Write-Log "'eBPFSvc' service is not present (i.e., release build), skipping stopping." -ForegroundColor Green
+    }
+    $EbpfDrivers.GetEnumerator() | ForEach-Object {
+        if ($_.Value.IsDriver) {
+            $driverStatus = (Get-Service $_.Key).Status
+            if ($driverStatus -ne "Stopped") {
+                Write-Log "$($_.Key) driver is not stopped." -ForegroundColor Red
+                $allStopped = $false
+            }
         }
     }
     if (-not $allStopped) {
@@ -319,7 +330,7 @@ function Uninstall-eBPFComponents
         Get-Content -Path "msi-uninstall.log" | ForEach-Object {
             Write-Log($_)
         }
-        throw ("MSI uninstallation FAILED. Exit code: $($process.ExitCode)")
+        throw ("MSI uninstallation FAILED. Exit code: $($process.ExitCode).")
     }
     Write-Log("MSI uninstallation completed successfully!") -ForegroundColor Green
 
