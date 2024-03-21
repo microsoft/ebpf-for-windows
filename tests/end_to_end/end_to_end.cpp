@@ -1085,6 +1085,8 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
+// Adding a comment.
+
 static void
 _cgroup_load_test(
     _In_z_ const char* file,
