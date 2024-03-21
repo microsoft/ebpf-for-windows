@@ -119,7 +119,7 @@ function Start-WPRTrace
     }
 }
 
-# This function specifically tests that all eBPF components can be stopped.
+# This function specifically tests that all eBPF drivers and services can be stopped.
 function Stop-eBPFComponents {
     # First, stop user mode service, so that EbpfCore does not hang on stop.
     if (Get-Service "eBPFSvc" -ErrorAction SilentlyContinue) {
@@ -135,9 +135,11 @@ function Stop-eBPFComponents {
     # Stop the drivers and services.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         try {
-            Write-Log "Stopping $($_.Key) service..." -ForegroundColor Green
-            Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
-            Write-Log "$($_.Key) service stopped." -ForegroundColor Green
+            if ($_.Value.IsDriver) {
+                Write-Log "Stopping $($_.Key) service..." -ForegroundColor Green
+                Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
+                Write-Log "$($_.Key) service stopped." -ForegroundColor Green
+            }
         } catch {
             throw "Failed to stop $($_.Key) service: $_"
         }
