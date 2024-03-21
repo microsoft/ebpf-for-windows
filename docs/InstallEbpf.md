@@ -136,7 +136,7 @@ Copy the build output in `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]
 
    > Note that "`TEST_VM`" is literal and is later used to look up the actual VM name; it need not be the name of any actual test VM.
 1. Enter the desired directory (`cd`) where the build artifacts are stored (i.e., `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]`).
-1. Modify `.\test_execution.json` to specify the name of the test VM under the `VMMap` attribute, e.g.:
+1. Modify `test_execution.json` to specify the name of the test VM under the `VMMap` attribute, e.g.:
 
     ```json
     {
@@ -144,7 +144,7 @@ Copy the build output in `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]
 
         "VMMap":
         {
-            "TEST_VM":
+            "MY_VM_RUNNERS":
             [
                 {
                     "Name": "<test-vm-name>"
@@ -157,14 +157,14 @@ Copy the build output in `\x64\[Debug|Release|NativeOnlyDebug|NativeOnlyRelease]
     ```
 
 1. Run the following commands to setup to use the credentials saved with `TEST_VM` in step 2,
- for logging into each of the VMs named in `vm_list.json`:
+ for logging into each of the VMs named in `test_execution.json`:
 
     ```ps
     Set-ExecutionPolicy unrestricted -Force
     ```
 
     ```ps
-    .\setup_ebpf_cicd_tests.ps1
+    .\setup_ebpf_cicd_tests.ps1 -SelfHostedRunnerName MY_VM_RUNNERS
     ```
 
 ## Installing eBPF with host-process container
