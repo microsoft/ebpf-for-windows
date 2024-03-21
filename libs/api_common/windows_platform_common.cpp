@@ -98,14 +98,13 @@ struct _ebpf_section_info_deleter
     }
 };
 
-// Thread local cache for program information queried from execution context.
+// Global cache for program information queried from execution context.
 typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
-static thread_local std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
+static std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
 
-// Thread local cache for program descriptor queried from execution context.
+// Global cache for program descriptor queried from execution context.
 typedef std::unique_ptr<EbpfProgramType, EbpfProgramType_deleter> ebpf_program_descriptor_ptr_t;
-static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare>
-    _program_descriptor_cache;
+static std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare> _program_descriptor_cache;
 
 // Global cache for the program and section information queried from eBPF store.
 typedef std::unique_ptr<ebpf_section_definition_t, _ebpf_section_info_deleter> ebpf_section_info_ptr_t;
@@ -742,6 +741,8 @@ _load_ebpf_provider_data()
 void
 clear_ebpf_provider_data()
 {
+    clear_program_info_cache();
+
     _windows_program_types.clear();
     _windows_section_definitions.clear();
     _windows_program_information.clear();

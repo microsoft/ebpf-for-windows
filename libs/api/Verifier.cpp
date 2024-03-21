@@ -672,7 +672,6 @@ _ebpf_api_elf_verify_section_from_stream(
 {
     std::ostringstream error;
     std::ostringstream output;
-    struct _thread_local_storage_cache tls_cache;
     *report = nullptr;
     *error_message = nullptr;
 
