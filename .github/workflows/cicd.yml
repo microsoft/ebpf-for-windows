@@ -49,6 +49,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
       build_artifact: Build-x64
       generate_release_package: true
       build_msi: true
@@ -63,6 +64,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
       build_artifact: Build-x64-native-only
       build_msi: true
       build_nuget: true
@@ -266,6 +268,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
       build_artifact: Build-x64-Analyze
       # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
       build_options: /p:Analysis='True' /p:AnalysisOnExternal='False'
@@ -277,6 +280,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
       build_artifact: Build-x64-Sanitize
       build_options: /p:AddressSanitizer='True'
 
@@ -476,6 +480,7 @@ jobs:
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
       build_artifact: Build-x64-CodeQl
       build_codeql: true
 
