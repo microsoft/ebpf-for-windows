@@ -101,14 +101,25 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
         .\x64\debug\deploy-ebpf -l="c:\some\path"
         ```
 
-2. From within the VM, install the binaries by starting an administrator Command Prompt shell (cmd.exe)
-, and running the following commands:
+2. From within the VM, install the the eBPF services  by starting an admin Powershell
+, and running the MSI installer with the following commands:
+   >Note: ensure to first install the *VC++ Redist* package from [this location](https://aka.ms/vs/17/release/vc_redist.x64.exe) on the VM (only needed the first time).
 
-   ```cmd
-   cd C:\Temp
-
-   powershell -ExecutionPolicy Bypass .\scripts\setup-ebpf.ps1
+   ```ps
+   cd "c:\some\path" # or cd c:\temp\eBPF (default location)
+   .\ebpf-for-windows.msi
    ```
+
+    Once the Installer UI starts up, select the desired installation folder (default will be "`C:\Program Files\ebpf-for-windows`"), and in the next screen,
+ select the components to install: the **Runtime Components** are mandatory, and the **JIT** is optional.
+
+    The MSI installer can also be run from the command line, as described in the previous section.
+
+3. If you want to install a new version of the eBPF services, you must uninstall the previous version by running the MSI installer UI with the following command (or with the advanced the command line options, as described in the previous section.):
+
+    ```ps
+    .\ebpf-for-windows.msi /uninstall
+    ```
 
 ### Method 3 (Install files you built yourself, with a VM checkpoint)
 
