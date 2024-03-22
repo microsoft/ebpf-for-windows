@@ -10,10 +10,10 @@ Official releases will be production signed using Microsoft certificates.
 
 ## Creating a new release
 
-An issue with the title `Scheduled eBPF release is due` is created on the first day of every month requesting for a new release with the minor version incremented
+An issue with the title `Scheduled eBPF release is due` is created on the first day of every month requesting a new release with the minor version incremented
 every time. When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If the decision is to
 create a new release the release manager must proceed with the following process.
-1. Create a topic branch from "`main`" on your private repo fork, and check it out (e.g., `<user>/release-build`).
+1. Create a topic branch from "`main`" on your private repo fork, and check it out (e.g., `<user>/release-X-Y`).
 1. Run the following script from the root directory of the repository, from a "*Developer Powershell for VS 2022"* terminal.
 
     ```ps
@@ -45,13 +45,13 @@ create a new release the release manager must proceed with the following process
 1. Create a pull-request from your topic branch into the `main` branch of the original repo, with the title of the PR as *"Release v`X.Y.0`"* (replace "`X`" and
 "`Y`" with the version number being released).
 1. Once the PR is approved and merged into the "`main`" branch, of the original `ebpf-for-windows` repo, create a new release branch from `main` from the
-**previous PR's commit**, and name it "`release/X.Y.`".
-1. **IMPORTANT:** Once the release branch is created, no new feature work is allowed to be merged. However, bug fixes can be taken as deemed necessary by the
+**previous PR's commit**, and name it "`release/X.Y`".
+1. **IMPORTANT:** Once the release branch is created, no new feature work is allowed to be merged into that branch. However, bug fixes can be taken as deemed necessary by the
  maintainers and the release manager. Whenever applicable, these bug fixes should first be made in the main branch, and cherry-picked to the release branch. In
   case bug-fix PRs are merged into the `release/X.Y` branch, the **latest commit** in the `release/X.Y` branch must be designated as the commit for the release.
 1. Follow the process in the [Release Branch Validation](ReleaseProcess.md#release-branch-validation) to ensure the quality of the release branch.
 1. In the triage meeting after the validation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release. If
-not, move to the following steps.
+not, move on to the following steps.
 1. The `sign-off` label will be added to the issue created in step 1 of the [Creating a new release](ReleaseProcess.md#creating-a-new-release) process. Next
 create a tag for the *latest commit on the `release/X.Y` branch*. The tag should reflect the version number being released and adhere to the following notation:
 "`Release-vX.Y.0`".
@@ -61,7 +61,7 @@ the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
 
 ## Release Branch Validation
 
-The `CI/CD - Release validation` worfklow (`cicd-release-validation.yml`) is used to validate a release branch. It contains more tests than the regular CI/CD
+The `CI/CD - Release validation` workflow(`cicd-release-validation.yml`) is used to validate a release branch. It contains more tests than the regular CI/CD
 pipeline, including longer duration fuzz tests, fault injection tests, stress tests, performance tests etc. These tests can be manually scheduled. The release
 manager must run these tests on the release branch. Due to the non-deterministic nature of some of the tests, it is recommended that the tests are run at least
 three times on the branch. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub. Once potential fixes
@@ -127,7 +127,7 @@ Servicing a release has two main scenarios:
     >```
 1. Create a pull-request from the topic branch into the original repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* where "`Z`" is the patch
 version.
-1. Once the PR is approved and merged into the "`release/X.Y`" branch in the original repo, create a tag for the latest commit as "`Release-vX.Y.Z`".
+1. Once the PR is approved and merged into the "`release/X.Y`" branch in the original repo, and create a tag for the latest commit in the following format: "`Release-vX.Y.Z`".
 1. Publish the patch release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
 
 
