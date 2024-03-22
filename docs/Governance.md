@@ -115,6 +115,16 @@ Responsibilities:
 * Manage github settings such as branch protection rules and repository secrets.
 * Resolve any disputes among maintainers.
 
+## Prioritizing Issues
+
+In the weekly triage meetings, new issues are assigned to collaborators and are set to a monthly milestone by which the issue is expected to be completed. It may not be possible for the assignees to address all the issues assigned to them by their target milestone. As a result issues may pile up in a given milestone. In such cases project admins can request that triage drivers and maintainers use *special labels* to prioritize issues as follows:
+### P1:
+This label represents highest priority. This label should be used for bugs impacting users, new feature or enhancements that are urgently requested by users. Collaborators  should try to resolve these issues in the **current milestone**.
+### P2:
+This label is used for the next level of priority. Issues marked as P2 for the current milestone may be moved to the *next milestone* after discussing in the weekly triage meeting.
+### P3:
+This label is used for low priority issues. Issues marked with this label may be moved to the *next milestone* or the *backlog* milestone, without needing further discussion in the weekly triage meeting.
+
 ## Reviewing Pull Requests
 
 Pull requests need at least two approvals before being eligible for merging.

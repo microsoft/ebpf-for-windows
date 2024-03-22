@@ -9,7 +9,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-$CodeCoverage = 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+$CodeCoverage = "$env:ProgramFiles\OpenCppCoverage\OpenCppCoverage.exe"
 
 #
 # Execute tests on VM.
@@ -92,7 +92,7 @@ function Invoke-CICDTests
     )
 
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     $TestList = @(
@@ -127,7 +127,7 @@ function Invoke-CICDTests
         Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
     }
 
-    popd
+    Pop-Location
 }
 
 function Invoke-XDPTest
@@ -140,7 +140,7 @@ function Invoke-XDPTest
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
     )
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
     $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
@@ -170,7 +170,7 @@ function Invoke-XDPTest
     Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
     Write-Log "`n`n"
 
-    popd
+    Pop-Location
 }
 
 function Invoke-ConnectRedirectTest
@@ -190,7 +190,7 @@ function Invoke-ConnectRedirectTest
           [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
 
     $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     $TestCommand = ".\connect_redirect_tests.exe"
@@ -262,7 +262,7 @@ function Invoke-ConnectRedirectTest
 
     Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
 
-    popd
+    Pop-Location
 }
 
 function Invoke-CICDStressTests
@@ -274,7 +274,7 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
 
-    pushd $WorkingDirectory
+    Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
@@ -298,7 +298,7 @@ function Invoke-CICDStressTests
         -NeedKernelDump $True `
         -Verbose
 
-    popd
+    Pop-Location
 }
 
 function Invoke-CICDPerformanceTests

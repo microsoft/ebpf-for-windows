@@ -363,11 +363,10 @@ net_ebpf_extension_delete_wfp_filters(
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
         } else {
-            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETED;
             NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "Deleted WFP filter: ",
+                "Marked WFP filter for deletion: ",
                 index,
                 filter_ids[index].id);
         }
@@ -758,6 +757,21 @@ net_ebpf_ext_filter_change_notify(
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
+
+        for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
+            net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
+            if (cur_filter_id->id == filter->filterId) {
+                cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+                NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                    "Deleted WFP filter: ",
+                    index,
+                    cur_filter_id->id);
+
+                break;
+            }
+        }
         DEREFERENCE_FILTER_CONTEXT((filter_context));
     }
 
