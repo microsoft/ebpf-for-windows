@@ -98,13 +98,14 @@ struct _ebpf_section_info_deleter
     }
 };
 
-// Global cache for program information queried from execution context.
+// Thread local cache for program information queried from execution context.
 typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_program_info_ptr_t;
-static std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
+static thread_local std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
 
-// Global cache for program descriptor queried from execution context.
+// Thread local cache for program descriptor queried from execution context.
 typedef std::unique_ptr<EbpfProgramType, EbpfProgramType_deleter> ebpf_program_descriptor_ptr_t;
-static std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare> _program_descriptor_cache;
+static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare>
+    _program_descriptor_cache;
 
 // Global cache for the program and section information queried from eBPF store.
 typedef std::unique_ptr<ebpf_section_definition_t, _ebpf_section_info_deleter> ebpf_section_info_ptr_t;
@@ -741,8 +742,6 @@ _load_ebpf_provider_data()
 void
 clear_ebpf_provider_data()
 {
-    clear_program_info_cache();
-
     _windows_program_types.clear();
     _windows_section_definitions.clear();
     _windows_program_information.clear();
@@ -763,7 +762,8 @@ _get_static_program_info(_In_ const ebpf_program_type_t* program_type)
     return nullptr;
 }
 
-_Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
+static ebpf_result_t
+_get_program_type_info(_Outptr_ const ebpf_program_info_t** info, bool use_tls_only = false)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info->type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
@@ -775,6 +775,10 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ c
     // See if we already have the program info cached.
     auto it = _program_info_cache.find(*program_type);
     if (it == _program_info_cache.end()) {
+        if (use_tls_only) {
+            return EBPF_OBJECT_NOT_FOUND;
+        }
+
         // Try to query the info from the execution context.
         result = _get_program_info_data(*program_type, &program_info);
         if (result != EBPF_SUCCESS) {
@@ -787,7 +791,7 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ c
         *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
     }
 
-    if (use_ebpf_store && fall_back) {
+    if (use_ebpf_store && fall_back && !use_tls_only) {
         // Query static data loaded from eBPF store.
         *info = _get_static_program_info(program_type);
         if (*info == nullptr) {
@@ -798,6 +802,17 @@ _Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ c
     }
 
     return result;
+}
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
+{
+    return _get_program_type_info(info, false);
+}
+
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
+{
+    return _get_program_type_info(info, true);
 }
 
 void

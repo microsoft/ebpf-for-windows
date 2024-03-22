@@ -855,20 +855,20 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     // Load program with pinpath and loopback interface name.
     output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"droppacket.o", L"xdp", L"mypinpath", L"loopback_0");
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 9\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 10\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"9", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 9 from mypinpath\n");
+    REQUIRE(output == "Unpinned 10 from mypinpath\n");
     verify_no_programs_exist();
 
     // Load program with loopback interface index.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=1", &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 13\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 15\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"13", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 13 from DropPacket\n");
+    REQUIRE(output == "Unpinned 15 from DropPacket\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect interface name.
@@ -888,11 +888,11 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
 
     // Add program with no interface parameter.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", nullptr, nullptr, &result);
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 25\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 29\n") == 0);
     REQUIRE(result == NO_ERROR);
 
     // Detach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"25", L"", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", L"", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 
@@ -902,13 +902,13 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "    25     1      0  JIT        xdp            DropPacket\n");
+                  "    29     1      0  JIT        xdp            DropPacket\n");
 
     // Re-attach the program with interface index parameter.
-    output = _run_netsh_command(handle_ebpf_set_program, L"25", nullptr, L"interface=1", &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"29", nullptr, L"interface=1", &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"25", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
     ebpf_epoch_synchronize();

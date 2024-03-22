@@ -4043,7 +4043,7 @@ ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program
     ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
 
-    result = get_program_type_info(program_info);
+    result = get_program_type_info_from_tls(program_info);
 
     EBPF_RETURN_RESULT(result);
 }

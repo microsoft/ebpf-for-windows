@@ -45,5 +45,8 @@ clear_ebpf_provider_data();
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info);
 
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info);
+
 void
 clear_program_info_cache();
