@@ -578,6 +578,16 @@ jobs:
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
 
+  netperf:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/netperf.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      pull_request: ${{ github.event.pull_request.number }}
+    secrets:
+      NET_PERF_TRIGGER: ${{ secrets.NET_PERF_TRIGGER }}
+
   upload_perf_results:
     needs: performance
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -585,6 +595,45 @@ jobs:
     with:
       name: upload_perf_results
       result_artifact: km_performance-x64-Release
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  upload_netperf_results_azure_2022:
+    needs: netperf
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_netperf_results_azure_2022
+      result_artifact: bpf_performance_native_azure_2022_x64
+      platform: Azure Windows 2022
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  upload_netperf_results_azure_2025:
+    needs: netperf
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_netperf_results_azure_2025
+      result_artifact: bpf_performance_native_azure_2025_x64
+      platform: Azure Windows 2025
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  upload_netperf_results_lab_2022:
+    needs: netperf
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_netperf_results_lab_2022
+      result_artifact: bpf_performance_native_lab_2022_x64
+      platform: Lab Windows 2022
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

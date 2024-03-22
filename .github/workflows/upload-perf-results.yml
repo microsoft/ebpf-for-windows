@@ -14,6 +14,10 @@ on:
       result_artifact:
         required: true
         type: string
+      platform:
+        required: false
+        type: string
+        default: "Windows 2019"
     secrets:
       AZURE_CLIENT_ID:
         required: true
@@ -57,7 +61,7 @@ jobs:
         # Compare hash of downloaded script.
         sha256sum process_results.py | grep dc616f27b6d345e8086de451ffd3f73cc71b5d51d18894ce08c02db56d67e0f4 -q || exit 1
         # Run script to convert CSV to SQL.
-        python3 ./process_results.py --csv-directory ${{github.workspace}}/results/${{github.sha}} --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "Windows 2019" --repository ${{github.repository}}
+        python3 ./process_results.py --csv-directory ${{github.workspace}}/results/${{github.sha}} --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "${{inputs.platform}}" --repository ${{github.repository}}
 
     # Grab the output from the results directory and upload it as an artifact to debug failures.
     - name: Upload data as artifacts for debugging
