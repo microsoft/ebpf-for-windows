@@ -6,43 +6,16 @@ The eBPF project follows [Semantic Versioning 2.0](https://semver.org) for versi
 minor versions respectively. "`Z`" is the patch version for servicing releases. A release is usually made once every month. Pre-release binaries are test signed.
 Official releases will be production signed using Microsoft certificates.
 
->**Note**: Currently the *major version* for all releases is set to "`0`" (i.e. "`0.Y.Z`") until the first official release is published with version `1.0.0`.
+>**Note**: Currently the *major version* for all releases is set to "`0`" (i.e., "`0.Y.Z`") until the first official release is published with version `1.0.0`.
 
 ## Creating a new release
 
-An issue with the title `Scheduled eBPF release is due` is created on the first day of every month requesting a new release with the minor version incremented
-every time. When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If the decision is to
-create a new release the release manager must proceed with the following process.
+An issue with the title `Scheduled eBPF release is due` is automatically created on the first day of every month requesting a new release with the minor
+version incremented every time. When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If
+the decision is to create a new release the release manager must proceed with the following process.
 1. Create a topic branch from "`main`" on your private repo fork, and check it out (e.g., `<user>/release-X-Y`).
-1. Run the following script from the root directory of the repository, from a "*Developer Powershell for VS 2022"* terminal.
-
-    ```ps
-    # Replace "X" and "Y" with the new major and minor versions:
-    .\scripts\update-release-version.ps1 X Y 0
-    ```
-
-    For example, a successful run of the script for version 0.12.0 produces the following output:
-
-    ```ps
-    PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 12 0
-    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h' file...
-    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
-    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs' file...
-    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
-    Rebuilding the solution, please wait...
-    Regenerating the expected 'bpf2c' output...
-    ...
-    ...
-    Expected 'bpf2c' output regenerated.
-    Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
-    ```
-1. Verify all the changes then commit all in the working branch.
-    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the
-    following (so they'll work with the `bpf2c_tests` verifying their content):
-    >```bash
-    >git commit --no-verify
-    >```
-1. Create a pull-request from your topic branch into the `main` branch of the original repo, with the title of the PR as *"Release v`X.Y.0`"* (replace "`X`" and
+1. Follow the process in the [Updating the Release Version](ReleaseProcess.md#updating-the-release-version) to update the release version.
+1. Create a pull-request from your topic branch into the `main` branch of the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows), with the title of the PR as *"Release v`X.Y.0`"* (replace "`X`" and
 "`Y`" with the version number being released).
 1. Once the PR is approved and merged into the "`main`" branch, of the original `ebpf-for-windows` repo, create a new release branch from `main` from the
 **previous PR's commit**, and name it "`release/X.Y`".
@@ -58,6 +31,37 @@ create a tag for the *latest commit on the `release/X.Y` branch*. The tag should
 1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the `release/X.Y` branch. In case of failure, Follow the process in
 the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
 1. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
+
+## Updating the Release Version
+
+1. Run the following script from the root directory of the repository, from a "*Developer Powershell for VS 2022"* terminal.
+
+    ```ps
+    # Set "X" and "Y" to the the new major and minor versions. If servicing a release, set "Z" to the revision or patch number.
+    .\scripts\update-release-version.ps1 X Y Z
+    ```
+    For example, a successful run of the script for version 0.12.0 produces the following output:
+
+    ```ps
+    PS D:\work\ebpf-for-windows> .\scripts\update-release-version.ps1 0 12 0
+    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h' file...
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
+    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs' file...
+    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
+    Rebuilding the solution, please wait...
+    Regenerating the expected 'bpf2c' output...
+    ...
+    ...
+    Expected 'bpf2c' output regenerated.
+    Please verify all the changes then submit the pull-request into the 'release/0.12' branch.
+    ```
+
+1. Verify all the changes then commit all in the working branch.
+    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the
+    following (so they'll work with the `bpf2c_tests` verifying their content):
+    >```bash
+    >git commit --no-verify -a -m "update release version to X.Y.Z".
+    >```
 
 ## Release Branch Validation
 
@@ -103,13 +107,7 @@ Servicing a release has two main scenarios:
 
 >NOTE: In servicing a release branch, **new features must not be added to the release branch**.  Only patches or hot-fixes will be accepted.
 
-1. On the original `ebpf-for-windows` repo, create and check out a new topic branch from the `release/X.Y` branch you want to service.
-1. Run the following script from the root directory of the repository, within a "*Developer Poweshell for VS 2022"* instance.
-
-    ```ps
-    # Replace "X", "Y" and "Z" with the new version number being released
-    .\scripts\update-release-version.ps1 X Y Z
-    ```
+1. Check out a new topic branch from the `release/X.Y` branch you want to service.
 1. Cherry pick the commits from `main` that you want to add to the release (patches/hot-fixes, etc.):
 
     ```bash
@@ -119,15 +117,10 @@ Servicing a release has two main scenarios:
     ```bash
     git mergetool
     ```
-1. Verify all the changes then commit all in the working branch.
-    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the
-    following (so they'll work with the `bpf2c_tests` verifying their content):
-    >```bash
-    >git commit --no-verify
-    >```
-1. Create a pull-request from the topic branch into the original repo's "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* where "`Z`" is the patch
+1. Follow the process in the [Updating the Release Version](ReleaseProcess.md#updating-the-release-version) to update the release version.
+1. Create a pull-request from the topic branch into the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows)'s "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* where "`Z`" is the patch
 version.
-1. Once the PR is approved and merged into the "`release/X.Y`" branch in the original repo, and create a tag for the latest commit in the following format: "`Release-vX.Y.Z`".
+1. Once the PR is approved and merged into the "`release/X.Y`" branch in the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows), and create a tag for the latest commit in the following format: "`Release-vX.Y.Z`".
 1. Publish the patch release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
 
 
@@ -136,8 +129,8 @@ version.
 >IMPORTANT! Normally, this should be done by the release manager **in VERY RARE scenarios** (and it's also likely an indication there's been a failure in the
 releasing process), but if you are a contributor and have been asked to do this, here are the steps to be followed:
 
-1. On the main `ebpf-for-windows` repo, create and check out a new working branch from the "`main`" branch.
-1. Cherry pick the commits from the "`release/X.Y`" branch branch that you want to add to the "`main`" branch (patches/hot-fixes, etc.):
+1. On your fork, create and check out a new topic branch from the "`main`" branch.
+2. Cherry pick the commits from the "`release/X.Y`" branch that you want to add to the "`main`" branch (patches/hot-fixes, etc.):
 
     ```bash
     git cherry-pick release/X.Y <commit number> ... <commit number>
@@ -146,8 +139,6 @@ releasing process), but if you are a contributor and have been asked to do this,
     ```bash
     git mergetool
     ```
-1. Commit all the changes in the working branch.
-1. Create a **Draft** pull-request for your working branch into the main repo's "`main`" branch, and title the PR as *"Backwards Integration of Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
-1. Wait for the CI/CD pipeline for the PR to complete successfully.
-1. Mark the draft PR as "Ready for review".
-1. Submit the PR for review (from its draft state), and wait for it to be approved and merged into the main repo's "`main`" branch.
+3. Commit all the changes in the working branch.
+4. Create a pull-request for your working branch into the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows)'s "`main`" branch, and title the PR as *"Backwards Integration of Release v`X.Y.Z`"* (replace "`X.Y.Z`" with the version number being released).
+5. Submit the PR for review for approval, and have it merged into the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows)'s "`main`" branch.
