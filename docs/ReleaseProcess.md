@@ -1,6 +1,6 @@
 # Release Process
 
-This document outlines the steps to create, publish and service a release of eBPF for Windows.
+This document outlines the steps to create, publish, and service a release of eBPF for Windows.
 
 The eBPF project follows [Semantic Versioning 2.0](https://semver.org) for versioning releases in the format `X.Y.Z`, where "`X`" and "`Y`" are the major and
 minor versions respectively. "`Z`" is the patch version for servicing releases. A release is usually made once every month. Pre-release binaries are test signed.
