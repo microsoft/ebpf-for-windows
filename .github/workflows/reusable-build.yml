@@ -224,7 +224,7 @@ jobs:
         Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
 
     - name: Upload Build Output
-      if: always() && (steps.skip_check.outputs.should_skip != 'true')
+      if: always() && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_artifact != 'none')
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
