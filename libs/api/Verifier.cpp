@@ -772,12 +772,12 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
     }
 
     auto stream = std::stringstream(data);
-    // struct _thread_local_storage_cache tls_cache;
 
     // Clear thread local storage before calling into the verifier.
     // Note that TLS should be cleared here *before* calling into the verifier, not after.
     // Post verification, bpf2c relies on the TLS cache to compute program info hash.
     ebpf_clear_thread_local_storage();
+
     set_global_program_and_attach_type(program_type, nullptr);
     set_verification_in_progress(true);
     return _ebpf_api_elf_verify_section_from_stream(stream, name, section, verbose, report, error_message, stats);
