@@ -6,12 +6,26 @@
 ##
 $source_directory="."
 
-# The following files should be installed on all platforms.
+# The following files are required for installing Debug & Release versions of the eBPF framework.
 [System.Collections.ArrayList]$install_files = @(
-    "ebpf-for-windows.msi"
+    "ebpf-for-windows.msi",
+    "setup-ebpf.ps1",
+    "vc_redist.x64.exe",
+    "concrt140d.dll",
+    "msvcp140d.dll",
+    "msvcp140d_atomic_wait.dll",
+    "msvcp140d_codecvt_ids.dll",
+    "msvcp140_1d.dll",
+    "msvcp140_2d.dll",
+    "vccorlib140d.dll",
+    "vcruntime140d.dll",
+    "vcruntime140_1d.dll",
+    "vcruntime140_threadsd.dll",
+    "ucrtbased.dll"
     )
 
 # The following files are only needed for testing and debugging.
+# Note: the \scripts\setup.vcxproj already copies the Debug VC++ Redist DLLs to the install directory, including the official Release installer.
 [System.Collections.ArrayList]$built_test_files = @(
     "*.exe",
     "*.dll",
@@ -20,12 +34,32 @@ $source_directory="."
 	"*.sys"
     )
 
+# Files to be excluded from the copy, for cleanness in the test directory.
+# These files are installed through the MSI, and accessible thanks to the added install directory inserted in the PATH.
+[System.Collections.ArrayList]$exclude_files = @(
+    "bpf2c.exe",
+    "bpf2c.pdb"
+    "bpftool.exe",
+    "bpftool.pdb",
+    "EbpfApi.dll",
+    "EbpfApi.pdb",
+    "EbpfCore.sys",
+    "EbpfCore.pdb",
+    "EbpfSvc.exe",
+    "EbpfSvc.pdb",
+    "ebpfnetsh.dll",
+    "ebpfnetsh.pdb",
+    "NetEbpfExt.sys",
+    "NetEbpfExt.pdb",
+    "ebpfforwindows.wprp",
+    "export_program_info.exe",
+    "export_program_info.pdb"
+)
+
 $source_directory="$PSScriptRoot"
 $destination_directory="C:\temp\eBPF"
 $copy_file_list = $install_files
 $vm="Windows 10 dev environment"
-$vc_redist_path = Join-Path -Path $env:VCToolsRedistDir '\debug_nonredist\x64\Microsoft.VC143.DebugCRT\'
-$copy_debug_redist = $false
 $error.clear()
 
 ##
@@ -45,9 +79,9 @@ Copies eBPF framework files into a temp directory on the local machine or into a
 
 OPTIONS:
     -h, --help     Print this help message.
-    -l, --local    Copies files to the local temp directory instead of into a VM
-    -t, --test     Includes files needed only for testing and debugging
-    --vm           Specifies the VM name, which defaults to "Windows 10 dev environment"
+    -d, --dir      Specifies the destination directory for the copy (default is "c:\temp\eBPF"), within the local machine or the VM.
+    --vm           Specifies where to copy the files. If this option is specified, the files are copied to the specified VM, otherwise they are copied to the local machine.
+    -t, --test     Includes files needed for testing and debugging.
 
 '@
             exit 0
@@ -57,7 +91,7 @@ OPTIONS:
             $vm=($arg -split "=")[1];
             break
         }
-    "^(?:-l|--local)(?:=(.+))?$"
+    "^(?:-d|--dir)(?:=(.+))?$"
         {
             if ($matches[1]) {
                 $destination_directory = $matches[1]
@@ -81,32 +115,21 @@ OPTIONS:
 
 if ($null -eq $vm) {
    ##
-   ## Copy files to a local temp directory
+   ## Copy files to a local directory
    ##
-   if ($copy_debug_redist) {
-      Write-Host "Copying the VC++ Redist (Debug) files from `"$vc_redist_path`" to `"$destination_directory`""
-      $files = Get-ChildItem -Path $vc_redist_path -File
-      foreach($file in $files) {
-        $source_path = $file.FullName
-        $destination_path = Join-Path -Path $destination_directory -ChildPath $file.Name
-        $destination_full_directory = Split-Path $destination_path -Parent
-        Write-Host " $source_path -> $destination_path"
-        if (!(Test-Path $destination_full_directory)) {
-          New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
-        }
-        Copy-Item -Path $source_path -Destination $destination_path -ErrorAction Stop
-      }
-   }
    Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
-   foreach($file in $copy_file_list) {
-      $source_path = "$source_directory\$file"
-      $destination_path = "$destination_directory\$file"
-      $destination_full_directory = Split-Path $destination_path
-      Write-Host " $source_path -> $destination_path"
-      if (! (Test-Path $destination_full_directory)) {
-         New-Item -Type Directory $destination_full_directory -ErrorAction Stop | Write-Verbose
-      }
-      Copy-Item "$source_path" -Destination "$destination_path" -ErrorAction Stop
+   foreach ($filePattern in $copy_file_list) {
+        $files = Get-ChildItem -Path $source_directory -Filter $filePattern -File
+        foreach ($file in $files) {
+            # Check if the file should be excluded
+            if ($exclude_files -notcontains $file.Name) {
+                $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
+                Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+                Write-Host "Copied $($file.FullName) to $($destinationPath)"
+            } else {
+                Write-Host "Excluded $($file.FullName) from copying"
+            }
+        }
    }
 } else {
     ##
@@ -122,27 +145,21 @@ if ($null -eq $vm) {
     if (! $?) {
         exit 1
     }
-    if ($copy_debug_redist) {
-        Write-Host "Copying the VC++ Redist (Debug) files from `"$vc_redist_path`" to `"$destination_directory`" in VM `"$vm`"..."
-        $files = Get-ChildItem -Path $vc_redist_path -File
-        foreach($file in $files) {
-            $source_path = $file.FullName
-            $destination_path = Join-Path -Path $destination_directory -ChildPath $file.Name
-            Write-Host " $source_path -> $destination_path"
-            Copy-VMFile "$vm" -SourcePath "$source_path" -DestinationPath "$destination_path" -CreateFullPath -FileSource Host -Force
-            if (! $?) {
-                exit 1
-            }
-        }
-    }
     Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`" in VM `"$vm`"..."
-    foreach($file in $copy_file_list) {
-        $source_path = "$source_directory\$file"
-        $destination_path = "$destination_directory\$file"
-        Write-Host " $source_path -> $destination_path"
-        Copy-VMFile "$vm" -SourcePath "$source_path" -DestinationPath "$destination_path" -CreateFullPath -FileSource Host -Force
-        if (! $?) {
-            exit 1
+    foreach ($filePattern in $copy_file_list) {
+        $files = Get-ChildItem -Path $source_directory -Filter $filePattern -File
+        foreach ($file in $files) {
+            # Check if the file should be excluded
+            if ($exclude_files -notcontains $file.Name) {
+                $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
+                Copy-VMFile "$vm" -SourcePath $file.FullName -DestinationPath "$destinationPath" -CreateFullPath -FileSource Host -Force
+                if (! $?) {
+                    exit 1
+                }
+                Write-Host "Copied $($file.FullName) to $($destinationPath)"
+            } else {
+                Write-Host "Excluded $($file.FullName) from copying"
+            }
         }
     }
 }
