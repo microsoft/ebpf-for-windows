@@ -124,6 +124,88 @@ set_program_under_verification(ebpf_handle_t program)
 }
 
 static ebpf_result_t
+_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_program_info_t** new_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_program_info_t* program_info = nullptr;
+    ebpf_helper_function_prototype_t* global_helpers = nullptr;
+    ebpf_helper_function_prototype_t* program_type_specific_helpers = nullptr;
+    ebpf_program_type_descriptor_t* program_type_descriptor = nullptr;
+    ebpf_context_descriptor_t* context_descriptor = nullptr;
+
+    program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
+    if (program_info == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    program_info->count_of_global_helpers = info->count_of_global_helpers;
+    if (info->count_of_global_helpers > 0) {
+        global_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate(
+            info->count_of_global_helpers * sizeof(ebpf_helper_function_prototype_t));
+        if (global_helpers == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program_info->global_helper_prototype = global_helpers;
+
+        for (uint32_t i = 0; i < info->count_of_global_helpers; i++) {
+            global_helpers[i] = info->global_helper_prototype[i];
+            global_helpers[i].name = cxplat_duplicate_string(info->global_helper_prototype[i].name);
+            if (global_helpers[i].name == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        }
+    }
+
+    program_info->count_of_program_type_specific_helpers = info->count_of_program_type_specific_helpers;
+    if (info->count_of_program_type_specific_helpers) {
+        program_type_specific_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate(
+            info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_function_prototype_t));
+        if (program_type_specific_helpers == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program_info->program_type_specific_helper_prototype = program_type_specific_helpers;
+
+        for (uint32_t i = 0; i < info->count_of_program_type_specific_helpers; i++) {
+            program_type_specific_helpers[i] = info->program_type_specific_helper_prototype[i];
+            program_type_specific_helpers[i].name =
+                cxplat_duplicate_string(info->program_type_specific_helper_prototype[i].name);
+            if (program_type_specific_helpers[i].name == nullptr) {
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
+        }
+    }
+
+    program_type_descriptor = &program_info->program_type_descriptor;
+    memcpy(program_type_descriptor, &info->program_type_descriptor, sizeof(ebpf_program_type_descriptor_t));
+
+    context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
+    if (context_descriptor == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    program_info->program_type_descriptor.context_descriptor = context_descriptor;
+    memcpy(context_descriptor, info->program_type_descriptor.context_descriptor, sizeof(ebpf_context_descriptor_t));
+    program_type_descriptor->name = cxplat_duplicate_string(info->program_type_descriptor.name);
+    if (program_type_descriptor->name == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    *new_info = program_info;
+    program_info = nullptr;
+
+Exit:
+    ebpf_program_info_free(program_info);
+
+    return result;
+}
+
+static ebpf_result_t
 _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_ EbpfProgramType** descriptor) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -220,6 +302,7 @@ const EbpfProgramType&
 get_program_type_windows(const GUID& program_type)
 {
     ebpf_result_t result;
+    auto guid_string = guid_to_string(&program_type);
 
     _load_ebpf_provider_data();
 
@@ -246,13 +329,24 @@ get_program_type_windows(const GUID& program_type)
 
     // Failed to query from execution context. Consult static cache.
     if (use_ebpf_store) {
-        auto it2 = _windows_program_types.find(program_type);
-        if (it2 != _windows_program_types.end()) {
-            return *it2->second.get();
+        auto it2 = _windows_program_information.find(program_type);
+        if (it2 != _windows_program_information.end()) {
+            // Cache the descriptor in thread local cache.
+            result = result = _duplicate_program_info(it2->second.get(), &program_info);
+            if (result != EBPF_SUCCESS) {
+                throw std::runtime_error(std::string("Failed to duplicate program info.") + guid_string);
+            }
+            _program_info_cache[program_type] = ebpf_program_info_ptr_t(program_info);
+            result = _get_program_descriptor_from_info(program_info, &descriptor);
+            if (result == EBPF_SUCCESS) {
+                _program_descriptor_cache[program_type] = ebpf_program_descriptor_ptr_t(descriptor);
+                return *_program_descriptor_cache[program_type].get();
+            } else {
+                throw std::runtime_error(std::string("Failed to get program descriptor.") + guid_string);
+            }
         }
     }
 
-    auto guid_string = guid_to_string(&program_type);
     throw std::runtime_error(std::string("ProgramType not found for GUID ") + guid_string);
 }
 
@@ -793,11 +887,15 @@ _get_program_type_info(_Outptr_ const ebpf_program_info_t** info, bool use_tls_o
 
     if (use_ebpf_store && fall_back && !use_tls_only) {
         // Query static data loaded from eBPF store.
-        *info = _get_static_program_info(program_type);
-        if (*info == nullptr) {
+        const ebpf_program_info_t* static_info = _get_static_program_info(program_type);
+        if (static_info == nullptr) {
             result = EBPF_OBJECT_NOT_FOUND;
         } else {
-            result = EBPF_SUCCESS;
+            result = _duplicate_program_info(static_info, &program_info);
+            if (result == EBPF_SUCCESS) {
+                _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
+                *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
+            }
         }
     }
 
@@ -806,7 +904,7 @@ _get_program_type_info(_Outptr_ const ebpf_program_info_t** info, bool use_tls_o
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
 {
-    return _get_program_type_info(info, false);
+    return _get_program_type_info(info, true);
 }
 
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
