@@ -179,6 +179,7 @@ function Export-BuildArtifactsToVMs
     &tar @("cfz", "$tempFileName", "*")
     Write-Log "Created $tempFileName containing files in $pwd"
 
+    # Copy artifacts to the given VM list.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -208,6 +209,52 @@ function Export-BuildArtifactsToVMs
     }
 
     Remove-Item -Force $tempFileName
+}
+
+#
+# Install eBPF components on VM.
+#
+
+function Install-eBPFComponentsOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName,
+          [parameter(Mandatory=$true)][bool] $KmTracing,
+          [parameter(Mandatory=$true)][string] $KmTraceType)
+
+    Write-Log "Installing eBPF components on $VMName"
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$True)] [string] $LogFileName,
+              [Parameter(Mandatory=$true)] [bool] $KmTracing,
+              [Parameter(Mandatory=$true)] [string] $KmTraceType)
+        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
+    Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
+}
+
+function Uninstall-eBPFComponentsOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName)
+
+    Write-Log "Unnstalling eBPF components on $VMName"
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+              [Parameter(Mandatory=$True)] [string] $LogFileName)
+        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Uninstall-eBPFComponents
+    } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+    Write-Log "eBPF components uninstalled on $VMName" -ForegroundColor Green
 }
 
 function ArchiveKernelModeDumpOnVM
@@ -331,7 +378,6 @@ function Import-ResultsFromVM
         if (!(Test-Path ".\TestLogs\$VMName\Logs")) {
             New-Item -ItemType Directory -Path ".\TestLogs\$VMName\Logs"
         }
-
         $VMTemp = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:TEMP}
         Write-Log ("Copy $LogFileName from $VMTemp on $VMName to $pwd\TestLogs")
         Copy-Item `
@@ -436,30 +482,9 @@ function Import-ResultsFromVM
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
-function Install-eBPFComponentsOnVM
-{
-    param([parameter(Mandatory=$true)][string] $VMName,
-          [parameter(Mandatory=$true)][bool] $KmTracing,
-          [parameter(Mandatory=$true)][string] $KmTraceType)
-
-    Write-Log "Installing eBPF components on $VMName"
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-
-    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-              [Parameter(Mandatory=$True)] [string] $LogFileName,
-              [Parameter(Mandatory=$true)] [bool] $KmTracing,
-              [Parameter(Mandatory=$true)] [string] $KmTraceType)
-        $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
-        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
-
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true
-        Enable-KMDFVerifier
-    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
-    Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
-}
-
+#
+# Configure network adapters on VMs.
+#
 function Initialize-NetworkInterfacesOnVMs
 {
     param([parameter(Mandatory=$true)] $VMMap)
@@ -533,5 +558,16 @@ function Get-Duonic {
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
+    Remove-Item -Path $DownloadPath -Force -Recurse
+}
+
+# Download the Visual C++ Redistributable.
+function Get-VCRedistributable {
+    $url = "https://aka.ms/vs/16/release/vc_redist.x64.exe"
+    $DownloadPath = "$pwd\vc-redist"
+    mkdir $DownloadPath
+    Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
+    Invoke-WebRequest -Uri $url -OutFile "$DownloadPath\vc_redist.x64.exe"
+    Move-Item -Path "$DownloadPath\vc_redist.x64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
