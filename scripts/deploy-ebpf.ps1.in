@@ -76,7 +76,7 @@ OVERVIEW:
 
 Copies eBPF framework files into a given directory, on the local machine or into a VM.
 
-    $ deploy-ebpf [-h] [-l[=path]] [-t] [--vm="..."]
+    $ deploy-ebpf [-h,--help] [-d,--dir[=path]] [--vm="..."] [-t,--test]
 
 OPTIONS:
     -h, --help     Print this help message.
