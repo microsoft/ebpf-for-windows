@@ -12,7 +12,7 @@ $WorkingDirectory = "$PSScriptRoot"
 Write-Host "PSScriptRoot is $PSScriptRoot"
 Write-Host "WorkingDirectory is $WorkingDirectory"
 
-# eBPF Debug Runtime DLLs.
+# VC++ Redistributable Debug Runtime DLLs.
 $VCDebugRuntime = @(
     "concrt140d.dll",
     "msvcp140d.dll",
@@ -26,8 +26,9 @@ $VCDebugRuntime = @(
     "vcruntime140_threadsd.dll",
     "ucrtbased.dll"
 )
+
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
-$system32Path = Join-Path $env:SystemRoot "System32"
+$System32Path = Join-Path $env:SystemRoot "System32"
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 
 Push-Location $WorkingDirectory
@@ -45,8 +46,8 @@ if ($Uninstall) {
     }
     Write-Host("MSI uninstallation completed successfully!") -ForegroundColor Green
 } else {
-    # Install the Visual C++ Redistributable (Release version, which is required for the MSI installation).
-    # If the VC Redist is not present, it means it has been already installed (the MSI auto-delets itself).
+    # Install the Visual C++ Redistributable Release version, which is required for the MSI installation.
+    # If the VC++ Redist is not present, it means it has been already installed (its MSI auto-delets itself).
     if (Test-Path $VcRedistPath) {
         Write-Host("Installing Visual C++ Redistributable from '$VcRedistPath'...")
         $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
@@ -59,19 +60,19 @@ if ($Uninstall) {
         Write-Host("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
     }
 
-    # Copy the VC debug runtime DLLs to the system32 directory,
+    # Move the Visual C++ Redistributable Debug DLLs to the system32 directory,
     # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
-    Write-Host("Copying Visual C++ Redistributable debug runtime DLLs to the $system32Path directory...")
+    Write-Host("Copying Visual C++ Redistributable debug runtime DLLs to the $System32Path directory...")
     # Test if the VC debug runtime DLLs are present in the working directory (indicating a debug build).
     $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
     if (-not $VCDebugRuntime) {
-        Write-Host("Visual C++ Redistributable debug runtime DLLs not found in the working directory (i.e., release build). Skipping this step.") -ForegroundColor Yellow
+        Write-Host("Visual C++ Redistributable debug runtime DLLs not found in the working directory (i.e., release build or already installed). Skipping this step.") -ForegroundColor Yellow
     } else {
-        $system32Path = Join-Path $env:SystemRoot "System32"
+        $System32Path = Join-Path $env:SystemRoot "System32"
         $VCDebugRuntime | ForEach-Object {
             $sourcePath = Join-Path $WorkingDirectory $_
-            $destinationPath = Join-Path $system32Path $_
-            Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+            $destinationPath = Join-Path $System32Path $_
+            Move-Item -Path $sourcePath -Destination $destinationPath -Force
         }
         Write-Host("Visual C++ Redistributable debug runtime DLLs copied successfully!") -ForegroundColor Green
     }

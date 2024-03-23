@@ -114,7 +114,7 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
 
 #### Updating the eBPF installation
 
-If you want to install a new version of eBPF, you must uninstall the previous version by running the following command:
+If you want to install a new version of eBPF, you must uninstall the previous version by running the following command from within the VM:
 
 ```ps
 .\setup-ebpf.ps1 -Uninstall

@@ -6,11 +6,12 @@
 ##
 $source_directory="."
 
-# The following files are required for installing Debug & Release versions of the eBPF framework.
+# The following files are required for installing Debug & Release versions of eBPF for Windows.
 [System.Collections.ArrayList]$install_files = @(
     "ebpf-for-windows.msi",
     "setup-ebpf.ps1",
     "vc_redist.x64.exe",
+    # VC++ Redistributable Debug Runtime DLLs.
     "concrt140d.dll",
     "msvcp140d.dll",
     "msvcp140d_atomic_wait.dll",
@@ -34,8 +35,8 @@ $source_directory="."
 	"*.sys"
     )
 
-# Files to be excluded from the copy, for cleanness in the test directory.
-# These files are installed through the MSI, and accessible thanks to the added install directory inserted in the PATH.
+# These files are the runtime & JIT service components already installed through the MSI.
+# Therefore, these files will be excluded from the copy, for cleanness in the test directory.
 [System.Collections.ArrayList]$exclude_files = @(
     "bpf2c.exe",
     "bpf2c.pdb"
@@ -73,7 +74,7 @@ foreach ($arg in $args) {
 
 OVERVIEW:
 
-Copies eBPF framework files into a temp directory on the local machine or into a VM
+Copies eBPF framework files into a given directory, on the local machine or into a VM.
 
     $ deploy-ebpf [-h] [-l[=path]] [-t] [--vm="..."]
 
@@ -81,7 +82,7 @@ OPTIONS:
     -h, --help     Print this help message.
     -d, --dir      Specifies the destination directory for the copy (default is "c:\temp\eBPF"), within the local machine or the VM.
     --vm           Specifies where to copy the files. If this option is specified, the files are copied to the specified VM, otherwise they are copied to the local machine.
-    -t, --test     Includes files needed for testing and debugging.
+    -t, --test     Includes the files needed for testing and debugging.
 
 '@
             exit 0
@@ -102,7 +103,6 @@ OPTIONS:
     { @("-t", "--test") -contains $_ }
         {
             $copy_file_list = $install_files + $built_test_files
-            $copy_debug_redist = $true
             break
         }
     default
@@ -125,9 +125,9 @@ if ($null -eq $vm) {
             if ($exclude_files -notcontains $file.Name) {
                 $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
                 Copy-Item -Path $file.FullName -Destination $destinationPath -Force
-                Write-Host "Copied $($file.FullName) to $($destinationPath)"
+                Write-Host "Copied $($file.FullName) to $($destinationPath)."
             } else {
-                Write-Host "Excluded $($file.FullName) from copying"
+                Write-Host "Excluded $($file.FullName) from copying."
             }
         }
    }
@@ -138,7 +138,7 @@ if ($null -eq $vm) {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal $identity
     if (! $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)) {
-        Write-Host "This command must be run as Administrator to deploy files into a VM"
+        Write-Host "This command must be run as Administrator to deploy files into a VM."
         exit 1
     }
     Enable-VMIntegrationService -VMName $vm -Name "Guest Service Interface"
@@ -156,9 +156,9 @@ if ($null -eq $vm) {
                 if (! $?) {
                     exit 1
                 }
-                Write-Host "Copied $($file.FullName) to $($destinationPath)"
+                Write-Host "Copied $($file.FullName) to $($destinationPath)."
             } else {
-                Write-Host "Excluded $($file.FullName) from copying"
+                Write-Host "Excluded $($file.FullName) from copying."
             }
         }
     }
