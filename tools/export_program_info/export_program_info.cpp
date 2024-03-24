@@ -17,13 +17,13 @@
 
 // Export XDP program information to allow for our unit tests to mock the XDP API surface.
 static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
-    {EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0, sizeof(ebpf_program_type_descriptor_t)},
+    {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE},
     "xdp",
     &_ebpf_xdp_test_context_descriptor,
     EBPF_PROGRAM_TYPE_XDP_GUID,
     BPF_PROG_TYPE_XDP};
 static const ebpf_program_info_t _mock_xdp_program_info = {
-    {EBPF_PROGRAM_INFORMATION_VERSION_0, sizeof(ebpf_program_info_t)},
+    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
     &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype};
@@ -42,7 +42,7 @@ static const ebpf_program_info_t* _program_information_array[] = {
     &_ebpf_xdp_test_program_info};
 
 ebpf_program_section_info_t _mock_xdp_section_info[] = {
-    {{EBPF_PROGRAM_SECTION_INFORMATION_VERSION_0, sizeof(ebpf_program_section_info_t)},
+    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
      L"xdp",
      &EBPF_PROGRAM_TYPE_XDP,
      &EBPF_ATTACH_TYPE_XDP,
@@ -63,7 +63,7 @@ export_all_program_information()
     uint32_t status = ERROR_SUCCESS;
     size_t array_size = _countof(_program_information_array);
     for (uint32_t i = 0; i < array_size; i++) {
-        status = ebpf_store_update_program_information(_program_information_array[i], 1);
+        status = ebpf_store_update_program_data(_program_information_array[i], 1);
         if (status != ERROR_SUCCESS) {
             break;
         }

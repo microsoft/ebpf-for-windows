@@ -470,7 +470,7 @@ static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, EBPF_MAX_GENERAL_HELPER_FUNCTION},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_MAX_GENERAL_HELPER_FUNCTION},
     EBPF_COUNT_OF(_ebpf_sock_addr_specific_helper_functions),
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
@@ -478,12 +478,12 @@ static const void* _ebpf_sock_addr_global_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_logon_id, (void*)_ebpf_sock_addr_is_current_admin};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, EBPF_MAX_GENERAL_HELPER_FUNCTION},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_MAX_GENERAL_HELPER_FUNCTION},
     EBPF_COUNT_OF(_ebpf_sock_addr_global_helper_functions),
     (uint64_t*)_ebpf_sock_addr_global_helper_functions};
 
 static ebpf_program_data_t _ebpf_sock_addr_program_data = {
-    .header = {EBPF_PROGRAM_DATA_VERSION_0, sizeof(ebpf_program_data_t)},
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     .program_info = &_ebpf_sock_addr_program_info,
     .program_type_specific_helper_function_addresses = &_ebpf_sock_addr_specific_helper_function_address_table,
     .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
@@ -916,7 +916,7 @@ net_ebpf_ext_sock_addr_register_providers()
         const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
             &_ebpf_sock_addr_hook_provider_moduleid[i], &_net_ebpf_sock_addr_hook_provider_data[i]};
 
-        _net_ebpf_sock_addr_hook_provider_data[i].header.version = EBPF_ATTACH_PROVIDER_DATA_VERSION_0;
+        _net_ebpf_sock_addr_hook_provider_data[i].header.version = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION;
         _net_ebpf_sock_addr_hook_provider_data[i].header.size = sizeof(ebpf_attach_provider_data_t);
         _net_ebpf_sock_addr_hook_provider_data[i].supported_program_type = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR;
         _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type =

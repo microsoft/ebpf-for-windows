@@ -766,7 +766,7 @@ _load_all_program_data_information()
     ebpf_program_info_t** program_info = nullptr;
     uint32_t program_info_count = 0;
 
-    result = ebpf_store_load_program_information(&program_info, &program_info_count);
+    result = ebpf_store_load_program_data(&program_info, &program_info_count);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

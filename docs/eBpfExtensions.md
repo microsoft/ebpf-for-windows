@@ -66,6 +66,14 @@ initialized as follows:
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
 * `version`: Version of the extension data structure.
 * `size`: Size of the extension data structure.
+ When populating these data structures, the correct `version` and `size` fields must be set. The set of current version numbers and the
+ size for the various extension structures are listed in `ebpf_windows.h`. For example:
+```c
+ #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
+ #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
+    (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
+```
+> NOTE: Extension developers **must not** set the `size` field of these structures to `sizeof()` of the corresponding type.
 
 #### `ebpf_program_data_t` Struct
 The various fields of this structure should be set as follows:
@@ -200,14 +208,14 @@ returned to the application when the `bpf_prog_test_run_opts` call completes. In
 resources allocated in the `ebpf_program_context_create_t` call.
 
 ### 2.2 Backward compatibility of the Extension data structures
-All the extension data structures are versioned. New fields can be added to the end of a data structure to maintain backward compatibility
-with the existing extensions. In such cases, the size field of the header will be updated but the version of the structure *will not change*.
-Existing eBPF extensions will continue to work without requiring recompilation.
+All the extension data structures are versioned. To maintain backward compatibility with the existing extensions, new fields **MUST** be added
+to the end of a data structure. The constant defining the current size of the modified struct will be updated in `ebpf_windows.h`. Existing
+eBPF extensions will continue to work without requiring recompilation. If an extension is modified to use a newly added field, the length
+field must be updated accordingly.
 
 If the change in data structure is such that it is no longer backward compatible (such as changing field type or position),
-then the version number will be updated. Existing eBPF extensions would need to be updated to use the new types.
-
-The set of supported version numbers for the various extension structures are listed in `ebpf_windows.h`.
+then the version number will be updated. In this case, the product version of eBPF for Windows must be updated to indicate a breaking change
+as well. Existing eBPF extensions would need to be re-compiled to work with the latest version of eBPF.
 
 ### 2.3 Program Information NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that
@@ -393,11 +401,11 @@ To operate on the eBPF store, the user mode application needs to link with eBPFA
         _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count);
     ```
 
-- `ebpf_store_update_program_information`: updates program information in the eBPF store, given a pointer to an array of program information (i.e., `_ebpf_program_info`):
+- `ebpf_store_update_program_data`: updates program information in the eBPF store, given a pointer to an array of program information (i.e., `_ebpf_program_info`):
 
     ```c
     ebpf_result_t
-    ebpf_store_update_program_information(
+    ebpf_store_update_program_data(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
     ```
 

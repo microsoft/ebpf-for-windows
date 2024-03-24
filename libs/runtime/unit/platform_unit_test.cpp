@@ -621,7 +621,7 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions1[] = {(void*)function_pointer1};
     const uint32_t provider_helper_function_ids[] = {(uint32_t)(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     ebpf_helper_function_addresses_t helper_function_addresses1 = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_VERSION_0, sizeof(ebpf_helper_function_addresses_t)},
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
         EBPF_COUNT_OF(helper_functions1),
         (uint64_t*)helper_functions1};
 
@@ -629,7 +629,7 @@ TEST_CASE("trampoline_test", "[platform]")
     ebpf_result_t (*function_pointer2)() = provider_function2;
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_VERSION_0, sizeof(ebpf_helper_function_addresses_t)},
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
         EBPF_COUNT_OF(helper_functions1),
         (uint64_t*)helper_functions2};
     ebpf_trampoline_table_t* local_table = nullptr;
@@ -803,12 +803,12 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     test_helper.initialize();
 
     ebpf_helper_function_prototype_t helper_prototype[] = {
-        {{EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, sizeof(ebpf_helper_function_prototype_t)},
+        {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
          1000,
          "helper_0",
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-        {{EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0, sizeof(ebpf_helper_function_prototype_t)},
+        {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
          1001,
          "helper_1",
          EBPF_RETURN_TYPE_INTEGER,
@@ -818,12 +818,12 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
     GUID program_type_test = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
     ebpf_program_type_descriptor_t program_type = {
-        {EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0, sizeof(ebpf_program_type_descriptor_t)},
+        {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE},
         "unit_test_program",
         &context_descriptor,
         program_type_test};
     ebpf_program_info_t in_program_info = {
-        {EBPF_PROGRAM_INFORMATION_VERSION_0, sizeof(ebpf_program_info_t)},
+        {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
         &program_type,
         EBPF_COUNT_OF(helper_prototype),
         helper_prototype};

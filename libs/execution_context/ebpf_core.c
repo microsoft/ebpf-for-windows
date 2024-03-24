@@ -102,9 +102,15 @@ _ebpf_core_memmove(
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_program_type_descriptor_t _ebpf_global_helper_program_descriptor = {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0, sizeof(ebpf_program_type_descriptor_t), "global_helper", NULL, {0}, 0, 0};
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE,
+    "global_helper",
+    NULL,
+    {0},
+    0,
+    0};
 static ebpf_program_info_t _ebpf_global_helper_program_info = {
-    {EBPF_PROGRAM_INFORMATION_VERSION_0, sizeof(ebpf_program_info_t)},
+    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
     &_ebpf_global_helper_program_descriptor,
     0,
     NULL,
@@ -145,11 +151,11 @@ static const void* _ebpf_general_helpers[] = {
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_VERSION_0, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
     EBPF_COUNT_OF(_ebpf_general_helpers),
     (uint64_t*)_ebpf_general_helpers};
 static const ebpf_program_data_t _ebpf_global_helper_function_program_data = {
-    {EBPF_PROGRAM_DATA_VERSION_0, sizeof(ebpf_program_data_t)},
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     &_ebpf_global_helper_program_info,
     &_ebpf_global_helper_function_dispatch_table};
 
@@ -163,7 +169,7 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_global_helper_function_provider_
     _ebpf_general_helper_function_provider_detach_client,
     NULL,
     {
-        EBPF_PROGRAM_DATA_VERSION_0,
+        EBPF_PROGRAM_DATA_CURRENT_VERSION,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         &ebpf_general_helper_function_module_id,
