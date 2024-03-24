@@ -79,7 +79,7 @@ _ebpf_sock_ops_context_destroy(
     _Inout_ size_t* context_size_out);
 
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
-    .header = {EBPF_PROGRAM_DATA_VERSION_0, sizeof(ebpf_program_data_t)},
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     .program_info = &_ebpf_sock_ops_program_info,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
@@ -97,7 +97,7 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_sock_ops_program_info_p
 //
 
 ebpf_attach_provider_data_t _net_ebpf_sock_ops_hook_provider_data = {
-    {EBPF_ATTACH_PROVIDER_DATA_VERSION_0, sizeof(ebpf_attach_provider_data_t)},
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, sizeof(ebpf_attach_provider_data_t)},
     EBPF_PROGRAM_TYPE_SOCK_OPS_GUID,
     BPF_CGROUP_SOCK_OPS,
     BPF_LINK_TYPE_CGROUP};

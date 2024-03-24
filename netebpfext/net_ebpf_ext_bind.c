@@ -57,7 +57,7 @@ _ebpf_bind_context_destroy(
 // Bind Program Information NPI Provider.
 //
 static ebpf_program_data_t _ebpf_bind_program_data = {
-    .header = {EBPF_PROGRAM_DATA_VERSION_0, sizeof(ebpf_program_data_t)},
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     .program_info = &_ebpf_bind_program_info,
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
@@ -74,7 +74,7 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_bind_program_info_provi
 // Bind Hook NPI Provider.
 //
 ebpf_attach_provider_data_t _net_ebpf_bind_hook_provider_data = {
-    {EBPF_ATTACH_PROVIDER_DATA_VERSION_0, sizeof(_net_ebpf_bind_hook_provider_data)},
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, sizeof(_net_ebpf_bind_hook_provider_data)},
     EBPF_PROGRAM_TYPE_BIND_GUID,
     BPF_ATTACH_TYPE_BIND,
     BPF_LINK_TYPE_PLAIN};

@@ -4,13 +4,85 @@
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
 
+enum _extension_object_type
+{
+    EBPF_PROGRAM_TYPE_DESCRIPTOR = 0,
+    EBPF_HELPER_FUNCTION_PROTOTYPE,
+    EBPF_PROGRAM_INFO,
+    EBPF_PROGRAM_DATA,
+    EBPF_PROGRAM_SECTION,
+};
+
+// Supported version and sizes of the various extension data structures.
+
+uint16_t _supported_ebpf_extension_version[] = {
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
+    EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,
+    EBPF_PROGRAM_INFORMATION_CURRENT_VERSION,
+    EBPF_PROGRAM_DATA_CURRENT_VERSION,
+    EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
+};
+
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0 EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char)
+size_t _ebpf_program_type_descriptor_supported_size[] = {EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0};
+
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0 \
+    EBPF_OFFSET_OF(ebpf_helper_function_prototype_t, arguments) + 5 * sizeof(ebpf_argument_type_t)
+size_t _ebpf_helper_function_prototype_supported_size[] = {EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0};
+
+#define EBPF_PROGRAM_INFO_SIZE_0 \
+    EBPF_OFFSET_OF(ebpf_program_info_t, global_helper_prototype) + sizeof(ebpf_helper_function_prototype_t*)
+size_t _ebpf_program_info_supported_size[] = {EBPF_PROGRAM_INFO_SIZE_0};
+
+#define EBPF_PROGRAM_DATA_SIZE_0 EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t)
+size_t _ebpf_program_data_supported_size[] = {EBPF_PROGRAM_DATA_SIZE_0};
+
+#define EBPF_PROGRAM_SECTION_SIZE_0 EBPF_OFFSET_OF(ebpf_program_section_info_t, bpf_attach_type) + sizeof(uint32_t)
+size_t _ebpf_program_section_supported_size[] = {EBPF_PROGRAM_SECTION_SIZE_0};
+
+struct _ebpf_extension_data_structure_supported_sizes
+{
+    size_t* supported_sizes;
+    uint16_t count;
+};
+struct _ebpf_extension_data_structure_supported_sizes _ebpf_extension_type_supported_sizes[] = {
+    {_ebpf_program_type_descriptor_supported_size, EBPF_COUNT_OF(_ebpf_program_type_descriptor_supported_size)},
+    {_ebpf_helper_function_prototype_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_prototype_supported_size)},
+    {_ebpf_program_info_supported_size, EBPF_COUNT_OF(_ebpf_program_info_supported_size)},
+    {_ebpf_program_data_supported_size, EBPF_COUNT_OF(_ebpf_program_data_supported_size)},
+    {_ebpf_program_section_supported_size, EBPF_COUNT_OF(_ebpf_program_section_supported_size)},
+};
+
+static bool
+_ebpf_is_size_supported(_In_count_(count) const size_t* supported_sizes, uint16_t count, size_t size)
+{
+    for (uint16_t i = 0; i < count; i++) {
+        if (size == supported_sizes[i]) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static bool
+_ebpf_validate_extension_object_header(
+    enum _extension_object_type object_type, _In_ const ebpf_extension_header_t* header)
+{
+    size_t* supported_sizes = _ebpf_extension_type_supported_sizes[object_type].supported_sizes;
+    uint16_t count = _ebpf_extension_type_supported_sizes[object_type].count;
+    __analysis_assume(supported_sizes != NULL);
+
+    return (
+        (header->version == _supported_ebpf_extension_version[object_type]) &&
+        (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+}
+
 static bool
 _ebpf_validate_helper_function_prototype(const ebpf_helper_function_prototype_t* helper_prototype)
 {
     return (
         (helper_prototype != NULL) &&
-        (helper_prototype->header.version == EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_LATEST) &&
-        (helper_prototype->header.size >= EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0_MINIMUM_SIZE) &&
+        _ebpf_validate_extension_object_header(EBPF_HELPER_FUNCTION_PROTOTYPE, &helper_prototype->header) &&
         (helper_prototype->name != NULL));
 }
 
@@ -39,8 +111,7 @@ _ebpf_validate_program_type_descriptor(_In_ const ebpf_program_type_descriptor_t
 {
     return (
         (program_type_descriptor != NULL) &&
-        (program_type_descriptor->header.version == EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_LATEST) &&
-        (program_type_descriptor->header.size >= EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0_MINIMUM_SIZE) &&
+        _ebpf_validate_extension_object_header(EBPF_PROGRAM_TYPE_DESCRIPTOR, &program_type_descriptor->header) &&
         (program_type_descriptor->name != NULL) &&
         _ebpf_validate_context_descriptor(program_type_descriptor->context_descriptor));
 }
@@ -49,8 +120,7 @@ bool
 ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info)
 {
     return (
-        (program_info != NULL) && (program_info->header.version == EBPF_PROGRAM_INFORMATION_VERSION_LATEST) &&
-        (program_info->header.size >= EBPF_PROGRAM_INFO_VERSION_0_MINIMUM_SIZE) &&
+        (program_info != NULL) && _ebpf_validate_extension_object_header(EBPF_PROGRAM_INFO, &program_info->header) &&
         _ebpf_validate_program_type_descriptor(program_info->program_type_descriptor) &&
         ebpf_validate_helper_function_prototype_array(
             program_info->program_type_specific_helper_prototype,
@@ -60,12 +130,20 @@ ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info)
 }
 
 bool
+ebpf_validate_program_data(_In_ const ebpf_program_data_t* program_data)
+{
+    return (
+        (program_data != NULL) && _ebpf_validate_extension_object_header(EBPF_PROGRAM_DATA, &program_data->header) &&
+        ebpf_validate_program_info(program_data->program_info));
+}
+
+bool
 ebpf_validate_program_section_info(_In_ const ebpf_program_section_info_t* section_info)
 {
     return (
-        (section_info != NULL) && (section_info->header.size >= sizeof(ebpf_program_section_info_t)) &&
-        (section_info->header.version == EBPF_PROGRAM_SECTION_VERSION_LATEST) && (section_info->section_name != NULL) &&
-        (section_info->program_type != NULL) && (section_info->attach_type != NULL));
+        (section_info != NULL) && _ebpf_validate_extension_object_header(EBPF_PROGRAM_SECTION, &section_info->header) &&
+        (section_info->section_name != NULL) && (section_info->program_type != NULL) &&
+        (section_info->attach_type != NULL));
 }
 
 ebpf_result_t

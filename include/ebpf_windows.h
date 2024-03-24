@@ -28,11 +28,15 @@ typedef unsigned long long size_t;
 #define EBPF_ROOT_RELATIVE_PATH L"Software\\eBPF"
 #define EBPF_STORE_REGISTRY_PATH L"Software\\eBPF\\Providers"
 
-#define EBPF_PROVIDERS_REGISTRY_PATH L"Providers"
-#define EBPF_SECTIONS_REGISTRY_PATH L"SectionData"
-#define EBPF_PROGRAM_DATA_REGISTRY_PATH L"ProgramData"
-#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH L"Helpers"
-#define EBPF_GLOBAL_HELPERS_REGISTRY_PATH L"GlobalHelpers"
+#define EBPF_PROVIDERS_REGISTRY_KEY L"Providers"
+#define EBPF_SECTIONS_REGISTRY_KEY L"SectionData"
+#define EBPF_PROGRAM_DATA_REGISTRY_KEY L"ProgramData"
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_REGISTRY_KEY L"TypeDescriptor"
+#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_KEY L"Helpers"
+#define EBPF_GLOBAL_HELPERS_REGISTRY_KEY L"GlobalHelpers"
+
+#define EBPF_EXTENSION_HEADER_VERSION L"Version"
+#define EBPF_EXTENSION_HEADER_SIZE L"Size"
 
 #define EBPF_SECTION_DATA_PROGRAM_TYPE L"ProgramType"
 #define EBPF_SECTION_DATA_ATTACH_TYPE L"AttachType"
@@ -60,17 +64,31 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
-// Version 0 of the eBPF extension data structures.
-#define EBPF_ATTACH_CLIENT_DATA_VERSION_0 0
-#define EBPF_ATTACH_PROVIDER_DATA_VERSION_0 0
-#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_VERSION_0 0
-#define EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0 0
-#define EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0 0
-#define EBPF_PROGRAM_INFORMATION_VERSION_0 0
-#define EBPF_HELPER_FUNCTION_ADDRESSES_VERSION_0 0
-#define EBPF_PROGRAM_SECTION_INFORMATION_VERSION_0 0
-#define EBPF_PROGRAM_DATA_VERSION_0 0
-#define EBPF_PROGRAM_SECTION_VERSION_0 0
+// Version 1 of the eBPF extension data structures and their lengths.
+#define EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION 1
+#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1
+#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION 1
+
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
+    (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
+
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION 1
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE \
+    (EBPF_OFFSET_OF(ebpf_helper_function_prototype_t, arguments) + 5 * sizeof(ebpf_argument_type_t))
+
+#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION 1
+#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE \
+    (EBPF_OFFSET_OF(ebpf_program_info_t, global_helper_prototype) + sizeof(ebpf_helper_function_prototype_t*))
+
+#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION 1
+
+#define EBPF_PROGRAM_DATA_CURRENT_VERSION 1
+#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE (EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t))
+
+#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION 1
+#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE \
+    (EBPF_OFFSET_OF(ebpf_program_section_info_t, bpf_attach_type) + sizeof(uint32_t))
 
 /**
  * @brief Header of an eBPF extension data structure.

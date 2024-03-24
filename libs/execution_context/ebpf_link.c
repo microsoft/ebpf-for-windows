@@ -33,8 +33,8 @@ typedef enum _ebpf_link_state
 } ebpf_link_state_t;
 
 // Latest version of the eBPF extension attach/hook data structures.
-#define EBPF_ATTACH_CLIENT_DATA_VERSION EBPF_ATTACH_CLIENT_DATA_VERSION_0
-#define EBPF_ATTACH_PROVIDER_DATA_VERSION EBPF_ATTACH_PROVIDER_DATA_VERSION_0
+#define EBPF_ATTACH_CLIENT_DATA_VERSION EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION
+#define EBPF_ATTACH_PROVIDER_DATA_VERSION EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION
 
 typedef struct _ebpf_link
 {
@@ -95,8 +95,9 @@ _ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_c
 
 typedef enum _ebpf_link_dispatch_table_version
 {
-    EBPF_LINK_DISPATCH_TABLE_VERSION_1 = 1,                                ///< Initial version of the dispatch table.
-    EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_1, ///< Current version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_CURRENT_VERSION = 1, ///< Initial version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_VERSION =
+        EBPF_LINK_DISPATCH_TABLE_CURRENT_VERSION, ///< Current version of the dispatch table.
 } ebpf_link_dispatch_table_version_t;
 
 static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
@@ -136,7 +137,7 @@ _ebpf_link_client_attach_provider(
     UNREFERENCED_PARAMETER(nmr_binding_handle);
 
     // Verify that that the provider is using the same version of the extension as the client.
-    if (attach_provider_data->header.version > EBPF_ATTACH_PROVIDER_DATA_VERSION_0 ||
+    if (attach_provider_data->header.version > EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION ||
         attach_provider_data->header.size < sizeof(ebpf_attach_provider_data_t)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,

@@ -105,7 +105,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_general_program_informatio
     _ebpf_program_general_program_information_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_VERSION_0,
+        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         NULL,
@@ -124,7 +124,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
     _ebpf_program_type_specific_program_information_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_VERSION_0,
+        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         NULL,
@@ -236,26 +236,15 @@ _ebpf_program_verify_provider_program_data(
         goto Done;
     }
 
-    // Verify that that the program information version is supported.
-    if (!(program_data->header.version == EBPF_PROGRAM_DATA_VERSION_LATEST) &&
-        (program_data->header.size >= EBPF_PROGRAM_DATA_VERSION_0_MINIMUM_SIZE)) {
-        EBPF_LOG_MESSAGE(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "Program information provider version not supported or size incorrect.");
-        goto Done;
-    }
-
-    if (program_data->header.size < EBPF_PROGRAM_DATA_VERSION_0_MINIMUM_SIZE) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "Program information provider data size too small.",
-            &npi_module_id->Guid);
-        goto Done;
-    }
-
+    // Perform validation of the program data.
     if (!is_general_helper_program_data) {
+        if (!ebpf_validate_program_data(program_data)) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "Program data provided by the extension is not valid.");
+            goto Done;
+        }
         if (program_data->required_irql > HIGH_LEVEL) {
             EBPF_LOG_MESSAGE_GUID(
                 EBPF_TRACELOG_LEVEL_ERROR,

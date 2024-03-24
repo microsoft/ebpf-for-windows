@@ -10,7 +10,7 @@
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
 
 // This is the type definition for the eBPF program type descriptor
-// when version is EBPF_PROGRAM_TYPE_DESCRIPTOR_VERSION_0.
+// when version is EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION.
 typedef struct _ebpf_program_type_descriptor
 {
     ebpf_extension_header_t header;
@@ -22,7 +22,7 @@ typedef struct _ebpf_program_type_descriptor
 } ebpf_program_type_descriptor_t;
 
 // This is the type definition for the eBPF helper function prototype
-// when version is EBPF_HELPER_FUNCTION_PROTOTYPE_VERSION_0.
+// when version is EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION.
 typedef struct _ebpf_helper_function_prototype
 {
     ebpf_extension_header_t header;
@@ -33,7 +33,7 @@ typedef struct _ebpf_helper_function_prototype
 } ebpf_helper_function_prototype_t;
 
 // This is the type definition for the eBPF program information
-// when version is EBPF_PROGRAM_INFO_VERSION_0.
+// when version is EBPF_PROGRAM_INFORMATION_CURRENT_VERSION.
 typedef struct _ebpf_program_info
 {
     ebpf_extension_header_t header;
@@ -45,7 +45,7 @@ typedef struct _ebpf_program_info
 } ebpf_program_info_t;
 
 // This is the type definition for the eBPF helper function addresses
-// when version is EBPF_HELPER_FUNCTION_ADDRESSES_VERSION_0.
+// when version is EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION.
 typedef struct _ebpf_helper_function_addresses
 {
     ebpf_extension_header_t header;
@@ -68,7 +68,7 @@ typedef void (*ebpf_program_context_destroy_t)(
     _Inout_ size_t* context_size_out);
 
 // This is the type definition for the eBPF program data
-// when version is EBPF_PROGRAM_DATA_VERSION_0.
+// when version is EBPF_PROGRAM_DATA_CURRENT_VERSION.
 typedef struct _ebpf_program_data
 {
     ebpf_extension_header_t header;
@@ -84,7 +84,7 @@ typedef struct _ebpf_program_data
 } ebpf_program_data_t;
 
 // This is the type definition for the eBPF program section information
-// when version is EBPF_PROGRAM_SECTION_INFORMATION_VERSION_0.
+// when version is EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION.
 typedef struct _ebpf_program_section_info
 {
     ebpf_extension_header_t header;
