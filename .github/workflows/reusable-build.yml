@@ -251,12 +251,12 @@ jobs:
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
 
     - name: Build the NuGet Redist package
-      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package
 
     - name: Upload the NuGet Redist package
-      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
