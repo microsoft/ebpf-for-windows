@@ -32,11 +32,11 @@ $source_directory="."
     "*.dll",
     "*.pdb",
     "*.o",
-	"*.sys"
+    "*.sys"
     )
 
 # These files are the runtime & JIT service components already installed through the MSI.
-# Therefore, these files will be excluded from the copy, for cleanness in the test directory.
+# Therefore, they will be excluded from the copy, for cleanness in the test directory.
 [System.Collections.ArrayList]$exclude_files = @(
     "bpf2c.exe",
     "bpf2c.pdb"
