@@ -45,6 +45,10 @@ on:
         required: false
         type: string
         default: '["Debug", "Release"]'
+      perform_skip_check:
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -75,6 +79,7 @@ jobs:
         egress-policy: audit
 
     - id: skip_check
+      if: inputs.perform_skip_check == true
       uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
       with:
         cancel_others: 'false'
