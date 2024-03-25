@@ -69,6 +69,17 @@ foreach ($opt in $args)
             break;
         }
 
+    { @("-m", "--modified") -contains $_ }
+        {
+            $filesList=@(git status --porcelain);
+            foreach ($f in $filesList) {
+                $tokens = @($f -split " ")
+                $userFiles.Add($tokens[$tokens.Count - 1]) | Out-Null;
+            }
+            break;
+        }
+
+
     { @("-v", "--verbose") -contains $_ }
         {
             $verbose=$true;
@@ -122,6 +133,7 @@ OPTIONS:
     -h, --help              Print this help message.
     -q, --quiet             Display only clang-format output and errors.
     -s, --staged            Only format files which are staged to be committed.
+    -m, --modified          Format all modified files.
     -v, --verbose           Display verbose output.
     -w, --whatif            Run the script without actually modifying the files
                             and display the diff of expected changes, if any.
