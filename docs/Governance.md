@@ -64,7 +64,7 @@ A maintainer can also merge pull requests.
 This corresponds to the "Write" role in github.
 All maintainers should be be listed in the [CODEOWNERS file](../.github/CODEOWNERS).
 
-Personnel: @Alan-Jowett @dv-msft @matthewige @mtfriesen @rectified95 @saxena-anurag @shpalani
+Personnel: @Alan-Jowett @dv-msft @gtrevi @matthewige @mtfriesen @rectified95 @saxena-anurag @shpalani
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -81,6 +81,7 @@ Responsibilities:
 
 In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
+The release manager for this project must be a Microsoft full time employee in order to build Microsoft-signed binaries that Windows will load.
 
 Personnel: @gtrevi @shpalani @matthewige
 
