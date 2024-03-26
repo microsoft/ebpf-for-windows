@@ -338,6 +338,6 @@ function Uninstall-eBPFComponents
     wpr.exe -cancel
     if ($LASTEXITCODE -ne 0) {
         Write-Log("Failed to stop WPR session with error: $LASTEXITCODE")
-        exit 0
+        $LASTEXITCODE = 0
     }
 }
