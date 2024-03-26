@@ -64,7 +64,7 @@ A maintainer can also merge pull requests.
 This corresponds to the "Write" role in github.
 All maintainers should be be listed in the [CODEOWNERS file](../.github/CODEOWNERS).
 
-Personnel: @Alan-Jowett @dv-msft @matthewige @mtfriesen @rectified95 @saxena-anurag @shpalani
+Personnel: @Alan-Jowett @dv-msft @gtrevi @matthewige @mtfriesen @rectified95 @saxena-anurag @shpalani
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -81,6 +81,7 @@ Responsibilities:
 
 In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
+The release manager for this project must be a Microsoft full time employee in order to build Microsoft-signed binaries that Windows will load.
 
 Personnel: @gtrevi @shpalani @matthewige
 
@@ -114,6 +115,16 @@ Responsibilities:
 * At least annually, review the current set of personnel in each [role](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization#repository-roles-for-organizations) and update as needed.
 * Manage github settings such as branch protection rules and repository secrets.
 * Resolve any disputes among maintainers.
+
+## Prioritizing Issues
+
+In the weekly triage meetings, new issues are assigned to collaborators and are set to a monthly milestone by which the issue is expected to be completed. It may not be possible for the assignees to address all the issues assigned to them by their target milestone. As a result issues may pile up in a given milestone. In such cases project admins can request that triage drivers and maintainers use *special labels* to prioritize issues as follows:
+### P1:
+This label represents highest priority. This label should be used for bugs impacting users, new feature or enhancements that are urgently requested by users. Collaborators  should try to resolve these issues in the **current milestone**.
+### P2:
+This label is used for the next level of priority. Issues marked as P2 for the current milestone may be moved to the *next milestone* after discussing in the weekly triage meeting.
+### P3:
+This label is used for low priority issues. Issues marked with this label may be moved to the *next milestone* or the *backlog* milestone, without needing further discussion in the weekly triage meeting.
 
 ## Reviewing Pull Requests
 
