@@ -844,73 +844,23 @@ clear_ebpf_provider_data()
     _windows_program_information_init_flag = std::make_unique<std::once_flag>();
 }
 
-_Ret_maybenull_ static const ebpf_program_info_t*
-_get_static_program_info(_In_ const ebpf_program_type_t* program_type)
-{
-    for (auto& iterator : _windows_program_information) {
-        if (IsEqualGUID(*program_type, iterator.first)) {
-            return iterator.second.get();
-        }
-    }
-
-    return nullptr;
-}
-
-static ebpf_result_t
-_get_program_type_info(_Outptr_ const ebpf_program_info_t** info, bool use_tls_only = false)
+_Success_(return == EBPF_SUCCESS) ebpf_result_t
+    get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
 {
     const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info->type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_program_info_t* program_info;
-    bool fall_back = false;
 
     _load_ebpf_provider_data();
 
-    // See if we already have the program info cached.
+    // Get program information from the TLS cache.
     auto it = _program_info_cache.find(*program_type);
     if (it == _program_info_cache.end()) {
-        if (use_tls_only) {
-            return EBPF_OBJECT_NOT_FOUND;
-        }
-
-        // Try to query the info from the execution context.
-        result = _get_program_info_data(*program_type, &program_info);
-        if (result != EBPF_SUCCESS) {
-            fall_back = true;
-        } else {
-            _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
-            *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
-        }
+        result = EBPF_OBJECT_NOT_FOUND;
     } else {
         *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
     }
 
-    if (use_ebpf_store && fall_back && !use_tls_only) {
-        // Query static data loaded from eBPF store.
-        const ebpf_program_info_t* static_info = _get_static_program_info(program_type);
-        if (static_info == nullptr) {
-            result = EBPF_OBJECT_NOT_FOUND;
-        } else {
-            result = _duplicate_program_info(static_info, &program_info);
-            if (result == EBPF_SUCCESS) {
-                _program_info_cache[*program_type] = ebpf_program_info_ptr_t(program_info);
-                *info = (const ebpf_program_info_t*)_program_info_cache[*program_type].get();
-            }
-        }
-    }
-
     return result;
-}
-
-_Success_(return == EBPF_SUCCESS) ebpf_result_t get_program_type_info(_Outptr_ const ebpf_program_info_t** info)
-{
-    return _get_program_type_info(info, true);
-}
-
-_Success_(return == EBPF_SUCCESS) ebpf_result_t
-    get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
-{
-    return _get_program_type_info(info, true);
 }
 
 void
