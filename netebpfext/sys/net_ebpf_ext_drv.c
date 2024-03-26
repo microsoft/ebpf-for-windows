@@ -49,10 +49,6 @@ _net_ebpf_ext_driver_uninitialize_objects()
 
     net_ebpf_ext_uninitialize_ndis_handles();
 
-    ebpf_random_terminate();
-
-    ebpf_platform_terminate();
-
     net_ebpf_ext_trace_terminate();
 
     if (_net_ebpf_ext_device != NULL) {
@@ -161,18 +157,6 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
     // Request NX Non-Paged Pool when available
     ExInitializeDriverRuntime(DrvRtPoolNxOptIn);
-
-    status = ebpf_result_to_ntstatus(ebpf_platform_initiate());
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    status = ebpf_result_to_ntstatus(ebpf_random_initiate());
-    if (!NT_SUCCESS(status)) {
-
-        goto Exit;
-    }
-
     status = _net_ebpf_ext_driver_initialize_objects(driver_object, registry_path);
     if (!NT_SUCCESS(status)) {
 
@@ -192,10 +176,4 @@ Exit:
 
     NET_EBPF_EXT_LOG_EXIT();
     return status;
-}
-
-_Ret_notnull_ DEVICE_OBJECT*
-ebpf_driver_get_device_object()
-{
-    return _net_ebpf_ext_driver_device_object;
 }

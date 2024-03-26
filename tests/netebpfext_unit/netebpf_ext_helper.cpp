@@ -60,11 +60,6 @@ _netebpf_ext_helper::_netebpf_ext_helper(
             return;
         }
         platform_initialized = true;
-
-        if (ebpf_random_initiate() != EBPF_SUCCESS) {
-            return;
-        }
-        random_initialized = true;
     }
 
     if (!NT_SUCCESS(net_ebpf_ext_initialize_ndis_handles(driver_object))) {
@@ -118,10 +113,6 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
 
     if (ndis_handle_initialized) {
         net_ebpf_ext_uninitialize_ndis_handles();
-    }
-
-    if (random_initialized) {
-        ebpf_random_terminate();
     }
 
     if (platform_initialized) {

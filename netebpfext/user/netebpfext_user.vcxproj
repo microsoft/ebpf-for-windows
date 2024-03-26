@@ -159,15 +159,6 @@
     <ProjectReference Include="..\..\libs\store_helper\user\ebpf_store_helper_um.vcxproj">
       <Project>{aa933b9f-b5d8-4aa8-ac18-98fe1a161e8a}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
-      <Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\libs\runtime\user\platform_user.vcxproj">
-      <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\libs\shared\user\shared_user.vcxproj">
-      <Project>{9388dd45-7941-45d7-b4ff-bc00f550af17}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
