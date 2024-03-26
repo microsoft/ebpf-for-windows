@@ -162,7 +162,7 @@ Done:
 // This program uses the bpf_xdp_adjust_head helper function.
 // (This program can only perform v4 in v4 and v6 in v6 encapsulation.)
 //
-SEC("xdp/encap_reflect")
+SEC("xdp_test/encap_reflect")
 int
 encap_reflect_packet(xdp_md_t* ctx)
 {

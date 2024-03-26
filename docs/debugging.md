@@ -20,8 +20,8 @@ is compiled as part of building eBPF for Windows, as it is used in the unit test
 
              Section       Type  # Maps    Size
 ====================  =========  ======  ======
-               .text        xdp       1       3
-                 xdp        xdp       1      20
+               .text   xdp_test       1       3
+            xdp_test   xdp_test       1      20
 ```
 
 **Step 2)** Let's try to verify each section:
@@ -41,7 +41,7 @@ Verification report:
 
 2 errors
 
-> netsh ebpf show ver droppacket_unsafe.o xdp
+> netsh ebpf show ver droppacket_unsafe.o xdp_test
 Verification failed
 
 Verification report:
@@ -262,7 +262,7 @@ Disassembly of section .text:
 
 We see that the code the ntohs() function in [tests\sample\ebpf.h](../tests/sample/ebpf.h):
 
-```
+```c
 uint16_t
 ntohs(uint16_t us)
 {
@@ -271,14 +271,14 @@ ntohs(uint16_t us)
 ```
 
 Clearly the .text section was not intended to be an actual eBPF program, but it did serve
-to illustrate some basic steps.  So now let's move on to the real program in the xdp section.
+to illustrate some basic steps.  So now let's move on to the real program in the xdp_test section.
 
 
 **Step 6)** Let's first look at the disassembly output from netsh:
 
 ```
 
-> netsh ebpf show disassembly droppacket_unsafe.o xdp
+> netsh ebpf show disassembly droppacket_unsafe.o xdp_test
 ; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:22
 ; DropPacket(xdp_md_t* ctx)
        0:       r0 = 1
@@ -328,10 +328,10 @@ The destination of jumps are shown after the goto.  For example, instruction
 3 will jump to instruction 19 if the condition is true.
 
 
-**Step 7)** Let's now look at the verification failures of xdp using level=verbose:
+**Step 7)** Let's now look at the verification failures of xdp_test using level=verbose:
 
 ```
-> netsh ebpf show ver droppacket_unsafe.o xdp level=verbose
+> netsh ebpf show ver droppacket_unsafe.o xdp_test level=verbose
 ...
 Pre-invariant : [
     instruction_count=3,
@@ -506,7 +506,7 @@ it dereferenced a pointer without knowing whether the packet is at least one byt
 Again we can see the source lines involved using llvm-objdump:
 
 ```
-> llvm-objdump -l -S droppacket_unsafe.o --section=xdp
+> llvm-objdump -l -S droppacket_unsafe.o --section=xdp_test
 ...
 0000000000000000 DropPacket:
 ; C:\your\path\ebpf-for-windows\tests\sample\unsafe/droppacket_unsafe.c:23
@@ -599,7 +599,7 @@ which is passed as the map_key to `bpf_map_lookup_elem`.  Let's see how the veri
 understands this.
 
 ```
-> netsh ebpf show ver droppacket_unsafe.o xdp level=verbose
+> netsh ebpf show ver droppacket_unsafe.o xdp_test level=verbose
 ...
 Pre-invariant : [
     instruction_count=28,

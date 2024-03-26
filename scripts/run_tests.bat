@@ -7,6 +7,8 @@ rem SPDX-License-Identifier: MIT
 @echo ==============================
 export_program_info.exe --clear
 export_program_info.exe
+export_program_info_sample.exe --clear
+export_program_info_sample.exe
 @echo =====================
 @echo Executing Unit Tests.
 @echo =====================

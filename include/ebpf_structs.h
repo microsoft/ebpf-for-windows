@@ -166,6 +166,10 @@ typedef enum
     BPF_FUNC_get_current_pid_tgid = 19,      ///< \ref bpf_get_current_pid_tgid
     BPF_FUNC_get_current_logon_id = 20,      ///< \ref bpf_get_current_logon_id
     BPF_FUNC_is_current_admin = 21,          ///< \ref bpf_is_current_admin
+    BPF_FUNC_memcpy = 22,                    ///< \ref bpf_memcpy
+    BPF_FUNC_memcmp = 23,                    ///< \ref bpf_memcmp
+    BPF_FUNC_memset = 24,                    ///< \ref bpf_memset
+    BPF_FUNC_memmove = 25,                   ///< \ref bpf_memmove
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
@@ -217,6 +221,16 @@ enum bpf_prog_type
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
     BPF_PROG_TYPE_SOCK_OPS,
+
+    /** @brief Program type for handling incoming packets as early as possible.
+     *
+     * **eBPF program prototype:** \ref xdp_hook_t
+     *
+     * **Attach type(s):** \ref BPF_XDP_TEST
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_XDP_TEST = 998,
 
     /** @brief Program type for handling calls from the eBPF sample extension. Used for
      * testing.
@@ -303,6 +317,12 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_SAMPLE
      */
     BPF_ATTACH_TYPE_SAMPLE,
+
+    /** @brief Attach type for handling incoming packets as early as possible.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
+     */
+    BPF_XDP_TEST,
 
     __MAX_BPF_ATTACH_TYPE,
 };

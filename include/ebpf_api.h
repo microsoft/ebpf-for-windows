@@ -106,7 +106,7 @@ extern "C"
     {
         int total_unreachable;
         int total_warnings;
-        int max_instruction_count;
+        int max_loop_count;
     } ebpf_api_verifier_stats_t;
 
     /**

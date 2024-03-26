@@ -118,7 +118,7 @@ class _test_helper
             ebpf_object_tracking_terminate();
         }
         if (epoch_initiated) {
-            ebpf_epoch_flush();
+            ebpf_epoch_synchronize();
             ebpf_epoch_terminate();
         }
         ebpf_random_terminate();
@@ -145,6 +145,59 @@ struct ebpf_hash_table_destroyer_t
 };
 
 using ebpf_hash_table_ptr = std::unique_ptr<ebpf_hash_table_t, ebpf_hash_table_destroyer_t>;
+
+/**
+ * @brief A RAII class to enter and exit epoch.
+ */
+typedef class _ebpf_epoch_scope
+{
+  public:
+    /**
+     * @brief Construct a new ebpf epoch scope object and enter epoch.
+     */
+    _ebpf_epoch_scope() : in_epoch(false) { enter(); }
+
+    /**
+     * @brief Leave epoch if entered.
+     */
+    ~_ebpf_epoch_scope()
+    {
+        if (in_epoch) {
+            exit();
+        }
+    }
+
+    /**
+     * @brief Enter epoch.
+     */
+    void
+    enter()
+    {
+        if (in_epoch) {
+            throw std::runtime_error("Already in epoch.");
+        }
+        memset(&epoch_state, 0, sizeof(epoch_state));
+        ebpf_epoch_enter(&epoch_state);
+        in_epoch = true;
+    }
+
+    /**
+     * @brief Exit epoch.
+     */
+    void
+    exit()
+    {
+        if (!in_epoch) {
+            throw std::runtime_error("Not in epoch.");
+        }
+        ebpf_epoch_exit(&epoch_state);
+        in_epoch = false;
+    }
+
+  private:
+    ebpf_epoch_state_t epoch_state;
+    bool in_epoch;
+} ebpf_epoch_scope_t;
 
 TEST_CASE("hash_table_test", "[platform]")
 {
@@ -309,10 +362,8 @@ TEST_CASE("hash_table_test", "[platform]")
 void
 run_in_epoch(std::function<void()> function)
 {
-    ebpf_epoch_state_t epoch_state = {0};
-    ebpf_epoch_enter(&epoch_state);
+    ebpf_epoch_scope_t epoch_scope;
     function();
-    ebpf_epoch_exit(&epoch_state);
 }
 
 TEST_CASE("hash_table_stress_test", "[platform]")
@@ -471,12 +522,11 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
     _test_helper test_helper;
     test_helper.initialize();
 
-    ebpf_epoch_state_t epoch_state;
-    ebpf_epoch_enter(&epoch_state);
+    ebpf_epoch_scope_t epoch_scope;
     void* memory = ebpf_epoch_allocate(10);
     ebpf_epoch_free(memory);
-    ebpf_epoch_exit(&epoch_state);
-    ebpf_epoch_flush();
+    epoch_scope.exit();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("epoch_test_two_threads", "[platform]")
@@ -485,14 +535,13 @@ TEST_CASE("epoch_test_two_threads", "[platform]")
     test_helper.initialize();
 
     auto epoch = []() {
-        ebpf_epoch_state_t epoch_state;
-        ebpf_epoch_enter(&epoch_state);
+        ebpf_epoch_scope_t epoch_scope;
         void* memory = ebpf_epoch_allocate(10);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         ebpf_epoch_free(memory);
-        ebpf_epoch_exit(&epoch_state);
-        ebpf_epoch_flush();
+        epoch_scope.exit();
+        ebpf_epoch_synchronize();
     };
 
     std::thread thread_1(epoch);
@@ -524,23 +573,21 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         auto t1 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
-            ebpf_epoch_state_t epoch_state;
-            ebpf_epoch_enter(&epoch_state);
+            ebpf_epoch_scope_t epoch_scope;
             void* memory = ebpf_epoch_allocate(10);
             signal_2.signal();
             signal_1.wait();
             ebpf_epoch_free(memory);
-            ebpf_epoch_exit(&epoch_state);
+            epoch_scope.exit();
         };
         auto t2 = [&]() {
             uintptr_t old_thread_affinity;
             ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
             signal_2.wait();
-            ebpf_epoch_state_t epoch_state;
-            ebpf_epoch_enter(&epoch_state);
+            ebpf_epoch_scope_t epoch_scope;
             void* memory = ebpf_epoch_allocate(10);
             ebpf_epoch_free(memory);
-            ebpf_epoch_exit(&epoch_state);
+            epoch_scope.exit();
             signal_1.signal();
         };
 
@@ -909,8 +956,7 @@ TEST_CASE("async", "[platform]")
     test_helper.initialize();
 
     auto test = [](bool complete) {
-        ebpf_epoch_state_t epoch_state;
-        ebpf_epoch_enter(&epoch_state);
+        ebpf_epoch_scope_t epoch_scope;
         struct _async_context
         {
             ebpf_result_t result;
@@ -947,7 +993,6 @@ TEST_CASE("async", "[platform]")
             REQUIRE(cancellation_context.canceled);
             ebpf_async_complete(&async_context, 0, EBPF_SUCCESS);
         }
-        ebpf_epoch_exit(&epoch_state);
     };
 
     // Run the test with complete before cancel.

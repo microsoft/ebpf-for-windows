@@ -792,7 +792,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_INFO,
             EBPF_TRACELOG_KEYWORD_PROGRAM,
-            "Program type and Attach type:",
+            "Failed to load program information.",
             &program_parameters->program_type,
             &program_parameters->expected_attach_type);
         retval = EBPF_EXTENSION_FAILED_TO_LOAD;
@@ -1152,6 +1152,7 @@ _ebpf_program_update_jit_helpers(
             goto Exit;
         }
 
+        uint32_t index = 0;
         if (helper_function_addresses != NULL) {
             helper_prototypes = program_info->program_type_specific_helper_prototype;
             if (helper_prototypes == NULL) {
@@ -1164,15 +1165,15 @@ _ebpf_program_update_jit_helpers(
                 goto Exit;
             }
 
-#pragma warning(push)
-#pragma warning(disable : 6386) // Buffer overrun while writing to 'total_helper_function_ids'.
-            for (uint32_t index = 0; index < program->program_type_specific_helper_function_count; index++) {
-                total_helper_function_ids[index] = helper_prototypes[index].helper_id;
-                total_helper_function_addresses->helper_function_address[index] =
-                    helper_function_addresses->helper_function_address[index];
+            for (uint32_t program_helper_index = 0;
+                 program_helper_index < helper_function_addresses->helper_function_count;
+                 program_helper_index++) {
+                total_helper_function_ids[index] = helper_prototypes[program_helper_index].helper_id;
+                total_helper_function_addresses->helper_function_address[program_helper_index] =
+                    helper_function_addresses->helper_function_address[program_helper_index];
+                index++;
             }
         }
-#pragma warning(pop)
 
         if (global_helper_function_addresses != NULL) {
             helper_prototypes = program_info->global_helper_prototype;
@@ -1186,18 +1187,15 @@ _ebpf_program_update_jit_helpers(
                 goto Exit;
             }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6386) // Buffer overrun while writing to 'total_helper_function_addresses->helper_function_address'
-            for (uint32_t index = program->program_type_specific_helper_function_count; index < total_helper_count;
-                 index++) {
-                uint32_t global_helper_index = index - program->program_type_specific_helper_function_count;
+            for (uint32_t global_helper_index = 0;
+                 global_helper_index < global_helper_function_addresses->helper_function_count;
+                 global_helper_index++) {
                 total_helper_function_ids[index] = helper_prototypes[global_helper_index].helper_id;
                 total_helper_function_addresses->helper_function_address[index] =
                     global_helper_function_addresses->helper_function_address[global_helper_index];
+                index++;
             }
         }
-#pragma warning(pop)
 
         return_value = ebpf_update_trampoline_table(
             program->trampoline_table,
@@ -2161,7 +2159,6 @@ typedef struct _ebpf_program_test_run_context
 {
     const ebpf_program_t* program;
     ebpf_program_data_t* program_data;
-    void* context;
     ebpf_program_test_run_options_t* options;
     uint8_t required_irql;
     bool canceled;
@@ -2191,6 +2188,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     bool irql_raised = false;
     bool thread_affinity_set = false;
     bool state_stored = false;
+    void* program_context = NULL;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
@@ -2198,8 +2196,18 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     }
     thread_affinity_set = true;
 
+    ebpf_epoch_synchronize();
+
     old_irql = ebpf_raise_irql(context->required_irql);
     irql_raised = true;
+
+    // Convert the input buffer to a program type specific context structure.
+    result = context->program_data->context_create(
+        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &program_context);
+    if (result != EBPF_SUCCESS) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
 
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
@@ -2241,7 +2249,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        ebpf_program_invoke(context->program, context->context, &return_value, &execution_context_state);
+        ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
     }
     end_time = ebpf_query_time_since_boot(false);
 
@@ -2260,6 +2268,15 @@ Done:
         ebpf_epoch_exit(&epoch_state);
     }
 
+    if (context->program_data && context->program_data->context_destroy != NULL && program_context != NULL) {
+        context->program_data->context_destroy(
+            program_context,
+            options->data_out,
+            &options->data_size_out,
+            options->context_out,
+            &options->context_size_out);
+    }
+
     if (irql_raised) {
         ebpf_lower_irql(old_irql);
     }
@@ -2268,14 +2285,6 @@ Done:
         ebpf_restore_current_thread_affinity(old_thread_affinity);
     }
 
-    if (context->program_data && context->program_data->context_destroy != NULL && context->context != NULL) {
-        context->program_data->context_destroy(
-            context->context,
-            options->data_out,
-            &options->data_size_out,
-            options->context_out,
-            &options->context_size_out);
-    }
     context->completion_callback(
         result, context->program, context->options, context->completion_context, context->async_context);
     ebpf_program_dereference_providers((ebpf_program_t*)context->program);
@@ -2303,7 +2312,6 @@ ebpf_program_execute_test_run(
 
     ebpf_result_t return_value = EBPF_SUCCESS;
     ebpf_program_test_run_context_t* test_run_context = NULL;
-    void* context = NULL;
     cxplat_preemptible_work_item_t* work_item = NULL;
     ebpf_program_data_t* program_data = NULL;
     bool provider_data_referenced = false;
@@ -2327,14 +2335,6 @@ ebpf_program_execute_test_run(
         goto Exit;
     }
 
-    // Convert the input buffer to a program type specific context structure.
-    return_value = program_data->context_create(
-        options->data_in, options->data_size_in, options->context_in, options->context_size_in, &context);
-    if (return_value != 0) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
     test_run_context = (ebpf_program_test_run_context_t*)ebpf_allocate_with_tag(
         sizeof(ebpf_program_test_run_context_t), EBPF_POOL_TAG_PROGRAM);
     if (test_run_context == NULL) {
@@ -2345,7 +2345,6 @@ ebpf_program_execute_test_run(
     test_run_context->program = program;
     test_run_context->program_data = program_data;
     test_run_context->required_irql = program_data->required_irql;
-    test_run_context->context = context;
     test_run_context->options = options;
     test_run_context->async_context = async_context;
     test_run_context->completion_context = completion_context;
@@ -2368,15 +2367,9 @@ ebpf_program_execute_test_run(
     test_run_context = NULL;
     // This thread no longer owns the reference to the provider data.
     provider_data_referenced = false;
-    // This thread no longer owns the BPF context.
-    context = NULL;
     return_value = EBPF_PENDING;
 
 Exit:
-    if (program_data && program_data->context_destroy != NULL && context != NULL) {
-        program_data->context_destroy(
-            context, options->data_out, &options->data_size_out, options->context_out, &options->context_size_out);
-    }
     ebpf_free(test_run_context);
 
     if (provider_data_referenced) {

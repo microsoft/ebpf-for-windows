@@ -219,8 +219,9 @@ _client_socket::complete_async_receive(int timeout_in_ms, bool timeout_or_error_
     }
 }
 
-_datagram_client_socket::_datagram_client_socket(int _sock_type, int _protocol, uint16_t _port, socket_family_t _family)
-    : _client_socket{_sock_type, _protocol, _port, _family}
+_datagram_client_socket::_datagram_client_socket(
+    int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, bool _connected_udp)
+    : _client_socket{_sock_type, _protocol, _port, _family}, connected_udp{_connected_udp}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
@@ -234,8 +235,20 @@ _datagram_client_socket::send_message_to_remote_host(
 {
     int error = 0;
 
-    // Send a message to the remote host using the sender socket.
     ((PSOCKADDR_IN6)&remote_address)->sin6_port = htons(remote_port);
+
+    // If this is a connected socket, issue a connect call prior to sending traffic.
+    if (connected_udp && !connected) {
+        error = WSAConnect(
+            socket, (const SOCKADDR*)&remote_address, sizeof(remote_address), nullptr, nullptr, nullptr, nullptr);
+        if (error != 0) {
+            FAIL("WSAConnect failed with " << WSAGetLastError());
+            return;
+        }
+        connected = true;
+    }
+
+    // Send a message to the remote host using the sender socket.
     std::vector<char> send_buffer(message, message + strlen(message));
     WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;

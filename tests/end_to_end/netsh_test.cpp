@@ -14,6 +14,7 @@
 
 #include <winsock2.h>
 #include <windows.h>
+#include <iostream>
 #include <netsh.h>
 #include <regex>
 #include <sstream>
@@ -76,26 +77,26 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
     REQUIRE(result == NO_ERROR);
     output = strip_paths(output);
     REQUIRE(
-        output == "; ./tests/sample/bpf_call.c:24\n"
-                  "; SEC(\"xdp_prog\") int func(struct xdp_md* ctx)\n"
+        output == "; ./tests/sample/undocked/bpf_call.c:25\n"
+                  "; SEC(\"sample_ext\") int func(sample_program_context_t* ctx)\n"
                   "       0:	r1 = 0\n"
-                  "; ./tests/sample/bpf_call.c:26\n"
+                  "; ./tests/sample/undocked/bpf_call.c:27\n"
                   ";     uint32_t key = 0;\n"
                   "       1:	*(u32 *)(r10 - 4) = r1\n"
                   "       2:	r1 = 42\n"
-                  "; ./tests/sample/bpf_call.c:27\n"
+                  "; ./tests/sample/undocked/bpf_call.c:28\n"
                   ";     uint32_t value = 42;\n"
                   "       3:	*(u32 *)(r10 - 8) = r1\n"
                   "       4:	r2 = r10\n"
                   "       5:	r2 += -4\n"
                   "       6:	r3 = r10\n"
                   "       7:	r3 += -8\n"
-                  "; ./tests/sample/bpf_call.c:28\n"
+                  "; ./tests/sample/undocked/bpf_call.c:29\n"
                   ";     int result = bpf_map_update_elem(&map, &key, &value, 0);\n"
                   "       8:	r1 = map_fd 1\n"
                   "      10:	r4 = 0\n"
                   "      11:	r0 = bpf_map_update_elem:2(map_fd r1, map_key r2, map_value r3, uint64_t r4)\n"
-                  "; ./tests/sample/bpf_call.c:29\n"
+                  "; ./tests/sample/undocked/bpf_call.c:30\n"
                   ";     return result;\n"
                   "      12:	exit\n\n");
 }
@@ -168,7 +169,6 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "Program Type : unspec\n"
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"
-                  "adjust_head  : 0\n"
                   "arith        : 0\n"
                   "arith32      : 0\n"
                   "arith64      : 1\n"
@@ -184,6 +184,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "map_in_map   : 0\n"
                   "other        : 2\n"
                   "packet_access: 0\n"
+                  "reallocate   : 0\n"
                   "store        : 0\n"
                   "\n"
                   "                     Key  Value      Max\n"
@@ -201,16 +202,21 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "               .text        xdp     1768\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "               .text       bind     1064\n"
+#else
+                                        "               .text       bind     1768\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n";
+
+    REQUIRE(output == expected_output);
 }
 
 // Test a DLL with multiple maps in the map section.
@@ -222,19 +228,24 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "            xdp_prog        xdp     1087\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n"
-                  "      hash_of_maps     4      4        1  outer_map\n"
-                  "             array     4      4        1  port_map\n"
-                  "             array     4      4        1  inner_map\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "          sample_ext     sample      295\n"
+#else
+                                        "          sample_ext     sample     1087\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "      hash_of_maps     4      4        1  outer_map\n"
+                                        "             array     4      4        1  port_map\n"
+                                        "             array     4      4        1  inner_map\n";
+
+    REQUIRE(output == expected_output);
 }
 
 // Test a .dll file with multiple programs.
@@ -247,19 +258,26 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "            xdp_prog        xdp      413\n"
-                  "          xdp_prog/0        xdp      413\n"
-                  "          xdp_prog/1        xdp      190\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n"
-                  "        prog_array     4      4       10  map\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "        sample_ext/0     sample       73\n"
+                                        "        sample_ext/1     sample        6\n"
+                                        "          sample_ext     sample       73\n"
+#else
+                                        "          sample_ext     sample      413\n"
+                                        "        sample_ext/0     sample      413\n"
+                                        "        sample_ext/1     sample      190\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "        prog_array     4      4       10  map\n";
+
+    REQUIRE(output == expected_output);
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -272,21 +290,28 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(
-        output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "     cgroup/connect4  sock_addr      531\n"
-                  "     cgroup/connect6  sock_addr      606\n"
-                  " cgroup/recv_accept4  sock_addr      531\n"
-                  " cgroup/recv_accept6  sock_addr      606\n"
-                  "\n"
-                  "                     Key  Value      Max\n"
-                  "          Map Type  Size   Size  Entries  Name\n"
-                  "==================  ====  =====  =======  ========\n"
-                  "              hash    56      4        1  egress_connection_policy_map\n"
-                  "              hash    56      4        1  ingress_connection_policy_map\n");
+    const std::string expected_output = "\n"
+                                        "                                    Size\n"
+                                        "             Section       Type  (bytes)\n"
+                                        "====================  =========  =======\n"
+#if defined(NDEBUG)
+                                        "     cgroup/connect4  sock_addr      193\n"
+                                        "     cgroup/connect6  sock_addr      210\n"
+                                        " cgroup/recv_accept4  sock_addr      193\n"
+                                        " cgroup/recv_accept6  sock_addr      210\n"
+#else
+                                        "     cgroup/connect4  sock_addr      531\n"
+                                        "     cgroup/connect6  sock_addr      606\n"
+                                        " cgroup/recv_accept4  sock_addr      531\n"
+                                        " cgroup/recv_accept6  sock_addr      606\n"
+#endif
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "              hash    56      4        1  egress_connection_policy_map\n"
+                                        "              hash    56      4        1  ingress_connection_policy_map\n";
+    REQUIRE(output == expected_output);
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
@@ -306,13 +331,13 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"xdp", &result);
+    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
                   "\n"
                   "Verification succeeded\n"
-                  "Program terminates within 6 instructions\n");
+                  "Program terminates within 0 loop iterations\n");
 }
 
 TEST_CASE("show verification droppacket.o", "[netsh][verification]")
@@ -327,7 +352,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
         output == "\n"
                   "\n"
                   "Verification succeeded\n"
-                  "Program terminates within 157 instructions\n");
+                  "Program terminates within 0 loop iterations\n");
 }
 
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
@@ -353,6 +378,57 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
                   "2 errors\n"
+                  "\n");
+}
+
+TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"xdp_datasize_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "4:  (r3.type in {number, ctx, stack, packet, shared})\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "5:  (r3.type == non_map_fd)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                  "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "6:  (r2.type in {ctx, stack, packet, shared})\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "7:  (r1.type == number)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
+                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+                  "8:  (r1.type == number)\n"
+                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:43\n"
+                  ";     return rc;\n"
+                  "10:  (r0.type == number)\n"
+                  "\n"
+                  "9 errors\n"
                   "\n");
 }
 
@@ -391,6 +467,7 @@ verify_no_programs_exist()
                   "======  ====  =====  =========  =============  ====================\n");
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("pin first program", "[netsh][programs]")
 {
     _test_helper_netsh test_helper;
@@ -399,7 +476,7 @@ TEST_CASE("pin first program", "[netsh][programs]")
     // Load a program to show.
     int result;
     std::string output =
-        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"pinpath=mypinpath", &result);
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"sample_ext", L"pinpath=mypinpath", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -410,8 +487,8 @@ TEST_CASE("pin first program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        sample         caller\n"
+                  "     6     0      0  JIT        sample         callee\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "Unpinned 5 from mypinpath\n");
@@ -439,15 +516,15 @@ TEST_CASE("pin all programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n"
-                  "     6     1      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        sample         caller\n"
+                  "     6     1      0  JIT        sample         callee\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath/xdp_prog\n");
+    REQUIRE(output == "Unpinned 5 from mypinpath/sample_ext\n");
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 6 from mypinpath/xdp_prog_0\n");
+    REQUIRE(output == "Unpinned 6 from mypinpath/sample_ext_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -466,14 +543,14 @@ TEST_CASE("show programs", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
 
     // Show programs in normal (table) format.
-    output = _run_netsh_command(handle_ebpf_show_programs, L"xdp", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_show_programs, L"sample_ext", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     5     1      1  JIT        sample         caller\n"
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Test filtering by "attached=yes".
     output = _run_netsh_command(handle_ebpf_show_programs, L"attached=yes", nullptr, nullptr, &result);
@@ -482,7 +559,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n");
+                  "     5     1      1  JIT        sample         caller\n");
 
     // Test filtering by "attached=no".
     output = _run_netsh_command(handle_ebpf_show_programs, L"attached=no", nullptr, nullptr, &result);
@@ -491,7 +568,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Test filtering by "pinned=yes".
     output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=yes", nullptr, nullptr, &result);
@@ -500,7 +577,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     1      1  JIT        xdp            caller\n");
+                  "     5     1      1  JIT        sample         caller\n");
 
     // Test filtering by "pinned=no".
     output = _run_netsh_command(handle_ebpf_show_programs, L"pinned=no", nullptr, nullptr, &result);
@@ -509,7 +586,7 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Test verbose output format.
     output = _run_netsh_command(handle_ebpf_show_programs, L"level=verbose", nullptr, nullptr, &result);
@@ -518,9 +595,9 @@ TEST_CASE("show programs", "[netsh][programs]")
         output == "\n"
                   "ID             : 5\n"
                   "File name      : tail_call.o\n"
-                  "Section        : xdp_prog\n"
+                  "Section        : sample_ext\n"
                   "Name           : caller\n"
-                  "Program type   : xdp\n"
+                  "Program type   : sample\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 2\n"
                   "map IDs        : 4\n"
@@ -530,9 +607,9 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "\n"
                   "ID             : 6\n"
                   "File name      : tail_call.o\n"
-                  "Section        : xdp_prog/0\n"
+                  "Section        : sample_ext/0\n"
                   "Name           : callee\n"
-                  "Program type   : xdp\n"
+                  "Program type   : sample\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 0\n"
                   "# pinned paths : 0\n"
@@ -568,8 +645,8 @@ TEST_CASE("set program", "[netsh][programs]")
         output == "\n"
                   "    ID  Pins  Links  Mode       Type           Name\n"
                   "======  ====  =====  =========  =============  ====================\n"
-                  "     5     0      0  JIT        xdp            caller\n"
-                  "     6     0      0  JIT        xdp            callee\n");
+                  "     5     0      0  JIT        sample         caller\n"
+                  "     6     0      0  JIT        sample         callee\n");
 
     // Try to detach an unattached program.
     output = _run_netsh_command(handle_ebpf_set_program, L"5", L"", nullptr, &result);
@@ -577,10 +654,10 @@ TEST_CASE("set program", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
 
     RPC_WSTR attach_type_string;
-    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_XDP, &attach_type_string) == 0);
+    REQUIRE(UuidToStringW(&EBPF_ATTACH_TYPE_SAMPLE, &attach_type_string) == 0);
 
     // Attach the program.
-    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"xdp", nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_set_program, L"5", L"sample_ext", nullptr, &result);
     REQUIRE(output == "");
     REQUIRE(result == ERROR_OKAY);
 
@@ -624,7 +701,7 @@ TEST_CASE("show maps", "[netsh][maps]")
     REQUIRE(output == "Unpinned 5 from lookup\n");
     verify_no_programs_exist();
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 
     output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
@@ -653,7 +730,7 @@ TEST_CASE("show links", "[netsh][links]")
                   "   Link  Program  Attach\n"
                   "     ID       ID  Type\n"
                   "=======  =======  =============\n"
-                  "      7        5  xdp\n");
+                  "      7        5  sample_ext\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(output == "");
@@ -687,15 +764,15 @@ TEST_CASE("show pins", "[netsh][pins]")
         output == "\n"
                   "     ID     Type  Path\n"
                   "=======  =======  ==============\n"
-                  "      5  Program  mypinpath/xdp_prog\n"
-                  "      6  Program  mypinpath/xdp_prog_0\n");
+                  "      5  Program  mypinpath/sample_ext\n"
+                  "      6  Program  mypinpath/sample_ext_0\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath/xdp_prog\n");
+    REQUIRE(output == "Unpinned 5 from mypinpath/sample_ext\n");
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 6 from mypinpath/xdp_prog_0\n");
+    REQUIRE(output == "Unpinned 6 from mypinpath/sample_ext_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -738,7 +815,8 @@ TEST_CASE("unpin program", "[netsh][programs]")
 
     // Load a program pinned.
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"xdp", L"mypinname", &result);
+    std::string output =
+        _run_netsh_command(handle_ebpf_add_program, L"tail_call.o", L"sample_ext", L"mypinname", &result);
     REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
     REQUIRE(result == NO_ERROR);
 
@@ -833,7 +911,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     output = _run_netsh_command(handle_ebpf_delete_program, L"29", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
 
 TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
@@ -870,8 +948,9 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
 
-    ebpf_epoch_flush();
+    ebpf_epoch_synchronize();
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("show processes", "[netsh][processes]")
 {

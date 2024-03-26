@@ -5,7 +5,7 @@
 #ifdef _MSC_VER
 #include <guiddef.h>
 #else
-#if !defined(NO_CRT)
+#if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
 #include <stdint.h>
 #else
 typedef unsigned char uint8_t;

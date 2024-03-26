@@ -151,7 +151,8 @@ ebpf_object_tracking_initiate()
     ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(ebpf_id_t),
         .value_size = sizeof(ebpf_id_entry_t),
-        .max_entries = 1024,
+        .max_entries = EBPF_HASH_TABLE_NO_LIMIT,
+        .minimum_bucket_count = 1024,
     };
 
     memset(_ebpf_object_reference_history, 0, sizeof(_ebpf_object_reference_history));
@@ -309,11 +310,11 @@ void
 ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, uint32_t file_id, uint32_t line)
 {
     int64_t new_ref_count;
-    _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
-
     if (!object) {
         return;
     }
+
+    _update_reference_history(object, EBPF_OBJECT_RELEASE, file_id, line);
 
     if (object->base.marker != _ebpf_object_marker) {
         __fastfail(FAST_FAIL_INVALID_ARG);

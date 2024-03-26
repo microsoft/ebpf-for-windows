@@ -83,7 +83,7 @@ Done:
 // (This program can only perform de-capsulation for v4 in v4 and v6 in v6 packets.)
 // (This program assumes Ethernet II frames.)
 //
-SEC("xdp/decapsulate_reflect")
+SEC("xdp_test/decapsulate_reflect")
 int
 decapsulate_permit_packet(xdp_md_t* ctx)
 {

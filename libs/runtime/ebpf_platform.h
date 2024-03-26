@@ -708,18 +708,6 @@ extern "C"
 
     TRACELOGGING_DECLARE_PROVIDER(ebpf_tracelog_provider);
 
-    /**
-     * @brief Update global helper information in eBPF store.
-     *
-     * @param[in] helper_info Pointer to an array of helper function prototypes.
-     * @param[in] helper_info_count Count of helper function prototypes.
-     *
-     * @returns Status of the operation.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_update_global_helpers(
-        _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count);
-
     typedef struct _ebpf_cryptographic_hash ebpf_cryptographic_hash_t;
 
     /**

@@ -4,14 +4,8 @@
 #pragma once
 
 #include "ebpf_program_types.h"
-#include "ebpf_shared_framework.h"
-#include "ebpf_windows.h"
-#ifdef USER_MODE
 #include "ebpf_utilities.h"
-#else
-#include <minwindef.h>
-#include <wdm.h>
-#endif
+#include "ebpf_windows.h"
 
 #define GUID_STRING_LENGTH 38 // not including the null terminator.
 
@@ -24,18 +18,6 @@ extern "C"
 
     extern ebpf_store_key_t ebpf_store_root_key;
     extern const wchar_t* ebpf_store_root_sub_key;
-
-    /**
-     * @brief Update the provider prototype information in the eBPF store.
-     *
-     * @param[in] helper_info_key Pointer to the store key to be initialized.
-     * @param[in] helper_info Pointer to the helper function prototype.
-     *
-     * @return Status of the operation.
-     */
-    ebpf_result_t
-    ebpf_store_update_helper_prototype(
-        ebpf_store_key_t helper_info_key, _In_ const ebpf_helper_function_prototype_t* helper_info);
 
     /**
      * @brief Update global helper information in the eBPF store.
@@ -72,6 +54,26 @@ extern "C"
     ebpf_result_t
     ebpf_store_update_program_information(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
+
+    /**
+     * @brief Delete program information from the eBPF store.
+     *
+     * @param[in] program_info Pointer to the program information.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_info);
+
+    /**
+     * @brief Delete section information from the eBPF store.
+     *
+     * @param[in] section_info Pointer to the section information.
+     *
+     * @returns Status of the operation.
+     */
+    ebpf_result_t
+    ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info);
 
 #ifdef __cplusplus
 }

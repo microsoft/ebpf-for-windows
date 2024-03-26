@@ -19,9 +19,9 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
-static GUID test_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID test_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
-#pragma code_seg(push, "xdp_prog")
+static GUID test_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
+static GUID test_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
+#pragma code_seg(push, "xdp_test")
 static uint64_t
 test(void* context)
 {
@@ -62,31 +62,31 @@ test(void* context)
     // EBPF_OP_MOV64_REG pc=12 dst=r2 src=r1 offset=0 imm=0
     r2 = r1;
     // EBPF_OP_ATOMIC64_ADD_FETCH pc=13 dst=r10 src=r2 offset=-16 imm=1
-    r2 = (uint64_t)_InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    r2 = (uint64_t)InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_MOV64_IMM pc=14 dst=r2 src=r0 offset=0 imm=2
     r2 = IMMEDIATE(2);
     // EBPF_OP_ATOMIC64_OR_FETCH pc=15 dst=r10 src=r2 offset=-16 imm=65
-    r2 = (uint64_t)_InterlockedOr64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    r2 = (uint64_t)InterlockedOr64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_MOV64_REG pc=16 dst=r2 src=r0 offset=0 imm=0
     r2 = r0;
     // EBPF_OP_ATOMIC64_AND_FETCH pc=17 dst=r10 src=r2 offset=-16 imm=81
-    r2 = (uint64_t)_InterlockedAnd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    r2 = (uint64_t)InterlockedAnd64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_MOV64_IMM pc=18 dst=r2 src=r0 offset=0 imm=4
     r2 = IMMEDIATE(4);
     // EBPF_OP_ATOMIC64_XOR pc=19 dst=r10 src=r2 offset=-16 imm=160
-    _InterlockedXor64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
+    InterlockedXor64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r2);
     // EBPF_OP_ATOMIC_OR pc=20 dst=r10 src=r1 offset=-36 imm=64
-    _InterlockedOr((volatile long*)(uintptr_t)(r10 + OFFSET(-36)), (uint32_t)r1);
+    InterlockedOr((volatile long*)(uintptr_t)(r10 + OFFSET(-36)), (uint32_t)r1);
     // EBPF_OP_LDXDW pc=21 dst=r1 src=r10 offset=-24 imm=0
     r1 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24));
     // EBPF_OP_ATOMIC64_XCHG pc=22 dst=r10 src=r1 offset=-16 imm=225
-    _InterlockedExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1);
+    InterlockedExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1);
     // EBPF_OP_STXDW pc=23 dst=r10 src=r1 offset=-32 imm=0
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
     // EBPF_OP_MOV64_IMM pc=24 dst=r1 src=r0 offset=0 imm=5
     r1 = IMMEDIATE(5);
     // EBPF_OP_ATOMIC64_CMPXCHG pc=25 dst=r10 src=r1 offset=-16 imm=241
-    r0 = (uint64_t)_InterlockedCompareExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1, r0);
+    r0 = (uint64_t)InterlockedCompareExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1, r0);
     // EBPF_OP_LDXDW pc=26 dst=r0 src=r10 offset=-56 imm=0
     r0 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56));
     // EBPF_OP_EXIT pc=27 dst=r0 src=r0 offset=0 imm=0
@@ -100,8 +100,8 @@ static program_entry_t _programs[] = {
     {
         0,
         test,
-        "xdp_prog",
-        "xdp_prog",
+        "xdp_test",
+        "xdp_test",
         "test",
         NULL,
         0,
@@ -125,7 +125,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 15;
     version->revision = 0;
 }
 

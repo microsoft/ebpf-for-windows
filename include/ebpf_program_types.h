@@ -6,7 +6,14 @@
 #include "ebpf_result.h"
 
 #include <guiddef.h>
+#if !defined(NO_CRT) && !defined(_NO_CRT_STDIO_INLINE)
 #include <stdint.h>
+#else
+typedef unsigned char uint8_t;
+typedef unsigned int uint32_t;
+typedef unsigned long long uint64_t;
+typedef unsigned short wchar_t;
+#endif
 
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256

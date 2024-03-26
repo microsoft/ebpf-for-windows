@@ -6,7 +6,7 @@
  * @brief This file implements the BIND program type hook on eBPF for Windows.
  */
 
-#include "ebpf_store_helper.h"
+#include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_bind.h"
 
 //
@@ -151,40 +151,6 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
 // NMR Registration Helper Routines.
 //
 
-static NTSTATUS
-_net_ebpf_bind_update_store_entries()
-{
-    NTSTATUS status;
-
-    NET_EBPF_EXT_LOG_ENTRY();
-
-    // Update section information.
-    uint32_t section_info_count = sizeof(_ebpf_bind_section_info) / sizeof(ebpf_program_section_info_t);
-    status = ebpf_store_update_section_information(&_ebpf_bind_section_info[0], section_info_count);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "ebpf_store_update_section_information",
-            status);
-        goto Exit;
-    }
-
-    // Update program information.
-    status = ebpf_store_update_program_information(&_ebpf_bind_program_info, 1);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "ebpf_store_update_program_information",
-            status);
-        goto Exit;
-    }
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
 NTSTATUS
 net_ebpf_ext_bind_register_providers()
 {
@@ -196,16 +162,6 @@ net_ebpf_ext_bind_register_providers()
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_info_provider_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_extension_bind_hook_provider_data};
-
-    status = _net_ebpf_bind_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "_net_ebpf_bind_update_store_entries failed.",
-            status);
-        goto Exit;
-    }
 
     // Set the program type as the provider module id.
     _ebpf_bind_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_BIND;
@@ -307,12 +263,22 @@ net_ebpf_ext_resource_allocation_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    if (attached_client == NULL) {
+    if (filter_context->client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_allocation_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_allocation_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         attached_client = NULL;
         goto Exit;
     }
@@ -388,12 +354,22 @@ net_ebpf_ext_resource_release_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    if (attached_client == NULL) {
+    if (filter_context->client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_release_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_release_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
         attached_client = NULL;
         goto Exit;
     }

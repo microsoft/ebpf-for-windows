@@ -107,7 +107,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,7 +121,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Debug;%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Debug;%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -135,7 +135,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -152,7 +152,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -168,7 +168,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Release;%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Release;%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -201,9 +201,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\tools\export_program_info\export_program_info.vcxproj">
-      <Project>{fa9bb88d-8259-40c1-9422-bdedf9e9ce68}</Project>
     </ProjectReference>
     <ProjectReference Include="..\elf_spec\elf_spec.vcxproj">
       <Project>{c3d2cd73-bf4c-47df-8808-2a9996124d5b}</Project>

@@ -8,7 +8,7 @@
  *
  */
 
-#include "ebpf_store_helper.h"
+#include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_sock_ops.h"
 
 //
@@ -25,9 +25,8 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
     LIST_ENTRY link;                                         ///< Link to next flow context.
     net_ebpf_extension_flow_context_parameters_t parameters; ///< WFP flow parameters.
     struct _net_ebpf_extension_sock_ops_wfp_filter_context*
-        filter_context;       ///< WFP filter context associated with this flow.
-    bool client_detached : 1; ///< Flag indicating that the hook client has detached.
-    bpf_sock_ops_t context;   ///< sock_ops context.
+        filter_context;     ///< WFP filter context associated with this flow.
+    bpf_sock_ops_t context; ///< sock_ops context.
 } net_ebpf_extension_sock_ops_wfp_flow_context_t;
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
@@ -82,7 +81,9 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .program_info = &_ebpf_sock_ops_program_info,
     .context_create = &_ebpf_sock_ops_context_create,
-    .context_destroy = &_ebpf_sock_ops_context_destroy};
+    .context_destroy = &_ebpf_sock_ops_context_destroy,
+    .required_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_sock_ops_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_ops_program_data), &_ebpf_sock_ops_program_data};
@@ -233,7 +234,6 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
         InitializeListHead(entry);
         net_ebpf_extension_sock_ops_wfp_flow_context_t* flow_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_sock_ops_wfp_flow_context_t, link);
-        flow_context->client_detached = TRUE;
 
         net_ebpf_extension_flow_context_parameters_t* flow_parameters = &flow_context->parameters;
 
@@ -250,38 +250,6 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
-static NTSTATUS
-_net_ebpf_sock_ops_update_store_entries()
-{
-    NTSTATUS status;
-
-    // Update section information.
-    uint32_t section_info_count = sizeof(_ebpf_sock_ops_section_info) / sizeof(ebpf_program_section_info_t);
-    status = ebpf_store_update_section_information(&_ebpf_sock_ops_section_info[0], section_info_count);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-            "ebpf_store_update_section_information failed.",
-            status);
-        goto Exit;
-    }
-
-    // Update program information.
-    status = ebpf_store_update_program_information(&_ebpf_sock_ops_program_info, 1);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-            "ebpf_store_update_program_information failed.",
-            status);
-        goto Exit;
-    }
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
 NTSTATUS
 net_ebpf_ext_sock_ops_register_providers()
 {
@@ -293,16 +261,6 @@ net_ebpf_ext_sock_ops_register_providers()
         &_ebpf_sock_ops_program_info_provider_moduleid, &_ebpf_sock_ops_program_info_provider_data};
 
     NET_EBPF_EXT_LOG_ENTRY();
-
-    status = _net_ebpf_sock_ops_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-            "_net_ebpf_sock_ops_update_store_entries failed.",
-            status);
-        goto Exit;
-    }
 
     // Set the program type as the provider module id.
     _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
@@ -453,12 +411,22 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_established_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_established_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
         attached_client = NULL;
         goto Exit;
     }
@@ -563,29 +531,22 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
     }
 
-    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
-        "Flow deleted.",
-        local_flow_context->parameters.flow_id);
-
     filter_context = local_flow_context->filter_context;
     if (filter_context == NULL) {
         goto Exit;
     }
 
-    if (local_flow_context->client_detached) {
-        // Since the hook client is detached, exit the function.
+    if (filter_context->base.client_detached) {
         goto Exit;
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
-        // This means that the eBPF program is detached and there is nothing to notify.
-        goto Exit;
-    }
-
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_extension_sock_ops_flow_delete - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
         attached_client = NULL;
         goto Exit;
     }
@@ -594,6 +555,12 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     RemoveEntryList(&local_flow_context->link);
     filter_context->flow_context_list.count--;
     KeReleaseSpinLock(&filter_context->lock, irql);
+
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+        "Flow deleted.",
+        local_flow_context->parameters.flow_id);
 
     // Invoke eBPF program with connection deleted socket event.
     sock_ops_context = &local_flow_context->context;
@@ -606,9 +573,11 @@ Exit:
     if (filter_context) {
         DEREFERENCE_FILTER_CONTEXT(&filter_context->base);
     }
+
     if (local_flow_context != NULL) {
         ExFreePool(local_flow_context);
     }
+
     if (attached_client != NULL) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }

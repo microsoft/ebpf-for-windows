@@ -7,9 +7,7 @@
  * Windows.
  */
 
-#include "ebpf_hash_table.h"
-#include "ebpf_platform.h"
-#include "ebpf_store_helper.h"
+#include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_sock_addr.h"
 
 #define TARGET_PROCESS_ID 1234
@@ -505,7 +503,9 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .program_type_specific_helper_function_addresses = &_ebpf_sock_addr_specific_helper_function_address_table,
     .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
     .context_create = &_ebpf_sock_addr_context_create,
-    .context_destroy = &_ebpf_sock_addr_context_destroy};
+    .context_destroy = &_ebpf_sock_addr_context_destroy,
+    .required_irql = DISPATCH_LEVEL,
+};
 
 static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
     NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
@@ -666,25 +666,6 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
     }
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
     NET_EBPF_EXT_LOG_EXIT();
-}
-
-static NTSTATUS
-_net_ebpf_sock_addr_update_store_entries()
-{
-    NTSTATUS status;
-
-    // Update section information.
-    uint32_t section_info_count = sizeof(_ebpf_sock_addr_section_info) / sizeof(ebpf_program_section_info_t);
-    status = ebpf_store_update_section_information(&_ebpf_sock_addr_section_info[0], section_info_count);
-    if (!NT_SUCCESS(status)) {
-        goto Exit;
-    }
-
-    // Update program information.
-    status = ebpf_store_update_program_information(&_ebpf_sock_addr_program_info, 1);
-
-Exit:
-    NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
 static NTSTATUS
@@ -1106,16 +1087,6 @@ net_ebpf_ext_sock_addr_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_info_provider_data};
 
-    status = _net_ebpf_sock_addr_update_store_entries();
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "_net_ebpf_sock_addr_update_store_entries failed.",
-            status);
-        goto Exit;
-    }
-
     status = _net_ebpf_sock_addr_create_security_descriptor();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -1407,12 +1378,22 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_recv_accept_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
         attached_client = NULL;
         goto Exit;
     }
@@ -1750,6 +1731,16 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
+    if (filter_context->base.client_detached) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_redirect_connection_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        goto Exit;
+    }
+
     // Populate the sock_addr context with WFP classify input fields.
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
@@ -1769,20 +1760,13 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (attached_client == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "attached_client is NULL.",
-            STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_redirect_connection_classify - Rundown already started.",
+            STATUS_INVALID_PARAMETER);
         attached_client = NULL;
-        // Client is detaching.
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "Client is detaching.");
-        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
 
@@ -1887,8 +1871,33 @@ Exit:
         // verdict of the program.
         // Since the eBPF program turned in a REJECT verdict, there is no need to process
         // connection redirection, even if the program modified the destination.
-        _net_ebpf_ext_insert_connection_context_to_list(
-            sock_addr_ctx, incoming_metadata_values->transportEndpointHandle);
+        blocked_connection_context = (net_ebpf_extension_connection_context_t*)ExAllocatePoolUninitialized(
+            NonPagedPoolNx, sizeof(net_ebpf_extension_connection_context_t), NET_EBPF_EXTENSION_POOL_TAG);
+        NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, blocked_connection_context, "blocked_connection", status);
+        memset(blocked_connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
+
+        _net_ebpf_extension_connection_context_initialize(
+            sock_addr_ctx,
+            incoming_metadata_values->transportEndpointHandle,
+            CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP,
+            blocked_connection_context);
+
+        _net_ebpf_ext_insert_connection_context_to_list(blocked_connection_context);
+
+        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+    } else {
+        // Remove any 'stale' connection context if found.
+        // A stale context is expected in the case of connected UDP, where the connect()
+        // call results in WFP invoking the callout at the connect_redirect layer, and the
+        // send() call results in WFP invoking the callout at the connect_redirect layer (again),
+        // followed by the connect layer.
+        net_ebpf_extension_connection_context_t* stale_connection_context =
+            _net_ebpf_ext_get_and_remove_connection_context(
+                incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
+        if (stale_connection_context) {
+            ExFreePool(stale_connection_context);
+        }
     }
 
     // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT.

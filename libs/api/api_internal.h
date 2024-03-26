@@ -270,6 +270,24 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* value, uint64_t flags) noexcept;
 
 /**
+ * @brief Update a collection of keys and values in the map.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] keys Pointer to buffer containing keys.
+ * @param[in] values Pointer to buffer containing values.
+ * @param[in, out] count On input, contains the maximum number of elements to
+ * update. On output, contains the actual number of elements updated.
+ * @param[in] flags Flags to control the behavior of the API.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_update_element_batch(
+    fd_t map_fd, _In_opt_ const void* keys, _In_ const void* values, _Inout_ uint32_t* count, uint64_t flags) noexcept;
+
+/**
  * @brief Delete an element in an eBPF map.
  *
  * @param[in] map_fd File descriptor for the eBPF map.
@@ -279,6 +297,22 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) noexcept;
+
+/**
+ * @brief Delete a set of keys from the eBPF map.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] keys Pointer to buffer containing list of keys.
+ * @param[in,out] count On input, contains the maximum number of elements to
+ * delete. On output, contains the actual number of elements deleted.
+ * @param[in] flags Flags to control the behavior of the API.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_KEY_NOT_FOUND The key was not found.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32_t* count, uint64_t flags) noexcept;
 
 /**
  * @brief Look up an element in an eBPF map.
@@ -295,6 +329,35 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept;
 
 /**
+ * @brief Fetch the next batch of keys and values from an eBPF map.
+ *  For a singleton map, return the value for the given key.
+ *  For a per-cpu map, return aggregate value across all CPUs.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] in_batch Pointer to buffer containing keys.
+ * @param[out] out_batch Pointer to buffer that contains values on success.
+ * @param[out] keys Pointer to buffer that contains keys on success.
+ * @param[out] values Pointer to buffer that contains values on success.
+ * @param[in, out] count On input, contains the maximum number of elements to
+ * return. On output, contains the actual number of elements returned.
+ * @param[in] flags Flags to control the behavior of the API.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MORE_KEYS The end of the map has been reached.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_KEY_NOT_FOUND The key was not found.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_lookup_element_batch(
+    fd_t map_fd,
+    _In_opt_ const void* in_batch,
+    _Out_ void* out_batch,
+    _Out_ void* keys,
+    _Out_ void* values,
+    _Inout_ uint32_t* count,
+    uint64_t flags) noexcept;
+
+/**
  * @brief Look up an element in an eBPF map.
  *  For a singleton map, return the value for the given key.
  *  For a per-cpu map, return aggregate value across all CPUs.
@@ -308,6 +371,35 @@ ebpf_map_lookup_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_lookup_and_delete_element(fd_t map_fd, _In_opt_ const void* key, _Out_ void* value) noexcept;
+
+/**
+ * @brief Fetch the next batch of keys and values from an eBPF map.
+ *  For a singleton map, return the value for the given key.
+ *  For a per-cpu map, return aggregate value across all CPUs.
+ *
+ * @param[in] map_fd File descriptor for the eBPF map.
+ * @param[in] in_batch Pointer to buffer containing keys.
+ * @param[out] out_batch Pointer to buffer that contains values on success.
+ * @param[out] keys Pointer to buffer that contains keys on success.
+ * @param[out] values Pointer to buffer that contains values on success.
+ * @param[in, out] count On input, contains the maximum number of elements to
+ * return. On output, contains the actual number of elements returned.
+ * @param[in] flags Flags to control the behavior of the API.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MORE_KEYS The end of the map has been reached.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_KEY_NOT_FOUND The key was not found.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_lookup_and_delete_element_batch(
+    fd_t map_fd,
+    _In_opt_ const void* in_batch,
+    _Out_ void* out_batch,
+    _Out_ void* keys,
+    _Out_ void* values,
+    _Inout_ uint32_t* count,
+    uint64_t flags) noexcept;
 
 /**
  * @brief Return the next key in an eBPF map.
@@ -443,11 +535,12 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) noexcept;
 /**
  * @brief Get fd for a pinned object by pin path.
  * @param[in] path Pin path for the object.
+ * @param[out] fd File descriptor for the pinned object, -1 if not found.
  *
- * @return File descriptor for the pinned object, -1 if not found.
+ * @retval EBPF_SUCCESS on success, or an error code on failure.
  */
-fd_t
-ebpf_object_get(_In_z_ const char* path) noexcept;
+ebpf_result_t
+ebpf_object_get(_In_z_ const char* path, _Out_ fd_t* fd) noexcept;
 
 /**
  * @brief Open a file without loading the programs.
@@ -621,3 +714,15 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) noexcept;
  */
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
+
+/**
+ * @brief Initialize the eBPF library's thread local storage.
+ */
+void
+ebpf_api_thread_local_cleanup() noexcept;
+
+/**
+ * @brief Cleanup the eBPF library's thread local storage.
+ */
+void
+ebpf_api_thread_local_initialize() noexcept;

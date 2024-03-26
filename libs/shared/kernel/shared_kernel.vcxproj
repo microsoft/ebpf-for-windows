@@ -31,11 +31,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\store_helper\kernel\ebpf_store_helper_km.vcxproj">
-      <Project>{3569e946-c8b4-49ee-a89d-edd09dc9f36e}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClCompile Include="..\ebpf_serialize.c" />
     <ClCompile Include="..\shared_common.c" />
     <ClCompile Include="..\tracelog.c" />

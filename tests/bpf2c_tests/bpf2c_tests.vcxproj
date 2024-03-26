@@ -4,6 +4,10 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
+    <ReadOnlyProject>true</ReadOnlyProject>
+  </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -104,7 +108,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,7 +124,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,7 +140,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,7 +156,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;BPF2C_VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -170,7 +174,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;BPF2C_VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Release;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\ELFIO;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Release;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -233,6 +237,12 @@
     <ProjectReference Include="..\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <CopyFileToFolders Include="..\sample\bad\*.o">
+      <FileType>Document</FileType>
+      <DestinationFolders>$(OutDir)bad</DestinationFolders>
+    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

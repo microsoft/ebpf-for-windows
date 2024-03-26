@@ -14,7 +14,7 @@ $InstallPath = "$env:ProgramFiles\ebpf-for-windows";
 # - The expected file lists for each build artifact
 $buildArtifactParams = @{
     "Build-x64_Debug" = @{
-        "InstallComponents" = "ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT,eBPF_Development,eBPF_Testing"
+        "InstallComponents" = "ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
         "ExpectedFileList" = "..\..\scripts\check_msi_installation_files_regular_debug.txt"
     }
     "Build-x64-native-only_NativeOnlyRelease" = @{
@@ -75,10 +75,9 @@ function Install-MsiPackage {
 
     $res = $true
 
-    $arguments = "/i $MsiPath /qn /norestart /log msi-install.log $MsiAdditionalArguments"
+    $arguments = "/i $MsiPath /qn /norestart /l*v msi-install.log $MsiAdditionalArguments"
     Write-Host "Installing MSI package with arguments: '$arguments'..."
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
-
     if ($process.ExitCode -eq 0) {
         Write-Host "Installation successful!"
     } else {
@@ -105,7 +104,7 @@ function Uninstall-MsiPackage {
 
     Write-Host "Uninstalling MSI package..."
     $res = $true
-    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /log msi-uninstall.log" -Wait -PassThru
+    $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /l*v msi-uninstall.log" -Wait -PassThru
     if ($process.ExitCode -eq 0) {
         Write-Host "Uninstallation successful!"
     } else {

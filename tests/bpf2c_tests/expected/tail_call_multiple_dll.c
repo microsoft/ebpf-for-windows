@@ -66,63 +66,63 @@ static helper_function_entry_t caller_helpers[] = {
     {NULL, 5, "helper_id_5"},
 };
 
-static GUID caller_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID caller_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID caller_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID caller_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t caller_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "xdp_prog")
+#pragma code_seg(push, "sample~1")
 static uint64_t
 caller(void* context)
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
 {
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     // Prologue
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r0 = 0;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r1 = 0;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r2 = 0;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r3 = 0;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r4 = 0;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r5 = 0;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     r1 = (uintptr_t)context;
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=0
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     r0 = caller_helpers[0].address
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
          (r1, r2, r3, r4, r5);
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
     if ((caller_helpers[0].tail_call) && (r0 == 0))
-#line 29 "sample/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
         return 0;
     // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
-#line 32 "sample/tail_call_multiple.c"
+#line 33 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
-#line 32 "sample/tail_call_multiple.c"
+#line 33 "sample/undocked/tail_call_multiple.c"
     return r0;
-#line 32 "sample/tail_call_multiple.c"
+#line 33 "sample/undocked/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -131,97 +131,97 @@ static helper_function_entry_t callee0_helpers[] = {
     {NULL, 5, "helper_id_5"},
 };
 
-static GUID callee0_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID callee0_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+static GUID callee0_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID callee0_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t callee0_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "xdp_pr~1")
+#pragma code_seg(push, "sample~2")
 static uint64_t
 callee0(void* context)
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
 {
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     // Prologue
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r0 = 0;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r1 = 0;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r2 = 0;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r3 = 0;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r4 = 0;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r5 = 0;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     r1 = (uintptr_t)context;
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r2 src=r0 offset=0 imm=0
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=9
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     r0 = callee0_helpers[0].address
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
          (r1, r2, r3, r4, r5);
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
     if ((callee0_helpers[0].tail_call) && (r0 == 0))
-#line 40 "sample/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
         return 0;
     // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
-#line 43 "sample/tail_call_multiple.c"
+#line 44 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
-#line 43 "sample/tail_call_multiple.c"
+#line 44 "sample/undocked/tail_call_multiple.c"
     return r0;
-#line 43 "sample/tail_call_multiple.c"
+#line 44 "sample/undocked/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID callee1_program_type_guid = {0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
-static GUID callee1_attach_type_guid = {0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
-#pragma code_seg(push, "xdp_pr~2")
+static GUID callee1_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID callee1_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~3")
 static uint64_t
 callee1(void* context)
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
 {
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     // Prologue
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     register uint64_t r0 = 0;
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     register uint64_t r1 = 0;
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     register uint64_t r10 = 0;
 
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     r1 = (uintptr_t)context;
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(3);
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
     return r0;
-#line 46 "sample/tail_call_multiple.c"
+#line 47 "sample/undocked/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -231,8 +231,8 @@ static program_entry_t _programs[] = {
     {
         0,
         caller,
-        "xdp_prog",
-        "xdp_prog",
+        "sample~1",
+        "sample_ext",
         "caller",
         caller_maps,
         1,
@@ -245,8 +245,8 @@ static program_entry_t _programs[] = {
     {
         0,
         callee0,
-        "xdp_pr~1",
-        "xdp_prog/0",
+        "sample~2",
+        "sample_ext/0",
         "callee0",
         callee0_maps,
         1,
@@ -259,8 +259,8 @@ static program_entry_t _programs[] = {
     {
         0,
         callee1,
-        "xdp_pr~2",
-        "xdp_prog/1",
+        "sample~3",
+        "sample_ext/1",
         "callee1",
         NULL,
         0,
@@ -284,7 +284,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 15;
     version->revision = 0;
 }
 

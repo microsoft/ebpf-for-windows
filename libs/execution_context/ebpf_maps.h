@@ -134,6 +134,7 @@ extern "C"
      * null indicates that the first key is to be returned.
      * @param[out] next_key Next key on success.
      * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The specified previous key was not found.
      * @retval EBPF_NO_MORE_KEYS There is no key following the specified
      * key in lexicographical order.
      */
@@ -290,6 +291,30 @@ extern "C"
      */
     ebpf_id_t
     ebpf_map_get_id(_In_ const ebpf_map_t* map);
+
+    /**
+     * @brief Copy keys and values from the map to the caller provided buffer.
+     *
+     * @param[in, out] map Map to search and update metadata on.
+     * @param[in] previous_key_length The length of the previous key.
+     * @param[in] previous_key The previous key need not be present. This is the key to start the search from.
+     * @param[in,out] key_and_value_length Length of the key and value buffer on input. On output, the number of bytes
+     * actually written.
+     * @param[out] key_and_value Buffer to write the keys and values into.
+     * @param[in] flags Flags to control the behavior of the function.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_KEY_NOT_FOUND The specified previous key was not found.
+     * @retval EBPF_NO_MORE_KEYS There is no key following the specified key.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_get_next_key_and_value_batch(
+        _Inout_ ebpf_map_t* map,
+        size_t previous_key_length,
+        _In_reads_bytes_opt_(previous_key_length) const uint8_t* previous_key,
+        _Inout_ size_t* key_and_value_length,
+        _Out_writes_bytes_to_(*key_and_value_length, *key_and_value_length) uint8_t* key_and_value,
+        int flags);
+
 #ifdef __cplusplus
 }
 #endif

@@ -108,9 +108,9 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,9 +121,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,12 +131,15 @@
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)$(Platform)\Debug\usersim.dll $(OutDir) /F /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -147,9 +150,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -162,9 +165,9 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);USER_MODE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\export_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)tests\external\kissfft;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -174,6 +177,9 @@
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>xcopy $(SolutionDir)$(Platform)\Release\usersim.dll $(OutDir) /F /Y</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
@@ -241,25 +247,6 @@
     <ClInclude Include="..\end_to_end\helpers.h" />
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
     <ClCompile Include="wer_report_test_wrapper.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <CopyFileToFolders Include="..\sample\bad\bad1.o">
-      <FileType>Document</FileType>
-      <DeploymentContent>true</DeploymentContent>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)bad</DestinationFolders>
-    </CopyFileToFolders>
-    <CopyFileToFolders Include="..\sample\bad\bad2.o">
-      <FileType>Document</FileType>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(OutDir)bad</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(OutDir)bad</DestinationFolders>
-    </CopyFileToFolders>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

@@ -26,22 +26,44 @@ typedef struct _async_ioctl_completion_context
     async_ioctl_completion_callback_t callback;
 } async_ioctl_completion_context_t;
 
-static ebpf_handle_t _device_handle = ebpf_handle_invalid;
+// Handle used for synchronous calls to the driver.
+static thread_local ebpf_handle_t _sync_device_handle = ebpf_handle_invalid;
+// Handle used for asynchronous calls to the driver.
+static ebpf_handle_t _async_device_handle = ebpf_handle_invalid;
 static std::mutex _mutex;
 
 _Must_inspect_result_ ebpf_result_t
-initialize_device_handle()
+initialize_async_device_handle()
 {
     std::scoped_lock lock(_mutex);
 
-    if (_device_handle != ebpf_handle_invalid) {
+    if (_async_device_handle != ebpf_handle_invalid) {
         return EBPF_ALREADY_INITIALIZED;
     }
 
-    _device_handle = Platform::CreateFile(
+    // Open the device handle with the FILE_FLAG_OVERLAPPED flag for asynchronous calls.
+    _async_device_handle = Platform::CreateFile(
         EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_FLAG_OVERLAPPED, 0);
 
-    if (_device_handle == ebpf_handle_invalid) {
+    if (_async_device_handle == ebpf_handle_invalid) {
+        return win32_error_code_to_ebpf_result(GetLastError());
+    }
+
+    return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+initialize_sync_device_handle()
+{
+    if (_sync_device_handle != ebpf_handle_invalid) {
+        return EBPF_ALREADY_INITIALIZED;
+    }
+
+    // Open the device handle without the FILE_FLAG_OVERLAPPED flag for synchronous calls.
+    _sync_device_handle =
+        Platform::CreateFile(EBPF_DEVICE_WIN32_NAME, GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, 0, 0);
+
+    if (_sync_device_handle == ebpf_handle_invalid) {
         return win32_error_code_to_ebpf_result(GetLastError());
     }
 
@@ -49,25 +71,44 @@ initialize_device_handle()
 }
 
 void
-clean_up_device_handle()
+clean_up_async_device_handle()
 {
     std::scoped_lock lock(_mutex);
 
-    if (_device_handle != ebpf_handle_invalid) {
-        Platform::CloseHandle(_device_handle);
-        _device_handle = ebpf_handle_invalid;
+    if (_async_device_handle != ebpf_handle_invalid) {
+        Platform::CloseHandle(_async_device_handle);
+        _async_device_handle = ebpf_handle_invalid;
+    }
+}
+
+void
+clean_up_sync_device_handle()
+{
+    if (_sync_device_handle != ebpf_handle_invalid) {
+        Platform::CloseHandle(_sync_device_handle);
+        _sync_device_handle = ebpf_handle_invalid;
     }
 }
 
 ebpf_handle_t
-get_device_handle()
+get_sync_device_handle()
 {
-    if (_device_handle == ebpf_handle_invalid) {
+    if (_sync_device_handle == ebpf_handle_invalid) {
         // Ignore failures.
-        (void)initialize_device_handle();
+        (void)initialize_sync_device_handle();
     }
 
-    return _device_handle;
+    return _sync_device_handle;
+}
+
+ebpf_handle_t
+get_async_device_handle()
+{
+    if (_async_device_handle == ebpf_handle_invalid) {
+        // Ignore failures.
+        (void)initialize_async_device_handle();
+    }
+    return _async_device_handle;
 }
 
 void
@@ -151,7 +192,7 @@ get_async_ioctl_result(_In_ const async_ioctl_completion_t* ioctl_completion)
 {
     unsigned long dummy;
     if (!GetOverlappedResult(
-            reinterpret_cast<HANDLE>(get_device_handle()),
+            reinterpret_cast<HANDLE>(get_async_device_handle()),
             get_async_ioctl_operation_overlapped(ioctl_completion),
             &dummy,
             FALSE))
@@ -219,5 +260,5 @@ Exit:
 bool
 cancel_async_ioctl(_Inout_opt_ OVERLAPPED* overlapped = nullptr)
 {
-    return Platform::CancelIoEx(get_device_handle(), overlapped);
+    return Platform::CancelIoEx(get_async_device_handle(), overlapped);
 }

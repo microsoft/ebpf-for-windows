@@ -96,7 +96,7 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     size_t offset = output.find(" map_ids ");
     REQUIRE(offset != std::string::npos);
     std::string map_id = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    REQUIRE(output == id + ": xdp  name lookup  \n  map_ids " + map_id + "\n");
+    REQUIRE(output == id + ": sample  name lookup  \n  map_ids " + map_id + "\n");
 
     output = run_command(("bpftool prog pin id " + id + " pin2").c_str(), &result);
     REQUIRE(output == "");
@@ -124,6 +124,8 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     REQUIRE(result == 0);
 }
 
+#if 0
+// TODO(#2974): Once XDP support has fully migrated to xdp-for-windows repo, these tests should be migrated.
 TEST_CASE("prog attach by interface alias", "[prog][load]")
 {
     int result;
@@ -148,8 +150,8 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
     // Try attaching to an interface by friendly name.
-    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(), &result);
-    REQUIRE(result == 0);
+    output = run_command(("bpftool net attach xdp id " + id + " dev \"Loopback Pseudo-Interface 1\"").c_str(),
+    &result); REQUIRE(result == 0);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
     REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
@@ -159,6 +161,7 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     REQUIRE(output == "");
     REQUIRE(result == 0);
 }
+#endif
 
 TEST_CASE("map create", "[map]")
 {
@@ -217,7 +220,10 @@ TEST_CASE("prog prog run", "[prog][load]")
     std::string output;
     char command[80];
     sprintf_s(
-        command, sizeof(command), "bpftool --legacy prog load droppacket%s droppacket", EBPF_PROGRAM_FILE_EXTENSION);
+        command,
+        sizeof(command),
+        "bpftool --legacy prog load test_sample_ebpf%s test_sample_ebpf",
+        EBPF_PROGRAM_FILE_EXTENSION);
 
     output = run_command(command, &result);
     REQUIRE(output == "");
@@ -229,14 +235,20 @@ TEST_CASE("prog prog run", "[prog][load]")
     size_t offset = output.find(" map_ids ");
     REQUIRE(offset != std::string::npos);
     std::string map_id1 = std::to_string(atoi(output.substr(offset + 9).c_str()));
-    offset = output.find(",");
-    REQUIRE(offset != std::string::npos);
-    std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
-    REQUIRE(output == id + ": xdp  name DropPacket  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
 
-    // Create temporary files for input and output.
-    std::filesystem::path input_file = std::filesystem::temp_directory_path() / "data_in.txt";
-    std::filesystem::path output_file = std::filesystem::temp_directory_path() / "data_out.txt";
+    // The sample program is expected to have a single map. The output format
+    // differs based on whether the program is loaded as a native driver or not.
+    if (std::string(EBPF_PROGRAM_FILE_EXTENSION) == ".sys") {
+        REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "\n");
+    } else {
+        offset = output.find(",");
+        REQUIRE(offset != std::string::npos);
+        std::string map_id2 = std::to_string(atoi(output.substr(offset + 1).c_str()));
+        REQUIRE(output == id + ": sample  name test_program_entry  \n  map_ids " + map_id1 + "," + map_id2 + "\n");
+    }
+
+    std::filesystem::path input_file = "ctx_in.txt";
+    std::filesystem::path output_file = "ctx_out.txt";
 
     // Write input data to file.
     std::ofstream output_stream(input_file, std::ios::out | std::ios::binary);
@@ -247,19 +259,19 @@ TEST_CASE("prog prog run", "[prog][load]")
     }
     output_stream.close();
 
-    // Try attaching to an interface by friendly name.
+    // Run program
     output = run_command(
-        ("bpftool prog run id " + id + " data_in \"" + input_file.string() + "\" data_out \"" + output_file.string() +
+        ("bpftool prog run id " + id + " ctx_in \"" + input_file.string() + "\" ctx_out \"" + output_file.string() +
          "\" repeat 1000000")
             .c_str(),
         &result);
     REQUIRE(result == 0);
 
-    // Check if output contains: "Return value: 1, duration (average): 222ns"
-    REQUIRE(output.find("Return value: 1, duration (average): ") != std::string::npos);
+    // Check if output contains: "Return value: 42, duration (average): 222ns"
+    REQUIRE(output.find("Return value: 42, duration (average): ") != std::string::npos);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(output == "\nUnpinned " + id + " from test_sample_ebpf\n");
     REQUIRE(result == 0);
 
     output = run_command("bpftool prog show", &result);

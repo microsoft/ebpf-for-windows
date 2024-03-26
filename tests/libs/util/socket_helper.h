@@ -118,7 +118,8 @@ typedef class _client_socket : public _base_socket
 typedef class _datagram_client_socket : public _client_socket
 {
   public:
-    _datagram_client_socket(int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual);
+    _datagram_client_socket(
+        int _sock_type, int _protocol, uint16_t port, socket_family_t family = Dual, bool connected_udp = false);
     void
     send_message_to_remote_host(
         _In_z_ const char* message, _Inout_ sockaddr_storage& remote_address, uint16_t remote_port);
@@ -126,6 +127,13 @@ typedef class _datagram_client_socket : public _client_socket
     cancel_send_message();
     void
     complete_async_send(int timeout_in_ms, expected_result_t expected_result = expected_result_t::SUCCESS);
+
+  private:
+    // Indicates if connected UDP should be used.
+    bool connected_udp = false;
+
+    // Indicates if we have already called connect on this socket.
+    bool connected = false;
 } datagram_client_socket_t;
 
 /**

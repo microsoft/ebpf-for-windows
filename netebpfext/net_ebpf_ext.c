@@ -254,6 +254,14 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->reference_count = 1; // Initial reference.
     local_filter_context->client_context = client_context;
 
+    if (!net_ebpf_extension_hook_client_enter_rundown(
+            (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+
+        // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
+        // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
+        __fastfail(FAST_FAIL_INVALID_ARG);
+    }
+
     *filter_context = local_filter_context;
     local_filter_context = NULL;
 Exit:
@@ -268,12 +276,10 @@ void
 net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     // Since the hook client is detaching, the eBPF program should not be invoked any further.
-    // The client_context field in filter_context is set to NULL for this reason. This way any
-    // lingering WFP classify callbacks will exit as it would not find any hook client associated with the filter
-    // context. This is best effort & no locks are held.
-    filter_context->client_context = NULL;
-    filter_context->filter_ids = NULL;
-    filter_context->filter_ids_count = 0;
+    // The client_detached field in filter_context is set to false for this reason. This way any
+    // lingering WFP classify callbacks will exit as it would not find any hook client associated
+    // with the filter context. This is best effort & no locks are held.
+    filter_context->client_detached = TRUE;
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -345,18 +351,26 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
     return callout_id;
 }
 void
-net_ebpf_extension_delete_wfp_filters(uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) uint64_t* filter_ids)
+net_ebpf_extension_delete_wfp_filters(
+    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    NTSTATUS status;
+    NTSTATUS status = STATUS_SUCCESS;
+
     for (uint32_t index = 0; index < filter_count; index++) {
-        status = FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index]);
+        status = FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index].id);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+        } else {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Marked WFP filter for deletion: ",
+                index,
+                filter_ids[index].id);
         }
     }
-    ExFreePool(filter_ids);
     NET_EBPF_EXT_LOG_EXIT();
 }
 
@@ -367,12 +381,12 @@ net_ebpf_extension_add_wfp_filters(
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Outptr_result_buffer_maybenull_(filter_count) uint64_t** filter_ids)
+    _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids)
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     bool is_in_transaction = FALSE;
-    uint64_t* local_filter_ids = NULL;
+    net_ebpf_ext_wfp_filter_id_t* local_filter_ids = NULL;
     *filter_ids = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
@@ -384,12 +398,12 @@ net_ebpf_extension_add_wfp_filters(
         goto Exit;
     }
 
-    local_filter_ids = (uint64_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(uint64_t) * filter_count, NET_EBPF_EXTENSION_POOL_TAG);
+    local_filter_ids = (net_ebpf_ext_wfp_filter_id_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_ids, "local_filter_ids", result);
 
-    memset(local_filter_ids, 0, sizeof(uint64_t) * filter_count);
+    memset(local_filter_ids, 0, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count));
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
@@ -401,6 +415,7 @@ net_ebpf_extension_add_wfp_filters(
 
     for (uint32_t index = 0; index < filter_count; index++) {
         FWPM_FILTER filter = {0};
+        uint64_t local_filter_id = 0;
         const net_ebpf_extension_wfp_filter_parameters_t* filter_parameter = &parameters[index];
 
         filter.layerKey = *filter_parameter->layer_guid;
@@ -420,7 +435,7 @@ net_ebpf_extension_add_wfp_filters(
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
-        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &local_filter_ids[index]);
+        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &local_filter_id);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -430,6 +445,16 @@ net_ebpf_extension_add_wfp_filters(
                 (char*)filter_parameter->name);
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
+        } else {
+            local_filter_ids[index].id = local_filter_id;
+            local_filter_ids[index].name = (wchar_t*)filter_parameter->name;
+            local_filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_ADDED;
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Added WFP filter: ",
+                index,
+                local_filter_id);
         }
     }
 
@@ -732,6 +757,21 @@ net_ebpf_ext_filter_change_notify(
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
+
+        for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
+            net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
+            if (cur_filter_id->id == filter->filterId) {
+                cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
+                NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                    "Deleted WFP filter: ",
+                    index,
+                    cur_filter_id->id);
+
+                break;
+            }
+        }
         DEREFERENCE_FILTER_CONTEXT((filter_context));
     }
 

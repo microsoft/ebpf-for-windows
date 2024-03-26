@@ -25,7 +25,7 @@ However, we'll do this walkthrough assuming one is only using Windows.
 
 **Step 1)** Author a new file by putting some content into a file, say `bpf.c`:
 
-```
+```c
 int func()
 {
     return 0;
@@ -166,7 +166,7 @@ reached.  In this way, there can even be multiple sections per source file.
 Author a new file, say in `bpf2.c` this time, with another function and a
 pragma above each one:
 
-```
+```c
 #pragma clang section text="myprog"
 
 int func()
@@ -256,7 +256,7 @@ things out for readability, but feel free to abbreviate to save typing.
 **Step 2)** Run the verifier on our sample program
 
 ```
-> netsh ebpf show verification bpf.o type=xdp
+> netsh ebpf show verification bpf.o type=sample_ext
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -268,7 +268,7 @@ as the eBPF program to verify.  If we try the same on an object file with
 multiple such sections, we get this:
 
 ```
-> netsh ebpf show verification bpf2.o type=xdp
+> netsh ebpf show verification bpf2.o type=sample_ext
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -279,12 +279,12 @@ which was "myprog" in the section listing.  We can explicitly
 specify the section to use as follows:
 
 ```
-> netsh ebpf show verification bpf2.o myprog type=xdp
+> netsh ebpf show verification bpf2.o myprog type=sample_ext
 
 Verification succeeded
 Program terminates within 6 instructions
 
-> netsh ebpf show verification bpf2.o another type=xdp
+> netsh ebpf show verification bpf2.o another type=sample_ext
 
 Verification succeeded
 Program terminates within 6 instructions
@@ -330,7 +330,7 @@ verification process, using the "level=verbose" option to "show section":
 > netsh ebpf show section bpf.o .text verbose
 
 Section      : .text
-Program Type : xdp
+Program Type : sample_ext
 # Maps       : 0
 Size         : 2 instructions
 adjust_head  : 0
@@ -362,7 +362,7 @@ We can view verbose output to see what the verifier is actually doing,
 using the "level=verbose" option to "show verification":
 
 ```
-> netsh ebpf show verification bpf.o type=xdp level=verbose
+> netsh ebpf show verification bpf.o type=sample_ext level=verbose
 
 Pre-invariant : [
     instruction_count=0,
@@ -475,8 +475,8 @@ Hook points are callouts exposed by the system to which eBPF programs can
 attach.  By convention, the section name of the eBPF program in an ELF file
 is commonly used to designate which hook point the eBPF program is designed
 for.  Specifically, a set of prefix strings are typically used to match against the
-section name.  For example, any section name starting with "xdp" is meant
-as an XDP layer program.  This is a convenient default, but can be
+section name.  For example, any section name starting with "xdp_test" is meant
+as an XDP_TEST layer program.  This is a convenient default, but can be
 overridden by an app asking to load an eBPF program, such as when the eBPF program is simply in the
 ".text" section.
 
@@ -491,9 +491,9 @@ structure which contains an arbitrary amount of data.  (Tail calls to
 programs can have more than one argument, but hooks put all the info in a
 hook-specific context structure passed as one argument.)
 
-The "xdp" hook point has the following prototype in `ebpf_nethooks.h`:
+The "xdp_test" hook point has the following prototype in `ebpf_nethooks.h`:
 
-```
+```c
 typedef struct xdp_md
 {
     void* data;               // Pointer to start of packet data.
@@ -514,14 +514,14 @@ typedef xdp_action_t xdp_hook_t(xdp_md_t* context);
 
 A sample eBPF program might look like this:
 
-```
+```c
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
 
-// Put "xdp" in the section name to specify XDP as the hook.
+// Put "xdp_test" in the section name to specify XDP_TEST as the hook.
 // The SEC macro below has the same effect as the
 // clang pragma used in section 2 of this tutorial.
-SEC("xdp")
+SEC("xdp_test")
 int my_xdp_parser(xdp_md_t* ctx)
 {
     int length = (char *)ctx->data_end - (char *)ctx->data;
@@ -575,10 +575,10 @@ sockops                        ProgramType   : {77, 34, 251, 67...}
                                AttachType    : {205, 2, 125, 131...}
                                BpfProgType   : 4
                                BpfAttachType : 7
-xdp                            ProgramType   : {133, 42, 131, 241...}
-                               AttachType    : {239, 216, 224, 133...}
-                               BpfProgType   : 1
-                               BpfAttachType : 1
+xdp_test                       ProgramType   : {248, 206, 140, 206...}
+                               AttachType    : {93, 193, 204, 13...}
+                               BpfProgType   : 5
+                               BpfAttachType : 9
 ```
 
 With the above, our sample program will pass verification:
@@ -593,10 +593,10 @@ Program terminates within 30 instructions
 ```
 
 What would have happened had the prototype not matched?  Let's say the
-verifier is the same as above but XDP instead had a different struct
+verifier is the same as above but XDP_TEST instead had a different struct
 definition:
 
-```
+```c
 typedef struct _xdp_md_t
 {
     uint64_t more;
@@ -641,7 +641,7 @@ can vary by platform.  For comparison, helpers for Linux are documented in the
 
 Let's say the following helper function prototype is exposed by Windows:
 
-```
+```c
 #define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
 EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void* value, uint64_t flags));
 ```
@@ -649,7 +649,7 @@ EBPF_HELPER(int64_t, bpf_map_update_elem, (struct bpf_map * map, void* key, void
 We'll cover in section 6.3 what this function does, but for now we only care about the prototype.
 We can create a sample (but, as we will see, invalid) program like so:
 
-```
+```c
 #include "bpf_helpers.h"
 
 int func()
@@ -718,7 +718,7 @@ and the return value.
 ;     return result;
        5:       exit
 
-> netsh ebpf show verification helpers.o type=xdp
+> netsh ebpf show verification helpers.o type=sample_ext
 Verification failed
 
 Verification report:
@@ -758,7 +758,7 @@ of eBPF programs, or to expose information (e.g., statistics) to applications.
 To see how maps are exposed to eBPF programs, let's first start from a
 plain eBPF program:
 
-```
+```c
 SEC("myprog")
 int func()
 {
@@ -773,7 +773,7 @@ if multiple instances of our program are simultaneously running on different
 CPUs.
 
 
-```
+```c
 #include "bpf_helpers.h"
 
 struct {
@@ -810,7 +810,7 @@ Contents of section maps:
 ```
 
 Now to make use of the map, we have to use helper functions to access it:
-```
+```c
 void *bpf_map_lookup_elem(struct bpf_map* map, const void* key);
 int bpf_map_update_elem(struct bpf_map* map, const void* key, const void* value, uint64_t flags);
 int bpf_map_delete_elem(struct bpf_map* map, const void* key);
@@ -818,7 +818,7 @@ int bpf_map_delete_elem(struct bpf_map* map, const void* key);
 
 Let's update the program to write the value "42" to the map section for the
 current CPU, by changing the "myprog" section to the following:
-```
+```c
 SEC("myprog")
 int func1()
 {
@@ -882,7 +882,7 @@ Above shows "call 2", but `netsh` shows more details
 ; C:\your\path\here/map.c:13
 ;     return result;
       12:       exit
-````
+```
 
 Notice from instruction 11 that `netsh` understands that `bpf_map_update_elem()` expects
 a map file descriptor (FD) in R1, a map key in R2, and a map value in R3.
@@ -950,7 +950,7 @@ To see it installed:
 
     ID  Pins  Links  Mode       Type           Name
 ======  ====  =====  =========  =============  ====================
- 65568     1      1  JIT        xdp            my_xdp_parser
+ 65568     1      1  JIT        xdp_test       my_xdp_parser
 ```
 
 And remove it by the id, which we saw above is 65568:

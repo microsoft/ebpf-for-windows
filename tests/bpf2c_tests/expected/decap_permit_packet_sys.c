@@ -185,10 +185,10 @@ static helper_function_entry_t decapsulate_permit_packet_helpers[] = {
 };
 
 static GUID decapsulate_permit_packet_program_type_guid = {
-    0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
+    0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
 static GUID decapsulate_permit_packet_attach_type_guid = {
-    0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
-#pragma code_seg(push, "xdp/de~1")
+    0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
+#pragma code_seg(push, "xdp_te~1")
 static uint64_t
 decapsulate_permit_packet(void* context)
 #line 88 "sample/decap_permit_packet.c"
@@ -598,8 +598,8 @@ static program_entry_t _programs[] = {
     {
         0,
         decapsulate_permit_packet,
-        "xdp/de~1",
-        "xdp/decapsulate_reflect",
+        "xdp_te~1",
+        "xdp_test/decapsulate_reflect",
         "decapsulate_permit_packet",
         NULL,
         0,
@@ -623,7 +623,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 15;
     version->revision = 0;
 }
 

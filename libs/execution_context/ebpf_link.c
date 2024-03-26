@@ -347,6 +347,12 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     lock_held = true;
 
     if (!link->provider_attached) {
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Program failed to attach to extension hook.",
+            &link->program_type,
+            &link->attach_type);
         return_value = EBPF_EXTENSION_FAILED_TO_LOAD;
         goto Done;
     }
@@ -484,6 +490,8 @@ _ebpf_link_instance_invoke_batch_begin(
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
+
+    memset(execution_context_state, 0, sizeof(ebpf_execution_context_state_t));
 
     ebpf_get_execution_context_state(execution_context_state);
     return_value = ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)state, execution_context_state);

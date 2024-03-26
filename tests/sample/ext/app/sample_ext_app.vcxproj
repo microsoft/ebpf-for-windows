@@ -29,7 +29,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{7358d8bd-4123-4b2d-86c0-87f6ba6ced76}</ProjectGuid>
+    <ProjectGuid>{6D365515-DE92-4CEB-AB3D-5608719A8886}</ProjectGuid>
     <RootNamespace>sample_ebpf_ext_app</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -107,7 +107,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -119,7 +119,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -131,7 +131,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -143,7 +143,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,7 +157,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\netebpfext;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)undocked\tests\sample\ext\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

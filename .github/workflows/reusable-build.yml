@@ -8,6 +8,13 @@ name: Reusable MSBuild Workflow
 on:
   workflow_call:
     inputs:
+      ref:
+        required: true
+        type: string
+      # repository to be used (needed for self-hosted runner setups)
+      repository:
+        required: true
+        type: string
       # Name associated with the output of this build.
       build_artifact:
         required: true
@@ -62,6 +69,11 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      with:
+        egress-policy: audit
+
     - id: skip_check
       uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
       with:
@@ -76,10 +88,12 @@ jobs:
         powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
         powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
-    - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+    - uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
+        repository: ${{inputs.repository}}
         submodules: 'recursive'
+        ref: ${{inputs.ref}}
 
     - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
       id: configure_windows_error_reporting
@@ -97,7 +111,7 @@ jobs:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
+      uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
 
     - name: Setup choco cache folder
       # Set the choco cache to a local folder so that it can be cached.
@@ -111,7 +125,7 @@ jobs:
       # Add cache entry for any choco packages that are installed.
       # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
       env:
         cache-name: cache-choco-packages
       with:
@@ -128,54 +142,31 @@ jobs:
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
       env:
         cache-name: cache-nuget-modules
       with:
         path: packages
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-${{env.msvc_tools_version}}
 
-    - name: Restore NuGet packages
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore ${{env.SOLUTION_FILE_PATH}}
-
     - name: Cache verifier project
       # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@704facf57e6136b1bc63b828d79edcd491f0ee84
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
       env:
         cache-name: cache-verifier-project
       with:
         path: external/ebpf-verifier/build
         key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-${{ hashFiles('external/Directory.Build.props')}}-${{env.msvc_tools_version}}
 
-    - name: Create verifier project
+    - name: Configuring repo for first build
       if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       env:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
         LDFLAGS: ${{env.LD_FLAGS}}
       run: |
-        cmake -G "Visual Studio 17 2022" -S external\ebpf-verifier -B external\ebpf-verifier\build
-
-    - name: Create catch2 project
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      env:
-        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
-        LDFLAGS: ${{env.LD_FLAGS}}
-      run: |
-        cmake -G "Visual Studio 17 2022" -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF
-
-    - name: Create ubpf project
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      env:
-        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
-        LDFLAGS: ${{env.LD_FLAGS}}
-      run: |
-        cmake -G "Visual Studio 17 2022" -S external\ubpf -B external\ubpf\build
+        .\scripts\initialize_ebpf_repo.ps1
 
     - name: Build
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -217,7 +208,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.0.4/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.0.6/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
@@ -233,8 +224,8 @@ jobs:
         Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
 
     - name: Upload Build Output
-      if: always() && (steps.skip_check.outputs.should_skip != 'true')
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      if: always() && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_artifact != 'none')
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
         path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
@@ -242,7 +233,7 @@ jobs:
 
     - name: Upload the MSI package
       if: inputs.build_msi == true
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
@@ -254,19 +245,19 @@ jobs:
 
     - name: Upload the NuGet package
       if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
 
     - name: Build the NuGet Redist package
-      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package
 
     - name: Upload the NuGet Redist package
-      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
@@ -274,7 +265,7 @@ jobs:
     - name: Check for crash dumps
       # Check for crash dumps even if the workflow failed.
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
-      uses: andstor/file-existence-action@20b4d2e596410855db8f9ca21e96fbe18e12930b
+      uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
       id: check_dumps
       with:
         files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
@@ -282,7 +273,7 @@ jobs:
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}

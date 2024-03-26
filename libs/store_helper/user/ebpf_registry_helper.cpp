@@ -8,6 +8,7 @@
 
 #include "ebpf_registry_helper.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_windows.h"
 
 #include <rpc.h>
 #include <string>
@@ -18,21 +19,31 @@
 ebpf_store_key_t ebpf_store_root_key = HKEY_CURRENT_USER; // TODO: Issue #1231 Change to using HKEY_LOCAL_MACHINE
 const wchar_t* ebpf_store_root_sub_key = EBPF_ROOT_RELATIVE_PATH;
 
-static std::wstring
-_get_wstring_from_string(std::string text)
+wchar_t*
+ebpf_get_wstring_from_string(_In_ const char* text)
 {
-    int length = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
-    std::wstring wide(length, 0);
-    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, &wide[0], length);
+    int length = MultiByteToWideChar(CP_UTF8, 0, text, -1, nullptr, 0);
+    wchar_t* wide = (wchar_t*)ebpf_allocate(length * sizeof(wchar_t));
+    if (wide == nullptr) {
+        return nullptr;
+    }
+    MultiByteToWideChar(CP_UTF8, 0, text, -1, wide, length);
 
     return wide;
 }
 
 void
+ebpf_free_wstring(_Frees_ptr_opt_ wchar_t* wide)
+{
+    ebpf_free(wide);
+}
+
+void
 ebpf_close_registry_key(ebpf_store_key_t key)
 {
-    ebpf_assert(key);
-    RegCloseKey(key);
+    if (key != NULL) {
+        RegCloseKey(key);
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -46,27 +57,13 @@ ebpf_write_registry_value_binary(
 }
 
 _Must_inspect_result_ ebpf_result_t
-write_registry_value_wide_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
+ebpf_write_registry_value_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const wchar_t* value)
 {
     ebpf_assert(value_name);
     ebpf_assert(value);
 
     auto length = (wcslen(value) + 1) * sizeof(wchar_t);
     return _EBPF_RESULT(RegSetValueEx(key, value_name, 0, REG_SZ, (uint8_t*)value, (unsigned long)length));
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_write_registry_value_ansi_string(ebpf_store_key_t key, _In_z_ const wchar_t* value_name, _In_z_ const char* value)
-{
-    ebpf_result_t result;
-    try {
-        auto wide_string = _get_wstring_from_string(value);
-        result = _EBPF_RESULT(write_registry_value_wide_string(key, value_name, wide_string.c_str()));
-    } catch (...) {
-        result = EBPF_NO_MEMORY;
-    }
-
-    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -107,22 +104,7 @@ ebpf_delete_registry_key(ebpf_store_key_t root_key, _In_z_ const wchar_t* sub_ke
 _Must_inspect_result_ ebpf_result_t
 ebpf_delete_registry_tree(ebpf_store_key_t root_key, _In_opt_z_ const wchar_t* sub_key)
 {
-    return _EBPF_RESULT(RegDeleteTree(root_key, sub_key));
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_create_registry_key_ansi(
-    ebpf_store_key_t root_key, _In_z_ const char* sub_key, uint32_t flags, _Out_ ebpf_store_key_t* key)
-{
-    ebpf_result_t result;
-    try {
-        auto wide_string = _get_wstring_from_string(sub_key);
-        result = ebpf_create_registry_key(root_key, wide_string.c_str(), flags, key);
-    } catch (...) {
-        result = EBPF_NO_MEMORY;
-    }
-
-    return result;
+    return _EBPF_RESULT(RegDeleteTreeW(root_key, sub_key));
 }
 
 _Must_inspect_result_ ebpf_result_t

@@ -159,6 +159,10 @@ ebpf_result_to_errno(ebpf_result_t result)
         error = EFAULT;
         break;
 
+    case EBPF_OUT_OF_SPACE:
+        error = ENOSPC;
+        break;
+
     default:
         error = EOTHER;
         break;

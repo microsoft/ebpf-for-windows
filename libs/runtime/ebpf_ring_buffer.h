@@ -49,7 +49,7 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring_buffer, _In_reads_bytes
  * @param[out] producer Offset of the next buffer to be produced.
  */
 void
-ebpf_ring_buffer_query(_In_ const ebpf_ring_buffer_t* ring_buffer, _Out_ size_t* consumer, _Out_ size_t* producer);
+ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring_buffer, _Out_ size_t* consumer, _Out_ size_t* producer);
 
 /**
  * @brief Mark one or more records in the ring buffer as returned to the ring.

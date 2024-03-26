@@ -12,7 +12,7 @@ on:
 concurrency:
   # Cancel any CI/CD workflow currently in progress for the same PR.
   # Allow running concurrently with any other commits.
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: perf-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -28,6 +28,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
+      ref: ${{ github.ref }}
       build_artifact: Build-x64
       build_options: /p:ReleaseJIT='False'
       configurations: '["Release"]'

@@ -46,46 +46,46 @@ static helper_function_entry_t test_utility_helpers_helpers[] = {
 };
 
 static GUID test_utility_helpers_program_type_guid = {
-    0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID test_utility_helpers_attach_type_guid = {
-    0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t test_utility_helpers_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "xdp")
+#pragma code_seg(push, "sample~1")
 static uint64_t
 test_utility_helpers(void* context)
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
 {
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     // Prologue
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r0 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r1 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r2 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r3 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r4 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r5 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r6 = 0;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     register uint64_t r10 = 0;
 
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     r1 = (uintptr_t)context;
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_LDDW pc=0 dst=r1 src=r0 offset=0 imm=0
-#line 32 "sample/test_utility_helpers.c"
+#line 33 "sample/undocked/test_utility_helpers.c"
     r1 = (uint64_t)4294967296;
     // EBPF_OP_STXDW pc=2 dst=r10 src=r1 offset=-8 imm=0
 #line 12 "sample/./sample_common_routines.h"
@@ -268,12 +268,12 @@ test_utility_helpers(void* context)
 #line 51 "sample/./sample_common_routines.h"
         return 0;
     // EBPF_OP_MOV64_IMM pc=42 dst=r0 src=r0 offset=0 imm=0
-#line 34 "sample/test_utility_helpers.c"
+#line 35 "sample/undocked/test_utility_helpers.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=43 dst=r0 src=r0 offset=0 imm=0
-#line 34 "sample/test_utility_helpers.c"
+#line 35 "sample/undocked/test_utility_helpers.c"
     return r0;
-#line 34 "sample/test_utility_helpers.c"
+#line 35 "sample/undocked/test_utility_helpers.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -283,8 +283,8 @@ static program_entry_t _programs[] = {
     {
         0,
         test_utility_helpers,
-        "xdp",
-        "xdp",
+        "sample~1",
+        "sample_ext",
         "test_utility_helpers",
         test_utility_helpers_maps,
         1,
@@ -308,7 +308,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 15;
     version->revision = 0;
 }
 

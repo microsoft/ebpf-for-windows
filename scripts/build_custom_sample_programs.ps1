@@ -14,7 +14,7 @@ $ProgramType = ""
 
 if ($FileName -eq "bpf")
 {
-    $ProgramType = "xdp"
+    $ProgramType = "bind"
 }
 
 .\Convert-BpfToNative.ps1 -FileName $Filename -Type $ProgramType -IncludeDir $IncludePath -Platform $Platform -Configuration $KernelConfiguration -KernelMode $True

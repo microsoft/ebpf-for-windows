@@ -182,6 +182,31 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
             pin_type);
     }
 
+    // Cache unnamed maps.
+    for (auto& map : map_data) {
+        if (map.name.empty()) {
+            uint32_t idx = (uint32_t)btf_map_name_to_index[map.name];
+            auto& btf_map_descriptor = btf_map_descriptors[idx];
+            // We temporarily stored BTF type ids in the descriptor's fd fields.
+            int btf_type_id = btf_map_descriptor.original_fd;
+            int btf_inner_type_id = btf_map_descriptor.inner_map_fd;
+
+            auto pin_type = _get_pin_type_for_btf_map(btf_data.value(), btf_type_id);
+            cache_map_handle(
+                ebpf_handle_invalid,
+                map_idx_to_original_fd(idx),
+                btf_type_id,
+                btf_map_descriptor.type,
+                btf_map_descriptor.key_size,
+                btf_map_descriptor.value_size,
+                btf_map_descriptor.max_entries,
+                (uint32_t)ebpf_fd_invalid,
+                btf_inner_type_id,
+                MAXSIZE_T,
+                pin_type);
+        }
+    }
+
     // Resolve inner_map_fd for each map.
     btf_map_descriptors.clear();
     g_ebpf_platform_windows.resolve_inner_map_references(btf_map_descriptors);
@@ -212,8 +237,24 @@ _get_map_names(
         _parse_btf_map_info_and_populate_cache(reader, map_names);
     }
 
-    if (get_map_descriptor_size() != map_names.size()) {
-        throw std::runtime_error(string("Map name not found for some maps."));
+    // Verify that returned map descriptors are a superset of map names referenced in the symbol section.
+    // Get all map descriptors.
+    auto map_descriptors = get_all_map_descriptors();
+
+    // For each map in map_names (from the symbol table), verify that the map is present in map_descriptors (from the
+    // BTF data).
+    for (const auto& map_name : map_names) {
+        bool found = false;
+        for (const auto& map_descriptor : map_descriptors) {
+            if (map_name.section_offset == map_descriptor.section_offset) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            throw std::runtime_error(string("Map ") + map_name.map_name + " not found.");
+        }
     }
 }
 
@@ -390,6 +431,7 @@ load_byte_code(
         _get_program_and_map_names(file_name, section_to_program_map, map_names);
 
         auto map_descriptors = get_all_map_descriptors();
+        size_t anonymous_map_count = 0;
         for (const auto& descriptor : map_descriptors) {
             bool found = false;
             int index;
@@ -399,6 +441,15 @@ load_byte_code(
                     break;
                 }
             }
+
+            // Handle anonymous maps.
+            if (descriptor.section_offset == MAXSIZE_T) {
+                std::string name = "__anonymous_map_" + std::to_string(++anonymous_map_count);
+                index = static_cast<int>(map_names.size());
+                map_names.push_back({descriptor.section_offset, name});
+                found = true;
+            }
+
             if (!found) {
                 result = EBPF_ELF_PARSING_FAILED;
                 goto Exit;

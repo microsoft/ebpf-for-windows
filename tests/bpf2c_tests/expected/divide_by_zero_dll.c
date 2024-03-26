@@ -67,90 +67,90 @@ static helper_function_entry_t divide_by_zero_helpers[] = {
 };
 
 static GUID divide_by_zero_program_type_guid = {
-    0xf1832a85, 0x85d5, 0x45b0, {0x98, 0xa0, 0x70, 0x69, 0xd6, 0x30, 0x13, 0xb0}};
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID divide_by_zero_attach_type_guid = {
-    0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static uint16_t divide_by_zero_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "xdp")
+#pragma code_seg(push, "sample~1")
 static uint64_t
 divide_by_zero(void* context)
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
 {
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     // Prologue
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r0 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r1 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r2 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r3 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r4 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r5 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r6 = 0;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     register uint64_t r10 = 0;
 
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     r1 = (uintptr_t)context;
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
-#line 31 "sample/divide_by_zero.c"
+#line 32 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
-#line 33 "sample/divide_by_zero.c"
+#line 34 "sample/undocked/divide_by_zero.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r6;
     // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
-#line 33 "sample/divide_by_zero.c"
+#line 34 "sample/undocked/divide_by_zero.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
-#line 33 "sample/divide_by_zero.c"
+#line 34 "sample/undocked/divide_by_zero.c"
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r0 offset=0 imm=0
-#line 34 "sample/divide_by_zero.c"
+#line 35 "sample/undocked/divide_by_zero.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
-#line 34 "sample/divide_by_zero.c"
+#line 35 "sample/undocked/divide_by_zero.c"
     r0 = divide_by_zero_helpers[0].address
-#line 34 "sample/divide_by_zero.c"
+#line 35 "sample/undocked/divide_by_zero.c"
          (r1, r2, r3, r4, r5);
-#line 34 "sample/divide_by_zero.c"
+#line 35 "sample/undocked/divide_by_zero.c"
     if ((divide_by_zero_helpers[0].tail_call) && (r0 == 0))
-#line 34 "sample/divide_by_zero.c"
+#line 35 "sample/undocked/divide_by_zero.c"
         return 0;
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
-#line 35 "sample/divide_by_zero.c"
+#line 36 "sample/undocked/divide_by_zero.c"
     if (r0 == IMMEDIATE(0))
-#line 35 "sample/divide_by_zero.c"
+#line 36 "sample/undocked/divide_by_zero.c"
         goto label_1;
     // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
-#line 36 "sample/divide_by_zero.c"
+#line 37 "sample/undocked/divide_by_zero.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
-#line 36 "sample/divide_by_zero.c"
+#line 37 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(100000);
     // EBPF_OP_DIV64_REG pc=10 dst=r6 src=r1 offset=0 imm=0
-#line 36 "sample/divide_by_zero.c"
+#line 37 "sample/undocked/divide_by_zero.c"
     r6 = r1 ? (r6 / r1) : 0;
 label_1:
     // EBPF_OP_MOV64_REG pc=11 dst=r0 src=r6 offset=0 imm=0
-#line 39 "sample/divide_by_zero.c"
+#line 40 "sample/undocked/divide_by_zero.c"
     r0 = r6;
     // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
-#line 39 "sample/divide_by_zero.c"
+#line 40 "sample/undocked/divide_by_zero.c"
     return r0;
-#line 39 "sample/divide_by_zero.c"
+#line 40 "sample/undocked/divide_by_zero.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -160,8 +160,8 @@ static program_entry_t _programs[] = {
     {
         0,
         divide_by_zero,
-        "xdp",
-        "xdp",
+        "sample~1",
+        "sample_ext",
         "divide_by_zero",
         divide_by_zero_maps,
         1,
@@ -185,7 +185,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 15;
     version->revision = 0;
 }
 

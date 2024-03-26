@@ -31,12 +31,16 @@ EXPORTS
     bpf_map__unpin
     bpf_map__value_size
     bpf_map_create
+    bpf_map_delete_batch
     bpf_map_delete_elem
     bpf_map_get_fd_by_id
     bpf_map_get_next_id
     bpf_map_get_next_key
+    bpf_map_lookup_and_delete_batch
     bpf_map_lookup_and_delete_elem
+    bpf_map_lookup_batch
     bpf_map_lookup_elem
+    bpf_map_update_batch
     bpf_map_update_elem
     bpf_obj_get
     bpf_obj_get_info_by_fd
@@ -113,6 +117,10 @@ EXPORTS
     ebpf_program_attach
     ebpf_program_attach_by_fd
     ebpf_program_query_info
+    ebpf_store_delete_program_information
+    ebpf_store_delete_section_information
+    ebpf_store_update_program_information
+    ebpf_store_update_section_information
     libbpf_attach_type_by_name
     libbpf_bpf_attach_type_str
     libbpf_bpf_link_type_str

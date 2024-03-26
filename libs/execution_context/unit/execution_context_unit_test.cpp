@@ -259,6 +259,55 @@ _test_crud_operations(ebpf_map_type_t map_type)
             reinterpret_cast<const uint8_t*>(&previous_key),
             reinterpret_cast<uint8_t*>(&next_key)) == EBPF_NO_MORE_KEYS);
 
+    std::vector<size_t> batch_test_sizes = {
+        1,
+        17,
+        _test_map_size / 4,
+        _test_map_size,
+        _test_map_size * 2,
+    };
+    for (size_t batch_count : batch_test_sizes) {
+
+        keys.clear();
+        size_t effective_key_size = ebpf_map_get_definition(map.get())->key_size;
+        size_t effective_value_size = ebpf_map_get_definition(map.get())->value_size;
+        std::vector<uint8_t> batch_data(batch_count * (effective_key_size + effective_value_size));
+        ebpf_result_t return_value = EBPF_SUCCESS;
+
+        for (uint32_t index = 0; return_value == EBPF_SUCCESS; index++) {
+            size_t batch_data_size = batch_data.size();
+            return_value = ebpf_map_get_next_key_and_value_batch(
+                map.get(),
+                sizeof(previous_key),
+                index == 0 ? nullptr : reinterpret_cast<uint8_t*>(&previous_key),
+                &batch_data_size,
+                batch_data.data(),
+                0);
+
+            if (return_value == EBPF_NO_MORE_KEYS) {
+                break;
+            }
+
+            REQUIRE(return_value == EBPF_SUCCESS);
+
+            REQUIRE(batch_data_size <= batch_data.size());
+            size_t returned_batch_count = batch_data_size / (effective_key_size + effective_value_size);
+
+            // Verify that all keys are returned.
+            for (uint32_t batch_index = 0; batch_index < returned_batch_count; batch_index++) {
+                uint32_t current_key = *reinterpret_cast<uint32_t*>(
+                    &batch_data[batch_index * (effective_key_size + effective_value_size)]);
+                uint64_t current_value = *reinterpret_cast<uint64_t*>(
+                    &batch_data[batch_index * (effective_key_size + effective_value_size) + effective_key_size]);
+                keys.insert(current_key);
+                REQUIRE(current_value == current_key * current_key);
+            }
+            previous_key = *reinterpret_cast<uint32_t*>(
+                &batch_data[(returned_batch_count - 1) * (effective_key_size + effective_value_size)]);
+        }
+        REQUIRE(keys.size() == _test_map_size);
+    }
+
     for (const auto key : keys) {
         REQUIRE(
             ebpf_map_delete_entry(map.get(), sizeof(key), reinterpret_cast<const uint8_t*>(&key), 0) == EBPF_SUCCESS);
@@ -667,11 +716,11 @@ TEST_CASE("program", "[execution_context]")
     end_to_end.initialize();
 
     program_info_provider_t program_info_provider;
-    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+    REQUIRE(program_info_provider.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
     const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
     const ebpf_program_parameters_t program_parameters{
-        EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP, program_name, section_name};
+        EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, program_name, section_name};
     program_ptr program;
     {
         ebpf_program_t* local_program = nullptr;
@@ -734,20 +783,20 @@ TEST_CASE("program", "[execution_context]")
             program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
-    bind_md_t ctx{0};
+    sample_program_context_t ctx{0};
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
     ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
-    std::vector<uint8_t> input_buffer(10);
-    std::vector<uint8_t> output_buffer(10);
     ebpf_program_test_run_options_t options = {0};
-    options.data_in = input_buffer.data();
-    options.data_size_in = input_buffer.size();
-    options.data_out = output_buffer.data();
-    options.data_size_out = output_buffer.size();
+    sample_program_context_t in_ctx{0};
+    sample_program_context_t out_ctx{0};
     options.repeat_count = 10;
+    options.context_in = reinterpret_cast<uint8_t*>(&in_ctx);
+    options.context_size_in = sizeof(in_ctx);
+    options.context_out = reinterpret_cast<uint8_t*>(&out_ctx);
+    options.context_size_out = sizeof(out_ctx);
 
     ebpf_async_wrapper_t async_context;
     uint64_t unused_completion_context = 0;
@@ -793,30 +842,30 @@ TEST_CASE("program", "[execution_context]")
 
     // Correct attach type, but wrong program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_XDP);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
 
     // Wrong attach type, but correct program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_BIND);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_BIND);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
         REQUIRE(ebpf_link_attach_program(link.get(), program.get()) == EBPF_EXTENSION_FAILED_TO_LOAD);
     }
 
     // Correct attach type and correct program type.
     {
-        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         ebpf_link_t* local_link = nullptr;
-        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_XDP, nullptr, 0, &local_link) == EBPF_SUCCESS);
+        REQUIRE(ebpf_link_create(EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &local_link) == EBPF_SUCCESS);
         link.reset(local_link);
 
         // Attach should succeed.
@@ -1196,6 +1245,25 @@ extern bool _ebpf_platform_code_integrity_enabled;
     std::map<std::string, ebpf_handle_t> map_handles;                                 \
     create_various_objects(program_handles, map_handles);
 
+#if defined(CONFIG_BPF_JIT_DISABLED) || defined(CONFIG_BPF_INTERPRETER_DISABLED)
+void
+test_blocked_by_policy(ebpf_operation_id_t operation)
+{
+    NEGATIVE_TEST_PROLOG();
+
+    ebpf_result_t expected_result = EBPF_BLOCKED_BY_POLICY;
+
+    std::vector<uint8_t> request(sizeof(ebpf_operation_header_t));
+    std::vector<uint8_t> reply(sizeof(ebpf_operation_header_t));
+
+    REQUIRE(invoke_protocol(operation, request, reply) == expected_result);
+
+    // Use a request buffer larger than ebpf_operation_header_t, and try again.
+    request.resize(request.size() + 10);
+    REQUIRE(invoke_protocol(operation, request, reply) == expected_result);
+}
+#endif
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 // These tests exist to verify ebpf_core's parsing of messages.
 // See libbpf_test.cpp for invalid parameter but correctly formed message cases.
@@ -1267,7 +1335,17 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
     resolve_map_request->program_handle = program_handles[0];
     REQUIRE(invoke_protocol(EBPF_OPERATION_RESOLVE_MAP, request, reply) == EBPF_INVALID_ARGUMENT);
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_RESOLVE_HELPER);
+}
+
+TEST_CASE("EBPF_OPERATION_RESOLVE_MAP", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_RESOLVE_MAP);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED)
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
@@ -1324,7 +1402,12 @@ TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
     create_program_request->program_name_offset = EBPF_OFFSET_OF(ebpf_operation_create_program_request_t, data);
     REQUIRE(invoke_protocol(EBPF_OPERATION_CREATE_PROGRAM, request, reply) == EBPF_INVALID_ARGUMENT);
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_CREATE_PROGRAM", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_CREATE_PROGRAM);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("EBPF_OPERATION_CREATE_MAP", "[execution_context][negative]")
 {
@@ -1416,7 +1499,12 @@ TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
     }
     _ebpf_platform_code_integrity_enabled = false;
 }
-#endif
+#else
+TEST_CASE("EBPF_OPERATION_LOAD_CODE", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_LOAD_CODE);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE", "[execution_context][negative]")
 {
@@ -1688,6 +1776,11 @@ TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
     request.function = static_cast<ebpf_ec_function_t>(EBPF_EC_FUNCTION_LOG + 1);
     // Wrong EC function.
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_EC_FUNCTION, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+#else
+TEST_CASE("EBPF_OPERATION_GET_EC_FUNCTION", "[execution_context][negative]")
+{
+    test_blocked_by_policy(EBPF_OPERATION_GET_EC_FUNCTION);
 }
 #endif
 

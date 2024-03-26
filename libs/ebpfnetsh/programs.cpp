@@ -53,7 +53,7 @@ std::vector<struct bpf_object*> _ebpf_netsh_objects;
 bool
 _prog_type_supports_interface(bpf_prog_type prog_type)
 {
-    return (prog_type == BPF_PROG_TYPE_XDP);
+    return (prog_type == BPF_PROG_TYPE_XDP) || (prog_type == BPF_PROG_TYPE_XDP_TEST);
 }
 
 bool

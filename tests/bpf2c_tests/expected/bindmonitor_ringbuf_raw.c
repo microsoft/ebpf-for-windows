@@ -19,7 +19,7 @@ static map_entry_t _maps[] = {
          BPF_MAP_TYPE_RINGBUF, // Type of map.
          0,                    // Size in bytes of a map key.
          0,                    // Size in bytes of a map value.
-         262144,               // Maximum number of entries allowed in the map.
+         65536,                // Maximum number of entries allowed in the map.
          0,                    // Inner map index.
          LIBBPF_PIN_NONE,      // Pinning type for the map.
          7,                    // Identifier for a map template.
@@ -156,7 +156,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 13;
+    version->minor = 15;
     version->revision = 0;
 }
 

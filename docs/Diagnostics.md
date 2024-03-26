@@ -18,7 +18,7 @@ netebpfext.sys uses the Windows Filtering Platform (WFP) to implement certain eB
 program and attach type, different WFP objects are expected to be created.
 
 The following program types rely on WFP:
-- BPF_PROG_TYPE_XDP
+- BPF_PROG_TYPE_XDP_TEST
 - BPF_PROG_TYPE_BIND
 - BPF_PROG_TYPE_CGROUP_SOCK_ADDR
 - BPF_PROG_TYPE_SOCK_OPS
