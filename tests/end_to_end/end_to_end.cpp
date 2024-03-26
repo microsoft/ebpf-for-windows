@@ -3223,8 +3223,11 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     fd_t map_fd = ebpf_fd_invalid;
     bool nested_map = (type == BPF_MAP_TYPE_HASH_OF_MAPS);
     void* value = nullptr;
+    uint32_t key_size = 0;
+    uint32_t value_size = 0;
 
 #define IS_LRU_MAP(type) ((type) == BPF_MAP_TYPE_LRU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+#define IS_PERCPU_MAP(type) ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
 
     typedef struct _lpm_trie_key
     {
@@ -3238,22 +3241,39 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
         REQUIRE(inner_map_fd > 0);
 
         bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
-        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, sizeof(int32_t), sizeof(fd_t), 1, &opts);
+        key_size = sizeof(int32_t);
+        value_size = sizeof(fd_t);
+        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, 1, &opts);
         REQUIRE(map_fd > 0);
     } else {
-        size_t key_size = (type == BPF_MAP_TYPE_LPM_TRIE) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
-        map_fd = bpf_map_create(type, nullptr, (uint32_t)key_size, sizeof(int32_t), max_entries, nullptr);
+        key_size = (type == BPF_MAP_TYPE_LPM_TRIE) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
+        value_size = sizeof(int32_t);
+        map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, nullptr);
         REQUIRE(map_fd > 0);
     }
 
+    // Update value_size for percpu maps for read / update operations.
+    if (IS_PERCPU_MAP(type)) {
+        value_size = EBPF_PAD_8(value_size) * static_cast<size_t>(libbpf_num_possible_cpus());
+    }
+    std::vector<uint8_t> per_cpu_value(value_size);
+
     // Add `max_entries` entries to the map.
     for (uint32_t i = 0; i < max_entries; i++) {
-        value = nested_map ? &inner_map_fd : (int32_t*)&i;
+        if (IS_PERCPU_MAP(type)) {
+            value = per_cpu_value.data();
+        } else {
+            value = nested_map ? &inner_map_fd : (int32_t*)&i;
+        }
         REQUIRE(bpf_map_update_elem(map_fd, &i, value, 0) == 0);
     }
 
     // Add one more entry to the map.
-    value = nested_map ? &inner_map_fd : (int32_t*)&max_entries;
+    if (IS_PERCPU_MAP(type)) {
+        value = per_cpu_value.data();
+    } else {
+        value = nested_map ? &inner_map_fd : (int32_t*)&max_entries;
+    }
     // In case of LRU_HASH, insert will succeed, but the oldest entry will be removed.
     int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
     REQUIRE(bpf_map_update_elem(map_fd, &max_entries, value, 0) == (max_entries_limited ? expected_error : 0));
