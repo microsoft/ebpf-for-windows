@@ -56,7 +56,7 @@ typedef struct _section_offset_to_map
 
 struct _thread_local_storage_cache
 {
-    ~_thread_local_storage_cache() { ebpf_clear_thread_local_storage(); }
+    _thread_local_storage_cache() { ebpf_clear_thread_local_storage(); }
 };
 
 static ebpf_pin_type_t
@@ -779,7 +779,8 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
     ebpf_clear_thread_local_storage();
 
     set_global_program_and_attach_type(program_type, nullptr);
-    set_verification_in_progress(true);
+    // set_verification_in_progress(true);
+    _verification_in_progress_helper helper;
     return _ebpf_api_elf_verify_section_from_stream(stream, name, section, verbose, report, error_message, stats);
 }
 
