@@ -19,7 +19,8 @@
 	url = https://github.com/trailofbits/pe-parse.git
 [submodule "external/usersim"]
 	path = external/usersim
-	url = https://github.com/microsoft/usersim.git
+	url = https://github.com/matthewige/usersim.git
+	branch = user/maige/avl2
 [submodule "tests/external/kissfft"]
 	path = tests/external/kissfft
 	url = https://github.com/mborgerding/kissfft
