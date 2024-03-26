@@ -771,8 +771,9 @@ _net_ebpf_ext_uninitialize_blocked_connection_contexts()
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_blocked_contexts.lock, old_irql);
 }
 
-static RTL_GENERIC_COMPARE_RESULTS
-_net_ebpf_sock_addr_blocked_context_avl_compare_routine(_In_ RTL_AVL_TABLE* table, _In_ PVOID first, _In_ PVOID second)
+_Function_class_(RTL_AVL_COMPARE_ROUTINE) static RTL_GENERIC_COMPARE_RESULTS
+    _net_ebpf_sock_addr_blocked_context_avl_compare_routine(
+        _In_ RTL_AVL_TABLE* table, _In_ PVOID first, _In_ PVOID second)
 {
     UNREFERENCED_PARAMETER(table);
 
@@ -786,16 +787,16 @@ _net_ebpf_sock_addr_blocked_context_avl_compare_routine(_In_ RTL_AVL_TABLE* tabl
     }
 }
 
-static PVOID
-_net_ebpf_sock_addr_blocked_context_avl_allocate_routine(_In_ RTL_AVL_TABLE* table, _In_ CLONG byte_size)
+_Function_class_(RTL_AVL_ALLOCATE_ROUTINE) static PVOID
+    _net_ebpf_sock_addr_blocked_context_avl_allocate_routine(_In_ RTL_AVL_TABLE* table, _In_ CLONG byte_size)
 {
     UNREFERENCED_PARAMETER(table);
 
     return ExAllocatePoolUninitialized(NonPagedPoolNx, byte_size, NET_EBPF_EXTENSION_POOL_TAG);
 }
 
-static VOID
-_net_ebpf_sock_addr_blocked_context_avl_free_routine(_In_ RTL_AVL_TABLE* table, _In_ PVOID buffer)
+_Function_class_(RTL_AVL_FREE_ROUTINE) static VOID
+    _net_ebpf_sock_addr_blocked_context_avl_free_routine(_In_ RTL_AVL_TABLE* table, _In_ PVOID buffer)
 {
     UNREFERENCED_PARAMETER(table);
 
