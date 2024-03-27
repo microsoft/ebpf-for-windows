@@ -951,9 +951,11 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
     // Free entries from the LRU list. These entries should also be removed from the table.
     LIST_ENTRY* list_entry = _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list.Blink;
     while (list_entry != &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list) {
-        LIST_ENTRY removed_entry = *list_entry;
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
+        LIST_ENTRY entry_to_remove = entry->list_entry;
+        LIST_ENTRY* next_entry = list_entry->Blink;
+
         if (!delete_all && entry->timestamp > expiry_time) {
             break;
         }
@@ -964,8 +966,8 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
             continue;
         }
 
-        list_entry = removed_entry.Blink;
-        RemoveEntryList(&removed_entry);
+        list_entry = next_entry;
+        RemoveEntryList(&entry_to_remove);
 
         _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
 
