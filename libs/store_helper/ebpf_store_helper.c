@@ -3,6 +3,7 @@
 
 #include "ebpf_program_types.h"
 #include "ebpf_registry_helper.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
 
@@ -41,6 +42,7 @@ _ebpf_store_update_helper_prototype(
     uint32_t offset;
     ebpf_store_key_t helper_function_key = NULL;
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
+    const bool reallocate_packet = helper_info->reallocate_packet;
 
     wchar_t* wide_helper_name = ebpf_get_wstring_from_string(helper_info->name);
     if (wide_helper_name == NULL) {
@@ -70,6 +72,16 @@ _ebpf_store_update_helper_prototype(
         goto Exit;
     }
 
+    if (helper_info->header.size == sizeof(ebpf_helper_function_prototype_t)) {
+        // Save the reallocate_packet flag.
+        uint32_t reallocate_packet_value = helper_info->reallocate_packet ? 1 : 0;
+        result = ebpf_write_registry_value_dword(
+            helper_function_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, helper_info->reallocate_packet);
+        if (!IS_SUCCESS(result)) {
+            goto Exit;
+        }
+    }
+
 Exit:
     ebpf_free_wstring(wide_helper_name);
     ebpf_close_registry_key(helper_function_key);
@@ -89,6 +101,11 @@ ebpf_store_update_global_helper_information(
         return result;
     }
 
+    if (!ebpf_validate_helper_function_prototype_array(helper_info, helper_info_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     // Open (or create) provider registry path.
     result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
     if (!IS_SUCCESS(result)) {
@@ -103,7 +120,6 @@ ebpf_store_update_global_helper_information(
     }
 
     for (uint32_t i = 0; i < helper_info_count; i++) {
-
         result = _ebpf_store_update_helper_prototype(helper_info_key, &helper_info[i]);
         if (!IS_SUCCESS(result)) {
             goto Exit;
@@ -143,6 +159,11 @@ ebpf_store_update_section_information(
 
     for (uint32_t i = 0; i < section_info_count; i++) {
         ebpf_store_key_t section_key = NULL;
+
+        if (!ebpf_validate_program_section_info(&section_info[i])) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
 
         // Open or create the registry path.
         result =
@@ -228,10 +249,15 @@ ebpf_store_update_program_information(
         ebpf_store_key_t program_key = {0};
         ebpf_store_key_t helper_info_key = {0};
 
+        if (!ebpf_validate_program_info(&program_info[i])) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
+        }
+
         // Convert program type GUID to string.
         wchar_t guid_string[GUID_STRING_LENGTH + 1];
         result = ebpf_convert_guid_to_string(
-            &program_info[i].program_type_descriptor.program_type, guid_string, GUID_STRING_LENGTH + 1);
+            &program_info[i].program_type_descriptor->program_type, guid_string, GUID_STRING_LENGTH + 1);
         if (!IS_SUCCESS(result)) {
             return result;
         }
@@ -242,7 +268,7 @@ ebpf_store_update_program_information(
         }
 
         // Save the friendly program type name.
-        wchar_t* wide_program_name = ebpf_get_wstring_from_string(program_info[i].program_type_descriptor.name);
+        wchar_t* wide_program_name = ebpf_get_wstring_from_string(program_info[i].program_type_descriptor->name);
         if (wide_program_name == NULL) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -259,7 +285,7 @@ ebpf_store_update_program_information(
         result = ebpf_write_registry_value_binary(
             program_key,
             EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR,
-            (uint8_t*)program_info[i].program_type_descriptor.context_descriptor,
+            (uint8_t*)program_info[i].program_type_descriptor->context_descriptor,
             sizeof(ebpf_context_descriptor_t));
         if (!IS_SUCCESS(result)) {
             ebpf_close_registry_key(program_key);
@@ -268,7 +294,7 @@ ebpf_store_update_program_information(
 
         // Save bpf_prog_type.
         result = ebpf_write_registry_value_dword(
-            program_key, EBPF_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor.bpf_prog_type);
+            program_key, EBPF_DATA_BPF_PROG_TYPE, program_info[i].program_type_descriptor->bpf_prog_type);
         if (!IS_SUCCESS(result)) {
             ebpf_close_registry_key(program_key);
             goto Exit;
@@ -276,7 +302,7 @@ ebpf_store_update_program_information(
 
         // Save "is_privileged".
         result = ebpf_write_registry_value_dword(
-            program_key, EBPF_PROGRAM_DATA_PRIVILEGED, program_info[i].program_type_descriptor.is_privileged);
+            program_key, EBPF_PROGRAM_DATA_PRIVILEGED, program_info[i].program_type_descriptor->is_privileged);
         if (!IS_SUCCESS(result)) {
             ebpf_close_registry_key(program_key);
             goto Exit;
@@ -344,7 +370,7 @@ ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_in
     // Convert program type GUID to string.
     wchar_t guid_string[GUID_STRING_LENGTH + 1];
     result = ebpf_convert_guid_to_string(
-        &program_info->program_type_descriptor.program_type, guid_string, GUID_STRING_LENGTH + 1);
+        &program_info->program_type_descriptor->program_type, guid_string, GUID_STRING_LENGTH + 1);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }

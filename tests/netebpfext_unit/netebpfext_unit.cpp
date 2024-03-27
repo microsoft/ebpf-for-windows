@@ -64,9 +64,8 @@ TEST_CASE("query program info", "[netebpfext]")
     // Get the names of the program types.
     std::vector<std::string> program_names;
     for (const auto& guid : guids) {
-        ebpf_extension_data_t extension_data = helper.get_program_info_provider_data(guid);
-        auto& program_data = *reinterpret_cast<const ebpf_program_data_t*>(extension_data.data);
-        program_names.push_back(program_data.program_info->program_type_descriptor.name);
+        auto& program_data = *helper.get_program_info_provider_data(guid);
+        program_names.push_back(program_data.program_info->program_type_descriptor->name);
     }
 
     // Make sure they match.
@@ -118,9 +117,11 @@ netebpfext_unit_invoke_xdp_program(
 TEST_CASE("classify_packet", "[netebpfext]")
 {
     NET_IFINDEX if_index = 0;
-    ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
+    ebpf_extension_data_t npi_specific_characteristics = {.data = &if_index};
     test_xdp_client_context_t client_context = {};
     client_context.base.desired_attach_type = BPF_XDP_TEST;
+
+    npi_specific_characteristics.header.size = sizeof(if_index);
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
@@ -151,8 +152,7 @@ TEST_CASE("classify_packet", "[netebpfext]")
 TEST_CASE("xdp_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
-    auto xdp_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
-    auto xdp_program_data = (ebpf_program_data_t*)xdp_extension_data.data;
+    auto xdp_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
@@ -258,8 +258,7 @@ TEST_CASE("bind_invoke", "[netebpfext]")
 TEST_CASE("bind_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
-    auto bind_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_BIND);
-    auto bind_program_data = (ebpf_program_data_t*)bind_extension_data.data;
+    auto bind_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_BIND);
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
@@ -367,9 +366,8 @@ netebpfext_unit_invoke_sock_addr_program(
     int action = SOCK_ADDR_TEST_ACTION_BLOCK;
     int32_t is_admin = 0;
 
-    ebpf_extension_data_t sock_addr_extension_data =
+    auto sock_addr_program_data =
         client_context->base.helper->get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
-    auto sock_addr_program_data = (ebpf_program_data_t*)sock_addr_extension_data.data;
 
     // Test _ebpf_sock_addr_is_current_admin global helper function.
     // If the user is not admin, then the default action is to block.
@@ -695,8 +693,7 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
 TEST_CASE("sock_addr_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
-    auto sock_addr_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
-    auto sock_addr_program_data = (ebpf_program_data_t*)sock_addr_extension_data.data;
+    auto sock_addr_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
 
     size_t output_data_size = 0;
     bpf_sock_addr_t input_context = {
@@ -815,8 +812,7 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
 TEST_CASE("sock_ops_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
-    auto sock_ops_extension_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_SOCK_OPS);
-    auto sock_ops_program_data = (ebpf_program_data_t*)sock_ops_extension_data.data;
+    auto sock_ops_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_SOCK_OPS);
 
     size_t output_data_size = 0;
     bpf_sock_ops_t input_context = {

@@ -66,6 +66,11 @@ _load_helper_prototype(
         memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
         offset += sizeof(helper_prototype->arguments);
 
+        uint32_t reallocate_packet_value = 0;
+        (void)ebpf_read_registry_value_dword(
+            helper_info_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, &reallocate_packet_value);
+        helper_prototype->reallocate_packet = !!reallocate_packet_value;
+
         helper_prototype->name =
             cxplat_duplicate_string(ebpf_down_cast_from_wstring(std::wstring(helper_name)).c_str());
         if (helper_prototype->name == nullptr) {
@@ -100,6 +105,7 @@ _load_program_data_information(
     uint32_t bpf_program_type;
     ebpf_program_type_t* program_type = nullptr;
     ebpf_program_info_t* program_information = nullptr;
+    ebpf_program_type_descriptor_t* program_type_descriptor = nullptr;
     uint32_t helper_count;
     wchar_t* helper_name = nullptr;
 
@@ -174,16 +180,25 @@ _load_program_data_information(
             goto Exit;
         }
 
-        program_information->program_type_descriptor.name = cxplat_duplicate_string(program_type_name_string.c_str());
-        if (program_information->program_type_descriptor.name == nullptr) {
+        program_information->program_type_descriptor =
+            (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
+        if (program_information->program_type_descriptor == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
-        program_information->program_type_descriptor.context_descriptor = descriptor;
+        program_type_descriptor =
+            const_cast<ebpf_program_type_descriptor_t*>(program_information->program_type_descriptor);
+
+        program_type_descriptor->name = cxplat_duplicate_string(program_type_name_string.c_str());
+        if (program_type_descriptor->name == nullptr) {
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+        program_type_descriptor->context_descriptor = descriptor;
         descriptor = nullptr;
-        program_information->program_type_descriptor.is_privileged = !!is_privileged;
-        program_information->program_type_descriptor.bpf_prog_type = bpf_program_type;
-        program_information->program_type_descriptor.program_type = *program_type;
+        program_type_descriptor->is_privileged = !!is_privileged;
+        program_type_descriptor->bpf_prog_type = bpf_program_type;
+        program_type_descriptor->program_type = *program_type;
 
         if (helper_count > 0) {
             // Read the helper functions prototypes.
