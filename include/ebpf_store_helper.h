@@ -52,7 +52,7 @@ extern "C"
      * @returns Status of the operation.
      */
     ebpf_result_t
-    ebpf_store_update_program_information(
+    ebpf_store_update_program_information_array(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
 
     /**

@@ -44,7 +44,7 @@ typedef class _netebpf_ext_helper
     std::vector<GUID>
     program_info_provider_guids();
 
-    ebpf_extension_data_t
+    ebpf_program_data_t*
     get_program_info_provider_data(_In_ const GUID& program_info_provider);
 
     FWP_ACTION_TYPE
@@ -111,7 +111,7 @@ typedef class _netebpf_ext_helper
         NPI_MODULEID module_id;
         void* context;
         const void* dispatch;
-        const ebpf_extension_data_t* provider_data;
+        const ebpf_program_data_t* program_data;
     } program_info_provider_t;
     std::map<GUID, std::unique_ptr<program_info_provider_t>, NPI_MODULEID_LESS> program_info_providers;
 

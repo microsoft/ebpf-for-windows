@@ -12,8 +12,8 @@ typedef struct _net_ebpf_extension_program_info_provider net_ebpf_extension_prog
  */
 typedef struct _net_ebpf_extension_program_info_provider_parameters
 {
-    const NPI_MODULEID* provider_module_id;     ///< NPI provider module ID.
-    const ebpf_extension_data_t* provider_data; ///< Program info NPI provider data (contains ebpf_program_data_t).
+    const NPI_MODULEID* provider_module_id;   ///< NPI provider module ID.
+    const ebpf_program_data_t* provider_data; ///< Program info NPI provider data.
 } net_ebpf_extension_program_info_provider_parameters_t;
 
 /**

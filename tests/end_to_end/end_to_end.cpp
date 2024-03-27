@@ -3006,19 +3006,17 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
     // Reload the extension provider with missing helper function.
     {
-        ebpf_helper_function_addresses_t changed_helper_function_address_table =
-            _sample_ebpf_ext_helper_function_address_table;
+        ebpf_helper_function_addresses_t changed_helper_function_address_table = {
+            .header = {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+            .helper_function_count = 0,
+            .helper_function_address = nullptr};
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
         changed_program_data.program_type_specific_helper_function_addresses = &changed_helper_function_address_table;
-        changed_helper_function_address_table.helper_function_count = 0;
-
-        ebpf_extension_data_t changed_provider_data = {
-            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
 
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         program_info_provider_t sample_program_info;
-        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_provider_data) == EBPF_SUCCESS);
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
@@ -3030,21 +3028,23 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
     // Reload the extension provider with changed helper function data.
     {
+        ebpf_helper_function_prototype_t helper_function_prototypes[3];
+        std::copy(
+            _sample_ebpf_extension_helper_function_prototype,
+            _sample_ebpf_extension_helper_function_prototype + 3,
+            helper_function_prototypes);
+        // Change the return type of the helper function from EBPF_RETURN_TYPE_INTEGER to
+        // EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL.
+        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL;
         ebpf_program_info_t changed_program_info = _sample_ebpf_extension_program_info;
-        ebpf_helper_function_prototype_t helper_function_prototypes[] = {
-            _sample_ebpf_extension_global_helper_function_prototype[0]};
-        helper_function_prototypes[0].return_type = EBPF_RETURN_TYPE_INTEGER;
         changed_program_info.program_type_specific_helper_prototype = helper_function_prototypes;
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
         changed_program_data.program_info = &changed_program_info;
 
-        ebpf_extension_data_t changed_provider_data = {
-            TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(changed_program_data), &changed_program_data};
-
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
         program_info_provider_t sample_program_info;
-        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_provider_data) == EBPF_SUCCESS);
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
 
         // Program should re-attach to the hook.
 
