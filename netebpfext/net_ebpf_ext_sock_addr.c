@@ -226,8 +226,6 @@ static net_ebpf_ext_sock_addr_statistics_t _net_ebpf_ext_statistics;
 typedef struct _net_ebpf_ext_sock_addr_connection_contexts
 {
     EX_SPIN_LOCK lock;
-    // This list is used to ensure that contexts are never leaked and are freed after some time.
-    _Guarded_by_(lock) LIST_ENTRY blocked_context_lru_list;
     // This list stores blocked connection contexts at the connect_redirect, to be retrieved and removed at the connect
     // layer.
     _Guarded_by_(lock) RTL_AVL_TABLE blocked_context_table;
@@ -812,15 +810,15 @@ _net_ebpf_sock_addr_initialize_blocked_connection_contexts()
 {
     NTSTATUS status = STATUS_SUCCESS;
 
-    InitializeListHead(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list);
-    InitializeListHead(&_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_free_context_list);
-    InitializeListHead(&_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_list);
     RtlInitializeGenericTableAvl(
         &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table,
         _net_ebpf_sock_addr_blocked_context_avl_compare_routine,
         _net_ebpf_sock_addr_blocked_context_avl_allocate_routine,
         _net_ebpf_sock_addr_blocked_context_avl_free_routine,
         NULL);
+
+    InitializeListHead(&_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_free_context_list);
+    InitializeListHead(&_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_list);
 
     // Pre-allocate entries for use under low memory conditions.
     for (int32_t i = 0; i < LOW_MEMORY_CONNECTION_CONTEXT_COUNT; i++) {
@@ -897,13 +895,15 @@ _net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_
             &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context);
     if (found_context != NULL) {
         entry_found = true;
-        LIST_ENTRY lru_entry = found_context->list_entry;
 
-        // Delete from table. If this succeeds, remove the entry from the LRU list and free the memory.
-        // If the delete operation fails, the entry remains in the LRU list for future clean up.
+        uint64_t transport_endpoint_handle = found_context->transport_endpoint_handle;
         if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context)) {
-            RemoveEntryList(&lru_entry);
             _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "_net_ebpf_ext_find_and_remove_connection_context_locked: Delete",
+                transport_endpoint_handle);
         }
     } else {
         // The entry was not found in the hash table. Check the low-memory list to see if the entry is there.
@@ -954,35 +954,29 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 {
     uint64_t expiry_time = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime()) - EXPIRY_TIME;
 
-    // Free entries from the LRU list. These entries should also be removed from the table.
-    LIST_ENTRY* list_entry = _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list.Blink;
-    while (list_entry != &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list) {
-        net_ebpf_extension_connection_context_t* entry =
-            CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
-        LIST_ENTRY entry_to_remove = entry->list_entry;
-        // Move pointer to next entry prior to removing the entry.
-        list_entry = list_entry->Blink;
+    net_ebpf_extension_connection_context_t* context = NULL;
+    for (context = RtlEnumerateGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, TRUE);
+         context != NULL;
+         context =
+             RtlEnumerateGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, FALSE)) {
 
-        if (!delete_all && entry->timestamp > expiry_time) {
+        if (!delete_all && context->timestamp > expiry_time) {
             break;
         }
 
-#pragma warning(suppress : 6001) /* entry and list entry are non-null */
-        if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry)) {
-            // If the deletion from the table was successful, remove the entry from the list.
-            // If deletion fails, the entry will remain so the delete can be attempted again later.
-            RemoveEntryList(&entry_to_remove);
+        uint64_t transport_endpoint_handle = context->transport_endpoint_handle;
+        if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context)) {
             _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
             NET_EBPF_EXT_LOG_MESSAGE_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
                 "_net_ebpf_ext_purge_block_connect_contexts: Delete",
-                entry->transport_endpoint_handle);
+                transport_endpoint_handle);
         }
     }
 
     // Free entries from low-memory list.
-    list_entry = _net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_list.Blink;
+    LIST_ENTRY* list_entry = _net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_list.Blink;
     while (list_entry != &_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_list) {
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
@@ -1076,15 +1070,18 @@ _net_ebpf_ext_insert_connection_context_to_list(
 
     // Successfully inserted into the table. Also insert into the LRU list to ensure
     // entries are not leaked.
-    InsertHeadList(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list, &new_context->list_entry);
     _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count++;
     InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+        "_net_ebpf_ext_insert_connection_context_to_list: Insert",
+        transport_endpoint_handle);
 
 Exit:
     if (result != EBPF_SUCCESS) {
         // If any failure occurred, attempt to use low memory list instead.
         result = _net_ebpf_ext_insert_connection_context_to_low_memory_list(transport_endpoint_handle, sock_addr_ctx);
-        InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
     }
 
     // Purge stale entries from the list.
