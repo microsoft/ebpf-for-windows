@@ -788,11 +788,13 @@ _Function_class_(RTL_AVL_COMPARE_ROUTINE) static RTL_GENERIC_COMPARE_RESULTS
 }
 
 _Function_class_(RTL_AVL_ALLOCATE_ROUTINE) static PVOID
-    _net_ebpf_sock_addr_blocked_context_avl_allocate_routine(_In_ RTL_AVL_TABLE* table, _In_ CLONG byte_size)
+    _net_ebpf_sock_addr_blocked_context_avl_allocate_routine(_In_ RTL_AVL_TABLE* table, _In_ CLONG buffer_size)
 {
     UNREFERENCED_PARAMETER(table);
 
-    return ExAllocatePoolUninitialized(NonPagedPoolNx, byte_size, NET_EBPF_EXTENSION_POOL_TAG);
+    PVOID buffer = ExAllocatePoolUninitialized(NonPagedPoolNx, buffer_size, NET_EBPF_EXTENSION_POOL_TAG);
+    memset(buffer, 0, buffer_size);
+    return buffer;
 }
 
 _Function_class_(RTL_AVL_FREE_ROUTINE) static VOID
