@@ -32,10 +32,6 @@ typedef enum _ebpf_link_state
     EBPF_LINK_STATE_DETACHED,  ///< Program is detached from a provider.
 } ebpf_link_state_t;
 
-// Latest version of the eBPF extension attach/hook data structures.
-#define EBPF_ATTACH_CLIENT_DATA_VERSION EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION
-#define EBPF_ATTACH_PROVIDER_DATA_VERSION EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION
-
 typedef struct _ebpf_link
 {
     ebpf_core_object_t object;
@@ -63,7 +59,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_link_client_characteristics = {
     _ebpf_link_client_detach_provider,
     NULL,
     {
-        EBPF_ATTACH_CLIENT_DATA_VERSION,
+        EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_HOOK_EXTENSION_IID,
         NULL,

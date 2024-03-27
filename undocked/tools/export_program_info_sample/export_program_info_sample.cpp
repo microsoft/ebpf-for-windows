@@ -42,7 +42,7 @@ export_program_information()
     uint32_t status = ERROR_SUCCESS;
     size_t array_size = _countof(_program_information_array);
     for (uint32_t i = 0; i < array_size; i++) {
-        status = ebpf_store_update_program_data(_program_information_array[i], 1);
+        status = ebpf_store_update_program_information_array(_program_information_array[i], 1);
         if (status != ERROR_SUCCESS) {
             break;
         }

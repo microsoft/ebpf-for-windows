@@ -119,7 +119,7 @@ EXPORTS
     ebpf_program_query_info
     ebpf_store_delete_program_information
     ebpf_store_delete_section_information
-    ebpf_store_update_program_data
+    ebpf_store_update_program_information_array
     ebpf_store_update_section_information
     libbpf_attach_type_by_name
     libbpf_bpf_attach_type_str
