@@ -954,28 +954,25 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
         LIST_ENTRY entry_to_remove = entry->list_entry;
-        LIST_ENTRY* next_entry = list_entry->Blink;
+        // Move pointer to next entry prior to removing the entry.
+        list_entry = list_entry->Blink;
 
         if (!delete_all && entry->timestamp > expiry_time) {
             break;
         }
 
 #pragma warning(suppress : 6001) /* entry and list entry are non-null */
-        if (!RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry)) {
-            // If we fail to delete it, leave it in the list so that we can try again later.
-            continue;
+        if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry)) {
+            // If the deletion from the table was successful, remove the entry from the list.
+            // If deletion fails, the entry will remain so the delete can be attempted again later.
+            RemoveEntryList(&entry_to_remove);
+            _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+                "_net_ebpf_ext_purge_block_connect_contexts: Delete",
+                entry->transport_endpoint_handle);
         }
-
-        list_entry = next_entry;
-        RemoveEntryList(&entry_to_remove);
-
-        _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
-
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "_net_ebpf_ext_purge_block_connect_contexts: Delete",
-            entry->transport_endpoint_handle);
     }
 
     // Free entries from low-memory list.
