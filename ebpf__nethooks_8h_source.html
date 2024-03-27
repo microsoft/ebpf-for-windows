@@ -103,7 +103,7 @@ $(function() {
 <div class="line"><a name="l00042"></a><span class="lineno"><a class="line" href="ebpf__nethooks_8h.html#acce2f548e179db8cc18c8173a4a7a6e6">   42</a></span>&#160;<span class="preprocessor">#define XDP_EXT_HELPER_FN_BASE 0xFFFF</span></div>
 <div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160; </div>
 <div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="preprocessor">#ifndef __doxygen</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="preprocessor">#define EBPF_HELPER(return_type, name, args) typedef return_type(*const name##_t) args</span></div>
 <div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160; </div>
 <div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="ebpf__nethooks_8h.html#ab415145f4be30f5838b8805ddd1309b6">   48</a></span>&#160;<span class="keyword">typedef</span> <span class="keyword">enum</span></div>
