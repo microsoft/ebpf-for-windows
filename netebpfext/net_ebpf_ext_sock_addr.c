@@ -865,9 +865,9 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
 
 static void
 _net_ebpf_extension_connection_context_initialize(
+    _In_ uint64_t transport_endpoint_handle,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
-    uint64_t transport_endpoint_handle,
-    uint32_t flags,
+    _In_ uint32_t flags,
     _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
     bool set_timestamp = flags & CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP;
@@ -888,30 +888,20 @@ _net_ebpf_extension_connection_context_initialize(
 }
 
 static bool
-_net_ebpf_ext_find_and_remove_connection_context(
-    uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
+_net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_connection_context_t* context)
 {
-    KIRQL old_irql;
-    bool block_connection = false;
-    net_ebpf_extension_connection_context_t local_connection_context = {0};
-    net_ebpf_extension_connection_context_t* table_connection_context = NULL;
-
-    _net_ebpf_extension_connection_context_initialize(
-        sock_addr_ctx, transport_endpoint_handle, 0, &local_connection_context);
-
-    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_blocked_contexts.lock);
-
+    bool entry_found = false;
     // Check the hash table for the entry.
-    table_connection_context = (net_ebpf_extension_connection_context_t*)RtlLookupElementGenericTableAvl(
-        &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, &local_connection_context);
-    if (table_connection_context != NULL) {
-        block_connection = true;
-        LIST_ENTRY lru_entry = table_connection_context->list_entry;
+    net_ebpf_extension_connection_context_t* found_context =
+        (net_ebpf_extension_connection_context_t*)RtlLookupElementGenericTableAvl(
+            &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context);
+    if (found_context != NULL) {
+        entry_found = true;
+        LIST_ENTRY lru_entry = found_context->list_entry;
 
         // Delete from table. If this succeeds, remove the entry from the LRU list and free the memory.
         // If the delete operation fails, the entry remains in the LRU list for future clean up.
-        if (RtlDeleteElementGenericTableAvl(
-                &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, &local_connection_context)) {
+        if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context)) {
             RemoveEntryList(&lru_entry);
             _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
         }
@@ -922,9 +912,8 @@ _net_ebpf_ext_find_and_remove_connection_context(
             net_ebpf_extension_connection_context_t* connection_context =
                 CONTAINING_RECORD(entry, net_ebpf_extension_connection_context_t, list_entry);
             if (memcmp(
-                    &local_connection_context,
-                    connection_context,
-                    EBPF_OFFSET_OF(net_ebpf_extension_connection_context_t, timestamp)) == 0) {
+                    context, connection_context, EBPF_OFFSET_OF(net_ebpf_extension_connection_context_t, timestamp)) ==
+                0) {
                 // Found matching entry. Remove it from the list and return it to the free list, and then return a block
                 // verdict.
                 RemoveEntryList(&connection_context->list_entry);
@@ -932,15 +921,32 @@ _net_ebpf_ext_find_and_remove_connection_context(
                     &_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_free_context_list,
                     &connection_context->list_entry);
                 _net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_count--;
-                block_connection = true;
+                entry_found = true;
                 break;
             }
             entry = entry->Flink;
         }
     }
 
+    return entry_found;
+}
+
+static bool
+_net_ebpf_ext_find_and_remove_connection_context(
+    uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
+{
+    KIRQL old_irql;
+    bool entry_found = false;
+    net_ebpf_extension_connection_context_t local_connection_context = {0};
+
+    _net_ebpf_extension_connection_context_initialize(
+        transport_endpoint_handle, sock_addr_ctx, 0, &local_connection_context);
+
+    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_blocked_contexts.lock);
+    entry_found = _net_ebpf_ext_find_and_remove_connection_context_locked(&local_connection_context);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_sock_addr_blocked_contexts.lock, old_irql);
-    return block_connection;
+
+    return entry_found;
 }
 
 _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
@@ -1007,7 +1013,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 
 _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts.lock) static ebpf_result_t
     _net_ebpf_ext_insert_connection_context_to_low_memory_list(
-        _In_ const bpf_sock_addr_t* sock_addr_ctx, UINT64 transport_endpoint_handle)
+        _In_ UINT64 transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     PLIST_ENTRY entry = NULL;
@@ -1023,8 +1029,8 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts.lock) st
     memset(blocked_connection_context, 0, sizeof(net_ebpf_extension_connection_context_t));
 
     _net_ebpf_extension_connection_context_initialize(
-        sock_addr_ctx,
         transport_endpoint_handle,
+        sock_addr_ctx,
         CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP,
         blocked_connection_context);
 
@@ -1041,7 +1047,7 @@ Exit:
 
 static ebpf_result_t
 _net_ebpf_ext_insert_connection_context_to_list(
-    _In_ const bpf_sock_addr_t* sock_addr_ctx, UINT64 transport_endpoint_handle)
+    _In_ UINT64 transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
@@ -1049,12 +1055,15 @@ _net_ebpf_ext_insert_connection_context_to_list(
     net_ebpf_extension_connection_context_t* new_context = NULL;
 
     _net_ebpf_extension_connection_context_initialize(
-        sock_addr_ctx,
         transport_endpoint_handle,
+        sock_addr_ctx,
         CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP,
         &blocked_connection_context);
 
     old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_blocked_contexts.lock);
+
+    // Remove the context if it exists.
+    _net_ebpf_ext_find_and_remove_connection_context_locked(&blocked_connection_context);
 
     // Insert into table.
     new_context = (net_ebpf_extension_connection_context_t*)RtlInsertElementGenericTableAvl(
@@ -1074,7 +1083,7 @@ _net_ebpf_ext_insert_connection_context_to_list(
 Exit:
     if (result != EBPF_SUCCESS) {
         // If any failure occurred, attempt to use low memory list instead.
-        result = _net_ebpf_ext_insert_connection_context_to_low_memory_list(sock_addr_ctx, transport_endpoint_handle);
+        result = _net_ebpf_ext_insert_connection_context_to_low_memory_list(transport_endpoint_handle, sock_addr_ctx);
         InterlockedIncrement(&_net_ebpf_ext_statistics.block_connection_count);
     }
 
@@ -1883,7 +1892,7 @@ Exit:
         // Since the eBPF program turned in a REJECT verdict, there is no need to process
         // connection redirection, even if the program modified the destination.
         _net_ebpf_ext_insert_connection_context_to_list(
-            sock_addr_ctx, incoming_metadata_values->transportEndpointHandle);
+            incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
     } else {
         // Remove any 'stale' connection context if found.
         // A stale context is expected in the case of connected UDP, where the connect()
