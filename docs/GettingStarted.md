@@ -100,7 +100,7 @@ The following steps need to be executed *once* before the first build on a new c
 
       >**Note**: you may get the following transitory error, which can be safely ignored as the *WiX Toolset* nuget package will be installed immediately afterwards:
       >
-      >    `error : The WiX Toolset v3.14.1 build tools must be installed to build this project. To download the WiX Toolset, see https://github.com/wixtoolset/wix3/releases/tag/wix314rtm`
+      >    `error : The WiX Toolset v3.14.1 build tools must be installed to build this project. To download the WiX Toolset, see https://github.com/wixtoolset/wix3/releases/tag/wix3141rtm`
 
 > TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
