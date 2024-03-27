@@ -28,7 +28,7 @@ The following must be installed in order to build this project:
    - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
-1. [The WiX Toolset v3.14 build tools](https://github.com/wixtoolset/wix3/releases)
+1. [The WiX Toolset v3.14.1 build tools](https://github.com/wixtoolset/wix3/releases)
     > Note: The *WiX Toolset* has a dependency on the **.NET 3.5 Framework**: you can either enable from the Start menu -> "*Turn Windows features on or off*" and then select "*.NET Framework 3.5 (includes .NET 2.0 and 3.0)*" (recommended), *or*
 install it directly from [here](https://www.microsoft.com/en-us/download/details.aspx?id=21).
 1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
@@ -100,7 +100,7 @@ The following steps need to be executed *once* before the first build on a new c
 
       >**Note**: you may get the following transitory error, which can be safely ignored as the *WiX Toolset* nuget package will be installed immediately afterwards:
       >
-      >    `error : The WiX Toolset v3.14 build tools must be installed to build this project. To download the WiX Toolset, see https://github.com/wixtoolset/wix3/releases/tag/wix314rtm`
+      >    `error : The WiX Toolset v3.14.1 build tools must be installed to build this project. To download the WiX Toolset, see https://github.com/wixtoolset/wix3/releases/tag/wix314rtm`
 
 > TIP: In case you need to "reset" the repo, without re-cloning it, you can just delete all the folders under the `\external` directory (but keep the files), and then re-run the above script.
 
