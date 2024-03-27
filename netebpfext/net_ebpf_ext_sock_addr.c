@@ -1046,7 +1046,6 @@ _net_ebpf_ext_insert_connection_context_to_list(
     KIRQL old_irql = PASSIVE_LEVEL;
     net_ebpf_extension_connection_context_t blocked_connection_context = {0};
     net_ebpf_extension_connection_context_t* new_context = NULL;
-    BOOLEAN new_entry = FALSE;
 
     _net_ebpf_extension_connection_context_initialize(
         sock_addr_ctx,
@@ -1061,10 +1060,9 @@ _net_ebpf_ext_insert_connection_context_to_list(
         &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table,
         &blocked_connection_context,
         sizeof(blocked_connection_context),
-        &new_entry);
+        NULL);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, new_context, "blocked_connection", result);
-    ASSERT(new_entry);
 
     // Successfully inserted into the table. Also insert into the LRU list to ensure
     // entries are not leaked.
