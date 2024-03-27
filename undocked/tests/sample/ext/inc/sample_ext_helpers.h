@@ -30,7 +30,7 @@ typedef struct _sample_program_context
 #define SAMPLE_EXT_HELPER_FN_BASE 0xFFFF
 
 #ifndef __doxygen
-#define EBPF_HELPER(return_type, name, args) typedef return_type(*name##_t) args
+#define EBPF_HELPER(return_type, name, args) typedef return_type(*const name##_t) args
 #endif
 
 /**
