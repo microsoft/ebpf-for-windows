@@ -71,24 +71,24 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
-    (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_type_descriptor_t, is_privileged)
 
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION 1
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE \
-    (EBPF_OFFSET_OF(ebpf_helper_function_prototype_t, arguments) + 5 * sizeof(ebpf_argument_type_t))
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, arguments)
 
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION 1
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE \
-    (EBPF_OFFSET_OF(ebpf_program_info_t, global_helper_prototype) + sizeof(ebpf_helper_function_prototype_t*))
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)
 
 #define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION 1
 
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION 1
-#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE (EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t))
+#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, required_irql)
 
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION 1
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE \
-    (EBPF_OFFSET_OF(ebpf_program_section_info_t, bpf_attach_type) + sizeof(uint32_t))
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)
 
 /**
  * @brief Header of an eBPF extension data structure.

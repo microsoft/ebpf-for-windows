@@ -73,7 +73,8 @@ This is a mandatory header that is common to all data structures needed by eBPF 
  #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
     (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
 ```
-> NOTE: Extension developers **must not** set the `size` field of these structures to `sizeof()` of the corresponding type.
+> NOTE: Extension developers **must not** set the `size` field of these structures to `sizeof()` of the corresponding type. Instead,
+> the `CURRENT_VERSION_SIZE` macros defined in `ebpf_windows.h` should be used.
 
 #### `ebpf_program_data_t` Struct
 The various fields of this structure should be set as follows:
@@ -401,11 +402,11 @@ To operate on the eBPF store, the user mode application needs to link with eBPFA
         _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count);
     ```
 
-- `ebpf_store_update_program_data`: updates program information in the eBPF store, given a pointer to an array of program information (i.e., `_ebpf_program_info`):
+- `ebpf_store_update_program_information_array`: updates program information in the eBPF store, given a pointer to an array of program information (i.e., `_ebpf_program_info`):
 
     ```c
     ebpf_result_t
-    ebpf_store_update_program_data(
+    ebpf_store_update_program_information_array(
         _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count);
     ```
 

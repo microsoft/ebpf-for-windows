@@ -14,6 +14,8 @@ CXPLAT_EXTERN_C_BEGIN
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
+#define EBPF_FIELD_SIZE(s, m) (sizeof(((s*)0)->m))
+#define EBPF_SIZE_INCLUDING_FIELD(s, m) (EBPF_OFFSET_OF(s, m) + EBPF_FIELD_SIZE(s, m))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
 
 #define EBPF_CACHE_LINE_SIZE 64
