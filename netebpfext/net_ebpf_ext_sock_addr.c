@@ -955,10 +955,11 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
     uint64_t expiry_time = CONVERT_100NS_UNITS_TO_MS(KeQueryInterruptTime()) - EXPIRY_TIME;
 
     net_ebpf_extension_connection_context_t* context = NULL;
-    for (context = RtlEnumerateGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, TRUE);
+    for (context = (net_ebpf_extension_connection_context_t*)RtlEnumerateGenericTableAvl(
+             &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, TRUE);
          context != NULL;
-         context =
-             RtlEnumerateGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, FALSE)) {
+         context = (net_ebpf_extension_connection_context_t*)RtlEnumerateGenericTableAvl(
+             &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, FALSE)) {
 
         if (!delete_all && context->timestamp > expiry_time) {
             break;
