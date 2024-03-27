@@ -335,9 +335,8 @@ function Uninstall-eBPFComponents
     Write-Log("MSI uninstallation completed successfully!") -ForegroundColor Green
 
     # Stop KM tracing.
-    wpr.exe -cancel
-    if ($LASTEXITCODE -ne 0) {
-        Write-Log("Failed to stop WPR session with error: $LASTEXITCODE")
-        $LASTEXITCODE = 0
+    $process = Start-Process -FilePath wpr.exe -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        Write-Log("Failed to stop WPR session with error: $($process.ExitCode)")
     }
 }
