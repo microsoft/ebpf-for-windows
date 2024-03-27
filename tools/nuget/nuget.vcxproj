@@ -98,10 +98,15 @@
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>pushd $(OutDir)
+del ebpf-for-windows.*.nupkg
+popd $(OutDir)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
@@ -118,10 +123,15 @@ popd $(OutDir)</Command>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>pushd $(OutDir)
+del ebpf-for-windows.*.nupkg
+popd $(OutDir)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -142,10 +152,15 @@ popd $(OutDir)</Command>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>pushd $(OutDir)
+del ebpf-for-windows.*.nupkg
+popd $(OutDir)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
@@ -166,10 +181,15 @@ popd $(OutDir)</Command>
       <Command>pushd $(OutDir)
 if not exist "$(OutDir)undocked" mkdir "$(OutDir)undocked"
 type nul &gt; $(OutDir)undocked\ebpf-for-windows.zip
-xcopy $(OutDir)*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
+xcopy $(OutDir)eBPF-for-Windows.*.nupkg /F /Y $(OutDir)undocked\ebpf-for-windows.zip
 powershell -NonInteractive -ExecutionPolicy Unrestricted -command "Expand-Archive $(OutDir)undocked\ebpf-for-windows.zip -DestinationPath $(OutDir)undocked\ebpf-for-windows -Force"
 popd $(OutDir)</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>pushd $(OutDir)
+del ebpf-for-windows.*.nupkg
+popd $(OutDir)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <CustomBuild Include="ebpf-for-windows.nuspec.in">
