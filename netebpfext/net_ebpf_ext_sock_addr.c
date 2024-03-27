@@ -793,7 +793,9 @@ _Function_class_(RTL_AVL_ALLOCATE_ROUTINE) static PVOID
     UNREFERENCED_PARAMETER(table);
 
     PVOID buffer = ExAllocatePoolUninitialized(NonPagedPoolNx, buffer_size, NET_EBPF_EXTENSION_POOL_TAG);
-    memset(buffer, 0, buffer_size);
+    if (buffer) {
+        memset(buffer, 0, buffer_size);
+    }
     return buffer;
 }
 
