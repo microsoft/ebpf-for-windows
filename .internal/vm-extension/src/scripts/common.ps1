@@ -13,14 +13,18 @@ Set-Variable -Name "EbpfTracingPeriodicTaskFilename" -Value "ebpf_tracing_period
 Set-Variable -Name "EbpfTracingTaskCmd" -Value "ebpf_tracing.cmd"
 Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
 Set-Variable -Name "EbpfBackupPath" -Value "$env:TEMP\ebpf_backup"
-Set-Variable -Name "RegistryPath" -Value "HKLM:\SOFTWARE\Microsoft\Windows Azure"
-Set-Variable -Name "RegistryKey" -Value "EbpfUpgrading"
+Set-Variable -Name "EbpfRegistryPath" -Value "HKLM:\Software\eBPF"
+Set-Variable -Name "EbpfDisableRuntimeUpdateRegistryKey" -Value 0
 Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 60
 $EbpfDrivers =
 @{
     "EbpfCore" = "ebpfcore.sys";
     "NetEbpfExt" = "netebpfext.sys";
 }
+
+# Define the eBPF Handler registry key for handling VM Agent's stateless calls on Auto-Update.
+Set-Variable -Name "WindowsAzureRegistryPath" -Value "HKLM:\SOFTWARE\Microsoft\Windows Azure"
+Set-Variable -Name "WindowsAzureEbpfUpgradingRegistryKey" -Value "EbpfUpgrading"
 
 # eBPF Handler return codes (any non-zero value will be treated as an error by the VM Agent).
 Set-Variable -Name "EbpfStatusCode_SUCCESS" -Value 0
@@ -43,6 +47,7 @@ Set-Variable -Name "EbpfStatusCode_UNINSTALLING_DRIVER_FAILED" -Value 1017
 Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 1018
 Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1019
 Set-Variable -Name "EbpfStatusCode_RESTARTING_SERVICE_FAILED" -Value 1020
+Set-Variable -Name "EbpfStatusCode_COMPONENTS_IN_USE" -Value 1021
 
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
@@ -143,14 +148,6 @@ function Get-EnvironmentVariable {
     }
     
     return $variableValue
-}
-
-function Is-Upgrade-Supported {
-    # This function will return true if the upgrade is allowed in the current environment, false otherwise.
-    # Currently, it is a placeholder for future requirements.
-
-    Write-Log -level $LogLevelInfo -message "Is-Upgrade-Supported()"
-    return $true
 }
 
 function Get-FullDiskPathFromService {
@@ -552,6 +549,37 @@ function Report-Status {
     Write-Log -level $LogLevelInfo -message "Status file generated: $statusFilePath"
 }
 
+function Is-InstallOrUpdate-Supported {
+    # This function will return true if the upgrade is allowed in the current environment, false otherwise.
+    # Currently, it is a placeholder for future requirements.
+
+    Write-Log -level $LogLevelInfo -message "Is-InstallOrUpdate-Supported()"
+
+    # Check if the registry key exists
+    $fullRegistryPath = Join-Path $EbpfRegistryPath $EbpfAksRegistryKey
+    if (Test-Path $fullRegistryPath) {
+        # Retrieve the registry key value
+        $keyValue = (Get-ItemProperty -Path $fullRegistryPath -Name "EbpfDisableRuntimeUpdateRegistryKey").EbpfDisableRuntimeUpdateRegistryKey
+        if ($keyValue -ne 0) {
+            Write-Log -level $LogLevelWarning -message "Install or Update are not allowed in the current environment."
+            return $false
+        }
+    }
+    Write-Log -level $LogLevelInfo -message "Install or Update are allowed in the current environment."
+
+    return $true
+}
+
+function eBPF-Components-In-Use {
+    # This function will return true if the eBPF components are in use, false otherwise.
+
+    Write-Log -level $LogLevelInfo -message "eBPF-Components-In-Use()"
+
+    # TBD: Check if the eBPF components are in use
+
+    return $false
+}
+
 function Set-EbpfUpdatingFlag {
     param (
         [switch]$SetFlag,
@@ -561,15 +589,15 @@ function Set-EbpfUpdatingFlag {
     try {
         if ($SetFlag) {
             # Create or update the registry key
-            New-Item -Path $RegistryPath -Name $RegistryKey -Force | Out-Null
-            Write-Log -Level $LogLevelInfo -Message "$RegistryKey flag set successfully."
+            New-Item -Path $WindowsAzureRegistryPath -Name $WindowsAzureEbpfUpgradingRegistryKey -Force | Out-Null
+            Write-Log -Level $LogLevelInfo -Message "$WindowsAzureEbpfUpgradingRegistryKey flag set successfully."
             return $EbpfStatusCode_SUCCESS
         }
         elseif ($ResetFlag) {
             # Remove the registry key
-            $fullRegistryPath = Join-Path $RegistryPath $RegistryKey
+            $fullRegistryPath = Join-Path $WindowsAzureRegistryPath $WindowsAzureEbpfUpgradingRegistryKey
             Remove-Item -Path $fullRegistryPath -ErrorAction SilentlyContinue | Out-Null
-            Write-Log -Level $LogLevelInfo -Message "$RegistryKey flag reset successfully."
+            Write-Log -Level $LogLevelInfo -Message "$WindowsAzureEbpfUpgradingRegistryKey flag reset successfully."
             return $EbpfStatusCode_SUCCESS
         }
         else {
@@ -584,7 +612,7 @@ function Set-EbpfUpdatingFlag {
 }
 
 function Get-EbpfUpdatingFlag {
-    $fullRegistryPath = Join-Path $RegistryPath $RegistryKey
+    $fullRegistryPath = Join-Path $WindowsAzureRegistryPath $WindowsAzureEbpfUpgradingRegistryKey
 
     # Check if the registry key exists
     $flagSet = Test-Path $fullRegistryPath
@@ -1045,34 +1073,39 @@ function Uninstall-eBPF {
     )
 
     Write-Log -level $LogLevelInfo -message "Uninstall-eBPF($installDirectory)"
-    
-    # Uninstall the eBPF drivers and use the results to generate the log message.
-    $statusCode = Uninstall-EbpfDrivers -installDirectory $installDirectory
-    if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
-        # If all drivers were successfully uninstalled, then we can proceed with the rest of the uninstallation.
-        
-        # Accounting for any error on the following operations is not worth the risk of leaving the system in a bad state, 
-        # i.e. if this is called during a rollback, we cannot fail a potential succesful system functionality restoration
-        # because of accessory operations, being just the drivers the essential part for having the data path active.
-        # Therefore, we just log any errors and proceed with the installation of the rest of the components.
 
-        # Unregister the trace providers
-        Disable-EbpfTracing -installDirectory $installDirectory | Out-Null
+    if (eBPF-Components-In-Use) {
+        Write-Log -level $LogLevelError -message "eBPF components are in use, cannot uninstall."
+        $statusCode = $EbpfStatusCode_COMPONENTS_IN_USE
+    } else {    
+        # Uninstall the eBPF drivers and use the results to generate the log message.
+        $statusCode = Uninstall-EbpfDrivers -installDirectory $installDirectory
+        if ($statusCode -eq $EbpfStatusCode_SUCCESS) {
+            # If all drivers were successfully uninstalled, then we can proceed with the rest of the uninstallation.
+            
+            # Accounting for any error on the following operations is not worth the risk of leaving the system in a bad state, 
+            # i.e. if this is called during a rollback, we cannot fail a potential succesful system functionality restoration
+            # because of accessory operations, being just the drivers the essential part for having the data path active.
+            # Therefore, we just log any errors and proceed with the installation of the rest of the components.
 
-        # De-register the netsh extension
-        Unregister-EbpfNetshExtension | Out-Null 
+            # Unregister the trace providers
+            Disable-EbpfTracing -installDirectory $installDirectory | Out-Null
 
-        # Remove the eBPF installation directory from the system PATH
-        Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
+            # De-register the netsh extension
+            Unregister-EbpfNetshExtension | Out-Null 
 
-        # Delete the eBPF files
-        Delete-Directory -destinationPath $installDirectory | Out-Null
+            # Remove the eBPF installation directory from the system PATH
+            Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
+
+            # Delete the eBPF files
+            Delete-Directory -destinationPath $installDirectory | Out-Null
+        }
     }
 
     return [int]$statusCode
 }
 
-function Upgrade-eBPF {
+function Update-eBPF {
     param (
         [string]$operationName,
         [string]$currProductVersion,
@@ -1080,30 +1113,25 @@ function Upgrade-eBPF {
         [string]$installDirectory
     )
 
-    Write-Log -level $LogLevelInfo -message "Upgrade-eBPF($operationName, $currProductVersion, $newProductVersion, $installDirectory)"
+    Write-Log -level $LogLevelInfo -message "Update-eBPF($operationName, $currProductVersion, $newProductVersion, $installDirectory)"
+    
+    Write-Log -level $LogLevelInfo -message "Performing eBPF [$operationName]."
 
-    if (Is-Upgrade-Supported) {
-        Write-Log -level $LogLevelInfo -message "Performing eBPF [$operationName]."
-
-        # For the moment, we just uninstall and install from/to the given installation folder.
-        $statusCode = Uninstall-eBPF -installDirectory "$installDirectory" -createStatusFile $false
+    # For the moment, we just uninstall and install from/to the given installation folder.
+    $statusCode = Uninstall-eBPF -installDirectory "$installDirectory" -createStatusFile $false
+    if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
+        $statusMessage = "eBPF $operationName FAILED (Uninstall failed)."
+        Write-Log -level $LogLevelError -message $statusMessage
+    } else {
+        Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
+        $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
         if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
-            $statusMessage = "eBPF $operationName FAILED (Uninstall failed)."
+            $statusMessage = "eBPF $operationName FAILED (Install failed)."
             Write-Log -level $LogLevelError -message $statusMessage
         } else {
-            Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
-            $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
-            if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
-                $statusMessage = "eBPF $operationName FAILED (Install failed)."
-                Write-Log -level $LogLevelError -message $statusMessage
-            } else {
-                $statusMessage = "eBPF $operationName succeeded."
-                Write-Log -level $LogLevelInfo -message $statusMessage
-            }
-        } 
-    } else {
-        $statusCode = $EbpfStatusCode_INSTALLATION_UNALLOWED
-        Write-Log -level $LogLevelError -message "eBPF [$operationName] not allowed in the current environment."
+            $statusMessage = "eBPF $operationName succeeded."
+            Write-Log -level $LogLevelInfo -message $statusMessage
+        }
     }
 
     return [int]$statusCode
@@ -1135,6 +1163,15 @@ function InstallOrUpdate-eBPF {
         currProductVersion = $null
         newProductVersion = $null
         comparison = -1
+    }
+
+    # Check if the operation is allowed in the current environment.
+    if (-not (Is-InstallOrUpdate-Supported)) {
+        $statusInfo.StatusCode = $EbpfStatusCode_INSTALLATION_UNALLOWED
+        $statusInfo.StatusMessage = "eBPF [$operationName] not allowed in the current environment."
+        Write-Log -level $LogLevelError -message $statusInfo.StatusMessage
+        
+        return $statusInfo
     }
 
     try {
@@ -1197,7 +1234,7 @@ function InstallOrUpdate-eBPF {
                                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                                 Write-Log -level $LogLevelInfo -message "The installed eBPF version (v$($versionInfo.currProductVersion)) is older than the one in the VM Extension package (v$($versionInfo.newProductVersion)) -> eBPF will be upgraded to (v$($versionInfo.newProductVersion))."
                             }
-                            $statusInfo.StatusCode = Upgrade-eBPF -operationName $operationName -currProductVersion $versionInfo.currProductVersion -newProductVersion $versionInfo.newProductVersion -installDirectory "$($versionInfo.currInstallPath)"
+                            $statusInfo.StatusCode = Update-eBPF -operationName $operationName -currProductVersion $versionInfo.currProductVersion -newProductVersion $versionInfo.newProductVersion -installDirectory "$($versionInfo.currInstallPath)"
                         } else {
                             $statusInfo.StatusString = $StatusError
                             $statusInfo.StatusMessage = "eBPF $operationName FAILED (Backing up the current installation failed) -> Nothing changed in the system."
