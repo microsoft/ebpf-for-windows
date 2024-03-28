@@ -54,11 +54,6 @@ typedef struct _section_offset_to_map
     string map_name;
 } section_offset_to_map_t;
 
-struct _thread_local_storage_cache
-{
-    ~_thread_local_storage_cache() { ebpf_clear_thread_local_storage(); }
-};
-
 static ebpf_pin_type_t
 _get_pin_type_for_btf_map(const libbtf::btf_type_data& btf_data, libbtf::btf_type_id id)
 {
@@ -558,11 +553,12 @@ ebpf_api_elf_enumerate_sections(
     ebpf_verifier_options_t verifier_options{false, false, false, false, true};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
-    struct _thread_local_storage_cache tls_cache;
 
     *infos = nullptr;
     *error_message = nullptr;
     ebpf_section_info_t* info = nullptr;
+
+    ebpf_clear_thread_local_storage();
 
     try {
         auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
@@ -628,10 +624,11 @@ ebpf_api_elf_disassemble_section(
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
-    struct _thread_local_storage_cache tls_cache;
 
     *disassembly = nullptr;
     *error_message = nullptr;
+
+    ebpf_clear_thread_local_storage();
 
     try {
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
@@ -672,7 +669,6 @@ _ebpf_api_elf_verify_section_from_stream(
 {
     std::ostringstream error;
     std::ostringstream output;
-    struct _thread_local_storage_cache tls_cache;
     *report = nullptr;
     *error_message = nullptr;
 
@@ -773,9 +769,14 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
     }
 
     auto stream = std::stringstream(data);
-    struct _thread_local_storage_cache tls_cache;
+
+    // Clear thread local storage before calling into the verifier.
+    // Note that TLS should be cleared here *before* calling into the verifier, not after.
+    // Post verification, bpf2c relies on the TLS cache to compute program info hash.
+    ebpf_clear_thread_local_storage();
+
     set_global_program_and_attach_type(program_type, nullptr);
-    set_verification_in_progress(true);
+    _verification_in_progress_helper helper;
     return _ebpf_api_elf_verify_section_from_stream(stream, name, section, verbose, report, error_message, stats);
 }
 

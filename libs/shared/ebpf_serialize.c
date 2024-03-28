@@ -15,6 +15,7 @@ typedef struct _ebpf_serialized_program_type_descriptor
     size_t size;
     ebpf_context_descriptor_t context_descriptor;
     GUID program_type;
+    uint32_t bpf_prog_type;
     unsigned char is_privileged;
     size_t name_length;
     uint8_t name[1];
@@ -427,6 +428,7 @@ ebpf_serialize_program_info(
         serialized_program_type_descriptor->context_descriptor = *program_type_descriptor->context_descriptor;
     }
     serialized_program_type_descriptor->program_type = program_type_descriptor->program_type;
+    serialized_program_type_descriptor->bpf_prog_type = program_type_descriptor->bpf_prog_type;
     serialized_program_type_descriptor->is_privileged = program_type_descriptor->is_privileged;
     serialized_program_type_descriptor->name_length = program_type_descriptor_name_length;
     // Copy the program type descriptor name buffer.
@@ -517,6 +519,7 @@ ebpf_deserialize_program_info(
     serialized_program_type_descriptor = (const ebpf_serialized_program_type_descriptor_t*)current;
 
     local_program_type_descriptor->program_type = serialized_program_type_descriptor->program_type;
+    local_program_type_descriptor->bpf_prog_type = serialized_program_type_descriptor->bpf_prog_type;
     local_program_type_descriptor->is_privileged = serialized_program_type_descriptor->is_privileged;
 
     // Allocate and deserialize context_descriptor, if present.

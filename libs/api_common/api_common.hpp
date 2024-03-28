@@ -202,6 +202,12 @@ set_verification_in_progress(bool value);
 bool
 get_verification_in_progress();
 
+struct _verification_in_progress_helper
+{
+    _verification_in_progress_helper() { set_verification_in_progress(true); }
+    ~_verification_in_progress_helper() { set_verification_in_progress(false); }
+};
+
 /**
  * @brief Save handle to program being verified in thread-local storage.
  *
