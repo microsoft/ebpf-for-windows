@@ -576,6 +576,12 @@ function eBPF-Components-In-Use {
     Write-Log -level $LogLevelInfo -message "eBPF-Components-In-Use()"
 
     # TBD: Check if the eBPF components are in use
+    # - Check if there are any programs or maps loaded (i.e. via 'netsh ebpf')
+    # - Stop eBPF drivers, so that no new programs or maps can be loaded
+    # - Check if there are any handles to EbpfApi.dll (i.e. UM applications using the eBPF API)
+    #   - If there are, restart the drivers and return $true
+    # - If there are no handles to the EbpfApi.dll, then we can update the eBPF components, return $false
+    #   - If there are, return $true
 
     return $false
 }
