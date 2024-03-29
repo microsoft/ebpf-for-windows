@@ -214,7 +214,6 @@ function Export-BuildArtifactsToVMs
 #
 # Install eBPF components on VM.
 #
-
 function Install-eBPFComponentsOnVM
 {
     param([parameter(Mandatory=$true)][string] $VMName,
@@ -255,6 +254,36 @@ function Uninstall-eBPFComponentsOnVM
         Uninstall-eBPFComponents
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     Write-Log "eBPF components uninstalled on $VMName" -ForegroundColor Green
+}
+
+function Stop-eBPFComponentsOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName)
+
+    Write-Log "Stopping eBPF components on $VMName"
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command `
+        -VMName $VMName `
+        -Credential $TestCredential `
+        -ScriptBlock {
+            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                  [Parameter(Mandatory=$True)] [string] $LogFileName
+            )
+
+            $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
+            Import-Module $WorkingDirectory\common.psm1 `
+                -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+
+            Import-Module $WorkingDirectory\install_ebpf.psm1 `
+                -ArgumentList($WorkingDirectory, $LogFileName) `
+                -Force -WarningAction SilentlyContinue
+
+            Stop-eBPFComponents
+
+        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+
+    Write-Log "eBPF components stopped on $VMName" -ForegroundColor Green
 }
 
 function ArchiveKernelModeDumpOnVM
@@ -563,7 +592,7 @@ function Get-Duonic {
 
 # Download the Visual C++ Redistributable.
 function Get-VCRedistributable {
-    $url = "https://aka.ms/vs/16/release/vc_redist.x64.exe"
+    $url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
     $DownloadPath = "$pwd\vc-redist"
     mkdir $DownloadPath
     Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
