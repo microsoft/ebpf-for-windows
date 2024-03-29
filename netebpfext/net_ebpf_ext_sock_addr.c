@@ -885,8 +885,11 @@ _net_ebpf_extension_connection_context_initialize(
     }
 }
 
-static bool
-_net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_connection_context_t* context)
+_Requires_exclusive_lock_held_(
+    _net_ebpf_ext_sock_addr_blocked_contexts
+        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_
+                                                                                       net_ebpf_extension_connection_context_t*
+                                                                                           context)
 {
     bool entry_found = false;
     // Check the hash table for the entry.
