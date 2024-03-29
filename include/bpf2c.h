@@ -109,6 +109,7 @@ extern "C"
         const uint8_t* program_info_hash;         ///< Hash of the program info.
         size_t program_info_hash_length;          ///< Length of the program info hash.
         const char* program_info_hash_type;       ///< Type of the program info hash
+        bool verified;                            ///< Whether the program has been verified.
     } program_entry_t;
 
     /**
