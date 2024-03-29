@@ -90,6 +90,10 @@ jobs:
       with:
         cancel_others: 'false'
         paths_ignore: '["**.md", "**/docs/**"]'
+        # Do not skip the following events.
+        # Workflow_dispatch, schedule, and merge_group are the default events that are not skipped.
+        # Repository_dispatch is used for calling this workflow from another repository.
+        do_not_skip: '["workflow_dispatch", "schedule", "merge_group", "repository_dispatch"]'
 
     - name: Set MSVC Environment Variables
       shell: cmd
