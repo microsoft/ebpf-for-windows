@@ -2,13 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory=$true)][bool] $KmTracing,
-       [parameter(Mandatory=$true)][string] $KmTraceType,
+       [parameter(Mandatory=$false)][bool] $KmTracing = $true,
+       [parameter(Mandatory=$false)][string] $KmTraceType = "file",
        [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName())
 
 Push-Location $WorkingDirectory
 
