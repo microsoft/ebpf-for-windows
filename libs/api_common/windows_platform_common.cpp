@@ -180,21 +180,29 @@ _duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_prog
         }
     }
 
-    program_type_descriptor = &program_info->program_type_descriptor;
-    memcpy(program_type_descriptor, &info->program_type_descriptor, sizeof(ebpf_program_type_descriptor_t));
-
     context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
     if (context_descriptor == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    program_info->program_type_descriptor.context_descriptor = context_descriptor;
-    memcpy(context_descriptor, info->program_type_descriptor.context_descriptor, sizeof(ebpf_context_descriptor_t));
-    program_type_descriptor->name = cxplat_duplicate_string(info->program_type_descriptor.name);
+    memcpy(context_descriptor, info->program_type_descriptor->context_descriptor, sizeof(ebpf_context_descriptor_t));
+
+    program_type_descriptor = (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
+    if (program_type_descriptor == nullptr) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    memcpy(program_type_descriptor, info->program_type_descriptor, sizeof(ebpf_program_type_descriptor_t));
+
+    program_type_descriptor->name = cxplat_duplicate_string(info->program_type_descriptor->name);
     if (program_type_descriptor->name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+
+    program_type_descriptor->context_descriptor = context_descriptor;
+
+    program_info->program_type_descriptor = program_type_descriptor;
 
     *new_info = program_info;
     program_info = nullptr;
