@@ -79,16 +79,16 @@ _ebpf_sock_ops_context_destroy(
     _Inout_ size_t* context_size_out);
 
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     .program_info = &_ebpf_sock_ops_program_info,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
 };
 
-static ebpf_extension_data_t _ebpf_sock_ops_program_info_provider_data = {
-    NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_ops_program_data), &_ebpf_sock_ops_program_data};
-
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+// Set the program type as the provider module id.
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_program_info_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_SOCK_OPS_GUID};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_sock_ops_program_info_provider_context = NULL;
 
@@ -96,14 +96,14 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_sock_ops_program_info_p
 // SOCK_OPS Hook NPI Provider.
 //
 
-ebpf_attach_provider_data_t _net_ebpf_sock_ops_hook_provider_data;
+ebpf_attach_provider_data_t _net_ebpf_sock_ops_hook_provider_data = {
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, sizeof(ebpf_attach_provider_data_t)},
+    EBPF_PROGRAM_TYPE_SOCK_OPS_GUID,
+    BPF_CGROUP_SOCK_OPS,
+    BPF_LINK_TYPE_CGROUP};
 
-ebpf_extension_data_t _net_ebpf_extension_sock_ops_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_VERSION,
-    sizeof(_net_ebpf_sock_ops_hook_provider_data),
-    &_net_ebpf_sock_ops_hook_provider_data};
-
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_hook_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_sock_ops_hook_provider_context = NULL;
 
@@ -132,8 +132,8 @@ net_ebpf_extension_sock_ops_on_client_attach(
         goto Exit;
     }
 
-    if (client_data->size > 0) {
-        if ((client_data->size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->header.size > 0) {
+        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }
@@ -255,15 +255,13 @@ net_ebpf_ext_sock_ops_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_extension_sock_ops_hook_provider_data};
+        &_ebpf_sock_ops_hook_provider_moduleid, &_net_ebpf_sock_ops_hook_provider_data};
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &_ebpf_sock_ops_program_info_provider_moduleid, &_ebpf_sock_ops_program_info_provider_data};
+        &_ebpf_sock_ops_program_info_provider_moduleid, &_ebpf_sock_ops_program_data};
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    // Set the program type as the provider module id.
-    _ebpf_sock_ops_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SOCK_OPS;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_ops_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
@@ -275,12 +273,6 @@ net_ebpf_ext_sock_ops_register_providers()
         goto Exit;
     }
 
-    _net_ebpf_sock_ops_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SOCK_OPS;
-    _net_ebpf_sock_ops_hook_provider_data.bpf_attach_type = BPF_CGROUP_SOCK_OPS;
-    _net_ebpf_sock_ops_hook_provider_data.link_type = BPF_LINK_TYPE_CGROUP;
-
-    // Set the attach type as the provider module id.
-    _ebpf_sock_ops_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS;
     // Register the provider context and pass the pointer to the WFP filter parameters
     // corresponding to this hook type as custom data.
     status = net_ebpf_extension_hook_provider_register(

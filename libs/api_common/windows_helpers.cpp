@@ -47,7 +47,10 @@ get_helper_prototype_windows(int32_t n)
     }
     EbpfHelperPrototype verifier_prototype = {0};
 
-    verifier_prototype.context_descriptor = info->program_type_descriptor.context_descriptor;
+    if (info->program_type_descriptor == nullptr) {
+        throw std::runtime_error(std::string("program type descriptor not found."));
+    }
+    verifier_prototype.context_descriptor = info->program_type_descriptor->context_descriptor;
 
     const ebpf_helper_function_prototype_t* raw_prototype = _get_helper_function_prototype(info, n);
     if (raw_prototype == nullptr) {

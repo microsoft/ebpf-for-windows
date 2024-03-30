@@ -80,20 +80,21 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     bpf_prog_type_t prog_type = (bpf_prog_type_t)metadata->prog_type;
 
     NET_IFINDEX if_index = 0;
-    ebpf_extension_data_t npi_specific_characteristics = {.size = sizeof(if_index), .data = &if_index};
+    ebpf_extension_data_t npi_specific_characteristics = {.data = &if_index};
     test_client_context_t client_context = {};
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_program,
         &client_context.base);
 
+    npi_specific_characteristics.header.size = sizeof(if_index);
+
     // Look up the context descriptor for the requested program type.
     std::vector<GUID> guids = helper.program_info_provider_guids();
     for (const auto& guid : guids) {
-        ebpf_extension_data_t extension_data = helper.get_program_info_provider_data(guid);
-        auto& program_data = *reinterpret_cast<const ebpf_program_data_t*>(extension_data.data);
-        if (prog_type == (bpf_prog_type_t)program_data.program_info->program_type_descriptor.bpf_prog_type) {
-            client_context.ctx_descriptor = program_data.program_info->program_type_descriptor.context_descriptor;
+        auto& program_data = *helper.get_program_info_provider_data(guid);
+        if (prog_type == (bpf_prog_type_t)program_data.program_info->program_type_descriptor->bpf_prog_type) {
+            client_context.ctx_descriptor = program_data.program_info->program_type_descriptor->context_descriptor;
             break;
         }
     }

@@ -83,9 +83,12 @@ _ebpf_xdp_context_delete(
 static const void* _ebpf_xdp_test_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};
 
 static ebpf_helper_function_addresses_t _ebpf_xdp_test_helper_function_address_table = {
-    EBPF_COUNT_OF(_ebpf_xdp_test_helper_functions), (uint64_t*)_ebpf_xdp_test_helper_functions};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    EBPF_COUNT_OF(_ebpf_xdp_test_helper_functions),
+    (uint64_t*)_ebpf_xdp_test_helper_functions};
 
 static ebpf_program_data_t _ebpf_xdp_test_program_data = {
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     .program_info = &_ebpf_xdp_test_program_info,
     .program_type_specific_helper_function_addresses = &_ebpf_xdp_test_helper_function_address_table,
     .context_create = _ebpf_xdp_context_create,
@@ -93,10 +96,9 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     .required_irql = DISPATCH_LEVEL,
 };
 
-static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
-    NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
-
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_program_info_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+// Set the program type as the provider module id.
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_program_info_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_XDP_TEST_GUID};
 
 static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_test_program_info_provider_context = NULL;
 
@@ -104,14 +106,14 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_test_program_info_p
 // XDP Hook NPI Provider.
 //
 
-ebpf_attach_provider_data_t _net_ebpf_xdp_test_hook_provider_data;
+ebpf_attach_provider_data_t _net_ebpf_xdp_test_hook_provider_data = {
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, sizeof(ebpf_attach_provider_data_t)},
+    EBPF_PROGRAM_TYPE_XDP_TEST_GUID,
+    BPF_XDP_TEST,
+    BPF_LINK_TYPE_XDP};
 
-ebpf_extension_data_t _net_ebpf_extension_xdp_test_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_VERSION,
-    sizeof(_net_ebpf_xdp_test_hook_provider_data),
-    &_net_ebpf_xdp_test_hook_provider_data};
-
-NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_hook_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_ATTACH_TYPE_XDP_TEST_GUID};
 
 static net_ebpf_extension_hook_provider_t* _ebpf_xdp_test_hook_provider_context = NULL;
 
@@ -144,8 +146,8 @@ net_ebpf_extension_xdp_on_client_attach(
         goto Exit;
     }
 
-    if (client_data->size > 0) {
-        if ((client_data->size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->header.size > 0) {
+        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -251,14 +253,12 @@ net_ebpf_ext_xdp_register_providers()
     NTSTATUS status = STATUS_SUCCESS;
 
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
-        &_ebpf_xdp_test_program_info_provider_moduleid, &_ebpf_xdp_test_program_info_provider_data};
+        &_ebpf_xdp_test_program_info_provider_moduleid, &_ebpf_xdp_test_program_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
-        &_ebpf_xdp_test_hook_provider_moduleid, &_net_ebpf_extension_xdp_test_hook_provider_data};
+        &_ebpf_xdp_test_hook_provider_moduleid, &_net_ebpf_xdp_test_hook_provider_data};
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    // Set the program type as the provider module id.
-    _ebpf_xdp_test_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_XDP_TEST;
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_xdp_test_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
@@ -270,11 +270,6 @@ net_ebpf_ext_xdp_register_providers()
         goto Exit;
     }
 
-    _net_ebpf_xdp_test_hook_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_XDP_TEST;
-    // Set the attach type as the provider module id.
-    _ebpf_xdp_test_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_XDP_TEST;
-    _net_ebpf_xdp_test_hook_provider_data.bpf_attach_type = BPF_XDP_TEST;
-    _net_ebpf_xdp_test_hook_provider_data.link_type = BPF_LINK_TYPE_XDP;
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         net_ebpf_extension_xdp_on_client_attach,
