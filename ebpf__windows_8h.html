@@ -66,6 +66,7 @@ $(function() {
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#nested-classes">Data Structures</a> &#124;
 <a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
 <a href="#enum-members">Enumerations</a>  </div>
@@ -73,10 +74,18 @@ $(function() {
 <div class="title">ebpf_windows.h File Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><code>#include &lt;stdint.h&gt;</code><br />
+<div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
+<code>#include &lt;<a class="el" href="stddef_8h_source.html">stddef.h</a>&gt;</code><br />
+<code>#include &lt;stdint.h&gt;</code><br />
 </div>
 <p><a href="ebpf__windows_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
+Data Structures</h2></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__extension__header.html">_ebpf_extension_header</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header of an eBPF extension data structure. Every eBPF extension data structure must start with this header. New fields can be added to the end of an eBPF extension data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible.  <a href="struct__ebpf__extension__header.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
 <tr class="memitem:a69a8302d5a890bc876905a250a3e1b46"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a69a8302d5a890bc876905a250a3e1b46">EBPF_ROOT_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;\\Registry\\Machine\\Software\\eBPF&quot;</td></tr>
@@ -85,16 +94,22 @@ Macros</h2></td></tr>
 <tr class="separator:a6e61d3215c4dcae5f897bea35c83eda4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2dec541ebcd26576f178eaee1e5e4fe5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a2dec541ebcd26576f178eaee1e5e4fe5">EBPF_STORE_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;Software\\eBPF\\Providers&quot;</td></tr>
 <tr class="separator:a2dec541ebcd26576f178eaee1e5e4fe5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa93043d9a7b2b6802f4b358139a4ad3c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#aa93043d9a7b2b6802f4b358139a4ad3c">EBPF_PROVIDERS_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;Providers&quot;</td></tr>
-<tr class="separator:aa93043d9a7b2b6802f4b358139a4ad3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a77b82c878d2196369e2a995dc9c14244"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a77b82c878d2196369e2a995dc9c14244">EBPF_SECTIONS_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;SectionData&quot;</td></tr>
-<tr class="separator:a77b82c878d2196369e2a995dc9c14244"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a632c1dd33a0a2d1adf6b1db235e8fadd"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a632c1dd33a0a2d1adf6b1db235e8fadd">EBPF_PROGRAM_DATA_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;ProgramData&quot;</td></tr>
-<tr class="separator:a632c1dd33a0a2d1adf6b1db235e8fadd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abfb0b1785443602df469e37ee861fd24"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#abfb0b1785443602df469e37ee861fd24">EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;Helpers&quot;</td></tr>
-<tr class="separator:abfb0b1785443602df469e37ee861fd24"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab869d4f3b17e83161f8ca9928794811d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#ab869d4f3b17e83161f8ca9928794811d">EBPF_GLOBAL_HELPERS_REGISTRY_PATH</a>&#160;&#160;&#160;L&quot;GlobalHelpers&quot;</td></tr>
-<tr class="separator:ab869d4f3b17e83161f8ca9928794811d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8521b591d5318477c402fa530f03c0c3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a8521b591d5318477c402fa530f03c0c3">EBPF_PROVIDERS_REGISTRY_KEY</a>&#160;&#160;&#160;L&quot;Providers&quot;</td></tr>
+<tr class="separator:a8521b591d5318477c402fa530f03c0c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6d8d2db8a3422fc86aa533cda1bbc442"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a6d8d2db8a3422fc86aa533cda1bbc442">EBPF_SECTIONS_REGISTRY_KEY</a>&#160;&#160;&#160;L&quot;SectionData&quot;</td></tr>
+<tr class="separator:a6d8d2db8a3422fc86aa533cda1bbc442"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af727d07c7a513ea3765abf8cd4038236"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#af727d07c7a513ea3765abf8cd4038236">EBPF_PROGRAM_DATA_REGISTRY_KEY</a>&#160;&#160;&#160;L&quot;ProgramData&quot;</td></tr>
+<tr class="separator:af727d07c7a513ea3765abf8cd4038236"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a173760e567c72da3f8646b7b709d45e5"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a173760e567c72da3f8646b7b709d45e5">EBPF_PROGRAM_TYPE_DESCRIPTOR_REGISTRY_KEY</a>&#160;&#160;&#160;L&quot;TypeDescriptor&quot;</td></tr>
+<tr class="separator:a173760e567c72da3f8646b7b709d45e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a999dedfc320234338717eabad86ed982"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a999dedfc320234338717eabad86ed982">EBPF_PROGRAM_DATA_HELPERS_REGISTRY_KEY</a>&#160;&#160;&#160;L&quot;Helpers&quot;</td></tr>
+<tr class="separator:a999dedfc320234338717eabad86ed982"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d3a289fa099408926314d75808bfff7"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a1d3a289fa099408926314d75808bfff7">EBPF_GLOBAL_HELPERS_REGISTRY_KEY</a>&#160;&#160;&#160;L&quot;GlobalHelpers&quot;</td></tr>
+<tr class="separator:a1d3a289fa099408926314d75808bfff7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5fb4c423e66af604c781f9a35b954238"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a5fb4c423e66af604c781f9a35b954238">EBPF_EXTENSION_HEADER_VERSION</a>&#160;&#160;&#160;L&quot;Version&quot;</td></tr>
+<tr class="separator:a5fb4c423e66af604c781f9a35b954238"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6b0344d65fc6c1b7b3c3fb0fa90b7f53"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a6b0344d65fc6c1b7b3c3fb0fa90b7f53">EBPF_EXTENSION_HEADER_SIZE</a>&#160;&#160;&#160;L&quot;Size&quot;</td></tr>
+<tr class="separator:a6b0344d65fc6c1b7b3c3fb0fa90b7f53"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6fcdef43f3292afd9853cbb8cd8765ab"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a6fcdef43f3292afd9853cbb8cd8765ab">EBPF_SECTION_DATA_PROGRAM_TYPE</a>&#160;&#160;&#160;L&quot;ProgramType&quot;</td></tr>
 <tr class="separator:a6fcdef43f3292afd9853cbb8cd8765ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a04f77b055b151169359547571bcb70a3"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a04f77b055b151169359547571bcb70a3">EBPF_SECTION_DATA_ATTACH_TYPE</a>&#160;&#160;&#160;L&quot;AttachType&quot;</td></tr>
@@ -115,6 +130,36 @@ Macros</h2></td></tr>
 <tr class="separator:aab6080e5889403b9ffbe0bb3f8ce73e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaed5424dcaa4dbf8f300e3e1ad5887c1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#aaed5424dcaa4dbf8f300e3e1ad5887c1">EBPF_DATA_BPF_ATTACH_TYPE</a>&#160;&#160;&#160;L&quot;BpfAttachType&quot;</td></tr>
 <tr class="separator:aaed5424dcaa4dbf8f300e3e1ad5887c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a77f7fe109f6ec1d37d0d0f3c21291f02"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a77f7fe109f6ec1d37d0d0f3c21291f02">EBPF_MAX_GENERAL_HELPER_FUNCTION</a>&#160;&#160;&#160;0xFFFF</td></tr>
+<tr class="separator:a77f7fe109f6ec1d37d0d0f3c21291f02"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a69c7eadf7dbb12e6a5bdb5fa64813aba"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a69c7eadf7dbb12e6a5bdb5fa64813aba">EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a69c7eadf7dbb12e6a5bdb5fa64813aba"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a996b980794064d635bb61df76da3a462"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a996b980794064d635bb61df76da3a462">EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a996b980794064d635bb61df76da3a462"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7a71dd204c73c51d58971ec1b9ffa79b"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a7a71dd204c73c51d58971ec1b9ffa79b">EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a7a71dd204c73c51d58971ec1b9ffa79b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa79e565cedb87f05a994c65d1bc291b6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#aa79e565cedb87f05a994c65d1bc291b6">EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:aa79e565cedb87f05a994c65d1bc291b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae0cb953dd7319e3b1fdf6e251b91800f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#ae0cb953dd7319e3b1fdf6e251b91800f">EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#a15c99d9ad970c656327b558ac17c0b89">ebpf_program_type_descriptor_t</a>, is_privileged)</td></tr>
+<tr class="separator:ae0cb953dd7319e3b1fdf6e251b91800f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a953be532ec7870da8e0b3da5e8a10f4e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a953be532ec7870da8e0b3da5e8a10f4e">EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a953be532ec7870da8e0b3da5e8a10f4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a349764181f7e373a0d855c5cf9e1b9b2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a349764181f7e373a0d855c5cf9e1b9b2">EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>, arguments)</td></tr>
+<tr class="separator:a349764181f7e373a0d855c5cf9e1b9b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ace71bbed24a94bcf15ea1fbe399943b8"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#ace71bbed24a94bcf15ea1fbe399943b8">EBPF_PROGRAM_INFORMATION_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:ace71bbed24a94bcf15ea1fbe399943b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4d6325f492dba0751e9b11d96951d32c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a4d6325f492dba0751e9b11d96951d32c">EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a>, global_helper_prototype)</td></tr>
+<tr class="separator:a4d6325f492dba0751e9b11d96951d32c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3810ad251c9e7cb87124f192f28e4636"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a3810ad251c9e7cb87124f192f28e4636">EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a3810ad251c9e7cb87124f192f28e4636"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a94f2d4001fd718de35ab50255af5fc6f"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a94f2d4001fd718de35ab50255af5fc6f">EBPF_PROGRAM_DATA_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:a94f2d4001fd718de35ab50255af5fc6f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac86dc1658cbdf76f9af89ab72aeb630d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#ac86dc1658cbdf76f9af89ab72aeb630d">EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5">ebpf_program_data_t</a>, required_irql)</td></tr>
+<tr class="separator:ac86dc1658cbdf76f9af89ab72aeb630d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae9a8dc78504a8f96f5db7791720af874"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#ae9a8dc78504a8f96f5db7791720af874">EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
+<tr class="separator:ae9a8dc78504a8f96f5db7791720af874"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:add8a4c138774e0b2a086061bf92bcb2a"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#add8a4c138774e0b2a086061bf92bcb2a">EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0">ebpf_program_section_info_t</a>, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>)</td></tr>
+<tr class="separator:add8a4c138774e0b2a086061bf92bcb2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -126,6 +171,9 @@ Typedefs</h2></td></tr>
 <tr class="separator:a3f56868552f991b0f9eb6800d8f9a43c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af7133d5060d723837012a802b6855bea"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd">_ebpf_helper_function</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#af7133d5060d723837012a802b6855bea">ebpf_helper_function_t</a></td></tr>
 <tr class="separator:af7133d5060d723837012a802b6855bea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6a63738b9e73c3786834b0128ce196e7"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__extension__header.html">_ebpf_extension_header</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a></td></tr>
+<tr class="memdesc:a6a63738b9e73c3786834b0128ce196e7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header of an eBPF extension data structure. Every eBPF extension data structure must start with this header. New fields can be added to the end of an eBPF extension data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible.  <a href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">More...</a><br /></td></tr>
+<tr class="separator:a6a63738b9e73c3786834b0128ce196e7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -136,6 +184,34 @@ Enumerations</h2></td></tr>
 <tr class="separator:a653f667ffc6571d5f67b1b81d612a0cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a69c7eadf7dbb12e6a5bdb5fa64813aba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a69c7eadf7dbb12e6a5bdb5fa64813aba">&#9670;&nbsp;</a></span>EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a996b980794064d635bb61df76da3a462"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a996b980794064d635bb61df76da3a462">&#9670;&nbsp;</a></span>EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="aaed5424dcaa4dbf8f300e3e1ad5887c1"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aaed5424dcaa4dbf8f300e3e1ad5887c1">&#9670;&nbsp;</a></span>EBPF_DATA_BPF_ATTACH_TYPE</h2>
 
@@ -164,14 +240,42 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
-<a id="ab869d4f3b17e83161f8ca9928794811d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab869d4f3b17e83161f8ca9928794811d">&#9670;&nbsp;</a></span>EBPF_GLOBAL_HELPERS_REGISTRY_PATH</h2>
+<a id="a6b0344d65fc6c1b7b3c3fb0fa90b7f53"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6b0344d65fc6c1b7b3c3fb0fa90b7f53">&#9670;&nbsp;</a></span>EBPF_EXTENSION_HEADER_SIZE</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_GLOBAL_HELPERS_REGISTRY_PATH&#160;&#160;&#160;L&quot;GlobalHelpers&quot;</td>
+          <td class="memname">#define EBPF_EXTENSION_HEADER_SIZE&#160;&#160;&#160;L&quot;Size&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a5fb4c423e66af604c781f9a35b954238"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5fb4c423e66af604c781f9a35b954238">&#9670;&nbsp;</a></span>EBPF_EXTENSION_HEADER_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_EXTENSION_HEADER_VERSION&#160;&#160;&#160;L&quot;Version&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1d3a289fa099408926314d75808bfff7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1d3a289fa099408926314d75808bfff7">&#9670;&nbsp;</a></span>EBPF_GLOBAL_HELPERS_REGISTRY_KEY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_GLOBAL_HELPERS_REGISTRY_KEY&#160;&#160;&#160;L&quot;GlobalHelpers&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -192,6 +296,62 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="a3810ad251c9e7cb87124f192f28e4636"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3810ad251c9e7cb87124f192f28e4636">&#9670;&nbsp;</a></span>EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a953be532ec7870da8e0b3da5e8a10f4e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a953be532ec7870da8e0b3da5e8a10f4e">&#9670;&nbsp;</a></span>EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a349764181f7e373a0d855c5cf9e1b9b2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a349764181f7e373a0d855c5cf9e1b9b2">&#9670;&nbsp;</a></span>EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>, arguments)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a77f7fe109f6ec1d37d0d0f3c21291f02"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a77f7fe109f6ec1d37d0d0f3c21291f02">&#9670;&nbsp;</a></span>EBPF_MAX_GENERAL_HELPER_FUNCTION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAX_GENERAL_HELPER_FUNCTION&#160;&#160;&#160;0xFFFF</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a94bcdca8405cebed195bf9b85d5b7d9a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a94bcdca8405cebed195bf9b85d5b7d9a">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR</h2>
 
@@ -200,6 +360,34 @@ Enumerations</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define EBPF_PROGRAM_DATA_CONTEXT_DESCRIPTOR&#160;&#160;&#160;L&quot;ContextDescriptor&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a94f2d4001fd718de35ab50255af5fc6f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a94f2d4001fd718de35ab50255af5fc6f">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_DATA_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac86dc1658cbdf76f9af89ab72aeb630d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac86dc1658cbdf76f9af89ab72aeb630d">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE&#160;&#160;&#160;EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5">ebpf_program_data_t</a>, required_irql)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -220,14 +408,14 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
-<a id="abfb0b1785443602df469e37ee861fd24"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abfb0b1785443602df469e37ee861fd24">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH</h2>
+<a id="a999dedfc320234338717eabad86ed982"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a999dedfc320234338717eabad86ed982">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_HELPERS_REGISTRY_KEY</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_PATH&#160;&#160;&#160;L&quot;Helpers&quot;</td>
+          <td class="memname">#define EBPF_PROGRAM_DATA_HELPERS_REGISTRY_KEY&#160;&#160;&#160;L&quot;Helpers&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -276,28 +464,140 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
-<a id="a632c1dd33a0a2d1adf6b1db235e8fadd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a632c1dd33a0a2d1adf6b1db235e8fadd">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_REGISTRY_PATH</h2>
+<a id="af727d07c7a513ea3765abf8cd4038236"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af727d07c7a513ea3765abf8cd4038236">&#9670;&nbsp;</a></span>EBPF_PROGRAM_DATA_REGISTRY_KEY</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_PROGRAM_DATA_REGISTRY_PATH&#160;&#160;&#160;L&quot;ProgramData&quot;</td>
+          <td class="memname">#define EBPF_PROGRAM_DATA_REGISTRY_KEY&#160;&#160;&#160;L&quot;ProgramData&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="aa93043d9a7b2b6802f4b358139a4ad3c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa93043d9a7b2b6802f4b358139a4ad3c">&#9670;&nbsp;</a></span>EBPF_PROVIDERS_REGISTRY_PATH</h2>
+<a id="a7a71dd204c73c51d58971ec1b9ffa79b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7a71dd204c73c51d58971ec1b9ffa79b">&#9670;&nbsp;</a></span>EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_PROVIDERS_REGISTRY_PATH&#160;&#160;&#160;L&quot;Providers&quot;</td>
+          <td class="memname">#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ace71bbed24a94bcf15ea1fbe399943b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ace71bbed24a94bcf15ea1fbe399943b8">&#9670;&nbsp;</a></span>EBPF_PROGRAM_INFORMATION_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a4d6325f492dba0751e9b11d96951d32c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4d6325f492dba0751e9b11d96951d32c">&#9670;&nbsp;</a></span>EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a>, global_helper_prototype)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae9a8dc78504a8f96f5db7791720af874"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae9a8dc78504a8f96f5db7791720af874">&#9670;&nbsp;</a></span>EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="add8a4c138774e0b2a086061bf92bcb2a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#add8a4c138774e0b2a086061bf92bcb2a">&#9670;&nbsp;</a></span>EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0">ebpf_program_section_info_t</a>, <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="aa79e565cedb87f05a994c65d1bc291b6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa79e565cedb87f05a994c65d1bc291b6">&#9670;&nbsp;</a></span>EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION&#160;&#160;&#160;1</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ae0cb953dd7319e3b1fdf6e251b91800f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae0cb953dd7319e3b1fdf6e251b91800f">&#9670;&nbsp;</a></span>EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE&#160;&#160;&#160;    EBPF_SIZE_INCLUDING_FIELD(<a class="el" href="ebpf__program__types_8h.html#a15c99d9ad970c656327b558ac17c0b89">ebpf_program_type_descriptor_t</a>, is_privileged)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a173760e567c72da3f8646b7b709d45e5"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a173760e567c72da3f8646b7b709d45e5">&#9670;&nbsp;</a></span>EBPF_PROGRAM_TYPE_DESCRIPTOR_REGISTRY_KEY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_REGISTRY_KEY&#160;&#160;&#160;L&quot;TypeDescriptor&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a8521b591d5318477c402fa530f03c0c3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8521b591d5318477c402fa530f03c0c3">&#9670;&nbsp;</a></span>EBPF_PROVIDERS_REGISTRY_KEY</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_PROVIDERS_REGISTRY_KEY&#160;&#160;&#160;L&quot;Providers&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -360,14 +660,14 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
-<a id="a77b82c878d2196369e2a995dc9c14244"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a77b82c878d2196369e2a995dc9c14244">&#9670;&nbsp;</a></span>EBPF_SECTIONS_REGISTRY_PATH</h2>
+<a id="a6d8d2db8a3422fc86aa533cda1bbc442"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6d8d2db8a3422fc86aa533cda1bbc442">&#9670;&nbsp;</a></span>EBPF_SECTIONS_REGISTRY_KEY</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_SECTIONS_REGISTRY_PATH&#160;&#160;&#160;L&quot;SectionData&quot;</td>
+          <td class="memname">#define EBPF_SECTIONS_REGISTRY_KEY&#160;&#160;&#160;L&quot;SectionData&quot;</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -400,6 +700,22 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="a6a63738b9e73c3786834b0128ce196e7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6a63738b9e73c3786834b0128ce196e7">&#9670;&nbsp;</a></span>ebpf_extension_header_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__extension__header.html">_ebpf_extension_header</a> <a class="el" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Header of an eBPF extension data structure. Every eBPF extension data structure must start with this header. New fields can be added to the end of an eBPF extension data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible. </p>
 
 </div>
 </div>

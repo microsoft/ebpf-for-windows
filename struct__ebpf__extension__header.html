@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.9.1"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: _ebpf_helper_function_addresses Struct Reference</title>
+<title>eBPF for Windows: _ebpf_extension_header Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -64,66 +64,61 @@ $(function() {
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
   <div class="headertitle">
-<div class="title">_ebpf_helper_function_addresses Struct Reference</div>  </div>
+<div class="title">_ebpf_extension_header Struct Reference</div>  </div>
 </div><!--header-->
 <div class="contents">
 
-<p><code>#include &lt;<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a>&gt;</code></p>
+<p>Header of an eBPF extension data structure. Every eBPF extension data structure must start with this header. New fields can be added to the end of an eBPF extension data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible.  
+ <a href="struct__ebpf__extension__header.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="ebpf__windows_8h_source.html">ebpf_windows.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a49632a0e080ef0097277526491bdfec3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__addresses.html#a49632a0e080ef0097277526491bdfec3">header</a></td></tr>
-<tr class="separator:a49632a0e080ef0097277526491bdfec3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8d8d99e7ecece4fa5299f363050ec9fa"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__addresses.html#a8d8d99e7ecece4fa5299f363050ec9fa">helper_function_count</a></td></tr>
-<tr class="separator:a8d8d99e7ecece4fa5299f363050ec9fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a026302384a8f4535e5633dff53b58f7e"><td class="memItemLeft" align="right" valign="top">uint64_t *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__addresses.html#a026302384a8f4535e5633dff53b58f7e">helper_function_address</a></td></tr>
-<tr class="separator:a026302384a8f4535e5633dff53b58f7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a37abb903576864b552ccbedfe2f9415d"><td class="memItemLeft" align="right" valign="top">uint16_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">version</a></td></tr>
+<tr class="memdesc:a37abb903576864b552ccbedfe2f9415d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the extension data structure.  <a href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">More...</a><br /></td></tr>
+<tr class="separator:a37abb903576864b552ccbedfe2f9415d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0eb703712bfe98678ef9ffc1fe327282"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">size</a></td></tr>
+<tr class="memdesc:a0eb703712bfe98678ef9ffc1fe327282"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size of the extension data structure.  <a href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">More...</a><br /></td></tr>
+<tr class="separator:a0eb703712bfe98678ef9ffc1fe327282"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<h2 class="groupheader">Field Documentation</h2>
-<a id="a49632a0e080ef0097277526491bdfec3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a49632a0e080ef0097277526491bdfec3">&#9670;&nbsp;</a></span>header</h2>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><p>Header of an eBPF extension data structure. Every eBPF extension data structure must start with this header. New fields can be added to the end of an eBPF extension data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible. </p>
+</div><h2 class="groupheader">Field Documentation</h2>
+<a id="a0eb703712bfe98678ef9ffc1fe327282"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0eb703712bfe98678ef9ffc1fe327282">&#9670;&nbsp;</a></span>size</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a> _ebpf_helper_function_addresses::header</td>
+          <td class="memname">size_t _ebpf_extension_header::size</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
+<p>Size of the extension data structure. </p>
+
 </div>
 </div>
-<a id="a026302384a8f4535e5633dff53b58f7e"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a026302384a8f4535e5633dff53b58f7e">&#9670;&nbsp;</a></span>helper_function_address</h2>
+<a id="a37abb903576864b552ccbedfe2f9415d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a37abb903576864b552ccbedfe2f9415d">&#9670;&nbsp;</a></span>version</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint64_t* _ebpf_helper_function_addresses::helper_function_address</td>
+          <td class="memname">uint16_t _ebpf_extension_header::version</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-</div>
-</div>
-<a id="a8d8d99e7ecece4fa5299f363050ec9fa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8d8d99e7ecece4fa5299f363050ec9fa">&#9670;&nbsp;</a></span>helper_function_count</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t _ebpf_helper_function_addresses::helper_function_count</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
+<p>Version of the extension data structure. </p>
 
 </div>
 </div>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>include/<a class="el" href="ebpf__program__types_8h_source.html">ebpf_program_types.h</a></li>
+<li>include/<a class="el" href="ebpf__windows_8h_source.html">ebpf_windows.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
