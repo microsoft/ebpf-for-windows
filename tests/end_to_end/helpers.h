@@ -117,6 +117,8 @@ typedef class _single_instance_hook : public _hook_helper
           client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
           nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
     {
+        attach_provider_data.header.version = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION;
+        attach_provider_data.header.size = sizeof(attach_provider_data);
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
@@ -308,8 +310,6 @@ typedef class _single_instance_hook : public _hook_helper
     ebpf_attach_type_t attach_type;
     ebpf_attach_provider_data_t attach_provider_data;
 
-    ebpf_extension_data_t provider_data = {
-        EBPF_ATTACH_PROVIDER_DATA_VERSION, sizeof(attach_provider_data), &attach_provider_data};
     NPI_MODULEID module_id = {
         sizeof(NPI_MODULEID),
         MIT_GUID,
@@ -321,12 +321,12 @@ typedef class _single_instance_hook : public _hook_helper
         (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
         NULL,
         {
-            EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+            0,
             sizeof(NPI_REGISTRATION_INSTANCE),
             &EBPF_HOOK_EXTENSION_IID,
             &module_id,
             0,
-            &provider_data,
+            &attach_provider_data,
         },
     };
     HANDLE nmr_provider_handle;
@@ -621,51 +621,52 @@ _sample_test_context_destroy(
 static const void* _mock_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
 static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
-    EBPF_COUNT_OF(_mock_xdp_helper_functions), (uint64_t*)_mock_xdp_helper_functions};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    EBPF_COUNT_OF(_mock_xdp_helper_functions),
+    (uint64_t*)_mock_xdp_helper_functions};
 
+static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE,
+    "xdp",
+    &_ebpf_xdp_test_context_descriptor,
+    EBPF_PROGRAM_TYPE_XDP_GUID,
+    BPF_PROG_TYPE_XDP,
+    0};
 static const ebpf_program_info_t _mock_xdp_program_info = {
-    {"xdp", &_ebpf_xdp_test_context_descriptor, EBPF_PROGRAM_TYPE_XDP_GUID, BPF_PROG_TYPE_XDP},
+    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
+    &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     &_mock_xdp_program_info,
     &_mock_xdp_helper_function_address_table,
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy};
 
-static ebpf_extension_data_t _mock_xdp_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_mock_xdp_program_data), &_mock_xdp_program_data};
-
 // XDP_TEST.
 static ebpf_program_data_t _ebpf_xdp_test_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     &_ebpf_xdp_test_program_info,
     &_mock_xdp_helper_function_address_table,
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy};
 
-static ebpf_extension_data_t _ebpf_xdp_test_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_xdp_test_program_data), &_ebpf_xdp_test_program_data};
-
 // Bind.
-static ebpf_program_data_t _ebpf_bind_program_data = {&_ebpf_bind_program_info, NULL};
-
-static ebpf_extension_data_t _ebpf_bind_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_bind_program_data), &_ebpf_bind_program_data};
+static ebpf_program_data_t _ebpf_bind_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_bind_program_info, NULL};
 
 // CGROUP_SOCK_ADDR.
-static ebpf_program_data_t _ebpf_sock_addr_program_data = {&_ebpf_sock_addr_program_info, NULL};
-
-static ebpf_extension_data_t _ebpf_sock_addr_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_addr_program_data), &_ebpf_sock_addr_program_data};
+static ebpf_program_data_t _ebpf_sock_addr_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_sock_addr_program_info, NULL};
 
 // SOCK_OPS.
-static ebpf_program_data_t _ebpf_sock_ops_program_data = {&_ebpf_sock_ops_program_info, NULL};
-
-static ebpf_extension_data_t _ebpf_sock_ops_program_info_provider_data = {
-    TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION, sizeof(_ebpf_sock_ops_program_data), &_ebpf_sock_ops_program_data};
+static ebpf_program_data_t _ebpf_sock_ops_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_sock_ops_program_info, NULL};
 
 // Sample extension.
 static const void* _sample_ebpf_ext_helper_functions[] = {
@@ -674,14 +675,19 @@ static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_replace};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
-    EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions), (uint64_t*)_sample_ebpf_ext_helper_functions};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions),
+    (uint64_t*)_sample_ebpf_ext_helper_functions};
 
 static const void* _test_global_helper_functions[] = {test_global_helper_t::_sample_get_pid_tgid};
 
 static ebpf_helper_function_addresses_t _test_global_helper_function_address_table = {
-    EBPF_COUNT_OF(_test_global_helper_functions), (uint64_t*)_test_global_helper_functions};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    EBPF_COUNT_OF(_test_global_helper_functions),
+    (uint64_t*)_test_global_helper_functions};
 
 static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     &_sample_ebpf_extension_program_info,
     &_sample_ebpf_ext_helper_function_address_table,
     &_test_global_helper_function_address_table,
@@ -690,46 +696,40 @@ static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 
-static ebpf_extension_data_t _test_ebpf_sample_extension_program_info_provider_data = {
-    TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION,
-    sizeof(_test_ebpf_sample_extension_program_data),
-    &_test_ebpf_sample_extension_program_data};
-
 typedef class _program_info_provider
 {
   public:
-    _program_info_provider() : provider_data(nullptr), nmr_provider_handle(INVALID_HANDLE_VALUE)
+    _program_info_provider() : program_data(nullptr), nmr_provider_handle(INVALID_HANDLE_VALUE)
     {
         memset(&_program_type, 0, sizeof(_program_type));
     }
 
     ebpf_result_t
-    initialize(ebpf_program_type_t program_type, ebpf_extension_data_t* custom_provider_data = nullptr)
+    initialize(ebpf_program_type_t program_type, ebpf_program_data_t* custom_program_data = nullptr)
     {
         this->_program_type = program_type;
 
-        if (custom_provider_data != nullptr) {
-            provider_data = custom_provider_data;
+        if (custom_program_data != nullptr) {
+            program_data = custom_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP) {
-            provider_data = &_mock_xdp_program_info_provider_data;
+            program_data = &_mock_xdp_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_XDP_TEST) {
-            provider_data = &_ebpf_xdp_test_program_info_provider_data;
+            program_data = &_ebpf_xdp_test_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_BIND) {
-            provider_data = &_ebpf_bind_program_info_provider_data;
+            program_data = &_ebpf_bind_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR) {
-            provider_data = &_ebpf_sock_addr_program_info_provider_data;
+            program_data = &_ebpf_sock_addr_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_SOCK_OPS) {
-            provider_data = &_ebpf_sock_ops_program_info_provider_data;
+            program_data = &_ebpf_sock_ops_program_data;
         } else if (program_type == EBPF_PROGRAM_TYPE_SAMPLE) {
-            provider_data = &_test_ebpf_sample_extension_program_info_provider_data;
+            program_data = &_test_ebpf_sample_extension_program_data;
         } else {
             // Unsupported program type.
             return EBPF_INVALID_ARGUMENT;
         }
-        ebpf_program_data_t* program_data = (ebpf_program_data_t*)provider_data->data;
 
-        module_id.Guid = program_data->program_info->program_type_descriptor.program_type;
-        provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = provider_data;
+        module_id.Guid = program_data->program_info->program_type_descriptor->program_type;
+        provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = program_data;
 
         NTSTATUS status = NmrRegisterProvider(&provider_characteristics, this, &nmr_provider_handle);
         return (NT_SUCCESS(status)) ? EBPF_SUCCESS : EBPF_FAILED;
@@ -780,8 +780,8 @@ typedef class _program_info_provider
     };
 
     ebpf_program_type_t _program_type;
+    const ebpf_program_data_t* program_data;
 
-    const ebpf_extension_data_t* provider_data;
     NPI_MODULEID module_id = {
         sizeof(NPI_MODULEID),
         MIT_GUID,
@@ -794,7 +794,7 @@ typedef class _program_info_provider
         (NPI_PROVIDER_DETACH_CLIENT_FN*)provider_detach_client_callback,
         NULL,
         {
-            EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+            0,
             sizeof(NPI_REGISTRATION_INSTANCE),
             &EBPF_PROGRAM_INFO_EXTENSION_IID,
             &module_id,

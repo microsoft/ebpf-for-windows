@@ -59,7 +59,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_link_client_characteristics = {
     _ebpf_link_client_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_HOOK_EXTENSION_IID,
         NULL,
@@ -91,8 +91,9 @@ _ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_c
 
 typedef enum _ebpf_link_dispatch_table_version
 {
-    EBPF_LINK_DISPATCH_TABLE_VERSION_1 = 1,                                ///< Initial version of the dispatch table.
-    EBPF_LINK_DISPATCH_TABLE_VERSION = EBPF_LINK_DISPATCH_TABLE_VERSION_1, ///< Current version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_CURRENT_VERSION = 1, ///< Initial version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_VERSION =
+        EBPF_LINK_DISPATCH_TABLE_CURRENT_VERSION, ///< Current version of the dispatch table.
 } ebpf_link_dispatch_table_version_t;
 
 static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
@@ -121,8 +122,8 @@ _ebpf_link_client_attach_provider(
     ebpf_link_t* link = (ebpf_link_t*)client_context;
     void* provider_binding_context;
     void* provider_dispatch;
-    const ebpf_extension_data_t* provider_data =
-        (const ebpf_extension_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
+    const ebpf_attach_provider_data_t* attach_provider_data =
+        (const ebpf_attach_provider_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
 
     bool lock_held = false;
 
@@ -132,20 +133,18 @@ _ebpf_link_client_attach_provider(
     UNREFERENCED_PARAMETER(nmr_binding_handle);
 
     // Verify that that the provider is using the same version of the extension as the client.
-    if (provider_data->version > EBPF_ATTACH_PROVIDER_DATA_VERSION ||
-        provider_data->size < sizeof(ebpf_extension_data_t)) {
+    if (attach_provider_data->header.version > EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION ||
+        attach_provider_data->header.size < sizeof(ebpf_attach_provider_data_t)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,
             "Attach provider data version is not compatible.",
-            provider_data->version,
-            provider_data->size);
+            attach_provider_data->header.version,
+            attach_provider_data->header.size);
 
         status = STATUS_INVALID_PARAMETER;
         goto Done;
     }
-
-    ebpf_attach_provider_data_t* attach_provider_data = (ebpf_attach_provider_data_t*)provider_data->data;
 
     if (provider_registration_instance->ModuleId->Type != MIT_GUID) {
         EBPF_LOG_MESSAGE(
@@ -252,7 +251,7 @@ ebpf_link_create(
     ebpf_lock_state_t state = ebpf_lock_lock(&local_link->lock);
     lock_held = true;
 
-    local_link->client_data.size = context_data_length;
+    local_link->client_data.header.size = context_data_length;
 
     if (context_data_length > 0) {
         local_link->client_data.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
@@ -440,7 +439,7 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     ebpf_free((void*)link->client_data.data);
 
     link->client_data.data = NULL;
-    link->client_data.size = 0;
+    link->client_data.header.size = 0;
     link->program = NULL;
 
 Done:
@@ -575,8 +574,8 @@ ebpf_link_get_info(
 
     // Copy any additional parameters.
     size_t size = sizeof(struct bpf_link_info) - FIELD_OFFSET(struct bpf_link_info, attach_data);
-    if ((link->client_data.size > 0) && (link->client_data.size <= size)) {
-        memcpy(&info->attach_data, link->client_data.data, link->client_data.size);
+    if ((link->client_data.header.size > 0) && (link->client_data.header.size <= size)) {
+        memcpy(&info->attach_data, link->client_data.data, link->client_data.header.size);
     }
 
     ebpf_lock_unlock((ebpf_lock_t*)&link->lock, state);
