@@ -573,6 +573,38 @@ ebpf_object_open(
     _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
 /**
+ * @brief Open a ELF file from memory without loading the programs.
+ *
+ * @param[in] buffer Pointer to the buffer containing the ELF file.
+ * @param[in] buffer_size Size of the buffer containing the ELF file.
+ * @param[in] object_name Optional object name to override file name
+ * as the object name.
+ * @param[in] pin_root_path Optional root path for automatic pinning of maps.
+ * @param[in] program_type Optional program type for all programs.
+ * If NULL, the program type is derived from the section names.
+ * @param[in] attach_type Default attach type for all programs.
+ * If NULL, the attach type is derived from the section names.
+ * @param[out] object Returns a pointer to the object created.
+ * @param[out] error_message Error message string, which
+ * the caller must free using ebpf_free_string().
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+EBPF_API_LOCKING
+_Must_inspect_result_ ebpf_result_t
+ebpf_object_open_memory(
+    _In_reads_(buffer_size) const uint8_t* buffer,
+    size_t buffer_size,
+    _In_opt_z_ const char* object_name,
+    _In_opt_z_ const char* pin_root_path,
+    _In_opt_ const ebpf_program_type_t* program_type,
+    _In_opt_ const ebpf_attach_type_t* attach_type,
+    _Outptr_ struct bpf_object** object,
+    _Outptr_result_maybenull_z_ const char** error_message) noexcept;
+
+/**
  * @brief Load all the programs in a given object.
  *
  * @param[in, out] object Object from which to load programs.

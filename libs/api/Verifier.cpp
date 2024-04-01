@@ -255,15 +255,24 @@ _get_map_names(
 
 static void
 _get_program_and_map_names(
-    _In_ const string& path,
+    std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
     _Inout_ vector<section_program_map_t>& section_to_program_map,
     _Inout_ vector<section_offset_to_map_t>& map_names) noexcept(false)
 {
     ELFIO::elfio reader;
     size_t symbols_count = 0;
 
-    if (!reader.load(path)) {
-        throw std::runtime_error(string("Can't process ELF file ") + path);
+    if (std::holds_alternative<std::string>(file_or_buffer)) {
+        if (!reader.load(std::get<std::string>(file_or_buffer))) {
+            throw std::runtime_error("Can't process ELF file " + std::get<std::string>(file_or_buffer));
+        }
+    } else {
+        std::stringstream buffer_stream(std::string(
+            std::get<std::vector<uint8_t>>(file_or_buffer).begin(),
+            std::get<std::vector<uint8_t>>(file_or_buffer).end()));
+        if (!reader.load(buffer_stream)) {
+            throw std::runtime_error("Can't process ELF file from memory");
+        }
     }
 
     ELFIO::const_symbol_section_accessor symbols{reader, reader.sections[".symtab"]};
@@ -317,7 +326,7 @@ _get_program_and_map_names(
 
 _Must_inspect_result_ ebpf_result_t
 load_byte_code(
-    _In_z_ const char* filename,
+    std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
     _In_opt_z_ const char* section_name,
     _In_ const ebpf_verifier_options_t* verifier_options,
     _In_z_ const char* pin_root_path,
@@ -335,13 +344,25 @@ load_byte_code(
 
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-        std::string file_name(filename);
         std::string section_name_string;
         if (section_name != nullptr) {
             section_name_string = std::string(section_name);
         }
 
-        auto raw_programs = read_elf(file_name, section_name_string, verifier_options, platform);
+        std::vector<raw_program> raw_programs;
+
+        // If file_or_buffer is a string, it is a file name.
+        if (std::holds_alternative<std::string>(file_or_buffer)) {
+            raw_programs =
+                read_elf(std::get<std::string>(file_or_buffer), section_name_string, verifier_options, platform);
+        } else {
+            std::stringstream buffer_stream;
+            // If file_or_buffer is a vector, it is a buffer.
+            auto& buffer = std::get<std::vector<uint8_t>>(file_or_buffer);
+            buffer_stream = std::stringstream(std::string(buffer.begin(), buffer.end()));
+            raw_programs = read_elf(buffer_stream, "memory", section_name_string, verifier_options, platform);
+        }
+
         if (raw_programs.size() == 0) {
             result = EBPF_ELF_PARSING_FAILED;
             goto Exit;
@@ -423,7 +444,7 @@ load_byte_code(
             section_to_program_map.emplace_back(iterator->section_name, std::string());
         }
 
-        _get_program_and_map_names(file_name, section_to_program_map, map_names);
+        _get_program_and_map_names(file_or_buffer, section_to_program_map, map_names);
 
         auto map_descriptors = get_all_map_descriptors();
         size_t anonymous_map_count = 0;
