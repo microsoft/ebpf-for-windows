@@ -1414,7 +1414,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
-            output_stream << INDENT "{NULL," << std::endl;
+            output_stream << INDENT
+                "{{NATIVE_MODULE_MAP_ENTRY_CURRENT_VERSION, NATIVE_MODULE_MAP_ENTRY_CURRENT_VERSION_SIZE},"
+                          << std::endl;
+            output_stream << INDENT " NULL," << std::endl;
             output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
@@ -1483,7 +1486,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << INDENT "{NULL, " << id << ", " << helper_name.quoted() << "}," << std::endl;
+                output_stream << INDENT "{{NATIVE_MODULE_HELPER_ENTRY_CURRENT_VERSION, "
+                                        "NATIVE_MODULE_HELPER_ENTRY_CURRENT_VERSION_SIZE}, NULL, "
+                              << id << ", " << helper_name.quoted() << "}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
@@ -1627,6 +1632,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
             output_stream << INDENT "{" << std::endl;
             output_stream << INDENT INDENT << "0," << std::endl;
+            output_stream
+                << INDENT INDENT
+                << "{NATIVE_MODULE_PROGRAM_ENTRY_CURRENT_VERSION, NATIVE_MODULE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE},"
+                << std::endl;
+            // output_stream << INDENT INDENT << "{" << NATIVE_MODULE_PROGRAM_ENTRY_CURRENT_VERSION << "," <<
+            // NATIVE_MODULE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE << "}," << std::endl;
             output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
             output_stream << INDENT INDENT << program.pe_section_name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << name.quoted() << "," << std::endl;
@@ -1704,6 +1715,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "static map_initial_values_t _map_initial_values_array[] = {" << std::endl;
         for (const auto& [name, values] : map_initial_values) {
             output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT
+                          << "{NATIVE_MODULE_MAP_INITIAL_VALUES_CURRENT_VERSION, "
+                             "NATIVE_MODULE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE},"
+                          << std::endl;
             output_stream << INDENT INDENT << ".name = " << name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << ".count = " << values.size() << "," << std::endl;
             output_stream << INDENT INDENT << ".values = "
@@ -1733,6 +1748,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
     std::string meta_data_table = "metadata_table_t " + c_name.c_identifier() + "_metadata_table = {";
     meta_data_table +=
+        "{NATIVE_MODULE_METADATA_TABLE_CURRENT_VERSION, NATIVE_MODULE_METADATA_TABLE_CURRENT_VERSION_SIZE}, "
         "sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};\n";
 
     if ((meta_data_table.size() - 1) > LINE_BREAK_WIDTH) {

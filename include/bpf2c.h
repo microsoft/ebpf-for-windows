@@ -45,6 +45,46 @@ extern "C"
 #define htole64(X) (X)
 #endif
 
+#define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
+#define EBPF_FIELD_SIZE(s, m) (sizeof(((s*)0)->m))
+#define EBPF_SIZE_INCLUDING_FIELD(s, m) (EBPF_OFFSET_OF(s, m) + EBPF_FIELD_SIZE(s, m))
+
+#define NATIVE_MODULE_HELPER_ENTRY_VERSION_1 1
+#define NATIVE_MODULE_HELPER_ENTRY_VERSION_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(helper_function_entry_t, tail_call)
+
+#define NATIVE_MODULE_MAP_ENTRY_VERSION_1 1
+#define NATIVE_MODULE_MAP_ENTRY_VERSION_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
+
+#define NATIVE_MODULE_MAP_INITIAL_VALUES_VERSION_1 1
+#define NATIVE_MODULE_MAP_INITIAL_VALUES_VERSION_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(map_initial_values_t, values)
+
+#define NATIVE_MODULE_PROGRAM_ENTRY_VERSION_1 1
+#define NATIVE_MODULE_PROGRAM_ENTRY_VERSION_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
+
+#define NATIVE_MODULE_METADATA_TABLE_VERSION_1 1
+#define NATIVE_MODULE_METADATA_TABLE_VERSION_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(metadata_table_t, map_initial_values)
+
+#define NATIVE_MODULE_HELPER_ENTRY_CURRENT_VERSION NATIVE_MODULE_HELPER_ENTRY_VERSION_1
+#define NATIVE_MODULE_HELPER_ENTRY_CURRENT_VERSION_SIZE NATIVE_MODULE_HELPER_ENTRY_VERSION_SIZE_1
+
+#define NATIVE_MODULE_MAP_ENTRY_CURRENT_VERSION NATIVE_MODULE_MAP_ENTRY_VERSION_1
+#define NATIVE_MODULE_MAP_ENTRY_CURRENT_VERSION_SIZE NATIVE_MODULE_MAP_ENTRY_VERSION_SIZE_1
+
+#define NATIVE_MODULE_MAP_INITIAL_VALUES_CURRENT_VERSION NATIVE_MODULE_MAP_INITIAL_VALUES_VERSION_1
+#define NATIVE_MODULE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE NATIVE_MODULE_MAP_INITIAL_VALUES_VERSION_SIZE_1
+
+#define NATIVE_MODULE_PROGRAM_ENTRY_CURRENT_VERSION NATIVE_MODULE_PROGRAM_ENTRY_VERSION_1
+#define NATIVE_MODULE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE NATIVE_MODULE_PROGRAM_ENTRY_VERSION_SIZE_1
+
+#define NATIVE_MODULE_METADATA_TABLE_CURRENT_VERSION NATIVE_MODULE_METADATA_TABLE_VERSION_1
+#define NATIVE_MODULE_METADATA_TABLE_CURRENT_VERSION_SIZE NATIVE_MODULE_METADATA_TABLE_VERSION_SIZE_1
+
+    typedef struct _ebpf_extension_header
+    {
+        uint16_t version; ///< Version of the extension data structure.
+        size_t size;      ///< Size of the extension data structure.
+    } ebpf_extension_header_t;
+
     /**
      * @brief Helper function entry.
      * This structure defines a helper function entry in the metadata table. The address of the helper function is
@@ -53,6 +93,7 @@ extern "C"
      */
     typedef struct _helper_function_entry
     {
+        ebpf_extension_header_t header;
         uint64_t (*address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
         uint32_t helper_id;
         const char* name;
@@ -66,6 +107,7 @@ extern "C"
      */
     typedef struct _map_entry
     {
+        ebpf_extension_header_t header;
         void* address;
         ebpf_map_definition_in_file_t definition;
         const char* name;
@@ -79,6 +121,7 @@ extern "C"
      */
     typedef struct _map_initial_values
     {
+        ebpf_extension_header_t header;
         const char* name;    // Name of the map.
         size_t count;        // Number of values in the map.
         const char** values; // Array of strings containing the initial values.
@@ -95,6 +138,7 @@ extern "C"
         // entries in the programs section.
         uint64_t zero;
 
+        ebpf_extension_header_t header;           ///< Header for the program entry.
         uint64_t (*function)(void*);              ///< Address of the program.
         const char* pe_section_name;              ///< Name of the PE section containing the program.
         const char* section_name;                 ///< Name of the section containing the program.
@@ -109,7 +153,6 @@ extern "C"
         const uint8_t* program_info_hash;         ///< Hash of the program info.
         size_t program_info_hash_length;          ///< Length of the program info hash.
         const char* program_info_hash_type;       ///< Type of the program info hash
-        bool verified;                            ///< Whether the program has been verified.
     } program_entry_t;
 
     /**
@@ -131,7 +174,9 @@ extern "C"
      */
     typedef struct _metadata_table
     {
-        size_t size; ///< Size of this structure. Used for versioning.
+        ebpf_extension_header_t header;
+        // TODO: "size" needs to be removed.
+        size_t size;
         void (*programs)(
             _Outptr_result_buffer_maybenull_(*count) program_entry_t** programs,
             _Out_ size_t* count); ///< Returns the list of programs in this module.
