@@ -2326,7 +2326,7 @@ _initialize_ebpf_object_from_file(
         std::string path = std::get<std::string>(file_or_data);
         new_object->file_name = cxplat_duplicate_string(path.c_str());
     } else {
-        new_object->file_name = cxplat_duplicate_string("memory");
+        new_object->file_name = cxplat_duplicate_string(object_name ? object_name : "memory");
     }
     if (new_object->file_name == nullptr) {
         result = EBPF_NO_MEMORY;
