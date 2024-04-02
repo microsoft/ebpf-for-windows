@@ -57,6 +57,7 @@ EXPORTS
     bpf_object__next_program
     bpf_object__open
     bpf_object__open_file
+    bpf_object__open_mem
     bpf_object__pin
     bpf_object__pin_maps
     bpf_object__pin_programs
