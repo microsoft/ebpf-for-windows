@@ -7,6 +7,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
+       [parameter(Mandatory=$true)][string] $Configuration,
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName())
 
@@ -33,10 +34,16 @@ Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 # Get all VMs to ready state.
 Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-if ($TestMode -eq "CI/CD") {
+if ($TestMode -eq "Regression") {
 
     # Download the release artifacts for regression tests.
-    Get-RegressionTestArtifacts
+    Get-RegressionTestArtifacts -Configuration $Configuration
+}
+
+if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
+
+    # Download the release artifacts for legacy regression tests.
+    Get-LegacyRegressionTestArtifacts
 }
 
 Get-Duonic
@@ -51,7 +58,7 @@ Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 # Install eBPF Components on the test VM.
 foreach($VM in $VMList) {
     $VMName = $VM.Name
-    Install-eBPFComponentsOnVM -VMName $VMname -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+    Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
 }
 
 Pop-Location
