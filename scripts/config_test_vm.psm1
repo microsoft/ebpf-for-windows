@@ -561,6 +561,7 @@ function Get-LegacyRegressionTestArtifacts
     # Download regression test artifacts for each version.
     foreach ($ArtifactVersion in $ArifactVersionList)
     {
+        Write-Log "Downloading legacy regression test artifacts for version $ArtifactVersion"
         $DownloadPath = "$RegressionTestArtifactsPath\$ArtifactVersion"
         mkdir $DownloadPath
         $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
@@ -603,6 +604,7 @@ function Get-RegressionTestArtifacts
     $ArtifactName = "Release-v$ArtifactVersion/Build-x64.$Configuration.zip"
     $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
 
+    Write-Log "Downloading regression test artifacts for version $ArtifactVersion" -ForegroundColor Green
     $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\artifact.zip"
 
@@ -611,6 +613,7 @@ function Get-RegressionTestArtifacts
     # Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
 
     # Copy all the drivers, DLLs and exe to pwd.
+    Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
     $ArtifactPath = "$DownloadPath\Build-x64 $Configuration"
     Push-Location $ArtifactPath
     Get-ChildItem -Path .\* -Include *.sys | Move-Item -Destination $OriginalPath -Force

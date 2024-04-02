@@ -246,6 +246,7 @@ function Install-eBPFComponents
 
     # If TestMode is "Regression", reinstall the extension drivers from the regression test artifacts.
     if ($TestMode -eq "Regression") {
+        Write-Log("Reinstalling the extension drivers from the regression test artifacts...") -ForegroundColor Green
         $EbpfDrivers.GetEnumerator() | ForEach-Object {
             if ($_.Value.InstalledByMsi) {
                 if ($_.Value.ReplaceForRegressionTest) {
