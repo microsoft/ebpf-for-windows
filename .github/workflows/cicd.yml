@@ -252,7 +252,7 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the regression driver tests on self-hosted runners (only for 2022).
-  regreesion_driver_ws2022:
+  regression_driver_ws2022:
     # Always run this job.
     # Only run this on repos that have self-host runners.
     needs: regular
@@ -260,7 +260,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -TestMode "Regression"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2022
       build_artifact: Build-x64

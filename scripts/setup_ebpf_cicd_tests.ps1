@@ -7,7 +7,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
-       [parameter(Mandatory=$true)][string] $Configuration,
+       [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName())
 
@@ -37,7 +37,7 @@ Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 if ($TestMode -eq "Regression") {
 
     # Download the release artifacts for regression tests.
-    Get-RegressionTestArtifacts -Configuration $Configuration
+    Get-RegressionTestArtifacts -Configuration $RegressionArtifactsConfiguration
 }
 
 if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
