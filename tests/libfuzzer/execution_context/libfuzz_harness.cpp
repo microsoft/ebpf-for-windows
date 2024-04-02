@@ -262,7 +262,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         async ? &async : nullptr,
         async ? &fuzz_async_completion : nullptr);
 
-    if ((result == EBPF_PENDING) && (async)) {
+    if ((result == EBPF_PENDING) && async) {
         ebpf_core_cancel_protocol_handler(&async);
         std::unique_lock<std::mutex> lock(_ebpf_fuzzer_async_mutex);
         _ebpf_fuzzer_async_cv.wait(lock, []() { return _ebpf_fuzzer_async_done; });
