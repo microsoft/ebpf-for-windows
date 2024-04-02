@@ -115,6 +115,29 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
     return object;
 }
 
+struct bpf_object*
+bpf_object__open_mem(const void* buffer, size_t buffer_size, const struct bpf_object_open_opts* opts)
+{
+    if (!buffer) {
+        return (struct bpf_object*)libbpf_err_ptr(-EINVAL);
+    }
+
+    struct bpf_object* object = nullptr;
+    const char* error_message;
+    ebpf_result_t result = ebpf_object_open_memory(
+        reinterpret_cast<const uint8_t*>(buffer),
+        buffer_size,
+        ((opts) ? opts->object_name : nullptr),
+        ((opts) ? opts->pin_root_path : nullptr),
+        nullptr,
+        nullptr,
+        &object,
+        &error_message);
+    ebpf_free_string(error_message);
+    libbpf_result_err(result); // Set errno.
+    return object;
+}
+
 int
 bpf_object__load_xattr(struct bpf_object_load_attr* attr)
 {

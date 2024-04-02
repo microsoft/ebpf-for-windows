@@ -57,6 +57,7 @@ EXPORTS
     bpf_object__next_program
     bpf_object__open
     bpf_object__open_file
+    bpf_object__open_mem
     bpf_object__pin
     bpf_object__pin_maps
     bpf_object__pin_programs
@@ -119,7 +120,7 @@ EXPORTS
     ebpf_program_query_info
     ebpf_store_delete_program_information
     ebpf_store_delete_section_information
-    ebpf_store_update_program_information
+    ebpf_store_update_program_information_array
     ebpf_store_update_section_information
     libbpf_attach_type_by_name
     libbpf_bpf_attach_type_str
