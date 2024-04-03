@@ -217,6 +217,7 @@ function Export-BuildArtifactsToVMs
 function Install-eBPFComponentsOnVM
 {
     param([parameter(Mandatory=$true)][string] $VMName,
+          [parameter(Mandatory=$true)][string] $TestMode,
           [parameter(Mandatory=$true)][bool] $KmTracing,
           [parameter(Mandatory=$true)][string] $KmTraceType)
 
@@ -227,13 +228,14 @@ function Install-eBPFComponentsOnVM
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
               [Parameter(Mandatory=$true)] [bool] $KmTracing,
-              [Parameter(Mandatory=$true)] [string] $KmTraceType)
+              [Parameter(Mandatory=$true)] [string] $KmTraceType,
+              [parameter(Mandatory=$true)][string] $TestMode)
         $WorkingDirectory = "$env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
-        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -ErrorAction Stop
-    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType) -ErrorAction Stop
+        Install-eBPFComponents -KmTracing $KmTracing -KmTraceType $KmTraceType -KMDFVerifier $true -TestMode $TestMode -ErrorAction Stop
+    } -ArgumentList ("eBPF", $LogFileName, $KmTracing, $KmTraceType, $TestMode) -ErrorAction Stop
     Write-Log "eBPF components installed on $VMName" -ForegroundColor Green
 }
 
@@ -540,7 +542,7 @@ function Initialize-NetworkInterfacesOnVMs
     }
 }
 
-function Get-RegressionTestArtifacts
+function Get-LegacyRegressionTestArtifacts
 {
     $ArifactVersionList = @("0.11.0")
     $RegressionTestArtifactsPath = "$pwd\regression"
@@ -559,6 +561,7 @@ function Get-RegressionTestArtifacts
     # Download regression test artifacts for each version.
     foreach ($ArtifactVersion in $ArifactVersionList)
     {
+        Write-Log "Downloading legacy regression test artifacts for version $ArtifactVersion"
         $DownloadPath = "$RegressionTestArtifactsPath\$ArtifactVersion"
         mkdir $DownloadPath
         $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
@@ -574,6 +577,52 @@ function Get-RegressionTestArtifacts
         Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
         Remove-Item -Path $DownloadPath -Force -Recurse
     }
+}
+
+function Get-RegressionTestArtifacts
+{
+    param([Parameter(Mandatory=$True)][string] $Configuration,
+          [Parameter(Mandatory=$True)][string] $ArtifactVersion)
+
+    $RegressionTestArtifactsPath = "$pwd\regression"
+    $OriginalPath = $pwd
+    if (Test-Path -Path $RegressionTestArtifactsPath) {
+        Remove-Item -Path $RegressionTestArtifactsPath -Recurse -Force
+    }
+    mkdir $RegressionTestArtifactsPath
+
+    # Verify artifacts' folder presence
+    if (-not (Test-Path -Path $RegressionTestArtifactsPath)) {
+        $ErrorMessage = "*** ERROR *** Regression test artifacts folder not found: $RegressionTestArtifactsPath)"
+        Write-Log $ErrorMessage
+        throw $ErrorMessage
+    }
+
+    # Download regression test artifacts for each version.
+    $DownloadPath = "$RegressionTestArtifactsPath"
+    $ArtifactName = "Release-v$ArtifactVersion/Build-x64.$Configuration.zip"
+    $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
+
+    Write-Log "Downloading regression test artifacts for version $ArtifactVersion" -ForegroundColor Green
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\artifact.zip"
+
+    Write-Log "Extracting $ArtifactName"
+    Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
+
+    # Copy all the drivers, DLLs and exe to pwd.
+    Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
+    $ArtifactPath = "$DownloadPath\Build-x64 $Configuration"
+    Push-Location $ArtifactPath
+    Get-ChildItem -Path .\* -Include *.sys | Move-Item -Destination $OriginalPath -Force
+    Get-ChildItem -Path .\* -Include *.dll | Move-Item -Destination $OriginalPath -Force
+    Get-ChildItem -Path .\* -Include *.exe | Move-Item -Destination $OriginalPath -Force
+    Pop-Location
+
+    Remove-Item -Path $DownloadPath -Force -Recurse
+
+    # Delete ebpfapi.dll from the artifacts. ebpfapi.dll from the MSI installation should be used instead.
+    Remove-Item -Path ".\ebpfapi.dll" -Force
 }
 
 # Copied from https://github.com/microsoft/msquic/blob/main/scripts/prepare-machine.ps1

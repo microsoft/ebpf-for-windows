@@ -16,6 +16,11 @@ param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
+# For test execution, "Regression" and "CI/CD" have same behavior.
+if ($TestMode -eq "Regression") {
+    $TestMode = "CI/CD"
+}
+
 $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
 $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
