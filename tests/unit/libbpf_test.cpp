@@ -220,7 +220,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
     REQUIRE(program_fd < 0);
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(errno == EACCES);
-    REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
+    REQUIRE(strcmp(log_buffer, "\n0: Invalid type (r0.type == number)\n\n") == 0);
 #else
     REQUIRE(errno == ENOTSUP);
 #endif
@@ -244,7 +244,7 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
     REQUIRE(program_fd < 0);
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(errno == EACCES);
-    REQUIRE(strcmp(log_buffer, "\n0:  (r0.type == number)\n\n") == 0);
+    REQUIRE(strcmp(log_buffer, "\n0: Invalid type (r0.type == number)\n\n") == 0);
 #else
     REQUIRE(errno == ENOTSUP);
 #endif
@@ -407,9 +407,9 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
     {                                \
         INST_OP_CALL, 0, 0, 0, (imm) \
     }
-#define BPF_STX_MEM(sz, dst, src, off)                                \
-    {                                                                 \
-        INST_CLS_STX | (INST_MEM << 5) | (sz), (dst), (src), (off), 0 \
+#define BPF_STX_MEM(sz, dst, src, off)                              \
+    {                                                               \
+        INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0 \
     }
 #define BPF_W INST_SIZE_W
 #define BPF_REG_1 R1_ARG

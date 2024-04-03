@@ -101,10 +101,11 @@ opcode  src   imm   off   description                                           
 0x7e    any   0x00  any   if (s32)dst s>= (s32)src goto +offset                      Y      Y      Y    jsge32-reg
 0x7f    any   0x00  0     dst >>= src                                                Y      Y      Y    rsh-reg
 0x84    0x0   0x00  0     dst = (u32)-dst                                            Y      Y      Y    neg
-0x85    0x0   any   0     call helper function by address                            Y      Y      Y    call_unwind_fail
+0x85    0x0   any   0     call helper function by legacy ID                          Y      Y      Y    call_unwind_fail
 0x85    0x1   any   0     call PC += imm                                             no     no     no   call_local
 0x85    0x2   any   0     call helper function by BTF ID                             no     no     no   ???
 0x87    0x0   0x00  0     dst = -dst                                                 Y      Y      Y    neg64
+0x8d    0x0   0x00  0     call helper function by legacy ID in register              Y      Y      Y    callx
 0x94    0x0   any   0     dst = (u32)((imm != 0) ? ((u32)dst % (u32)imm) : dst)      Y      Y      Y    mod
 0x94    0x0   any   1     dst = (u32)((imm != 0) ? ((s32)dst s% imm) : dst)          Y      no     Y    smod32-neg-by-neg-imm
 0x95    0x0   0x00  0     return                                                     Y      Y      Y    exit
@@ -135,16 +136,16 @@ opcode  src   imm   off   description                                           
 0xbf    any   0x00  8     dst = (s64) (s8) src                                       Y      no     Y    movsx864-reg
 0xbf    any   0x00  16    dst = (s64) (s16) src                                      Y      no     Y    movsx1664-reg
 0xbf    any   0x00  32    dst = (s64) (s32) src                                      Y      no     Y    movsx3264-reg
-0xc3    any   0x00  any   lock \*(u32 \*)(dst + offset) += src                       no     no     Y    lock_add32
-0xc3    any   0x01  any   src = atomic_fetch_add_32((u32 \*)(dst + offset), src)     no     no     Y    lock_fetch_add32
-0xc3    any   0x40  any   lock \*(u32 \*)(dst + offset) \|= src                      no     no     Y    lock_or32
-0xc3    any   0x41  any   src = atomic_fetch_or_32((u32 \*)(dst + offset), src)      no     no     Y    lock_fetch_or32
-0xc3    any   0x50  any   lock \*(u32 \*)(dst + offset) &= src                       no     no     Y    lock_and32
-0xc3    any   0x51  any   src = atomic_fetch_and_32((u32 \*)(dst + offset), src)     no     no     Y    lock_fetch_and32
-0xc3    any   0xa0  any   lock \*(u32 \*)(dst + offset) ^= src                       no     no     Y    lock_xor32
-0xc3    any   0xa1  any   src = atomic_fetch_xor_32((u32 \*)(dst + offset), src)     no     no     Y    lock_fetch_xor32
-0xc3    any   0xe1  any   src = xchg_32((u32 \*)(dst + offset), src)                 no     no     Y    lock_xchg32
-0xc3    any   0xf1  any   r0 = cmpxchg_32((u32 \*)(dst + offset), r0, src)           no     no     Y    lock_cmpxchg32
+0xc3    any   0x00  any   lock \*(u32 \*)(dst + offset) += src                       Y      no     Y    lock_add32
+0xc3    any   0x01  any   src = atomic_fetch_add_32((u32 \*)(dst + offset), src)     Y      no     Y    lock_fetch_add32
+0xc3    any   0x40  any   lock \*(u32 \*)(dst + offset) \|= src                      Y      no     Y    lock_or32
+0xc3    any   0x41  any   src = atomic_fetch_or_32((u32 \*)(dst + offset), src)      Y      no     Y    lock_fetch_or32
+0xc3    any   0x50  any   lock \*(u32 \*)(dst + offset) &= src                       Y      no     Y    lock_and32
+0xc3    any   0x51  any   src = atomic_fetch_and_32((u32 \*)(dst + offset), src)     Y      no     Y    lock_fetch_and32
+0xc3    any   0xa0  any   lock \*(u32 \*)(dst + offset) ^= src                       Y      no     Y    lock_xor32
+0xc3    any   0xa1  any   src = atomic_fetch_xor_32((u32 \*)(dst + offset), src)     Y      no     Y    lock_fetch_xor32
+0xc3    any   0xe1  any   src = xchg_32((u32 \*)(dst + offset), src)                 Y      no     Y    lock_xchg32
+0xc3    any   0xf1  any   r0 = cmpxchg_32((u32 \*)(dst + offset), r0, src)           Y      no     Y    lock_cmpxchg32
 0xc4    0x0   any   0     dst = (u32)(dst s>> imm)                                   Y      Y      Y    arsh
 0xc5    0x0   any   any   if dst s< imm goto +offset                                 Y      Y      Y    jslt-imm
 0xc6    0x0   any   any   if (s32)dst s< (s32)imm goto +offset                       Y      Y      Y    jslt32-imm
@@ -161,16 +162,16 @@ opcode  src   imm   off   description                                           
 0xd7    0x0   0x10  0     dst = bswap16(dst)                                         Y      no     Y    swap16
 0xd7    0x0   0x20  0     dst = bswap32(dst)                                         Y      no     Y    swap32
 0xd7    0x0   0x40  0     dst = bswap64(dst)                                         Y      no     Y    swap64
-0xdb    any   0x00  any   lock \*(u64 \*)(dst + offset) += src                       no     no     Y    lock_add
-0xdb    any   0x01  any   src = atomic_fetch_add_64((u64 \*)(dst + offset), src)     no     no     Y    lock_fetch_add
-0xdb    any   0x40  any   lock \*(u64 \*)(dst + offset) \|= src                      no     no     Y    lock_or
-0xdb    any   0x41  any   src = atomic_fetch_or_64((u64 \*)(dst + offset), src)      no     no     Y    lock_fetch_or
-0xdb    any   0x50  any   lock \*(u64 \*)(dst + offset) &= src                       no     no     Y    lock_and
-0xdb    any   0x51  any   src = atomic_fetch_and_64((u64 \*)(dst + offset), src)     no     no     Y    lock_fetch_and
-0xdb    any   0xa0  any   lock \*(u64 \*)(dst + offset) ^= src                       no     no     Y    lock_xor
-0xdb    any   0xa1  any   src = atomic_fetch_xor_64((u64 \*)(dst + offset), src)     no     no     Y    lock_fetch_xor
-0xdb    any   0xe1  any   src = xchg_64((u64 \*)(dst + offset), src)                 no     no     Y    lock_xchg
-0xdb    any   0xf1  any   r0 = cmpxchg_64((u64 \*)(dst + offset), r0, src)           no     no     Y    lock_cmpxchg
+0xdb    any   0x00  any   lock \*(u64 \*)(dst + offset) += src                       Y      no     Y    lock_add
+0xdb    any   0x01  any   src = atomic_fetch_add_64((u64 \*)(dst + offset), src)     Y      no     Y    lock_fetch_add
+0xdb    any   0x40  any   lock \*(u64 \*)(dst + offset) \|= src                      Y      no     Y    lock_or
+0xdb    any   0x41  any   src = atomic_fetch_or_64((u64 \*)(dst + offset), src)      Y      no     Y    lock_fetch_or
+0xdb    any   0x50  any   lock \*(u64 \*)(dst + offset) &= src                       Y      no     Y    lock_and
+0xdb    any   0x51  any   src = atomic_fetch_and_64((u64 \*)(dst + offset), src)     Y      no     Y    lock_fetch_and
+0xdb    any   0xa0  any   lock \*(u64 \*)(dst + offset) ^= src                       Y      no     Y    lock_xor
+0xdb    any   0xa1  any   src = atomic_fetch_xor_64((u64 \*)(dst + offset), src)     Y      no     Y    lock_fetch_xor
+0xdb    any   0xe1  any   src = xchg_64((u64 \*)(dst + offset), src)                 Y      no     Y    lock_xchg
+0xdb    any   0xf1  any   r0 = cmpxchg_64((u64 \*)(dst + offset), r0, src)           Y      no     Y    lock_cmpxchg
 0xdc    0x0   0x10  0     dst = htobe16(dst)                                         Y      Y      Y    be16
 0xdc    0x0   0x20  0     dst = htobe32(dst)                                         Y      Y      Y    be32
 0xdc    0x0   0x40  0     dst = htobe64(dst)                                         Y      Y      Y    be64
