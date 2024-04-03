@@ -600,7 +600,6 @@ function Get-RegressionTestArtifacts
 
     # Download regression test artifacts for each version.
     $DownloadPath = "$RegressionTestArtifactsPath"
-    # $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
     $ArtifactName = "Release-v$ArtifactVersion/Build-x64.$Configuration.zip"
     $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
 
@@ -610,7 +609,6 @@ function Get-RegressionTestArtifacts
 
     Write-Log "Extracting $ArtifactName"
     Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
-    # Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
 
     # Copy all the drivers, DLLs and exe to pwd.
     Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
@@ -621,8 +619,6 @@ function Get-RegressionTestArtifacts
     Get-ChildItem -Path .\* -Include *.exe | Move-Item -Destination $OriginalPath -Force
     Pop-Location
 
-    # Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
-    # Move-Item -Path "$DownloadPath\*.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 
     # Delete ebpfapi.dll from the artifacts. ebpfapi.dll from the MSI installation should be used instead.
