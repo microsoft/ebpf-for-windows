@@ -600,7 +600,7 @@ function Get-RegressionTestArtifacts
 
     # Download regression test artifacts for each version.
     $DownloadPath = "$RegressionTestArtifactsPath"
-    $ArtifactName = "Release-v$ArtifactVersion/Build-x64.$Configuration.zip"
+    $ArtifactName = "Release-v$ArtifactVersion/Build-x64-$Configuration.zip"
     $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
 
     Write-Log "Downloading regression test artifacts for version $ArtifactVersion" -ForegroundColor Green
