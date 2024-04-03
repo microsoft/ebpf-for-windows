@@ -2157,8 +2157,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
             }
         }
 
-        if (helper_function_prototype->flags.reallocate_packet) {
-            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_STR(cryptographic_hash, "reallocate_packet");
+        // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is fixed.
+        if (helper_function_prototype->flags.reallocate_packet != 0) {
+            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->flags);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }

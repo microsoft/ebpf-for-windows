@@ -142,6 +142,11 @@ in the context descriptor.
 #### `ebpf_helper_function_prototype_t` Struct
 This structure is used to describe the prototypes of the various helper functions implemented by the extension.
 ```c
+typedef struct _ebpf_helper_function_prototype_flags
+{
+    bool reallocate_packet : 1;
+} ebpf_helper_function_prototype_flags_t;
+
 typedef struct _ebpf_helper_function_prototype
 {
     ebpf_extension_header_t header;
@@ -149,9 +154,7 @@ typedef struct _ebpf_helper_function_prototype
     const char* name;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
-    struct {
-        bool reallocate_packet : 1;
-    } flags;
+    ebpf_helper_function_prototype_flags_t flags;
 } ebpf_helper_function_prototype_t;
 ```
 * `header`: Version and size.
