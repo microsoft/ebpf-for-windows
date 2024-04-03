@@ -197,3 +197,17 @@ jobs:
         artifact: 'ebpf-for-windows-native nuget'
         condition: and(eq(variables.buildConfiguration, 'Release'), eq('${{parameters.build_nuget}}', 'true'), eq('${{parameters.build_artifact}}', 'Build-x64-native-only'))
         displayName: 'Upload the development NuGet package'
+
+      - powershell: |
+          .\scripts\onebranch\onefuzz-prep.ps1 -BuildPath $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration) -OneFuzzDirectory $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/onefuzz -OneFuzzConfigFile $(Build.SourcesDirectory)/.onefuzz/OneFuzzConfig.json
+        condition: eq(variables.buildConfiguration, 'FuzzerDebug')
+        displayName: 'Prepare OneFuzz directory'
+
+      - task: onefuzz-task@0
+        condition: eq(variables.buildConfiguration, 'FuzzerDebug')
+        inputs:
+          onefuzzOSes: 'windows'
+        env:
+          onefuzzDropDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/onefuzz
+          onefuzzDropPAT: $(onefuzzDropPAT)
+          onefuzzBugFilingPAT: $(onefuzzBugFilingPAT)

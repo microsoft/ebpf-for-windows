@@ -1,0 +1,372 @@
+{
+  "$schema": null,
+  "ConfigVersion": 3,
+  "Entries": [
+    {
+      "JobNotificationEmail": "edgeosebpf@microsoft.com",
+      "Skip": false,
+      "TargetBuildBranches": [
+        "main"
+      ],
+      "Fuzzer": {
+        "$type": "libfuzzer",
+        "FuzzingHarnessExecutableName": "execution_context_fuzzer.exe",
+        "CheckFuzzerHelp": true,
+        "FuzzingEntrypoint": "LLVMFuzzerTestOneInput",
+        "CollectCrashDumps": true,
+        "FuzzingTargetBinaries": [
+          "ebpfcore.sys"
+        ]
+      },
+      "MinAvailableMemoryMB": null,
+      "FuzzerTimeoutInSeconds": 120,
+      "RebootAfterSetup": null,
+      "Tags": {},
+      "TargetEnv": {
+        "ASAN_OPTIONS": "allocator_may_return_null=1"
+      },
+      "OneFuzzJobs": [
+        {
+          "ProjectName": "eBPF for Windows",
+          "TargetName": "ExecutionContext",
+          "SeedCorpusContainer": "ebpf-for-windows-execution-context-corpus",
+          "Tags": {},
+          "TargetEnv": {
+            "ASAN_OPTIONS": "allocator_may_return_null=1"
+          }
+        }
+      ],
+      "JobDependencies": [
+        "execution_context_fuzzer.exe",
+        "execution_context_fuzzer.pdb",
+        "clang_rt.asan_dbg_dynamic-x86_64.dll",
+        "clang_rt.asan_dynamic-x86_64.dll",
+        "msvcp140d.dll",
+        "msvcp140d_atomic_wait.dll",
+        "msvcp140d_codecvt_ids.dll",
+        "msvcp140_1d.dll",
+        "msvcp140_2d.dll",
+        "vccorlib140d.dll",
+        "vcruntime140d.dll",
+        "vcruntime140_1d.dll",
+        "vcruntime140_threadsd.dll",
+        "usersim.dll",
+        "ucrtbased.dll"
+      ],
+      "CodeCoverage": {
+        "Org": "microsoft",
+        "Project": "OS",
+        "PipelineId": "79576"
+      },
+      "AdoTemplate": {
+        "Org": "mscodehub",
+        "Project": "eBPFForWindows",
+        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AreaPath": "eBPFForWindows",
+        "IterationPath": "eBPFForWindows",
+        "Type": "Bug",
+        "BaseUrl": "https://dev.azure.com/mscodehub",
+        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+        "OnDuplicate": {
+          "Increment": [
+            ""
+          ],
+          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+          "SetState": {
+            "Resolved": "Active",
+            "Closed": "Active"
+          }
+        }
+      }
+    },
+    {
+      "JobNotificationEmail": "edgeosebpf@microsoft.com",
+      "Skip": false,
+      "TargetBuildBranches": [
+        "main"
+      ],
+      "Fuzzer": {
+        "$type": "libfuzzer",
+        "FuzzingHarnessExecutableName": "bpf2c_fuzzer.exe",
+        "CheckFuzzerHelp": true,
+        "FuzzingEntrypoint": "LLVMFuzzerTestOneInput",
+        "CollectCrashDumps": true,
+        "FuzzingTargetBinaries": [
+          "bpf2c.exe"
+        ]
+      },
+      "MinAvailableMemoryMB": null,
+      "FuzzerTimeoutInSeconds": 120,
+      "RebootAfterSetup": null,
+      "Tags": {},
+      "TargetEnv": {
+        "ASAN_OPTIONS": "allocator_may_return_null=1"
+      },
+      "OneFuzzJobs": [
+        {
+          "ProjectName": "eBPF for Windows",
+          "TargetName": "bpf2c",
+          "SeedCorpusContainer": "bpf2c-corpus",
+          "Tags": {},
+          "TargetEnv": {
+            "ASAN_OPTIONS": "allocator_may_return_null=1"
+          }
+        }
+      ],
+      "JobDependencies": [
+        "bpf2c_fuzzer.exe",
+        "bpf2c_fuzzer.pdb",
+        "clang_rt.asan_dbg_dynamic-x86_64.dll",
+        "clang_rt.asan_dynamic-x86_64.dll",
+        "msvcp140d.dll",
+        "msvcp140d_atomic_wait.dll",
+        "msvcp140d_codecvt_ids.dll",
+        "msvcp140_1d.dll",
+        "msvcp140_2d.dll",
+        "vccorlib140d.dll",
+        "vcruntime140d.dll",
+        "vcruntime140_1d.dll",
+        "vcruntime140_threadsd.dll",
+        "usersim.dll",
+        "ucrtbased.dll"
+      ],
+      "CodeCoverage": {
+        "Org": "microsoft",
+        "Project": "OS",
+        "PipelineId": "79576"
+      },
+      "AdoTemplate": {
+        "Org": "mscodehub",
+        "Project": "eBPFForWindows",
+        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AreaPath": "eBPFForWindows",
+        "IterationPath": "eBPFForWindows",
+        "Type": "Bug",
+        "BaseUrl": "https://dev.azure.com/mscodehub",
+        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+        "OnDuplicate": {
+          "Increment": [
+            ""
+          ],
+          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+          "SetState": {
+            "Resolved": "Active",
+            "Closed": "Active"
+          }
+        }
+      }
+    },
+    {
+      "JobNotificationEmail": "edgeosebpf@microsoft.com",
+      "Skip": false,
+      "TargetBuildBranches": [
+        "main"
+      ],
+      "Fuzzer": {
+        "$type": "libfuzzer",
+        "FuzzingHarnessExecutableName": "core_helper_fuzzer.exe",
+        "CheckFuzzerHelp": true,
+        "FuzzingEntrypoint": "LLVMFuzzerTestOneInput",
+        "CollectCrashDumps": true,
+        "FuzzingTargetBinaries": [
+          "ebpfcore.sys"
+        ]
+      },
+      "MinAvailableMemoryMB": null,
+      "FuzzerTimeoutInSeconds": 120,
+      "RebootAfterSetup": null,
+      "Tags": {},
+      "TargetEnv": {
+        "ASAN_OPTIONS": "allocator_may_return_null=1"
+      },
+      "OneFuzzJobs": [
+        {
+          "ProjectName": "eBPF for Windows",
+          "TargetName": "core_helper",
+          "SeedCorpusContainer": "core-helper-corpus",
+          "Tags": {},
+          "TargetEnv": {
+            "ASAN_OPTIONS": "allocator_may_return_null=1"
+          }
+        }
+      ],
+      "JobDependencies": [
+        "core_helper_fuzzer.exe",
+        "core_helper_fuzzer.pdb",
+        "clang_rt.asan_dbg_dynamic-x86_64.dll",
+        "clang_rt.asan_dynamic-x86_64.dll",
+        "msvcp140d.dll",
+        "msvcp140d_atomic_wait.dll",
+        "msvcp140d_codecvt_ids.dll",
+        "msvcp140_1d.dll",
+        "msvcp140_2d.dll",
+        "vccorlib140d.dll",
+        "vcruntime140d.dll",
+        "vcruntime140_1d.dll",
+        "vcruntime140_threadsd.dll",
+        "usersim.dll",
+        "ucrtbased.dll"
+      ],
+      "CodeCoverage": {
+        "Org": "microsoft",
+        "Project": "OS",
+        "PipelineId": "79576"
+      },
+      "AdoTemplate": {
+        "Org": "mscodehub",
+        "Project": "eBPFForWindows",
+        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AreaPath": "eBPFForWindows",
+        "IterationPath": "eBPFForWindows",
+        "Type": "Bug",
+        "BaseUrl": "https://dev.azure.com/mscodehub",
+        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+        "OnDuplicate": {
+          "Increment": [
+            ""
+          ],
+          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+          "SetState": {
+            "Resolved": "Active",
+            "Closed": "Active"
+          }
+        }
+      }
+    },
+    {
+      "JobNotificationEmail": "edgeosebpf@microsoft.com",
+      "Skip": false,
+      "TargetBuildBranches": [
+        "main"
+      ],
+      "Fuzzer": {
+        "$type": "libfuzzer",
+        "FuzzingHarnessExecutableName": "netebpfext_fuzzer.exe",
+        "CheckFuzzerHelp": true,
+        "FuzzingEntrypoint": "LLVMFuzzerTestOneInput",
+        "CollectCrashDumps": true,
+        "FuzzingTargetBinaries": [
+          "netebpfext.sys"
+        ]
+      },
+      "MinAvailableMemoryMB": null,
+      "FuzzerTimeoutInSeconds": 120,
+      "RebootAfterSetup": null,
+      "Tags": {},
+      "TargetEnv": {
+        "ASAN_OPTIONS": "allocator_may_return_null=1"
+      },
+      "OneFuzzJobs": [
+        {
+          "ProjectName": "eBPF for Windows",
+          "TargetName": "netebpfext",
+          "SeedCorpusContainer": "netebpfext-corpus",
+          "Tags": {},
+          "TargetEnv": {
+            "ASAN_OPTIONS": "allocator_may_return_null=1"
+          }
+        }
+      ],
+      "JobDependencies": [
+        "netebpfext_fuzzer.exe",
+        "netebpfext_fuzzer.pdb",
+        "clang_rt.asan_dbg_dynamic-x86_64.dll",
+        "clang_rt.asan_dynamic-x86_64.dll",
+        "msvcp140d.dll",
+        "msvcp140d_atomic_wait.dll",
+        "msvcp140d_codecvt_ids.dll",
+        "msvcp140_1d.dll",
+        "msvcp140_2d.dll",
+        "vccorlib140d.dll",
+        "vcruntime140d.dll",
+        "vcruntime140_1d.dll",
+        "vcruntime140_threadsd.dll",
+        "usersim.dll",
+        "ucrtbased.dll"
+      ],
+      "CodeCoverage": {
+        "Org": "microsoft",
+        "Project": "OS",
+        "PipelineId": "79576"
+      }
+    },
+    {
+      "JobNotificationEmail": "edgeosebpf@microsoft.com",
+      "Skip": false,
+      "TargetBuildBranches": [
+        "main"
+      ],
+      "Fuzzer": {
+        "$type": "libfuzzer",
+        "FuzzingHarnessExecutableName": "verifier_fuzzer.exe",
+        "CheckFuzzerHelp": true,
+        "FuzzingEntrypoint": "LLVMFuzzerTestOneInput",
+        "CollectCrashDumps": true,
+        "FuzzingTargetBinaries": [
+          "ebpapi.sys",
+          "ebpfcore.sys"
+        ]
+      },
+      "MinAvailableMemoryMB": null,
+      "FuzzerTimeoutInSeconds": 120,
+      "RebootAfterSetup": null,
+      "Tags": {},
+      "TargetEnv": {
+        "ASAN_OPTIONS": "allocator_may_return_null=1"
+      },
+      "OneFuzzJobs": [
+        {
+          "ProjectName": "eBPF for Windows",
+          "TargetName": "verifier",
+          "SeedCorpusContainer": "verifier-corpus",
+          "Tags": {},
+          "TargetEnv": {
+            "ASAN_OPTIONS": "allocator_may_return_null=1"
+          }
+        }
+      ],
+      "JobDependencies": [
+        "verifier_fuzzer.exe",
+        "verifier_fuzzer.pdb",
+        "clang_rt.asan_dbg_dynamic-x86_64.dll",
+        "clang_rt.asan_dynamic-x86_64.dll",
+        "msvcp140d.dll",
+        "msvcp140d_atomic_wait.dll",
+        "msvcp140d_codecvt_ids.dll",
+        "msvcp140_1d.dll",
+        "msvcp140_2d.dll",
+        "vccorlib140d.dll",
+        "vcruntime140d.dll",
+        "vcruntime140_1d.dll",
+        "vcruntime140_threadsd.dll",
+        "usersim.dll",
+        "ucrtbased.dll"
+      ],
+      "CodeCoverage": {
+        "Org": "microsoft",
+        "Project": "OS",
+        "PipelineId": "79576"
+      },
+      "AdoTemplate": {
+        "Org": "mscodehub",
+        "Project": "eBPFForWindows",
+        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AreaPath": "eBPFForWindows",
+        "IterationPath": "eBPFForWindows",
+        "Type": "Bug",
+        "BaseUrl": "https://dev.azure.com/mscodehub",
+        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+        "OnDuplicate": {
+          "Increment": [
+            ""
+          ],
+          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
+          "SetState": {
+            "Resolved": "Active",
+            "Closed": "Active"
+          }
+        }
+      }
+    }
+  ]
+}
