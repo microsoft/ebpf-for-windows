@@ -3007,7 +3007,8 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Reload the extension provider with missing helper function.
     {
         ebpf_helper_function_addresses_t changed_helper_function_address_table = {
-            .header = {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+            .header =
+                {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
             .helper_function_count = 0,
             .helper_function_address = nullptr};
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
