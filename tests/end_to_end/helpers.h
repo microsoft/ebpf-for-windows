@@ -660,13 +660,199 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
 static ebpf_program_data_t _ebpf_bind_program_data = {
     {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_bind_program_info, NULL};
 
-// CGROUP_SOCK_ADDR.
+// SOCK_ADDR.
+static int
+_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return -ENOTSUP;
+}
+
+static int
+_ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(data_size);
+    return -ENOTSUP;
+}
+
+static int
+_ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return -ENOTSUP;
+}
+
+static int
+_ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return -ENOTSUP;
+}
+
+static ebpf_result_t
+_ebpf_sock_addr_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    UNREFERENCED_PARAMETER(data_in);
+    UNREFERENCED_PARAMETER(data_size_in);
+
+    ebpf_result_t retval;
+    *context = nullptr;
+
+    bpf_sock_addr_t* sock_addr_context = reinterpret_cast<bpf_sock_addr_t*>(ebpf_allocate(sizeof(bpf_sock_addr_t)));
+    if (sock_addr_context == nullptr) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    if (context_in) {
+        if (context_size_in < sizeof(bpf_sock_addr_t)) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        bpf_sock_addr_t* provided_context = (bpf_sock_addr_t*)context_in;
+        *sock_addr_context = *provided_context;
+    }
+
+    *context = sock_addr_context;
+    sock_addr_context = nullptr;
+    retval = EBPF_SUCCESS;
+Done:
+    ebpf_free(sock_addr_context);
+    sock_addr_context = nullptr;
+    return retval;
+}
+
+static void
+_ebpf_sock_addr_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    UNREFERENCED_PARAMETER(data_out);
+    if (!context) {
+        return;
+    }
+
+    bpf_sock_addr_t* sock_addr_context = reinterpret_cast<bpf_sock_addr_t*>(context);
+    if (context_out && *context_size_out >= sizeof(bpf_sock_addr_t)) {
+        bpf_sock_addr_t* provided_context = (bpf_sock_addr_t*)context_out;
+        *provided_context = *sock_addr_context;
+        *context_size_out = sizeof(bpf_sock_addr_t);
+    }
+
+    ebpf_free(sock_addr_context);
+    sock_addr_context = nullptr;
+
+    *data_size_out = 0;
+    return;
+}
+
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_MAX_GENERAL_HELPER_FUNCTION},
+    EBPF_COUNT_OF(_ebpf_sock_addr_specific_helper_functions),
+    (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
+
+static const void* _ebpf_sock_addr_global_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_logon_id, (void*)_ebpf_sock_addr_is_current_admin};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_MAX_GENERAL_HELPER_FUNCTION},
+    EBPF_COUNT_OF(_ebpf_sock_addr_global_helper_functions),
+    (uint64_t*)_ebpf_sock_addr_global_helper_functions};
+
 static ebpf_program_data_t _ebpf_sock_addr_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_sock_addr_program_info, NULL};
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    .program_info = &_ebpf_sock_addr_program_info,
+    .program_type_specific_helper_function_addresses = &_ebpf_sock_addr_specific_helper_function_address_table,
+    .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
+    .context_create = &_ebpf_sock_addr_context_create,
+    .context_destroy = &_ebpf_sock_addr_context_destroy,
+    .required_irql = DISPATCH_LEVEL,
+};
 
 // SOCK_OPS.
+static ebpf_result_t
+_ebpf_sock_ops_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    UNREFERENCED_PARAMETER(data_in);
+    UNREFERENCED_PARAMETER(data_size_in);
+    ebpf_result_t retval;
+    *context = nullptr;
+
+    bpf_sock_ops_t* sock_ops_context = reinterpret_cast<bpf_sock_ops_t*>(ebpf_allocate(sizeof(bpf_sock_ops_t)));
+    if (sock_ops_context == nullptr) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    if (context_in) {
+        if (context_size_in < sizeof(bpf_sock_ops_t)) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        bpf_sock_ops_t* provided_context = (bpf_sock_ops_t*)context_in;
+        *sock_ops_context = *provided_context;
+    }
+
+    *context = sock_ops_context;
+    sock_ops_context = nullptr;
+    retval = EBPF_SUCCESS;
+Done:
+    ebpf_free(sock_ops_context);
+    sock_ops_context = nullptr;
+    return retval;
+}
+
+static void
+_ebpf_sock_ops_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    UNREFERENCED_PARAMETER(data_out);
+    if (!context) {
+        return;
+    }
+
+    bpf_sock_ops_t* sock_ops_context = reinterpret_cast<bpf_sock_ops_t*>(context);
+    if (context_out && *context_size_out >= sizeof(bpf_sock_ops_t)) {
+        bpf_sock_ops_t* provided_context = (bpf_sock_ops_t*)context_out;
+        *provided_context = *sock_ops_context;
+        *context_size_out = sizeof(bpf_sock_ops_t);
+    }
+
+    ebpf_free(sock_ops_context);
+
+    *data_size_out = 0;
+    return;
+}
+
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_sock_ops_program_info, NULL};
+    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    .program_info = &_ebpf_sock_ops_program_info,
+    .context_create = &_ebpf_sock_ops_context_create,
+    .context_destroy = &_ebpf_sock_ops_context_destroy,
+    .required_irql = DISPATCH_LEVEL,
+};
 
 // Sample extension.
 static const void* _sample_ebpf_ext_helper_functions[] = {
