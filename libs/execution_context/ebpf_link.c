@@ -133,8 +133,7 @@ _ebpf_link_client_attach_provider(
     UNREFERENCED_PARAMETER(nmr_binding_handle);
 
     // Verify that that the provider is using the same version of the extension as the client.
-    if (attach_provider_data->header.version > EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION ||
-        attach_provider_data->header.size < sizeof(ebpf_attach_provider_data_t)) {
+    if (!ebpf_validate_attach_provider_data(attach_provider_data)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_LINK,

@@ -118,7 +118,7 @@ typedef class _single_instance_hook : public _hook_helper
           nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
     {
         attach_provider_data.header.version = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION;
-        attach_provider_data.header.size = sizeof(attach_provider_data);
+        attach_provider_data.header.size = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE;
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
@@ -621,7 +621,7 @@ _sample_test_context_destroy(
 static const void* _mock_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
 static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_mock_xdp_helper_functions),
     (uint64_t*)_mock_xdp_helper_functions};
 
@@ -675,14 +675,14 @@ static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_replace};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions),
     (uint64_t*)_sample_ebpf_ext_helper_functions};
 
 static const void* _test_global_helper_functions[] = {test_global_helper_t::_sample_get_pid_tgid};
 
 static ebpf_helper_function_addresses_t _test_global_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_test_global_helper_functions),
     (uint64_t*)_test_global_helper_functions};
 

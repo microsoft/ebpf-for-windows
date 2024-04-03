@@ -6,9 +6,11 @@
 
 enum _extension_object_type
 {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR = 0,
+    EBPF_ATTACH_PROVIDER_DATA = 0,
+    EBPF_PROGRAM_TYPE_DESCRIPTOR,
     EBPF_HELPER_FUNCTION_PROTOTYPE,
     EBPF_PROGRAM_INFO,
+    EBPF_HELPER_FUNCTION_ADDRESSES,
     EBPF_PROGRAM_DATA,
     EBPF_PROGRAM_SECTION,
 };
@@ -16,12 +18,18 @@ enum _extension_object_type
 // Supported version and sizes of the various extension data structures.
 
 uint16_t _supported_ebpf_extension_version[] = {
+    EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,
     EBPF_PROGRAM_INFORMATION_CURRENT_VERSION,
+    EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION,
     EBPF_PROGRAM_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
 };
+
+#define EBPF_ATTACH_PROVIDER_DATA_SIZE_0 \
+    EBPF_OFFSET_OF(ebpf_attach_provider_data_t, link_type) + sizeof(enum bpf_link_type)
+size_t _ebpf_attach_provider_data_supported_size[] = {EBPF_ATTACH_PROVIDER_DATA_SIZE_0};
 
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0 EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char)
 size_t _ebpf_program_type_descriptor_supported_size[] = {EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0};
@@ -33,6 +41,10 @@ size_t _ebpf_helper_function_prototype_supported_size[] = {EBPF_HELPER_FUNCTION_
 #define EBPF_PROGRAM_INFO_SIZE_0 \
     EBPF_OFFSET_OF(ebpf_program_info_t, global_helper_prototype) + sizeof(ebpf_helper_function_prototype_t*)
 size_t _ebpf_program_info_supported_size[] = {EBPF_PROGRAM_INFO_SIZE_0};
+
+#define EBPF_HELPER_FUNCTION_ADDRESSES_SIZE_0 \
+    EBPF_OFFSET_OF(ebpf_helper_function_addresses_t, helper_function_address) + sizeof(uint64_t*)
+size_t _ebpf_helper_function_addresses_supported_size[] = {EBPF_HELPER_FUNCTION_ADDRESSES_SIZE_0};
 
 #define EBPF_PROGRAM_DATA_SIZE_0 EBPF_OFFSET_OF(ebpf_program_data_t, required_irql) + sizeof(uint8_t)
 size_t _ebpf_program_data_supported_size[] = {EBPF_PROGRAM_DATA_SIZE_0};
@@ -46,9 +58,11 @@ struct _ebpf_extension_data_structure_supported_sizes
     uint16_t count;
 };
 struct _ebpf_extension_data_structure_supported_sizes _ebpf_extension_type_supported_sizes[] = {
+    {_ebpf_attach_provider_data_supported_size, EBPF_COUNT_OF(_ebpf_attach_provider_data_supported_size)},
     {_ebpf_program_type_descriptor_supported_size, EBPF_COUNT_OF(_ebpf_program_type_descriptor_supported_size)},
     {_ebpf_helper_function_prototype_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_prototype_supported_size)},
     {_ebpf_program_info_supported_size, EBPF_COUNT_OF(_ebpf_program_info_supported_size)},
+    {_ebpf_helper_function_addresses_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_addresses_supported_size)},
     {_ebpf_program_data_supported_size, EBPF_COUNT_OF(_ebpf_program_data_supported_size)},
     {_ebpf_program_section_supported_size, EBPF_COUNT_OF(_ebpf_program_section_supported_size)},
 };
@@ -75,6 +89,21 @@ _ebpf_validate_extension_object_header(
     return (
         (header->version == _supported_ebpf_extension_version[object_type]) &&
         (_ebpf_is_size_supported(supported_sizes, count, header->size)));
+}
+
+#ifndef GUID_NULL
+static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+#endif
+
+bool
+ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attach_provider_data)
+{
+    return (
+        (attach_provider_data != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_ATTACH_PROVIDER_DATA, &attach_provider_data->header) &&
+        !IsEqualGUID(&attach_provider_data->supported_program_type, &GUID_NULL) &&
+        (attach_provider_data->link_type < BPF_LINK_TYPE_MAX) &&
+        (attach_provider_data->bpf_attach_type < __MAX_BPF_ATTACH_TYPE));
 }
 
 static bool
@@ -130,10 +159,24 @@ ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info)
 }
 
 bool
+_ebpf_validate_helper_function_addresses(_In_ const ebpf_helper_function_addresses_t* helper_function_addresses)
+{
+    return (
+        (helper_function_addresses != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_HELPER_FUNCTION_ADDRESSES, &helper_function_addresses->header) &&
+        (helper_function_addresses->helper_function_count > 0) &&
+        (helper_function_addresses->helper_function_address != NULL));
+}
+
+bool
 ebpf_validate_program_data(_In_ const ebpf_program_data_t* program_data)
 {
     return (
         (program_data != NULL) && _ebpf_validate_extension_object_header(EBPF_PROGRAM_DATA, &program_data->header) &&
+        ((program_data->global_helper_function_addresses == NULL) ||
+         _ebpf_validate_helper_function_addresses(program_data->global_helper_function_addresses)) &&
+        ((program_data->program_type_specific_helper_function_addresses == NULL) ||
+         _ebpf_validate_helper_function_addresses(program_data->program_type_specific_helper_function_addresses)) &&
         ebpf_validate_program_info(program_data->program_info));
 }
 

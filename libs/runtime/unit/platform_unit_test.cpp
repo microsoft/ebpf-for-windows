@@ -621,7 +621,7 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions1[] = {(void*)function_pointer1};
     const uint32_t provider_helper_function_ids[] = {(uint32_t)(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     ebpf_helper_function_addresses_t helper_function_addresses1 = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
         EBPF_COUNT_OF(helper_functions1),
         (uint64_t*)helper_functions1};
 
@@ -629,7 +629,7 @@ TEST_CASE("trampoline_test", "[platform]")
     ebpf_result_t (*function_pointer2)() = provider_function2;
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
         EBPF_COUNT_OF(helper_functions1),
         (uint64_t*)helper_functions2};
     ebpf_trampoline_table_t* local_table = nullptr;
