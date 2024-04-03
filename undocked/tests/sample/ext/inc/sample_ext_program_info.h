@@ -51,11 +51,13 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_func
 
 // Global helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _sample_ebpf_extension_global_helper_function_prototype[] = {
-    {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
-     BPF_FUNC_get_current_pid_tgid,
-     "bpf_get_current_pid_tgid",
-     EBPF_RETURN_TYPE_INTEGER,
-     {0}}};
+    {
+        {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
+        BPF_FUNC_get_current_pid_tgid,
+        "bpf_get_current_pid_tgid",
+        EBPF_RETURN_TYPE_INTEGER,
+    },
+};
 
 static const ebpf_program_type_descriptor_t _sample_ebpf_extension_program_type_descriptor = {
     {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE},

@@ -25,6 +25,9 @@
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
 
+// Global flag to disable invoking programs. This is used when fuzzing the IOCTL interface.
+bool ebpf_program_disable_invoke = false;
+
 typedef struct _ebpf_program
 {
     ebpf_core_object_t object;
@@ -1412,6 +1415,11 @@ ebpf_program_invoke(
     _Out_ uint32_t* result,
     _Inout_ ebpf_execution_context_state_t* execution_state)
 {
+    if (ebpf_program_disable_invoke) {
+        *result = 0;
+        return;
+    }
+
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 

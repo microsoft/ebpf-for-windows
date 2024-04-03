@@ -180,6 +180,9 @@
     <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
       <Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project>
     </ProjectReference>
+    <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
+      <Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\..\rpc_interface\rpc_interface.vcxproj">
       <Project>{1423245d-0249-40fc-a077-ff7780acfe3f}</Project>
     </ProjectReference>
