@@ -581,9 +581,9 @@ function Get-LegacyRegressionTestArtifacts
 
 function Get-RegressionTestArtifacts
 {
-    param([Parameter(Mandatory=$True)] $Configuration)
+    param([Parameter(Mandatory=$True)] $Configuration,
+          [Parameter(Mandatory=$True)] $ArtifactVersion)
 
-    $ArtifactVersion = "0.15.0"
     $RegressionTestArtifactsPath = "$pwd\regression"
     $OriginalPath = $pwd
     if (Test-Path -Path $RegressionTestArtifactsPath) {
