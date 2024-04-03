@@ -83,7 +83,7 @@ _ebpf_xdp_context_delete(
 static const void* _ebpf_xdp_test_helper_functions[] = {(void*)&_net_ebpf_xdp_adjust_head};
 
 static ebpf_helper_function_addresses_t _ebpf_xdp_test_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_ebpf_xdp_test_helper_functions),
     (uint64_t*)_ebpf_xdp_test_helper_functions};
 
@@ -107,7 +107,7 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_test_program_info_p
 //
 
 ebpf_attach_provider_data_t _net_ebpf_xdp_test_hook_provider_data = {
-    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, sizeof(ebpf_attach_provider_data_t)},
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE},
     EBPF_PROGRAM_TYPE_XDP_TEST_GUID,
     BPF_XDP_TEST,
     BPF_LINK_TYPE_XDP};

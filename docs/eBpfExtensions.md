@@ -59,8 +59,7 @@ When registering itself to the NMR, the Program Information NPI Provider should 
 initialized as follows:
 * `NpiId`: This should be set to `EBPF_PROGRAM_INFO_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
 * `ModuleId`: This should be set to the eBPF program type GUID.
-* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
-  * The `data` field of this structure should point to a structure of type `ebpf_program_data_t`.
+* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_program_data_t`.
 
 #### `ebpf_extension_header_t` Struct
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
@@ -233,8 +232,7 @@ When registering itself to the NMR, the Hook NPI provider should have the
 initialized as follows:
 * `NpiId`: This should be set to `EBPF_HOOK_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
 * `ModuleId`: This should be set to the attach type GUID.
-* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
-  * The `data` field of this structure should point to a structure of type `ebpf_attach_provider_data_t`.
+* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_attach_provider_data_t`.
 
 #### `ebpf_attach_provider_data_t` Struct
 This structure is used to specify the attach type supported by the extension for the given Hook NPI provider. It

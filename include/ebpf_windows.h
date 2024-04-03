@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
+#define EBPF_FIELD_SIZE(s, m) (sizeof(((s*)0)->m))
+#define EBPF_SIZE_INCLUDING_FIELD(s, m) (EBPF_OFFSET_OF(s, m) + EBPF_FIELD_SIZE(s, m))
+
 #ifdef _MSC_VER
 #include <guiddef.h>
 #else
@@ -64,10 +68,12 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
-// Version 1 of the eBPF extension data structures and their lengths.
 #define EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION 1
-#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1
 #define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION 1
+
+// Version 1 of the eBPF extension data structures and their lengths.
+#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1
+#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)
 
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
@@ -82,6 +88,8 @@ typedef enum _ebpf_helper_function
     EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)
 
 #define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION 1
+#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_addresses_t, helper_function_address)
 
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION 1
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, required_irql)
