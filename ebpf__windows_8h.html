@@ -132,6 +132,8 @@ Macros</h2></td></tr>
 <tr class="separator:a3196d621ed1ac81a273a576abe962840"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a798cdca2441a827d972f206a001e56ca"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a798cdca2441a827d972f206a001e56ca">EBPF_HELPER_DATA_PROTOTYPE</a>&#160;&#160;&#160;L&quot;Prototype&quot;</td></tr>
 <tr class="separator:a798cdca2441a827d972f206a001e56ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a85782af38d42ae5ea62773961a751979"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a85782af38d42ae5ea62773961a751979">EBPF_HELPER_DATA_REALLOCATE_PACKET</a>&#160;&#160;&#160;L&quot;ReallocatePacket&quot;</td></tr>
+<tr class="separator:a85782af38d42ae5ea62773961a751979"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aab6080e5889403b9ffbe0bb3f8ce73e4"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#aab6080e5889403b9ffbe0bb3f8ce73e4">EBPF_DATA_BPF_PROG_TYPE</a>&#160;&#160;&#160;L&quot;BpfProgType&quot;</td></tr>
 <tr class="separator:aab6080e5889403b9ffbe0bb3f8ce73e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaed5424dcaa4dbf8f300e3e1ad5887c1"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#aaed5424dcaa4dbf8f300e3e1ad5887c1">EBPF_DATA_BPF_ATTACH_TYPE</a>&#160;&#160;&#160;L&quot;BpfAttachType&quot;</td></tr>
@@ -152,7 +154,7 @@ Macros</h2></td></tr>
 <tr class="separator:ae0cb953dd7319e3b1fdf6e251b91800f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a953be532ec7870da8e0b3da5e8a10f4e"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a953be532ec7870da8e0b3da5e8a10f4e">EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:a953be532ec7870da8e0b3da5e8a10f4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a349764181f7e373a0d855c5cf9e1b9b2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a349764181f7e373a0d855c5cf9e1b9b2">EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>, arguments)</td></tr>
+<tr class="memitem:a349764181f7e373a0d855c5cf9e1b9b2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#a349764181f7e373a0d855c5cf9e1b9b2">EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE</a>&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>, flags)</td></tr>
 <tr class="separator:a349764181f7e373a0d855c5cf9e1b9b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ace71bbed24a94bcf15ea1fbe399943b8"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__windows_8h.html#ace71bbed24a94bcf15ea1fbe399943b8">EBPF_PROGRAM_INFORMATION_CURRENT_VERSION</a>&#160;&#160;&#160;1</td></tr>
 <tr class="separator:ace71bbed24a94bcf15ea1fbe399943b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -348,6 +350,20 @@ Enumerations</h2></td></tr>
 
 </div>
 </div>
+<a id="a85782af38d42ae5ea62773961a751979"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a85782af38d42ae5ea62773961a751979">&#9670;&nbsp;</a></span>EBPF_HELPER_DATA_REALLOCATE_PACKET</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_HELPER_DATA_REALLOCATE_PACKET&#160;&#160;&#160;L&quot;ReallocatePacket&quot;</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a3810ad251c9e7cb87124f192f28e4636"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a3810ad251c9e7cb87124f192f28e4636">&#9670;&nbsp;</a></span>EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION</h2>
 
@@ -397,7 +413,7 @@ Enumerations</h2></td></tr>
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>, arguments)</td>
+          <td class="memname">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE&#160;&#160;&#160;    <a class="el" href="ebpf__windows_8h.html#a3d039b76f2da321ce21b58cdb2a150b1">EBPF_SIZE_INCLUDING_FIELD</a>(<a class="el" href="ebpf__program__types_8h.html#a8cabe38407044d4c213492316d2852fc">ebpf_helper_function_prototype_t</a>, flags)</td>
         </tr>
       </table>
 </div><div class="memdoc">
