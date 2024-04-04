@@ -151,7 +151,7 @@ static const void* _ebpf_general_helpers[] = {
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_ebpf_general_helpers),
     (uint64_t*)_ebpf_general_helpers};
 static const ebpf_program_data_t _ebpf_global_helper_function_program_data = {

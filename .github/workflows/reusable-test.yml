@@ -202,7 +202,7 @@ jobs:
       id: run_pre_test_command_self_hosted
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
-        ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
+        ${{env.PRE_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }} -RegressionArtifactsConfiguration ${{env.BUILD_CONFIGURATION}}
 
     # TODO: Clean up the combination of options: https://github.com/microsoft/ebpf-for-windows/issues/1590
     - name: Run test with Code Coverage in VS Dev environment

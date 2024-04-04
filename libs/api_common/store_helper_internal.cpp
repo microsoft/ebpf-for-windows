@@ -63,6 +63,7 @@ _ebpf_store_load_helper_prototype(
     char serialized_data[sizeof(ebpf_helper_function_prototype_t)] = {0};
     size_t expected_size = sizeof(helper_prototype->helper_id) + sizeof(helper_prototype->return_type) +
                            sizeof(helper_prototype->arguments);
+    uint32_t reallocate_packet_value = 0;
 
     EBPF_LOG_ENTRY();
 
@@ -94,6 +95,9 @@ _ebpf_store_load_helper_prototype(
 
     memcpy(&helper_prototype->arguments, serialized_data + offset, sizeof(helper_prototype->arguments));
     offset += sizeof(helper_prototype->arguments);
+
+    (void)ebpf_read_registry_value_dword(helper_info_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, &reallocate_packet_value);
+    helper_prototype->flags.reallocate_packet = !!reallocate_packet_value;
 
     try {
         helper_prototype->name =

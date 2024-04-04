@@ -59,8 +59,7 @@ When registering itself to the NMR, the Program Information NPI Provider should 
 initialized as follows:
 * `NpiId`: This should be set to `EBPF_PROGRAM_INFO_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
 * `ModuleId`: This should be set to the eBPF program type GUID.
-* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
-  * The `data` field of this structure should point to a structure of type `ebpf_program_data_t`.
+* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_program_data_t`.
 
 #### `ebpf_extension_header_t` Struct
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
@@ -142,6 +141,22 @@ in the context descriptor.
 
 #### `ebpf_helper_function_prototype_t` Struct
 This structure is used to describe the prototypes of the various helper functions implemented by the extension.
+```c
+typedef struct _ebpf_helper_function_prototype_flags
+{
+    bool reallocate_packet : 1;
+} ebpf_helper_function_prototype_flags_t;
+
+typedef struct _ebpf_helper_function_prototype
+{
+    ebpf_extension_header_t header;
+    uint32_t helper_id;
+    const char* name;
+    ebpf_return_type_t return_type;
+    ebpf_argument_type_t arguments[5];
+    ebpf_helper_function_prototype_flags_t flags;
+} ebpf_helper_function_prototype_t;
+```
 * `header`: Version and size.
 * `helper_id`: Integer signifying the helper function ID. (See section 2.6).
 Helper function IDs for different program types need not be unique.
@@ -149,6 +164,9 @@ Helper function IDs for different program types need not be unique.
 * `return_type`: Set the appropriate value for the `ebpf_return_type_t` enum that represents the return type of the
 helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
+* `flags`: Bit field of flags.
+   * `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
+
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
@@ -233,8 +251,7 @@ When registering itself to the NMR, the Hook NPI provider should have the
 initialized as follows:
 * `NpiId`: This should be set to `EBPF_HOOK_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
 * `ModuleId`: This should be set to the attach type GUID.
-* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_extension_data_t`.
-  * The `data` field of this structure should point to a structure of type `ebpf_attach_provider_data_t`.
+* `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_attach_provider_data_t`.
 
 #### `ebpf_attach_provider_data_t` Struct
 This structure is used to specify the attach type supported by the extension for the given Hook NPI provider. It

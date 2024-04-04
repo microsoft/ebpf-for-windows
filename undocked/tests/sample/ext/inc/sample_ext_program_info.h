@@ -14,9 +14,6 @@
 #define SAMPLE_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
-#define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
-#define EBPF_FIELD_SIZE(s, m) (sizeof(((s*)0)->m))
-#define EBPF_SIZE_INCLUDING_FIELD(s, m) (EBPF_OFFSET_OF(s, m) + EBPF_FIELD_SIZE(s, m))
 
 static const ebpf_context_descriptor_t _sample_ebpf_context_descriptor = {
     sizeof(sample_program_context_t),

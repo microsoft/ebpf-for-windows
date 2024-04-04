@@ -9,13 +9,17 @@
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
+#define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
+
 // XDP_TEST helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
     {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
      XDP_EXT_HELPER_FUNCTION_START + 1,
      "bpf_xdp_adjust_head",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING}}};
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_ANYTHING},
+     // Flags.
+     {HELPER_FUNCTION_REALLOCATE_PACKET}}};
 
 // XDP_TEST program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {

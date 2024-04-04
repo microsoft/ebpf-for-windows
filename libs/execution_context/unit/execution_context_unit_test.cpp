@@ -761,7 +761,7 @@ TEST_CASE("program", "[execution_context]")
     uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     const void* helper_functions[] = {(void*)function_pointer1};
     ebpf_helper_function_addresses_t helper_function_addresses = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
         EBPF_COUNT_OF(helper_functions),
         (uint64_t*)helper_functions};
 
