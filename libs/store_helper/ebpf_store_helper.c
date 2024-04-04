@@ -88,6 +88,16 @@ _ebpf_store_update_helper_prototype(
         goto Exit;
     }
 
+    if (helper_info->header.size >= EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, flags)) {
+        // Save the reallocate_packet flag.
+        uint32_t reallocate_packet_value = helper_info->flags.reallocate_packet ? 1 : 0;
+        result = ebpf_write_registry_value_dword(
+            helper_function_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, reallocate_packet_value);
+        if (!IS_SUCCESS(result)) {
+            goto Exit;
+        }
+    }
+
 Exit:
     ebpf_free_wstring(wide_helper_name);
     ebpf_close_registry_key(helper_function_key);

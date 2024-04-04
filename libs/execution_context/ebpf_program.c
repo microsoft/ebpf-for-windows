@@ -2090,6 +2090,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
     //   b. Helper name.
     //   c. Helper return type.
     //   d. Helper argument types.
+    //   e. reallocate_packet flag (if set).
 
     // Note:
     // Order and fields being hashed is important. The order and fields being hashed must match the order and fields
@@ -2151,6 +2152,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
 
         for (uint32_t j = 0; j < EBPF_COUNT_OF(helper_function_prototype->arguments); j++) {
             result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->arguments[j]);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+        }
+
+        // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is fixed.
+        if (helper_function_prototype->flags.reallocate_packet != 0) {
+            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->flags);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
