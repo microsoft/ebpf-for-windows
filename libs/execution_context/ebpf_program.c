@@ -560,7 +560,10 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
     ExWaitForRundownProtectionRelease(&program->program_information_rundown_reference);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
-    program->extension_program_data = NULL;
+    if (program->extension_program_data != NULL) {
+        ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
+        program->extension_program_data = NULL;
+    }
     ebpf_lock_unlock(&program->lock, state);
     return STATUS_SUCCESS;
 }
