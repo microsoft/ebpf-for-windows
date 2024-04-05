@@ -382,10 +382,10 @@ _ebpf_program_type_specific_program_information_attach_provider(
     _In_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
+    ebpf_result_t result = EBPF_SUCCESS;
     ebpf_program_t* program = (ebpf_program_t*)client_context;
-    const ebpf_program_data_t* extension_program_data =
-        (const ebpf_program_data_t*)provider_registration_instance->NpiSpecificCharacteristics;
-    const ebpf_program_data_t* general_program_information_data;
+    const ebpf_program_data_t* extension_program_data = NULL;
+    const ebpf_program_data_t* general_program_information_data = NULL;
     cxplat_utf8_string_t hash_algorithm = {0};
     NTSTATUS status;
     uint8_t* hash = NULL;
@@ -412,8 +412,16 @@ _ebpf_program_type_specific_program_information_attach_provider(
     if (!_ebpf_program_verify_provider_program_data(
             EBPF_PROGRAM_INFO_PROVIDER_TYPE_EXTENSION,
             provider_registration_instance->ModuleId,
-            extension_program_data)) {
+            (const ebpf_program_data_t*)provider_registration_instance->NpiSpecificCharacteristics)) {
         status = STATUS_INVALID_PARAMETER;
+        goto Done;
+    }
+
+    result = ebpf_duplicate_program_data(
+        (const ebpf_program_data_t*)provider_registration_instance->NpiSpecificCharacteristics,
+        &extension_program_data);
+    if (result != EBPF_SUCCESS) {
+        status = ebpf_result_to_ntstatus(result);
         goto Done;
     }
 
@@ -612,6 +620,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
 
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = (ebpf_program_t*)context;
+
+    if (program->extension_program_data != NULL) {
+        ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
+    }
 
     if (program->type_specific_program_information_nmr_handle) {
         NTSTATUS status = NmrDeregisterClient(program->type_specific_program_information_nmr_handle);

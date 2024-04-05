@@ -8,7 +8,6 @@
 
 #include "cxplat.h"
 #include "ebpf_core_structs.h"
-
 // Everything in this file must be usable in both user mode and kernel mode,
 // and not rely on ebpf_platform.h.
 
@@ -125,15 +124,6 @@ extern "C"
         size_t input_buffer_length,
         _In_reads_bytes_(input_buffer_length) const uint8_t* input_buffer,
         _Outptr_ ebpf_program_info_t** program_info);
-
-    /**
-     * @brief Helper Function to free ebpf_program_info_t allocated by
-     * ebpf_deserialize_program_info().
-     *
-     * @param[in] program_info Program info to be freed.
-     */
-    void
-    ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info);
 
 #ifdef __cplusplus
 }
