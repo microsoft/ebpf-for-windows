@@ -46,14 +46,14 @@ static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_replace};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_sample_ebpf_extension_helpers),
     (uint64_t*)_sample_ebpf_extension_helpers};
 
 static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, sizeof(ebpf_helper_function_addresses_t)},
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
     EBPF_COUNT_OF(_sample_global_helpers),
     (uint64_t*)_sample_global_helpers};
 
@@ -212,7 +212,7 @@ _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* p
 
 // Sample eBPF extension Hook NPI provider characteristics
 ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data = {
-    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, sizeof(ebpf_attach_provider_data_t)},
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE},
     EBPF_PROGRAM_TYPE_SAMPLE_GUID,
     BPF_ATTACH_TYPE_SAMPLE,
     BPF_LINK_TYPE_UNSPEC};
