@@ -207,7 +207,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                                         "             Section       Type  (bytes)\n"
                                         "====================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "               .text       bind     1064\n"
+                                        "               .text       bind     1080\n"
 #else
                                         "               .text       bind     1768\n"
 #endif
