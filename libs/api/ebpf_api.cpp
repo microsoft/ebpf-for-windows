@@ -2279,20 +2279,19 @@ CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _initialize_ebpf_object_from_elf(
-    _In_z_ const char* file_name,
+    std::variant<std::string, std::vector<uint8_t>>& file_or_data,
     _In_opt_z_ const char* pin_root_path,
     _Inout_ ebpf_object_t& object,
     _Outptr_result_maybenull_z_ const char** error_message) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(file_name);
     ebpf_assert(error_message);
 
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_verifier_options_t verifier_options{false, false, false, false, false};
     result = load_byte_code(
-        file_name,
+        file_or_data,
         nullptr,
         &verifier_options,
         pin_root_path ? pin_root_path : DEFAULT_PIN_ROOT_PATH,
@@ -2314,7 +2313,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 
 static ebpf_result_t
 _initialize_ebpf_object_from_file(
-    _In_z_ const char* path,
+    std::variant<std::string, std::vector<uint8_t>> file_or_data,
     _In_opt_z_ const char* object_name,
     _In_opt_z_ const char* pin_root_path,
     _Out_ ebpf_object_t* new_object,
@@ -2323,22 +2322,32 @@ _initialize_ebpf_object_from_file(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
 
-    new_object->file_name = cxplat_duplicate_string(path);
+    if (std::holds_alternative<std::string>(file_or_data)) {
+        std::string path = std::get<std::string>(file_or_data);
+        new_object->file_name = cxplat_duplicate_string(path.c_str());
+    } else {
+        new_object->file_name = cxplat_duplicate_string(object_name ? object_name : "memory");
+    }
     if (new_object->file_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    new_object->object_name = cxplat_duplicate_string(object_name ? object_name : path);
+    new_object->object_name = cxplat_duplicate_string(object_name ? object_name : new_object->file_name);
     if (new_object->object_name == nullptr) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
 
-    if (Platform::_is_native_program(path)) {
-        result = _initialize_ebpf_object_from_native_file(path, pin_root_path, *new_object, error_message);
+    // If file_or_data is a string, it is a file path.
+    // If it is a vector, it is the ELF data.
+
+    if (std::holds_alternative<std::string>(file_or_data) &&
+        Platform::_is_native_program(std::get<std::string>(file_or_data).c_str())) {
+        result = _initialize_ebpf_object_from_native_file(
+            std::get<std::string>(file_or_data).c_str(), pin_root_path, *new_object, error_message);
     } else {
-        result = _initialize_ebpf_object_from_elf(path, pin_root_path, *new_object, error_message);
+        result = _initialize_ebpf_object_from_elf(file_or_data, pin_root_path, *new_object, error_message);
     }
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -2858,6 +2867,72 @@ Done:
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_API,
                 "ebpf_object_open failed (error_message)",
+                *error_message);
+        }
+    }
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+EBPF_API_LOCKING
+_Must_inspect_result_ ebpf_result_t
+ebpf_object_open_memory(
+    _In_reads_(buffer_size) const uint8_t* buffer,
+    size_t buffer_size,
+    _In_opt_z_ const char* object_name,
+    _In_opt_z_ const char* pin_root_path,
+    _In_opt_ const ebpf_program_type_t* program_type,
+    _In_opt_ const ebpf_attach_type_t* attach_type,
+    _Outptr_ struct bpf_object** object,
+    _Outptr_result_maybenull_z_ const char** error_message) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_assert(buffer);
+    ebpf_assert(object);
+    ebpf_assert(error_message);
+    *error_message = nullptr;
+
+    EBPF_LOG_MESSAGE(
+        EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_API, "ebpf_object_open_memory: loading from memory");
+
+    ebpf_object_t* new_object = new (std::nothrow) ebpf_object_t();
+    if (new_object == nullptr) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
+
+    set_global_program_and_attach_type(program_type, attach_type);
+
+    std::vector<uint8_t> data(buffer, buffer + buffer_size);
+
+    ebpf_result_t result =
+        _initialize_ebpf_object_from_file(data, object_name, pin_root_path, new_object, error_message);
+    if (result != EBPF_SUCCESS) {
+        std::string log_message = "ebpf_object_open_memory: error loading memory:";
+        log_message += ", error message:";
+        log_message += *error_message != NULL ? *error_message : "none";
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "*** ERROR *** ", log_message.c_str());
+        goto Done;
+    }
+
+    *object = new_object;
+    {
+        std::unique_lock lock(_ebpf_state_mutex);
+        _ebpf_objects.emplace_back(*object);
+    }
+
+Done:
+    clear_map_descriptors();
+    if (result != EBPF_SUCCESS) {
+        _clean_up_ebpf_object(new_object);
+
+        // Libbpf API absorbs the error message string.
+        // Print it here for debugging purposes.
+        if (*error_message) {
+            EBPF_LOG_MESSAGE_STRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_object_open_memory failed (error_message)",
                 *error_message);
         }
     }
@@ -4043,7 +4118,7 @@ ebpf_get_program_info_from_verifier(_Outptr_ const ebpf_program_info_t** program
     ebpf_result_t result = EBPF_SUCCESS;
     EBPF_LOG_ENTRY();
 
-    result = get_program_type_info(program_info);
+    result = get_program_type_info_from_tls(program_info);
 
     EBPF_RETURN_RESULT(result);
 }

@@ -46,12 +46,16 @@ static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_replace};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
-    EBPF_COUNT_OF(_sample_ebpf_extension_helpers), (uint64_t*)_sample_ebpf_extension_helpers};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_COUNT_OF(_sample_ebpf_extension_helpers),
+    (uint64_t*)_sample_ebpf_extension_helpers};
 
 static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
-    EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_COUNT_OF(_sample_global_helpers),
+    (uint64_t*)_sample_global_helpers};
 
 static ebpf_result_t
 _sample_context_create(
@@ -70,19 +74,15 @@ _sample_context_destroy(
     _Inout_ size_t* context_size_out);
 
 static ebpf_program_data_t _sample_ebpf_extension_program_data = {
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
     .program_info = &_sample_ebpf_extension_program_info,
     .program_type_specific_helper_function_addresses = &_sample_ebpf_extension_helper_function_address_table,
     .global_helper_function_addresses = &_sample_global_helper_function_address_table,
     .context_create = &_sample_context_create,
     .context_destroy = &_sample_context_destroy};
 
-static const ebpf_extension_data_t _sample_ebpf_extension_program_info_provider_data = {
-    SAMPLE_EBPF_EXTENSION_NPI_PROVIDER_VERSION,
-    sizeof(_sample_ebpf_extension_program_data),
-    &_sample_ebpf_extension_program_data};
-
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
-    sizeof(NPI_MODULEID), MIT_GUID, {0}};
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_SAMPLE_GUID};
 
 /**
  * @brief Callback invoked when an eBPF Program Information NPI client attaches.
@@ -140,7 +140,7 @@ const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_program_info_provider_
      &EBPF_PROGRAM_INFO_EXTENSION_IID,
      &_sample_ebpf_extension_program_info_provider_moduleid,
      0,
-     &_sample_ebpf_extension_program_info_provider_data},
+     &_sample_ebpf_extension_program_data},
 };
 
 /**
@@ -164,7 +164,8 @@ static sample_ebpf_extension_program_info_provider_t _sample_ebpf_extension_prog
 // Hook Provider.
 //
 
-NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = {sizeof(NPI_MODULEID), MIT_GUID, {0}};
+NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_hook_provider_moduleid = {
+    sizeof(NPI_MODULEID), MIT_GUID, EBPF_ATTACH_TYPE_SAMPLE_GUID};
 
 /**
  * @brief Callback invoked when a eBPF hook NPI client attaches.
@@ -210,12 +211,11 @@ static void
 _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* provider_binding_context);
 
 // Sample eBPF extension Hook NPI provider characteristics
-ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data;
-
-ebpf_extension_data_t _sample_ebpf_extension_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_VERSION,
-    sizeof(_sample_ebpf_extension_attach_provider_data),
-    &_sample_ebpf_extension_attach_provider_data};
+ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data = {
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_TYPE_SAMPLE_GUID,
+    BPF_ATTACH_TYPE_SAMPLE,
+    BPF_LINK_TYPE_UNSPEC};
 
 const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characteristics = {
     0,
@@ -228,7 +228,7 @@ const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characte
      &EBPF_HOOK_EXTENSION_IID,
      &_sample_ebpf_extension_hook_provider_moduleid,
      0,
-     &_sample_ebpf_extension_hook_provider_data},
+     &_sample_ebpf_extension_attach_provider_data},
 };
 
 typedef struct _sample_ebpf_extension_hook_provider sample_ebpf_extension_hook_provider_t;
@@ -338,15 +338,7 @@ NTSTATUS
 sample_ebpf_extension_program_info_provider_register()
 {
     sample_ebpf_extension_program_info_provider_t* local_provider_context;
-    ebpf_extension_data_t* extension_data;
-    ebpf_program_data_t* program_data;
-
     NTSTATUS status = STATUS_SUCCESS;
-
-    extension_data = (ebpf_extension_data_t*)_sample_ebpf_extension_program_info_provider_characteristics
-                         .ProviderRegistrationInstance.NpiSpecificCharacteristics;
-    program_data = (ebpf_program_data_t*)extension_data->data;
-    _sample_ebpf_extension_program_info_provider_moduleid.Guid = EBPF_PROGRAM_TYPE_SAMPLE;
 
     local_provider_context = &_sample_ebpf_extension_program_info_provider_context;
 
@@ -486,10 +478,6 @@ sample_ebpf_extension_hook_provider_register()
 {
     sample_ebpf_extension_hook_provider_t* local_provider_context;
     NTSTATUS status = STATUS_SUCCESS;
-
-    _sample_ebpf_extension_attach_provider_data.supported_program_type = EBPF_PROGRAM_TYPE_SAMPLE;
-    _sample_ebpf_extension_attach_provider_data.bpf_attach_type = BPF_ATTACH_TYPE_SAMPLE;
-    _sample_ebpf_extension_hook_provider_moduleid.Guid = EBPF_ATTACH_TYPE_SAMPLE;
 
     local_provider_context = &_sample_ebpf_extension_hook_provider_context;
 

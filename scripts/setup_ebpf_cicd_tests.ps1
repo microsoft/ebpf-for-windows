@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory=$true)][bool] $KmTracing,
-       [parameter(Mandatory=$true)][string] $KmTraceType,
+       [parameter(Mandatory=$false)][bool] $KmTracing = $true,
+       [parameter(Mandatory=$false)][string] $KmTraceType = "file",
        [parameter(Mandatory=$false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
+       [parameter(Mandatory=$false)][string] $RegressionArtifactsVersion = "",
+       [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName)
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName())
 
 Push-Location $WorkingDirectory
 
@@ -33,10 +35,16 @@ Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 # Get all VMs to ready state.
 Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-if ($TestMode -eq "CI/CD") {
+if ($TestMode -eq "Regression") {
 
     # Download the release artifacts for regression tests.
-    Get-RegressionTestArtifacts
+    Get-RegressionTestArtifacts -ArtifactVersion $RegressionArtifactsVersion -Configuration $RegressionArtifactsConfiguration
+}
+
+if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
+
+    # Download the release artifacts for legacy regression tests.
+    Get-LegacyRegressionTestArtifacts
 }
 
 Get-Duonic
@@ -51,7 +59,7 @@ Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 # Install eBPF Components on the test VM.
 foreach($VM in $VMList) {
     $VMName = $VM.Name
-    Install-eBPFComponentsOnVM -VMName $VMname -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+    Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
 }
 
 Pop-Location

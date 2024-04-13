@@ -355,6 +355,29 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
                   "Program terminates within 0 loop iterations\n");
 }
 
+TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"xdp_adjust_head_unsafe.o", L"xdp", nullptr, &result);
+    REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
+    output = strip_paths(output);
+    REQUIRE(
+        output == "Verification failed\n"
+                  "\n"
+                  "Verification report:\n"
+                  "\n"
+                  "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:42\n"
+                  ";     ethernet_header->Type = 0x0800;\n"
+                  "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
+                  "\n"
+                  "1 errors\n"
+                  "\n");
+}
+
 TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
 {
     _test_helper_netsh test_helper;
@@ -398,20 +421,20 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
                   ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "4:  (r3.type in {number, ctx, stack, packet, shared})\n"
+                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
                   ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
                   "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
                   ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5:  (r3.type == non_map_fd)\n"
+                  "5: Invalid type (r3.type == non_map_fd)\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
                   ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
                   "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
                   ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
                   "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "6:  (r2.type in {ctx, stack, packet, shared})\n"
+                  "6: Invalid type (r2.type in {ctx, stack, packet, shared})\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
                   ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
                   "ntohs(ETHERNET_TYPE_IPV6)) {\n"
@@ -419,14 +442,14 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
                   ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
                   "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "7:  (r1.type == number)\n"
+                  "7: Invalid type (r1.type == number)\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
                   ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
                   "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "8:  (r1.type == number)\n"
+                  "8: Invalid type (r1.type == number)\n"
                   "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:43\n"
                   ";     return rc;\n"
-                  "10:  (r0.type == number)\n"
+                  "10: Invalid type (r0.type == number)\n"
                   "\n"
                   "9 errors\n"
                   "\n");
@@ -449,7 +472,7 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
                   ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
-                  "7:  (r3.type == number)\n"
+                  "7: Invalid type (r3.type == number)\n"
                   "\n"
                   "1 errors\n"
                   "\n");

@@ -621,13 +621,17 @@ TEST_CASE("trampoline_test", "[platform]")
     const void* helper_functions1[] = {(void*)function_pointer1};
     const uint32_t provider_helper_function_ids[] = {(uint32_t)(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     ebpf_helper_function_addresses_t helper_function_addresses1 = {
-        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions1};
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+        EBPF_COUNT_OF(helper_functions1),
+        (uint64_t*)helper_functions1};
 
     auto provider_function2 = []() { return EBPF_OBJECT_ALREADY_EXISTS; };
     ebpf_result_t (*function_pointer2)() = provider_function2;
     const void* helper_functions2[] = {(void*)function_pointer2};
     ebpf_helper_function_addresses_t helper_function_addresses2 = {
-        EBPF_COUNT_OF(helper_functions1), (uint64_t*)helper_functions2};
+        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+        EBPF_COUNT_OF(helper_functions1),
+        (uint64_t*)helper_functions2};
     ebpf_trampoline_table_t* local_table = nullptr;
 
     REQUIRE(ebpf_allocate_trampoline_table(1, &local_table) == EBPF_SUCCESS);
@@ -799,11 +803,13 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     test_helper.initialize();
 
     ebpf_helper_function_prototype_t helper_prototype[] = {
-        {1000,
+        {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
+         1000,
          "helper_0",
          EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY}},
-        {1001,
+        {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
+         1001,
          "helper_1",
          EBPF_RETURN_TYPE_INTEGER,
          {EBPF_ARGUMENT_TYPE_PTR_TO_MAP, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_KEY, EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE}}};
@@ -811,8 +817,16 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     // and have no effect on the test.
     ebpf_context_descriptor_t context_descriptor = {32, 0, 8, -1};
     GUID program_type_test = {0x7ebe418c, 0x76dd, 0x4c2c, {0x99, 0xbc, 0x5c, 0x48, 0xa2, 0x30, 0x4b, 0x90}};
-    ebpf_program_type_descriptor_t program_type = {"unit_test_program", &context_descriptor, program_type_test};
-    ebpf_program_info_t in_program_info = {program_type, EBPF_COUNT_OF(helper_prototype), helper_prototype};
+    ebpf_program_type_descriptor_t program_type = {
+        {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE},
+        "unit_test_program",
+        &context_descriptor,
+        program_type_test};
+    ebpf_program_info_t in_program_info = {
+        {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
+        &program_type,
+        EBPF_COUNT_OF(helper_prototype),
+        helper_prototype};
 
     size_t buffer_length = 0;
     size_t required_length;
@@ -843,21 +857,23 @@ TEST_CASE("serialize_program_info_test", "[platform]")
     REQUIRE(ebpf_deserialize_program_info(serialized_length, unique_buffer.get(), &out_program_info) == EBPF_SUCCESS);
 
     // Verify de-serialized program info matches input.
+    REQUIRE(in_program_info.program_type_descriptor != nullptr);
     REQUIRE(
-        in_program_info.program_type_descriptor.program_type == out_program_info->program_type_descriptor.program_type);
+        in_program_info.program_type_descriptor->program_type ==
+        out_program_info->program_type_descriptor->program_type);
     REQUIRE(
-        in_program_info.program_type_descriptor.is_privileged ==
-        out_program_info->program_type_descriptor.is_privileged);
-    REQUIRE(in_program_info.program_type_descriptor.context_descriptor != nullptr);
+        in_program_info.program_type_descriptor->is_privileged ==
+        out_program_info->program_type_descriptor->is_privileged);
+    REQUIRE(in_program_info.program_type_descriptor->context_descriptor != nullptr);
     REQUIRE(
         memcmp(
-            in_program_info.program_type_descriptor.context_descriptor,
-            out_program_info->program_type_descriptor.context_descriptor,
+            in_program_info.program_type_descriptor->context_descriptor,
+            out_program_info->program_type_descriptor->context_descriptor,
             sizeof(ebpf_context_descriptor_t)) == 0);
     REQUIRE(
         strncmp(
-            in_program_info.program_type_descriptor.name,
-            out_program_info->program_type_descriptor.name,
+            in_program_info.program_type_descriptor->name,
+            out_program_info->program_type_descriptor->name,
             EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH) == 0);
     REQUIRE(
         in_program_info.count_of_program_type_specific_helpers ==
