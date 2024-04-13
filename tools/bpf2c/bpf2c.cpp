@@ -87,11 +87,11 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
     // being hashed in _ebpf_program_verify_program_info_hash. If new fields are added to the program info, then the
     // hash must be updated to include the new fields, both here and in _ebpf_program_verify_program_info_hash.
     hash_t::byte_range_t byte_range;
-    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.name);
-    hash_t::append_byte_range(byte_range, *program_info->program_type_descriptor.context_descriptor);
-    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.program_type);
-    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.bpf_prog_type);
-    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor.is_privileged);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->name);
+    hash_t::append_byte_range(byte_range, *program_info->program_type_descriptor->context_descriptor);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->program_type);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->bpf_prog_type);
+    hash_t::append_byte_range(byte_range, program_info->program_type_descriptor->is_privileged);
     hash_t::append_byte_range(byte_range, actual_helper_id_count);
 
     // First, create a map of helper_id to index in the program_type_specific_helper_prototype array.
@@ -115,6 +115,12 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
                  argument++) {
                 hash_t::append_byte_range(
                     byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
+            }
+            // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is
+            // fixed.
+            if (program_info->program_type_specific_helper_prototype[index].flags.reallocate_packet != 0) {
+                hash_t::append_byte_range(
+                    byte_range, program_info->program_type_specific_helper_prototype[index].flags);
             }
         }
     }

@@ -21,69 +21,98 @@ extern "C"
     __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP = {
         0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 
+#define EBPF_ATTACH_TYPE_BIND_GUID                                                     \
+    {                                                                                  \
+        0xb9707e04, 0x8127, 0x4c72, { 0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96 } \
+    }
     /** @brief Attach type for handling socket bind() requests.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_BIND
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = {
-        0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_BIND = EBPF_ATTACH_TYPE_BIND_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID                                     \
+    {                                                                                  \
+        0xa82e37b1, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \
+    }
     /** @brief The programs attached to the INET4_CONNECT hook will be invoked for
      * connect() calls on TCP or UDP sockets or when a UDP socket sends a packet to
      * a unique remote address/port tuple.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT = {
-        0xa82e37b1, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
+    __declspec(selectany)
+        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT = EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID                                     \
+    {                                                                                  \
+        0xa82e37b2, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \
+    }
     /** @brief The programs attached to the INET6_CONNECT hook will be invoked for
      * connect() calls on TCP or UDP sockets or when a UDP socket sends a packet to
      * a unique remote address/port tuple.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT = {
-        0xa82e37b2, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
+    __declspec(selectany)
+        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT = EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID                                 \
+    {                                                                                  \
+        0xa82e37b3, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \
+    }
     /** @brief The programs attached to the INET4_RECV_ACCEPT hook will get invoked for
      *  TCP accept() calls or for the first unicast UDP packet from a unique remote
      *  address/port tuple.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT = {
-        0xa82e37b3, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
+    __declspec(selectany)
+        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT = EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID                                 \
+    {                                                                                  \
+        0xa82e37b4, 0xaee7, 0x11ec, { 0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee } \
+    }
     /** @brief The programs attached to the INET6_RECV_ACCEPT hook will get invoked for
      *  TCP accept() calls or for the first unicast UDP packet from a unique remote
      *  address/port tuple.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT = {
-        0xa82e37b4, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
+    __declspec(selectany)
+        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT = EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID;
 
+#define EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID                                          \
+    {                                                                                  \
+        0x837d02cd, 0x3251, 0x4632, { 0x8d, 0x94, 0x60, 0xd3, 0xb4, 0x57, 0x69, 0xf2 } \
+    }
     /** @brief Attach type for handling socket event notifications.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_SOCK_OPS
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS = {
-        0x837d02cd, 0x3251, 0x4632, {0x8d, 0x94, 0x60, 0xd3, 0xb4, 0x57, 0x69, 0xf2}};
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS = EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID;
+
+#define EBPF_ATTACH_TYPE_SAMPLE_GUID                                                   \
+    {                                                                                  \
+        0xf788ef4b, 0x207d, 0x4dc3, { 0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c } \
+    }
 
     /** @brief Attach type implemented by eBPF Sample Extension driver, used for testing.
      *
-     * Program type: \ref EBPF_PROGRAM_TYPE_SAMPLE
+     * Program type: \ref EBPF_ATTACH_TYPE_SAMPLE
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_SAMPLE = {
-        0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_SAMPLE = EBPF_ATTACH_TYPE_SAMPLE_GUID;
 
+#define EBPF_ATTACH_TYPE_XDP_TEST_GUID                                                 \
+    {                                                                                  \
+        0x0dccc15d, 0xa5f9, 0x4dc1, { 0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3 } \
+    }
     /** @brief Attach type for handling incoming packets as early as possible.
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_XDP_TEST
      */
-    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP_TEST = {
-        0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_XDP_TEST = EBPF_ATTACH_TYPE_XDP_TEST_GUID;
 
     //
     // Program Types.

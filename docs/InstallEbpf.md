@@ -76,39 +76,49 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
 
 1. Deploy the binaries to `C:\Temp` in your VM, as follows (from within a "*Developer PowerShell for VS 2022*"):
 
-    * If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, run:
-
-        ```ps
-        .\x64\debug\deploy-ebpf -l
-        ```
+    * If you **built the binaries from inside the VM**, then from your `ebpf-for-windows` directory in the VM, skip to step 2 (i.e., for running the MSI installer).
 
     * Otherwise, if you **built the binaries on the host machine**, then from your `ebpf-for-windows`
-        directory on the host machine, start an admin Powershell on the host machine and run:
+        build directory on the host machine (e.g., "`ebpf-for-windows\x64\Debug`"), start an admin Powershell on the host machine and run:
 
         ```ps
-        .\x64\debug\deploy-ebpf --vm="<test-vm-name>"
+        # To copy the files to a VM, run:
+        ..\deploy-ebpf.ps1 --dir="c:\some\path" --vm="<test-vm-name>"
+
+        # or, to copy files locally, run:
+        .\deploy-ebpf.ps1 --dir="c:\some\path"
         ```
 
-        or, to also copy files needed to run various tests, run:
+        To also copy files needed to run various tests, simply add the `-t` flag, as follows:
 
         ```ps
-        .\x64\debug\deploy-ebpf --vm="<test-vm-name>" -t
+        # To copy the files to a VM, run:
+        .\deploy-ebpf.ps1 --dir="c:\some\path" --vm="<test-vm-name>" -t
+
+        # or, to copy files locally, run:
+        .\deploy-ebpf.ps1 --dir="c:\some\path" -t
         ```
 
-        or, to copy files to a specific directory, including file shares, run:
+        >Note: if the `--dir` parameter is not specified, the destination directory defaults to "`c:\temp\eBPF`".
 
-        ```ps
-        .\x64\debug\deploy-ebpf -l="c:\some\path"
-        ```
+2. From within the VM, install the the eBPF services  by starting an admin Powershell
+, and running the MSI installer with the following commands:
 
-2. From within the VM, install the binaries by starting an administrator Command Prompt shell (cmd.exe)
-, and running the following commands:
-
-   ```cmd
-   cd C:\Temp
-
-   powershell -ExecutionPolicy Bypass .\scripts\setup-ebpf.ps1
+   ```ps
+   cd "c:\some\path" # or cd c:\temp\eBPF (default location)
+   .\setup_ebpf.ps1
    ```
+
+    >**TIP**: the MSI installer will add the installation folder to the system's PATH environment variable, so that the eBPF tools can be run from any command prompt.
+    >Therefore, it is recommended to open a new command prompt after the installation is complete, to ensure that the PATH variable is updated.
+
+#### Updating the eBPF installation
+
+If you want to install a new version of eBPF, you must uninstall the previous version by running the following command from within the VM:
+
+```ps
+.\setup-ebpf.ps1 -Uninstall
+```
 
 ### Method 3 (Install files you built yourself, with a VM checkpoint)
 

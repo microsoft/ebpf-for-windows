@@ -16,21 +16,25 @@ $EbpfDrivers = @{
         "Name" = "ebpfcore.sys"
         "IsDriver" = $true
         "InstalledByMsi" = $true
+        "ReplaceForRegressionTest" = $false
     }
     "NetEbpfExt" = [PSCustomObject]@{
         "Name" = "netebpfext.sys"
         "IsDriver" = $true
         "InstalledByMsi" = $true
+        "ReplaceForRegressionTest" = $true
     }
     "SampleEbpfExt" = [PSCustomObject]@{
         "Name" = "sample_ebpf_ext.sys"
         "IsDriver" = $true
         "InstalledByMsi" = $false
+        "ReplaceForRegressionTest" = $true
     }
     "EbpfSvc" = [PSCustomObject]@{
         "Name" = "ebpfsvc.exe"
         "IsDriver" = $false
         "InstalledByMsi" = $true
+        "ReplaceForRegressionTest" = $false
     }
 }
 
@@ -159,7 +163,8 @@ function Install-eBPFComponents
 {
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
           [parameter(Mandatory=$true)] [string] $KmTraceType,
-          [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false)
+          [parameter(Mandatory=$false)] [bool] $KMDFVerifier = $false,
+          [parameter(Mandatory=$true)] [string] $TestMode)
 
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines.
@@ -238,6 +243,64 @@ function Install-eBPFComponents
             }
         }
     }
+
+    # If TestMode is "Regression", reinstall the extension drivers from the regression test artifacts.
+    if ($TestMode -eq "Regression") {
+        Write-Log("Reinstalling the extension drivers from the regression test artifacts...") -ForegroundColor Green
+        $EbpfDrivers.GetEnumerator() | ForEach-Object {
+            if ($_.Value.InstalledByMsi) {
+                if ($_.Value.ReplaceForRegressionTest) {
+
+                    # Stop and delete the service.
+                    Write-Log("Regression Tests: Stopping $($_.Key) service...") -ForegroundColor Green
+                    sc.exe stop $_.Key 2>&1 | Write-Log
+                    if ($LASTEXITCODE -ne 0) {
+                        throw ("Failed to stop $($_.Key) service.")
+                    } else {
+                        Write-Log("$($_.Key) service stopped.") -ForegroundColor Green
+                        Write-Log("Deleting $($_.Key) service...") -ForegroundColor Green
+                        sc.exe delete $_.Key 2>&1 | Write-Log
+                        if ($LASTEXITCODE -ne 0) {
+                            throw ("Failed to delete $($_.Key) service.")
+                        } else {
+                            Write-Log("$($_.Key) service deleted.") -ForegroundColor Green
+                        }
+                    }
+
+                    # Install the driver.
+                    $driverPath = if (Test-Path -Path ("$pwd\{0}" -f $_.Value.Name)) {
+                        "$pwd\{0}" -f $_.Value.Name
+                    } elseif (Test-Path -Path ("$pwd\drivers\{0}" -f $_.Value.Name)) {
+                        "$pwd\drivers\{0}" -f $_.Value.Name
+                    } else {
+                        throw ("Driver file not found for $($_.Key).")
+                    }
+                    Write-Log("Installing $($_.Key) from path $driverPath ...") -ForegroundColor Green
+                    sc.exe create $_.Key type=kernel start=demand binpath=$driverPath 2>&1 | Write-Log
+                    if ($LASTEXITCODE -ne 0) {
+                        throw ("Failed to create $($_.Key) driver.")
+                    } else {
+                        Write-Log("$($_.Key) driver created.") -ForegroundColor Green
+                        # Start the service.
+                        Write-Log("Starting $($_.Key) service...") -ForegroundColor Green
+                        sc.exe start $_.Key 2>&1 | Write-Log
+                        if ($LASTEXITCODE -ne 0) {
+                            throw ("Failed to start $($_.Key) service.")
+                        } else {
+                            Write-Log("$($_.Key) service started.") -ForegroundColor Green
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    # Copy ebpfapi.dll from installation directory to current directory.
+    # This ensures latest version of ebpfapi is used by the tests.
+    $ebpfApiDllPath = Join-Path $env:ProgramFiles "ebpf-for-windows\ebpfapi.dll"
+    Write-Log("Copying ebpfapi.dll from '$ebpfApiDllPath' to '$pwd'...")
+    Copy-Item -Path $ebpfApiDllPath -Destination $pwd -Force
 
     # Export program info for the sample driver.
     Write-Log("Running 'export_program_info_sample.exe'...")
@@ -335,5 +398,8 @@ function Uninstall-eBPFComponents
     Write-Log("MSI uninstallation completed successfully!") -ForegroundColor Green
 
     # Stop KM tracing.
-    wpr.exe -cancel
+    $process = Start-Process -FilePath wpr.exe -ArgumentList "-cancel" -NoNewWindow -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        Write-Log("Failed to stop WPR session with error: $($process.ExitCode)")
+    }
 }

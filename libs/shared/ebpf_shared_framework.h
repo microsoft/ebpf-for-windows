@@ -3,7 +3,10 @@
 
 #pragma once
 #include "cxplat.h"
+#include "ebpf_extension.h"
+#include "ebpf_program_types.h"
 #include "ebpf_result.h"
+#include "ebpf_windows.h"
 #include "shared_context.h"
 
 #include <specstrings.h>
@@ -12,7 +15,6 @@
 CXPLAT_EXTERN_C_BEGIN
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
-#define EBPF_OFFSET_OF(s, m) (((size_t) & ((s*)0)->m))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
 
 #define EBPF_CACHE_LINE_SIZE 64
@@ -91,5 +93,21 @@ __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
 
 ebpf_result_t
 ebpf_result_from_cxplat_status(cxplat_status_t status);
+
+bool
+ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attach_provider_data);
+
+bool
+ebpf_validate_program_data(_In_ const ebpf_program_data_t* program_data);
+
+bool
+ebpf_validate_program_section_info(_In_ const ebpf_program_section_info_t* section_info);
+
+bool
+ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info);
+
+bool
+ebpf_validate_helper_function_prototype_array(
+    _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype, uint32_t count);
 
 CXPLAT_EXTERN_C_END

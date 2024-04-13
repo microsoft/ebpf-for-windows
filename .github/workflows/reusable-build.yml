@@ -45,6 +45,17 @@ on:
         required: false
         type: string
         default: '["Debug", "Release"]'
+      perform_skip_check:
+        required: false
+        type: boolean
+        default: true
+    outputs:
+      should_skip:
+        description: 'Whether build was skipped due to duplicate action.'
+        value: ${{ jobs.build.outputs.should_skip }}
+      skipped_by:
+        description: 'The action that caused the skip.'
+        value: ${{ jobs.build.outputs.skipped_by }}
 
 permissions:
   contents: read
@@ -52,6 +63,10 @@ permissions:
 
 jobs:
   build:
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+      skipped_by: ${{ steps.skip_check.outputs.skipped_by }}
+
     timeout-minutes: 90
 
     strategy:
@@ -75,6 +90,7 @@ jobs:
         egress-policy: audit
 
     - id: skip_check
+      if: inputs.perform_skip_check == true
       uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
       with:
         cancel_others: 'false'
