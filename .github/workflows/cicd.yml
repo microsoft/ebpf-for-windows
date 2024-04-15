@@ -638,7 +638,7 @@ jobs:
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_netperf_results_azure_2025
-      result_artifact: Test-Logs-netperf_azure_2025_x64
+      result_artifact: netperf_azure_2025_x64
       platform: Azure Windows 2025
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -651,7 +651,7 @@ jobs:
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_netperf_results_lab_2022
-      result_artifact: Test-Logs-netperf_lab_2022_x64
+      result_artifact: netperf_lab_2022_x64
       platform: Lab Windows 2022
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
