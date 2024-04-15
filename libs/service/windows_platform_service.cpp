@@ -22,4 +22,5 @@ const ebpf_platform_t g_ebpf_platform_windows_service = {
     nullptr, // parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,
-};
+    nullptr, // resolve_inner_map_references
+    bpf_conformance_groups_t::default_groups};
