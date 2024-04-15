@@ -53,11 +53,12 @@ typedef struct _ebpf_core_object_map
  * cold list is trimmed by removing the oldest entries in the list, which are part of the oldest generation. The benefit
  * is that the lock only needs to be acquired when moving items between generations, and not on every access.
  */
-typedef struct _ebpf_lru_entry_partition
+// Aligned to half the cache line size as a compromise between size and alignment.
+typedef struct __declspec(align(32)) _ebpf_lru_entry_partition
 {
     ebpf_list_entry_t list_entry; //< List entry for the hot or cold list.
     size_t generation;            //< Generation in which the key was last accessed.
-    size_t padding;               //< Make the structure size a multiple of 16 bytes.
+    size_t padding;               //< Make the structure is aligned to 32 bytes.
 } ebpf_lru_entry_partition_t;
 
 // Note: This structure layout is variable. The actual size is determined by the map definition and CPU count.
@@ -71,7 +72,7 @@ typedef struct _ebpf_lru_entry
 #define EBPF_LRU_ENTRY_KEY(_map, _entry) \
     (((uint8_t*)entry) + sizeof(ebpf_lru_entry_partition_t) * (_map)->partition_count)
 
-typedef struct _ebpf_lru_partition
+__declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_lru_partition
 {
     ebpf_list_entry_t hot_list; //< List of ebpf_lru_entry_t containing keys accessed in the current generation.
     ebpf_list_entry_t
@@ -86,6 +87,7 @@ typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map;           //< Core map structure.
     size_t partition_count;             //< Number of LRU partitions. Currently a single partition is supported.
+    uint8_t padding[24];                //< Required to ensure partitions are cache aligned.
     ebpf_lru_partition_t partitions[1]; //< Array of LRU partitions. Currently a single partition is supported.
 } ebpf_core_lru_map_t;
 
