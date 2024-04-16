@@ -67,9 +67,11 @@ the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
 
 The `CI/CD - Release validation` workflow(`cicd-release-validation.yml`) is used to validate a release branch. It contains more tests than the regular CI/CD
 pipeline, including longer duration fuzz tests, fault injection tests, stress tests, performance tests etc. These tests can be manually scheduled. The release
-manager must run these tests on the release branch. Due to the non-deterministic nature of some of the tests, it is recommended that the tests are run at least
-three times on the branch. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub. Once potential fixes
-are merged to the release branch repeat the process until the workflow completes successfully.
+manager must run these tests on the release branch. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub.
+Once potential fixes are merged to the release branch repeat the process until the workflow completes successfully.
+
+Note: If any non-deterministic tests (such as fuzzer or stress) are added in the future, the release validation workflow should be updated to run 3x the normal
+CI/CD workflow (either 3x the duration or 3 instances of the test).
 
 ## Publishing the Release to GitHub
 

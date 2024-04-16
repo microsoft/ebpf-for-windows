@@ -242,12 +242,44 @@ jobs:
       gather_dumps: true
 
   # Run the quick stress tests in GitHub.
-  stress:
+  # Stress Tests should run 3x the normal CI/CD workflow
+  # Iteration 1
+  stress-1:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: stress
+      name: stress-1
+      # Until there is a dedicated stress test, re-use the perf test.
+      test_command: .\ebpf_performance.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2022
+      # No code coverage on stress.
+      code_coverage: false
+      gather_dumps: true
+
+  # Iteration 2
+  stress-2:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: stress-2
+      # Until there is a dedicated stress test, re-use the perf test.
+      test_command: .\ebpf_performance.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2022
+      # No code coverage on stress.
+      code_coverage: false
+      gather_dumps: true
+
+  # Iteration 3
+  stress-3:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: stress-3
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: .\ebpf_performance.exe -d yes
       build_artifact: Build-x64
@@ -303,13 +335,14 @@ jobs:
 
   # Run a fast multi-threaded stress test pass against the usersim user-mode 'mock' framework.
   # Added as a 'per-PR' test to catch usersim regressions and/or run-time usage issues.
+  # Stress Tests should run 3x the normal CI/CD workflow
   quick_user_mode_multi_threaded_stress_test:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: quick_user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -tt=8 -td=2
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=18
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
@@ -355,13 +388,14 @@ jobs:
       fault_injection: true
 
   # Run multi-threaded stress tests against the user mode 'mock' framework.
+  # Stress Tests should run 3x the normal CI/CD workflow
   user_mode_multi_threaded_stress_test:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: user_mode_multi_threaded_stress
-      test_command: .\ebpf_stress_tests_um -tt=8 -td=10
+      test_command: .\ebpf_stress_tests_um -tt=8 -td=30
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
@@ -371,12 +405,46 @@ jobs:
 
   # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
   # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests:
+  # Stress Tests should run 3x the normal CI/CD workflow
+  # Iteration 1
+  km_mt_stress_tests-1:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: km_mt_stress_tests
+      name: km_mt_stress_tests-1
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2019
+      code_coverage: false
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false
+
+  # Iteration 2
+  km_mt_stress_tests-2:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_mt_stress_tests-2
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2019
+      code_coverage: false
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false
+
+  # Iteration 3
+  km_mt_stress_tests-3:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_mt_stress_tests-3
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
@@ -388,12 +456,14 @@ jobs:
 
   # Run multi-threaded stress tests with 'restart extension' enabled
   # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests_restart_extension:
+  # Stress Tests should run 3x the normal CI/CD workflow
+  # Iteration 1
+  km_mt_stress_tests_restart_extension-1:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: km_mt_stress_tests_restart_extension
+      name: km_mt_stress_tests_restart_extension-1
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
@@ -403,10 +473,42 @@ jobs:
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
-  ######################################################
-  # Run indeterministic tests multiple times (3 times).
-  ######################################################
-  # FUZZERS ############################################
+  # Iteration 2
+  km_mt_stress_tests_restart_extension-2:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_mt_stress_tests_restart_extension-2
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2019
+      code_coverage: false
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false
+
+  # Iteration 3
+  km_mt_stress_tests_restart_extension-3:
+    needs: regular
+    if: github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_mt_stress_tests_restart_extension-3
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2019
+      code_coverage: false
+      # For this test, we only want kernel mode dumps and not user mode dumps.
+      gather_dumps: false
+
+  ########################################################
+  # Run indeterministic tests 3x longer than regular CI/CD
+  ########################################################
+  # FUZZERS ##############################################
   bpf2c_fuzzer:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
@@ -439,7 +541,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: execution_context_fuzzer
-      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
+      test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=9000 -artifact_prefix=Artifacts\
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: false
