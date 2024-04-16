@@ -53,24 +53,31 @@ typedef struct _ebpf_core_object_map
  * cold list is trimmed by removing the oldest entries in the list, which are part of the oldest generation. The benefit
  * is that the lock only needs to be acquired when moving items between generations, and not on every access.
  */
-// Aligned to half the cache line size as a compromise between size and alignment.
-typedef struct __declspec(align(32)) _ebpf_lru_entry_partition
-{
-    ebpf_list_entry_t list_entry; //< List entry for the hot or cold list.
-    size_t generation;            //< Generation in which the key was last accessed.
-    size_t padding;               //< Make the structure is aligned to 32 bytes.
-} ebpf_lru_entry_partition_t;
 
-// Note: This structure layout is variable. The actual size is determined by the map definition and CPU count.
-typedef struct _ebpf_lru_entry
-{
-    ebpf_lru_entry_partition_t partitions[1]; //< Array of LRU partitions. Currently a single partition is supported.
-    uint8_t key[1]; //< Variable length key. The actual size is determined by the map definition.
-} ebpf_lru_entry_t;
+// ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
+// array of ebpf_list_entry_t list_entry, one per CPU.
+// array of generation, one per CPU.
+// array of last_used_time, one per CPU.
+// key data.
+// Accessing these fields is done by using macros.
 
-#define EBPF_LRU_ENTRY_PARTITION(_map, _partition, _entry) (&(_entry)->partitions[(_partition)])
-#define EBPF_LRU_ENTRY_KEY(_map, _entry) \
-    (((uint8_t*)entry) + sizeof(ebpf_lru_entry_partition_t) * (_map)->partition_count)
+typedef uint8_t* ebpf_lru_entry_t;
+
+#define EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map) 0
+#define EBPF_LRU_ENTRY_GENERATION_OFFSET(map) \
+    (EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map) + (map->partition_count) * sizeof(ebpf_list_entry_t))
+#define EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map) \
+    (EBPF_LRU_ENTRY_GENERATION_OFFSET(map) + (map->partition_count) * sizeof(size_t))
+#define EBPF_LRU_ENTRY_KEY_OFFSET(map) \
+    (EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map) + (map->partition_count) * sizeof(size_t))
+#define EBPF_LRU_ENTRY_SIZE(map) (EBPF_LRU_ENTRY_KEY_OFFSET(map) + (map->core_map.ebpf_map_definition.key_size))
+
+#define EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry) \
+    ((ebpf_list_entry_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map)))
+#define EBPF_LRU_ENTRY_GENERATION_PTR(map, entry) ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_GENERATION_OFFSET(map)))
+#define EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry) \
+    ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map)))
+#define EBPF_LRU_ENTRY_KEY_PTR(map, entry) ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map)))
 
 __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_lru_partition
 {
@@ -1004,12 +1011,12 @@ _get_supplemental_value(_In_ const ebpf_core_map_t* map, _In_ uint8_t* value)
 static ebpf_lru_key_state_t
 _get_key_state(_In_ const ebpf_core_lru_map_t* map, size_t partition, _In_ const ebpf_lru_entry_t* entry)
 {
-    const ebpf_lru_entry_partition_t* lru_partition = EBPF_LRU_ENTRY_PARTITION(map, partition, entry);
-    if (lru_partition->generation == 0) {
+    size_t generation = EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition];
+    if (generation == 0) {
         return EBPF_LRU_KEY_UNINITIALIZED;
-    } else if (lru_partition->generation == EBPF_LRU_INVALID_GENERATION) {
+    } else if (generation == EBPF_LRU_INVALID_GENERATION) {
         return EBPF_LRU_KEY_DELETED;
-    } else if (lru_partition->generation == map->partitions[partition].current_generation) {
+    } else if (generation == map->partitions[partition].current_generation) {
         return EBPF_LRU_KEY_HOT;
     } else {
         return EBPF_LRU_KEY_COLD;
@@ -1048,11 +1055,13 @@ static void
 _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout_ ebpf_lru_entry_t* entry)
 {
     bool lock_held = false;
-    ebpf_lru_entry_partition_t* lru_partition = EBPF_LRU_ENTRY_PARTITION(map, partition, entry);
 
     ebpf_lru_key_state_t key_state = _get_key_state(map, partition, entry);
-    ebpf_assert(key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD || key_state == EBPF_LRU_KEY_DELETED);
     ebpf_lock_state_t state = 0;
+
+    // Update the last used time.
+    EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+
     // Skip if not in the cold list.
     // If not yet initialized, it will be added to the hot list when initialized.
     // If already deleted, don't add it to the hot list.
@@ -1068,10 +1077,10 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
         goto Exit;
     }
 
-    ebpf_list_remove_entry(&lru_partition->list_entry);
-    ebpf_list_insert_tail(&map->partitions[partition].hot_list, &lru_partition->list_entry);
+    ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+    ebpf_list_insert_tail(&map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
     map->partitions[partition].hot_list_size++;
-    lru_partition->generation = map->partitions[partition].current_generation;
+    EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
 
     _merge_hot_into_cold_list_if_needed(map, partition);
 
@@ -1092,16 +1101,17 @@ Exit:
 static void
 _initialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, _In_ const uint8_t* key)
 {
-    memcpy(EBPF_LRU_ENTRY_KEY(map, entry), key, map->core_map.ebpf_map_definition.key_size);
+    memcpy(EBPF_LRU_ENTRY_KEY_PTR(map, entry), key, map->core_map.ebpf_map_definition.key_size);
 
     for (size_t partition = 0; partition < map->partition_count; partition++) {
-        ebpf_lru_entry_partition_t* lru_partition = EBPF_LRU_ENTRY_PARTITION(map, partition, entry);
         ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
         ebpf_assert(_get_key_state(map, partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
 
-        ebpf_list_initialize(&lru_partition->list_entry);
-        lru_partition->generation = map->partitions[partition].current_generation;
-        ebpf_list_insert_tail(&map->partitions[partition].hot_list, &lru_partition->list_entry);
+        ebpf_list_initialize(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+        EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+        ebpf_list_insert_tail(
+            &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
         map->partitions[partition].hot_list_size++;
 
         _merge_hot_into_cold_list_if_needed(map, partition);
@@ -1122,14 +1132,12 @@ static void
 _uninitialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry)
 {
     for (size_t partition = 0; partition < map->partition_count; partition++) {
-        ebpf_lru_entry_partition_t* lru_partition = EBPF_LRU_ENTRY_PARTITION(map, partition, entry);
-
         ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
         ebpf_lru_key_state_t key_state = _get_key_state(map, partition, entry);
         ebpf_assert(key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD);
 
         // Remove from hot or cold list.
-        ebpf_list_remove_entry(&lru_partition->list_entry);
+        ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
 
         // If the entry was in the hot list, decrement the hot list size.
         if (key_state == EBPF_LRU_KEY_HOT) {
@@ -1137,7 +1145,7 @@ _uninitialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry
         }
 
         // Always mark as uninitialized.
-        lru_partition->generation = EBPF_LRU_INVALID_GENERATION;
+        EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = EBPF_LRU_INVALID_GENERATION;
         ebpf_lock_unlock(&map->partitions[partition].lock, state);
     }
 }
@@ -1155,9 +1163,10 @@ _lru_hash_table_notification(
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         _uninitialize_lru_entry(lru_map, entry);
         break;
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
-        _insert_into_hot_list(lru_map, 0, entry);
-        break;
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE: {
+        uint32_t current_cpu = ebpf_get_current_cpu();
+        _insert_into_hot_list(lru_map, current_cpu, entry);
+    } break;
     default:
         ebpf_assert(!"Invalid notification type");
     }
@@ -1171,6 +1180,7 @@ _create_lru_hash_map(
 {
     ebpf_result_t retval = EBPF_SUCCESS;
     ebpf_core_lru_map_t* lru_map = NULL;
+    uint32_t cpu_count = ebpf_get_cpu_count();
 
     *map = NULL;
 
@@ -1181,8 +1191,12 @@ _create_lru_hash_map(
         goto Exit;
     }
 
-    size_t lru_entry_size;
-    retval = ebpf_safe_size_t_add(EBPF_OFFSET_OF(ebpf_lru_entry_t, key), map_definition->key_size, &lru_entry_size);
+    // Base size of an LRU entry is the size of list entry pointers plus the last used time plus the generation for each
+    // CPU.
+    size_t lru_entry_size = (sizeof(ebpf_list_entry_t) + sizeof(size_t) + sizeof(size_t)) * cpu_count;
+
+    // Add the key size to the entry size.
+    retval = ebpf_safe_size_t_add(lru_entry_size, map_definition->key_size, &lru_entry_size);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1196,8 +1210,19 @@ _create_lru_hash_map(
         goto Exit;
     }
 
+    size_t lru_map_size;
+    retval = ebpf_safe_size_t_multiply(sizeof(ebpf_lru_partition_t), cpu_count, &lru_map_size);
+    if (retval != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    retval = ebpf_safe_size_t_add(lru_map_size, EBPF_OFFSET_OF(ebpf_core_lru_map_t, partitions), &lru_map_size);
+    if (retval != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
     retval = _create_hash_map_internal(
-        sizeof(ebpf_core_lru_map_t),
+        lru_map_size,
         map_definition,
         supplemental_value_size,
         NULL,
@@ -1207,7 +1232,7 @@ _create_lru_hash_map(
         goto Exit;
     }
 
-    lru_map->partition_count = 1;
+    lru_map->partition_count = cpu_count;
 
     for (size_t partition = 0; partition < lru_map->partition_count; partition++) {
         ebpf_list_initialize(&lru_map->partitions[partition].hot_list);
@@ -1218,6 +1243,8 @@ _create_lru_hash_map(
         lru_map->partitions[partition].hot_list_size = 0;
         lru_map->partitions[partition].hot_list_limit = max(map_definition->max_entries / EBPF_LRU_GENERATION_COUNT, 1);
     }
+
+    ebpf_assert(EBPF_LRU_ENTRY_SIZE(lru_map) == lru_entry_size);
 
     *map = &lru_map->core_map;
 
@@ -1245,6 +1272,74 @@ static ebpf_result_t
 _delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 
 /**
+ * @brief Walk the cold lists, removing secondary keys and finding the oldest primary key.
+ *
+ * @param[in] lru_map
+ * @return Either the oldest primary key or NULL if no primary keys are present.
+ */
+static ebpf_lru_entry_t*
+_reap_lru_cold_lists(ebpf_core_lru_map_t* lru_map)
+{
+    ebpf_lru_entry_t* oldest_entry = NULL;
+    uint64_t oldest_timestamp = UINT64_MAX;
+    bool non_empty_partition_found = true;
+
+    // Scan all partitions until we find a non-empty cold list or we have an oldest entry.
+    while (!oldest_entry && non_empty_partition_found) {
+        non_empty_partition_found = false;
+        // Scan each partition, removing secondary entries with higher timestamps until we find the oldest entry.
+        for (size_t partition = 0; partition < lru_map->partition_count; partition++) {
+            // If this cold list is empty, skip it.
+            if (ebpf_list_is_empty(&lru_map->partitions[partition].cold_list)) {
+                continue;
+            }
+
+            // Found a non-empty partition.
+            non_empty_partition_found = true;
+
+            // Lock the partition.
+            ebpf_lock_state_t state = ebpf_lock_lock(&lru_map->partitions[partition].lock);
+
+            // Check again after acquiring the lock.
+            // If the cold list is empty, skip it.
+            if (ebpf_list_is_empty(&lru_map->partitions[partition].cold_list)) {
+                ebpf_lock_unlock(&lru_map->partitions[partition].lock, state);
+                continue;
+            }
+
+            // Compute the start of the entry from the cold list entry.
+            ebpf_list_entry_t* list_entry = lru_map->partitions[partition].cold_list.Flink - partition;
+            ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)list_entry;
+
+            // The effective age of an entry is the maximum of the last used time of all partitions.
+            // Compute the highest timestamp for this entry.
+            size_t highest_timestamp = 0;
+            for (size_t inner_partition = 0; inner_partition < lru_map->partition_count; inner_partition++) {
+                if (EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(lru_map, entry)[inner_partition] > highest_timestamp) {
+                    highest_timestamp = EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(lru_map, entry)[inner_partition];
+                }
+            }
+
+            // If this key is present in another partitions's cold list with a higher timestamp, remove it from this
+            // partition's cold list.
+            if (highest_timestamp != EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(lru_map, entry)[partition]) {
+                ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(lru_map, entry)[partition]);
+                ebpf_lock_unlock(&lru_map->partitions[partition].lock, state);
+                continue;
+            }
+
+            // Check if the highest timestamp is the oldest.
+            if (highest_timestamp < oldest_timestamp) {
+                oldest_timestamp = highest_timestamp;
+                oldest_entry = entry;
+            }
+            ebpf_lock_unlock(&lru_map->partitions[partition].lock, state);
+        }
+    }
+    return oldest_entry;
+}
+
+/**
  * @brief Helper function to reap the oldest entry from the map.
  *
  * @param[in,out] map Pointer to the map.
@@ -1252,36 +1347,17 @@ _delete_hash_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key);
 static void
 _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
 {
-    // For now, reap the oldest entry in partition 0.
-    size_t partition = 0;
     ebpf_core_lru_map_t* lru_map;
 
     lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
 
-    ebpf_list_entry_t entries_to_reap;
-    ebpf_list_initialize(&entries_to_reap);
-
-    // Grab count_of_entries_to_reap keys from the front of the cold list.
-    ebpf_lock_state_t state = ebpf_lock_lock(&lru_map->partitions[partition].lock);
-    ebpf_lru_entry_t* entry =
-        EBPF_FROM_FIELD(ebpf_lru_entry_t, partitions[0].list_entry, lru_map->partitions[partition].cold_list.Flink);
-
-    if (ebpf_list_is_empty(&lru_map->partitions[partition].cold_list)) {
-        entry = NULL;
-    } else {
-        ebpf_lru_entry_partition_t* lru_partition = EBPF_LRU_ENTRY_PARTITION(map, partition, entry);
-        // Remove from cold list.
-        ebpf_list_remove_entry(&lru_partition->list_entry);
-        // Reset head and tail pointers.
-        ebpf_list_initialize(&lru_partition->list_entry);
-    }
-    ebpf_lock_unlock(&lru_map->partitions[partition].lock, state);
+    ebpf_lru_entry_t* entry = _reap_lru_cold_lists(lru_map);
 
     if (entry) {
         // Attempt to delete the entry from the cold list.
         // This may fail if the entry has already been freed, but that's okay as the caller will
         // attempt to reap again if the next insert fails.
-        (void)_delete_hash_map_entry(map, EBPF_LRU_ENTRY_KEY(lru_map, entry));
+        (void)_delete_hash_map_entry(map, EBPF_LRU_ENTRY_KEY_PTR(lru_map, entry));
     }
 }
 
