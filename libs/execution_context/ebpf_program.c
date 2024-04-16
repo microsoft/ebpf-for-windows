@@ -514,6 +514,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     }
 
     program->bpf_prog_type = extension_program_data->program_info->program_type_descriptor->bpf_prog_type;
+    extension_program_data = NULL;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -547,6 +548,9 @@ Done:
 
     if (lock_held) {
         ebpf_lock_unlock(&program->lock, state);
+    }
+    if (extension_program_data) {
+        ebpf_program_data_free((ebpf_program_data_t*)extension_program_data);
     }
 
     return status;
@@ -624,10 +628,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = (ebpf_program_t*)context;
 
-    if (program->extension_program_data != NULL) {
-        ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
-    }
-
     if (program->type_specific_program_information_nmr_handle) {
         NTSTATUS status = NmrDeregisterClient(program->type_specific_program_information_nmr_handle);
         if (status == STATUS_PENDING) {
@@ -644,6 +644,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
         } else {
             ebpf_assert(NT_SUCCESS(status));
         }
+    }
+
+    if (program->extension_program_data != NULL) {
+        ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
     }
 
     ebpf_lock_destroy(&program->lock);
