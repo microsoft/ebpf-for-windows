@@ -43,10 +43,14 @@ typedef struct _ebpf_core_object_map
 // Define the granularity at which the LRU list is updated.
 #define EBPF_LRU_GENERATION_COUNT 10
 
+// Limit maximum number of partitions to 8 as a trade-off between memory usage and performance.
+// Fewer partitions will result in more contention on the lock, but more partitions will consume more memory.
+#define EBPF_LRU_MAXIMUM_PARTITIONS 8
+
 /**
  * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
  * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
- * of double-linked lists per CPU (aka partition). The hot list contains entries that have been accessed in the current
+ * of double-linked lists per partition. The hot list contains entries that have been accessed in the current
  * generation, and the cold list contains entries that have not been accessed in the current generation. When entries in
  * the cold list are accessed, they are moved to the hot list. When the hot list reaches
  * max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list, a new generation is started, and
@@ -56,7 +60,7 @@ typedef struct _ebpf_core_object_map
  * Key-history is stored along with the value in the map. The hash-table then provides callbacks to the map to update
  * the key-history when an entry is accessed, updated, or deleted.
  *
- * Key-history can be in multiple per-cpu partitions, with different generation and last-used-time values. To determine
+ * Key-history can be in multiple partitions, with different generation and last-used-time values. To determine
  * the actual last used time of a key, the map must iterate over all the partitions and find the maximum last-used-time.
  *
  * The link in the ebpf_lru_entry_t with the highest corresponding last-used-time is the actual last used time of the
@@ -67,9 +71,9 @@ typedef struct _ebpf_core_object_map
  * The implementation then treats the opa que blob as a block of memory containing the following:
  * ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
  * struct ebpf_lru_entry_t {
- *  ebpf_list_entry_t list_entry[cpu_count];
- *  size_t generation[cpu_count];
- *  size_t last_used_time[cpu_count];
+ *  ebpf_list_entry_t list_entry[partition_count];
+ *  size_t generation[partition_count];
+ *  size_t last_used_time[partition_count];
  *  uint8_t key[key_size];
  * };
  *
@@ -134,7 +138,7 @@ typedef uint8_t* ebpf_lru_entry_t;
 #define EBPF_LRU_ENTRY_KEY_PTR(map, entry) ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map)))
 
 /**
- * @brief The per-CPU partition of the LRU map key history.
+ * @brief The partition of the LRU map key history.
  */
 __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_lru_partition
 {
@@ -1218,16 +1222,17 @@ _lru_hash_table_notification(
 {
     ebpf_core_lru_map_t* lru_map = (ebpf_core_lru_map_t*)context;
     ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_supplemental_value(&lru_map->core_map, value);
-    uint32_t current_cpu = ebpf_get_current_cpu();
+    // Map the current CPU to a partition.
+    uint32_t partition = ebpf_get_current_cpu() % lru_map->partition_count;
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
-        _initialize_lru_entry(lru_map, entry, current_cpu, key);
+        _initialize_lru_entry(lru_map, entry, partition, key);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         _uninitialize_lru_entry(lru_map, entry);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE: {
-        _insert_into_hot_list(lru_map, current_cpu, entry);
+        _insert_into_hot_list(lru_map, partition, entry);
     } break;
     default:
         ebpf_assert(!"Invalid notification type");
@@ -1242,7 +1247,7 @@ _create_lru_hash_map(
 {
     ebpf_result_t retval = EBPF_SUCCESS;
     ebpf_core_lru_map_t* lru_map = NULL;
-    uint32_t cpu_count = ebpf_get_cpu_count();
+    uint32_t partition_count = min(ebpf_get_cpu_count(), EBPF_LRU_MAXIMUM_PARTITIONS);
 
     *map = NULL;
 
@@ -1254,8 +1259,8 @@ _create_lru_hash_map(
     }
 
     // Base size of an LRU entry is the size of list entry pointers plus the last used time plus the generation for each
-    // CPU.
-    size_t lru_entry_size = (sizeof(ebpf_list_entry_t) + sizeof(size_t) + sizeof(size_t)) * cpu_count;
+    // partition.
+    size_t lru_entry_size = (sizeof(ebpf_list_entry_t) + sizeof(size_t) + sizeof(size_t)) * partition_count;
 
     // Add the key size to the entry size.
     retval = ebpf_safe_size_t_add(lru_entry_size, map_definition->key_size, &lru_entry_size);
@@ -1273,7 +1278,7 @@ _create_lru_hash_map(
     }
 
     size_t lru_map_size;
-    retval = ebpf_safe_size_t_multiply(sizeof(ebpf_lru_partition_t), cpu_count, &lru_map_size);
+    retval = ebpf_safe_size_t_multiply(sizeof(ebpf_lru_partition_t), partition_count, &lru_map_size);
     if (retval != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1294,7 +1299,7 @@ _create_lru_hash_map(
         goto Exit;
     }
 
-    lru_map->partition_count = cpu_count;
+    lru_map->partition_count = partition_count;
 
     for (size_t partition = 0; partition < lru_map->partition_count; partition++) {
         ebpf_list_initialize(&lru_map->partitions[partition].hot_list);
