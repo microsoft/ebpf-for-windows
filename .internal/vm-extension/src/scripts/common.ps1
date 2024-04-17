@@ -14,7 +14,7 @@ Set-Variable -Name "EbpfTracingTaskCmd" -Value "ebpf_tracing.cmd"
 Set-Variable -Name "EbpfTracingPath" -Value "$env:SystemRoot\Logs\eBPF"
 Set-Variable -Name "EbpfBackupPath" -Value "$env:TEMP\ebpf_backup"
 Set-Variable -Name "EbpfRegistryPath" -Value "HKLM:\Software\eBPF"
-Set-Variable -Name "EbpfDisableRuntimeUpdateRegistryKey" -Value 0
+Set-Variable -Name "EbpfDisableRuntimeUpdateRegistryKey" -Value "EbpfDisableRuntimeUpdate"
 Set-Variable -Name "EbpfStartTimeoutSeconds" -Value 60
 $EbpfDrivers =
 @{
@@ -555,17 +555,17 @@ function Is-InstallOrUpdate-Supported {
 
     Write-Log -level $LogLevelInfo -message "Is-InstallOrUpdate-Supported()"
 
-    # Check if the registry key exists
-    $fullRegistryPath = Join-Path $EbpfRegistryPath $EbpfAksRegistryKey
-    if (Test-Path $fullRegistryPath) {
-        # Retrieve the registry key value
-        $keyValue = (Get-ItemProperty -Path $fullRegistryPath -Name "EbpfDisableRuntimeUpdateRegistryKey").EbpfDisableRuntimeUpdateRegistryKey
+    # Retrieve the registry key value
+    $keyValue = (Get-ItemProperty -Path $EbpfRegistryPath -Name $EbpfDisableRuntimeUpdateRegistryKey).EbpfDisableRuntimeUpdate
+    If ($null -eq $keyValue) {
+        Write-Log -level $LogLevelWarning -message "The registry key '$EbpfDisableRuntimeUpdateRegistryKey' does not exist -> Install or Update are allowed by default."
+    } else {
         if ($keyValue -ne 0) {
-            Write-Log -level $LogLevelWarning -message "Install or Update are not allowed in the current environment."
+            Write-Log -level $LogLevelError -message "The registry key '$EbpfDisableRuntimeUpdateRegistryKey' is set to '$keyValue' (non-zero) -> Install or Update are NOT allowed."
             return $false
         }
+        Write-Log -level $LogLevelInfo -message "Install or Update are allowed in the current environment."
     }
-    Write-Log -level $LogLevelInfo -message "Install or Update are allowed in the current environment."
 
     return $true
 }
