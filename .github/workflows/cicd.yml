@@ -423,7 +423,8 @@ jobs:
     with:
       name: stress
       # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe -d yes
+      # Disabling preemption to avoid test failures due to https://github.com/microsoft/usersim/issues/184.
+      test_command: .\ebpf_performance.exe -d yes *_no_preemption
       build_artifact: Build-x64
       environment: windows-2022
       # No code coverage on stress.
