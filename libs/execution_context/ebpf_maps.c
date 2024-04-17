@@ -1160,25 +1160,26 @@ Exit:
  * @param[in] key Key to initialize the entry with.
  */
 static void
-_initialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, _In_ const uint8_t* key)
+_initialize_lru_entry(
+    _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, size_t partition, _In_ const uint8_t* key)
 {
     memcpy(EBPF_LRU_ENTRY_KEY_PTR(map, entry), key, map->core_map.ebpf_map_definition.key_size);
+    ebpf_assert(_get_key_state(map, partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
 
-    for (size_t partition = 0; partition < map->partition_count; partition++) {
-        ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
-        ebpf_assert(_get_key_state(map, partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
-
-        ebpf_list_initialize(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
-        EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
-        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
-        ebpf_list_insert_tail(
-            &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
-        map->partitions[partition].hot_list_size++;
-
-        _merge_hot_into_cold_list_if_needed(map, partition);
-
-        ebpf_lock_unlock(&map->partitions[partition].lock, state);
+    for (size_t current_partition = 0; current_partition < map->partition_count; current_partition++) {
+        ebpf_list_initialize(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[current_partition]);
     }
+
+    // Only insert into the current partition's hot list.
+    ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
+    EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
+    EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+    ebpf_list_insert_tail(&map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+    map->partitions[partition].hot_list_size++;
+
+    _merge_hot_into_cold_list_if_needed(map, partition);
+
+    ebpf_lock_unlock(&map->partitions[partition].lock, state);
 }
 
 /**
@@ -1217,15 +1218,15 @@ _lru_hash_table_notification(
 {
     ebpf_core_lru_map_t* lru_map = (ebpf_core_lru_map_t*)context;
     ebpf_lru_entry_t* entry = (ebpf_lru_entry_t*)_get_supplemental_value(&lru_map->core_map, value);
+    uint32_t current_cpu = ebpf_get_current_cpu();
     switch (type) {
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_ALLOCATE:
-        _initialize_lru_entry(lru_map, entry, key);
+        _initialize_lru_entry(lru_map, entry, current_cpu, key);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         _uninitialize_lru_entry(lru_map, entry);
         break;
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE: {
-        uint32_t current_cpu = ebpf_get_current_cpu();
         _insert_into_hot_list(lru_map, current_cpu, entry);
     } break;
     default:
