@@ -6,6 +6,8 @@
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
+#define ARRAY_ELEM_INDEX(array, index, elem_size) (((uint8_t*)array) + (index * elem_size));
+
 enum _extension_object_type
 {
     EBPF_ATTACH_PROVIDER_DATA = 0,
@@ -122,10 +124,11 @@ ebpf_validate_helper_function_prototype_array(
     _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype_array, uint32_t count)
 {
     if (count > 0) {
+        // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
         size_t helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
         for (uint32_t i = 0; i < count; i++) {
             ebpf_helper_function_prototype_t* helper_prototype =
-                (ebpf_helper_function_prototype_t*)((uint8_t*)helper_prototype_array + i * helper_prototype_size);
+                (ebpf_helper_function_prototype_t*)ARRAY_ELEM_INDEX(helper_prototype_array, i, helper_prototype_size);
             if (!_ebpf_validate_helper_function_prototype(helper_prototype)) {
                 return false;
             }
@@ -270,6 +273,7 @@ _duplicate_helper_function_prototype_array(
         goto Exit;
     }
 
+    // The ebpf_helper_function_prototype_t struct gets padded at arguments[5] field.
     helper_prototype_size = EBPF_PAD_8(helper_prototype_array[0].header.size);
 
     local_helper_prototype_array =
@@ -281,7 +285,7 @@ _duplicate_helper_function_prototype_array(
 
     for (uint32_t i = 0; i < count; i++) {
         ebpf_helper_function_prototype_t* helper_prototype =
-            (ebpf_helper_function_prototype_t*)((uint8_t*)helper_prototype_array + i * helper_prototype_size);
+            (ebpf_helper_function_prototype_t*)ARRAY_ELEM_INDEX(helper_prototype_array, i, helper_prototype_size);
         memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
