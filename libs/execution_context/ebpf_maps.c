@@ -1200,7 +1200,8 @@ _uninitialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry
     for (size_t partition = 0; partition < map->partition_count; partition++) {
         ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
         ebpf_lru_key_state_t key_state = _get_key_state(map, partition, entry);
-        ebpf_assert(key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD);
+        ebpf_assert(
+            key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD || key_state == EBPF_LRU_KEY_UNINITIALIZED);
 
         // Remove from hot or cold list.
         ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
