@@ -13,8 +13,10 @@
 typedef struct _ebpf_serialized_program_type_descriptor
 {
     size_t size;
+    ebpf_extension_header_t header;
     ebpf_context_descriptor_t context_descriptor;
     GUID program_type;
+    uint32_t bpf_prog_type;
     unsigned char is_privileged;
     size_t name_length;
     uint8_t name[1];
@@ -26,9 +28,11 @@ typedef struct _ebpf_serialized_program_type_descriptor
 typedef struct _ebpf_serialized_helper_function_prototype
 {
     size_t size;
+    ebpf_extension_header_t header;
     uint32_t helper_id;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
+    ebpf_helper_function_prototype_flags_t flags;
     size_t name_length;
     uint8_t name[1];
 } ebpf_serialized_helper_function_prototype_t;
@@ -39,6 +43,7 @@ typedef struct _ebpf_serialized_helper_function_prototype
 typedef struct _ebpf_serialized_helper_function_prototype_array
 {
     size_t size;
+    ebpf_extension_header_t header;
     uint32_t helper_function_count;
     uint8_t prototypes[1];
 } ebpf_serialized_helper_function_prototype_array_t;
@@ -255,8 +260,11 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
 {
     EBPF_LOG_ENTRY();
     if (program_info != NULL) {
-        ebpf_free((void*)program_info->program_type_descriptor.context_descriptor);
-        ebpf_free((void*)program_info->program_type_descriptor.name);
+        if (program_info->program_type_descriptor != NULL) {
+            ebpf_free((void*)program_info->program_type_descriptor->context_descriptor);
+            ebpf_free((void*)program_info->program_type_descriptor->name);
+            ebpf_free((void*)program_info->program_type_descriptor);
+        }
         if (program_info->program_type_specific_helper_prototype != NULL) {
             for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
                 const ebpf_helper_function_prototype_t* helper_prototype =
@@ -302,7 +310,12 @@ ebpf_serialize_program_info(
     *serialized_data_length = 0;
 
     // Perform sanity check on input program info.
-    program_type_descriptor = &program_info->program_type_descriptor;
+    program_type_descriptor = program_info->program_type_descriptor;
+    if (program_type_descriptor == NULL) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_WARNING, EBPF_TRACELOG_KEYWORD_BASE, "program_type_descriptor is NULL");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     if (program_type_descriptor->name == NULL) {
         EBPF_LOG_MESSAGE(
@@ -426,7 +439,9 @@ ebpf_serialize_program_info(
     if (program_type_descriptor->context_descriptor != NULL) {
         serialized_program_type_descriptor->context_descriptor = *program_type_descriptor->context_descriptor;
     }
+    serialized_program_type_descriptor->header = program_type_descriptor->header;
     serialized_program_type_descriptor->program_type = program_type_descriptor->program_type;
+    serialized_program_type_descriptor->bpf_prog_type = program_type_descriptor->bpf_prog_type;
     serialized_program_type_descriptor->is_privileged = program_type_descriptor->is_privileged;
     serialized_program_type_descriptor->name_length = program_type_descriptor_name_length;
     // Copy the program type descriptor name buffer.
@@ -457,11 +472,13 @@ ebpf_serialize_program_info(
             // Serialize individual helper function prototypes.
             serialized_helper_prototype->size =
                 EBPF_OFFSET_OF(ebpf_serialized_helper_function_prototype_t, name) + helper_function_name_length;
+            serialized_helper_prototype->header = helper_prototype->header;
             serialized_helper_prototype->helper_id = helper_prototype->helper_id;
             serialized_helper_prototype->return_type = helper_prototype->return_type;
             for (uint16_t index = 0; index < EBPF_COUNT_OF(helper_prototype->arguments); index++) {
                 serialized_helper_prototype->arguments[index] = helper_prototype->arguments[index];
             }
+            serialized_helper_prototype->flags = helper_prototype->flags;
             serialized_helper_prototype->name_length = helper_function_name_length;
             // Copy the program type descriptor name buffer.
             memcpy(serialized_helper_prototype->name, helper_prototype->name, helper_function_name_length);
@@ -501,12 +518,18 @@ ebpf_deserialize_program_info(
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    local_program_type_descriptor = &local_program_info->program_type_descriptor;
 
     current = input_buffer;
     buffer_left = input_buffer_length;
 
-    // Deserialize program type descriptor.
+    // Allocate and deserialize program type descriptor.
+    local_program_type_descriptor =
+        (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
+    if (local_program_type_descriptor == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    local_program_info->program_type_descriptor = local_program_type_descriptor;
 
     // Check if sufficient input buffer remaining.
     if (buffer_left < sizeof(ebpf_serialized_program_type_descriptor_t)) {
@@ -516,7 +539,9 @@ ebpf_deserialize_program_info(
 
     serialized_program_type_descriptor = (const ebpf_serialized_program_type_descriptor_t*)current;
 
+    local_program_type_descriptor->header = serialized_program_type_descriptor->header;
     local_program_type_descriptor->program_type = serialized_program_type_descriptor->program_type;
+    local_program_type_descriptor->bpf_prog_type = serialized_program_type_descriptor->bpf_prog_type;
     local_program_type_descriptor->is_privileged = serialized_program_type_descriptor->is_privileged;
 
     // Allocate and deserialize context_descriptor, if present.
@@ -627,12 +652,14 @@ ebpf_deserialize_program_info(
             goto Exit;
         }
 
-        // Serialize helper prototype.
+        // De-serialize helper prototype.
+        helper_prototype->header = serialized_helper_prototype->header;
         helper_prototype->helper_id = serialized_helper_prototype->helper_id;
         helper_prototype->return_type = serialized_helper_prototype->return_type;
         for (int i = 0; i < EBPF_COUNT_OF(helper_prototype->arguments); i++) {
             helper_prototype->arguments[i] = serialized_helper_prototype->arguments[i];
         }
+        helper_prototype->flags = serialized_helper_prototype->flags;
 
         // Adjust remaining buffer length.
         result = ebpf_safe_size_t_subtract(

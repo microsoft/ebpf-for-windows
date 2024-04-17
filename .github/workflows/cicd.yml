@@ -164,7 +164,7 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.5/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
+      pre_test: Invoke-WebRequest https://github.com/Alan-Jowett/bpf_conformance/releases/download/v0.0.6/bpf_conformance_runner.exe -OutFile bpf_conformance_runner.exe
       test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --exclude_regex local --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
       name: bpf2c_conformance
       build_artifact: Build-x64
@@ -250,6 +250,25 @@ jobs:
       # driver tests manually gather code coverage
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+
+  # Run the regression driver tests on self-hosted runners (only for 2022).
+  regression_driver_ws2022:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -TestMode "Regression" -RegressionArtifactsVersion "0.15.0"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      name: driver_ws2022
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2022
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
 
   ossar:
     # Always run this job.
@@ -578,6 +597,16 @@ jobs:
       environment: ebpf_cicd_perf_ws2022
       configurations: '["Release"]'
 
+  netperf:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/netperf.yml
+    with:
+      sha: ${{ github.sha }}
+      ref: ${{ github.ref }}
+      pull_request: ${{ github.event.pull_request.number }}
+    secrets:
+      NET_PERF_TRIGGER: ${{ secrets.NET_PERF_TRIGGER }}
+
   upload_perf_results:
     needs: performance
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -585,6 +614,45 @@ jobs:
     with:
       name: upload_perf_results
       result_artifact: km_performance-x64-Release
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  upload_netperf_results_azure_2022:
+    needs: netperf
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_netperf_results_azure_2022
+      result_artifact: netperf_azure_2022_x64
+      platform: Azure Windows 2022
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  upload_netperf_results_azure_2025:
+    needs: netperf
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_netperf_results_azure_2025
+      result_artifact: netperf_azure_2025_x64
+      platform: Azure Windows 2025
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  upload_netperf_results_lab_2022:
+    needs: netperf
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/upload-perf-results.yml
+    with:
+      name: upload_netperf_results_lab_2022
+      result_artifact: netperf_lab_2022_x64
+      platform: Lab Windows 2022
     secrets:
       AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}

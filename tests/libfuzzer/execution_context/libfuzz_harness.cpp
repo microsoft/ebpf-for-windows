@@ -9,8 +9,10 @@
 #include "platform.h"
 
 #include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <map>
+#include <mutex>
 #include <vector>
 
 #define REQUIRE(X)                 \
@@ -148,8 +150,17 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
     },
 };
 
+static std::mutex _ebpf_fuzzer_async_mutex;
+static std::condition_variable _ebpf_fuzzer_async_cv;
+static bool _ebpf_fuzzer_async_done = false;
+
 void
-fuzz_async_completion(void*, size_t, ebpf_result_t){};
+fuzz_async_completion(void*, size_t, ebpf_result_t)
+{
+    std::unique_lock<std::mutex> lock(_ebpf_fuzzer_async_mutex);
+    _ebpf_fuzzer_async_done = true;
+    _ebpf_fuzzer_async_cv.notify_all();
+};
 
 class fuzz_wrapper
 {
@@ -214,6 +225,12 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     std::vector<uint8_t> request;
     std::vector<uint8_t> reply;
     uint16_t reply_buffer_length = 0;
+
+    {
+        std::unique_lock<std::mutex> lock(_ebpf_fuzzer_async_mutex);
+        _ebpf_fuzzer_async_done = false;
+    }
+
     if (random_buffer.size() < sizeof(ebpf_operation_header_t)) {
         return;
     }
@@ -245,14 +262,20 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         async ? &async : nullptr,
         async ? &fuzz_async_completion : nullptr);
 
-    if (result == EBPF_PENDING) {
+    if ((result == EBPF_PENDING) && async) {
         ebpf_core_cancel_protocol_handler(&async);
+        std::unique_lock<std::mutex> lock(_ebpf_fuzzer_async_mutex);
+        _ebpf_fuzzer_async_cv.wait(lock, []() { return _ebpf_fuzzer_async_done; });
     }
 }
+
+// Disable program invocation for fuzzing.
+extern "C" bool ebpf_program_disable_invoke;
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
     ebpf_fuzzing_memory_limit = 1024 * 1024 * 10;
+    ebpf_program_disable_invoke = true;
     return 0;
 }
 

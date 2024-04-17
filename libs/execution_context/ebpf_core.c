@@ -101,7 +101,21 @@ _ebpf_core_memmove(
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
-static ebpf_program_info_t _ebpf_global_helper_program_info = {{"global_helper", NULL, {0}}, 0, NULL};
+static ebpf_program_type_descriptor_t _ebpf_global_helper_program_descriptor = {
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE,
+    "global_helper",
+    NULL,
+    {0},
+    0,
+    0};
+static ebpf_program_info_t _ebpf_global_helper_program_info = {
+    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
+    &_ebpf_global_helper_program_descriptor,
+    0,
+    NULL,
+    0,
+    NULL};
 
 // Order of elements in this table must match the order of the elements in ebpf_core_helper_function_prototype.
 static const void* _ebpf_general_helpers[] = {
@@ -137,14 +151,13 @@ static const void* _ebpf_general_helpers[] = {
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
-    EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_COUNT_OF(_ebpf_general_helpers),
+    (uint64_t*)_ebpf_general_helpers};
 static const ebpf_program_data_t _ebpf_global_helper_function_program_data = {
-    &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
-
-static const ebpf_extension_data_t _ebpf_global_helper_function_extension_data = {
-    EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION,
-    sizeof(_ebpf_global_helper_function_program_data),
-    &_ebpf_global_helper_function_program_data};
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    &_ebpf_global_helper_program_info,
+    &_ebpf_global_helper_function_dispatch_table};
 
 static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_general_helper_function_provider_attach_client;
 static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_general_helper_function_provider_detach_client;
@@ -156,12 +169,12 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_global_helper_function_provider_
     _ebpf_general_helper_function_provider_detach_client,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_PROVIDER_DATA_VERSION,
+        EBPF_PROGRAM_DATA_CURRENT_VERSION,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         &ebpf_general_helper_function_module_id,
         0,
-        &_ebpf_global_helper_function_extension_data,
+        &_ebpf_global_helper_function_program_data,
     },
 };
 

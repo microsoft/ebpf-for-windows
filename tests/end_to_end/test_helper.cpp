@@ -5,7 +5,6 @@
 #include "api_internal.h"
 #include "bpf/bpf.h"
 #include "bpf2c.h"
-#include "catch_wrapper.hpp"
 #include "cxplat_fault_injection.h"
 #include "ebpf_async.h"
 #include "ebpf_core.h"
@@ -23,6 +22,14 @@
 #include <mutex>
 #include <sstream>
 using namespace std::chrono_literals;
+
+#if defined(NO_CATCH2)
+#define REQUIRE(x) \
+    if (!(x))      \
+    throw std::runtime_error("REQUIRE failed")
+#else
+#include "catch_wrapper.hpp"
+#endif
 
 bool _ebpf_capture_corpus = false;
 
@@ -778,7 +785,7 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         _expect_native_module_load_failures = false;
 
         set_verification_in_progress(false);
-    } catch (Catch::TestFailureException&) {
+    } catch (...) {
     }
 }
 
