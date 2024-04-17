@@ -44,41 +44,98 @@ typedef struct _ebpf_core_object_map
 #define EBPF_LRU_GENERATION_COUNT 10
 
 /**
- * @brief Each LRU entry tracks a key for an entry stored in a LRU map. The entry is stored in one of two lists: hot or
- * cold. The hot list is for items that have been accessed in the current generation, where a generation is defined as a
- * period of time during which max_entries/EBPF_LRU_GENERATION_COUNT elements have been accessed in the map. The cold
- * list is for items that have not been accessed in the current generation. When the hot list reaches
+ * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
+ * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
+ * of double-linked lists per CPU (aka partition). The hot list contains entries that have been accessed in the current
+ * generation, and the cold list contains entries that have not been accessed in the current generation. When entries in
+ * the cold list are accessed, they are moved to the hot list. When the hot list reaches
  * max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list, a new generation is started, and
- * the hot list is cleared.  When space is needed in the map, the cold list is trimmed to make room for new entries. The
- * cold list is trimmed by removing the oldest entries in the list, which are part of the oldest generation. The benefit
- * is that the lock only needs to be acquired when moving items between generations, and not on every access.
+ * the hot list is cleared. When space is needed an entry is selected from a cold-list and is removed from the
+ * hash-table.
+ *
+ * Key-history is stored along with the value in the map. The hash-table then provides callbacks to the map to update
+ * the key-history when an entry is accessed, updated, or deleted.
+ *
+ * Key-history can be in multiple per-cpu partitions, with different generation and last-used-time values. To determine
+ * the actual last used time of a key, the map must iterate over all the partitions and find the maximum last-used-time.
+ *
+ * The link in the ebpf_lru_entry_t with the highest corresponding last-used-time is the actual last used time of the
+ * key. All other links in that ebpf_lru_entry_t are considered stale and are ignored.
+ *
+ * Key history is stored in a separate partition from the value as is returned as an opaque blob of memory.
+ *
+ * The implementation then treats the opa que blob as a block of memory containing the following:
+ * ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
+ * struct ebpf_lru_entry_t {
+ *  ebpf_list_entry_t list_entry[cpu_count];
+ *  size_t generation[cpu_count];
+ *  size_t last_used_time[cpu_count];
+ *  uint8_t key[key_size];
+ * };
+ *
+ * This structure is not expressible in C, so we use macros to calculate the offsets of the fields in the structure and
+ * access them.
  */
 
-// ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
-// array of ebpf_list_entry_t list_entry, one per CPU.
-// array of generation, one per CPU.
-// array of last_used_time, one per CPU.
-// key data.
-// Accessing these fields is done by using macros.
-
+/**
+ * @brief Opaque type for an LRU map key history entry.
+ * Macros are used to access the fields in the key history entry.
+ */
 typedef uint8_t* ebpf_lru_entry_t;
 
+/**
+ * @brief Macro to calculate the offset of list entry in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map) 0
+
+/**
+ * @brief Macro to calculate the offset of generation in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_GENERATION_OFFSET(map) \
     (EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map) + (map->partition_count) * sizeof(ebpf_list_entry_t))
+
+/**
+ * @brief Macro to calculate the offset of last used time in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map) \
     (EBPF_LRU_ENTRY_GENERATION_OFFSET(map) + (map->partition_count) * sizeof(size_t))
+
+/**
+ * @brief Macro to calculate the offset of key in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_KEY_OFFSET(map) \
     (EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map) + (map->partition_count) * sizeof(size_t))
+
+/**
+ * @brief Macro to compute the size of the key history entry.
+ */
 #define EBPF_LRU_ENTRY_SIZE(map) (EBPF_LRU_ENTRY_KEY_OFFSET(map) + (map->core_map.ebpf_map_definition.key_size))
 
+/**
+ * @brief Macro to get a pointer to an array of list entries in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry) \
     ((ebpf_list_entry_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map)))
+
+/**
+ * @brief Macro to get a pointer to an array of generations in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_GENERATION_PTR(map, entry) ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_GENERATION_OFFSET(map)))
+
+/**
+ * @brief Macro to get a pointer to an array of last used times in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry) \
     ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map)))
+
+/**
+ * @brief Macro to get a pointer to the key in the key history entry.
+ */
 #define EBPF_LRU_ENTRY_KEY_PTR(map, entry) ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map)))
 
+/**
+ * @brief The per-CPU partition of the LRU map key history.
+ */
 __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_lru_partition
 {
     ebpf_list_entry_t hot_list; //< List of ebpf_lru_entry_t containing keys accessed in the current generation.
@@ -90,6 +147,9 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_lru_partition
     size_t hot_list_limit;     //< Maximum size of the hot list.
 } ebpf_lru_partition_t;
 
+/**
+ * @brief The map definition for an LRU map.
+ */
 typedef struct _ebpf_core_lru_map
 {
     ebpf_core_map_t core_map;           //< Core map structure.
@@ -1049,6 +1109,7 @@ _Requires_lock_held_(map->partitions[partition].lock) static void _merge_hot_int
  * @brief Helper function to insert an entry into the hot list if it is in the cold list and update the hot list size.
  *
  * @param[in,out] map Pointer to the map.
+ * @param[in] partition Partition to insert into.
  * @param[in,out] entry Entry to insert into the hot list.
  */
 static void
@@ -1320,8 +1381,8 @@ _reap_lru_cold_lists(ebpf_core_lru_map_t* lru_map)
                 }
             }
 
-            // If this key is present in another partitions's cold list with a higher timestamp, remove it from this
-            // partition's cold list.
+            // If this key is present in another partitions's cold list with a higher timestamp and is therefore
+            // redundant, remove it. This prevents this code from examining the same key multiple times.
             if (highest_timestamp != EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(lru_map, entry)[partition]) {
                 ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(lru_map, entry)[partition]);
                 ebpf_lock_unlock(&lru_map->partitions[partition].lock, state);
