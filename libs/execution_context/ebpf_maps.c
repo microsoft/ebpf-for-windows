@@ -68,7 +68,7 @@ typedef struct _ebpf_core_object_map
  *
  * Key history is stored in a separate partition from the value as is returned as an opaque blob of memory.
  *
- * The implementation then treats the opa que blob as a block of memory containing the following:
+ * The implementation then treats the opaque blob as a block of memory containing the following:
  * ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
  * struct ebpf_lru_entry_t {
  *  ebpf_list_entry_t list_entry[partition_count];
