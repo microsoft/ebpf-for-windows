@@ -3304,8 +3304,8 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     }
 }
 
-// This test case tests the various hash table based map implementation
-TEST_CASE("no_limit_map_entries", "[end_to_end]")
+// This test case tests the map limits of various hash table based map types.
+TEST_CASE("test_map_entries_limit", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
