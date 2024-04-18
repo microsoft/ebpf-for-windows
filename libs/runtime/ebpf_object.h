@@ -133,8 +133,8 @@ extern "C"
     {
         uint32_t marker; ///< Contains the 32bit value 'eobj' when the object is valid and is inverted when the object
                          ///< is freed.
-        uint32_t zero_fill;                              ///< Zero fill to make the reference count is 8-byte aligned.
-        volatile int64_t reference_count;                ///< Reference count for the object.
+        uint32_t zero_fill;               ///< Zero fill to make sure the reference count is 8-byte aligned.
+        volatile int64_t reference_count; ///< Reference count for the object.
         ebpf_base_acquire_reference_t acquire_reference; ///< Function to acquire a reference on this object.
         ebpf_base_release_reference_t release_reference; ///< Function to release a reference on this object.
     } ebpf_base_object_t;
