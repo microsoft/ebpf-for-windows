@@ -3229,6 +3229,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
 
 #define IS_LRU_MAP(type) ((type) == BPF_MAP_TYPE_LRU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
 #define IS_PERCPU_MAP(type) ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+#define IS_LPM_MAP(type) ((type) == BPF_MAP_TYPE_LPM_TRIE)
 
     typedef struct _lpm_trie_key
     {
@@ -3261,12 +3262,21 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
 
     // Add `max_entries` entries to the map.
     for (uint32_t i = 0; i < max_entries; i++) {
+        void* key = nullptr;
+        lpm_trie_key_t trie_key = {0};
+        if (IS_LPM_MAP(type)) {
+            trie_key.prefix_length = 32;
+            trie_key.value[0] = (uint8_t)i;
+            key = &trie_key;
+        } else {
+            key = &i;
+        }
         if (IS_PERCPU_MAP(type)) {
             value = per_cpu_value.data();
         } else {
             value = nested_map ? &inner_map_fd : (int32_t*)&i;
         }
-        REQUIRE(bpf_map_update_elem(map_fd, &i, value, 0) == 0);
+        REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == 0);
     }
 
     // Add one more entry to the map.
