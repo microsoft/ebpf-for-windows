@@ -65,7 +65,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
                 program_data_size = static_cast<uint32_t>(stream.gcount());
 
                 test_attr.data_in = program_data;
-                test_attr.data_size_in = sizeof(program_data);
+                test_attr.data_size_in = program_data_size;
                 test_attr.data_out = program_data;
                 test_attr.data_size_out = sizeof(program_data);
                 test_attr.repeat = 1;
