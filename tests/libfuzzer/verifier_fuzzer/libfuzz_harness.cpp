@@ -52,7 +52,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
                 std::stringstream stream(std::string((const char*)data, size));
 
                 ELFIO::elfio reader;
-                // Read the ELF file from the stream to determine it's length.
+                // Read the ELF file from the stream to determine its length.
                 // This leaves the stream at the end of the ELF file.
                 // All data after the ELF file is considered the data to be passed to the program.
                 if (!reader.load(stream)) {
