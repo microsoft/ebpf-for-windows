@@ -6,7 +6,8 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
-        "main"
+        "main",
+        "feature/security_fix"
       ],
       "Fuzzer": {
         "$type": "libfuzzer",
@@ -61,7 +62,7 @@
       "AdoTemplate": {
         "Org": "mscodehub",
         "Project": "eBPFForWindows",
-        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AssignedTo": "alanjo@microsoft.com",
         "AreaPath": "eBPFForWindows",
         "IterationPath": "eBPFForWindows",
         "Type": "Bug",
@@ -138,7 +139,7 @@
       "AdoTemplate": {
         "Org": "mscodehub",
         "Project": "eBPFForWindows",
-        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AssignedTo": "alanjo@microsoft.com",
         "AreaPath": "eBPFForWindows",
         "IterationPath": "eBPFForWindows",
         "Type": "Bug",
@@ -215,7 +216,7 @@
       "AdoTemplate": {
         "Org": "mscodehub",
         "Project": "eBPFForWindows",
-        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AssignedTo": "alanjo@microsoft.com",
         "AreaPath": "eBPFForWindows",
         "IterationPath": "eBPFForWindows",
         "Type": "Bug",
@@ -292,7 +293,7 @@
       "AdoTemplate": {
         "Org": "mscodehub",
         "Project": "eBPFForWindows",
-        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AssignedTo": "alanjo@microsoft.com",
         "AreaPath": "eBPFForWindows",
         "IterationPath": "eBPFForWindows",
         "Type": "Bug",
@@ -370,7 +371,7 @@
       "AdoTemplate": {
         "Org": "mscodehub",
         "Project": "eBPFForWindows",
-        "AssignedTo": "edgeosebpf@microsoft.com",
+        "AssignedTo": "alanjo@microsoft.com",
         "AreaPath": "eBPFForWindows",
         "IterationPath": "eBPFForWindows",
         "Type": "Bug",
