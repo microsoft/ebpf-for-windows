@@ -57,18 +57,17 @@ typedef struct _ebpf_core_object_map
  * the hot list is cleared. When space is needed an entry is selected from a cold list and is removed from the
  * hash table.
  *
- * Key-history is stored along with the value in the map. The hash table then provides callbacks to the map to update
- * the key-history when an entry is accessed, updated, or deleted.
+ * key history is stored along with the value in the map. The hash table then provides callbacks to the map to update
+ * the key history when an entry is accessed, updated, or deleted.
  *
- * Key-history can be in multiple partitions, with different generation and last-used-time values. To determine
+ * key history can be in multiple partitions, with different generation and last-used-time values. To determine
  * the actual last used time of a key, the map must iterate over all the partitions and find the maximum last-used-time.
  *
  * The link in the ebpf_lru_entry_t with the highest corresponding last-used-time is the actual last used time of the
  * key. All other links in that ebpf_lru_entry_t are considered stale and are ignored.
  *
- * Key history is stored in a separate partition from the value as is returned as an opaque blob of memory.
+ * Key history is stored in a separate partition from the value and is returned as an opaque blob of memory.
  *
- * The implementation then treats the opaque blob as a block of memory containing the following:
  * ebpf_lru_entry_partition_t is an untyped block of memory containing the following:
  * struct ebpf_lru_entry_t {
  *  ebpf_list_entry_t list_entry[partition_count];
@@ -90,52 +89,54 @@ typedef uint8_t* ebpf_lru_entry_t;
 /**
  * @brief Macro to calculate the offset of list entry in the key history entry.
  */
-#define EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map) 0
+#define EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(partition_count) 0
 
 /**
  * @brief Macro to calculate the offset of generation in the key history entry.
  */
-#define EBPF_LRU_ENTRY_GENERATION_OFFSET(map) \
-    (EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map) + (map->partition_count) * sizeof(ebpf_list_entry_t))
+#define EBPF_LRU_ENTRY_GENERATION_OFFSET(partition_count) \
+    (EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(partition_count) + (partition_count) * sizeof(ebpf_list_entry_t))
 
 /**
  * @brief Macro to calculate the offset of last used time in the key history entry.
  */
-#define EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map) \
-    (EBPF_LRU_ENTRY_GENERATION_OFFSET(map) + (map->partition_count) * sizeof(size_t))
+#define EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(partition_count) \
+    (EBPF_LRU_ENTRY_GENERATION_OFFSET(partition_count) + (partition_count) * sizeof(size_t))
 
 /**
  * @brief Macro to calculate the offset of key in the key history entry.
  */
-#define EBPF_LRU_ENTRY_KEY_OFFSET(map) \
-    (EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map) + (map->partition_count) * sizeof(size_t))
+#define EBPF_LRU_ENTRY_KEY_OFFSET(partition_count) \
+    (EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(partition_count) + (partition_count) * sizeof(size_t))
 
 /**
  * @brief Macro to compute the size of the key history entry.
  */
-#define EBPF_LRU_ENTRY_SIZE(map) (EBPF_LRU_ENTRY_KEY_OFFSET(map) + (map->core_map.ebpf_map_definition.key_size))
+#define EBPF_LRU_ENTRY_SIZE(partition_count, key_size) (EBPF_LRU_ENTRY_KEY_OFFSET(partition_count) + key_size)
 
 /**
  * @brief Macro to get a pointer to an array of list entries in the key history entry.
  */
 #define EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry) \
-    ((ebpf_list_entry_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map)))
+    ((ebpf_list_entry_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LIST_ENTRY_OFFSET(map->partition_count)))
 
 /**
  * @brief Macro to get a pointer to an array of generations in the key history entry.
  */
-#define EBPF_LRU_ENTRY_GENERATION_PTR(map, entry) ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_GENERATION_OFFSET(map)))
+#define EBPF_LRU_ENTRY_GENERATION_PTR(map, entry) \
+    ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_GENERATION_OFFSET(map->partition_count)))
 
 /**
  * @brief Macro to get a pointer to an array of last used times in the key history entry.
  */
 #define EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry) \
-    ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map)))
+    ((size_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_LAST_USED_TIME_OFFSET(map->partition_count)))
 
 /**
  * @brief Macro to get a pointer to the key in the key history entry.
  */
-#define EBPF_LRU_ENTRY_KEY_PTR(map, entry) ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map)))
+#define EBPF_LRU_ENTRY_KEY_PTR(map, entry) \
+    ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map->partition_count)))
 
 /**
  * @brief The partition of the LRU map key history.
@@ -1260,9 +1261,7 @@ _create_lru_hash_map(
         goto Exit;
     }
 
-    // Base size of an LRU entry is the size of list entry pointers plus the last used time plus the generation for each
-    // partition.
-    size_t lru_entry_size = (sizeof(ebpf_list_entry_t) + sizeof(size_t) + sizeof(size_t)) * partition_count;
+    size_t lru_entry_size = EBPF_LRU_ENTRY_SIZE(partition_count, map_definition->key_size);
 
     // Add the key size to the entry size.
     retval = ebpf_safe_size_t_add(lru_entry_size, map_definition->key_size, &lru_entry_size);
@@ -1312,8 +1311,6 @@ _create_lru_hash_map(
         lru_map->partitions[partition].hot_list_size = 0;
         lru_map->partitions[partition].hot_list_limit = max(map_definition->max_entries / EBPF_LRU_GENERATION_COUNT, 1);
     }
-
-    ebpf_assert(EBPF_LRU_ENTRY_SIZE(lru_map) == lru_entry_size);
 
     *map = &lru_map->core_map;
 
