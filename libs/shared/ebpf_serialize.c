@@ -5,6 +5,7 @@
 // various eBPF structures to/from ebpf_operation_*_request/reply_t structures.
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
+#include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
 /**
@@ -254,39 +255,6 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 #pragma warning(pop)
-
-void
-ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info)
-{
-    EBPF_LOG_ENTRY();
-    if (program_info != NULL) {
-        if (program_info->program_type_descriptor != NULL) {
-            ebpf_free((void*)program_info->program_type_descriptor->context_descriptor);
-            ebpf_free((void*)program_info->program_type_descriptor->name);
-            ebpf_free((void*)program_info->program_type_descriptor);
-        }
-        if (program_info->program_type_specific_helper_prototype != NULL) {
-            for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
-                const ebpf_helper_function_prototype_t* helper_prototype =
-                    &program_info->program_type_specific_helper_prototype[i];
-                void* name = (void*)helper_prototype->name;
-                ebpf_free(name);
-            }
-        }
-        if (program_info->global_helper_prototype != NULL) {
-            for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
-                const ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
-                void* name = (void*)helper_prototype->name;
-                ebpf_free(name);
-            }
-        }
-
-        ebpf_free((void*)program_info->program_type_specific_helper_prototype);
-        ebpf_free((void*)program_info->global_helper_prototype);
-        ebpf_free(program_info);
-    }
-    EBPF_RETURN_VOID();
-}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_serialize_program_info(
