@@ -54,10 +54,10 @@ typedef struct _ebpf_core_object_map
  * generation, and the cold list contains entries that have not been accessed in the current generation. When entries in
  * the cold list are accessed, they are moved to the hot list. When the hot list reaches
  * max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list, a new generation is started, and
- * the hot list is cleared. When space is needed an entry is selected from a cold-list and is removed from the
- * hash-table.
+ * the hot list is cleared. When space is needed an entry is selected from a cold list and is removed from the
+ * hash table.
  *
- * Key-history is stored along with the value in the map. The hash-table then provides callbacks to the map to update
+ * Key-history is stored along with the value in the map. The hash table then provides callbacks to the map to update
  * the key-history when an entry is accessed, updated, or deleted.
  *
  * Key-history can be in multiple partitions, with different generation and last-used-time values. To determine
