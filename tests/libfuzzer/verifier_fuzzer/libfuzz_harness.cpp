@@ -45,6 +45,8 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
             bpf_object__for_each_program(program, bpf_object)
             {
                 bpf_test_run_opts test_attr = {};
+                // For now, limit the size of the data to 4096 bytes.
+                // The IOCTL interface limits the total message size to 64k, so this should leave extra space.
                 uint8_t program_data[4096] = {0};
                 uint32_t program_data_size = 0;
                 uint8_t context[4096] = {0};
