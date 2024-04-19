@@ -1016,7 +1016,7 @@ _ebpf_core_protocol_map_delete_element_batch(
 
     const ebpf_map_definition_in_memory_t* map_definition = ebpf_map_get_definition(map);
 
-    if (key_length % map_definition->key_size != 0) {
+    if (map_definition->key_size == 0 || key_length % map_definition->key_size != 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
