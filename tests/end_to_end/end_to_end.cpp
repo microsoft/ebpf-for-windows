@@ -3247,7 +3247,11 @@ test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
 
 TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
 {
-    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
-    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
+#endif
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }
