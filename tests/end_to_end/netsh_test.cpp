@@ -295,10 +295,10 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "             Section       Type  (bytes)\n"
                                         "====================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "     cgroup/connect4  sock_addr      193\n"
-                                        "     cgroup/connect6  sock_addr      210\n"
-                                        " cgroup/recv_accept4  sock_addr      193\n"
-                                        " cgroup/recv_accept6  sock_addr      210\n"
+                                        "     cgroup/connect4  sock_addr      285\n"
+                                        "     cgroup/connect6  sock_addr      302\n"
+                                        " cgroup/recv_accept4  sock_addr      285\n"
+                                        " cgroup/recv_accept6  sock_addr      302\n"
 #else
                                         "     cgroup/connect4  sock_addr      860\n"
                                         "     cgroup/connect6  sock_addr      935\n"
