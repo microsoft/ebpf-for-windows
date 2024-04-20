@@ -110,4 +110,43 @@ bool
 ebpf_validate_helper_function_prototype_array(
     _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype, uint32_t count);
 
+/**
+ * @brief Helper Function to free ebpf_program_info_t.
+ *
+ * @param[in] program_info Program info to be freed.
+ */
+void
+ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info);
+
+/**
+ * @brief Helper Function to duplicate ebpf_program_info_t to the latest version with safe defaults.
+ *
+ * @param[in] info Program info to be duplicated.
+ * @param[out] new_info Duplicated program info.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_program_info_t** new_info);
+
+/**
+ * @brief Helper Function to free ebpf_program_data_t.
+ *
+ * @param[in] program_data Program data to be freed.
+ */
+void
+ebpf_program_data_free(_In_opt_ ebpf_program_data_t* program_data);
+
+/**
+ * @brief Helper Function to duplicate ebpf_program_data_t to the latest version with safe defaults.
+ *
+ * @param[in] program_data Program data to be duplicated.
+ * @param[out] new_program_data Duplicated program data.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+ebpf_result_t
+ebpf_duplicate_program_data(
+    _In_ const ebpf_program_data_t* program_data, _Outptr_ ebpf_program_data_t** new_program_data);
+
 CXPLAT_EXTERN_C_END
