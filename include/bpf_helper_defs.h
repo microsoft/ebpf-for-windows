@@ -406,6 +406,20 @@ EBPF_HELPER(
 #define bpf_memmove ((bpf_memmove_t)BPF_FUNC_memmove)
 #endif
 
+/**
+ * @brief Get whether the current user is admin. In case of sock_addr attach types,
+ * returns whether the user initiating the request is admin or not. In other
+ * cases, returns whether the current thread user is admin or not.
+ *
+ * @param[in] ctx Context passed to the eBPF program.
+ *
+ * @returns The socket cookie.
+ */
+EBPF_HELPER(int64_t, bpf_get_socket_cookie, (const void* ctx));
+#ifndef __doxygen
+#define bpf_get_socket_cookie ((bpf_get_socket_cookie_t)BPF_FUNC_get_socket_cookie)
+#endif
+
 #if __clang__
 #define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
 #define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)
