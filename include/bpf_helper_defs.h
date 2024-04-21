@@ -407,9 +407,8 @@ EBPF_HELPER(
 #endif
 
 /**
- * @brief Get whether the current user is admin. In case of sock_addr attach types,
- * returns whether the user initiating the request is admin or not. In other
- * cases, returns whether the current thread user is admin or not.
+ * @brief Get the socket cookie associated with the socket context.
+ * The context can be *bpf_sock_addr* struct, *bpf_sock_ops* struct, or *bpf_sock* struct.
  *
  * @param[in] ctx Context passed to the eBPF program.
  *
