@@ -16,7 +16,7 @@ SEC("xdp")
 int
 xdp_invalid_socket_cookie(xdp_md_t* ctx)
 {
-    // Try to call bpf_get_socket_cookie helper function.
+    // Try to call the bpf_get_socket_cookie helper function.
     uint64_t socket_cookie = bpf_get_socket_cookie(ctx);
 
     bpf_printk("socket_cookie: %llx\n", socket_cookie);

@@ -3217,7 +3217,7 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
 }
 
 // This test validates that a different program type (XDP in this case) cannot call
-// helper function not implemented for that program type. Program load should
+// a helper function that is not implemented for that program type. Program load should
 // fail for such a program.
 void
 test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
