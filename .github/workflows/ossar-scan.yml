@@ -55,7 +55,7 @@ jobs:
 
     - name: Download build artifact
       if: (steps.skip_check.outputs.should_skip != 'true') && success()
-      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+      uses: actions/download-artifact@8caf195ad4b1dee92908e23f56eeb0696f1dd42d
       id: download_artifact
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -76,7 +76,7 @@ jobs:
 
     - name: Run OSSAR (Open Source Static Analysis Runner)
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: github/ossar-action@fae13e456b9973657a670eef6bccc3a4c2b5153d
+      uses: github/ossar-action@4e96c4f6e591eb4b991abfd459e40b136a317aea
       id: ossar
 
     - name: Upload results to Security tab
