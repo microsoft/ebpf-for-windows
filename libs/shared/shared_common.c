@@ -252,7 +252,10 @@ _duplicate_program_descriptor(
     program_type_descriptor_copy = NULL;
 
 Exit:
-    ebpf_free(program_type_descriptor_copy);
+    if (program_type_descriptor_copy != NULL) {
+        ebpf_free((void*)program_type_descriptor_copy->name);
+        ebpf_free(program_type_descriptor_copy);
+    }
     ebpf_free(context_descriptor_copy);
 
     return result;
