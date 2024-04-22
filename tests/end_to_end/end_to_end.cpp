@@ -3226,6 +3226,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     void* value = nullptr;
     uint32_t key_size = 0;
     uint32_t value_size = 0;
+    void* key = nullptr;
 
 #define IS_LRU_MAP(type) ((type) == BPF_MAP_TYPE_LRU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
 #define IS_PERCPU_MAP(type) ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
@@ -3234,8 +3235,10 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     typedef struct _lpm_trie_key
     {
         uint32_t prefix_length;
-        uint8_t value[4];
+        uint32_t value;
     } lpm_trie_key_t;
+
+    lpm_trie_key_t trie_key = {0};
 
     if (nested_map) {
         // First create and pin the maps manually.
@@ -3260,17 +3263,19 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     }
     std::vector<uint8_t> per_cpu_value(value_size);
 
-    // Add `max_entries` entries to the map.
-    for (uint32_t i = 0; i < max_entries; i++) {
-        void* key = nullptr;
-        lpm_trie_key_t trie_key = {0};
+    auto compute_key = [&](uint32_t* i) -> void* {
         if (IS_LPM_MAP(type)) {
             trie_key.prefix_length = 32;
-            trie_key.value[0] = (uint8_t)i;
-            key = &trie_key;
+            trie_key.value = *i;
+            return &trie_key;
         } else {
-            key = &i;
+            return i;
         }
+    };
+
+    // Add `max_entries` entries to the map.
+    for (uint32_t i = 0; i < max_entries; i++) {
+        key = compute_key(&i);
         if (IS_PERCPU_MAP(type)) {
             value = per_cpu_value.data();
         } else {
@@ -3287,14 +3292,15 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     }
     // In case of LRU_HASH, insert will succeed, but the oldest entry will be removed.
     int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
-    REQUIRE(bpf_map_update_elem(map_fd, &max_entries, value, 0) == (max_entries_limited ? expected_error : 0));
+    key = compute_key(&max_entries);
+    REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == (max_entries_limited ? expected_error : 0));
 
     // In case of LRU_HASH, check that the number of entries is still `max_entries`.
     if (IS_LRU_MAP(type) && max_entries_limited) {
         uint32_t entries_count = 0;
-        lpm_trie_key_t key = {0};
+        lpm_trie_key_t local_key = {0};
         void* old_key = nullptr;
-        void* next_key = &key;
+        void* next_key = &local_key;
 
         while (bpf_map_get_next_key(map_fd, old_key, next_key) == 0) {
             old_key = next_key;
