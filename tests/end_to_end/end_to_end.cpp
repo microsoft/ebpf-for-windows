@@ -3251,7 +3251,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
         map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, 1, &opts);
         REQUIRE(map_fd > 0);
     } else {
-        key_size = (type == BPF_MAP_TYPE_LPM_TRIE) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
+        key_size = IS_LPM_MAP(type) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
         value_size = sizeof(int32_t);
         map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, nullptr);
         REQUIRE(map_fd > 0);
@@ -3290,7 +3290,8 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     } else {
         value = nested_map ? &inner_map_fd : (int32_t*)&max_entries;
     }
-    // In case of LRU_HASH, insert will succeed, but the oldest entry will be removed.
+
+    // In case of LRU_HASH, the insert will succeed, but the oldest entry will be removed.
     int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
     key = compute_key(&max_entries);
     REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == (max_entries_limited ? expected_error : 0));
