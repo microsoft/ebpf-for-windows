@@ -3,6 +3,7 @@
 
 #include "ebpf_program_types.h"
 #include "ebpf_registry_helper.h"
+#include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_store_helper.h"
 #include "ebpf_windows.h"
@@ -357,6 +358,7 @@ ebpf_store_update_program_information_array(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
     ebpf_store_key_t program_data_key = NULL;
+    ebpf_program_info_t* new_program_info = NULL;
 
     if (program_info_count == 0) {
         return result;
@@ -384,10 +386,16 @@ ebpf_store_update_program_information_array(
             goto Exit;
         }
 
+        // Duplicate the program information to the latest version with safe defaults.
+        result = ebpf_duplicate_program_info(&program_info[i], &new_program_info);
+        if (!IS_SUCCESS(result)) {
+            goto Exit;
+        }
+
         // Convert program type GUID to string.
         wchar_t guid_string[GUID_STRING_LENGTH + 1];
         result = ebpf_convert_guid_to_string(
-            &program_info[i].program_type_descriptor->program_type, guid_string, GUID_STRING_LENGTH + 1);
+            &new_program_info->program_type_descriptor->program_type, guid_string, GUID_STRING_LENGTH + 1);
         if (!IS_SUCCESS(result)) {
             goto Exit;
         }
@@ -399,16 +407,22 @@ ebpf_store_update_program_information_array(
         }
 
         // Save program information.
-        result = _ebpf_store_update_program_info(program_info_key, &program_info[i]);
+        result = _ebpf_store_update_program_info(program_info_key, (const ebpf_program_info_t*)new_program_info);
         ebpf_close_registry_key(program_info_key);
         if (!IS_SUCCESS(result)) {
             goto Exit;
         }
+
+        ebpf_program_info_free(new_program_info);
+        new_program_info = NULL;
     }
 
 Exit:
     ebpf_close_registry_key(program_data_key);
     ebpf_close_registry_key(provider_key);
+    if (new_program_info != NULL) {
+        ebpf_program_info_free(new_program_info);
+    }
 
     return result;
 }
