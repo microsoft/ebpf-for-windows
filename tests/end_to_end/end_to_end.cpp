@@ -3222,7 +3222,6 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     uint32_t max_entries = 2;
     fd_t inner_map_fd = ebpf_fd_invalid;
     fd_t map_fd = ebpf_fd_invalid;
-    bool nested_map = (type == BPF_MAP_TYPE_HASH_OF_MAPS);
     void* value = nullptr;
     uint32_t key_size = 0;
     uint32_t value_size = 0;
@@ -3231,6 +3230,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
 #define IS_LRU_MAP(type) ((type) == BPF_MAP_TYPE_LRU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
 #define IS_PERCPU_MAP(type) ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
 #define IS_LPM_MAP(type) ((type) == BPF_MAP_TYPE_LPM_TRIE)
+#define IS_NESTED_MAP(type) ((type) == BPF_MAP_TYPE_HASH_OF_MAPS)
 
     typedef struct _lpm_trie_key
     {
@@ -3240,7 +3240,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
 
     lpm_trie_key_t trie_key = {0};
 
-    if (nested_map) {
+    if (IS_NESTED_MAP(type)) {
         // First create and pin the maps manually.
         inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(int32_t), sizeof(int32_t), 1, nullptr);
         REQUIRE(inner_map_fd > 0);
@@ -3279,7 +3279,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
         if (IS_PERCPU_MAP(type)) {
             value = per_cpu_value.data();
         } else {
-            value = nested_map ? &inner_map_fd : (int32_t*)&i;
+            value = IS_NESTED_MAP(type) ? &inner_map_fd : (int32_t*)&i;
         }
         REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == 0);
     }
@@ -3288,7 +3288,7 @@ test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
     if (IS_PERCPU_MAP(type)) {
         value = per_cpu_value.data();
     } else {
-        value = nested_map ? &inner_map_fd : (int32_t*)&max_entries;
+        value = IS_NESTED_MAP(type) ? &inner_map_fd : (int32_t*)&max_entries;
     }
 
     // In case of LRU_HASH, the insert will succeed, but the oldest entry will be removed.
