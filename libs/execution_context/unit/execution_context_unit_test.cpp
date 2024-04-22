@@ -116,6 +116,13 @@ typedef std::unique_ptr<ebpf_link_t, ebpf_object_deleter<ebpf_link_t>> link_ptr;
 
 static const uint32_t _test_map_size = 512;
 
+typedef enum _map_behavior_on_max_entries
+{
+    MAP_BEHAVIOR_FAIL,
+    MAP_BEHAVIOR_REPLACE,
+    MAP_BEHAVIOR_INSERT,
+} map_behavior_on_max_entries_t;
+
 static void
 _test_crud_operations(ebpf_map_type_t map_type)
 {
@@ -123,8 +130,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
     core.initialize();
     bool is_array;
     bool supports_find_and_delete;
-    bool replace_on_full;
-    bool insert_on_full = false;
+    map_behavior_on_max_entries_t behavior_on_max_entries = MAP_BEHAVIOR_FAIL;
     bool run_at_dpc;
     ebpf_result_t error_on_full;
     ebpf_result_t expected_result;
@@ -132,44 +138,40 @@ _test_crud_operations(ebpf_map_type_t map_type)
     case BPF_MAP_TYPE_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        replace_on_full = false;
-        insert_on_full = true;
+        behavior_on_max_entries = MAP_BEHAVIOR_INSERT;
         run_at_dpc = false;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_ARRAY:
         is_array = true;
         supports_find_and_delete = false;
-        replace_on_full = false;
         run_at_dpc = false;
         error_on_full = EBPF_INVALID_ARGUMENT;
         break;
     case BPF_MAP_TYPE_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        replace_on_full = false;
-        insert_on_full = true;
+        behavior_on_max_entries = MAP_BEHAVIOR_INSERT;
         run_at_dpc = true;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_PERCPU_ARRAY:
         is_array = true;
         supports_find_and_delete = false;
-        replace_on_full = false;
         run_at_dpc = false;
         error_on_full = EBPF_INVALID_ARGUMENT;
         break;
     case BPF_MAP_TYPE_LRU_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        replace_on_full = true;
+        behavior_on_max_entries = MAP_BEHAVIOR_REPLACE;
         run_at_dpc = false;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
     case BPF_MAP_TYPE_LRU_PERCPU_HASH:
         is_array = false;
         supports_find_and_delete = true;
-        replace_on_full = true;
+        behavior_on_max_entries = MAP_BEHAVIOR_REPLACE;
         run_at_dpc = true;
         error_on_full = EBPF_OUT_OF_SPACE;
         break;
@@ -181,9 +183,6 @@ _test_crud_operations(ebpf_map_type_t map_type)
     if (run_at_dpc) {
         dpc = {emulate_dpc_t(1)};
     }
-
-    // For each map type, maximum only one of replace_on_full and insert_on_full should be true.
-    REQUIRE(((replace_on_full && insert_on_full) == false));
 
     ebpf_map_definition_in_memory_t map_definition{map_type, sizeof(uint32_t), sizeof(uint64_t), _test_map_size};
     map_ptr map;
@@ -219,10 +218,12 @@ _test_crud_operations(ebpf_map_type_t map_type)
             value.size(),
             value.data(),
             EBPF_ANY,
-            0) == ((replace_on_full || insert_on_full) ? EBPF_SUCCESS : error_on_full));
+            0) == ((behavior_on_max_entries != MAP_BEHAVIOR_FAIL) ? EBPF_SUCCESS : error_on_full));
 
-    if (!replace_on_full) {
-        expected_result = insert_on_full ? EBPF_SUCCESS : (is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND);
+    if (behavior_on_max_entries != MAP_BEHAVIOR_REPLACE) {
+        expected_result = (behavior_on_max_entries == MAP_BEHAVIOR_INSERT)
+                              ? EBPF_SUCCESS
+                              : (is_array ? EBPF_INVALID_ARGUMENT : EBPF_KEY_NOT_FOUND);
         REQUIRE(
             ebpf_map_delete_entry(map.get(), sizeof(bad_key), reinterpret_cast<const uint8_t*>(&bad_key), 0) ==
             expected_result);
@@ -231,10 +232,10 @@ _test_crud_operations(ebpf_map_type_t map_type)
     // Now the map has `_test_map_size` entries.
 
     for (uint32_t key = 0; key < _test_map_size; key++) {
-        if (replace_on_full) {
-            // If replace_on_full is true, then 0th entry would have been evicted.
+        if (behavior_on_max_entries == MAP_BEHAVIOR_REPLACE) {
+            // If map behavior is MAP_BEHAVIOR_REPLACE, then 0th entry would have been evicted.
             expected_result = key == 0 ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
-        } else if (insert_on_full) {
+        } else if (behavior_on_max_entries == MAP_BEHAVIOR_INSERT) {
             expected_result = EBPF_SUCCESS;
         } else {
             expected_result = key == _test_map_size ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
