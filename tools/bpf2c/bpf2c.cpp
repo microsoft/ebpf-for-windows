@@ -118,7 +118,11 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
             }
             // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is
             // fixed.
-            if (program_info->program_type_specific_helper_prototype[index].flags.reallocate_packet != 0) {
+            //
+            // If an existing helper function is modified to toggle implicit_context flag, that would be a breaking
+            // change, and any eBPF program using that helper function will need to be recompiled.
+            if (program_info->program_type_specific_helper_prototype[index].flags.reallocate_packet != 0 ||
+                program_info->program_type_specific_helper_prototype[index].flags.implicit_context != 0) {
                 hash_t::append_byte_range(
                     byte_range, program_info->program_type_specific_helper_prototype[index].flags);
             }

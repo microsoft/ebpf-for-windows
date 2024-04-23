@@ -24,6 +24,7 @@ typedef struct _ebpf_program_type_descriptor
 typedef struct _ebpf_helper_function_prototype_flags
 {
     bool reallocate_packet : 1;
+    bool implicit_context : 1;
 } ebpf_helper_function_prototype_flags_t;
 
 // This is the type definition for the eBPF helper function prototype

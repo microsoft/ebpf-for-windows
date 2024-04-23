@@ -837,6 +837,29 @@ bpf_code_generator::generate_labels()
     }
 }
 
+bool
+bpf_code_generator::get_helper_information(int32_t helper_id)
+{
+    const ebpf_program_info_t* program_info = current_section->program_info;
+    // Iterate through the global helpers first to find the helper id.
+    for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
+        const ebpf_helper_function_prototype_t* helper = &program_info->global_helper_prototype[i];
+        if (helper->helper_id == helper_id) {
+            return helper->flags.implicit_context;
+        }
+    }
+
+    // Next iterate through the program type specific helpers to find the helper id.
+    for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
+        const ebpf_helper_function_prototype_t* helper = &program_info->program_type_specific_helper_prototype[i];
+        if (helper->helper_id == helper_id) {
+            return helper->flags.implicit_context;
+        }
+    }
+
+    return false;
+}
+
 void
 bpf_code_generator::build_function_table()
 {
@@ -856,8 +879,11 @@ bpf_code_generator::build_function_table()
             name += std::to_string(output.instruction.imm);
         }
 
-        if (current_program->helper_functions.find(name) == current_program->helper_functions.end()) {
-            current_program->helper_functions[name] = {output.instruction.imm, index++};
+        if (current_section->helper_functions.find(name) == current_section->helper_functions.end()) {
+            int32_t helper_id = output.instruction.imm;
+            bool implicit_context = get_helper_information(helper_id);
+            // First check the global.
+            current_section->helper_functions[name] = {helper_id, index++, implicit_context};
         }
     }
 }
@@ -1292,25 +1318,33 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back("goto " + target + ";");
             } else if (inst.opcode == INST_OP_CALL) {
                 std::string function_name;
+                bool implicit_context;
                 if (output.relocation.empty()) {
-                    auto str = std::to_string(
-                        current_program->helper_functions["helper_id_" + std::to_string(output.instruction.imm)].index);
-
-                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
+                    auto helper_function =
+                        current_section->helper_functions["helper_id_" + std::to_string(output.instruction.imm)];
+                    implicit_context = helper_function.implicit_context;
+                    function_name =
+                        std::vformat(helper_array_prefix, make_format_args(std::to_string(helper_function.index)));
                 } else {
-                    auto helper_function = current_program->helper_functions.find(output.relocation);
-                    assert(helper_function != current_program->helper_functions.end());
-                    auto str = std::to_string(current_program->helper_functions[output.relocation].index);
-                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
+                    auto helper_function = current_section->helper_functions.find(output.relocation);
+                    assert(helper_function != current_section->helper_functions.end());
+                    implicit_context = helper_function->second.implicit_context;
+                    function_name = std::vformat(
+                        helper_array_prefix, make_format_args(std::to_string(helper_function->second.index)));
+                }
+                output.lines.push_back(get_register_name(0) + " = " + function_name + ".address");
+                if (!implicit_context) {
+                    output.lines.push_back(
+                        INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
+                        ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                } else {
+                    output.lines.push_back(
+                        INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
+                        ", " + get_register_name(4) + ", " + get_register_name(5) + ", context" + ");");
                 }
                 output.lines.push_back(
-                    get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
-                    get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ");");
-                output.lines.push_back(
-                    std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
+                    std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
-                output.lines.push_back("}");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
