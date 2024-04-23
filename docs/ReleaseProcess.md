@@ -57,8 +57,8 @@ the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
     ```
 
 1. Verify all the changes then commit all in the working branch.
-    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case, override them with the
-    following (so they'll work with the `bpf2c_tests` verifying their content):
+    >NOTE: The formatting rules may complain about the formatting of the generated `.c` files from the script above. In this case,
+    override them with the following (so they'll work with the `bpf2c_tests` verifying their content):
     >```bash
     >git commit --no-verify -a -m "update release version to X.Y.Z".
     >```

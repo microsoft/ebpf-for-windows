@@ -609,10 +609,13 @@ function Get-RegressionTestArtifacts
 
     Write-Log "Extracting $ArtifactName"
     Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
+    Write-Log "Extracting $DownloadPath\build-$Configuration.zip"
+    Expand-Archive -Path "$DownloadPath\build-$Configuration.zip" -DestinationPath $DownloadPath -Force
+
 
     # Copy all the drivers, DLLs and exe to pwd.
     Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
-    $ArtifactPath = "$DownloadPath\Build-x64 $Configuration"
+    $ArtifactPath = "$DownloadPath\$Configuration"
     Push-Location $ArtifactPath
     Get-ChildItem -Path .\* -Include *.sys | Move-Item -Destination $OriginalPath -Force
     Get-ChildItem -Path .\* -Include *.dll | Move-Item -Destination $OriginalPath -Force
