@@ -217,7 +217,7 @@ _ebpf_program_type_descriptor_free(_In_opt_ _Post_invalid_ ebpf_program_type_des
 {
     if (descriptor != NULL) {
         ebpf_free((void*)descriptor->context_descriptor);
-        cxplat_free_string(descriptor->name);
+        ebpf_free((void*)descriptor->name);
         ebpf_free(descriptor);
     }
 }
@@ -242,11 +242,13 @@ _duplicate_program_descriptor(
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
 
-    program_type_descriptor_copy->name = cxplat_duplicate_string(program_type_descriptor->name);
+    size_t name_length = strlen(program_type_descriptor->name) + 1;
+    program_type_descriptor_copy->name = (const char*)ebpf_allocate(name_length);
     if (program_type_descriptor_copy->name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+    memcpy((void*)program_type_descriptor_copy->name, program_type_descriptor->name, name_length);
 
     context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
     if (context_descriptor_copy == NULL) {

@@ -542,11 +542,8 @@ ebpf_deserialize_program_info(
         goto Exit;
     }
 
-#define CXPLAT_TAG_STRING 'tsxc'
-
     // Allocate and deserialize program type descriptor name.
-    local_program_type_descriptor_name =
-        (char*)ebpf_allocate_with_tag(serialized_program_type_descriptor->name_length + 1, CXPLAT_TAG_STRING);
+    local_program_type_descriptor_name = (char*)ebpf_allocate(serialized_program_type_descriptor->name_length + 1);
     if (local_program_type_descriptor_name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
