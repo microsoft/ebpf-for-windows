@@ -238,17 +238,17 @@ _duplicate_program_descriptor(
         goto Exit;
     }
 
-    memcpy(program_type_descriptor_copy, program_type_descriptor, program_type_descriptor->header.size);
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
+    program_type_descriptor_copy->is_privileged = program_type_descriptor->is_privileged;
+    program_type_descriptor_copy->program_type = program_type_descriptor->program_type;
+    program_type_descriptor_copy->bpf_prog_type = program_type_descriptor->bpf_prog_type;
 
-    size_t name_length = strlen(program_type_descriptor->name) + 1;
-    program_type_descriptor_copy->name = (const char*)ebpf_allocate(name_length);
+    program_type_descriptor_copy->name = cxplat_duplicate_string(program_type_descriptor->name);
     if (program_type_descriptor_copy->name == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
-    memcpy((void*)program_type_descriptor_copy->name, program_type_descriptor->name, name_length);
 
     context_descriptor_copy = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
     if (context_descriptor_copy == NULL) {
