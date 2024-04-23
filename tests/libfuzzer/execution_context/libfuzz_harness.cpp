@@ -21,7 +21,7 @@
         UNREFERENCED_PARAMETER(x); \
     }
 
-extern "C" size_t ebpf_fuzzing_memory_limit;
+extern "C" size_t cxplat_fuzzing_memory_limit;
 
 static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
@@ -231,13 +231,23 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         _ebpf_fuzzer_async_done = false;
     }
 
-    if (random_buffer.size() < sizeof(ebpf_operation_header_t)) {
+    // The seed contains the following:
+    // 1. The first 2 bytes are used to determine the length of the reply buffer.
+    // 2. The rest of the seed is used to generate the random buffer.
+
+    if (random_buffer.size() < sizeof(uint16_t)) {
         return;
     }
 
-    // Use first 2 bytes of random buffer to determine reply buffer length.
     reply_buffer_length = reinterpret_cast<uint16_t*>(random_buffer.data())[0];
     reply.resize(reply_buffer_length);
+
+    // Move past the first 2 bytes.
+    random_buffer.erase(random_buffer.begin(), random_buffer.begin() + sizeof(uint16_t));
+
+    if (random_buffer.size() < sizeof(ebpf_operation_header_t)) {
+        return;
+    }
 
     auto header = reinterpret_cast<ebpf_operation_header_t*>(random_buffer.data());
     auto operation_id = header->id;
@@ -257,7 +267,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         operation_id,
         random_buffer.data(),
         static_cast<uint16_t>(random_buffer.size()),
-        reply.data(),
+        reply.size() ? reply.data() : nullptr,
         static_cast<uint16_t>(reply.size()),
         async ? &async : nullptr,
         async ? &fuzz_async_completion : nullptr);
@@ -274,7 +284,7 @@ extern "C" bool ebpf_program_disable_invoke;
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
-    ebpf_fuzzing_memory_limit = 1024 * 1024 * 10;
+    cxplat_fuzzing_memory_limit = 1024 * 1024 * 10;
     ebpf_program_disable_invoke = true;
     return 0;
 }
