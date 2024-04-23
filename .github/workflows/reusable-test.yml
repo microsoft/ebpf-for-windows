@@ -64,7 +64,7 @@ permissions:
 jobs:
   run_test:
     # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     strategy:
       matrix:
@@ -220,7 +220,7 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 4
+          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 16
 
     - name: Run test with low resource simulation
       if: (inputs.code_coverage != true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
