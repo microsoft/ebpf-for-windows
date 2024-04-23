@@ -217,7 +217,7 @@ _ebpf_program_type_descriptor_free(_In_opt_ _Post_invalid_ ebpf_program_type_des
 {
     if (descriptor != NULL) {
         ebpf_free((void*)descriptor->context_descriptor);
-        ebpf_free((void*)descriptor->name);
+        cxplat_free_string(descriptor->name);
         ebpf_free(descriptor);
     }
 }
@@ -315,7 +315,7 @@ _duplicate_helper_function_prototype_array(
 Exit:
     if (local_helper_prototype_array != NULL) {
         for (uint32_t i = 0; i < count; i++) {
-            ebpf_free((void*)local_helper_prototype_array[i].name);
+            cxplat_free_string(local_helper_prototype_array[i].name);
         }
         ebpf_free(local_helper_prototype_array);
     }
@@ -333,15 +333,13 @@ ebpf_program_info_free(_In_opt_ _Post_invalid_ ebpf_program_info_t* program_info
             for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
                 const ebpf_helper_function_prototype_t* helper_prototype =
                     &program_info->program_type_specific_helper_prototype[i];
-                void* name = (void*)helper_prototype->name;
-                ebpf_free(name);
+                cxplat_free_string(helper_prototype->name);
             }
         }
         if (program_info->global_helper_prototype != NULL) {
             for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
                 const ebpf_helper_function_prototype_t* helper_prototype = &program_info->global_helper_prototype[i];
-                void* name = (void*)helper_prototype->name;
-                ebpf_free(name);
+                cxplat_free_string(helper_prototype->name);
             }
         }
 
