@@ -217,7 +217,7 @@ _ebpf_program_type_descriptor_free(_In_opt_ _Post_invalid_ ebpf_program_type_des
 {
     if (descriptor != NULL) {
         ebpf_free((void*)descriptor->context_descriptor);
-        ebpf_free((void*)descriptor->name);
+        cxplat_free_string(descriptor->name);
         ebpf_free(descriptor);
     }
 }
