@@ -299,15 +299,19 @@ _duplicate_helper_function_prototype_array(
     for (uint32_t i = 0; i < count; i++) {
         ebpf_helper_function_prototype_t* helper_prototype =
             (ebpf_helper_function_prototype_t*)ARRAY_ELEM_INDEX(helper_prototype_array, i, helper_prototype_size);
+        memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
 
-        local_helper_prototype_array[i].helper_id = helper_prototype->helper_id;
-        local_helper_prototype_array[i].return_type = helper_prototype->return_type;
-        memcpy(
-            local_helper_prototype_array[i].arguments,
-            helper_prototype->arguments,
-            sizeof(local_helper_prototype_array[i].arguments));
+        // Set all pointers to NULL to avoid double free.
+        local_helper_prototype_array[i].name = NULL;
+
+        // local_helper_prototype_array[i].helper_id = helper_prototype->helper_id;
+        // local_helper_prototype_array[i].return_type = helper_prototype->return_type;
+        // memcpy(
+        //     local_helper_prototype_array[i].arguments,
+        //     helper_prototype->arguments,
+        //     sizeof(local_helper_prototype_array[i].arguments));
 
         local_helper_prototype_array[i].name = cxplat_duplicate_string(helper_prototype->name);
         if (local_helper_prototype_array[i].name == NULL) {
