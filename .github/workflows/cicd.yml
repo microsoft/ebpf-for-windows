@@ -414,6 +414,22 @@ jobs:
       code_coverage: false
       gather_dumps: true
 
+  # Run the quick stress tests in GitHub.
+  stress:
+    needs: regular
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: stress
+      # Until there is a dedicated stress test, re-use the perf test.
+      test_command: .\ebpf_performance.exe -d yes
+      build_artifact: Build-x64
+      environment: windows-2022
+      # No code coverage on stress.
+      code_coverage: false
+      gather_dumps: true
+
   # Run the unit tests in GitHub with address sanitizer.
   sanitize_unit_tests:
     needs: sanitize

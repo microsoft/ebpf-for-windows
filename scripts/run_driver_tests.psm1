@@ -123,6 +123,10 @@ function Invoke-CICDTests
             -Verbose
     }
 
+    if ($Env:BUILD_CONFIGURATION -eq "Release") {
+        Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
+    }
+
     Pop-Location
 }
 
