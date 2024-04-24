@@ -397,6 +397,9 @@ ebpf_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_
             info->program_type_specific_helper_prototype,
             info->count_of_program_type_specific_helpers,
             &program_info->program_type_specific_helper_prototype);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
     }
 
     result = _duplicate_program_descriptor(info->program_type_descriptor, &program_info->program_type_descriptor);
