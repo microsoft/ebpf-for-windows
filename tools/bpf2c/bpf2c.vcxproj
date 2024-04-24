@@ -185,7 +185,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\tests\libs\util\hash.cpp" />
+    <ClCompile Include="..\..\libs\shared\hash.cpp" />
     <ClCompile Include="bpf2c.cpp" />
     <CustomBuild Include="bpf2c_dll.c">
       <FileType>CppCode</FileType>
@@ -247,7 +247,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
     </ClInclude>
-    <ClInclude Include="..\..\tests\libs\util\hash.h" />
+    <ClInclude Include="..\..\libs\shared\hash.h" />
     <ClInclude Include="bpf_code_generator.h" />
   </ItemGroup>
   <ItemGroup>
