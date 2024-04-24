@@ -1127,32 +1127,49 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
     ebpf_lru_key_state_t key_state = _get_key_state(map, partition, entry);
     ebpf_lock_state_t state = 0;
 
-    // Update the last used time.
-    EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
-
-    // Skip if not in the cold list.
-    // If not yet initialized, it will be added to the hot list when initialized.
-    // If already deleted, don't add it to the hot list.
-    if (key_state != EBPF_LRU_KEY_COLD) {
-        goto Exit;
+    switch (key_state) {
+    case EBPF_LRU_KEY_UNINITIALIZED:
+        break;
+    case EBPF_LRU_KEY_COLD:
+        break;
+    case EBPF_LRU_KEY_HOT:
+        return;
+    case EBPF_LRU_KEY_DELETED:
+        return;
     }
 
     state = ebpf_lock_lock(&map->partitions[partition].lock);
     lock_held = true;
 
     key_state = _get_key_state(map, partition, entry);
-    if (key_state != EBPF_LRU_KEY_COLD) {
-        goto Exit;
-    }
 
-    ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
-    ebpf_list_insert_tail(&map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
-    map->partitions[partition].hot_list_size++;
-    EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
+    switch (key_state) {
+    case EBPF_LRU_KEY_UNINITIALIZED:
+        EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+        ebpf_list_insert_tail(
+            &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+        map->partitions[partition].hot_list_size++;
+        map->partitions[partition].hot_list_size++;
+        break;
+    case EBPF_LRU_KEY_COLD:
+        // Remove from cold list.
+        EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+        ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+        ebpf_list_insert_tail(
+            &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+        map->partitions[partition].hot_list_size++;
+        map->partitions[partition].hot_list_size++;
+        break;
+    case EBPF_LRU_KEY_HOT:
+        break;
+    case EBPF_LRU_KEY_DELETED:
+        break;
+    }
 
     _merge_hot_into_cold_list_if_needed(map, partition);
 
-Exit:
     if (lock_held) {
         ebpf_lock_unlock(&map->partitions[partition].lock, state);
     }
@@ -1174,6 +1191,7 @@ _initialize_lru_entry(
     ebpf_assert(_get_key_state(map, partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
 
     for (size_t current_partition = 0; current_partition < map->partition_count; current_partition++) {
+        ebpf_assert(_get_key_state(map, current_partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
         ebpf_list_initialize(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[current_partition]);
     }
 
@@ -1203,19 +1221,25 @@ _uninitialize_lru_entry(_Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry
     for (size_t partition = 0; partition < map->partition_count; partition++) {
         ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
         ebpf_lru_key_state_t key_state = _get_key_state(map, partition, entry);
-        ebpf_assert(
-            key_state == EBPF_LRU_KEY_HOT || key_state == EBPF_LRU_KEY_COLD || key_state == EBPF_LRU_KEY_UNINITIALIZED);
 
-        // Remove from hot or cold list.
-        ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
-
-        // If the entry was in the hot list, decrement the hot list size.
-        if (key_state == EBPF_LRU_KEY_HOT) {
+        switch (key_state) {
+        case EBPF_LRU_KEY_UNINITIALIZED:
+            EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = EBPF_LRU_INVALID_GENERATION;
+            break;
+        case EBPF_LRU_KEY_COLD:
+            ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+            EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = EBPF_LRU_INVALID_GENERATION;
+            break;
+        case EBPF_LRU_KEY_HOT:
+            ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
+            EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = EBPF_LRU_INVALID_GENERATION;
             map->partitions[partition].hot_list_size--;
+            break;
+        case EBPF_LRU_KEY_DELETED:
+            ebpf_assert(!"Key already deleted");
+            break;
         }
 
-        // Always mark as uninitialized.
-        EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = EBPF_LRU_INVALID_GENERATION;
         ebpf_lock_unlock(&map->partitions[partition].lock, state);
     }
 }
@@ -1396,7 +1420,20 @@ _reap_lru_cold_lists(ebpf_core_lru_map_t* lru_map)
             // If this key is present in another partitions's cold list with a higher timestamp and is therefore
             // redundant, remove it. This prevents this code from examining the same key multiple times.
             if (highest_timestamp != EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(lru_map, entry)[partition]) {
-                ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(lru_map, entry)[partition]);
+                ebpf_lru_key_state_t key_state = _get_key_state(lru_map, partition, entry);
+                switch (key_state) {
+                case EBPF_LRU_KEY_UNINITIALIZED:
+                    break;
+                case EBPF_LRU_KEY_COLD:
+                    ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(lru_map, entry)[partition]);
+                    EBPF_LRU_ENTRY_GENERATION_PTR(lru_map, entry)[partition] = EBPF_LRU_KEY_UNINITIALIZED;
+                    break;
+                case EBPF_LRU_KEY_HOT:
+                    ebpf_assert(!"Key should not be in the hot list");
+                    break;
+                case EBPF_LRU_KEY_DELETED:
+                    break;
+                }
                 ebpf_lock_unlock(&lru_map->partitions[partition].lock, state);
                 continue;
             }
