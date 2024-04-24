@@ -3215,3 +3215,43 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
 
     bpf_object__close(unique_object.release());
 }
+
+// This test validates that a different program type (XDP in this case) cannot call
+// a helper function that is not implemented for that program type. Program load should
+// fail for such a program.
+void
+test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "xdp_invalid_socket_cookie_um.dll" : "xdp_invalid_socket_cookie.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == -22);
+}
+
+TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
+#endif
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
+}
