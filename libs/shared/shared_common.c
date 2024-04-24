@@ -242,8 +242,7 @@ _duplicate_program_descriptor(
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
 
-    // Initialize all pointers to NULL.
-    program_type_descriptor_copy->name = NULL;
+    // Initialize pointers to NULL.
     program_type_descriptor_copy->context_descriptor = NULL;
 
     program_type_descriptor_copy->name = cxplat_duplicate_string(program_type_descriptor->name);
@@ -303,9 +302,6 @@ _duplicate_helper_function_prototype_array(
         memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
-
-        // Initialize all pointers to NULL to avoid double free.
-        local_helper_prototype_array[i].name = NULL;
 
         local_helper_prototype_array[i].name = cxplat_duplicate_string(helper_prototype->name);
         if (local_helper_prototype_array[i].name == NULL) {
@@ -440,9 +436,6 @@ _duplicate_helper_function_addresses(
     helper_function_addresses_copy->header.version = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION;
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
 
-    // Initialize all pointers to NULL.
-    helper_function_addresses_copy->helper_function_address = NULL;
-
     helper_function_addresses_copy->helper_function_address =
         (uint64_t*)ebpf_allocate(helper_function_addresses->helper_function_count * sizeof(uint64_t));
     if (helper_function_addresses_copy->helper_function_address == NULL) {
@@ -498,8 +491,7 @@ ebpf_duplicate_program_data(
     program_data_copy->header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
     program_data_copy->header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
 
-    // Initialize all pointers to NULL.
-    program_data_copy->global_helper_function_addresses = NULL;
+    // Initialize pointers to NULL.
     program_data_copy->program_type_specific_helper_function_addresses = NULL;
     program_data_copy->program_info = NULL;
 
