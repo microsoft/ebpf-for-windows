@@ -238,12 +238,13 @@ _duplicate_program_descriptor(
         goto Exit;
     }
 
+    memcpy(program_type_descriptor_copy, program_type_descriptor, program_type_descriptor->header.size);
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
 
-    program_type_descriptor_copy->is_privileged = program_type_descriptor->is_privileged;
-    program_type_descriptor_copy->program_type = program_type_descriptor->program_type;
-    program_type_descriptor_copy->bpf_prog_type = program_type_descriptor->bpf_prog_type;
+    // Initialize all pointers to NULL.
+    program_type_descriptor_copy->name = NULL;
+    program_type_descriptor_copy->context_descriptor = NULL;
 
     program_type_descriptor_copy->name = cxplat_duplicate_string(program_type_descriptor->name);
     if (program_type_descriptor_copy->name == NULL) {
@@ -303,15 +304,8 @@ _duplicate_helper_function_prototype_array(
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
 
-        // Set all pointers to NULL to avoid double free.
+        // Initialize all pointers to NULL to avoid double free.
         local_helper_prototype_array[i].name = NULL;
-
-        // local_helper_prototype_array[i].helper_id = helper_prototype->helper_id;
-        // local_helper_prototype_array[i].return_type = helper_prototype->return_type;
-        // memcpy(
-        //     local_helper_prototype_array[i].arguments,
-        //     helper_prototype->arguments,
-        //     sizeof(local_helper_prototype_array[i].arguments));
 
         local_helper_prototype_array[i].name = cxplat_duplicate_string(helper_prototype->name);
         if (local_helper_prototype_array[i].name == NULL) {
@@ -442,8 +436,12 @@ _duplicate_helper_function_addresses(
         goto Exit;
     }
 
+    memcpy(helper_function_addresses_copy, helper_function_addresses, helper_function_addresses->header.size);
     helper_function_addresses_copy->header.version = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION;
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
+
+    // Initialize all pointers to NULL.
+    helper_function_addresses_copy->helper_function_address = NULL;
 
     helper_function_addresses_copy->helper_function_address =
         (uint64_t*)ebpf_allocate(helper_function_addresses->helper_function_count * sizeof(uint64_t));
@@ -456,8 +454,6 @@ _duplicate_helper_function_addresses(
         helper_function_addresses_copy->helper_function_address,
         helper_function_addresses->helper_function_address,
         helper_function_addresses->helper_function_count * sizeof(uint64_t));
-
-    helper_function_addresses_copy->helper_function_count = helper_function_addresses->helper_function_count;
 
     *new_helper_function_addresses = helper_function_addresses_copy;
     helper_function_addresses_copy = NULL;
@@ -498,11 +494,14 @@ ebpf_duplicate_program_data(
         goto Exit;
     }
 
+    memcpy(program_data_copy, program_data, program_data->header.size);
     program_data_copy->header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
     program_data_copy->header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
 
-    program_data_copy->context_create = program_data->context_create;
-    program_data_copy->context_destroy = program_data->context_destroy;
+    // Initialize all pointers to NULL.
+    program_data_copy->global_helper_function_addresses = NULL;
+    program_data_copy->program_type_specific_helper_function_addresses = NULL;
+    program_data_copy->program_info = NULL;
 
     if (program_data->global_helper_function_addresses != NULL) {
         result = _duplicate_helper_function_addresses(
