@@ -425,6 +425,8 @@ _duplicate_helper_function_addresses(
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_helper_function_addresses_t* helper_function_addresses_copy = NULL;
 
+    *new_helper_function_addresses = NULL;
+
     helper_function_addresses_copy =
         (ebpf_helper_function_addresses_t*)ebpf_allocate(sizeof(ebpf_helper_function_addresses_t));
     if (helper_function_addresses_copy == NULL) {
