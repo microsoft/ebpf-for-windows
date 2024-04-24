@@ -482,9 +482,11 @@ ebpf_duplicate_program_data(
         goto Exit;
     }
 
-    memcpy(program_data_copy, program_data, program_data->header.size);
     program_data_copy->header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
     program_data_copy->header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
+
+    program_data_copy->context_create = program_data->context_create;
+    program_data_copy->context_destroy = program_data->context_destroy;
 
     if (program_data->global_helper_function_addresses != NULL) {
         result = _duplicate_helper_function_addresses(
