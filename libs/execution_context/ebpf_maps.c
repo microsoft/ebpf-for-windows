@@ -51,11 +51,12 @@ typedef struct _ebpf_core_object_map
  * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
  * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
  * of double-linked lists per partition. The hot list contains entries that have been accessed in the current
- * generation, and the cold list contains entries that have not been accessed in the current generation. When entries in
- * the cold list are accessed, they are moved to the hot list. When the hot list reaches
- * max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into the cold list, a new generation is started, and
- * the hot list is cleared. When space is needed an entry is selected from a cold list and is removed from the
- * hash table.
+ * generation (where a generation is defined as a period of time during which max_entries /
+ * (EBPF_LRU_GENERATION_COUNT*partition_count) elements have been accessed in the map), and the cold list contains
+ * entries that have not been accessed in the current generation. When entries in the cold list are accessed, they are
+ * moved to the hot list. When the hot list reaches max_entries/EBPF_LRU_GENERATION_COUNT, the hot list is merged into
+ * the cold list, a new generation is started, and the hot list is cleared. When space is needed an entry is selected
+ * from a cold list and is removed from the hash table.
  *
  * key history is stored along with the value in the map. The hash table then provides callbacks to the map to update
  * the key history when an entry is accessed, updated, or deleted.
@@ -1309,7 +1310,13 @@ _create_lru_hash_map(
 
         lru_map->partitions[partition].current_generation = EBPF_LRU_INITIAL_GENERATION;
         lru_map->partitions[partition].hot_list_size = 0;
-        lru_map->partitions[partition].hot_list_limit = max(map_definition->max_entries / EBPF_LRU_GENERATION_COUNT, 1);
+        // Assuming that access is randomly distributed, each partition should have the same number of entries in it's
+        // cold and hot lists. Assume random distribution and divide the entries evenly among the partitions.
+        uint32_t average_entries_per_partition = map_definition->max_entries / partition_count;
+
+        // The hot list limit is the average number of entries per partition divided by the number of generations.
+        lru_map->partitions[partition].hot_list_limit =
+            max(average_entries_per_partition / EBPF_LRU_GENERATION_COUNT, 1);
     }
 
     *map = &lru_map->core_map;
