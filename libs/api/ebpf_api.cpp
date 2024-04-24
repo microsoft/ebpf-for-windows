@@ -15,6 +15,7 @@
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
+#include "hash.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
 #include "libbpf.h"
@@ -3159,12 +3160,19 @@ ebpf_program_load_bytes(
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    char unique_name[80];
+    std::stringstream program_hash;
     if (program_name == nullptr) {
-        // Create a unique object/section/program name.
-        srand(static_cast<unsigned int>(time(nullptr)));
-        sprintf_s(unique_name, sizeof(unique_name), "raw#%u", rand());
-        program_name = unique_name;
+        // If the program name isn't set, use the SHA256 hash of the instructions.
+        // This is also used as the object and section name.
+        hash_t hash("SHA256");
+        auto sha256_hash = hash.hash_byte_ranges({{(uint8_t*)instructions, instruction_count * sizeof(ebpf_inst)}});
+
+        // Convert the hash to a string.
+        program_hash << std::hex << std::setfill('0');
+        for (auto byte : sha256_hash) {
+            program_hash << std::setw(2) << (int)byte;
+        }
+        program_name = program_hash.str().c_str();
     }
 
     ebpf_handle_t program_handle;
