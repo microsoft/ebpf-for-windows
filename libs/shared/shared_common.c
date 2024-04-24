@@ -240,6 +240,7 @@ _duplicate_program_descriptor(
 
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
+
     program_type_descriptor_copy->is_privileged = program_type_descriptor->is_privileged;
     program_type_descriptor_copy->program_type = program_type_descriptor->program_type;
     program_type_descriptor_copy->bpf_prog_type = program_type_descriptor->bpf_prog_type;
@@ -298,9 +299,16 @@ _duplicate_helper_function_prototype_array(
     for (uint32_t i = 0; i < count; i++) {
         ebpf_helper_function_prototype_t* helper_prototype =
             (ebpf_helper_function_prototype_t*)ARRAY_ELEM_INDEX(helper_prototype_array, i, helper_prototype_size);
-        memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
+
+        local_helper_prototype_array[i].helper_id = helper_prototype->helper_id;
+        local_helper_prototype_array[i].return_type = helper_prototype->return_type;
+        memcpy(
+            local_helper_prototype_array[i].arguments,
+            helper_prototype->arguments,
+            sizeof(local_helper_prototype_array[i].arguments));
+
         local_helper_prototype_array[i].name = cxplat_duplicate_string(helper_prototype->name);
         if (local_helper_prototype_array[i].name == NULL) {
             result = EBPF_NO_MEMORY;
@@ -427,7 +435,6 @@ _duplicate_helper_function_addresses(
         goto Exit;
     }
 
-    memcpy(helper_function_addresses_copy, helper_function_addresses, helper_function_addresses->header.size);
     helper_function_addresses_copy->header.version = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION;
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
 
@@ -442,6 +449,8 @@ _duplicate_helper_function_addresses(
         helper_function_addresses_copy->helper_function_address,
         helper_function_addresses->helper_function_address,
         helper_function_addresses->helper_function_count * sizeof(uint64_t));
+
+    helper_function_addresses_copy->helper_function_count = helper_function_addresses->helper_function_count;
 
     *new_helper_function_addresses = helper_function_addresses_copy;
     helper_function_addresses_copy = NULL;
