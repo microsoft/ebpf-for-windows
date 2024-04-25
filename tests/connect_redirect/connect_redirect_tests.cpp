@@ -302,6 +302,7 @@ _validate_audit_map_entry(uint64_t authentication_id)
     }
 
     REQUIRE(entry.local_port != 0);
+    REQUIRE(entry.socket_cookie != 0);
 
     LsaFreeReturnBuffer(data);
 }

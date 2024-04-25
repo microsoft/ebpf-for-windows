@@ -153,13 +153,23 @@ _ebpf_link_client_attach_provider(
     }
 
     if (memcmp(&provider_registration_instance->ModuleId->Guid, &link->attach_type, sizeof(link->attach_type)) != 0) {
-        // This is not the provider we are looking for.
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Attach provider ModuleId does not match link.",
+            &provider_registration_instance->ModuleId->Guid,
+            &link->attach_type);
         status = STATUS_NOINTERFACE;
         goto Done;
     }
 
     if (memcmp(&attach_provider_data->supported_program_type, &link->program_type, sizeof(link->program_type)) != 0) {
-        // This is not the provider we are looking for.
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_LINK,
+            "Attach provider program type does not match link.",
+            &provider_registration_instance->ModuleId->Guid,
+            &link->attach_type);
         status = STATUS_NOINTERFACE;
         goto Done;
     }
