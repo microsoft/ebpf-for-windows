@@ -45,6 +45,7 @@ update_audit_map_entry(bpf_sock_addr_t* ctx)
     entry.logon_id = bpf_get_current_logon_id(ctx);
     entry.is_admin = bpf_is_current_admin(ctx);
     entry.local_port = ctx->msg_src_port;
+    entry.socket_cookie = bpf_get_socket_cookie(ctx);
 
     key = entry.process_id;
     bpf_map_update_elem(&audit_map, &key, &entry, 0);
