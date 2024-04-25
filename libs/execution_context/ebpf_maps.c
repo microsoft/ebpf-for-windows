@@ -1190,9 +1190,9 @@ _initialize_lru_entry(
     _Inout_ ebpf_core_lru_map_t* map, _Inout_ ebpf_lru_entry_t* entry, size_t partition, _In_ const uint8_t* key)
 {
     memcpy(EBPF_LRU_ENTRY_KEY_PTR(map, entry), key, map->core_map.ebpf_map_definition.key_size);
-    ebpf_assert(_get_key_state(map, partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
 
     for (size_t current_partition = 0; current_partition < map->partition_count; current_partition++) {
+        // The ebpf_lru_entry_t should be zero initialized, so this assert should always pass.
         ebpf_assert(_get_key_state(map, current_partition, entry) == EBPF_LRU_KEY_UNINITIALIZED);
         ebpf_list_initialize(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[current_partition]);
     }
