@@ -105,9 +105,7 @@ ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attac
     return (
         (attach_provider_data != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_ATTACH_PROVIDER_DATA, &attach_provider_data->header) &&
-        !IsEqualGUID(&attach_provider_data->supported_program_type, &GUID_NULL) &&
-        (attach_provider_data->link_type < BPF_LINK_TYPE_MAX) &&
-        (attach_provider_data->bpf_attach_type < __MAX_BPF_ATTACH_TYPE));
+        !IsEqualGUID(&attach_provider_data->supported_program_type, &GUID_NULL));
 }
 
 static bool
