@@ -105,9 +105,7 @@ ebpf_validate_attach_provider_data(_In_ const ebpf_attach_provider_data_t* attac
     return (
         (attach_provider_data != NULL) &&
         _ebpf_validate_extension_object_header(EBPF_ATTACH_PROVIDER_DATA, &attach_provider_data->header) &&
-        !IsEqualGUID(&attach_provider_data->supported_program_type, &GUID_NULL) &&
-        (attach_provider_data->link_type < BPF_LINK_TYPE_MAX) &&
-        (attach_provider_data->bpf_attach_type < __MAX_BPF_ATTACH_TYPE));
+        !IsEqualGUID(&attach_provider_data->supported_program_type, &GUID_NULL));
 }
 
 static bool
@@ -242,6 +240,9 @@ _duplicate_program_descriptor(
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
 
+    // Initialize pointers to NULL.
+    program_type_descriptor_copy->context_descriptor = NULL;
+
     program_type_descriptor_copy->name = cxplat_duplicate_string(program_type_descriptor->name);
     if (program_type_descriptor_copy->name == NULL) {
         result = EBPF_NO_MEMORY;
@@ -299,6 +300,7 @@ _duplicate_helper_function_prototype_array(
         memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
+
         local_helper_prototype_array[i].name = cxplat_duplicate_string(helper_prototype->name);
         if (local_helper_prototype_array[i].name == NULL) {
             result = EBPF_NO_MEMORY;
@@ -383,6 +385,9 @@ ebpf_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_
             info->program_type_specific_helper_prototype,
             info->count_of_program_type_specific_helpers,
             &program_info->program_type_specific_helper_prototype);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
     }
 
     result = _duplicate_program_descriptor(info->program_type_descriptor, &program_info->program_type_descriptor);
@@ -417,6 +422,8 @@ _duplicate_helper_function_addresses(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_helper_function_addresses_t* helper_function_addresses_copy = NULL;
+
+    *new_helper_function_addresses = NULL;
 
     helper_function_addresses_copy =
         (ebpf_helper_function_addresses_t*)ebpf_allocate(sizeof(ebpf_helper_function_addresses_t));
@@ -483,6 +490,10 @@ ebpf_duplicate_program_data(
     memcpy(program_data_copy, program_data, program_data->header.size);
     program_data_copy->header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
     program_data_copy->header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
+
+    // Initialize pointers to NULL.
+    program_data_copy->program_type_specific_helper_function_addresses = NULL;
+    program_data_copy->program_info = NULL;
 
     if (program_data->global_helper_function_addresses != NULL) {
         result = _duplicate_helper_function_addresses(
