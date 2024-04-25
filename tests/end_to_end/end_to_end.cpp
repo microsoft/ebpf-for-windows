@@ -2946,6 +2946,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     bpf_object_ptr unique_test_sample_ebpf_object;
     int program_fd = -1;
     const char* error_message = nullptr;
+    int result;
 
     // Should fail.
     REQUIRE(
@@ -2966,14 +2967,19 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         program_info_provider_t sample_program_info;
         REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-        REQUIRE(
-            ebpf_program_load(
-                execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
-                BPF_PROG_TYPE_UNSPEC,
-                execution_type,
-                &unique_test_sample_ebpf_object,
-                &program_fd,
-                &error_message) == 0);
+        result = ebpf_program_load(
+            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
+            BPF_PROG_TYPE_UNSPEC,
+            execution_type,
+            &unique_test_sample_ebpf_object,
+            &program_fd,
+            &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == 0);
 
         bpf_link* link = nullptr;
         // Attach only to the single interface being tested.
