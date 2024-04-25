@@ -157,6 +157,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a761216d9ea8f44b31f064e238b3f2f75"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a761216d9ea8f44b31f064e238b3f2f75">bpf_memmove</a> (void *destination, uint32_t destination_size, const void *source, uint32_t source_size)</td></tr>
 <tr class="memdesc:a761216d9ea8f44b31f064e238b3f2f75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy memory from one location to another, handling overlapping regions.  <a href="bpf__helper__defs_8h.html#a761216d9ea8f44b31f064e238b3f2f75">More...</a><br /></td></tr>
 <tr class="separator:a761216d9ea8f44b31f064e238b3f2f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a91543269c3d993aa3b79fa250d4df943"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a91543269c3d993aa3b79fa250d4df943">bpf_get_socket_cookie</a> (const void *ctx)</td></tr>
+<tr class="memdesc:a91543269c3d993aa3b79fa250d4df943"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the socket cookie associated with the socket context. The context can be <em><a class="el" href="structbpf__sock__addr.html" title="Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.">bpf_sock_addr</a></em> struct, <em>bpf_sock_ops</em> struct, or <em>bpf_sock</em> struct.  <a href="bpf__helper__defs_8h.html#a91543269c3d993aa3b79fa250d4df943">More...</a><br /></td></tr>
+<tr class="separator:a91543269c3d993aa3b79fa250d4df943"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -302,6 +305,33 @@ Functions</h2></td></tr>
 
 <p>Return SMP id of the processor running the program. </p>
 <dl class="section return"><dt>Returns</dt><dd>SMP id of the processor running the program. </dd></dl>
+
+</div>
+</div>
+<a id="a91543269c3d993aa3b79fa250d4df943"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a91543269c3d993aa3b79fa250d4df943">&#9670;&nbsp;</a></span>bpf_get_socket_cookie()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int64_t bpf_get_socket_cookie </td>
+          <td>(</td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>ctx</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get the socket cookie associated with the socket context. The context can be <em><a class="el" href="structbpf__sock__addr.html" title="Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.">bpf_sock_addr</a></em> struct, <em>bpf_sock_ops</em> struct, or <em>bpf_sock</em> struct. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Context passed to the eBPF program.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The socket cookie. </dd></dl>
 
 </div>
 </div>
