@@ -828,6 +828,7 @@ _create_hash_map_internal(
     size_t map_struct_size,
     _In_ const ebpf_map_definition_in_memory_t* map_definition,
     size_t supplemental_value_size,
+    bool fixed_size_map,
     _In_opt_ void (*extract_function)(
         _In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits),
     _In_opt_ ebpf_hash_table_notification_function notification_callback,
@@ -850,7 +851,7 @@ _create_hash_map_internal(
         .key_size = local_map->ebpf_map_definition.key_size,
         .value_size = local_map->ebpf_map_definition.value_size,
         .minimum_bucket_count = local_map->ebpf_map_definition.max_entries,
-        .max_entries = local_map->ebpf_map_definition.max_entries,
+        .max_entries = fixed_size_map ? local_map->ebpf_map_definition.max_entries : EBPF_HASH_TABLE_NO_LIMIT,
         .extract_function = extract_function,
         .supplemental_value_size = supplemental_value_size,
         .notification_context = local_map,
@@ -890,7 +891,7 @@ _create_hash_map(
     if (inner_map_handle != ebpf_handle_invalid) {
         return EBPF_INVALID_ARGUMENT;
     }
-    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, NULL, NULL, map);
+    return _create_hash_map_internal(sizeof(ebpf_core_map_t), map_definition, 0, false, NULL, NULL, map);
 }
 
 static void
@@ -939,7 +940,8 @@ _create_object_hash_map(
 
     *map = NULL;
 
-    result = _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, NULL, NULL, &local_map);
+    result =
+        _create_hash_map_internal(sizeof(ebpf_core_object_map_t), map_definition, 0, false, NULL, NULL, &local_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -1169,6 +1171,7 @@ _create_lru_hash_map(
         sizeof(ebpf_core_lru_map_t),
         map_definition,
         supplemental_value_size,
+        true,
         NULL,
         _lru_hash_table_notification,
         (ebpf_core_map_t**)&lru_map);
@@ -1393,11 +1396,10 @@ _update_hash_map_entry_with_handle(
 
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
-    if ((found_result != EBPF_SUCCESS) && (entry_count == map->ebpf_map_definition.max_entries)) {
-
+    if ((found_result != EBPF_SUCCESS) && (found_result != EBPF_KEY_NOT_FOUND)) {
         // The hash table is already full.
-        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Hash table full");
-        result = EBPF_OUT_OF_SPACE;
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to query existing entry");
+        result = found_result;
         goto Done;
     }
 
@@ -1578,6 +1580,7 @@ _create_lpm_map(
         EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length),
         map_definition,
         0,
+        false,
         _lpm_extract,
         NULL,
         (ebpf_core_map_t**)&lpm_map);
