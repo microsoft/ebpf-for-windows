@@ -613,13 +613,14 @@ function Get-RegressionTestArtifacts
     Expand-Archive -Path "$DownloadPath\build-$Configuration.zip" -DestinationPath $DownloadPath -Force
 
 
-    # Copy all the drivers, DLLs and exe to pwd.
+    # Copy all the drivers, DLLs, exe and .o files to pwd.
     Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
     $ArtifactPath = "$DownloadPath\$Configuration"
     Push-Location $ArtifactPath
     Get-ChildItem -Path .\* -Include *.sys | Move-Item -Destination $OriginalPath -Force
     Get-ChildItem -Path .\* -Include *.dll | Move-Item -Destination $OriginalPath -Force
     Get-ChildItem -Path .\* -Include *.exe | Move-Item -Destination $OriginalPath -Force
+    Get-ChildItem -Path .\* -Include *.o | Move-Item -Destination $OriginalPath -Force
     Pop-Location
 
     Remove-Item -Path $DownloadPath -Force -Recurse

@@ -30,6 +30,21 @@ struct
     __uint(max_entries, 1);
 } egress_connection_policy_map SEC(".maps");
 
+struct
+{
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __type(key, connection_tuple_t);
+    __type(value, uint64_t);
+    __uint(max_entries, 1000);
+} socket_cookie_map SEC(".maps");
+
+__inline void
+update_socket_cookie_map_entry(bpf_sock_addr_t* ctx, connection_tuple_t* tuple_key)
+{
+    uint64_t socket_cookie = bpf_get_socket_cookie(ctx);
+    bpf_map_update_elem(&socket_cookie_map, tuple_key, &socket_cookie, 0);
+}
+
 __inline int
 authorize_v4(bpf_sock_addr_t* ctx, void* connection_policy_map)
 {
@@ -39,6 +54,8 @@ authorize_v4(bpf_sock_addr_t* ctx, void* connection_policy_map)
     tuple_key.remote_ip.ipv4 = ctx->user_ip4;
     tuple_key.remote_port = ctx->user_port;
     tuple_key.protocol = ctx->protocol;
+
+    update_socket_cookie_map_entry(ctx, &tuple_key);
 
     verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
@@ -53,6 +70,8 @@ authorize_v6(bpf_sock_addr_t* ctx, void* connection_policy_map)
     __builtin_memcpy(tuple_key.remote_ip.ipv6, ctx->user_ip6, sizeof(ctx->user_ip6));
     tuple_key.remote_port = ctx->user_port;
     tuple_key.protocol = ctx->protocol;
+
+    update_socket_cookie_map_entry(ctx, &tuple_key);
 
     verdict = bpf_map_lookup_elem(connection_policy_map, &tuple_key);
 
