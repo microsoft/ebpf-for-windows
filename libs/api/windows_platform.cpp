@@ -103,4 +103,5 @@ const ebpf_platform_t g_ebpf_platform_windows = {
     _parse_maps_section_windows,
     get_map_descriptor_windows,
     get_map_type_windows,
-    _resolve_inner_map_references_windows};
+    _resolve_inner_map_references_windows,
+    bpf_conformance_groups_t::default_groups};
