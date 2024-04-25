@@ -99,7 +99,8 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
     if (actual_helper_id_count > 0) {
         for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
             uint32_t helper_id = program_info->program_type_specific_helper_prototype[index].helper_id;
-            if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), helper_id) != actual_helper_ids.end()) {
+            if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), (int32_t)helper_id) !=
+                actual_helper_ids.end()) {
                 helper_id_ordering[helper_id] = index;
             }
         }
