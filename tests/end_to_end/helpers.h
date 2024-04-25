@@ -691,6 +691,13 @@ _ebpf_sock_addr_is_current_admin(_In_ const bpf_sock_addr_t* ctx)
     return -ENOTSUP;
 }
 
+static uint64_t
+_ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
+}
+
 static ebpf_result_t
 _ebpf_sock_addr_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
@@ -765,7 +772,9 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_logon_id, (void*)_ebpf_sock_addr_is_current_admin};
+    (void*)_ebpf_sock_addr_get_current_logon_id,
+    (void*)_ebpf_sock_addr_is_current_admin,
+    (void*)_ebpf_sock_addr_get_socket_cookie};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
     {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},

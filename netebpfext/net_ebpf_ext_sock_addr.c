@@ -182,6 +182,7 @@ typedef struct _net_ebpf_bpf_sock_addr
     net_ebpf_extension_hook_id_t hook_id;
     void* redirect_context;
     uint32_t redirect_context_size;
+    uint64_t transport_endpoint_handle;
 } net_ebpf_sock_addr_t;
 
 /**
@@ -259,6 +260,13 @@ _ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
     logon_id = *(uint64_t*)(&(sock_addr_ctx->access_information->AuthenticationId));
 
     return logon_id;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return sock_addr_ctx->transport_endpoint_handle;
 }
 
 static int
@@ -475,7 +483,9 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_logon_id, (void*)_ebpf_sock_addr_is_current_admin};
+    (void*)_ebpf_sock_addr_get_current_logon_id,
+    (void*)_ebpf_sock_addr_is_current_admin,
+    (void*)_ebpf_sock_addr_get_socket_cookie};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
     {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
@@ -1084,6 +1094,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
     sock_addr_ctx->hook_id = hook_id;
+    sock_addr_ctx->transport_endpoint_handle = incoming_metadata_values->transportEndpointHandle;
 
     // Copy IP address fields.
     if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||

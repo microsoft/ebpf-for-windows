@@ -295,22 +295,23 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "             Section       Type  (bytes)\n"
                                         "====================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "     cgroup/connect4  sock_addr      193\n"
-                                        "     cgroup/connect6  sock_addr      210\n"
-                                        " cgroup/recv_accept4  sock_addr      193\n"
-                                        " cgroup/recv_accept6  sock_addr      210\n"
+                                        "     cgroup/connect4  sock_addr      285\n"
+                                        "     cgroup/connect6  sock_addr      302\n"
+                                        " cgroup/recv_accept4  sock_addr      285\n"
+                                        " cgroup/recv_accept6  sock_addr      302\n"
 #else
-                                        "     cgroup/connect4  sock_addr      531\n"
-                                        "     cgroup/connect6  sock_addr      606\n"
-                                        " cgroup/recv_accept4  sock_addr      531\n"
-                                        " cgroup/recv_accept6  sock_addr      606\n"
+                                        "     cgroup/connect4  sock_addr      860\n"
+                                        "     cgroup/connect6  sock_addr      935\n"
+                                        " cgroup/recv_accept4  sock_addr      860\n"
+                                        " cgroup/recv_accept6  sock_addr      935\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
                                         "==================  ====  =====  =======  ========\n"
                                         "              hash    56      4        1  egress_connection_policy_map\n"
-                                        "              hash    56      4        1  ingress_connection_policy_map\n";
+                                        "              hash    56      4        1  ingress_connection_policy_map\n"
+                                        "              hash    56      8     1000  socket_cookie_map\n";
     REQUIRE(output == expected_output);
 }
 
@@ -948,11 +949,11 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     // Load program with pinpath and compaetment=1.
     std::string output = run_netsh_command_with_args(
         handle_ebpf_add_program, &result, 4, L"cgroup_sock_addr.o", L"cgroup/connect4", L"mypinpath", L"compartment=1");
-    REQUIRE(strcmp(output.c_str(), "Loaded with ID 5\n") == 0);
+    REQUIRE(strcmp(output.c_str(), "Loaded with ID 6\n") == 0);
     REQUIRE(result == NO_ERROR);
-    output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
+    output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 5 from mypinpath\n");
+    REQUIRE(output == "Unpinned 6 from mypinpath\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect compartment id.
