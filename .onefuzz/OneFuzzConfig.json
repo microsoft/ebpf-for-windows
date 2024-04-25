@@ -84,6 +84,7 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
+        "main",
         "feature/security_fix"
       ],
       "Fuzzer": {
@@ -161,6 +162,10 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
+<<<<<<< HEAD
+=======
+        "main",
+>>>>>>> bd3f097f (Merged PR 30890: Run all libfuzzers in OneFuzz on the feature/security_fix branch)
         "feature/security_fix"
       ],
       "Fuzzer": {
@@ -238,6 +243,10 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
+<<<<<<< HEAD
+=======
+        "main",
+>>>>>>> bd3f097f (Merged PR 30890: Run all libfuzzers in OneFuzz on the feature/security_fix branch)
         "feature/security_fix"
       ],
       "Fuzzer": {
@@ -315,6 +324,10 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
+<<<<<<< HEAD
+=======
+        "main",
+>>>>>>> bd3f097f (Merged PR 30890: Run all libfuzzers in OneFuzz on the feature/security_fix branch)
         "feature/security_fix"
       ],
       "Fuzzer": {
