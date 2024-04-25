@@ -173,6 +173,7 @@ jobs:
       shell: cmd
       run: |
         powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+        powershell.exe "echo 'ASAN_OPTIONS=allocator_may_return_null=1' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
     - name: Configure eBPF store
       if: steps.skip_check.outputs.should_skip != 'true'
