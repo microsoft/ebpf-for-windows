@@ -1282,6 +1282,11 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte
         goto Done;
     }
 
+    if (instruction_count == 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {
         return_value = EBPF_NO_MEMORY;
