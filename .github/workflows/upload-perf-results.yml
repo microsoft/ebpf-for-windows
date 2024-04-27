@@ -65,7 +65,7 @@ jobs:
 
     # Grab the output from the results directory and upload it as an artifact to debug failures.
     - name: Upload data as artifacts for debugging
-      uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: Test-Results-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results
