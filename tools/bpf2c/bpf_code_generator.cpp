@@ -775,6 +775,11 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
                     if (map_definitions.find(unsafe_name) == map_definitions.end()) {
                         throw bpf_code_generator_exception("map not found in map definitions: " + unsafe_name);
                     }
+                } else {
+                    // Local function.
+                    if (current_section->local_functions.find(unsafe_name) == current_section->local_functions.end()) {
+                        current_section->local_functions[unsafe_name] = value;
+                    }
                 }
             }
         }
@@ -856,7 +861,7 @@ bpf_code_generator::build_function_table()
     // Gather helper_functions
     size_t index = 0;
     for (auto& output : program_output) {
-        if (output.instruction.opcode != INST_OP_CALL) {
+        if (output.instruction.opcode != INST_OP_CALL || output.instruction.src != INST_CALL_STATIC_HELPER) {
             continue;
         }
         bpf_code_generator::unsafe_string name;
@@ -1301,7 +1306,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             } else if (inst.opcode == INST_OP_JA32) {
                 std::string target = program_output[i + inst.imm + 1].label;
                 output.lines.push_back("goto " + target + ";");
-            } else if (inst.opcode == INST_OP_CALL) {
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_STATIC_HELPER) {
                 std::string function_name;
                 if (output.relocation.empty()) {
                     function_name = std::vformat(
@@ -1323,6 +1328,12 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back(
                     std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_LOCAL) {
+                std::string function_name = output.relocation.c_identifier();
+                output.lines.push_back(get_register_name(0) + " = " + function_name);
+                output.lines.push_back(
+                    INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
+                    ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -1373,6 +1384,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << INDENT "*size = 0;" << std::endl;
     }
     output_stream << "}" << std::endl;
+    output_stream << std::endl;
 
     // Emit import tables
     if (map_definitions.size() > 0) {
@@ -1487,6 +1499,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
+        if (section.local_functions.size() > 0) {
+            output_stream << "// Forward references for local functions." << std::endl;
+            for (auto& [local_function_name, _] : section.local_functions) {
+                output_stream << "static uint64_t " << local_function_name.c_identifier()
+                              << "(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);" << std::endl;
+            }
             output_stream << std::endl;
         }
 

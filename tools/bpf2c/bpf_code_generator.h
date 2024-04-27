@@ -322,6 +322,7 @@ class bpf_code_generator
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
+        std::map<unsafe_string, uint64_t> local_functions;
         std::string program_info_hash_type{};
         ebpf_program_info_t* program_info = nullptr;
     } section_t;
