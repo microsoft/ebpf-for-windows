@@ -215,7 +215,7 @@ class bpf_code_generator
      * @return Vector of section names.
      */
     std::vector<unsafe_string>
-    program_sections();
+    program_sections() const;
 
     /**
      * @brief Parse the eBPF file.
@@ -277,7 +277,7 @@ class bpf_code_generator
      * @return Vector of helper ids.
      */
     std::vector<int32_t>
-    get_helper_ids();
+    get_helper_ids() const;
 
     /**
      * @brief Set the program hash info object
@@ -393,9 +393,35 @@ class bpf_code_generator
     /**
      * @brief Generate the C code for each eBPF instruction.
      *
+     * @param[in] section_name Name of section.
      */
     void
     encode_instructions(const unsafe_string& section_name);
+
+    /**
+     * @brief Emit encoded instructions.
+     *
+     * @param[in] output Output stream to write code to.
+     * @param[in] section_name Name of section.
+     * @param[in] start_index Index of first instruction to emit.
+     */
+    void
+    emit_instructions(std::ostream& output_stream, const unsafe_string& section_name, size_t start_index);
+
+    /**
+     * @brief Emit the C code for a subprogram.
+     *
+     * @param[in] output Output stream to write code to.
+     * @param[in] section_name Name of section.
+     * @param[in] function_name Name of subprogram.
+     * @param[in] start_index Index of first instruction in the subprogram.
+     */
+    void
+    emit_subprogram(
+        std::ostream& output,
+        const unsafe_string& section_name,
+        const unsafe_string& function_name,
+        size_t start_index);
 
 #if defined(_MSC_VER)
     /**
@@ -406,7 +432,7 @@ class bpf_code_generator
      * @return The formatted string.
      */
     std::string
-    format_guid(const GUID* guid, bool split);
+    format_guid(const GUID* guid, bool split) const;
 #endif
 
     /**
@@ -427,13 +453,13 @@ class bpf_code_generator
     get_register_name(uint8_t id);
 
     ELFIO::section*
-    get_required_section(const unsafe_string& name);
+    get_required_section(const unsafe_string& name) const;
 
     ELFIO::section*
-    get_optional_section(const unsafe_string& name);
+    get_optional_section(const unsafe_string& name) const;
 
     bool
-    is_section_valid(const ELFIO::section* section);
+    is_section_valid(const ELFIO::section* section) const;
 
     /**
      * @brief Invoke the visitor for each symbol in the ELF file section.

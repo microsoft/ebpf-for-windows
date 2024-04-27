@@ -194,7 +194,7 @@ bpf_code_generator::get_register_name(uint8_t id)
 }
 
 ELFIO::section*
-bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string& name)
+bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string& name) const
 {
     auto section = get_optional_section(name);
     if (!section) {
@@ -204,7 +204,7 @@ bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string
 }
 
 ELFIO::section*
-bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string& name)
+bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string& name) const
 {
     auto section = reader.sections[name.raw()];
     if (!is_section_valid(section)) {
@@ -214,7 +214,7 @@ bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string
 }
 
 bool
-bpf_code_generator::is_section_valid(const ELFIO::section* section)
+bpf_code_generator::is_section_valid(const ELFIO::section* section) const
 {
     if (!section) {
         return false;
@@ -256,7 +256,7 @@ bpf_code_generator::bpf_code_generator(
 }
 
 std::vector<bpf_code_generator::unsafe_string>
-bpf_code_generator::program_sections()
+bpf_code_generator::program_sections() const
 {
     std::vector<bpf_code_generator::unsafe_string> section_names;
     for (const auto& section : reader.sections) {
@@ -324,7 +324,7 @@ bpf_code_generator::generate(const bpf_code_generator::unsafe_string& section_na
 }
 
 std::vector<int32_t>
-bpf_code_generator::get_helper_ids()
+bpf_code_generator::get_helper_ids() const
 {
     std::vector<int32_t> helper_ids;
     for (const auto& [name, helper] : current_section->helper_functions) {
@@ -778,7 +778,7 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
                 } else {
                     // Local function.
                     if (current_section->local_functions.find(unsafe_name) == current_section->local_functions.end()) {
-                        current_section->local_functions[unsafe_name] = value;
+                        current_section->local_functions[unsafe_name] = value / sizeof(ebpf_inst);
                     }
                 }
             }
@@ -885,7 +885,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
     auto program_name = !current_section->program_name.empty() ? current_section->program_name : section_name;
     auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
 
-    // Encode instructions
+    // Encode instructions.
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
         auto& inst = output.instruction;
@@ -1356,9 +1356,83 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
 }
 
 void
+bpf_code_generator::emit_subprogram(
+    std::ostream& output_stream,
+    const unsafe_string& section_name,
+    const unsafe_string& function_name,
+    size_t start_index)
+{
+    std::string prolog_line_info;
+
+    // Emit entry point.
+    output_stream << prolog_line_info << "static uint64_t\n" << function_name.c_identifier() << "(";
+    for (uint8_t i = 1; i <= 5; i++) {
+        output_stream << "uint64_t " << get_register_name(i) << ", ";
+    }
+    output_stream << "uint64_t " << get_register_name(10) << ")" << std::endl;
+    output_stream << prolog_line_info << "{" << std::endl;
+
+    // Emit prologue.
+    output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
+    for (uint8_t i = 6; i < 10; i++) {
+        output_stream << prolog_line_info << INDENT "register uint64_t " << get_register_name(i) << " = 0;"
+                      << std::endl;
+    }
+    output_stream << std::endl;
+
+    emit_instructions(output_stream, section_name, start_index);
+
+    // Emit epilogue.
+    output_stream << prolog_line_info << "}" << std::endl;
+}
+
+void
+bpf_code_generator::emit_instructions(
+    std::ostream& output_stream, const unsafe_string& section_name, size_t start_index)
+{
+    std::string prolog_line_info;
+    auto& line_info = section_line_info[section_name];
+    section_t& section = sections[section_name];
+
+    // For now, we go until the end and let the compiler optimize out what isn't used.
+    // TODO: In the future we could compute the end index of each function.
+    for (size_t index = start_index; index < section.output.size(); index++) {
+        const auto& output = section.output[index];
+        if (output.lines.empty()) {
+            continue;
+        }
+        if (!output.label.empty()) {
+            output_stream << output.label << ":" << std::endl;
+        }
+        auto current_line = line_info.find(output.instruction_offset);
+        if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
+            current_line->second.line_number != 0) {
+            prolog_line_info = std::format(
+                "#line {} {}\n",
+                std::to_string(current_line->second.line_number),
+                current_line->second.file_name.quoted_filename());
+        }
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
+        output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
+        if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
+            output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
+        }
+        output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
+                      << " src=r" << std::to_string(output.instruction.src)
+                      << " offset=" << std::to_string(output.instruction.offset)
+                      << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+
+#endif
+        for (const auto& line : output.lines) {
+            output_stream << prolog_line_info << INDENT "" << line << std::endl;
+        }
+    }
+}
+
+void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
-    // Emit C file
+    // Emit C file.
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
     output_stream << "static void" << std::endl
@@ -1386,7 +1460,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    // Emit import tables
+    // Emit import tables.
     if (map_definitions.size() > 0) {
         output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
@@ -1575,16 +1649,17 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             return true;
         });
 
-        // Emit entry point
+        // Emit entry point.
         output_stream << "#pragma code_seg(push, " << section.pe_section_name.quoted() << ")" << std::endl;
         output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
-        // Emit prologue
+        // Emit prologue.
         output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
         output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
-            // Skip unused registers
+            // Skip unused registers.
+            // TODO: make referenced_registers be program specific not section specific?
             if (section.referenced_registers.find(r) == section.referenced_registers.end()) {
                 continue;
             }
@@ -1597,44 +1672,20 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
 
         // Emit encoded instructions.
-        for (const auto& output : section.output) {
-            if (output.lines.empty()) {
-                continue;
-            }
-            if (!output.label.empty()) {
-                output_stream << output.label << ":" << std::endl;
-            }
-            auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
-                current_line->second.line_number != 0) {
-                prolog_line_info = std::format(
-                    "#line {} {}\n",
-                    std::to_string(current_line->second.line_number),
-                    current_line->second.file_name.quoted_filename());
-            }
-#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
-            if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
-                output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
-            }
-            output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
-                          << " src=r" << std::to_string(output.instruction.src)
-                          << " offset=" << std::to_string(output.instruction.offset)
-                          << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+        emit_instructions(output_stream, name, 0);
 
-#endif
-            for (const auto& line : output.lines) {
-                output_stream << prolog_line_info << INDENT "" << line << std::endl;
-            }
-        }
-        // Emit epilogue
+        // Emit epilogue.
         output_stream << prolog_line_info << "}" << std::endl;
         output_stream << "#pragma code_seg(pop)" << std::endl;
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
+
+        // Emit subprograms.
+        for (auto& [function_name, start] : section.local_functions) {
+            emit_subprogram(output_stream, name, function_name, start);
+        }
     }
 
     if (sections.size() != 0) {
-
         output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
         output_stream << "static program_entry_t _programs[] = {" << std::endl;
         for (auto& [name, program] : sections) {
@@ -1662,7 +1713,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             if (program.program_info_hash.has_value()) {
                 output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
                 output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
-                // Append the hash type
+                // Append the hash type.
                 std::string hash_string = program.program_info_hash_type;
                 if (hash_string.empty()) {
                     // If the hash type is not known, use the default hash type.
@@ -1764,7 +1815,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 }
 
 std::string
-bpf_code_generator::format_guid(const GUID* guid, bool split)
+bpf_code_generator::format_guid(const GUID* guid, bool split) const
 {
     std::string output(120, '\0');
     std::string format_string;
