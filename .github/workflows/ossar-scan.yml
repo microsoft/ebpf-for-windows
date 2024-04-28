@@ -47,7 +47,7 @@ jobs:
         paths_ignore: '["**.md", "**/docs/**"]'
 
     # Checking out the branch is needed to correctly log security alerts.
-    - uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         # Only check out main repo, not submodules.
