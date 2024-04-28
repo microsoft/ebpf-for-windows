@@ -1393,13 +1393,16 @@ bpf_code_generator::emit_subprogram(
 
     // Emit prologue.
     for (const auto& r : _register_names) {
-        // Skip unused registers.
-        if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
+        // Skip args.
+        if (_callee_register_args.find(r) != _callee_register_args.end()) {
+            if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
+                output_stream << prolog_line_info << INDENT "(void)" << r.c_str() << ";" << std::endl;
+            }
             continue;
         }
 
-        // Skip args.
-        if (_callee_register_args.find(r) != _callee_register_args.end()) {
+        // Skip unused registers.
+        if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
             continue;
         }
         output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
