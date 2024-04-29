@@ -97,6 +97,8 @@ jobs:
       - powershell: |
           $value = "true"
           Write-Host "##vso[task.setvariable variable=ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE;]$value"
+          $value = "allocator_may_return_null=1"
+          Write-Host "##vso[task.setvariable variable=ASAN_OPTIONS;]$value"
         workingDirectory: $(Build.SourcesDirectory)
         displayName: 'Set ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE'
 
@@ -282,7 +284,7 @@ jobs:
         name: check_artifacts
         displayName: Check for generated artifacts
 
-      - publish: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)/Artifacts
+      - publish: $(Build.SourcesDirectory)/$(PROJECT_NAME)/$(BUILD_PLATFORM)/$(BUILD_CONFIGURATION)/Artifacts
         artifact: 'Artifacts-$(NAME)-$(BUILD_PLATFORM)-$(BUILD_CONFIGURATION)'
         condition: and(succeededOrFailed(), eq(variables['check_artifacts.FileExists'], 'True'))
         displayName: "Upload log files"

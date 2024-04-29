@@ -168,6 +168,11 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
          EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
          EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
      }},
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
+     BPF_FUNC_get_socket_cookie,
+     "bpf_get_socket_cookie",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
 };
 
 #ifdef __cplusplus
