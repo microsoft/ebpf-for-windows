@@ -10,6 +10,7 @@
 
 #define PERFORMANCE_MEASURE_ITERATION_COUNT 1000000
 #define PERFORMANCE_MEASURE_TIMEOUT 60000
+#define PERFORMANCE_MEASURE_BATCH_SIZE 1024
 
 /**
  * @brief Test helper function that executes a provided method on each CPU
@@ -54,6 +55,7 @@ template <typename T> class _performance_measure
         for (uint32_t i = 0; i < cpu_count; i++) {
             threads.emplace_back(std::thread([i, this, &ready_count] {
                 uint32_t local_cpu_id = i;
+                usersim_set_affinity_and_priority_override(local_cpu_id);
                 uintptr_t thread_mask = local_cpu_id;
                 thread_mask = static_cast<uintptr_t>(1) << thread_mask;
                 SetThreadAffinityMask(GetCurrentThread(), thread_mask);
@@ -63,18 +65,36 @@ template <typename T> class _performance_measure
                 if (!preemptible) {
                     old_irql = KeRaiseIrqlToDpcLevel();
                 }
-                QueryPerformanceCounter(&this->counters[local_cpu_id].first);
+                LARGE_INTEGER start_time;
+                LARGE_INTEGER end_time;
+
+                QueryPerformanceCounter(&start_time);
                 for (size_t k = 0; k < iterations; k++) {
+                    if (k % PERFORMANCE_MEASURE_BATCH_SIZE == 0) {
+                        QueryPerformanceCounter(&end_time);
+                        counters[local_cpu_id].QuadPart += end_time.QuadPart - start_time.QuadPart;
+                        if (!preemptible) {
+                            KeLowerIrql(old_irql);
+                        }
+                        usersim_clear_affinity_and_priority_override();
+                        usersim_set_affinity_and_priority_override(local_cpu_id);
+                        if (!preemptible) {
+                            old_irql = KeRaiseIrqlToDpcLevel();
+                        }
+                        QueryPerformanceCounter(&start_time);
+                    }
                     if constexpr (std::is_same<T, void(__cdecl*)(uint32_t)>::value) {
                         worker(local_cpu_id);
                     } else {
                         worker();
                     }
                 }
-                QueryPerformanceCounter(&this->counters[local_cpu_id].second);
+                QueryPerformanceCounter(&end_time);
+                counters[local_cpu_id].QuadPart += end_time.QuadPart - start_time.QuadPart;
                 if (!preemptible) {
                     KeLowerIrql(old_irql);
                 }
+                usersim_clear_affinity_and_priority_override();
             }));
         }
         // Wait for threads to spin up.
@@ -93,7 +113,7 @@ template <typename T> class _performance_measure
         LARGE_INTEGER frequency{};
         QueryPerformanceFrequency(&frequency);
         for (const auto& result : counters) {
-            total_time.QuadPart += result.second.QuadPart - result.first.QuadPart;
+            total_time.QuadPart += result.QuadPart;
         }
         double average_duration = static_cast<double>(total_time.QuadPart);
         average_duration /= iterations;
@@ -108,7 +128,7 @@ template <typename T> class _performance_measure
     const uint32_t cpu_count;
     const size_t iterations;
     T worker;
-    std::vector<std::pair<LARGE_INTEGER, LARGE_INTEGER>> counters;
+    std::vector<LARGE_INTEGER> counters;
     HANDLE start_event;
     bool preemptible;
     const char* test_name;
