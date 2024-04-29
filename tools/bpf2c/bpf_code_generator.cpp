@@ -748,6 +748,9 @@ void
 bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsafe_string& section_name)
 {
     auto map_section = get_optional_section("maps");
+    if (map_section == nullptr) {
+        map_section = get_optional_section(".maps");
+    }
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
 
     auto relocations = get_optional_section(".rel" + section_name);
