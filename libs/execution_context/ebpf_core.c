@@ -2156,6 +2156,8 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
+    ebpf_assert(map);
+
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
