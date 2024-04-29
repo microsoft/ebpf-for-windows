@@ -92,7 +92,7 @@ If you see unexpected formatting changes in the code, verify that you are runnin
 The following license header **must** be included at the top of every code file:
 
 ```c
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 ```
 

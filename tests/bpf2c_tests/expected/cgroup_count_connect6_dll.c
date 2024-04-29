@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -117,7 +117,7 @@ count_tcp_connect6(void* context)
     if (r2 != IMMEDIATE(6))
 #line 34 "sample/cgroup_count_connect6.c"
         goto label_2;
-    // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
+        // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
 #line 40 "sample/cgroup_count_connect6.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
     // EBPF_OP_JNE_IMM pc=4 dst=r1 src=r0 offset=25 imm=7459
@@ -125,7 +125,7 @@ count_tcp_connect6(void* context)
     if (r1 != IMMEDIATE(7459))
 #line 40 "sample/cgroup_count_connect6.c"
         goto label_2;
-    // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=0
 #line 40 "sample/cgroup_count_connect6.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=6 dst=r10 src=r6 offset=-16 imm=0
@@ -155,12 +155,12 @@ count_tcp_connect6(void* context)
     if ((count_tcp_connect6_helpers[0].tail_call) && (r0 == 0))
 #line 48 "sample/cgroup_count_connect6.c"
         return 0;
-    // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=12 imm=0
+        // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=12 imm=0
 #line 49 "sample/cgroup_count_connect6.c"
     if (r0 != IMMEDIATE(0))
 #line 49 "sample/cgroup_count_connect6.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
 #line 49 "sample/cgroup_count_connect6.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-16 imm=0
@@ -196,7 +196,7 @@ count_tcp_connect6(void* context)
     if ((count_tcp_connect6_helpers[1].tail_call) && (r0 == 0))
 #line 51 "sample/cgroup_count_connect6.c"
         return 0;
-    // EBPF_OP_JA pc=26 dst=r0 src=r0 offset=3 imm=0
+        // EBPF_OP_JA pc=26 dst=r0 src=r0 offset=3 imm=0
 #line 51 "sample/cgroup_count_connect6.c"
     goto label_2;
 label_1:

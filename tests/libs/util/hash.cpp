@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 #define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
 

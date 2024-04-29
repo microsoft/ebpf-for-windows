@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
-  Copyright (c) Microsoft Corporation
+  Copyright (c) eBPF for Windows contributors
   SPDX-License-Identifier: MIT
 -->
 <RuleSet Name="External rules" Description="Override parent ruleset" ToolsVersion="16.0">

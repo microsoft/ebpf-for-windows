@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -111,7 +111,7 @@ bind_monitor(void* context)
     if (r2 != IMMEDIATE(0))
 #line 26 "sample/bindmonitor_ringbuf.c"
         goto label_1;
-    // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
 #line 28 "sample/bindmonitor_ringbuf.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_LDXDW pc=3 dst=r3 src=r1 offset=8 imm=0
@@ -122,7 +122,7 @@ bind_monitor(void* context)
     if (r2 >= r3)
 #line 28 "sample/bindmonitor_ringbuf.c"
         goto label_1;
-    // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
+        // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
 #line 29 "sample/bindmonitor_ringbuf.c"
     r3 -= r2;
     // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=0

@@ -1,5 +1,5 @@
 {
-    "license":["Copyright (c) Microsoft Corporation", "SPDX-License-Identifier: MIT"],
+    "license":["Copyright (c) eBPF for Windows contributors", "SPDX-License-Identifier: MIT"],
 
     "VMMap":
     {

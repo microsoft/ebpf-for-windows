@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -114,7 +114,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 29 "sample/undocked/bpf_call.c"
         return 0;
-    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
+        // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/bpf_call.c"
     return r0;
 #line 30 "sample/undocked/bpf_call.c"

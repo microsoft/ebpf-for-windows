@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -113,7 +113,7 @@ test_program_entry(void* context)
     if ((test_program_entry_helpers[0].tail_call) && (r0 == 0))
 #line 39 "sample/undocked/test_sample_ebpf.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=9 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=9 dst=r8 src=r0 offset=0 imm=0
 #line 39 "sample/undocked/test_sample_ebpf.c"
     r8 = r0;
     // EBPF_OP_MOV64_REG pc=10 dst=r2 src=r10 offset=0 imm=0
@@ -134,7 +134,7 @@ test_program_entry(void* context)
     if ((test_program_entry_helpers[0].tail_call) && (r0 == 0))
 #line 40 "sample/undocked/test_sample_ebpf.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/test_sample_ebpf.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=16 dst=r8 src=r0 offset=17 imm=0
@@ -142,7 +142,7 @@ test_program_entry(void* context)
     if (r8 == IMMEDIATE(0))
 #line 42 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
-    // EBPF_OP_LDXDW pc=17 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=17 dst=r1 src=r6 offset=0 imm=0
 #line 42 "sample/undocked/test_sample_ebpf.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_LDXDW pc=18 dst=r2 src=r6 offset=8 imm=0
@@ -153,7 +153,7 @@ test_program_entry(void* context)
     if (r1 >= r2)
 #line 42 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
-    // EBPF_OP_SUB64_REG pc=20 dst=r2 src=r1 offset=0 imm=0
+        // EBPF_OP_SUB64_REG pc=20 dst=r2 src=r1 offset=0 imm=0
 #line 47 "sample/undocked/test_sample_ebpf.c"
     r2 -= r1;
     // EBPF_OP_MOV64_REG pc=21 dst=r3 src=r8 offset=0 imm=0
@@ -171,12 +171,12 @@ test_program_entry(void* context)
     if ((test_program_entry_helpers[1].tail_call) && (r0 == 0))
 #line 46 "sample/undocked/test_sample_ebpf.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=24 dst=r7 src=r0 offset=9 imm=0
+        // EBPF_OP_JEQ_IMM pc=24 dst=r7 src=r0 offset=9 imm=0
 #line 48 "sample/undocked/test_sample_ebpf.c"
     if (r7 == IMMEDIATE(0))
 #line 48 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
-    // EBPF_OP_LDXDW pc=25 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=25 dst=r1 src=r6 offset=0 imm=0
 #line 50 "sample/undocked/test_sample_ebpf.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_LDXDW pc=26 dst=r2 src=r6 offset=8 imm=0
@@ -203,7 +203,7 @@ test_program_entry(void* context)
     if ((test_program_entry_helpers[2].tail_call) && (r0 == 0))
 #line 49 "sample/undocked/test_sample_ebpf.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=0
 #line 49 "sample/undocked/test_sample_ebpf.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_JSGT_REG pc=33 dst=r1 src=r0 offset=5 imm=0
@@ -224,7 +224,7 @@ label_1:
     if ((test_program_entry_helpers[3].tail_call) && (r0 == 0))
 #line 58 "sample/undocked/test_sample_ebpf.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=36 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=36 dst=r1 src=r0 offset=0 imm=0
 #line 58 "sample/undocked/test_sample_ebpf.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_JSGT_REG pc=37 dst=r1 src=r0 offset=1 imm=0
@@ -232,7 +232,7 @@ label_1:
     if ((int64_t)r1 > (int64_t)r0)
 #line 59 "sample/undocked/test_sample_ebpf.c"
         goto label_2;
-    // EBPF_OP_MOV64_IMM pc=38 dst=r0 src=r0 offset=0 imm=42
+        // EBPF_OP_MOV64_IMM pc=38 dst=r0 src=r0 offset=0 imm=42
 #line 59 "sample/undocked/test_sample_ebpf.c"
     r0 = IMMEDIATE(42);
 label_2:

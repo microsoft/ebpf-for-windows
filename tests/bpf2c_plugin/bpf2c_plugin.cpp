@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 /**
@@ -20,7 +20,7 @@
 #include <string>
 #include <vector>
 
-const char copyright_notice[] = "// Copyright (c) Microsoft Corporation\n// SPDX-License-Identifier: MIT\n";
+const char copyright_notice[] = "// Copyright (c) eBPF for Windows contributors\n// SPDX-License-Identifier: MIT\n";
 
 const char bpf2c_plugin[] =
 #include "bpf2c_test.template"
