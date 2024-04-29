@@ -558,12 +558,6 @@ _sample_test_context_create(
     sample_program_context_t* sample_context = nullptr;
     *context = nullptr;
 
-    // Data is not supported.
-    if (data_in || data_size_in != 0) {
-        retval = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
     // Context is required.
     if (!context_in || context_size_in < sizeof(sample_program_context_t)) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -576,6 +570,14 @@ _sample_test_context_create(
     }
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
+
+    if (data_in) {
+        sample_context->data_start = (uint8_t*)data_in;
+        sample_context->data_end = (uint8_t*)data_in + data_size_in;
+    } else {
+        sample_context->data_start = nullptr;
+        sample_context->data_end = nullptr;
+    }
 
     *context = sample_context;
     sample_context = nullptr;
@@ -657,8 +659,86 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     _xdp_context_destroy};
 
 // Bind.
+static ebpf_result_t
+_ebpf_bind_context_create(
+    _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
+    size_t data_size_in,
+    _In_reads_bytes_opt_(context_size_in) const uint8_t* context_in,
+    size_t context_size_in,
+    _Outptr_ void** context)
+{
+    ebpf_result_t retval;
+    *context = nullptr;
+
+    bind_md_t* bind_context = reinterpret_cast<bind_md_t*>(ebpf_allocate(sizeof(bind_md_t)));
+    if (bind_context == nullptr) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    if (context_in) {
+        if (context_size_in < sizeof(bind_md_t)) {
+            retval = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        bind_md_t* provided_context = (bind_md_t*)context_in;
+        *bind_context = *provided_context;
+    }
+
+    bind_context->app_id_start = 0;
+    bind_context->app_id_end = 0;
+
+    if (data_in) {
+        bind_context->app_id_start = (uint8_t*)data_in;
+        bind_context->app_id_end = (uint8_t*)data_in + data_size_in;
+    }
+
+    *context = bind_context;
+    bind_context = nullptr;
+    retval = EBPF_SUCCESS;
+Done:
+    ebpf_free(bind_context);
+    bind_context = nullptr;
+    return retval;
+}
+
+static void
+_ebpf_bind_context_destroy(
+    _In_opt_ void* context,
+    _Out_writes_bytes_to_(*data_size_out, *data_size_out) uint8_t* data_out,
+    _Inout_ size_t* data_size_out,
+    _Out_writes_bytes_to_(*context_size_out, *context_size_out) uint8_t* context_out,
+    _Inout_ size_t* context_size_out)
+{
+    UNREFERENCED_PARAMETER(data_out);
+    if (!context) {
+        return;
+    }
+
+    bind_md_t* bind_context = reinterpret_cast<bind_md_t*>(context);
+    if (context_out && *context_size_out >= sizeof(bind_md_t)) {
+        bind_md_t* provided_context = (bind_md_t*)context_out;
+        *provided_context = *bind_context;
+        *context_size_out = sizeof(bind_md_t);
+    }
+
+    ebpf_free(bind_context);
+    bind_context = nullptr;
+
+    *data_size_out = 0;
+    return;
+}
+
 static ebpf_program_data_t _ebpf_bind_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_bind_program_info, NULL};
+    .header =
+        {
+            .version = EBPF_PROGRAM_DATA_CURRENT_VERSION,
+            .size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE,
+        },
+    .program_info = &_ebpf_bind_program_info,
+    .context_create = _ebpf_bind_context_create,
+    .context_destroy = _ebpf_bind_context_destroy,
+};
 
 // SOCK_ADDR.
 static int

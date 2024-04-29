@@ -2133,6 +2133,8 @@ _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
     UNREFERENCED_PARAMETER(context);
 
+    ebpf_assert(map);
+
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
