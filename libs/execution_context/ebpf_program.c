@@ -2416,6 +2416,11 @@ ebpf_program_execute_test_run(
     test_run_context->completion_context = completion_context;
     test_run_context->completion_callback = callback;
 
+    // Limit maximum test runs to 1024 while fuzzing to prevent timeouts.
+#if defined(FUZZER_BUILD)
+    test_run_context->options->repeat_count = min(test_run_context->options->repeat_count, 1024);
+#endif
+
     // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
     // The work item will signal the completion event when it is done.
     return_value = ebpf_allocate_preemptible_work_item(&work_item, _ebpf_program_test_run_work_item, test_run_context);
