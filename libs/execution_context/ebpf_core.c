@@ -893,6 +893,11 @@ _ebpf_core_protocol_map_update_element_batch(
 
     key_and_value_length = (size_t)map_definition->key_size + (size_t)map_definition->value_size;
 
+    if (key_and_value_length == 0) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     if ((data_length % key_and_value_length) != 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
