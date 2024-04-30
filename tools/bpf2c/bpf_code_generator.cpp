@@ -1584,7 +1584,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         if (section.output.size() == 0) {
             continue;
         }
-        std::shared_ptr<program_t> opt_program = current_section->default_program();
+        std::shared_ptr<program_t> opt_program = section.default_program();
         if (!opt_program) {
             continue;
         }
@@ -1693,6 +1693,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue.
+        get_register_name(program, 0);
+        get_register_name(program, 1);
+        get_register_name(program, 10);
         output_stream << prolog_line_info << INDENT "// Prologue." << std::endl;
         output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
