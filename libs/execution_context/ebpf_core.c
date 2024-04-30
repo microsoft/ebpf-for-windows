@@ -1990,10 +1990,31 @@ _ebpf_core_protocol_get_object_info(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-    uint16_t info_size = reply_length - FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info);
+    size_t output_buffer_size = reply_length;
+    size_t input_buffer_size = request->header.length;
+
+    ebpf_result_t result = ebpf_safe_size_t_subtract(
+        output_buffer_size, FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info), &output_buffer_size);
+
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    result = ebpf_safe_size_t_subtract(
+        input_buffer_size, FIELD_OFFSET(ebpf_operation_get_object_info_request_t, info), &input_buffer_size);
+
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    if (input_buffer_size > UINT16_MAX || output_buffer_size > UINT16_MAX) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    uint16_t info_size = (uint16_t)output_buffer_size;
 
     ebpf_core_object_t* object;
-    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->handle, EBPF_OBJECT_UNKNOWN, &object);
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->handle, EBPF_OBJECT_UNKNOWN, &object);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -2007,7 +2028,8 @@ _ebpf_core_protocol_get_object_info(
         result = ebpf_map_get_info((ebpf_map_t*)object, reply->info, &info_size);
         break;
     case EBPF_OBJECT_PROGRAM:
-        result = ebpf_program_get_info((ebpf_program_t*)object, request->info, reply->info, &info_size);
+        result = ebpf_program_get_info(
+            (ebpf_program_t*)object, request->info, (uint16_t)input_buffer_size, reply->info, &info_size);
         break;
     default:
         result = EBPF_INVALID_ARGUMENT;

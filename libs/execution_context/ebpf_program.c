@@ -1912,15 +1912,20 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_info(
     _In_ const ebpf_program_t* program,
-    _In_reads_(*info_size) const uint8_t* input_buffer,
-    _Out_writes_to_(*info_size, *info_size) uint8_t* output_buffer,
-    _Inout_ uint16_t* info_size)
+    _In_reads_(input_buffer_size) const uint8_t* input_buffer,
+    uint16_t input_buffer_size,
+    _Out_writes_to_(*output_buffer_size, *output_buffer_size) uint8_t* output_buffer,
+    _Inout_ uint16_t* output_buffer_size)
 {
     EBPF_LOG_ENTRY();
     const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
     struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
-    if (*info_size < sizeof(*output_info)) {
+    if (*output_buffer_size < sizeof(*output_info)) {
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+    }
+
+    if (input_buffer_size < sizeof(*input_info)) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1962,7 +1967,7 @@ ebpf_program_get_info(
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 
-    *info_size = sizeof(*output_info);
+    *output_buffer_size = sizeof(*output_info);
     EBPF_RETURN_RESULT(result);
 }
 
