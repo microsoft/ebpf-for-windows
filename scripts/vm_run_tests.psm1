@@ -8,7 +8,8 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
        [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
        [Parameter(Mandatory = $True)] [string] $LogFileName,
        [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
+       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+       [parameter(Mandatory = $false)][int] $TestDuration = 5)
 
 Push-Location $WorkingDirectory
 

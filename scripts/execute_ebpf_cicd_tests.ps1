@@ -37,7 +37,8 @@ Import-Module $PSScriptRoot\vm_run_tests.psm1 `
         $WorkingDirectory,
         $LogFileName,
         $TestHangTimeout,
-        $UserModeDumpFolder) `
+        $UserModeDumpFolder,
+        $TestDuration) `
     -WarningAction SilentlyContinue
 
 # Read the test execution json.
