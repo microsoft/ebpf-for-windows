@@ -39,7 +39,8 @@ function Invoke-CICDTestsOnVM
               [parameter(Mandatory = $True)][string] $TestMode,
               [parameter(Mandatory = $true)][int] $TestHangTimeout,
               [parameter(Mandatory = $true)][string] $UserModeDumpFolder,
-              [parameter(Mandatory = $True)][string[]] $Options)
+              [parameter(Mandatory = $True)][string[]] $Options,
+              [parameter(Mandatory = $True)][int] $TestDuration)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
@@ -86,7 +87,8 @@ function Invoke-CICDTestsOnVM
             $TestMode,
             $TestHangTimeout,
             $UserModeDumpFolder,
-            $Options) -ErrorAction Stop
+            $Options
+            $TestDuration) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
