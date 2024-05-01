@@ -1847,10 +1847,14 @@ _find_lpm_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
     uint32_t* prefix_length = (uint32_t*)key;
     uint32_t original_prefix_length = *prefix_length;
     uint8_t* value = NULL;
-    ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
+
+    if (original_prefix_length > trie_map->max_prefix) {
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     ebpf_bitmap_cursor_t cursor;
     ebpf_bitmap_start_reverse_search((ebpf_bitmap_t*)trie_map->data, &cursor);
@@ -1903,6 +1907,25 @@ _update_lpm_map_entry(
         }
     }
     return result;
+}
+
+static ebpf_result_t
+_next_lpm_map_key_and_value(
+    _Inout_ ebpf_core_map_t* map,
+    _In_opt_ const uint8_t* previous_key,
+    _Out_ uint8_t* next_key,
+    _Inout_opt_ uint8_t** next_value)
+{
+    // Validate prefix length.
+
+    ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
+    uint32_t* prefix_length = (uint32_t*)previous_key;
+
+    if (prefix_length && (*prefix_length > trie_map->max_prefix)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    return _next_hash_map_key_and_value(map, previous_key, next_key, next_value);
 }
 
 static ebpf_result_t
@@ -2302,7 +2325,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .find_entry = _find_lpm_map_entry,
         .update_entry = _update_lpm_map_entry,
         .delete_entry = _delete_lpm_map_entry,
-        .next_key_and_value = _next_hash_map_key_and_value,
+        .next_key_and_value = _next_lpm_map_key_and_value,
     },
     {
         .map_type = BPF_MAP_TYPE_QUEUE,
