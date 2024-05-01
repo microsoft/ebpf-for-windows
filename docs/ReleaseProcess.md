@@ -70,8 +70,7 @@ pipeline, including longer duration fuzz tests, fault injection tests, stress te
 manager must run these tests on the release branch. If any of the tests fail, the release manager must investigate the failure and follow up with issues in GitHub.
 Once potential fixes are merged to the release branch repeat the process until the workflow completes successfully.
 
-Note: If any non-deterministic tests (such as fuzzer or stress) are added in the future, the release validation workflow should be updated to run 3x the normal
-CI/CD workflow (either 3x the duration or 3 instances of the test).
+Note: If any non-deterministic tests (such as fuzzer or stress) are added in the future, the release validation workflow should be updated to run 3x the normal CI/CD workflow (3x the duration of the test).
 
 ## Publishing the Release to GitHub
 
