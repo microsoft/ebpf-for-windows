@@ -30,7 +30,7 @@ static std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_SOCK_OPS,
     EBPF_PROGRAM_TYPE_SAMPLE};
 
-static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions = {
+static std::vector<std::pair<std::string, ebpf_map_definition_in_memory_t>> _map_definitions = {
     {
         "BPF_MAP_TYPE_HASH",
         {
@@ -54,7 +54,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_PROG_ARRAY,
             4,
-            20,
+            sizeof(ebpf_id_t),
             10,
         },
     },
@@ -81,7 +81,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_HASH_OF_MAPS,
             4,
-            20,
+            sizeof(ebpf_id_t),
             10,
         },
     },
@@ -90,7 +90,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         {
             BPF_MAP_TYPE_ARRAY_OF_MAPS,
             4,
-            20,
+            sizeof(ebpf_id_t),
             10,
         },
     },
@@ -143,7 +143,7 @@ static std::map<std::string, ebpf_map_definition_in_memory_t> _map_definitions =
         "BPF_MAP_TYPE_PERCPU_ARRAY",
         {
             BPF_MAP_TYPE_PERCPU_ARRAY,
-            0,
+            4,
             20,
             10,
         },
@@ -191,14 +191,37 @@ class fuzz_wrapper
             ebpf_handle_t handle;
             if (ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS) {
                 handles.push_back(handle);
+            } else {
+                throw std::runtime_error("create of program failed");
             }
         }
+        std::map<ebpf_map_type_t, ebpf_id_t> map_to_id;
+        std::map<ebpf_map_type_t, ebpf_handle_t> map_to_handle;
         for (const auto& [name, def] : _map_definitions) {
             cxplat_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
             ebpf_handle_t handle;
-            if (ebpf_core_create_map(&utf8_name, &def, ebpf_handle_invalid, &handle) == EBPF_SUCCESS) {
-                handles.push_back(handle);
+            ebpf_handle_t inner_map_handle = ebpf_handle_invalid;
+            ebpf_map_definition_in_memory_t modified_def = def;
+
+            if ((def.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) || (def.type == BPF_MAP_TYPE_HASH_OF_MAPS)) {
+                modified_def.inner_map_id = map_to_id[BPF_MAP_TYPE_HASH];
+                inner_map_handle = map_to_handle[BPF_MAP_TYPE_HASH];
             }
+
+            if (ebpf_core_create_map(&utf8_name, &modified_def, inner_map_handle, &handle) == EBPF_SUCCESS) {
+                handles.push_back(handle);
+            } else {
+                throw std::runtime_error("create of map " + name + " failed");
+            }
+
+            ebpf_id_t id;
+            ebpf_object_type_t type;
+            if (ebpf_core_get_id_and_type_from_handle(handle, &id, &type) != EBPF_SUCCESS) {
+                throw std::runtime_error("get id and type from handle failed");
+            }
+
+            map_to_id[def.type] = id;
+            map_to_handle[def.type] = handle;
         }
     }
     ~fuzz_wrapper()
