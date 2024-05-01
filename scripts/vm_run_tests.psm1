@@ -87,7 +87,7 @@ function Invoke-CICDTestsOnVM
             $TestMode,
             $TestHangTimeout,
             $UserModeDumpFolder,
-            $Options
+            $Options,
             $TestDuration) -ErrorAction Stop
 }
 
