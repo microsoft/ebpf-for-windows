@@ -11,7 +11,8 @@ param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory = $false)][string[]] $Options = @("None"),
        [parameter(Mandatory = $false)][string] $SelfHostedRunnerName,
        [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+       [parameter(Mandatory = $false)][int] $TestDuration = 5)
 )
 
 Push-Location $WorkingDirectory
@@ -52,6 +53,7 @@ foreach ($VM in $VMList) {
         -TestHangTimeout $TestHangTimeout `
         -UserModeDumpFolder $UserModeDumpFolder `
         -Options $Options
+        -TestDuration $TestDuration
 }
 
 # This script is used to execute the various kernel mode tests. The required behavior is selected by the $TestMode

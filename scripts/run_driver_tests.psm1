@@ -272,7 +272,8 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
-          [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
+          [parameter(Mandatory = $false)][bool] $RestartExtension = $false,
+          [parameter(Mandatory = $false)][int] $TestDuration = 5)
 
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
@@ -284,9 +285,9 @@ function Invoke-CICDStressTests
     $TestCommand = "ebpf_stress_tests_km"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=5"
+        $TestArguments = "-tt=8 -td=" + $TestDuration
     } else {
-        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
+        $TestArguments = "-tt=8 -erd=1000 -er=1 -td=" + $TestDuration
     }
 
     $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"

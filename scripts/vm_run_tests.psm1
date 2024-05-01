@@ -25,7 +25,8 @@ function Invoke-CICDTestsOnVM
           [parameter(Mandatory = $False)][string] $TestMode = "CI/CD",
           [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
           [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps",
-          [parameter(Mandatory = $False)][string[]] $Options = @())
+          [parameter(Mandatory = $False)][string[]] $Options = @(),
+          [parameter(Mandatory = $False)][int] $TestDuration = 5)
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -64,6 +65,7 @@ function Invoke-CICDTestsOnVM
                     -RestartExtension $RestartExtension `
                     -TestHangTimeout $TestHangTimeout `
                     -UserModeDumpFolder $UserModeDumpFolder `
+                    -TestDuration $TestDuration `
                     2>&1 | Write-Log
             }
             "performance" {
