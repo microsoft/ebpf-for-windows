@@ -242,44 +242,12 @@ jobs:
       gather_dumps: true
 
   # Run the quick stress tests in GitHub.
-  # Stress Tests should run 3x the normal CI/CD workflow
-  # Iteration 1
-  stress-1:
+  stress:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
-      name: stress-1
-      # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe -d yes
-      build_artifact: Build-x64
-      environment: windows-2022
-      # No code coverage on stress.
-      code_coverage: false
-      gather_dumps: true
-
-  # Iteration 2
-  stress-2:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: stress-2
-      # Until there is a dedicated stress test, re-use the perf test.
-      test_command: .\ebpf_performance.exe -d yes
-      build_artifact: Build-x64
-      environment: windows-2022
-      # No code coverage on stress.
-      code_coverage: false
-      gather_dumps: true
-
-  # Iteration 3
-  stress-3:
-    needs: regular
-    if: github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: stress-3
+      name: stress
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: .\ebpf_performance.exe -d yes
       build_artifact: Build-x64
