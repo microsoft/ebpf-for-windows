@@ -12,7 +12,7 @@ param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory = $false)][string] $SelfHostedRunnerName,
        [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
        [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-       [parameter(Mandatory = $false)][int] $TestDuration = 5)
+       [parameter(Mandatory = $false)][int] $TestDuration = 5
 )
 
 Push-Location $WorkingDirectory
