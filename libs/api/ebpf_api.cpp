@@ -3160,7 +3160,7 @@ ebpf_program_load_bytes(
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
-    std::stringstream program_hash;
+    std::string program_hash_string;
     if (program_name == nullptr) {
         // If the program name isn't set, use the SHA256 hash of the instructions.
         // This is also used as the object and section name.
@@ -3168,11 +3168,13 @@ ebpf_program_load_bytes(
         auto sha256_hash = hash.hash_byte_ranges({{(uint8_t*)instructions, instruction_count * sizeof(ebpf_inst)}});
 
         // Convert the hash to a string.
+        std::stringstream program_hash;
         program_hash << std::hex << std::setfill('0');
         for (auto byte : sha256_hash) {
             program_hash << std::setw(2) << (int)byte;
         }
-        program_name = program_hash.str().c_str();
+        program_hash_string = program_hash.str();
+        program_name = program_hash_string.c_str();
     }
 
     ebpf_handle_t program_handle;
@@ -3258,6 +3260,11 @@ ebpf_program_load_bytes(
     }
 
     EBPF_RETURN_RESULT(result);
+}
+catch (const std::runtime_error& ex)
+{
+    EBPF_LOG_MESSAGE_STRING(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "*** ERROR *** ", ex.what());
+    EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
