@@ -991,6 +991,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
             break;
         }
 
+#pragma warning(suppress : 6001) /* entry and list entry are non-null */
         if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry)) {
             // If the deletion from the table was successful, remove the entry from the list.
             // If deletion fails, the entry will remain so the delete can be attempted again later.
@@ -1013,6 +1014,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
             break;
         }
 
+#pragma warning(suppress : 6001) /* entry and list entry are non-null */
         list_entry = list_entry->Blink;
         RemoveEntryList(&entry->list_entry);
 
