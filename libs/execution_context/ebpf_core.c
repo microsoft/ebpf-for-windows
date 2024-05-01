@@ -1839,6 +1839,24 @@ ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_han
     EBPF_RETURN_RESULT(result);
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_get_id_and_type_from_handle(ebpf_handle_t handle, _Out_ ebpf_id_t* id, _Out_ ebpf_object_type_t* type)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_core_object_t* object;
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    *id = object->id;
+    *type = object->type;
+
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
+
+    return EBPF_SUCCESS;
+}
+
 static ebpf_result_t
 _get_handle_by_id(
     ebpf_object_type_t type,
