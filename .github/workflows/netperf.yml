@@ -45,22 +45,16 @@ jobs:
           }
           $run_id = iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} ebpf ${{ inputs.sha }} ${{ inputs.ref }} ${{ inputs.pull_request.number }}"
           echo "NetPerf run id: $run_id"
-          gh run download $run_id --dir netperf --pattern bpf_performance_native* --repo microsoft/netperf
+          gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
 
       - name: upload_results_azure_2022_x64
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-            name: Test-Logs-bpf_performance_native_azure_2022_x64
-            path: netperf/bpf_performance_native_azure_2022_x64/bpf_performance_native.csv
-
-      - name: upload_results_azure_2025_x64
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
-        with:
-            name: Test-Logs-bpf_performance_native_azure_2025_x64
-            path: netperf/bpf_performance_native_azure_2025_x64/bpf_performance_native.csv
+            name: Test-Logs-netperf_azure_2022_x64
+            path: netperf/ebpf_azure_2022_x64/ebpf.csv
 
       - name: upload_results_lab_2022_x64
-        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
         with:
-            name: Test-Logs-bpf_performance_native_lab_2022_x64
-            path: netperf/bpf_performance_native_lab_2022_x64/bpf_performance_native.csv
+            name: Test-Logs-netperf_lab_2022_x64
+            path: netperf/ebpf_lab_2022_x64/ebpf.csv

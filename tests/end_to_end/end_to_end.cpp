@@ -2946,6 +2946,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     bpf_object_ptr unique_test_sample_ebpf_object;
     int program_fd = -1;
     const char* error_message = nullptr;
+    int result;
 
     // Should fail.
     REQUIRE(
@@ -2966,14 +2967,19 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         program_info_provider_t sample_program_info;
         REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
-        REQUIRE(
-            ebpf_program_load(
-                execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
-                BPF_PROG_TYPE_UNSPEC,
-                execution_type,
-                &unique_test_sample_ebpf_object,
-                &program_fd,
-                &error_message) == 0);
+        result = ebpf_program_load(
+            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
+            BPF_PROG_TYPE_UNSPEC,
+            execution_type,
+            &unique_test_sample_ebpf_object,
+            &program_fd,
+            &error_message);
+
+        if (error_message) {
+            printf("ebpf_program_load failed with %s\n", error_message);
+            ebpf_free((void*)error_message);
+        }
+        REQUIRE(result == 0);
 
         bpf_link* link = nullptr;
         // Attach only to the single interface being tested.
@@ -3214,4 +3220,162 @@ TEST_CASE("multiple_map_insert", "[close_cleanup]")
     */
 
     bpf_object__close(unique_object.release());
+}
+
+void
+test_no_limit_map_entries(ebpf_map_type_t type, bool max_entries_limited)
+{
+    uint32_t max_entries = 2;
+    fd_t inner_map_fd = ebpf_fd_invalid;
+    fd_t map_fd = ebpf_fd_invalid;
+    void* value = nullptr;
+    uint32_t key_size = 0;
+    uint32_t value_size = 0;
+    void* key = nullptr;
+
+#define IS_LRU_MAP(type) ((type) == BPF_MAP_TYPE_LRU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+#define IS_PERCPU_MAP(type) ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+#define IS_LPM_MAP(type) ((type) == BPF_MAP_TYPE_LPM_TRIE)
+#define IS_NESTED_MAP(type) ((type) == BPF_MAP_TYPE_HASH_OF_MAPS)
+
+    typedef struct _lpm_trie_key
+    {
+        uint32_t prefix_length;
+        uint32_t value;
+    } lpm_trie_key_t;
+
+    lpm_trie_key_t trie_key = {0};
+
+    if (IS_NESTED_MAP(type)) {
+        // First create and pin the maps manually.
+        inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, nullptr, sizeof(int32_t), sizeof(int32_t), 1, nullptr);
+        REQUIRE(inner_map_fd > 0);
+
+        bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+        key_size = sizeof(int32_t);
+        value_size = sizeof(fd_t);
+        map_fd = bpf_map_create(BPF_MAP_TYPE_HASH_OF_MAPS, nullptr, key_size, value_size, 1, &opts);
+        REQUIRE(map_fd > 0);
+    } else {
+        key_size = IS_LPM_MAP(type) ? sizeof(lpm_trie_key_t) : sizeof(int32_t);
+        value_size = sizeof(int32_t);
+        map_fd = bpf_map_create(type, nullptr, key_size, value_size, max_entries, nullptr);
+        REQUIRE(map_fd > 0);
+    }
+
+    // Update value_size for percpu maps for read / update operations.
+    if (IS_PERCPU_MAP(type)) {
+        value_size = EBPF_PAD_8(value_size) * static_cast<size_t>(libbpf_num_possible_cpus());
+    }
+    std::vector<uint8_t> per_cpu_value(value_size);
+
+    auto compute_key = [&](uint32_t* i) -> void* {
+        if (IS_LPM_MAP(type)) {
+            trie_key.prefix_length = 32;
+            trie_key.value = *i;
+            return &trie_key;
+        } else {
+            return i;
+        }
+    };
+
+    // Add `max_entries` entries to the map.
+    for (uint32_t i = 0; i < max_entries; i++) {
+        key = compute_key(&i);
+        if (IS_PERCPU_MAP(type)) {
+            value = per_cpu_value.data();
+        } else {
+            value = IS_NESTED_MAP(type) ? &inner_map_fd : (int32_t*)&i;
+        }
+        REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == 0);
+    }
+
+    // Add one more entry to the map.
+    if (IS_PERCPU_MAP(type)) {
+        value = per_cpu_value.data();
+    } else {
+        value = IS_NESTED_MAP(type) ? &inner_map_fd : (int32_t*)&max_entries;
+    }
+
+    // In case of LRU_HASH, the insert will succeed, but the oldest entry will be removed.
+    int expected_error = (!max_entries_limited || IS_LRU_MAP(type)) ? 0 : -ENOSPC;
+    key = compute_key(&max_entries);
+    REQUIRE(bpf_map_update_elem(map_fd, key, value, 0) == (max_entries_limited ? expected_error : 0));
+
+    // In case of LRU_HASH, check that the number of entries is still `max_entries`.
+    if (IS_LRU_MAP(type) && max_entries_limited) {
+        uint32_t entries_count = 0;
+        lpm_trie_key_t local_key = {0};
+        void* old_key = nullptr;
+        void* next_key = &local_key;
+
+        while (bpf_map_get_next_key(map_fd, old_key, next_key) == 0) {
+            old_key = next_key;
+            entries_count++;
+        }
+        REQUIRE(entries_count == max_entries);
+    }
+}
+
+// This test case tests the map limits of various hash table based map types.
+TEST_CASE("test_map_entries_limit", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // The below hash table based map types do not have a limit on the number of entries.
+    // 1. BPF_MAP_TYPE_HASH
+    // 2. BPF_MAP_TYPE_PERCPU_HASH
+    // 3. BPF_MAP_TYPE_HASH_OF_MAPS
+    // 4. BPF_MAP_TYPE_LPM_TRIE
+    test_no_limit_map_entries(BPF_MAP_TYPE_HASH, false);
+    test_no_limit_map_entries(BPF_MAP_TYPE_PERCPU_HASH, false);
+    test_no_limit_map_entries(BPF_MAP_TYPE_HASH_OF_MAPS, false);
+    test_no_limit_map_entries(BPF_MAP_TYPE_LPM_TRIE, false);
+
+    // The below hash table based map types have a limit on the number of entries.
+    // 1. BPF_MAP_TYPE_LRU_HASH
+    // 2. BPF_MAP_TYPE_LRU_PERCPU_HASH
+    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_HASH, true);
+    test_no_limit_map_entries(BPF_MAP_TYPE_LRU_PERCPU_HASH, true);
+}
+
+// This test validates that a different program type (XDP in this case) cannot call
+// a helper function that is not implemented for that program type. Program load should
+// fail for such a program.
+void
+test_invalid_bpf_get_socket_cookie(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t xdp_program_info;
+    REQUIRE(xdp_program_info.initialize(EBPF_PROGRAM_TYPE_XDP) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "xdp_invalid_socket_cookie_um.dll" : "xdp_invalid_socket_cookie.o");
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == -22);
+}
+
+TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_JIT);
+#endif
+#if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
+#endif
+    test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }

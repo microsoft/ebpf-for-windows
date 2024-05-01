@@ -124,94 +124,6 @@ set_program_under_verification(ebpf_handle_t program)
 }
 
 static ebpf_result_t
-_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_program_info_t** new_info)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_program_info_t* program_info = nullptr;
-    ebpf_helper_function_prototype_t* global_helpers = nullptr;
-    ebpf_helper_function_prototype_t* program_type_specific_helpers = nullptr;
-    ebpf_program_type_descriptor_t* program_type_descriptor = nullptr;
-    ebpf_context_descriptor_t* context_descriptor = nullptr;
-
-    program_info = (ebpf_program_info_t*)ebpf_allocate(sizeof(ebpf_program_info_t));
-    if (program_info == nullptr) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-    program_info->count_of_global_helpers = info->count_of_global_helpers;
-    if (info->count_of_global_helpers > 0) {
-        global_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-            info->count_of_global_helpers * sizeof(ebpf_helper_function_prototype_t));
-        if (global_helpers == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        program_info->global_helper_prototype = global_helpers;
-
-        for (uint32_t i = 0; i < info->count_of_global_helpers; i++) {
-            global_helpers[i] = info->global_helper_prototype[i];
-            global_helpers[i].name = cxplat_duplicate_string(info->global_helper_prototype[i].name);
-            if (global_helpers[i].name == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-        }
-    }
-
-    program_info->count_of_program_type_specific_helpers = info->count_of_program_type_specific_helpers;
-    if (info->count_of_program_type_specific_helpers) {
-        program_type_specific_helpers = (ebpf_helper_function_prototype_t*)ebpf_allocate(
-            info->count_of_program_type_specific_helpers * sizeof(ebpf_helper_function_prototype_t));
-        if (program_type_specific_helpers == nullptr) {
-            result = EBPF_NO_MEMORY;
-            goto Exit;
-        }
-        program_info->program_type_specific_helper_prototype = program_type_specific_helpers;
-
-        for (uint32_t i = 0; i < info->count_of_program_type_specific_helpers; i++) {
-            program_type_specific_helpers[i] = info->program_type_specific_helper_prototype[i];
-            program_type_specific_helpers[i].name =
-                cxplat_duplicate_string(info->program_type_specific_helper_prototype[i].name);
-            if (program_type_specific_helpers[i].name == nullptr) {
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
-        }
-    }
-
-    program_type_descriptor = (ebpf_program_type_descriptor_t*)ebpf_allocate(sizeof(ebpf_program_type_descriptor_t));
-    if (program_type_descriptor == nullptr) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-    program_info->program_type_descriptor = program_type_descriptor;
-    memcpy(program_type_descriptor, info->program_type_descriptor, sizeof(ebpf_program_type_descriptor_t));
-
-    program_type_descriptor->name = cxplat_duplicate_string(info->program_type_descriptor->name);
-    if (program_type_descriptor->name == nullptr) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-
-    context_descriptor = (ebpf_context_descriptor_t*)ebpf_allocate(sizeof(ebpf_context_descriptor_t));
-    if (context_descriptor == nullptr) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-    memcpy(context_descriptor, info->program_type_descriptor->context_descriptor, sizeof(ebpf_context_descriptor_t));
-    program_type_descriptor->context_descriptor = context_descriptor;
-
-    *new_info = program_info;
-    program_info = nullptr;
-
-Exit:
-    ebpf_program_info_free(program_info);
-
-    return result;
-}
-
-static ebpf_result_t
 _get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_ EbpfProgramType** descriptor) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -348,7 +260,7 @@ get_program_type_windows(const GUID& program_type)
         auto it2 = _windows_program_information.find(program_type);
         if (it2 != _windows_program_information.end()) {
             // Cache the descriptor in thread local cache.
-            result = result = _duplicate_program_info(it2->second.get(), &program_info);
+            result = ebpf_duplicate_program_info(it2->second.get(), &program_info);
             if (result != EBPF_SUCCESS) {
                 throw std::runtime_error(std::string("Failed to duplicate program info.") + guid_string);
             }
