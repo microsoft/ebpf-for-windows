@@ -283,12 +283,12 @@ function Invoke-CICDStressTests
     $LASTEXITCODE = 0
 
     $TestCommand = "ebpf_stress_tests_km"
-    $TestArguments = " "
-    if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=" + $TestDuration
-    } else {
-        $TestArguments = "-tt=8 -erd=1000 -er=1 -td=" + $TestDuration
+    $TestArguments = " -tt=8 -td=$testDuration"
+    if ($RestartExtension -eq $true) {
+        $TestArguments = " -erd=1000 -er=1"
     }
+
+    Write-Log "Executing $TestCommand with arguments: $TestArguments"
 
     $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     & $TestRunScript `
