@@ -914,20 +914,18 @@ _Requires_exclusive_lock_held_(
             &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context);
     if (found_context != NULL) {
         entry_found = true;
-        LIST_ENTRY lru_entry = found_context->list_entry;
-
-        // Delete from table. If this succeeds, remove the entry from the LRU list and free the memory.
-        // If the delete operation fails, the entry remains in the LRU list for future clean up.
+        RemoveEntryList(&found_context->list_entry);
         uint64_t transport_endpoint_handle = found_context->transport_endpoint_handle;
-        if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context)) {
-            RemoveEntryList(&lru_entry);
-            _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "_net_ebpf_ext_find_and_remove_connection_context_locked: Delete",
-                transport_endpoint_handle);
-        }
+        // Delete should succeed as the entry was just found in the lookup.
+        BOOLEAN result =
+            RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, context);
+        ebpf_assert(result);
+        _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_net_ebpf_ext_find_and_remove_connection_context_locked: Delete",
+            transport_endpoint_handle);
     } else {
         // The entry was not found in the hash table. Check the low-memory list to see if the entry is there.
         LIST_ENTRY* entry = _net_ebpf_ext_sock_addr_blocked_contexts.low_memory_blocked_context_list.Flink;
@@ -982,8 +980,6 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
     while (list_entry != &_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_lru_list) {
         net_ebpf_extension_connection_context_t* entry =
             CONTAINING_RECORD(list_entry, net_ebpf_extension_connection_context_t, list_entry);
-        // Copy list entry prior to deletion.
-        LIST_ENTRY entry_to_remove = entry->list_entry;
         // Move pointer to next entry prior to removing the entry.
         list_entry = list_entry->Blink;
 
@@ -992,17 +988,16 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
         }
 
 #pragma warning(suppress : 6001) /* entry and list entry are non-null */
-        if (RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry)) {
-            // If the deletion from the table was successful, remove the entry from the list.
-            // If deletion fails, the entry will remain so the delete can be attempted again later.
-            RemoveEntryList(&entry_to_remove);
-            _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-                "_net_ebpf_ext_purge_block_connect_contexts: Delete",
-                entry->transport_endpoint_handle);
-        }
+        RemoveEntryList(&entry->list_entry);
+        BOOLEAN result =
+            RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry);
+        ebpf_assert(result);
+        _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "_net_ebpf_ext_purge_block_connect_contexts: Delete",
+            entry->transport_endpoint_handle);
     }
 
     // Free entries from low-memory list.
