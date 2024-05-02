@@ -209,5 +209,4 @@ jobs:
           onefuzzOSes: 'windows'
         env:
           onefuzzDropDirectory: $(Build.SourcesDirectory)/$(BUILD_PLATFORM)/onefuzz
-          onefuzzDropPAT: $(onefuzzDropPAT)
-          onefuzzBugFilingPAT: $(onefuzzBugFilingPAT)
+          SYSTEM_ACCESSTOKEN: $(System.AccessToken)
