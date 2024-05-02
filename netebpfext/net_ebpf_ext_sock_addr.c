@@ -1032,7 +1032,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 
 _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts.lock) static ebpf_result_t
     _net_ebpf_ext_insert_connection_context_to_low_memory_list(
-        _In_ UINT64 transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
+        _In_ uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     PLIST_ENTRY entry = NULL;
@@ -1066,7 +1066,7 @@ Exit:
 
 static ebpf_result_t
 _net_ebpf_ext_insert_connection_context_to_list(
-    _In_ UINT64 transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
+    _In_ uint64_t transport_endpoint_handle, _In_ const bpf_sock_addr_t* sock_addr_ctx)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
