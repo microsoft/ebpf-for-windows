@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -100,7 +101,7 @@ connect_redirect4(void* context)
 #line 140 "sample/cgroup_sock_addr2.c"
 {
 #line 140 "sample/cgroup_sock_addr2.c"
-    // Prologue
+    // Prologue.
 #line 140 "sample/cgroup_sock_addr2.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 140 "sample/cgroup_sock_addr2.c"
@@ -181,7 +182,7 @@ connect_redirect4(void* context)
     if (r1 == IMMEDIATE(17))
 #line 61 "sample/cgroup_sock_addr2.c"
         goto label_1;
-        // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=80 imm=6
+    // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=80 imm=6
 #line 61 "sample/cgroup_sock_addr2.c"
     if (r1 != IMMEDIATE(6))
 #line 61 "sample/cgroup_sock_addr2.c"
@@ -195,7 +196,7 @@ label_1:
     if (r2 != IMMEDIATE(2))
 #line 61 "sample/cgroup_sock_addr2.c"
         goto label_4;
-        // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=24 imm=0
+    // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=24 imm=0
 #line 65 "sample/cgroup_sock_addr2.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(24));
     // EBPF_OP_STXW pc=23 dst=r10 src=r2 offset=-32 imm=0
@@ -228,7 +229,7 @@ label_1:
     if ((connect_redirect4_helpers[0].tail_call) && (r0 == 0))
 #line 70 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=32 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=32 dst=r8 src=r0 offset=0 imm=0
 #line 70 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=33 dst=r9 src=r0 offset=0 imm=0
@@ -242,7 +243,7 @@ label_1:
     if (r8 == IMMEDIATE(0))
 #line 71 "sample/cgroup_sock_addr2.c"
         goto label_3;
-        // EBPF_OP_MOV64_IMM pc=36 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=36 dst=r7 src=r0 offset=0 imm=0
 #line 71 "sample/cgroup_sock_addr2.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=37 dst=r10 src=r7 offset=-70 imm=0
@@ -302,7 +303,7 @@ label_1:
     if ((connect_redirect4_helpers[1].tail_call) && (r0 == 0))
 #line 72 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LDXW pc=58 dst=r1 src=r8 offset=20 imm=0
+    // EBPF_OP_LDXW pc=58 dst=r1 src=r8 offset=20 imm=0
 #line 78 "sample/cgroup_sock_addr2.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(20));
     // EBPF_OP_JEQ_IMM pc=59 dst=r1 src=r0 offset=8 imm=3
@@ -310,7 +311,7 @@ label_1:
     if (r1 == IMMEDIATE(3))
 #line 78 "sample/cgroup_sock_addr2.c"
         goto label_2;
-        // EBPF_OP_MOV64_REG pc=60 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=60 dst=r2 src=r10 offset=0 imm=0
 #line 78 "sample/cgroup_sock_addr2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=61 dst=r2 src=r0 offset=0 imm=-64
@@ -331,7 +332,7 @@ label_1:
     if ((connect_redirect4_helpers[2].tail_call) && (r0 == 0))
 #line 79 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LSH64_IMM pc=65 dst=r0 src=r0 offset=0 imm=32
+    // EBPF_OP_LSH64_IMM pc=65 dst=r0 src=r0 offset=0 imm=32
 #line 79 "sample/cgroup_sock_addr2.c"
     r0 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_ARSH64_IMM pc=66 dst=r0 src=r0 offset=0 imm=32
@@ -380,7 +381,7 @@ label_3:
     if ((connect_redirect4_helpers[3].tail_call) && (r0 == 0))
 #line 44 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=78 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=78 dst=r8 src=r0 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_STXDW pc=79 dst=r10 src=r8 offset=-96 imm=0
@@ -398,7 +399,7 @@ label_3:
     if ((connect_redirect4_helpers[4].tail_call) && (r0 == 0))
 #line 45 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=82 dst=r10 src=r0 offset=-104 imm=0
+    // EBPF_OP_STXDW pc=82 dst=r10 src=r0 offset=-104 imm=0
 #line 45 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-104)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=83 dst=r1 src=r6 offset=0 imm=0
@@ -413,7 +414,7 @@ label_3:
     if ((connect_redirect4_helpers[5].tail_call) && (r0 == 0))
 #line 46 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXW pc=85 dst=r10 src=r0 offset=-88 imm=0
+    // EBPF_OP_STXW pc=85 dst=r10 src=r0 offset=-88 imm=0
 #line 46 "sample/cgroup_sock_addr2.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-88)) = (uint32_t)r0;
     // EBPF_OP_LDXH pc=86 dst=r1 src=r6 offset=20 imm=0
@@ -434,7 +435,7 @@ label_3:
     if ((connect_redirect4_helpers[6].tail_call) && (r0 == 0))
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=90 dst=r10 src=r0 offset=-80 imm=0
+    // EBPF_OP_STXDW pc=90 dst=r10 src=r0 offset=-80 imm=0
 #line 48 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-80)) = (uint64_t)r0;
     // EBPF_OP_STXDW pc=91 dst=r10 src=r8 offset=-8 imm=0
@@ -474,7 +475,7 @@ label_4:
     // EBPF_OP_EXIT pc=101 dst=r0 src=r0 offset=0 imm=0
 #line 142 "sample/cgroup_sock_addr2.c"
     return r0;
-#line 142 "sample/cgroup_sock_addr2.c"
+#line 140 "sample/cgroup_sock_addr2.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -505,7 +506,7 @@ connect_redirect6(void* context)
 #line 147 "sample/cgroup_sock_addr2.c"
 {
 #line 147 "sample/cgroup_sock_addr2.c"
-    // Prologue
+    // Prologue.
 #line 147 "sample/cgroup_sock_addr2.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 147 "sample/cgroup_sock_addr2.c"
@@ -586,7 +587,7 @@ connect_redirect6(void* context)
     if (r1 == IMMEDIATE(17))
 #line 102 "sample/cgroup_sock_addr2.c"
         goto label_1;
-        // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=91 imm=6
+    // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=91 imm=6
 #line 102 "sample/cgroup_sock_addr2.c"
     if (r1 != IMMEDIATE(6))
 #line 102 "sample/cgroup_sock_addr2.c"
@@ -600,7 +601,7 @@ label_1:
     if (r2 != IMMEDIATE(23))
 #line 102 "sample/cgroup_sock_addr2.c"
         goto label_4;
-        // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=36 imm=0
+    // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=36 imm=0
 #line 109 "sample/cgroup_sock_addr2.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(36));
     // EBPF_OP_LSH64_IMM pc=23 dst=r2 src=r0 offset=0 imm=32
@@ -657,7 +658,7 @@ label_1:
     if ((connect_redirect6_helpers[0].tail_call) && (r0 == 0))
 #line 114 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=40 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=40 dst=r8 src=r0 offset=0 imm=0
 #line 114 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=41 dst=r9 src=r0 offset=0 imm=0
@@ -671,7 +672,7 @@ label_1:
     if (r8 == IMMEDIATE(0))
 #line 115 "sample/cgroup_sock_addr2.c"
         goto label_3;
-        // EBPF_OP_MOV64_IMM pc=44 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=44 dst=r7 src=r0 offset=0 imm=0
 #line 115 "sample/cgroup_sock_addr2.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=45 dst=r10 src=r7 offset=-14 imm=0
@@ -719,7 +720,7 @@ label_1:
     if ((connect_redirect6_helpers[1].tail_call) && (r0 == 0))
 #line 116 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LDXW pc=61 dst=r1 src=r8 offset=20 imm=0
+    // EBPF_OP_LDXW pc=61 dst=r1 src=r8 offset=20 imm=0
 #line 122 "sample/cgroup_sock_addr2.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(20));
     // EBPF_OP_JEQ_IMM pc=62 dst=r1 src=r0 offset=8 imm=3
@@ -727,7 +728,7 @@ label_1:
     if (r1 == IMMEDIATE(3))
 #line 122 "sample/cgroup_sock_addr2.c"
         goto label_2;
-        // EBPF_OP_MOV64_REG pc=63 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=63 dst=r2 src=r10 offset=0 imm=0
 #line 122 "sample/cgroup_sock_addr2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=64 dst=r2 src=r0 offset=0 imm=-96
@@ -748,7 +749,7 @@ label_1:
     if ((connect_redirect6_helpers[2].tail_call) && (r0 == 0))
 #line 123 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LSH64_IMM pc=68 dst=r0 src=r0 offset=0 imm=32
+    // EBPF_OP_LSH64_IMM pc=68 dst=r0 src=r0 offset=0 imm=32
 #line 123 "sample/cgroup_sock_addr2.c"
     r0 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_ARSH64_IMM pc=69 dst=r0 src=r0 offset=0 imm=32
@@ -821,7 +822,7 @@ label_3:
     if ((connect_redirect6_helpers[3].tail_call) && (r0 == 0))
 #line 44 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=89 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=89 dst=r8 src=r0 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_STXDW pc=90 dst=r10 src=r8 offset=-32 imm=0
@@ -839,7 +840,7 @@ label_3:
     if ((connect_redirect6_helpers[4].tail_call) && (r0 == 0))
 #line 45 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=93 dst=r10 src=r0 offset=-40 imm=0
+    // EBPF_OP_STXDW pc=93 dst=r10 src=r0 offset=-40 imm=0
 #line 45 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=94 dst=r1 src=r6 offset=0 imm=0
@@ -854,7 +855,7 @@ label_3:
     if ((connect_redirect6_helpers[5].tail_call) && (r0 == 0))
 #line 46 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXW pc=96 dst=r10 src=r0 offset=-24 imm=0
+    // EBPF_OP_STXW pc=96 dst=r10 src=r0 offset=-24 imm=0
 #line 46 "sample/cgroup_sock_addr2.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r0;
     // EBPF_OP_LDXH pc=97 dst=r1 src=r6 offset=20 imm=0
@@ -875,7 +876,7 @@ label_3:
     if ((connect_redirect6_helpers[6].tail_call) && (r0 == 0))
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=101 dst=r10 src=r0 offset=-16 imm=0
+    // EBPF_OP_STXDW pc=101 dst=r10 src=r0 offset=-16 imm=0
 #line 48 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
     // EBPF_OP_STXDW pc=102 dst=r10 src=r8 offset=-8 imm=0
@@ -915,7 +916,7 @@ label_4:
     // EBPF_OP_EXIT pc=112 dst=r0 src=r0 offset=0 imm=0
 #line 149 "sample/cgroup_sock_addr2.c"
     return r0;
-#line 149 "sample/cgroup_sock_addr2.c"
+#line 147 "sample/cgroup_sock_addr2.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

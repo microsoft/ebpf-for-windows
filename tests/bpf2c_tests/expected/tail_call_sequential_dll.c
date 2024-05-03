@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -95,7 +96,7 @@ sequential0(void* context)
 #line 133 "sample/undocked/tail_call_sequential.c"
 {
 #line 133 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 133 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 133 "sample/undocked/tail_call_sequential.c"
@@ -269,7 +270,7 @@ sequential1(void* context)
 #line 134 "sample/undocked/tail_call_sequential.c"
 {
 #line 134 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 134 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -443,7 +444,7 @@ sequential10(void* context)
 #line 143 "sample/undocked/tail_call_sequential.c"
 {
 #line 143 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 143 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -622,7 +623,7 @@ sequential11(void* context)
 #line 144 "sample/undocked/tail_call_sequential.c"
 {
 #line 144 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 144 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 144 "sample/undocked/tail_call_sequential.c"
@@ -801,7 +802,7 @@ sequential12(void* context)
 #line 145 "sample/undocked/tail_call_sequential.c"
 {
 #line 145 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 145 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -980,7 +981,7 @@ sequential13(void* context)
 #line 146 "sample/undocked/tail_call_sequential.c"
 {
 #line 146 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 146 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 146 "sample/undocked/tail_call_sequential.c"
@@ -1159,7 +1160,7 @@ sequential14(void* context)
 #line 147 "sample/undocked/tail_call_sequential.c"
 {
 #line 147 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 147 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1338,7 +1339,7 @@ sequential15(void* context)
 #line 148 "sample/undocked/tail_call_sequential.c"
 {
 #line 148 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 148 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 148 "sample/undocked/tail_call_sequential.c"
@@ -1517,7 +1518,7 @@ sequential16(void* context)
 #line 149 "sample/undocked/tail_call_sequential.c"
 {
 #line 149 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 149 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -1696,7 +1697,7 @@ sequential17(void* context)
 #line 150 "sample/undocked/tail_call_sequential.c"
 {
 #line 150 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 150 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 150 "sample/undocked/tail_call_sequential.c"
@@ -1875,7 +1876,7 @@ sequential18(void* context)
 #line 151 "sample/undocked/tail_call_sequential.c"
 {
 #line 151 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 151 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2054,7 +2055,7 @@ sequential19(void* context)
 #line 152 "sample/undocked/tail_call_sequential.c"
 {
 #line 152 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 152 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 152 "sample/undocked/tail_call_sequential.c"
@@ -2233,7 +2234,7 @@ sequential2(void* context)
 #line 135 "sample/undocked/tail_call_sequential.c"
 {
 #line 135 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 135 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 135 "sample/undocked/tail_call_sequential.c"
@@ -2407,7 +2408,7 @@ sequential20(void* context)
 #line 153 "sample/undocked/tail_call_sequential.c"
 {
 #line 153 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 153 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -2586,7 +2587,7 @@ sequential21(void* context)
 #line 154 "sample/undocked/tail_call_sequential.c"
 {
 #line 154 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 154 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 154 "sample/undocked/tail_call_sequential.c"
@@ -2765,7 +2766,7 @@ sequential22(void* context)
 #line 155 "sample/undocked/tail_call_sequential.c"
 {
 #line 155 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 155 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -2944,7 +2945,7 @@ sequential23(void* context)
 #line 156 "sample/undocked/tail_call_sequential.c"
 {
 #line 156 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 156 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 156 "sample/undocked/tail_call_sequential.c"
@@ -3123,7 +3124,7 @@ sequential24(void* context)
 #line 157 "sample/undocked/tail_call_sequential.c"
 {
 #line 157 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 157 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3302,7 +3303,7 @@ sequential25(void* context)
 #line 158 "sample/undocked/tail_call_sequential.c"
 {
 #line 158 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 158 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 158 "sample/undocked/tail_call_sequential.c"
@@ -3481,7 +3482,7 @@ sequential26(void* context)
 #line 159 "sample/undocked/tail_call_sequential.c"
 {
 #line 159 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 159 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -3660,7 +3661,7 @@ sequential27(void* context)
 #line 160 "sample/undocked/tail_call_sequential.c"
 {
 #line 160 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 160 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 160 "sample/undocked/tail_call_sequential.c"
@@ -3839,7 +3840,7 @@ sequential28(void* context)
 #line 161 "sample/undocked/tail_call_sequential.c"
 {
 #line 161 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 161 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4018,7 +4019,7 @@ sequential29(void* context)
 #line 162 "sample/undocked/tail_call_sequential.c"
 {
 #line 162 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 162 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 162 "sample/undocked/tail_call_sequential.c"
@@ -4197,7 +4198,7 @@ sequential3(void* context)
 #line 136 "sample/undocked/tail_call_sequential.c"
 {
 #line 136 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 136 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 136 "sample/undocked/tail_call_sequential.c"
@@ -4371,7 +4372,7 @@ sequential30(void* context)
 #line 163 "sample/undocked/tail_call_sequential.c"
 {
 #line 163 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 163 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -4550,7 +4551,7 @@ sequential31(void* context)
 #line 164 "sample/undocked/tail_call_sequential.c"
 {
 #line 164 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 164 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 164 "sample/undocked/tail_call_sequential.c"
@@ -4729,7 +4730,7 @@ sequential32(void* context)
 #line 165 "sample/undocked/tail_call_sequential.c"
 {
 #line 165 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 165 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -4908,7 +4909,7 @@ sequential33(void* context)
 #line 166 "sample/undocked/tail_call_sequential.c"
 {
 #line 166 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 166 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 166 "sample/undocked/tail_call_sequential.c"
@@ -5087,7 +5088,7 @@ sequential34(void* context)
 #line 167 "sample/undocked/tail_call_sequential.c"
 {
 #line 167 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 167 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -5266,7 +5267,7 @@ sequential4(void* context)
 #line 137 "sample/undocked/tail_call_sequential.c"
 {
 #line 137 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 137 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 137 "sample/undocked/tail_call_sequential.c"
@@ -5440,7 +5441,7 @@ sequential5(void* context)
 #line 138 "sample/undocked/tail_call_sequential.c"
 {
 #line 138 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 138 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -5614,7 +5615,7 @@ sequential6(void* context)
 #line 139 "sample/undocked/tail_call_sequential.c"
 {
 #line 139 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 139 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 139 "sample/undocked/tail_call_sequential.c"
@@ -5788,7 +5789,7 @@ sequential7(void* context)
 #line 140 "sample/undocked/tail_call_sequential.c"
 {
 #line 140 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 140 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -5962,7 +5963,7 @@ sequential8(void* context)
 #line 141 "sample/undocked/tail_call_sequential.c"
 {
 #line 141 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 141 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 141 "sample/undocked/tail_call_sequential.c"
@@ -6136,7 +6137,7 @@ sequential9(void* context)
 #line 142 "sample/undocked/tail_call_sequential.c"
 {
 #line 142 "sample/undocked/tail_call_sequential.c"
-    // Prologue
+    // Prologue.
 #line 142 "sample/undocked/tail_call_sequential.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 142 "sample/undocked/tail_call_sequential.c"

@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -51,7 +52,7 @@ static GUID test_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0x
 static uint64_t
 test(void* context)
 {
-    // Prologue
+    // Prologue.
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
     register uint64_t r0 = 0;
     register uint64_t r1 = 0;

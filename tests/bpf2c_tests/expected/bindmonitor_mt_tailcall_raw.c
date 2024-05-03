@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -55,7 +56,7 @@ BindMonitor_Caller(void* context)
 #line 31 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 31 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 31 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 31 "sample/bindmonitor_mt_tailcall.c"
@@ -158,7 +159,7 @@ BindMonitor_Caller(void* context)
     // EBPF_OP_EXIT pc=27 dst=r0 src=r0 offset=0 imm=0
 #line 36 "sample/bindmonitor_mt_tailcall.c"
     return r0;
-#line 36 "sample/bindmonitor_mt_tailcall.c"
+#line 31 "sample/bindmonitor_mt_tailcall.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -182,7 +183,7 @@ BindMonitor_Callee0(void* context)
 #line 53 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -353,7 +354,7 @@ BindMonitor_Callee1(void* context)
 #line 54 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -524,7 +525,7 @@ BindMonitor_Callee10(void* context)
 #line 63 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -695,7 +696,7 @@ BindMonitor_Callee11(void* context)
 #line 64 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -866,7 +867,7 @@ BindMonitor_Callee12(void* context)
 #line 65 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -1037,7 +1038,7 @@ BindMonitor_Callee13(void* context)
 #line 66 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1208,7 +1209,7 @@ BindMonitor_Callee14(void* context)
 #line 67 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1379,7 +1380,7 @@ BindMonitor_Callee15(void* context)
 #line 68 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1550,7 +1551,7 @@ BindMonitor_Callee16(void* context)
 #line 69 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1721,7 +1722,7 @@ BindMonitor_Callee17(void* context)
 #line 70 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1892,7 +1893,7 @@ BindMonitor_Callee18(void* context)
 #line 71 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2063,7 +2064,7 @@ BindMonitor_Callee19(void* context)
 #line 72 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2234,7 +2235,7 @@ BindMonitor_Callee2(void* context)
 #line 55 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2405,7 +2406,7 @@ BindMonitor_Callee20(void* context)
 #line 73 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2576,7 +2577,7 @@ BindMonitor_Callee21(void* context)
 #line 74 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2747,7 +2748,7 @@ BindMonitor_Callee22(void* context)
 #line 75 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2918,7 +2919,7 @@ BindMonitor_Callee23(void* context)
 #line 76 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3089,7 +3090,7 @@ BindMonitor_Callee24(void* context)
 #line 77 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3260,7 +3261,7 @@ BindMonitor_Callee25(void* context)
 #line 78 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3431,7 +3432,7 @@ BindMonitor_Callee26(void* context)
 #line 79 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3602,7 +3603,7 @@ BindMonitor_Callee27(void* context)
 #line 80 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3773,7 +3774,7 @@ BindMonitor_Callee28(void* context)
 #line 81 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3944,7 +3945,7 @@ BindMonitor_Callee29(void* context)
 #line 82 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4115,7 +4116,7 @@ BindMonitor_Callee3(void* context)
 #line 56 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4286,7 +4287,7 @@ BindMonitor_Callee30(void* context)
 #line 83 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4457,7 +4458,7 @@ BindMonitor_Callee31(void* context)
 #line 84 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4619,7 +4620,7 @@ BindMonitor_Callee32(void* context)
 #line 97 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 97 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 97 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 97 "sample/bindmonitor_mt_tailcall.c"
@@ -4664,7 +4665,7 @@ BindMonitor_Callee4(void* context)
 #line 57 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4835,7 +4836,7 @@ BindMonitor_Callee5(void* context)
 #line 58 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -5006,7 +5007,7 @@ BindMonitor_Callee6(void* context)
 #line 59 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5177,7 +5178,7 @@ BindMonitor_Callee7(void* context)
 #line 60 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5348,7 +5349,7 @@ BindMonitor_Callee8(void* context)
 #line 61 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5519,7 +5520,7 @@ BindMonitor_Callee9(void* context)
 #line 62 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 62 "sample/bindmonitor_mt_tailcall.c"

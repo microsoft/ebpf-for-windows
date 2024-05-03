@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -34,7 +35,7 @@ xdp_invalid_socket_cookie(void* context)
 #line 20 "sample/xdp_invalid_socket_cookie.c"
 {
 #line 20 "sample/xdp_invalid_socket_cookie.c"
-    // Prologue
+    // Prologue.
 #line 20 "sample/xdp_invalid_socket_cookie.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 20 "sample/xdp_invalid_socket_cookie.c"
@@ -66,7 +67,7 @@ xdp_invalid_socket_cookie(void* context)
     if ((xdp_invalid_socket_cookie_helpers[0].tail_call) && (r0 == 0))
 #line 20 "sample/xdp_invalid_socket_cookie.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=0
 #line 20 "sample/xdp_invalid_socket_cookie.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=2 dst=r10 src=r1 offset=-4 imm=0
@@ -111,13 +112,13 @@ xdp_invalid_socket_cookie(void* context)
     if ((xdp_invalid_socket_cookie_helpers[1].tail_call) && (r0 == 0))
 #line 22 "sample/xdp_invalid_socket_cookie.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
 #line 25 "sample/xdp_invalid_socket_cookie.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 25 "sample/xdp_invalid_socket_cookie.c"
     return r0;
-#line 25 "sample/xdp_invalid_socket_cookie.c"
+#line 20 "sample/xdp_invalid_socket_cookie.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -152,7 +153,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 15;
+    version->minor = 16;
     version->revision = 0;
 }
 

@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -154,7 +155,7 @@ BindMonitor(void* context)
 #line 128 "sample/unsafe/invalid_helpers.c"
 {
 #line 128 "sample/unsafe/invalid_helpers.c"
-    // Prologue
+    // Prologue.
 #line 128 "sample/unsafe/invalid_helpers.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 128 "sample/unsafe/invalid_helpers.c"
@@ -236,7 +237,7 @@ label_1:
     // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
 #line 139 "sample/unsafe/invalid_helpers.c"
     return r0;
-#line 139 "sample/unsafe/invalid_helpers.c"
+#line 128 "sample/unsafe/invalid_helpers.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -261,7 +262,7 @@ BindMonitor_Callee0(void* context)
 #line 144 "sample/unsafe/invalid_helpers.c"
 {
 #line 144 "sample/unsafe/invalid_helpers.c"
-    // Prologue
+    // Prologue.
 #line 144 "sample/unsafe/invalid_helpers.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 144 "sample/unsafe/invalid_helpers.c"
@@ -343,7 +344,7 @@ label_1:
     // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
 #line 155 "sample/unsafe/invalid_helpers.c"
     return r0;
-#line 155 "sample/unsafe/invalid_helpers.c"
+#line 144 "sample/unsafe/invalid_helpers.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -370,7 +371,7 @@ BindMonitor_Callee1(void* context)
 #line 160 "sample/unsafe/invalid_helpers.c"
 {
 #line 160 "sample/unsafe/invalid_helpers.c"
-    // Prologue
+    // Prologue.
 #line 160 "sample/unsafe/invalid_helpers.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 160 "sample/unsafe/invalid_helpers.c"
@@ -762,7 +763,7 @@ label_10:
     // EBPF_OP_EXIT pc=100 dst=r0 src=r0 offset=0 imm=0
 #line 198 "sample/unsafe/invalid_helpers.c"
     return r0;
-#line 198 "sample/unsafe/invalid_helpers.c"
+#line 160 "sample/unsafe/invalid_helpers.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
