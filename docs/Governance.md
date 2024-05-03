@@ -116,15 +116,34 @@ Responsibilities:
 * Manage github settings such as branch protection rules and repository secrets.
 * Resolve any disputes among maintainers.
 
+## Project Milestones
+
+eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g. the milestone for June, 2024 will be called 2406.
+At any time there are four active milestones in the project. There will be an milestone for the current calendar month (`N`),
+and two others for the next two months (`N+1`), (`N+2`). And there is always a `Backlog` milestone for backlog issues to be
+addressed in the future. In the first triage meeting of a month, the previous milestone must be closed and a new `N+2` milestone must be created.
+
+During the weekly triage meetings, triage drivers MUST set an issue to one of the four milestones according to the priority of the issues.
+
 ## Prioritizing Issues
 
-In the weekly triage meetings, new issues are assigned to collaborators and are set to a monthly milestone by which the issue is expected to be completed. It may not be possible for the assignees to address all the issues assigned to them by their target milestone. As a result issues may pile up in a given milestone. In such cases project admins can request that triage drivers and maintainers use *special labels* to prioritize issues as follows:
+To help prioritize issues, the triage drivers and maintainers MUST use *special labels* to prioritize issues as follows:
 ### P1:
-This label represents highest priority. This label should be used for bugs impacting users, new feature or enhancements that are urgently requested by users. Collaborators  should try to resolve these issues in the **current milestone**.
+This label represents highest priority. This label should be used for bugs impacting users, new feature or enhancements that are urgently
+requested by users. `P1` issues MUST be set to the *current milestone (`N`)*. If there is not enough time left in the current milestone to address
+the `P1` issue, it must be set to the *next milestone (`N+1`)*.
 ### P2:
-This label is used for the next level of priority. Issues marked as P2 for the current milestone may be moved to the *next milestone* after discussing in the weekly triage meeting.
+This label is used for the next level of priority. Issues marked as `P2` can be set to milestones `N`, `N+1` (preferred) or `N+2`.
 ### P3:
-This label is used for low priority issues. Issues marked with this label may be moved to the *next milestone* or the *backlog* milestone, without needing further discussion in the weekly triage meeting.
+This label is used for low priority issues. Issues marked with `P3` label can be set to the milestones `N+1`, `N+2` or `Backlog`.
+`P3` issues must never be set to the current milestone (`N`).
+
+In the last triage meeting of the monthly milestone, triage drivers or administrators must move all issues that do not have an active pull request
+to the next milestones. Ideally, all `P1` issues should be addressed in their designated milestones. However, if that does not happen for any reason,
+`P1` issue can be moved to `N+1` milestone. Similarly, overdue `P2` issues can be moved to milestones `N+1` or `N+2`. Overdue `P3` issues can be moved to
+the `N+2` or `Backlog` milestones.
+
+If any issue has been moved two times already, then the issue must be re-triaged for setting the appropriate priority and/or the milestone.
 
 ## Reviewing Pull Requests
 
