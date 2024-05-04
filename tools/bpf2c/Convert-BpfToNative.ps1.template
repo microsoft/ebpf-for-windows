@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 <#
@@ -63,7 +63,7 @@
     The driver is built in Debug configuration.
 
 .NOTES
-    Author: Microsoft Corporation
+    Author: eBPF for Windows contributors
     Website: https://github.com/microsoft/ebpf-for-windows
 
 #>

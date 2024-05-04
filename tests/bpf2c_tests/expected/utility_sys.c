@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -282,7 +282,7 @@ UtilityTest(void* context)
     if ((UtilityTest_helpers[0].tail_call) && (r0 == 0))
 #line 31 "sample/utility.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=19 dst=r6 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=19 dst=r6 src=r0 offset=0 imm=1
 #line 31 "sample/utility.c"
     r6 = IMMEDIATE(1);
     // EBPF_OP_LSH64_IMM pc=20 dst=r0 src=r0 offset=0 imm=32
@@ -296,7 +296,7 @@ UtilityTest(void* context)
     if (r0 != IMMEDIATE(0))
 #line 31 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=23 dst=r1 src=r0 offset=0 imm=84
+        // EBPF_OP_MOV64_IMM pc=23 dst=r1 src=r0 offset=0 imm=84
 #line 31 "sample/utility.c"
     r1 = IMMEDIATE(84);
     // EBPF_OP_STXB pc=24 dst=r10 src=r1 offset=-8 imm=0
@@ -329,7 +329,7 @@ UtilityTest(void* context)
     if ((UtilityTest_helpers[0].tail_call) && (r0 == 0))
 #line 37 "sample/utility.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=32 dst=r6 src=r0 offset=0 imm=2
+        // EBPF_OP_MOV64_IMM pc=32 dst=r6 src=r0 offset=0 imm=2
 #line 37 "sample/utility.c"
     r6 = IMMEDIATE(2);
     // EBPF_OP_LSH64_IMM pc=33 dst=r0 src=r0 offset=0 imm=32
@@ -343,7 +343,7 @@ UtilityTest(void* context)
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 37 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_REG pc=36 dst=r1 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=36 dst=r1 src=r10 offset=0 imm=0
 #line 37 "sample/utility.c"
     r1 = r10;
     // EBPF_OP_ADD64_IMM pc=37 dst=r1 src=r0 offset=0 imm=-8
@@ -373,7 +373,7 @@ UtilityTest(void* context)
     if ((UtilityTest_helpers[0].tail_call) && (r0 == 0))
 #line 43 "sample/utility.c"
         return 0;
-    // EBPF_OP_LSH64_IMM pc=44 dst=r0 src=r0 offset=0 imm=32
+        // EBPF_OP_LSH64_IMM pc=44 dst=r0 src=r0 offset=0 imm=32
 #line 43 "sample/utility.c"
     r0 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_ARSH64_IMM pc=45 dst=r0 src=r0 offset=0 imm=32
@@ -384,7 +384,7 @@ UtilityTest(void* context)
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 43 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=47 dst=r1 src=r0 offset=0 imm=1414743380
+        // EBPF_OP_MOV64_IMM pc=47 dst=r1 src=r0 offset=0 imm=1414743380
 #line 43 "sample/utility.c"
     r1 = IMMEDIATE(1414743380);
     // EBPF_OP_STXW pc=48 dst=r10 src=r1 offset=-8 imm=0
@@ -417,7 +417,7 @@ UtilityTest(void* context)
     if ((UtilityTest_helpers[1].tail_call) && (r0 == 0))
 #line 54 "sample/utility.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=56 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=56 dst=r1 src=r0 offset=0 imm=0
 #line 54 "sample/utility.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_MOV64_IMM pc=57 dst=r6 src=r0 offset=0 imm=4
@@ -428,7 +428,7 @@ UtilityTest(void* context)
     if ((int64_t)r1 > (int64_t)r0)
 #line 54 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=59 dst=r6 src=r0 offset=0 imm=5
+        // EBPF_OP_MOV64_IMM pc=59 dst=r6 src=r0 offset=0 imm=5
 #line 54 "sample/utility.c"
     r6 = IMMEDIATE(5);
     // EBPF_OP_LDXB pc=60 dst=r1 src=r10 offset=-8 imm=0
@@ -439,7 +439,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(116))
 #line 59 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_LDXB pc=62 dst=r1 src=r10 offset=-7 imm=0
+        // EBPF_OP_LDXB pc=62 dst=r1 src=r10 offset=-7 imm=0
 #line 59 "sample/utility.c"
     r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-7));
     // EBPF_OP_JNE_IMM pc=63 dst=r1 src=r0 offset=42 imm=101
@@ -447,7 +447,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(101))
 #line 59 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_LDXB pc=64 dst=r1 src=r10 offset=-6 imm=0
+        // EBPF_OP_LDXB pc=64 dst=r1 src=r10 offset=-6 imm=0
 #line 59 "sample/utility.c"
     r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-6));
     // EBPF_OP_JNE_IMM pc=65 dst=r1 src=r0 offset=40 imm=115
@@ -455,7 +455,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(115))
 #line 59 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_LDXB pc=66 dst=r1 src=r10 offset=-5 imm=0
+        // EBPF_OP_LDXB pc=66 dst=r1 src=r10 offset=-5 imm=0
 #line 59 "sample/utility.c"
     r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-5));
     // EBPF_OP_JNE_IMM pc=67 dst=r1 src=r0 offset=38 imm=116
@@ -463,7 +463,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(116))
 #line 59 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_REG pc=68 dst=r1 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=68 dst=r1 src=r10 offset=0 imm=0
 #line 59 "sample/utility.c"
     r1 = r10;
     // EBPF_OP_ADD64_IMM pc=69 dst=r1 src=r0 offset=0 imm=-8
@@ -484,7 +484,7 @@ UtilityTest(void* context)
     if ((UtilityTest_helpers[2].tail_call) && (r0 == 0))
 #line 64 "sample/utility.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=73 dst=r6 src=r0 offset=0 imm=6
+        // EBPF_OP_MOV64_IMM pc=73 dst=r6 src=r0 offset=0 imm=6
 #line 64 "sample/utility.c"
     r6 = IMMEDIATE(6);
     // EBPF_OP_JEQ_IMM pc=74 dst=r0 src=r0 offset=31 imm=0
@@ -492,7 +492,7 @@ UtilityTest(void* context)
     if (r0 == IMMEDIATE(0))
 #line 64 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_LDXB pc=75 dst=r1 src=r10 offset=-8 imm=0
+        // EBPF_OP_LDXB pc=75 dst=r1 src=r10 offset=-8 imm=0
 #line 69 "sample/utility.c"
     r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8));
     // EBPF_OP_LDXB pc=76 dst=r2 src=r10 offset=-7 imm=0
@@ -524,7 +524,7 @@ UtilityTest(void* context)
     if (r2 != IMMEDIATE(0))
 #line 69 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_REG pc=85 dst=r1 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=85 dst=r1 src=r10 offset=0 imm=0
 #line 74 "sample/utility.c"
     r1 = r10;
     // EBPF_OP_ADD64_IMM pc=86 dst=r1 src=r0 offset=0 imm=-30
@@ -551,7 +551,7 @@ UtilityTest(void* context)
     if ((UtilityTest_helpers[3].tail_call) && (r0 == 0))
 #line 74 "sample/utility.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=92 dst=r6 src=r0 offset=0 imm=8
+        // EBPF_OP_MOV64_IMM pc=92 dst=r6 src=r0 offset=0 imm=8
 #line 74 "sample/utility.c"
     r6 = IMMEDIATE(8);
     // EBPF_OP_MOV64_IMM pc=93 dst=r1 src=r0 offset=0 imm=0
@@ -562,7 +562,7 @@ UtilityTest(void* context)
     if ((int64_t)r1 > (int64_t)r0)
 #line 74 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=95 dst=r6 src=r0 offset=0 imm=9
+        // EBPF_OP_MOV64_IMM pc=95 dst=r6 src=r0 offset=0 imm=9
 #line 74 "sample/utility.c"
     r6 = IMMEDIATE(9);
     // EBPF_OP_LDXB pc=96 dst=r1 src=r10 offset=-30 imm=0
@@ -573,7 +573,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(49))
 #line 79 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_LDXB pc=98 dst=r1 src=r10 offset=-29 imm=0
+        // EBPF_OP_LDXB pc=98 dst=r1 src=r10 offset=-29 imm=0
 #line 79 "sample/utility.c"
     r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-29));
     // EBPF_OP_JNE_IMM pc=99 dst=r1 src=r0 offset=6 imm=50
@@ -581,7 +581,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(50))
 #line 79 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_LDXB pc=100 dst=r1 src=r10 offset=-28 imm=0
+        // EBPF_OP_LDXB pc=100 dst=r1 src=r10 offset=-28 imm=0
 #line 79 "sample/utility.c"
     r1 = *(uint8_t*)(uintptr_t)(r10 + OFFSET(-28));
     // EBPF_OP_JNE_IMM pc=101 dst=r1 src=r0 offset=4 imm=51
@@ -589,7 +589,7 @@ UtilityTest(void* context)
     if (r1 != IMMEDIATE(51))
 #line 79 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=102 dst=r6 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=102 dst=r6 src=r0 offset=0 imm=0
 #line 79 "sample/utility.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDXB pc=103 dst=r1 src=r10 offset=-27 imm=0
@@ -600,7 +600,7 @@ UtilityTest(void* context)
     if (r1 == IMMEDIATE(52))
 #line 79 "sample/utility.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=105 dst=r6 src=r0 offset=0 imm=9
+        // EBPF_OP_MOV64_IMM pc=105 dst=r6 src=r0 offset=0 imm=9
 #line 79 "sample/utility.c"
     r6 = IMMEDIATE(9);
 label_1:

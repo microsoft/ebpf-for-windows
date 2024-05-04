@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 # This script accepts either a list of files relative to the current
@@ -11,7 +11,7 @@
 set -o errexit
 set -o pipefail
 
-license=("Copyright (c) Microsoft Corporation" "SPDX-License-Identifier: MIT")
+license=("Copyright (c) eBPF for Windows contributors" "SPDX-License-Identifier: MIT")
 
 root=$(git rev-parse --show-toplevel)
 
