@@ -1,5 +1,5 @@
 @echo off
-rem Copyright (c) Microsoft Corporation
+rem Copyright (c) eBPF for Windows contributors
 rem SPDX-License-Identifier: MIT
 rem
 rem Usage: create_netebpfext_corpus.bat <solution_path> <output_directory>

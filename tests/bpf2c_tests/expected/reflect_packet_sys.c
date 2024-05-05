@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -233,7 +233,7 @@ reflect_packet(void* context)
     if (r2 > r3)
 #line 29 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXH pc=6 dst=r4 src=r1 offset=12 imm=0
+        // EBPF_OP_LDXH pc=6 dst=r4 src=r1 offset=12 imm=0
 #line 34 "sample/reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(12));
     // EBPF_OP_JEQ_IMM pc=7 dst=r4 src=r0 offset=60 imm=56710
@@ -241,12 +241,12 @@ reflect_packet(void* context)
     if (r4 == IMMEDIATE(56710))
 #line 34 "sample/reflect_packet.c"
         goto label_1;
-    // EBPF_OP_JNE_IMM pc=8 dst=r4 src=r0 offset=208 imm=8
+        // EBPF_OP_JNE_IMM pc=8 dst=r4 src=r0 offset=208 imm=8
 #line 34 "sample/reflect_packet.c"
     if (r4 != IMMEDIATE(8))
 #line 34 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r1 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r1 offset=0 imm=0
 #line 35 "sample/reflect_packet.c"
     r4 = r1;
     // EBPF_OP_ADD64_IMM pc=10 dst=r4 src=r0 offset=0 imm=34
@@ -257,7 +257,7 @@ reflect_packet(void* context)
     if (r4 > r3)
 #line 35 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=12 dst=r4 src=r1 offset=23 imm=0
+        // EBPF_OP_LDXB pc=12 dst=r4 src=r1 offset=23 imm=0
 #line 41 "sample/reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
     // EBPF_OP_JNE_IMM pc=13 dst=r4 src=r0 offset=203 imm=17
@@ -265,7 +265,7 @@ reflect_packet(void* context)
     if (r4 != IMMEDIATE(17))
 #line 41 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=14 dst=r4 src=r1 offset=14 imm=0
+        // EBPF_OP_LDXB pc=14 dst=r4 src=r1 offset=14 imm=0
 #line 41 "sample/reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
     // EBPF_OP_LSH64_IMM pc=15 dst=r4 src=r0 offset=0 imm=2
@@ -288,7 +288,7 @@ reflect_packet(void* context)
     if (r4 > r3)
 #line 41 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXH pc=21 dst=r3 src=r2 offset=2 imm=0
+        // EBPF_OP_LDXH pc=21 dst=r3 src=r2 offset=2 imm=0
 #line 47 "sample/reflect_packet.c"
     r3 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(2));
     // EBPF_OP_JNE_IMM pc=22 dst=r3 src=r0 offset=194 imm=7459
@@ -296,7 +296,7 @@ reflect_packet(void* context)
     if (r3 != IMMEDIATE(7459))
 #line 47 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=23 dst=r3 src=r1 offset=5 imm=0
+        // EBPF_OP_LDXB pc=23 dst=r3 src=r1 offset=5 imm=0
 #line 15 "sample/./xdp_common.h"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(5));
     // EBPF_OP_LSH64_IMM pc=24 dst=r3 src=r0 offset=0 imm=8
@@ -443,7 +443,7 @@ label_1:
     if (r2 > r3)
 #line 56 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_MOV64_REG pc=71 dst=r2 src=r1 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=71 dst=r2 src=r1 offset=0 imm=0
 #line 56 "sample/reflect_packet.c"
     r2 = r1;
     // EBPF_OP_ADD64_IMM pc=72 dst=r2 src=r0 offset=0 imm=62
@@ -454,7 +454,7 @@ label_1:
     if (r2 > r3)
 #line 62 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=74 dst=r2 src=r1 offset=20 imm=0
+        // EBPF_OP_LDXB pc=74 dst=r2 src=r1 offset=20 imm=0
 #line 62 "sample/reflect_packet.c"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(20));
     // EBPF_OP_JNE_IMM pc=75 dst=r2 src=r0 offset=141 imm=17
@@ -462,7 +462,7 @@ label_1:
     if (r2 != IMMEDIATE(17))
 #line 62 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXH pc=76 dst=r2 src=r1 offset=56 imm=0
+        // EBPF_OP_LDXH pc=76 dst=r2 src=r1 offset=56 imm=0
 #line 68 "sample/reflect_packet.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(56));
     // EBPF_OP_JNE_IMM pc=77 dst=r2 src=r0 offset=139 imm=7459
@@ -470,7 +470,7 @@ label_1:
     if (r2 != IMMEDIATE(7459))
 #line 68 "sample/reflect_packet.c"
         goto label_3;
-    // EBPF_OP_LDXB pc=78 dst=r2 src=r1 offset=5 imm=0
+        // EBPF_OP_LDXB pc=78 dst=r2 src=r1 offset=5 imm=0
 #line 15 "sample/./xdp_common.h"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(5));
     // EBPF_OP_LSH64_IMM pc=79 dst=r2 src=r0 offset=0 imm=8

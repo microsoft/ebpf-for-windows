@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // clang -O2 -Werror -c xdp_datasize_unsafe.c -o xdp_datasize_unsafe_jit.o

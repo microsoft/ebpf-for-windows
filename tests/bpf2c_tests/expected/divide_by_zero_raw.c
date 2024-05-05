@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -103,12 +103,12 @@ divide_by_zero(void* context)
     if ((divide_by_zero_helpers[0].tail_call) && (r0 == 0))
 #line 35 "sample/undocked/divide_by_zero.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
+        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
 #line 36 "sample/undocked/divide_by_zero.c"
     if (r0 == IMMEDIATE(0))
 #line 36 "sample/undocked/divide_by_zero.c"
         goto label_1;
-    // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
