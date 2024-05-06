@@ -257,9 +257,19 @@ bpf_code_generator::bpf_code_generator(
     current_section = &sections[section_name];
     set_pe_section_name(section_name);
     uint32_t offset = 0;
+    add_program(section_name, 0, instructions.size());
     for (const auto& instruction : instructions) {
         current_section->output.push_back({instruction, offset++});
+        if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
+            // Local function call, so we need a subprogram that starts at the indicated offset.
+            size_t subprogram_offset = offset + instruction.imm;
+            std::string unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
+            unsafe_string name(unsafe_name);
+            add_program(name, subprogram_offset, instructions.size());
+            current_section->output.back().relocation = name;
+        }
     }
+    compute_program_end_indices();
 }
 
 std::vector<bpf_code_generator::unsafe_string>
@@ -801,8 +811,12 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
             }
         }
     }
+    compute_program_end_indices();
+}
 
-    // Compute program end indexes.
+void
+bpf_code_generator::compute_program_end_indices()
+{
     unsafe_string previous_program_name;
     for (auto& program : current_section->programs) {
         if (!previous_program_name.empty()) {

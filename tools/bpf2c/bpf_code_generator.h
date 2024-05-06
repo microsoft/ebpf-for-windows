@@ -496,6 +496,12 @@ class bpf_code_generator
     is_section_valid(const ELFIO::section* section) const;
 
     /**
+     * @brief Compute the end instruciton index for each program in the current section.
+     */
+    void
+    compute_program_end_indices();
+
+    /**
      * @brief Invoke the visitor for each symbol in the ELF file section.
      *
      * @param[in] visitor Visitor to invoke.
