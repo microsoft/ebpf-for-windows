@@ -118,7 +118,7 @@ Responsibilities:
 
 ## Project Milestones
 
-eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g. the milestone for June, 2024 will be called 2406.
+eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g., the milestone for June, 2024 will be called 2406.
 At any time there are four active milestones in the project. There will be an milestone for the current calendar month (`N`),
 and two others for the next two months (`N+1`), (`N+2`). And there is always a `Backlog` milestone for backlog issues to be
 addressed in the future. In the first triage meeting of a month, the previous milestone must be closed and a new `N+2` milestone must be created.
@@ -129,13 +129,13 @@ During the weekly triage meetings, triage drivers MUST set an issue to one of th
 
 To help prioritize issues, the triage drivers and maintainers MUST use *special labels* to prioritize issues as follows:
 ### P1:
-This label represents highest priority. This label should be used for bugs impacting users, new feature or enhancements that are urgently
+This label represents highest priority. This label should be used for bugs impacting users, new features, or enhancements that are urgently
 requested by users. `P1` issues MUST be set to the *current milestone (`N`)*. If there is not enough time left in the current milestone to address
 the `P1` issue, it must be set to the *next milestone (`N+1`)*.
 ### P2:
 This label is used for the next level of priority. Issues marked as `P2` can be set to milestones `N`, `N+1` (preferred) or `N+2`.
 ### P3:
-This label is used for low priority issues. Issues marked with `P3` label can be set to the milestones `N+1`, `N+2` or `Backlog`.
+This label is used for low priority issues. Issues marked with `P3` label can be set to the milestones `N+1`, `N+2`, or `Backlog`.
 `P3` issues must never be set to the current milestone (`N`).
 
 In the last triage meeting of the monthly milestone, triage drivers or administrators must move all issues that do not have an active pull request
