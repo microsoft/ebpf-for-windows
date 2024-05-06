@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -116,7 +116,7 @@ caller(void* context)
     if ((caller_helpers[0].tail_call) && (r0 == 0))
 #line 30 "sample/undocked/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
 #line 33 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -181,7 +181,7 @@ callee0(void* context)
     if ((callee0_helpers[0].tail_call) && (r0 == 0))
 #line 41 "sample/undocked/tail_call_multiple.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
 #line 44 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0

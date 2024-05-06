@@ -1,4 +1,4 @@
-﻿# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory = $True)] [string] $Admin,

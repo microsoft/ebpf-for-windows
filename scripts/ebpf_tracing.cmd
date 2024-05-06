@@ -1,4 +1,4 @@
-@rem Copyright (c) Microsoft Corporation
+@rem Copyright (c) eBPF for Windows contributors
 @rem SPDX-License-Identifier: MIT
 
 @echo off

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 /*++
@@ -654,7 +654,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     is_in_transaction = TRUE;
 
     // Create the WFP provider.
-    ebpf_wfp_provider.displayData.name = L"Microsoft Corporation";
+    ebpf_wfp_provider.displayData.name = L"eBPF for Windows contributors";
     ebpf_wfp_provider.displayData.description = L"Windows Networking eBPF Extension";
     ebpf_wfp_provider.providerKey = EBPF_WFP_PROVIDER;
     status = FwpmProviderAdd(_fwp_engine_handle, &ebpf_wfp_provider, NULL);

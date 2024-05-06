@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -149,7 +149,7 @@ recurse(void* context)
     if ((recurse_helpers[0].tail_call) && (r0 == 0))
 #line 51 "sample/undocked/tail_call_recursive.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 51 "sample/undocked/tail_call_recursive.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=22 imm=0
@@ -157,7 +157,7 @@ recurse(void* context)
     if (r7 == IMMEDIATE(0))
 #line 52 "sample/undocked/tail_call_recursive.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=10 dst=r1 src=r0 offset=0 imm=680997
+        // EBPF_OP_MOV64_IMM pc=10 dst=r1 src=r0 offset=0 imm=680997
 #line 52 "sample/undocked/tail_call_recursive.c"
     r1 = IMMEDIATE(680997);
     // EBPF_OP_STXW pc=11 dst=r10 src=r1 offset=-8 imm=0
@@ -196,7 +196,7 @@ recurse(void* context)
     if ((recurse_helpers[1].tail_call) && (r0 == 0))
 #line 56 "sample/undocked/tail_call_recursive.c"
         return 0;
-    // EBPF_OP_LDXW pc=23 dst=r1 src=r7 offset=0 imm=0
+        // EBPF_OP_LDXW pc=23 dst=r1 src=r7 offset=0 imm=0
 #line 59 "sample/undocked/tail_call_recursive.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=1
@@ -223,7 +223,7 @@ recurse(void* context)
     if ((recurse_helpers[2].tail_call) && (r0 == 0))
 #line 62 "sample/undocked/tail_call_recursive.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=31 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=31 dst=r8 src=r0 offset=0 imm=0
 #line 62 "sample/undocked/tail_call_recursive.c"
     r8 = r0;
 label_1:

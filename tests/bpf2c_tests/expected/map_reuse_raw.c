@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -131,12 +131,12 @@ lookup_update(void* context)
     if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
 #line 54 "sample/undocked/map_reuse.c"
         return 0;
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=21 imm=0
+        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=21 imm=0
 #line 55 "sample/undocked/map_reuse.c"
     if (r0 == IMMEDIATE(0))
 #line 55 "sample/undocked/map_reuse.c"
         goto label_2;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 55 "sample/undocked/map_reuse.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=9 dst=r10 src=r6 offset=-8 imm=0
@@ -160,7 +160,7 @@ lookup_update(void* context)
     if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
 #line 57 "sample/undocked/map_reuse.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=14 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=14 dst=r7 src=r0 offset=0 imm=0
 #line 57 "sample/undocked/map_reuse.c"
     r7 = r0;
     // EBPF_OP_JNE_IMM pc=15 dst=r7 src=r0 offset=1 imm=0
@@ -168,7 +168,7 @@ lookup_update(void* context)
     if (r7 != IMMEDIATE(0))
 #line 58 "sample/undocked/map_reuse.c"
         goto label_1;
-    // EBPF_OP_JA pc=16 dst=r0 src=r0 offset=12 imm=0
+        // EBPF_OP_JA pc=16 dst=r0 src=r0 offset=12 imm=0
 #line 58 "sample/undocked/map_reuse.c"
     goto label_2;
 label_1:
@@ -208,7 +208,7 @@ label_1:
     if ((lookup_update_helpers[1].tail_call) && (r0 == 0))
 #line 62 "sample/undocked/map_reuse.c"
         return 0;
-    // EBPF_OP_LDXW pc=28 dst=r6 src=r7 offset=0 imm=0
+        // EBPF_OP_LDXW pc=28 dst=r6 src=r7 offset=0 imm=0
 #line 64 "sample/undocked/map_reuse.c"
     r6 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
 label_2:

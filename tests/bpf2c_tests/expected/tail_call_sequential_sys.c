@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -286,7 +286,7 @@ sequential0(void* context)
     if ((sequential0_helpers[0].tail_call) && (r0 == 0))
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -297,7 +297,7 @@ sequential0(void* context)
     if (r8 == IMMEDIATE(0))
 #line 133 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -336,7 +336,7 @@ sequential0(void* context)
     if ((sequential0_helpers[1].tail_call) && (r0 == 0))
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=0
@@ -344,7 +344,7 @@ sequential0(void* context)
     if (r1 != IMMEDIATE(0))
 #line 133 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=1
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -368,7 +368,7 @@ sequential0(void* context)
     if ((sequential0_helpers[2].tail_call) && (r0 == 0))
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -460,7 +460,7 @@ sequential1(void* context)
     if ((sequential1_helpers[0].tail_call) && (r0 == 0))
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -471,7 +471,7 @@ sequential1(void* context)
     if (r8 == IMMEDIATE(0))
 #line 134 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -510,7 +510,7 @@ sequential1(void* context)
     if ((sequential1_helpers[1].tail_call) && (r0 == 0))
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=1
@@ -518,7 +518,7 @@ sequential1(void* context)
     if (r1 != IMMEDIATE(1))
 #line 134 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=2
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=2
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(2);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -542,7 +542,7 @@ sequential1(void* context)
     if ((sequential1_helpers[2].tail_call) && (r0 == 0))
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -636,7 +636,7 @@ sequential10(void* context)
     if ((sequential10_helpers[0].tail_call) && (r0 == 0))
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -647,7 +647,7 @@ sequential10(void* context)
     if (r8 == IMMEDIATE(0))
 #line 143 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -689,7 +689,7 @@ sequential10(void* context)
     if ((sequential10_helpers[1].tail_call) && (r0 == 0))
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=10
@@ -697,7 +697,7 @@ sequential10(void* context)
     if (r1 != IMMEDIATE(10))
 #line 143 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=11
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=11
 #line 143 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(11);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -721,7 +721,7 @@ sequential10(void* context)
     if ((sequential10_helpers[2].tail_call) && (r0 == 0))
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -815,7 +815,7 @@ sequential11(void* context)
     if ((sequential11_helpers[0].tail_call) && (r0 == 0))
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -826,7 +826,7 @@ sequential11(void* context)
     if (r8 == IMMEDIATE(0))
 #line 144 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -868,7 +868,7 @@ sequential11(void* context)
     if ((sequential11_helpers[1].tail_call) && (r0 == 0))
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=11
@@ -876,7 +876,7 @@ sequential11(void* context)
     if (r1 != IMMEDIATE(11))
 #line 144 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=12
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=12
 #line 144 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(12);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -900,7 +900,7 @@ sequential11(void* context)
     if ((sequential11_helpers[2].tail_call) && (r0 == 0))
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -994,7 +994,7 @@ sequential12(void* context)
     if ((sequential12_helpers[0].tail_call) && (r0 == 0))
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -1005,7 +1005,7 @@ sequential12(void* context)
     if (r8 == IMMEDIATE(0))
 #line 145 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -1047,7 +1047,7 @@ sequential12(void* context)
     if ((sequential12_helpers[1].tail_call) && (r0 == 0))
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=12
@@ -1055,7 +1055,7 @@ sequential12(void* context)
     if (r1 != IMMEDIATE(12))
 #line 145 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=13
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=13
 #line 145 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(13);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -1079,7 +1079,7 @@ sequential12(void* context)
     if ((sequential12_helpers[2].tail_call) && (r0 == 0))
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -1173,7 +1173,7 @@ sequential13(void* context)
     if ((sequential13_helpers[0].tail_call) && (r0 == 0))
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -1184,7 +1184,7 @@ sequential13(void* context)
     if (r8 == IMMEDIATE(0))
 #line 146 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -1226,7 +1226,7 @@ sequential13(void* context)
     if ((sequential13_helpers[1].tail_call) && (r0 == 0))
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=13
@@ -1234,7 +1234,7 @@ sequential13(void* context)
     if (r1 != IMMEDIATE(13))
 #line 146 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=14
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=14
 #line 146 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(14);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -1258,7 +1258,7 @@ sequential13(void* context)
     if ((sequential13_helpers[2].tail_call) && (r0 == 0))
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -1352,7 +1352,7 @@ sequential14(void* context)
     if ((sequential14_helpers[0].tail_call) && (r0 == 0))
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -1363,7 +1363,7 @@ sequential14(void* context)
     if (r8 == IMMEDIATE(0))
 #line 147 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -1405,7 +1405,7 @@ sequential14(void* context)
     if ((sequential14_helpers[1].tail_call) && (r0 == 0))
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=14
@@ -1413,7 +1413,7 @@ sequential14(void* context)
     if (r1 != IMMEDIATE(14))
 #line 147 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=15
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=15
 #line 147 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(15);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -1437,7 +1437,7 @@ sequential14(void* context)
     if ((sequential14_helpers[2].tail_call) && (r0 == 0))
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -1531,7 +1531,7 @@ sequential15(void* context)
     if ((sequential15_helpers[0].tail_call) && (r0 == 0))
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -1542,7 +1542,7 @@ sequential15(void* context)
     if (r8 == IMMEDIATE(0))
 #line 148 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -1584,7 +1584,7 @@ sequential15(void* context)
     if ((sequential15_helpers[1].tail_call) && (r0 == 0))
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=15
@@ -1592,7 +1592,7 @@ sequential15(void* context)
     if (r1 != IMMEDIATE(15))
 #line 148 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=16
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=16
 #line 148 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(16);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -1616,7 +1616,7 @@ sequential15(void* context)
     if ((sequential15_helpers[2].tail_call) && (r0 == 0))
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -1710,7 +1710,7 @@ sequential16(void* context)
     if ((sequential16_helpers[0].tail_call) && (r0 == 0))
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -1721,7 +1721,7 @@ sequential16(void* context)
     if (r8 == IMMEDIATE(0))
 #line 149 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -1763,7 +1763,7 @@ sequential16(void* context)
     if ((sequential16_helpers[1].tail_call) && (r0 == 0))
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=16
@@ -1771,7 +1771,7 @@ sequential16(void* context)
     if (r1 != IMMEDIATE(16))
 #line 149 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=17
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=17
 #line 149 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(17);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -1795,7 +1795,7 @@ sequential16(void* context)
     if ((sequential16_helpers[2].tail_call) && (r0 == 0))
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -1889,7 +1889,7 @@ sequential17(void* context)
     if ((sequential17_helpers[0].tail_call) && (r0 == 0))
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -1900,7 +1900,7 @@ sequential17(void* context)
     if (r8 == IMMEDIATE(0))
 #line 150 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -1942,7 +1942,7 @@ sequential17(void* context)
     if ((sequential17_helpers[1].tail_call) && (r0 == 0))
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=17
@@ -1950,7 +1950,7 @@ sequential17(void* context)
     if (r1 != IMMEDIATE(17))
 #line 150 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=18
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=18
 #line 150 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(18);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -1974,7 +1974,7 @@ sequential17(void* context)
     if ((sequential17_helpers[2].tail_call) && (r0 == 0))
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -2068,7 +2068,7 @@ sequential18(void* context)
     if ((sequential18_helpers[0].tail_call) && (r0 == 0))
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -2079,7 +2079,7 @@ sequential18(void* context)
     if (r8 == IMMEDIATE(0))
 #line 151 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -2121,7 +2121,7 @@ sequential18(void* context)
     if ((sequential18_helpers[1].tail_call) && (r0 == 0))
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=18
@@ -2129,7 +2129,7 @@ sequential18(void* context)
     if (r1 != IMMEDIATE(18))
 #line 151 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=19
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=19
 #line 151 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(19);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -2153,7 +2153,7 @@ sequential18(void* context)
     if ((sequential18_helpers[2].tail_call) && (r0 == 0))
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -2247,7 +2247,7 @@ sequential19(void* context)
     if ((sequential19_helpers[0].tail_call) && (r0 == 0))
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -2258,7 +2258,7 @@ sequential19(void* context)
     if (r8 == IMMEDIATE(0))
 #line 152 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -2300,7 +2300,7 @@ sequential19(void* context)
     if ((sequential19_helpers[1].tail_call) && (r0 == 0))
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=19
@@ -2308,7 +2308,7 @@ sequential19(void* context)
     if (r1 != IMMEDIATE(19))
 #line 152 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=20
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=20
 #line 152 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(20);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -2332,7 +2332,7 @@ sequential19(void* context)
     if ((sequential19_helpers[2].tail_call) && (r0 == 0))
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -2424,7 +2424,7 @@ sequential2(void* context)
     if ((sequential2_helpers[0].tail_call) && (r0 == 0))
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -2435,7 +2435,7 @@ sequential2(void* context)
     if (r8 == IMMEDIATE(0))
 #line 135 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -2474,7 +2474,7 @@ sequential2(void* context)
     if ((sequential2_helpers[1].tail_call) && (r0 == 0))
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=2
@@ -2482,7 +2482,7 @@ sequential2(void* context)
     if (r1 != IMMEDIATE(2))
 #line 135 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=3
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=3
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(3);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -2506,7 +2506,7 @@ sequential2(void* context)
     if ((sequential2_helpers[2].tail_call) && (r0 == 0))
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -2600,7 +2600,7 @@ sequential20(void* context)
     if ((sequential20_helpers[0].tail_call) && (r0 == 0))
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -2611,7 +2611,7 @@ sequential20(void* context)
     if (r8 == IMMEDIATE(0))
 #line 153 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -2653,7 +2653,7 @@ sequential20(void* context)
     if ((sequential20_helpers[1].tail_call) && (r0 == 0))
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=20
@@ -2661,7 +2661,7 @@ sequential20(void* context)
     if (r1 != IMMEDIATE(20))
 #line 153 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=21
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=21
 #line 153 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(21);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -2685,7 +2685,7 @@ sequential20(void* context)
     if ((sequential20_helpers[2].tail_call) && (r0 == 0))
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -2779,7 +2779,7 @@ sequential21(void* context)
     if ((sequential21_helpers[0].tail_call) && (r0 == 0))
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -2790,7 +2790,7 @@ sequential21(void* context)
     if (r8 == IMMEDIATE(0))
 #line 154 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -2832,7 +2832,7 @@ sequential21(void* context)
     if ((sequential21_helpers[1].tail_call) && (r0 == 0))
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=21
@@ -2840,7 +2840,7 @@ sequential21(void* context)
     if (r1 != IMMEDIATE(21))
 #line 154 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=22
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=22
 #line 154 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(22);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -2864,7 +2864,7 @@ sequential21(void* context)
     if ((sequential21_helpers[2].tail_call) && (r0 == 0))
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -2958,7 +2958,7 @@ sequential22(void* context)
     if ((sequential22_helpers[0].tail_call) && (r0 == 0))
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -2969,7 +2969,7 @@ sequential22(void* context)
     if (r8 == IMMEDIATE(0))
 #line 155 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -3011,7 +3011,7 @@ sequential22(void* context)
     if ((sequential22_helpers[1].tail_call) && (r0 == 0))
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=22
@@ -3019,7 +3019,7 @@ sequential22(void* context)
     if (r1 != IMMEDIATE(22))
 #line 155 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=23
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=23
 #line 155 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(23);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -3043,7 +3043,7 @@ sequential22(void* context)
     if ((sequential22_helpers[2].tail_call) && (r0 == 0))
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -3137,7 +3137,7 @@ sequential23(void* context)
     if ((sequential23_helpers[0].tail_call) && (r0 == 0))
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -3148,7 +3148,7 @@ sequential23(void* context)
     if (r8 == IMMEDIATE(0))
 #line 156 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -3190,7 +3190,7 @@ sequential23(void* context)
     if ((sequential23_helpers[1].tail_call) && (r0 == 0))
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=23
@@ -3198,7 +3198,7 @@ sequential23(void* context)
     if (r1 != IMMEDIATE(23))
 #line 156 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=24
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=24
 #line 156 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(24);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -3222,7 +3222,7 @@ sequential23(void* context)
     if ((sequential23_helpers[2].tail_call) && (r0 == 0))
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -3316,7 +3316,7 @@ sequential24(void* context)
     if ((sequential24_helpers[0].tail_call) && (r0 == 0))
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -3327,7 +3327,7 @@ sequential24(void* context)
     if (r8 == IMMEDIATE(0))
 #line 157 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -3372,7 +3372,7 @@ sequential24(void* context)
     if ((sequential24_helpers[1].tail_call) && (r0 == 0))
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=27 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=27 dst=r1 src=r8 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=28 dst=r1 src=r0 offset=7 imm=24
@@ -3380,7 +3380,7 @@ sequential24(void* context)
     if (r1 != IMMEDIATE(24))
 #line 157 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXW pc=29 dst=r8 src=r9 offset=0 imm=0
+        // EBPF_OP_STXW pc=29 dst=r8 src=r9 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     *(uint32_t*)(uintptr_t)(r8 + OFFSET(0)) = (uint32_t)r9;
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
@@ -3401,7 +3401,7 @@ sequential24(void* context)
     if ((sequential24_helpers[2].tail_call) && (r0 == 0))
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -3495,7 +3495,7 @@ sequential25(void* context)
     if ((sequential25_helpers[0].tail_call) && (r0 == 0))
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -3506,7 +3506,7 @@ sequential25(void* context)
     if (r8 == IMMEDIATE(0))
 #line 158 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -3548,7 +3548,7 @@ sequential25(void* context)
     if ((sequential25_helpers[1].tail_call) && (r0 == 0))
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=25
@@ -3556,7 +3556,7 @@ sequential25(void* context)
     if (r1 != IMMEDIATE(25))
 #line 158 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=26
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=26
 #line 158 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(26);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -3580,7 +3580,7 @@ sequential25(void* context)
     if ((sequential25_helpers[2].tail_call) && (r0 == 0))
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -3674,7 +3674,7 @@ sequential26(void* context)
     if ((sequential26_helpers[0].tail_call) && (r0 == 0))
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -3685,7 +3685,7 @@ sequential26(void* context)
     if (r8 == IMMEDIATE(0))
 #line 159 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -3727,7 +3727,7 @@ sequential26(void* context)
     if ((sequential26_helpers[1].tail_call) && (r0 == 0))
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=26
@@ -3735,7 +3735,7 @@ sequential26(void* context)
     if (r1 != IMMEDIATE(26))
 #line 159 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=27
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=27
 #line 159 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(27);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -3759,7 +3759,7 @@ sequential26(void* context)
     if ((sequential26_helpers[2].tail_call) && (r0 == 0))
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -3853,7 +3853,7 @@ sequential27(void* context)
     if ((sequential27_helpers[0].tail_call) && (r0 == 0))
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -3864,7 +3864,7 @@ sequential27(void* context)
     if (r8 == IMMEDIATE(0))
 #line 160 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -3906,7 +3906,7 @@ sequential27(void* context)
     if ((sequential27_helpers[1].tail_call) && (r0 == 0))
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=27
@@ -3914,7 +3914,7 @@ sequential27(void* context)
     if (r1 != IMMEDIATE(27))
 #line 160 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=28
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=28
 #line 160 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(28);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -3938,7 +3938,7 @@ sequential27(void* context)
     if ((sequential27_helpers[2].tail_call) && (r0 == 0))
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -4032,7 +4032,7 @@ sequential28(void* context)
     if ((sequential28_helpers[0].tail_call) && (r0 == 0))
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -4043,7 +4043,7 @@ sequential28(void* context)
     if (r8 == IMMEDIATE(0))
 #line 161 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -4085,7 +4085,7 @@ sequential28(void* context)
     if ((sequential28_helpers[1].tail_call) && (r0 == 0))
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=28
@@ -4093,7 +4093,7 @@ sequential28(void* context)
     if (r1 != IMMEDIATE(28))
 #line 161 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=29
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=29
 #line 161 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(29);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -4117,7 +4117,7 @@ sequential28(void* context)
     if ((sequential28_helpers[2].tail_call) && (r0 == 0))
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -4211,7 +4211,7 @@ sequential29(void* context)
     if ((sequential29_helpers[0].tail_call) && (r0 == 0))
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -4222,7 +4222,7 @@ sequential29(void* context)
     if (r8 == IMMEDIATE(0))
 #line 162 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -4264,7 +4264,7 @@ sequential29(void* context)
     if ((sequential29_helpers[1].tail_call) && (r0 == 0))
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=29
@@ -4272,7 +4272,7 @@ sequential29(void* context)
     if (r1 != IMMEDIATE(29))
 #line 162 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=30
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=30
 #line 162 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(30);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -4296,7 +4296,7 @@ sequential29(void* context)
     if ((sequential29_helpers[2].tail_call) && (r0 == 0))
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -4388,7 +4388,7 @@ sequential3(void* context)
     if ((sequential3_helpers[0].tail_call) && (r0 == 0))
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -4399,7 +4399,7 @@ sequential3(void* context)
     if (r8 == IMMEDIATE(0))
 #line 136 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -4438,7 +4438,7 @@ sequential3(void* context)
     if ((sequential3_helpers[1].tail_call) && (r0 == 0))
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=3
@@ -4446,7 +4446,7 @@ sequential3(void* context)
     if (r1 != IMMEDIATE(3))
 #line 136 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=4
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=4
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(4);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -4470,7 +4470,7 @@ sequential3(void* context)
     if ((sequential3_helpers[2].tail_call) && (r0 == 0))
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -4564,7 +4564,7 @@ sequential30(void* context)
     if ((sequential30_helpers[0].tail_call) && (r0 == 0))
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -4575,7 +4575,7 @@ sequential30(void* context)
     if (r8 == IMMEDIATE(0))
 #line 163 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -4617,7 +4617,7 @@ sequential30(void* context)
     if ((sequential30_helpers[1].tail_call) && (r0 == 0))
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=30
@@ -4625,7 +4625,7 @@ sequential30(void* context)
     if (r1 != IMMEDIATE(30))
 #line 163 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=31
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=31
 #line 163 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(31);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -4649,7 +4649,7 @@ sequential30(void* context)
     if ((sequential30_helpers[2].tail_call) && (r0 == 0))
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -4743,7 +4743,7 @@ sequential31(void* context)
     if ((sequential31_helpers[0].tail_call) && (r0 == 0))
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -4754,7 +4754,7 @@ sequential31(void* context)
     if (r8 == IMMEDIATE(0))
 #line 164 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -4796,7 +4796,7 @@ sequential31(void* context)
     if ((sequential31_helpers[1].tail_call) && (r0 == 0))
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=31
@@ -4804,7 +4804,7 @@ sequential31(void* context)
     if (r1 != IMMEDIATE(31))
 #line 164 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=32
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=32
 #line 164 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(32);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -4828,7 +4828,7 @@ sequential31(void* context)
     if ((sequential31_helpers[2].tail_call) && (r0 == 0))
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -4922,7 +4922,7 @@ sequential32(void* context)
     if ((sequential32_helpers[0].tail_call) && (r0 == 0))
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -4933,7 +4933,7 @@ sequential32(void* context)
     if (r8 == IMMEDIATE(0))
 #line 165 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -4975,7 +4975,7 @@ sequential32(void* context)
     if ((sequential32_helpers[1].tail_call) && (r0 == 0))
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=32
@@ -4983,7 +4983,7 @@ sequential32(void* context)
     if (r1 != IMMEDIATE(32))
 #line 165 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=33
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=33
 #line 165 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(33);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -5007,7 +5007,7 @@ sequential32(void* context)
     if ((sequential32_helpers[2].tail_call) && (r0 == 0))
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -5101,7 +5101,7 @@ sequential33(void* context)
     if ((sequential33_helpers[0].tail_call) && (r0 == 0))
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -5112,7 +5112,7 @@ sequential33(void* context)
     if (r8 == IMMEDIATE(0))
 #line 166 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -5154,7 +5154,7 @@ sequential33(void* context)
     if ((sequential33_helpers[1].tail_call) && (r0 == 0))
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=33
@@ -5162,7 +5162,7 @@ sequential33(void* context)
     if (r1 != IMMEDIATE(33))
 #line 166 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=34
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=34
 #line 166 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(34);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -5186,7 +5186,7 @@ sequential33(void* context)
     if ((sequential33_helpers[2].tail_call) && (r0 == 0))
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -5280,7 +5280,7 @@ sequential34(void* context)
     if ((sequential34_helpers[0].tail_call) && (r0 == 0))
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -5291,7 +5291,7 @@ sequential34(void* context)
     if (r8 == IMMEDIATE(0))
 #line 167 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
+        // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
     // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1702194273
@@ -5333,7 +5333,7 @@ sequential34(void* context)
     if ((sequential34_helpers[1].tail_call) && (r0 == 0))
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=34
@@ -5341,7 +5341,7 @@ sequential34(void* context)
     if (r1 != IMMEDIATE(34))
 #line 167 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=35
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=35
 #line 167 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(35);
     // EBPF_OP_STXW pc=29 dst=r8 src=r1 offset=0 imm=0
@@ -5365,7 +5365,7 @@ sequential34(void* context)
     if ((sequential34_helpers[2].tail_call) && (r0 == 0))
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -5457,7 +5457,7 @@ sequential4(void* context)
     if ((sequential4_helpers[0].tail_call) && (r0 == 0))
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -5468,7 +5468,7 @@ sequential4(void* context)
     if (r8 == IMMEDIATE(0))
 #line 137 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -5507,7 +5507,7 @@ sequential4(void* context)
     if ((sequential4_helpers[1].tail_call) && (r0 == 0))
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=4
@@ -5515,7 +5515,7 @@ sequential4(void* context)
     if (r1 != IMMEDIATE(4))
 #line 137 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=5
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=5
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(5);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -5539,7 +5539,7 @@ sequential4(void* context)
     if ((sequential4_helpers[2].tail_call) && (r0 == 0))
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -5631,7 +5631,7 @@ sequential5(void* context)
     if ((sequential5_helpers[0].tail_call) && (r0 == 0))
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -5642,7 +5642,7 @@ sequential5(void* context)
     if (r8 == IMMEDIATE(0))
 #line 138 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -5681,7 +5681,7 @@ sequential5(void* context)
     if ((sequential5_helpers[1].tail_call) && (r0 == 0))
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=5
@@ -5689,7 +5689,7 @@ sequential5(void* context)
     if (r1 != IMMEDIATE(5))
 #line 138 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=6
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=6
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(6);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -5713,7 +5713,7 @@ sequential5(void* context)
     if ((sequential5_helpers[2].tail_call) && (r0 == 0))
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -5805,7 +5805,7 @@ sequential6(void* context)
     if ((sequential6_helpers[0].tail_call) && (r0 == 0))
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -5816,7 +5816,7 @@ sequential6(void* context)
     if (r8 == IMMEDIATE(0))
 #line 139 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -5855,7 +5855,7 @@ sequential6(void* context)
     if ((sequential6_helpers[1].tail_call) && (r0 == 0))
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=6
@@ -5863,7 +5863,7 @@ sequential6(void* context)
     if (r1 != IMMEDIATE(6))
 #line 139 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=7
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=7
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(7);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -5887,7 +5887,7 @@ sequential6(void* context)
     if ((sequential6_helpers[2].tail_call) && (r0 == 0))
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -5979,7 +5979,7 @@ sequential7(void* context)
     if ((sequential7_helpers[0].tail_call) && (r0 == 0))
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -5990,7 +5990,7 @@ sequential7(void* context)
     if (r8 == IMMEDIATE(0))
 #line 140 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -6029,7 +6029,7 @@ sequential7(void* context)
     if ((sequential7_helpers[1].tail_call) && (r0 == 0))
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=7
@@ -6037,7 +6037,7 @@ sequential7(void* context)
     if (r1 != IMMEDIATE(7))
 #line 140 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=8
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=8
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(8);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -6061,7 +6061,7 @@ sequential7(void* context)
     if ((sequential7_helpers[2].tail_call) && (r0 == 0))
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -6153,7 +6153,7 @@ sequential8(void* context)
     if ((sequential8_helpers[0].tail_call) && (r0 == 0))
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -6164,7 +6164,7 @@ sequential8(void* context)
     if (r8 == IMMEDIATE(0))
 #line 141 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -6203,7 +6203,7 @@ sequential8(void* context)
     if ((sequential8_helpers[1].tail_call) && (r0 == 0))
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=8
@@ -6211,7 +6211,7 @@ sequential8(void* context)
     if (r1 != IMMEDIATE(8))
 #line 141 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=9
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=9
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(9);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -6235,7 +6235,7 @@ sequential8(void* context)
     if ((sequential8_helpers[2].tail_call) && (r0 == 0))
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
@@ -6327,7 +6327,7 @@ sequential9(void* context)
     if ((sequential9_helpers[0].tail_call) && (r0 == 0))
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=9 dst=r7 src=r0 offset=0 imm=1
@@ -6338,7 +6338,7 @@ sequential9(void* context)
     if (r8 == IMMEDIATE(0))
 #line 142 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
+        // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
@@ -6377,7 +6377,7 @@ sequential9(void* context)
     if ((sequential9_helpers[1].tail_call) && (r0 == 0))
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=9
@@ -6385,7 +6385,7 @@ sequential9(void* context)
     if (r1 != IMMEDIATE(9))
 #line 142 "sample/undocked/tail_call_sequential.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=10
+        // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=10
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(10);
     // EBPF_OP_STXW pc=28 dst=r8 src=r1 offset=0 imm=0
@@ -6409,7 +6409,7 @@ sequential9(void* context)
     if ((sequential9_helpers[2].tail_call) && (r0 == 0))
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
 label_1:
