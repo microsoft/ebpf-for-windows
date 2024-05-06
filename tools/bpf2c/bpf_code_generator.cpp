@@ -252,9 +252,10 @@ bpf_code_generator::bpf_code_generator(
 
 bpf_code_generator::bpf_code_generator(
     const bpf_code_generator::unsafe_string& section_name, const std::vector<ebpf_inst>& instructions)
-    : c_name(c_name)
+    : c_name(section_name)
 {
     current_section = &sections[section_name];
+    set_pe_section_name(section_name);
     uint32_t offset = 0;
     for (const auto& instruction : instructions) {
         current_section->output.push_back({instruction, offset++});
@@ -360,11 +361,9 @@ bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& sec
         if (unsafe_name.empty()) {
             continue;
         }
-        unsafe_string name(unsafe_name);
         if (section_index == program_section->get_index() && value == 0) {
-            auto program = std::make_shared<program_t>(name, 0);
-            current_section->programs_by_name[name] = program;
-            current_section->programs.insert(program);
+            unsafe_string name(unsafe_name);
+            add_program(name, 0, 0);
             break;
         }
     }
@@ -745,6 +744,16 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
 }
 
 void
+bpf_code_generator::add_program(const unsafe_string& name, int64_t start_index, int64_t end_index)
+{
+    if (current_section->programs_by_name.find(name) == current_section->programs_by_name.end()) {
+        auto program = std::make_shared<program_t>(name, start_index, end_index);
+        current_section->programs_by_name[name] = program;
+        current_section->programs.insert(program);
+    }
+}
+
+void
 bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsafe_string& section_name)
 {
     auto map_section = get_optional_section("maps");
@@ -786,13 +795,8 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
                     }
                 } else {
                     // Local function.
-                    if (current_section->programs_by_name.find(unsafe_name) ==
-                        current_section->programs_by_name.end()) {
-                        unsafe_string name(unsafe_name);
-                        auto program = std::make_shared<program_t>(name, value / sizeof(ebpf_inst));
-                        current_section->programs_by_name[name] = program;
-                        current_section->programs.insert(program);
-                    }
+                    unsafe_string name(unsafe_name);
+                    add_program(name, value / sizeof(ebpf_inst), 0);
                 }
             }
         }
@@ -848,7 +852,7 @@ bpf_code_generator::generate_labels()
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
 
-    // Tag jump targets
+    // Tag jump targets.
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
         if (!IS_JMP_CLASS_OPCODE(output.instruction.opcode)) {
@@ -868,7 +872,7 @@ bpf_code_generator::generate_labels()
         program_output[i + offset + 1].jump_target = true;
     }
 
-    // Add labels to instructions that are targets of jumps
+    // Add labels to instructions that are targets of jumps.
     size_t label_index = 1;
     for (auto& output : program_output) {
         if (!output.jump_target) {
@@ -883,7 +887,7 @@ bpf_code_generator::build_function_table()
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
 
-    // Gather helper_functions
+    // Gather helper_functions.
     size_t index = 0;
     for (auto& output : program_output) {
         if (output.instruction.opcode != INST_OP_CALL || output.instruction.src != INST_CALL_STATIC_HELPER) {

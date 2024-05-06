@@ -287,6 +287,16 @@ class bpf_code_generator
     void
     set_program_hash_info(const std::optional<std::vector<uint8_t>>& program_info_hash);
 
+    /**
+     * @brief Add a program to the current section.
+     *
+     * @param[in] name Program name.
+     * @param[in] start_index Index of first instruction.
+     * @param[in] end_index Index after last instruction.
+     */
+    void
+    add_program(const unsafe_string& name, int64_t index, int64_t end_index);
+
   private:
     typedef struct _helper_function
     {
@@ -316,7 +326,9 @@ class bpf_code_generator
         size_t start_index;
         size_t end_index;
         std::set<std::string> referenced_registers;
-        _program(unsafe_string& name, size_t start_index) : name(name), start_index(start_index), end_index(0) {}
+        _program(const unsafe_string& name, size_t start_index, size_t end_index)
+            : name(name), start_index(start_index), end_index(end_index)
+        {}
     } program_t;
 
     struct compare_start_index
