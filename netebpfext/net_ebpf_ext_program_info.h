@@ -9,7 +9,7 @@
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
-#define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
+// #define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
 
 // XDP_TEST helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {

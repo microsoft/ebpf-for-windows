@@ -44,7 +44,20 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_func
       EBPF_ARGUMENT_TYPE_CONST_SIZE,
       EBPF_ARGUMENT_TYPE_ANYTHING,
       EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
-      EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
+      EBPF_ARGUMENT_TYPE_CONST_SIZE}},
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
+     SAMPLE_EXT_HELPER_FUNCTION_START + 4,
+     "sample_ebpf_extension_helper_implicit_1",
+     EBPF_RETURN_TYPE_INTEGER,
+     {},
+     HELPER_FUNCTION_IMPLICIT_CONTEXT},
+    {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
+     SAMPLE_EXT_HELPER_FUNCTION_START + 5,
+     "sample_ebpf_extension_helper_implicit_2",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_ANYTHING},
+     HELPER_FUNCTION_IMPLICIT_CONTEXT},
+};
 
 // Global helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _sample_ebpf_extension_global_helper_function_prototype[] = {

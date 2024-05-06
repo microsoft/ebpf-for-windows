@@ -39,11 +39,17 @@ _sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const v
 static int64_t
 _sample_ebpf_extension_replace(
     _In_ const void* buffer, uint32_t size, int64_t position, _In_ const void* replace, uint32_t arg_size);
+static int64_t
+_sample_ebpf_extension_helper_implicit_1(_In_ const sample_program_context_t* context);
+static int64_t
+_sample_ebpf_extension_helper_implicit_2(_In_ const sample_program_context_t* context, uint32_t arg);
 
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
     (void*)&_sample_ebpf_extension_find,
-    (void*)&_sample_ebpf_extension_replace};
+    (void*)&_sample_ebpf_extension_replace,
+    (void*)&_sample_ebpf_extension_helper_implicit_1,
+    (void*)&_sample_ebpf_extension_helper_implicit_2};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -677,6 +683,20 @@ _sample_ebpf_extension_replace(
 
 Exit:
     return result;
+}
+
+static int64_t
+_sample_ebpf_extension_helper_implicit_1(_In_ const sample_program_context_t* context)
+{
+    sample_program_context_t* sample_context = (sample_program_context_t*)context;
+    return sample_context->helper_data_1;
+}
+
+static int64_t
+_sample_ebpf_extension_helper_implicit_2(_In_ const sample_program_context_t* context, uint32_t arg)
+{
+    sample_program_context_t* sample_context = (sample_program_context_t*)context;
+    return sample_context->helper_data_2 + arg;
 }
 
 static ebpf_result_t

@@ -838,7 +838,7 @@ bpf_code_generator::generate_labels()
 }
 
 bool
-bpf_code_generator::get_helper_information(int32_t helper_id)
+bpf_code_generator::get_helper_information(uint32_t helper_id)
 {
     const ebpf_program_info_t* program_info = current_section->program_info;
     // Iterate through the global helpers first to find the helper id.
@@ -881,7 +881,7 @@ bpf_code_generator::build_function_table()
 
         if (current_section->helper_functions.find(name) == current_section->helper_functions.end()) {
             int32_t helper_id = output.instruction.imm;
-            bool implicit_context = get_helper_information(helper_id);
+            bool implicit_context = get_helper_information((uint32_t)helper_id);
             // First check the global.
             current_section->helper_functions[name] = {helper_id, index++, implicit_context};
         }
@@ -1339,8 +1339,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
                 } else {
                     output.lines.push_back(
-                        INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
-                        ", " + get_register_name(4) + ", " + get_register_name(5) + ", context" + ");");
+                        INDENT " (context, " + get_register_name(1) + ", " + get_register_name(2) + ", " +
+                        get_register_name(3) + ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
                 }
                 output.lines.push_back(
                     std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));

@@ -21,6 +21,9 @@ typedef struct _ebpf_program_type_descriptor
     char is_privileged;
 } ebpf_program_type_descriptor_t;
 
+#define HELPER_FUNCTION_REALLOCATE_PACKET ((bool)(1 << 0))
+#define HELPER_FUNCTION_IMPLICIT_CONTEXT ((bool)(1 << 1))
+
 typedef struct _ebpf_helper_function_prototype_flags
 {
     bool reallocate_packet : 1;

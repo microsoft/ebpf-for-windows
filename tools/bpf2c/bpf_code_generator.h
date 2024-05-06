@@ -395,7 +395,7 @@ class bpf_code_generator
     build_function_table();
 
     bool
-    get_helper_information(int32_t helper_id);
+    get_helper_information(uint32_t helper_id);
 
     /**
      * @brief Generate the C code for each eBPF instruction.

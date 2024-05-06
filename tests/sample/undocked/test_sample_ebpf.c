@@ -28,6 +28,20 @@ struct
     __uint(max_entries, 2);
 } test_map SEC(".maps");
 
+typedef struct _helper_values
+{
+    uint64_t value_1;
+    uint64_t value_2;
+} helper_values_t;
+
+struct
+{
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, uint32_t);
+    __uint(value_size, sizeof(helper_values_t));
+    __uint(max_entries, 1);
+} output_map SEC(".maps");
+
 SEC("sample_ext")
 int
 test_program_entry(sample_program_context_t* context)
@@ -54,6 +68,14 @@ test_program_entry(sample_program_context_t* context)
             }
         }
     }
+
+    // Invoke the implicit context helper functions.
+    helper_values_t helper_values = {0};
+    helper_values.value_1 = sample_ebpf_extension_helper_implicit_1();
+    helper_values.value_2 = sample_ebpf_extension_helper_implicit_2(10);
+
+    // Write the output to the output map.
+    bpf_map_update_elem(&output_map, &keys[0], &helper_values, 0);
 
     result = sample_ebpf_extension_helper_function1(context);
     if (result < 0) {
