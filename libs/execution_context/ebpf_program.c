@@ -1346,6 +1346,13 @@ ebpf_program_load_code(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+
+    // If the program is already loaded, return an error.
+    if (program->parameters.code_type != EBPF_CODE_NONE) {
+        ebpf_lock_unlock(&program->lock, state);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     program->parameters.code_type = code_type;
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
