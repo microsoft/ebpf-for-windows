@@ -190,7 +190,7 @@ class bpf_code_generator
     };
 
     /**
-     * @brief Construct a new bpf code generator object.
+     * @brief Construct a new bpf code generator object from an ELF file.
      *
      * @param[in] stream Input stream containing the eBPF file to parse.
      * @param[in] section_name C compatible section name to export this as.
@@ -292,10 +292,9 @@ class bpf_code_generator
      *
      * @param[in] name Program name.
      * @param[in] start_index Index of first instruction.
-     * @param[in] end_index Index after last instruction.
      */
     void
-    add_program(const unsafe_string& name, int64_t index, int64_t end_index);
+    add_program(const unsafe_string& name, int64_t start_index);
 
   private:
     typedef struct _helper_function
@@ -323,12 +322,10 @@ class bpf_code_generator
     typedef struct _program
     {
         unsafe_string name;
-        size_t start_index;
-        size_t end_index;
+        size_t start_index; //< Index of first instruction.
+        size_t end_index;   //< Index after last instruction.
         std::set<std::string> referenced_registers;
-        _program(const unsafe_string& name, size_t start_index, size_t end_index)
-            : name(name), start_index(start_index), end_index(end_index)
-        {}
+        _program(const unsafe_string& name, size_t start_index) : name(name), start_index(start_index), end_index(0) {}
     } program_t;
 
     struct compare_start_index

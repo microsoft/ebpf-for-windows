@@ -257,15 +257,15 @@ bpf_code_generator::bpf_code_generator(
     current_section = &sections[section_name];
     set_pe_section_name(section_name);
     uint32_t offset = 0;
-    add_program(section_name, 0, instructions.size());
+    add_program(section_name, 0);
     for (const auto& instruction : instructions) {
         current_section->output.push_back({instruction, offset++});
         if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
             // Local function call, so we need a subprogram that starts at the indicated offset.
-            size_t subprogram_offset = offset + instruction.imm;
+            size_t subprogram_offset = ((size_t)offset) + instruction.imm;
             std::string unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
             unsafe_string name(unsafe_name);
-            add_program(name, subprogram_offset, instructions.size());
+            add_program(name, subprogram_offset);
             current_section->output.back().relocation = name;
         }
     }
@@ -373,7 +373,7 @@ bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& sec
         }
         if (section_index == program_section->get_index() && value == 0) {
             unsafe_string name(unsafe_name);
-            add_program(name, 0, 0);
+            add_program(name, 0);
             break;
         }
     }
@@ -754,10 +754,10 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
 }
 
 void
-bpf_code_generator::add_program(const unsafe_string& name, int64_t start_index, int64_t end_index)
+bpf_code_generator::add_program(const unsafe_string& name, int64_t start_index)
 {
     if (current_section->programs_by_name.find(name) == current_section->programs_by_name.end()) {
-        auto program = std::make_shared<program_t>(name, start_index, end_index);
+        auto program = std::make_shared<program_t>(name, start_index);
         current_section->programs_by_name[name] = program;
         current_section->programs.insert(program);
     }
@@ -806,7 +806,7 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
                 } else {
                     // Local function.
                     unsafe_string name(unsafe_name);
-                    add_program(name, value / sizeof(ebpf_inst), 0);
+                    add_program(name, value / sizeof(ebpf_inst));
                 }
             }
         }
