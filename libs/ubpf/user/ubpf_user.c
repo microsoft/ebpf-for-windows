@@ -30,6 +30,7 @@
 #pragma warning(disable : 4211) // nonstandard extension used: redefined extern to static
 #pragma warning(disable : 6387) // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
 #include "ubpf_jit.c"
+#include "ubpf_jit_support.c"
 #include "ubpf_jit_x86_64.c"
 #pragma warning(pop)
 #include "ubpf_vm.c"

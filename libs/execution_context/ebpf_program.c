@@ -1087,7 +1087,7 @@ _ebpf_program_update_interpret_helpers(
         }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0) {
+        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (external_function_t)helper) < 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
             result = EBPF_INVALID_ARGUMENT;
