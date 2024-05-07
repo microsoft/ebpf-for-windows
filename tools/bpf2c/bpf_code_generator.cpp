@@ -66,6 +66,15 @@ static const std::string _register_names[11] = {
     "r10",
 };
 
+static const std::set<std::string> _callee_register_args = {
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r10",
+};
+
 enum class AluOperations
 {
     Add,
@@ -183,18 +192,18 @@ operator+(const std::string& lhs, const bpf_code_generator::unsafe_string& rhs)
 }
 
 std::string
-bpf_code_generator::get_register_name(uint8_t id)
+bpf_code_generator::get_register_name(program_t& program, uint8_t id)
 {
     if (id >= _countof(_register_names)) {
         throw bpf_code_generator_exception("invalid register id");
     } else {
-        current_section->referenced_registers.insert(_register_names[id]);
+        program.referenced_registers.insert(_register_names[id]);
         return _register_names[id];
     }
 }
 
 ELFIO::section*
-bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string& name)
+bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string& name) const
 {
     auto section = get_optional_section(name);
     if (!section) {
@@ -204,7 +213,7 @@ bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string
 }
 
 ELFIO::section*
-bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string& name)
+bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string& name) const
 {
     auto section = reader.sections[name.raw()];
     if (!is_section_valid(section)) {
@@ -214,7 +223,7 @@ bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string
 }
 
 bool
-bpf_code_generator::is_section_valid(const ELFIO::section* section)
+bpf_code_generator::is_section_valid(const ELFIO::section* section) const
 {
     if (!section) {
         return false;
@@ -242,21 +251,29 @@ bpf_code_generator::bpf_code_generator(
 }
 
 bpf_code_generator::bpf_code_generator(
-    const bpf_code_generator::unsafe_string& c_name, const std::vector<ebpf_inst>& instructions)
-    : c_name(c_name)
+    const bpf_code_generator::unsafe_string& section_name, const std::vector<ebpf_inst>& instructions)
+    : c_name(section_name)
 {
-    current_section = &sections[c_name];
-    get_register_name(0);
-    get_register_name(1);
-    get_register_name(10);
+    current_section = &sections[section_name];
+    set_pe_section_name(section_name);
     uint32_t offset = 0;
+    add_program(section_name, 0);
     for (const auto& instruction : instructions) {
         current_section->output.push_back({instruction, offset++});
+        if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
+            // Local function call, so we need a subprogram that starts at the indicated offset.
+            size_t subprogram_offset = ((size_t)offset) + instruction.imm;
+            std::string unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
+            unsafe_string name(unsafe_name);
+            add_program(name, subprogram_offset);
+            current_section->output.back().relocation = name;
+        }
     }
+    compute_program_end_indices();
 }
 
 std::vector<bpf_code_generator::unsafe_string>
-bpf_code_generator::program_sections()
+bpf_code_generator::program_sections() const
 {
     std::vector<bpf_code_generator::unsafe_string> section_names;
     for (const auto& section : reader.sections) {
@@ -288,10 +305,6 @@ bpf_code_generator::parse(
     const std::string& program_info_hash_type)
 {
     current_section = &sections[section_name];
-    get_register_name(0);
-    get_register_name(1);
-    get_register_name(10);
-
     set_pe_section_name(section_name);
     set_program_and_attach_type_and_hash_type(program_type, attach_type, program_info_hash_type);
     extract_program(section_name);
@@ -320,11 +333,13 @@ bpf_code_generator::generate(const bpf_code_generator::unsafe_string& section_na
 
     generate_labels();
     build_function_table();
-    encode_instructions(section_name);
+    for (auto& opt_program : current_section->programs) {
+        encode_instructions(*opt_program);
+    }
 }
 
 std::vector<int32_t>
-bpf_code_generator::get_helper_ids()
+bpf_code_generator::get_helper_ids() const
 {
     std::vector<int32_t> helper_ids;
     for (const auto& [name, helper] : current_section->helper_functions) {
@@ -338,7 +353,7 @@ void
 bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& section_name)
 {
     auto program_section = get_required_section(section_name);
-    std::vector<ebpf_inst> program{
+    std::vector<ebpf_inst> instructions{
         reinterpret_cast<const ebpf_inst*>(program_section->get_data()),
         reinterpret_cast<const ebpf_inst*>(program_section->get_data() + program_section->get_size())};
 
@@ -356,15 +371,15 @@ bpf_code_generator::extract_program(const bpf_code_generator::unsafe_string& sec
         if (unsafe_name.empty()) {
             continue;
         }
-        unsafe_string name(unsafe_name);
         if (section_index == program_section->get_index() && value == 0) {
-            current_section->program_name = name;
+            unsafe_string name(unsafe_name);
+            add_program(name, 0);
             break;
         }
     }
 
     uint32_t offset = 0;
-    for (const auto& instruction : program) {
+    for (const auto& instruction : instructions) {
         current_section->output.push_back({instruction, offset++});
     }
 }
@@ -739,9 +754,22 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
 }
 
 void
+bpf_code_generator::add_program(const unsafe_string& name, int64_t start_index)
+{
+    if (current_section->programs_by_name.find(name) == current_section->programs_by_name.end()) {
+        auto program = std::make_shared<program_t>(name, start_index);
+        current_section->programs_by_name[name] = program;
+        current_section->programs.insert(program);
+    }
+}
+
+void
 bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsafe_string& section_name)
 {
     auto map_section = get_optional_section("maps");
+    if (map_section == nullptr) {
+        map_section = get_optional_section(".maps");
+    }
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
 
     auto relocations = get_optional_section(".rel" + section_name);
@@ -775,9 +803,29 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
                     if (map_definitions.find(unsafe_name) == map_definitions.end()) {
                         throw bpf_code_generator_exception("map not found in map definitions: " + unsafe_name);
                     }
+                } else {
+                    // Local function.
+                    unsafe_string name(unsafe_name);
+                    add_program(name, value / sizeof(ebpf_inst));
                 }
             }
         }
+    }
+    compute_program_end_indices();
+}
+
+void
+bpf_code_generator::compute_program_end_indices()
+{
+    unsafe_string previous_program_name;
+    for (auto& program : current_section->programs) {
+        if (!previous_program_name.empty()) {
+            current_section->programs_by_name[previous_program_name]->end_index = program->start_index;
+        }
+        previous_program_name = program->name;
+    }
+    if (!previous_program_name.empty()) {
+        current_section->programs_by_name[previous_program_name]->end_index = current_section->output.size();
     }
 }
 
@@ -818,7 +866,7 @@ bpf_code_generator::generate_labels()
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
 
-    // Tag jump targets
+    // Tag jump targets.
     for (size_t i = 0; i < program_output.size(); i++) {
         auto& output = program_output[i];
         if (!IS_JMP_CLASS_OPCODE(output.instruction.opcode)) {
@@ -838,7 +886,7 @@ bpf_code_generator::generate_labels()
         program_output[i + offset + 1].jump_target = true;
     }
 
-    // Add labels to instructions that are targets of jumps
+    // Add labels to instructions that are targets of jumps.
     size_t label_index = 1;
     for (auto& output : program_output) {
         if (!output.jump_target) {
@@ -853,10 +901,10 @@ bpf_code_generator::build_function_table()
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
 
-    // Gather helper_functions
+    // Gather helper_functions.
     size_t index = 0;
     for (auto& output : program_output) {
-        if (output.instruction.opcode != INST_OP_CALL) {
+        if (output.instruction.opcode != INST_OP_CALL || output.instruction.src != INST_CALL_STATIC_HELPER) {
             continue;
         }
         bpf_code_generator::unsafe_string name;
@@ -874,24 +922,24 @@ bpf_code_generator::build_function_table()
 }
 
 void
-bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string& section_name)
+bpf_code_generator::encode_instructions(program_t& program)
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
-    auto program_name = !current_section->program_name.empty() ? current_section->program_name : section_name;
+    auto program_name = !program.name.empty() ? program.name : current_section->pe_section_name;
     auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
 
-    // Encode instructions
-    for (size_t i = 0; i < program_output.size(); i++) {
+    // Encode instructions.
+    for (size_t i = program.start_index; i < program.end_index; i++) {
         auto& output = program_output[i];
         auto& inst = output.instruction;
 
         switch (inst.opcode & INST_CLS_MASK) {
         case INST_CLS_ALU:
         case INST_CLS_ALU64: {
-            std::string destination = get_register_name(inst.dst);
+            std::string destination = get_register_name(program, inst.dst);
             std::string source;
             if (inst.opcode & INST_SRC_REG) {
-                source = get_register_name(inst.src);
+                source = get_register_name(program, inst.src);
             } else {
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             }
@@ -1109,7 +1157,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             if (i >= program_output.size()) {
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
-            std::string destination = get_register_name(inst.dst);
+            std::string destination = get_register_name(program, inst.dst);
             if (output.relocation.empty()) {
                 uint64_t imm = static_cast<uint32_t>(program_output[i].instruction.imm);
                 imm <<= 32;
@@ -1131,8 +1179,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
         } break;
         case INST_CLS_LDX: {
             std::string size_type;
-            std::string destination = get_register_name(inst.dst);
-            std::string source = get_register_name(inst.src);
+            std::string destination = get_register_name(program, inst.dst);
+            std::string source = get_register_name(program, inst.src);
             std::string offset = "OFFSET(" + std::to_string(inst.offset) + ")";
             switch (inst.opcode & INST_SIZE_DW) {
             case INST_SIZE_B:
@@ -1158,14 +1206,14 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             std::string size_type;
             std::string lock_type;
             std::string size_num;
-            std::string destination = get_register_name(inst.dst);
+            std::string destination = get_register_name(program, inst.dst);
             std::string source;
             std::string raw_source;
             bool is_complex = false;
             if ((inst.opcode & INST_CLS_MASK) == INST_CLS_ST) {
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             } else {
-                source = get_register_name(inst.src);
+                source = get_register_name(program, inst.src);
             }
             std::string offset = "OFFSET(" + std::to_string(inst.offset) + ")";
             switch (inst.opcode & INST_SIZE_DW) {
@@ -1270,7 +1318,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
         } break;
         case INST_CLS_JMP:
         case INST_CLS_JMP32: {
-            std::string destination = get_register_name(inst.dst);
+            std::string destination = get_register_name(program, inst.dst);
             std::string destination_cast;
             if (IS_JMP32_CLASS_OPCODE(inst.opcode)) {
                 destination_cast = IS_SIGNED_CMP_OPCODE(inst.opcode) ? "(int32_t)" : "(uint32_t)";
@@ -1281,7 +1329,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             std::string source;
             std::string source_cast;
             if (inst.opcode & INST_SRC_REG) {
-                source = get_register_name(inst.src);
+                source = get_register_name(program, inst.src);
                 if (IS_JMP32_CLASS_OPCODE(inst.opcode)) {
                     source_cast = IS_SIGNED_CMP_OPCODE(inst.opcode) ? "(int32_t)" : "(uint32_t)";
                 } else {
@@ -1301,7 +1349,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             } else if (inst.opcode == INST_OP_JA32) {
                 std::string target = program_output[i + inst.imm + 1].label;
                 output.lines.push_back("goto " + target + ";");
-            } else if (inst.opcode == INST_OP_CALL) {
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_STATIC_HELPER) {
                 std::string function_name;
                 if (output.relocation.empty()) {
                     function_name = std::vformat(
@@ -1316,15 +1364,23 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         helper_array_prefix,
                         make_format_args(std::to_string(current_section->helper_functions[output.relocation].index)));
                 }
-                output.lines.push_back(get_register_name(0) + " = " + function_name + ".address");
+                output.lines.push_back(get_register_name(program, 0) + " = " + function_name + ".address");
                 output.lines.push_back(
-                    INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
-                    ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                    INDENT " (" + get_register_name(program, 1) + ", " + get_register_name(program, 2) + ", " +
+                    get_register_name(program, 3) + ", " + get_register_name(program, 4) + ", " +
+                    get_register_name(program, 5) + ");");
                 output.lines.push_back(
-                    std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
+                    std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(program, 0)));
                 output.lines.push_back(INDENT "return 0;");
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_LOCAL) {
+                std::string function_name = output.relocation.c_identifier();
+                output.lines.push_back(
+                    get_register_name(program, 0) + " = " + function_name + "(" + get_register_name(program, 1) + ", " +
+                    get_register_name(program, 2) + ", " + get_register_name(program, 3) + ", " +
+                    get_register_name(program, 4) + ", " + get_register_name(program, 5) + ", " +
+                    get_register_name(program, 10) + ");");
             } else if (inst.opcode == INST_OP_EXIT) {
-                output.lines.push_back("return " + get_register_name(0) + ";");
+                output.lines.push_back("return " + get_register_name(program, 0) + ";");
             } else {
                 std::string target = program_output[i + inst.offset + 1].label;
                 if (target.empty()) {
@@ -1345,9 +1401,87 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
 }
 
 void
+bpf_code_generator::emit_subprogram(
+    std::ostream& output_stream, const unsafe_string& section_name, const program_t& program)
+{
+    std::string prolog_line_info;
+
+    // Emit entry point.
+    output_stream << prolog_line_info << "static uint64_t\n"
+                  << program.name.c_identifier()
+                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10)" << std::endl;
+    output_stream << prolog_line_info << "{" << std::endl;
+
+    // Emit prologue.
+    for (const auto& r : _register_names) {
+        // Skip args.
+        if (_callee_register_args.find(r) != _callee_register_args.end()) {
+            if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
+                output_stream << prolog_line_info << INDENT "(void)" << r.c_str() << ";" << std::endl;
+            }
+            continue;
+        }
+
+        // Skip unused registers.
+        if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
+            continue;
+        }
+        output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
+    }
+    output_stream << std::endl;
+
+    emit_instructions(output_stream, section_name, program);
+
+    // Emit epilogue.
+    output_stream << prolog_line_info << "}" << std::endl;
+}
+
+void
+bpf_code_generator::emit_instructions(
+    std::ostream& output_stream, const unsafe_string& section_name, const program_t& program)
+{
+    std::string prolog_line_info;
+    auto& line_info = section_line_info[section_name];
+    section_t& section = sections[section_name];
+
+    // For now, we go until the end and let the compiler optimize out what isn't used.
+    for (size_t index = program.start_index; index < program.end_index; index++) {
+        const auto& output = section.output[index];
+        if (output.lines.empty()) {
+            continue;
+        }
+        if (!output.label.empty()) {
+            output_stream << output.label << ":" << std::endl;
+        }
+        auto current_line = line_info.find(output.instruction_offset);
+        if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
+            current_line->second.line_number != 0) {
+            prolog_line_info = std::format(
+                "#line {} {}\n",
+                std::to_string(current_line->second.line_number),
+                current_line->second.file_name.quoted_filename());
+        }
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
+        output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
+        if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
+            output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
+        }
+        output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
+                      << " src=r" << std::to_string(output.instruction.src)
+                      << " offset=" << std::to_string(output.instruction.offset)
+                      << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+
+#endif
+        for (const auto& line : output.lines) {
+            output_stream << prolog_line_info << INDENT "" << line << std::endl;
+        }
+    }
+}
+
+void
 bpf_code_generator::emit_c_code(std::ostream& output_stream)
 {
-    // Emit C file
+    // Emit C file.
     output_stream << "#include \"bpf2c.h\"" << std::endl << std::endl;
 
     output_stream << "static void" << std::endl
@@ -1373,8 +1507,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << INDENT "*size = 0;" << std::endl;
     }
     output_stream << "}" << std::endl;
+    output_stream << std::endl;
 
-    // Emit import tables
+    // Emit import tables.
     if (map_definitions.size() > 0) {
         output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
@@ -1463,12 +1598,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
-    for (auto& [name, section] : sections) {
-        auto program_name = !section.program_name.empty() ? section.program_name : name;
-
+    for (auto& [section_name, section] : sections) {
         if (section.output.size() == 0) {
             continue;
         }
+        std::shared_ptr<program_t> opt_program = section.default_program();
+        if (!opt_program) {
+            continue;
+        }
+        program_t& program = *opt_program;
+        auto program_name = !program.name.empty() ? program.name : section_name;
 
         // Emit section specific helper function array.
         if (section.helper_functions.size() > 0) {
@@ -1487,6 +1626,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
+        if (section.programs.size() > 1) {
+            output_stream << "// Forward references for local functions." << std::endl;
+            for (auto& subprogram : section.programs) {
+                if (subprogram->name != program_name) {
+                    output_stream << "static uint64_t " << subprogram->name.c_identifier()
+                                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10);"
+                                  << std::endl;
+                }
+            }
             output_stream << std::endl;
         }
 
@@ -1541,7 +1692,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << std::endl;
         }
 
-        auto& line_info = section_line_info[name];
+        auto& line_info = section_line_info[section_name];
         auto first_line_info = line_info.find(section.output.front().instruction_offset);
         std::string prolog_line_info;
 
@@ -1554,72 +1705,59 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             return true;
         });
 
-        // Emit entry point
+        // Emit entry point.
         output_stream << "#pragma code_seg(push, " << section.pe_section_name.quoted() << ")" << std::endl;
         output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
-        // Emit prologue
-        output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
+        // Emit prologue.
+        get_register_name(program, 0);
+        get_register_name(program, 1);
+        get_register_name(program, 10);
+        output_stream << prolog_line_info << INDENT "// Prologue." << std::endl;
         output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
-            // Skip unused registers
-            if (section.referenced_registers.find(r) == section.referenced_registers.end()) {
+            // Skip unused registers.
+            if (program.referenced_registers.find(r) == program.referenced_registers.end()) {
                 continue;
             }
             output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
         }
         output_stream << std::endl;
-        output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
-        output_stream << prolog_line_info << INDENT "" << get_register_name(10)
+        output_stream << prolog_line_info << INDENT "" << get_register_name(program, 1) << " = (uintptr_t)context;"
+                      << std::endl;
+        output_stream << prolog_line_info << INDENT "" << get_register_name(program, 10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
         output_stream << std::endl;
 
         // Emit encoded instructions.
-        for (const auto& output : section.output) {
-            if (output.lines.empty()) {
-                continue;
-            }
-            if (!output.label.empty()) {
-                output_stream << output.label << ":" << std::endl;
-            }
-            auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
-                current_line->second.line_number != 0) {
-                prolog_line_info = std::format(
-                    "#line {} {}\n",
-                    std::to_string(current_line->second.line_number),
-                    current_line->second.file_name.quoted_filename());
-            }
-#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
-            if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
-                output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
-            }
-            output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
-                          << " src=r" << std::to_string(output.instruction.src)
-                          << " offset=" << std::to_string(output.instruction.offset)
-                          << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+        emit_instructions(output_stream, section_name, program);
 
-#endif
-            for (const auto& line : output.lines) {
-                output_stream << prolog_line_info << INDENT "" << line << std::endl;
-            }
-        }
-        // Emit epilogue
+        // Emit epilogue.
         output_stream << prolog_line_info << "}" << std::endl;
         output_stream << "#pragma code_seg(pop)" << std::endl;
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
+
+        // Emit subprograms.
+        for (auto& subprogram : section.programs) {
+            if (subprogram->name != program_name) {
+                emit_subprogram(output_stream, section_name, *subprogram);
+            }
+        }
     }
 
     if (sections.size() != 0) {
-
         output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
         output_stream << "static program_entry_t _programs[] = {" << std::endl;
-        for (auto& [name, program] : sections) {
-            auto program_name = !program.program_name.empty() ? program.program_name : name;
-            size_t map_count = program.referenced_map_indices.size();
-            size_t helper_count = program.helper_functions.size();
+        for (auto& [name, section] : sections) {
+            std::shared_ptr<program_t> opt_program = section.default_program();
+            if (!opt_program) {
+                continue;
+            }
+            program_t& program = *opt_program;
+            auto program_name = !program.name.empty() ? program.name : name;
+            size_t map_count = section.referenced_map_indices.size();
+            size_t helper_count = section.helper_functions.size();
             auto map_array_name = map_count ? (program_name.c_identifier() + "_maps") : "NULL";
             auto helper_array_name = helper_count ? (program_name.c_identifier() + "_helpers") : "NULL";
             auto program_type_guid_name = program_name.c_identifier() + "_program_type_guid";
@@ -1628,25 +1766,25 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT "{" << std::endl;
             output_stream << INDENT INDENT << "0," << std::endl;
             output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
-            output_stream << INDENT INDENT << program.pe_section_name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT << section.pe_section_name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << name.quoted() << "," << std::endl;
-            output_stream << INDENT INDENT << program.program_name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT << program.name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << map_array_name << "," << std::endl;
-            output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
+            output_stream << INDENT INDENT << section.referenced_map_indices.size() << "," << std::endl;
             output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
-            output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
-            output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
+            output_stream << INDENT INDENT << section.helper_functions.size() << "," << std::endl;
+            output_stream << INDENT INDENT << section.output.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
-            if (program.program_info_hash.has_value()) {
+            if (section.program_info_hash.has_value()) {
                 output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
-                output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
-                // Append the hash type
-                std::string hash_string = program.program_info_hash_type;
+                output_stream << INDENT INDENT << section.program_info_hash.value().size() << "," << std::endl;
+                // Append the hash type.
+                std::string hash_string = section.program_info_hash_type;
                 if (hash_string.empty()) {
                     // If the hash type is not known, use the default hash type.
                     hash_string = EBPF_HASH_ALGORITHM;
-                    program.program_info_hash_type = hash_string;
+                    section.program_info_hash_type = hash_string;
                 }
                 output_stream << INDENT INDENT << "\"" << hash_string << "\""
                               << "," << std::endl;
@@ -1743,7 +1881,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 }
 
 std::string
-bpf_code_generator::format_guid(const GUID* guid, bool split)
+bpf_code_generator::format_guid(const GUID* guid, bool split) const
 {
     std::string output(120, '\0');
     std::string format_string;

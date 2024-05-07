@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -72,7 +73,7 @@ BindMonitor(void* context)
 #line 52 "sample/unsafe/invalid_maps3.c"
 {
 #line 52 "sample/unsafe/invalid_maps3.c"
-    // Prologue
+    // Prologue.
 #line 52 "sample/unsafe/invalid_maps3.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 52 "sample/unsafe/invalid_maps3.c"

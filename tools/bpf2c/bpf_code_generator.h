@@ -190,15 +190,15 @@ class bpf_code_generator
     };
 
     /**
-     * @brief Construct a new bpf code generator object.
+     * @brief Construct a new bpf code generator object from an ELF file.
      *
      * @param[in] stream Input stream containing the eBPF file to parse.
-     * @param[in] c_name C compatible name to export this as.
+     * @param[in] section_name C compatible section name to export this as.
      * @param[in] elf_file_hash Optional bytes containing hash of the ELF file.
      */
     bpf_code_generator(
         std::istream& stream,
-        const unsafe_string& c_name,
+        const unsafe_string& section_name,
         const std::optional<std::vector<uint8_t>>& elf_file_hash = {});
 
     /**
@@ -215,7 +215,7 @@ class bpf_code_generator
      * @return Vector of section names.
      */
     std::vector<unsafe_string>
-    program_sections();
+    program_sections() const;
 
     /**
      * @brief Parse the eBPF file.
@@ -277,7 +277,7 @@ class bpf_code_generator
      * @return Vector of helper ids.
      */
     std::vector<int32_t>
-    get_helper_ids();
+    get_helper_ids() const;
 
     /**
      * @brief Set the program hash info object
@@ -286,6 +286,15 @@ class bpf_code_generator
      */
     void
     set_program_hash_info(const std::optional<std::vector<uint8_t>>& program_info_hash);
+
+    /**
+     * @brief Add a program to the current section.
+     *
+     * @param[in] name Program name.
+     * @param[in] start_index Index of first instruction.
+     */
+    void
+    add_program(const unsafe_string& name, int64_t start_index);
 
   private:
     typedef struct _helper_function
@@ -310,20 +319,47 @@ class bpf_code_generator
         unsafe_string relocation;
     } output_instruction_t;
 
+    typedef struct _program
+    {
+        unsafe_string name;
+        size_t start_index; //< Index of first instruction.
+        size_t end_index;   //< Index after last instruction.
+        std::set<std::string> referenced_registers;
+        _program(const unsafe_string& name, size_t start_index) : name(name), start_index(start_index), end_index(0) {}
+    } program_t;
+
+    struct compare_start_index
+    {
+        bool
+        operator()(const std::shared_ptr<program_t>& a, const std::shared_ptr<program_t>& b) const
+        {
+            return a->start_index < b->start_index;
+        }
+    };
+
     typedef struct _section
     {
         std::vector<output_instruction_t> output;
-        std::set<std::string> referenced_registers;
         unsafe_string pe_section_name;
-        unsafe_string program_name;
         GUID program_type = {0};
         GUID expected_attach_type = {0};
         std::optional<std::vector<uint8_t>> program_info_hash;
         // Indices of the maps used in this section.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
+        // List of programs/subprograms in this section.
+        std::set<std::shared_ptr<program_t>, compare_start_index> programs;
+        std::map<unsafe_string, std::shared_ptr<program_t>> programs_by_name;
         std::string program_info_hash_type{};
         ebpf_program_info_t* program_info = nullptr;
+        std::shared_ptr<program_t>
+        default_program() const
+        {
+            if (programs.size() == 0) {
+                return {};
+            }
+            return *programs.begin();
+        }
     } section_t;
 
     typedef struct _line_info
@@ -392,9 +428,30 @@ class bpf_code_generator
     /**
      * @brief Generate the C code for each eBPF instruction.
      *
+     * @param[in] program Program to encode instructions for.
      */
     void
-    encode_instructions(const unsafe_string& section_name);
+    encode_instructions(program_t& program);
+
+    /**
+     * @brief Emit encoded instructions.
+     *
+     * @param[in] output Output stream to write code to.
+     * @param[in] section_name Name of section.
+     * @param[in] program Program to emit instructions for.
+     */
+    void
+    emit_instructions(std::ostream& output_stream, const unsafe_string& section_name, const program_t& program);
+
+    /**
+     * @brief Emit the C code for a subprogram.
+     *
+     * @param[in] output Output stream to write code to.
+     * @param[in] section_name Name of section.
+     * @param[in] program Subprogram to emit code for.
+     */
+    void
+    emit_subprogram(std::ostream& output, const unsafe_string& section_name, const program_t& program);
 
 #if defined(_MSC_VER)
     /**
@@ -405,7 +462,7 @@ class bpf_code_generator
      * @return The formatted string.
      */
     std::string
-    format_guid(const GUID* guid, bool split);
+    format_guid(const GUID* guid, bool split) const;
 #endif
 
     /**
@@ -419,20 +476,27 @@ class bpf_code_generator
     /**
      * @brief Get the name of a register from its index.
      *
+     * @param[in] program Program using the register.
      * @param[in] id Register index.
      * @return Register name
      */
     std::string
-    get_register_name(uint8_t id);
+    get_register_name(program_t& program, uint8_t id);
 
     ELFIO::section*
-    get_required_section(const unsafe_string& name);
+    get_required_section(const unsafe_string& name) const;
 
     ELFIO::section*
-    get_optional_section(const unsafe_string& name);
+    get_optional_section(const unsafe_string& name) const;
 
     bool
-    is_section_valid(const ELFIO::section* section);
+    is_section_valid(const ELFIO::section* section) const;
+
+    /**
+     * @brief Compute the end instruciton index for each program in the current section.
+     */
+    void
+    compute_program_end_indices();
 
     /**
      * @brief Invoke the visitor for each symbol in the ELF file section.

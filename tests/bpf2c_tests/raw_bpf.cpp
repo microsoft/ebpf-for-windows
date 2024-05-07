@@ -208,7 +208,6 @@ run_bpf_code_generator_test(const std::string& data_file)
 
     std::ofstream c_file(std::string(prefix) + std::string(".c"));
     try {
-
         bpf_code_generator code("test", instructions);
         code.generate("test");
         code.emit_c_code(c_file);
