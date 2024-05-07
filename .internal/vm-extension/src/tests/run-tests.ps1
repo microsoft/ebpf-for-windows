@@ -106,6 +106,10 @@ if ((Get-HandlerEnvironment -handlerEnvironmentFullPath "$DefaultHandlerEnvironm
     $null = Remove-DirectoryFromSystemPath "$EbpfDefaultInstallPath" 2>&1
     $null = Remove-Item -Path "$EbpfDefaultInstallPath" -Recurse -Force 2>&1
 
+    # Log the environment compatibility.
+    Write-Log -level $LogLevelInfo -message "= Test the environment compatibility ========================================================================================="
+    Is-InstallOrUpdate-Supported
+
     # Download the required versions of the eBPF redist package, directly from MsCodeHub.
     Write-Log -level $LogLevelInfo -message "= Downloading the required versions of the eBPF redist package, directly from MsCodeHub ===================================="
     $testRedistTargetDirectory = ".\_ebpf-redist"
