@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -135,12 +135,12 @@ connection_monitor(void* context)
     if (r4 == IMMEDIATE(0))
 #line 77 "sample/sockops.c"
         goto label_2;
-    // EBPF_OP_JEQ_IMM pc=4 dst=r4 src=r0 offset=5 imm=2
+        // EBPF_OP_JEQ_IMM pc=4 dst=r4 src=r0 offset=5 imm=2
 #line 77 "sample/sockops.c"
     if (r4 == IMMEDIATE(2))
 #line 77 "sample/sockops.c"
         goto label_1;
-    // EBPF_OP_LDDW pc=5 dst=r0 src=r0 offset=0 imm=-1
+        // EBPF_OP_LDDW pc=5 dst=r0 src=r0 offset=0 imm=-1
 #line 77 "sample/sockops.c"
     r0 = (uint64_t)4294967295;
     // EBPF_OP_JNE_IMM pc=7 dst=r4 src=r0 offset=162 imm=1
@@ -148,7 +148,7 @@ connection_monitor(void* context)
     if (r4 != IMMEDIATE(1))
 #line 77 "sample/sockops.c"
         goto label_5;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r3 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=8 dst=r3 src=r0 offset=0 imm=0
 #line 77 "sample/sockops.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_JA pc=9 dst=r0 src=r0 offset=2 imm=0
@@ -170,7 +170,7 @@ label_2:
     if (r4 != IMMEDIATE(2))
 #line 94 "sample/sockops.c"
         goto label_3;
-    // EBPF_OP_MOV64_IMM pc=14 dst=r4 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=14 dst=r4 src=r0 offset=0 imm=0
 #line 94 "sample/sockops.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=15 dst=r10 src=r4 offset=-8 imm=0
@@ -257,7 +257,7 @@ label_2:
     if ((connection_monitor_helpers[0].tail_call) && (r0 == 0))
 #line 26 "sample/sockops.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r0 offset=0 imm=0
 #line 26 "sample/sockops.c"
     r1 = r0;
     // EBPF_OP_LDDW pc=43 dst=r0 src=r0 offset=0 imm=-1
@@ -268,7 +268,7 @@ label_2:
     if (r1 == IMMEDIATE(0))
 #line 26 "sample/sockops.c"
         goto label_5;
-    // EBPF_OP_JA pc=46 dst=r0 src=r0 offset=116 imm=0
+        // EBPF_OP_JA pc=46 dst=r0 src=r0 offset=116 imm=0
 #line 26 "sample/sockops.c"
     goto label_4;
 label_3:
@@ -611,7 +611,7 @@ label_3:
     if ((connection_monitor_helpers[0].tail_call) && (r0 == 0))
 #line 26 "sample/sockops.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=159 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=159 dst=r1 src=r0 offset=0 imm=0
 #line 26 "sample/sockops.c"
     r1 = r0;
     // EBPF_OP_LDDW pc=160 dst=r0 src=r0 offset=0 imm=-1

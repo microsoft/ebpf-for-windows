@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -140,7 +140,7 @@ bind_test_caller(void* context)
     if ((bind_test_caller_helpers[0].tail_call) && (r0 == 0))
 #line 126 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=21 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=21 dst=r7 src=r0 offset=0 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_MOV64_REG pc=22 dst=r1 src=r6 offset=0 imm=0
@@ -161,12 +161,12 @@ bind_test_caller(void* context)
     if ((bind_test_caller_helpers[1].tail_call) && (r0 == 0))
 #line 127 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=27 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=27 dst=r0 src=r0 offset=17 imm=-1
 #line 127 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 127 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=2660
+        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=2660
 #line 127 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(2660);
     // EBPF_OP_STXH pc=29 dst=r10 src=r1 offset=-16 imm=0
@@ -342,7 +342,7 @@ bind_test_callee0(void* context)
     if ((bind_test_callee0_helpers[0].tail_call) && (r0 == 0))
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -360,12 +360,12 @@ bind_test_callee0(void* context)
     if ((bind_test_callee0_helpers[1].tail_call) && (r0 == 0))
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 85 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 85 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -541,7 +541,7 @@ bind_test_callee1(void* context)
     if ((bind_test_callee1_helpers[0].tail_call) && (r0 == 0))
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -559,12 +559,12 @@ bind_test_callee1(void* context)
     if ((bind_test_callee1_helpers[1].tail_call) && (r0 == 0))
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 86 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 86 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -740,7 +740,7 @@ bind_test_callee10(void* context)
     if ((bind_test_callee10_helpers[0].tail_call) && (r0 == 0))
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -758,12 +758,12 @@ bind_test_callee10(void* context)
     if ((bind_test_callee10_helpers[1].tail_call) && (r0 == 0))
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 95 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 95 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -939,7 +939,7 @@ bind_test_callee11(void* context)
     if ((bind_test_callee11_helpers[0].tail_call) && (r0 == 0))
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -957,12 +957,12 @@ bind_test_callee11(void* context)
     if ((bind_test_callee11_helpers[1].tail_call) && (r0 == 0))
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 96 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 96 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1138,7 +1138,7 @@ bind_test_callee12(void* context)
     if ((bind_test_callee12_helpers[0].tail_call) && (r0 == 0))
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1156,12 +1156,12 @@ bind_test_callee12(void* context)
     if ((bind_test_callee12_helpers[1].tail_call) && (r0 == 0))
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 97 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 97 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1337,7 +1337,7 @@ bind_test_callee13(void* context)
     if ((bind_test_callee13_helpers[0].tail_call) && (r0 == 0))
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1355,12 +1355,12 @@ bind_test_callee13(void* context)
     if ((bind_test_callee13_helpers[1].tail_call) && (r0 == 0))
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 98 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 98 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1536,7 +1536,7 @@ bind_test_callee14(void* context)
     if ((bind_test_callee14_helpers[0].tail_call) && (r0 == 0))
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1554,12 +1554,12 @@ bind_test_callee14(void* context)
     if ((bind_test_callee14_helpers[1].tail_call) && (r0 == 0))
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 99 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 99 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1735,7 +1735,7 @@ bind_test_callee15(void* context)
     if ((bind_test_callee15_helpers[0].tail_call) && (r0 == 0))
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1753,12 +1753,12 @@ bind_test_callee15(void* context)
     if ((bind_test_callee15_helpers[1].tail_call) && (r0 == 0))
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 100 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 100 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1934,7 +1934,7 @@ bind_test_callee16(void* context)
     if ((bind_test_callee16_helpers[0].tail_call) && (r0 == 0))
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1952,12 +1952,12 @@ bind_test_callee16(void* context)
     if ((bind_test_callee16_helpers[1].tail_call) && (r0 == 0))
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 101 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 101 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2133,7 +2133,7 @@ bind_test_callee17(void* context)
     if ((bind_test_callee17_helpers[0].tail_call) && (r0 == 0))
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2151,12 +2151,12 @@ bind_test_callee17(void* context)
     if ((bind_test_callee17_helpers[1].tail_call) && (r0 == 0))
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 102 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 102 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2332,7 +2332,7 @@ bind_test_callee18(void* context)
     if ((bind_test_callee18_helpers[0].tail_call) && (r0 == 0))
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2350,12 +2350,12 @@ bind_test_callee18(void* context)
     if ((bind_test_callee18_helpers[1].tail_call) && (r0 == 0))
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 103 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 103 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2531,7 +2531,7 @@ bind_test_callee19(void* context)
     if ((bind_test_callee19_helpers[0].tail_call) && (r0 == 0))
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2549,12 +2549,12 @@ bind_test_callee19(void* context)
     if ((bind_test_callee19_helpers[1].tail_call) && (r0 == 0))
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 104 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 104 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2730,7 +2730,7 @@ bind_test_callee2(void* context)
     if ((bind_test_callee2_helpers[0].tail_call) && (r0 == 0))
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2748,12 +2748,12 @@ bind_test_callee2(void* context)
     if ((bind_test_callee2_helpers[1].tail_call) && (r0 == 0))
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 87 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 87 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2929,7 +2929,7 @@ bind_test_callee20(void* context)
     if ((bind_test_callee20_helpers[0].tail_call) && (r0 == 0))
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2947,12 +2947,12 @@ bind_test_callee20(void* context)
     if ((bind_test_callee20_helpers[1].tail_call) && (r0 == 0))
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 105 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 105 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3128,7 +3128,7 @@ bind_test_callee21(void* context)
     if ((bind_test_callee21_helpers[0].tail_call) && (r0 == 0))
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3146,12 +3146,12 @@ bind_test_callee21(void* context)
     if ((bind_test_callee21_helpers[1].tail_call) && (r0 == 0))
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 106 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 106 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3327,7 +3327,7 @@ bind_test_callee22(void* context)
     if ((bind_test_callee22_helpers[0].tail_call) && (r0 == 0))
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3345,12 +3345,12 @@ bind_test_callee22(void* context)
     if ((bind_test_callee22_helpers[1].tail_call) && (r0 == 0))
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 107 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 107 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3526,7 +3526,7 @@ bind_test_callee23(void* context)
     if ((bind_test_callee23_helpers[0].tail_call) && (r0 == 0))
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3544,12 +3544,12 @@ bind_test_callee23(void* context)
     if ((bind_test_callee23_helpers[1].tail_call) && (r0 == 0))
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 108 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 108 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3725,7 +3725,7 @@ bind_test_callee24(void* context)
     if ((bind_test_callee24_helpers[0].tail_call) && (r0 == 0))
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3743,12 +3743,12 @@ bind_test_callee24(void* context)
     if ((bind_test_callee24_helpers[1].tail_call) && (r0 == 0))
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 109 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 109 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3924,7 +3924,7 @@ bind_test_callee25(void* context)
     if ((bind_test_callee25_helpers[0].tail_call) && (r0 == 0))
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3942,12 +3942,12 @@ bind_test_callee25(void* context)
     if ((bind_test_callee25_helpers[1].tail_call) && (r0 == 0))
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 110 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 110 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4123,7 +4123,7 @@ bind_test_callee26(void* context)
     if ((bind_test_callee26_helpers[0].tail_call) && (r0 == 0))
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4141,12 +4141,12 @@ bind_test_callee26(void* context)
     if ((bind_test_callee26_helpers[1].tail_call) && (r0 == 0))
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 111 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 111 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4322,7 +4322,7 @@ bind_test_callee27(void* context)
     if ((bind_test_callee27_helpers[0].tail_call) && (r0 == 0))
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4340,12 +4340,12 @@ bind_test_callee27(void* context)
     if ((bind_test_callee27_helpers[1].tail_call) && (r0 == 0))
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 112 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 112 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4521,7 +4521,7 @@ bind_test_callee28(void* context)
     if ((bind_test_callee28_helpers[0].tail_call) && (r0 == 0))
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4539,12 +4539,12 @@ bind_test_callee28(void* context)
     if ((bind_test_callee28_helpers[1].tail_call) && (r0 == 0))
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 113 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 113 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4720,7 +4720,7 @@ bind_test_callee29(void* context)
     if ((bind_test_callee29_helpers[0].tail_call) && (r0 == 0))
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4738,12 +4738,12 @@ bind_test_callee29(void* context)
     if ((bind_test_callee29_helpers[1].tail_call) && (r0 == 0))
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 114 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 114 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4919,7 +4919,7 @@ bind_test_callee3(void* context)
     if ((bind_test_callee3_helpers[0].tail_call) && (r0 == 0))
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4937,12 +4937,12 @@ bind_test_callee3(void* context)
     if ((bind_test_callee3_helpers[1].tail_call) && (r0 == 0))
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 88 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 88 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5118,7 +5118,7 @@ bind_test_callee30(void* context)
     if ((bind_test_callee30_helpers[0].tail_call) && (r0 == 0))
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5136,12 +5136,12 @@ bind_test_callee30(void* context)
     if ((bind_test_callee30_helpers[1].tail_call) && (r0 == 0))
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 115 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 115 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5317,7 +5317,7 @@ bind_test_callee31(void* context)
     if ((bind_test_callee31_helpers[0].tail_call) && (r0 == 0))
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5335,12 +5335,12 @@ bind_test_callee31(void* context)
     if ((bind_test_callee31_helpers[1].tail_call) && (r0 == 0))
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 116 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 116 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5516,7 +5516,7 @@ bind_test_callee32(void* context)
     if ((bind_test_callee32_helpers[0].tail_call) && (r0 == 0))
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5534,12 +5534,12 @@ bind_test_callee32(void* context)
     if ((bind_test_callee32_helpers[1].tail_call) && (r0 == 0))
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 117 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 117 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5715,7 +5715,7 @@ bind_test_callee33(void* context)
     if ((bind_test_callee33_helpers[0].tail_call) && (r0 == 0))
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5733,12 +5733,12 @@ bind_test_callee33(void* context)
     if ((bind_test_callee33_helpers[1].tail_call) && (r0 == 0))
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 118 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 118 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5889,7 +5889,7 @@ bind_test_callee34(void* context)
     if ((bind_test_callee34_helpers[0].tail_call) && (r0 == 0))
 #line 138 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
 #line 141 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
@@ -6016,7 +6016,7 @@ bind_test_callee4(void* context)
     if ((bind_test_callee4_helpers[0].tail_call) && (r0 == 0))
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6034,12 +6034,12 @@ bind_test_callee4(void* context)
     if ((bind_test_callee4_helpers[1].tail_call) && (r0 == 0))
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 89 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 89 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6215,7 +6215,7 @@ bind_test_callee5(void* context)
     if ((bind_test_callee5_helpers[0].tail_call) && (r0 == 0))
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6233,12 +6233,12 @@ bind_test_callee5(void* context)
     if ((bind_test_callee5_helpers[1].tail_call) && (r0 == 0))
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 90 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 90 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6414,7 +6414,7 @@ bind_test_callee6(void* context)
     if ((bind_test_callee6_helpers[0].tail_call) && (r0 == 0))
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6432,12 +6432,12 @@ bind_test_callee6(void* context)
     if ((bind_test_callee6_helpers[1].tail_call) && (r0 == 0))
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 91 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 91 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6613,7 +6613,7 @@ bind_test_callee7(void* context)
     if ((bind_test_callee7_helpers[0].tail_call) && (r0 == 0))
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6631,12 +6631,12 @@ bind_test_callee7(void* context)
     if ((bind_test_callee7_helpers[1].tail_call) && (r0 == 0))
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 92 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 92 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6812,7 +6812,7 @@ bind_test_callee8(void* context)
     if ((bind_test_callee8_helpers[0].tail_call) && (r0 == 0))
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6830,12 +6830,12 @@ bind_test_callee8(void* context)
     if ((bind_test_callee8_helpers[1].tail_call) && (r0 == 0))
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 93 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 93 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -7011,7 +7011,7 @@ bind_test_callee9(void* context)
     if ((bind_test_callee9_helpers[0].tail_call) && (r0 == 0))
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -7029,12 +7029,12 @@ bind_test_callee9(void* context)
     if ((bind_test_callee9_helpers[1].tail_call) && (r0 == 0))
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
-    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 94 "sample/tail_call_max_exceed.c"
     if ((int64_t)r0 > IMMEDIATE(-1))
 #line 94 "sample/tail_call_max_exceed.c"
         goto label_1;
-    // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=1680154744
+        // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=1680154744
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=33 dst=r10 src=r1 offset=-24 imm=0

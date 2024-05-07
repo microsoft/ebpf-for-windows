@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 # Download and copy release archive to local directory as ./ebpf-for-windows.msi before running this script.

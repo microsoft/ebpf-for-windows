@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #include "net_ebpf_ext.h"

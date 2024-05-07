@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #include <WinSock2.h>
@@ -75,8 +75,7 @@ main(int argc, const char** argv)
                         &bytes_sent,
                         0,
                         nullptr,
-                        nullptr) !=
-                    0) {
+                        nullptr) != 0) {
                     printf("WSASend failed\n");
                     return 1;
                 }

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -206,12 +206,12 @@ BindMonitor(void* context)
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0))
 #line 123 "sample/bindmonitor_tailcall.c"
         return 0;
-    // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
+        // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
 #line 125 "sample/bindmonitor_tailcall.c"
     if (r0 != IMMEDIATE(0))
 #line 125 "sample/bindmonitor_tailcall.c"
         goto label_1;
-    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
 #line 128 "sample/bindmonitor_tailcall.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
@@ -313,12 +313,12 @@ BindMonitor_Callee0(void* context)
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0))
 #line 139 "sample/bindmonitor_tailcall.c"
         return 0;
-    // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
+        // EBPF_OP_JNE_IMM pc=8 dst=r0 src=r0 offset=5 imm=0
 #line 141 "sample/bindmonitor_tailcall.c"
     if (r0 != IMMEDIATE(0))
 #line 141 "sample/bindmonitor_tailcall.c"
         goto label_1;
-    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
 #line 144 "sample/bindmonitor_tailcall.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
@@ -428,7 +428,7 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 156 "sample/bindmonitor_tailcall.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 156 "sample/bindmonitor_tailcall.c"
     r7 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=77 imm=0
@@ -436,7 +436,7 @@ BindMonitor_Callee1(void* context)
     if (r7 == IMMEDIATE(0))
 #line 157 "sample/bindmonitor_tailcall.c"
         goto label_7;
-    // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
+        // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
 #line 157 "sample/bindmonitor_tailcall.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=11 dst=r1 src=r0 offset=75 imm=0
@@ -444,7 +444,7 @@ BindMonitor_Callee1(void* context)
     if (r1 == IMMEDIATE(0))
 #line 157 "sample/bindmonitor_tailcall.c"
         goto label_7;
-    // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
+        // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
 #line 81 "sample/bindmonitor_tailcall.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-8 imm=0
@@ -498,7 +498,7 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 86 "sample/bindmonitor_tailcall.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=29 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=29 dst=r8 src=r0 offset=0 imm=0
 #line 86 "sample/bindmonitor_tailcall.c"
     r8 = r0;
     // EBPF_OP_JNE_IMM pc=30 dst=r8 src=r0 offset=28 imm=0
@@ -506,7 +506,7 @@ BindMonitor_Callee1(void* context)
     if (r8 != IMMEDIATE(0))
 #line 87 "sample/bindmonitor_tailcall.c"
         goto label_1;
-    // EBPF_OP_LDXW pc=31 dst=r1 src=r6 offset=44 imm=0
+        // EBPF_OP_LDXW pc=31 dst=r1 src=r6 offset=44 imm=0
 #line 91 "sample/bindmonitor_tailcall.c"
     r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
     // EBPF_OP_JNE_IMM pc=32 dst=r1 src=r0 offset=53 imm=0
@@ -514,7 +514,7 @@ BindMonitor_Callee1(void* context)
     if (r1 != IMMEDIATE(0))
 #line 91 "sample/bindmonitor_tailcall.c"
         goto label_6;
-    // EBPF_OP_LDXDW pc=33 dst=r1 src=r6 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=33 dst=r1 src=r6 offset=0 imm=0
 #line 95 "sample/bindmonitor_tailcall.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=34 dst=r1 src=r0 offset=51 imm=0
@@ -522,7 +522,7 @@ BindMonitor_Callee1(void* context)
     if (r1 == IMMEDIATE(0))
 #line 95 "sample/bindmonitor_tailcall.c"
         goto label_6;
-    // EBPF_OP_LDXDW pc=35 dst=r1 src=r6 offset=8 imm=0
+        // EBPF_OP_LDXDW pc=35 dst=r1 src=r6 offset=8 imm=0
 #line 95 "sample/bindmonitor_tailcall.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JEQ_IMM pc=36 dst=r1 src=r0 offset=49 imm=0
@@ -530,7 +530,7 @@ BindMonitor_Callee1(void* context)
     if (r1 == IMMEDIATE(0))
 #line 95 "sample/bindmonitor_tailcall.c"
         goto label_6;
-    // EBPF_OP_MOV64_REG pc=37 dst=r8 src=r10 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=37 dst=r8 src=r10 offset=0 imm=0
 #line 95 "sample/bindmonitor_tailcall.c"
     r8 = r10;
     // EBPF_OP_ADD64_IMM pc=38 dst=r8 src=r0 offset=0 imm=-8
@@ -560,7 +560,7 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0))
 #line 99 "sample/bindmonitor_tailcall.c"
         return 0;
-    // EBPF_OP_LDDW pc=46 dst=r1 src=r0 offset=0 imm=0
+        // EBPF_OP_LDDW pc=46 dst=r1 src=r0 offset=0 imm=0
 #line 100 "sample/bindmonitor_tailcall.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=48 dst=r2 src=r8 offset=0 imm=0
@@ -575,7 +575,7 @@ BindMonitor_Callee1(void* context)
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0))
 #line 100 "sample/bindmonitor_tailcall.c"
         return 0;
-    // EBPF_OP_MOV64_REG pc=50 dst=r8 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_REG pc=50 dst=r8 src=r0 offset=0 imm=0
 #line 100 "sample/bindmonitor_tailcall.c"
     r8 = r0;
     // EBPF_OP_JEQ_IMM pc=51 dst=r8 src=r0 offset=34 imm=0
@@ -583,7 +583,7 @@ BindMonitor_Callee1(void* context)
     if (r8 == IMMEDIATE(0))
 #line 101 "sample/bindmonitor_tailcall.c"
         goto label_6;
-    // EBPF_OP_LDXDW pc=52 dst=r3 src=r6 offset=0 imm=0
+        // EBPF_OP_LDXDW pc=52 dst=r3 src=r6 offset=0 imm=0
 #line 105 "sample/bindmonitor_tailcall.c"
     r3 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_LDXDW pc=53 dst=r4 src=r6 offset=8 imm=0
@@ -619,12 +619,12 @@ label_1:
     if (r1 == IMMEDIATE(0))
 #line 167 "sample/bindmonitor_tailcall.c"
         goto label_2;
-    // EBPF_OP_JEQ_IMM pc=61 dst=r1 src=r0 offset=9 imm=2
+        // EBPF_OP_JEQ_IMM pc=61 dst=r1 src=r0 offset=9 imm=2
 #line 167 "sample/bindmonitor_tailcall.c"
     if (r1 == IMMEDIATE(2))
 #line 167 "sample/bindmonitor_tailcall.c"
         goto label_3;
-    // EBPF_OP_LDXW pc=62 dst=r1 src=r8 offset=0 imm=0
+        // EBPF_OP_LDXW pc=62 dst=r1 src=r8 offset=0 imm=0
 #line 184 "sample/bindmonitor_tailcall.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JA pc=63 dst=r0 src=r0 offset=11 imm=0
@@ -645,7 +645,7 @@ label_2:
     if (r1 >= r2)
 #line 169 "sample/bindmonitor_tailcall.c"
         goto label_7;
-    // EBPF_OP_ADD64_IMM pc=68 dst=r1 src=r0 offset=0 imm=1
+        // EBPF_OP_ADD64_IMM pc=68 dst=r1 src=r0 offset=0 imm=1
 #line 173 "sample/bindmonitor_tailcall.c"
     r1 += IMMEDIATE(1);
     // EBPF_OP_STXW pc=69 dst=r8 src=r1 offset=0 imm=0
@@ -663,7 +663,7 @@ label_3:
     if (r1 == IMMEDIATE(0))
 #line 176 "sample/bindmonitor_tailcall.c"
         goto label_5;
-    // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=-1
+        // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=-1
 #line 177 "sample/bindmonitor_tailcall.c"
     r1 += IMMEDIATE(-1);
     // EBPF_OP_STXW pc=74 dst=r8 src=r1 offset=0 imm=0

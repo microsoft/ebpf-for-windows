@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // This module exposes ebpf_bitmap_t, which maintains a set of N bits. It provides the following operations:

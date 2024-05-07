@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 # Script to pull artifact from latest scheduled run from a GitHub Actions workflow.

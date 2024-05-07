@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 option(EBPFFORWINDOWS_ENABLE_TESTS "Set to true to enable tests" true)

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -81,7 +81,7 @@ func(void* context)
     if ((func_helpers[0].tail_call) && (r0 == 0))
 #line 22 "sample/unsafe/printk_unsafe.c"
         return 0;
-    // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=0
+        // EBPF_OP_MOV64_IMM pc=8 dst=r0 src=r0 offset=0 imm=0
 #line 23 "sample/unsafe/printk_unsafe.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=9 dst=r0 src=r0 offset=0 imm=0
