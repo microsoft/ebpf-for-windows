@@ -86,10 +86,12 @@ tcp_mt_connect6(void* context)
     r0 = IMMEDIATE(1);
     // EBPF_OP_JNE_IMM pc=2 dst=r2 src=r0 offset=20 imm=6
 #line 27 "sample/cgroup_mt_connect6.c"
-    if (r2 != IMMEDIATE(6))
+    if (r2 != IMMEDIATE(6)) {
 #line 27 "sample/cgroup_mt_connect6.c"
         goto label_1;
-        // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
+#line 27 "sample/cgroup_mt_connect6.c"
+    }
+    // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
 #line 33 "sample/cgroup_mt_connect6.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
     // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=7459
@@ -100,10 +102,12 @@ tcp_mt_connect6(void* context)
     r0 = IMMEDIATE(1);
     // EBPF_OP_JGT_REG pc=6 dst=r3 src=r2 offset=16 imm=0
 #line 33 "sample/cgroup_mt_connect6.c"
-    if (r3 > r2)
+    if (r3 > r2) {
 #line 33 "sample/cgroup_mt_connect6.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=7 dst=r0 src=r0 offset=0 imm=0
+#line 33 "sample/cgroup_mt_connect6.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=7 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/cgroup_mt_connect6.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_MOV64_REG pc=8 dst=r3 src=r2 offset=0 imm=0
@@ -128,10 +132,12 @@ tcp_mt_connect6(void* context)
     r4 = (uint64_t)6148914691236517206;
     // EBPF_OP_JGT_REG pc=16 dst=r4 src=r5 offset=6 imm=0
 #line 41 "sample/cgroup_mt_connect6.c"
-    if (r4 > r5)
+    if (r4 > r5) {
 #line 41 "sample/cgroup_mt_connect6.c"
         goto label_1;
-        // EBPF_OP_AND64_IMM pc=17 dst=r3 src=r0 offset=0 imm=1
+#line 41 "sample/cgroup_mt_connect6.c"
+    }
+    // EBPF_OP_AND64_IMM pc=17 dst=r3 src=r0 offset=0 imm=1
 #line 46 "sample/cgroup_mt_connect6.c"
     r3 &= IMMEDIATE(1);
     // EBPF_OP_MOV64_IMM pc=18 dst=r0 src=r0 offset=0 imm=1
@@ -139,10 +145,12 @@ tcp_mt_connect6(void* context)
     r0 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=19 dst=r3 src=r0 offset=3 imm=0
 #line 46 "sample/cgroup_mt_connect6.c"
-    if (r3 == IMMEDIATE(0))
+    if (r3 == IMMEDIATE(0)) {
 #line 46 "sample/cgroup_mt_connect6.c"
         goto label_1;
-        // EBPF_OP_ADD64_IMM pc=20 dst=r2 src=r0 offset=0 imm=-6141
+#line 46 "sample/cgroup_mt_connect6.c"
+    }
+    // EBPF_OP_ADD64_IMM pc=20 dst=r2 src=r0 offset=0 imm=-6141
 #line 54 "sample/cgroup_mt_connect6.c"
     r2 += IMMEDIATE(-6141);
     // EBPF_OP_STXH pc=21 dst=r1 src=r2 offset=40 imm=0

@@ -96,19 +96,21 @@ divide_by_zero(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 35 "sample/undocked/divide_by_zero.c"
-    r0 = divide_by_zero_helpers[0].address
+    r0 = divide_by_zero_helpers[0].address(r1, r2, r3, r4, r5);
 #line 35 "sample/undocked/divide_by_zero.c"
-         (r1, r2, r3, r4, r5);
-#line 35 "sample/undocked/divide_by_zero.c"
-    if ((divide_by_zero_helpers[0].tail_call) && (r0 == 0))
+    if ((divide_by_zero_helpers[0].tail_call) && (r0 == 0)) {
 #line 35 "sample/undocked/divide_by_zero.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
+#line 35 "sample/undocked/divide_by_zero.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=3 imm=0
 #line 36 "sample/undocked/divide_by_zero.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 36 "sample/undocked/divide_by_zero.c"
         goto label_1;
-        // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
+#line 36 "sample/undocked/divide_by_zero.c"
+    }
+    // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000

@@ -299,22 +299,24 @@ lookup_update(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/undocked/inner_map.c"
-    r0 = lookup_update_helpers[0].address
+    r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 60 "sample/undocked/inner_map.c"
-         (r1, r2, r3, r4, r5);
-#line 60 "sample/undocked/inner_map.c"
-    if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[0].tail_call) && (r0 == 0)) {
 #line 60 "sample/undocked/inner_map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r6 src=r0 offset=0 imm=0
+#line 60 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_MOV64_REG pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 60 "sample/undocked/inner_map.c"
     r6 = r0;
     // EBPF_OP_JEQ_IMM pc=9 dst=r6 src=r0 offset=11 imm=0
 #line 61 "sample/undocked/inner_map.c"
-    if (r6 == IMMEDIATE(0))
+    if (r6 == IMMEDIATE(0)) {
 #line 61 "sample/undocked/inner_map.c"
         goto label_3;
-        // EBPF_OP_STXW pc=10 dst=r10 src=r7 offset=-12 imm=0
+#line 61 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_STXW pc=10 dst=r10 src=r7 offset=-12 imm=0
 #line 62 "sample/undocked/inner_map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-12)) = (uint32_t)r7;
     // EBPF_OP_MOV64_REG pc=11 dst=r2 src=r10 offset=0 imm=0
@@ -328,18 +330,20 @@ lookup_update(void* context)
     r1 = r6;
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 63 "sample/undocked/inner_map.c"
-    r0 = lookup_update_helpers[0].address
+    r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 63 "sample/undocked/inner_map.c"
-         (r1, r2, r3, r4, r5);
-#line 63 "sample/undocked/inner_map.c"
-    if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[0].tail_call) && (r0 == 0)) {
 #line 63 "sample/undocked/inner_map.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=5 imm=0
+#line 63 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=5 imm=0
 #line 64 "sample/undocked/inner_map.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 64 "sample/undocked/inner_map.c"
         goto label_3;
+#line 64 "sample/undocked/inner_map.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=16 dst=r1 src=r0 offset=0 imm=1
 #line 64 "sample/undocked/inner_map.c"
@@ -369,22 +373,24 @@ label_3:
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=1
 #line 72 "sample/undocked/inner_map.c"
-    r0 = lookup_update_helpers[0].address
+    r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 72 "sample/undocked/inner_map.c"
-         (r1, r2, r3, r4, r5);
-#line 72 "sample/undocked/inner_map.c"
-    if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[0].tail_call) && (r0 == 0)) {
 #line 72 "sample/undocked/inner_map.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=26 dst=r7 src=r0 offset=0 imm=1
+#line 72 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=26 dst=r7 src=r0 offset=0 imm=1
 #line 72 "sample/undocked/inner_map.c"
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=27 dst=r0 src=r0 offset=-9 imm=0
 #line 73 "sample/undocked/inner_map.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 73 "sample/undocked/inner_map.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=0
+#line 73 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=0
 #line 73 "sample/undocked/inner_map.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXW pc=29 dst=r10 src=r1 offset=-16 imm=0
@@ -401,19 +407,21 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=1
 #line 75 "sample/undocked/inner_map.c"
-    r0 = lookup_update_helpers[0].address
+    r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 75 "sample/undocked/inner_map.c"
-         (r1, r2, r3, r4, r5);
-#line 75 "sample/undocked/inner_map.c"
-    if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[0].tail_call) && (r0 == 0)) {
 #line 75 "sample/undocked/inner_map.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=34 dst=r0 src=r0 offset=-16 imm=0
+#line 75 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=34 dst=r0 src=r0 offset=-16 imm=0
 #line 76 "sample/undocked/inner_map.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 76 "sample/undocked/inner_map.c"
         goto label_2;
-        // EBPF_OP_JA pc=35 dst=r0 src=r0 offset=-20 imm=0
+#line 76 "sample/undocked/inner_map.c"
+    }
+    // EBPF_OP_JA pc=35 dst=r0 src=r0 offset=-20 imm=0
 #line 76 "sample/undocked/inner_map.c"
     goto label_1;
 #line 76 "sample/undocked/inner_map.c"

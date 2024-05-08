@@ -115,27 +115,31 @@ func(void* context)
     r2 = IMMEDIATE(16);
     // EBPF_OP_JGT_REG pc=3 dst=r2 src=r1 offset=18 imm=0
 #line 46 "sample/pidtgid.c"
-    if (r2 > r1)
+    if (r2 > r1) {
 #line 46 "sample/pidtgid.c"
         goto label_1;
-        // EBPF_OP_LDXH pc=4 dst=r1 src=r6 offset=26 imm=0
+#line 46 "sample/pidtgid.c"
+    }
+    // EBPF_OP_LDXH pc=4 dst=r1 src=r6 offset=26 imm=0
 #line 46 "sample/pidtgid.c"
     r1 = *(uint16_t*)(uintptr_t)(r6 + OFFSET(26));
     // EBPF_OP_JNE_IMM pc=5 dst=r1 src=r0 offset=16 imm=15295
 #line 46 "sample/pidtgid.c"
-    if (r1 != IMMEDIATE(15295))
+    if (r1 != IMMEDIATE(15295)) {
 #line 46 "sample/pidtgid.c"
         goto label_1;
-        // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
+#line 46 "sample/pidtgid.c"
+    }
+    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
 #line 47 "sample/pidtgid.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 47 "sample/pidtgid.c"
-         (r1, r2, r3, r4, r5);
-#line 47 "sample/pidtgid.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 47 "sample/pidtgid.c"
         return 0;
-        // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
+#line 47 "sample/pidtgid.c"
+    }
+    // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
 #line 49 "sample/pidtgid.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
     // EBPF_OP_STXW pc=8 dst=r10 src=r0 offset=-8 imm=0
@@ -176,13 +180,13 @@ func(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/pidtgid.c"
-    r0 = func_helpers[1].address
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
 #line 51 "sample/pidtgid.c"
-         (r1, r2, r3, r4, r5);
-#line 51 "sample/pidtgid.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0))
+    if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/pidtgid.c"
         return 0;
+#line 51 "sample/pidtgid.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 54 "sample/pidtgid.c"
