@@ -99,6 +99,7 @@ typedef enum _ebpf_helper_function
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION 1
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)
+#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_section_info_t)
 
 /**
  * @brief Header of an eBPF extension data structure.
@@ -107,8 +108,9 @@ typedef enum _ebpf_helper_function
  * without breaking backward compatibility. The version field must be
  * updated only if the new data structure is not backward compatible.
  */
-typedef struct _ebpf_extension_header
+typedef struct _ebpf_version_header
 {
-    uint16_t version; ///< Version of the extension data structure.
-    size_t size;      ///< Size of the extension data structure.
-} ebpf_extension_header_t;
+    uint16_t version;  ///< Version of the extension data structure.
+    size_t size;       ///< Size of the extension data structure.
+    size_t total_size; ///< Total size of the extension data structure including any padding.
+} ebpf_version_header_t;

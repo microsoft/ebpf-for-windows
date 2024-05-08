@@ -84,7 +84,7 @@ _ebpf_is_size_supported(_In_count_(count) const size_t* supported_sizes, uint16_
 
 static bool
 _ebpf_validate_extension_object_header(
-    enum _extension_object_type object_type, _In_ const ebpf_extension_header_t* header)
+    enum _extension_object_type object_type, _In_ const ebpf_version_header_t* header)
 {
     size_t* supported_sizes = _ebpf_extension_type_supported_sizes[object_type].supported_sizes;
     uint16_t count = _ebpf_extension_type_supported_sizes[object_type].count;

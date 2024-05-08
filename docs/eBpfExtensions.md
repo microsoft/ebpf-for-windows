@@ -61,7 +61,7 @@ initialized as follows:
 * `ModuleId`: This should be set to the eBPF program type GUID.
 * `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_program_data_t`.
 
-#### `ebpf_extension_header_t` Struct
+#### `ebpf_version_header_t` Struct
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
 * `version`: Version of the extension data structure.
 * `size`: Size of the extension data structure.
@@ -149,7 +149,7 @@ typedef struct _ebpf_helper_function_prototype_flags
 
 typedef struct _ebpf_helper_function_prototype
 {
-    ebpf_extension_header_t header;
+    ebpf_version_header_t header;
     uint32_t helper_id;
     const char* name;
     ebpf_return_type_t return_type;
