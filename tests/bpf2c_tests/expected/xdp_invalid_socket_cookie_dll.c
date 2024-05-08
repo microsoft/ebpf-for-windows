@@ -85,14 +85,14 @@ xdp_invalid_socket_cookie(void* context)
 
     // EBPF_OP_CALL pc=0 dst=r0 src=r0 offset=0 imm=26
 #line 20 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[0].address
+    r0 = xdp_invalid_socket_cookie_helpers[0].address(r1, r2, r3, r4, r5);
 #line 20 "sample/xdp_invalid_socket_cookie.c"
-         (r1, r2, r3, r4, r5);
-#line 20 "sample/xdp_invalid_socket_cookie.c"
-    if ((xdp_invalid_socket_cookie_helpers[0].tail_call) && (r0 == 0))
+    if ((xdp_invalid_socket_cookie_helpers[0].tail_call) && (r0 == 0)) {
 #line 20 "sample/xdp_invalid_socket_cookie.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=0
+#line 20 "sample/xdp_invalid_socket_cookie.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=0
 #line 20 "sample/xdp_invalid_socket_cookie.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=2 dst=r10 src=r1 offset=-4 imm=0
@@ -130,14 +130,14 @@ xdp_invalid_socket_cookie(void* context)
     r3 = r0;
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=13
 #line 22 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[1].address
+    r0 = xdp_invalid_socket_cookie_helpers[1].address(r1, r2, r3, r4, r5);
 #line 22 "sample/xdp_invalid_socket_cookie.c"
-         (r1, r2, r3, r4, r5);
-#line 22 "sample/xdp_invalid_socket_cookie.c"
-    if ((xdp_invalid_socket_cookie_helpers[1].tail_call) && (r0 == 0))
+    if ((xdp_invalid_socket_cookie_helpers[1].tail_call) && (r0 == 0)) {
 #line 22 "sample/xdp_invalid_socket_cookie.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
+#line 22 "sample/xdp_invalid_socket_cookie.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
 #line 25 "sample/xdp_invalid_socket_cookie.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
@@ -178,7 +178,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 15;
+    version->minor = 16;
     version->revision = 0;
 }
 
