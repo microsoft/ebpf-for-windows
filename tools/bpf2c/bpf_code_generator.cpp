@@ -1414,8 +1414,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
-            // output_stream << INDENT "{NULL," << std::endl;
-            output_stream << INDENT "{{" << std::endl;
+            output_stream << INDENT "{0," << std::endl;
+            output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
