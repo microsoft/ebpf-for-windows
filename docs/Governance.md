@@ -119,11 +119,12 @@ Responsibilities:
 ## Project Milestones
 
 eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g., the milestone for June, 2024 will be called 2406.
-At any time there are four active milestones in the project. There will be an milestone for the current calendar month (`N`),
+At any time, there are four active milestones in the project. There will be a milestone for the current calendar month (`N`),
 and two others for the next two months (`N+1`), (`N+2`). And there is always a `Backlog` milestone for backlog issues to be
 addressed in the future. In the first triage meeting of a month, the previous milestone must be closed and a new `N+2` milestone must be created.
 
-During the weekly triage meetings, triage drivers MUST set an issue to one of the four milestones according to the priority of the issues.
+During the weekly triage meetings, whenever any issue is marked with the "triaged" label, triage drivers MUST set an issue to one of the four milestones
+according to the priority of the issues.
 
 ## Prioritizing Issues
 
@@ -135,11 +136,10 @@ the `P1` issue, it must be set to the *next milestone (`N+1`)*.
 ### P2:
 This label is used for the next level of priority. Issues marked as `P2` can be set to milestones `N`, `N+1` (preferred) or `N+2`.
 ### P3:
-This label is used for low priority issues. Issues marked with `P3` label can be set to the milestones `N+1`, `N+2`, or `Backlog`.
-`P3` issues must never be set to the current milestone (`N`).
+This label is used for low priority issues. Issues marked with `P3` label can be set to any milestone including `Backlog`.
 
 In the last triage meeting of the monthly milestone, triage drivers or administrators must move all issues that do not have an active pull request
-to the next milestones. Ideally, all `P1` issues should be addressed in their designated milestones. However, if that does not happen for any reason,
+to the next milestone. Ideally, all `P1` issues should be addressed in their designated milestones. However, if that does not happen for any reason,
 `P1` issue can be moved to `N+1` milestone. Similarly, overdue `P2` issues can be moved to milestones `N+1` or `N+2`. Overdue `P3` issues can be moved to
 the `N+2` or `Backlog` milestones.
 
