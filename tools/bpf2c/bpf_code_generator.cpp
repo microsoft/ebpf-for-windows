@@ -1124,7 +1124,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     throw bpf_code_generator_exception(
                         "Map " + output.relocation + " doesn't exist", output.instruction_offset);
                 }
-                source = std::format("_maps[{}].address", std::to_string(map_definition->second.index));
+                source = std::format("map_addresses[{}]", std::to_string(map_definition->second.index));
                 output.lines.push_back(std::format("{} = POINTER({});", destination, source));
                 current_section->referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
@@ -1414,8 +1414,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
-            output_stream << INDENT "{NULL," << std::endl;
-            output_stream << INDENT " {" << std::endl;
+            // output_stream << INDENT "{NULL," << std::endl;
+            output_stream << INDENT "{{" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
@@ -1556,7 +1556,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         // Emit entry point
         output_stream << "#pragma code_seg(push, " << section.pe_section_name.quoted() << ")" << std::endl;
-        output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
+        output_stream << std::format(
+                             "static uint64_t\n{}(void* context, uintptr_t* map_addresses)",
+                             program_name.c_identifier())
+                      << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue
@@ -1573,7 +1576,13 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
         output_stream << prolog_line_info << INDENT "" << get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
+        if (section.referenced_map_indices.size() == 0) {
+            output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(map_addresses);" << std::endl;
+        }
         output_stream << std::endl;
+
+        if (section.referenced_map_indices.size() > 0) {
+        }
 
         // Emit encoded instructions.
         for (const auto& output : section.output) {

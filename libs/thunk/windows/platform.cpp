@@ -303,4 +303,39 @@ _stop_service(SC_HANDLE service_handle)
     return error;
 }
 
+uint32_t
+_get_service(_In_z_ const wchar_t* service_name, uint32_t access_flags, _Out_ SC_HANDLE* service_handle)
+{
+    SC_HANDLE local_service_handle = nullptr;
+    SC_HANDLE scm_handle = nullptr;
+    int error = ERROR_SUCCESS;
+    *service_handle = nullptr;
+
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    if (scm_handle == nullptr) {
+        return GetLastError();
+    }
+
+    // Open service to get the handle.
+    local_service_handle = OpenService(scm_handle, service_name, access_flags);
+    if (local_service_handle == nullptr) {
+        error = GetLastError();
+        goto Done;
+    }
+    *service_handle = local_service_handle;
+
+Done:
+    if (scm_handle != nullptr) {
+        CloseServiceHandle(scm_handle);
+    }
+    return error;
+}
+
+bool
+_close_service_handle(SC_HANDLE service_handle)
+{
+    return CloseServiceHandle(service_handle);
+}
+
 } // namespace Platform
+// namespace Platform

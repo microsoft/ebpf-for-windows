@@ -81,4 +81,10 @@ _stop_service(SC_HANDLE service_handle);
 bool
 _query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status);
 
+uint32_t
+_get_service(_In_z_ const wchar_t* service_name, uint32_t access_flags, _Out_ SC_HANDLE* service_handle);
+
+bool
+_close_service_handle(SC_HANDLE service_handle);
+
 } // namespace Platform

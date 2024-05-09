@@ -46,6 +46,7 @@ typedef struct _ebpf_native_program
     program_entry_t* entry;
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
+    uintptr_t* map_addresses;
 } ebpf_native_program_t;
 
 typedef enum _ebpf_native_module_state
@@ -84,6 +85,7 @@ typedef struct _ebpf_native_module
     _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
     ebpf_lock_t lock;
     ebpf_native_map_t* maps;
+    // uintptr_t* map_addresses;
     size_t map_count;
     ebpf_native_program_t* programs;
     size_t program_count;
@@ -249,6 +251,7 @@ _ebpf_native_clean_up_programs(
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
         programs[i].addresses_changed_callback_context = NULL;
+        ebpf_free(programs[i].map_addresses);
     }
 
     ebpf_free(programs);
@@ -268,6 +271,8 @@ _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
     module->map_count = 0;
     module->programs = NULL;
     module->program_count = 0;
+
+    // ebpf_free(module->map_addresses);
 
     cxplat_free_preemptible_work_item(module->cleanup_work_item);
     ebpf_free(module->service_name);
@@ -710,7 +715,7 @@ _ebpf_native_initialize_maps(
         }
         native_maps[i].entry = &maps[i];
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
-        maps[i].address = NULL;
+        // maps[i].address = NULL;
 
         if (maps[i].definition.pinning == LIBBPF_PIN_BY_NAME) {
             // Construct the pin path.
@@ -984,6 +989,11 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
     if (module->maps == NULL) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
+    // module->map_addresses = (uintptr_t*)ebpf_allocate_with_tag(map_count * sizeof(uintptr_t), EBPF_POOL_TAG_NATIVE);
+    // if (module->map_addresses == NULL) {
+    //     result = EBPF_NO_MEMORY;
+    //     goto Done;
+    // }
 
     module->map_count = map_count;
     native_maps = module->maps;
@@ -1077,14 +1087,16 @@ _ebpf_native_initialize_programs(
 }
 
 static ebpf_result_t
-_ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ const ebpf_native_program_t* program)
+_ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     ebpf_handle_t* map_handles = NULL;
     uintptr_t* map_addresses = NULL;
+    // uintptr_t* local_map_addresses = NULL;
     uint16_t* map_indices = program->entry->referenced_map_indices;
     uint16_t map_count = program->entry->referenced_map_count;
+    size_t total_map_count = module->map_count;
     ebpf_native_map_t* native_maps = module->maps;
 
     if (map_count == 0) {
@@ -1116,6 +1128,12 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
         goto Done;
     }
 
+    program->map_addresses = ebpf_allocate_with_tag(total_map_count * sizeof(uintptr_t), EBPF_POOL_TAG_NATIVE);
+    if (program->map_addresses == NULL) {
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
     // Iterate over the map indices to get all the handles.
     for (uint16_t i = 0; i < map_count; i++) {
         map_handles[i] = native_maps[map_indices[i]].handle;
@@ -1128,19 +1146,7 @@ _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_t* module, _In_ co
 
     // Update the addresses in the map entries.
     for (uint16_t i = 0; i < map_count; i++) {
-        // Same map can be used in multiple programs and hence resolved multiple times.
-        // Verify that the address of a map does not change.
-        if (native_maps[map_indices[i]].entry->address != NULL &&
-            native_maps[map_indices[i]].entry->address != (void*)map_addresses[i]) {
-            result = EBPF_INVALID_ARGUMENT;
-            EBPF_LOG_MESSAGE_GUID(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_NATIVE,
-                "_ebpf_native_resolve_maps_for_program: map address changed",
-                &module->client_module_id);
-            goto Done;
-        }
-        native_maps[map_indices[i]].entry->address = (void*)map_addresses[i];
+        program->map_addresses[map_indices[i]] = map_addresses[i];
     }
 
 Done:
@@ -1313,15 +1319,19 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
         section_name = NULL;
         hash_type_name = NULL;
 
-        // Load machine code.
-        result = ebpf_core_load_code(
-            native_program->handle, EBPF_CODE_NATIVE, module, (uint8_t*)native_program->entry->function, 0);
+        // Resolve and associate maps with the program.
+        result = _ebpf_native_resolve_maps_for_program(module, native_program);
         if (result != EBPF_SUCCESS) {
             break;
         }
 
-        // Resolve and associate maps with the program.
-        result = _ebpf_native_resolve_maps_for_program(module, native_program);
+        ebpf_core_code_context_t code_context = {0};
+        code_context.native_code_context.map_addresses = native_program->map_addresses;
+        code_context.native_code_context.native_module_context = module;
+
+        // Load machine code.
+        result = ebpf_core_load_code(
+            native_program->handle, EBPF_CODE_NATIVE, &code_context, (uint8_t*)native_program->entry->function, 0);
         if (result != EBPF_SUCCESS) {
             break;
         }

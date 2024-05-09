@@ -118,6 +118,9 @@ extern "C"
 
         /// The system is in an invalid state for this operation.
         EBPF_INVALID_STATE,
+
+        /// The operation should be retried.
+        EBPF_TRY_AGAIN,
     } ebpf_result_t;
 
 #define EBPF_RESULT_COUNT (EBPF_INVALID_STATE + 1)

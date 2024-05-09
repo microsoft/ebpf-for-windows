@@ -2501,7 +2501,7 @@ _ebpf_pe_get_map_definitions(
             for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
                  map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
-                if (entry->address != nullptr) {
+                if (entry->zero_marker != 0) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
                     // at the end of the section.  This entry seems to be a map name string, so we've
                     // reached the end of the maps.
@@ -3570,6 +3570,48 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
+// static ebpf_result_t
+// _generate_native_program_service_name(_In_ const char* file_name, _Out_ std::wstring& service_name)
+// {
+//     // 1. Get FullPathName
+//     // 2. Extract the file path (excluding the file name)
+//     // 3. Generate unique service name based on the file path. It should look as follows:
+//     //          file_name_without_file_extension + "_" + file_path.
+//     //   e.g.   droppacket_c:\users\user\desktop
+//     // 4. If file path is more than 255 characters, truncate it to 253 characters and add ~1 to the end.
+
+//     // ANUSA TODO: Fix this function by generating a unique name.
+
+//     service_name = _get_wstring_from_string(std::string(file_name));
+
+//     return EBPF_SUCCESS;
+
+//     // ebpf_result_t result = EBPF_SUCCESS;
+//     // char full_path_name[MAX_PATH];
+//     // char* file_path = nullptr;
+//     // char* service_name = nullptr;
+//     // size_t file_path_length = 0;
+//     // size_t service_name_length = 0;
+
+//     // if (GetFullPathName(file_name, MAX_PATH, full_path_name, nullptr) == 0) {
+//     //     result = win32_error_to_ebpf_result(GetLastError());
+//     //     goto Done;
+//     // }
+
+//     // file_path = full_path_name;
+//     // file_path_length = strlen(file_path);
+//     // if (file_path_length > 255) {
+//     //     file_path_length = 253;
+//     //     file_path[file_path_length] = '~';
+//     //     file_path[file_path_length + 1] = '1';
+//     //     file_path[file_path_length + 2] = '\0';
+//     // }
+// }
+
+// static ebpf_result_t
+// _ebpf_get_or_create_service()
+
+// ANUSA TODO: Have multiple retries in case EC returns EBPF_TRY_AGAIN.
 static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
@@ -3589,7 +3631,7 @@ _ebpf_program_load_native(
 
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error;
-    GUID service_name_guid;
+    GUID service_instance_guid;
     GUID provider_module_id;
     std::wstring service_name;
     std::string file_name_string(file_name);
@@ -3605,7 +3647,7 @@ _ebpf_program_load_native(
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
 
-    if (UuidCreate(&service_name_guid) != RPC_S_OK) {
+    if (UuidCreate(&service_instance_guid) != RPC_S_OK) {
         EBPF_LOG_MESSAGE_STRING(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_API,
@@ -3628,12 +3670,14 @@ _ebpf_program_load_native(
         EBPF_TRACELOG_KEYWORD_API,
         "_ebpf_program_load_native",
         file_name,
-        &service_name_guid,
+        &service_instance_guid,
         &provider_module_id);
 
     try {
-        // Create a driver service with a random name.
-        service_name = guid_to_wide_string(&service_name_guid);
+        // service_name = _generate_native_program_service_name()
+
+        // service_name = guid_to_wide_string(&service_name_guid);
+        service_name = _get_wstring_from_string(file_name_string);
 
         error = Platform::_create_service(
             service_name.c_str(), _get_wstring_from_string(file_name_string).c_str(), &service_handle);
