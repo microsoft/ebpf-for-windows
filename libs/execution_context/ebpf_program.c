@@ -1448,10 +1448,11 @@ ebpf_program_invoke(
          execution_state->tail_call_state.count++) {
 
         if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
-            const uintptr_t* map_context = (uintptr_t*)current_program->code_or_vm.native.code_context.map_addresses;
+            const program_runtime_context_t* runtime_context =
+                current_program->code_or_vm.native.code_context.runtime_context;
             ebpf_program_native_entry_point_t function_pointer;
             function_pointer = (ebpf_program_native_entry_point_t)(current_program->code_or_vm.native.code_pointer);
-            *result = (function_pointer)(context, map_context);
+            *result = (function_pointer)(context, runtime_context);
         } else if (current_program->parameters.code_type == EBPF_CODE_JIT) {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
             ebpf_program_entry_point_t function_pointer;

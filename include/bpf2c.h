@@ -53,11 +53,17 @@ extern "C"
      */
     typedef struct _helper_function_entry
     {
-        uint64_t (*address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
+        // uint64_t (*address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
         uint32_t helper_id;
         const char* name;
-        bool tail_call;
+        // bool tail_call;
     } helper_function_entry_t;
+
+    typedef struct _helper_function_data
+    {
+        uint64_t (*address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
+        bool tail_call;
+    } helper_function_data_t;
 
     /**
      * @brief Map entry.
@@ -75,6 +81,17 @@ extern "C"
         ebpf_map_definition_in_file_t definition;
         const char* name;
     } map_entry_t;
+
+    typedef struct _map_data
+    {
+        uintptr_t address;
+    } map_data_t;
+
+    typedef struct _program_runtime_context
+    {
+        helper_function_data_t* helper_data;
+        map_data_t* map_data;
+    } program_runtime_context_t;
 
     /**
      * @brief Map initial values.
@@ -100,7 +117,7 @@ extern "C"
         // entries in the programs section.
         uint64_t zero;
 
-        uint64_t (*function)(void*, uintptr_t*);  ///< Address of the program.
+        uint64_t (*function)(void*, void*);       ///< Address of the program.
         const char* pe_section_name;              ///< Name of the PE section containing the program.
         const char* section_name;                 ///< Name of the section containing the program.
         const char* program_name;                 ///< Name of the program.

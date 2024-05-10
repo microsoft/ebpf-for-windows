@@ -45,7 +45,7 @@ extern "C"
 
     typedef struct _ebpf_native_code_context
     {
-        const uintptr_t* map_addresses;
+        const program_runtime_context_t* runtime_context;
         const ebpf_native_module_binding_context_t* native_module_context;
     } ebpf_native_code_context_t;
 
@@ -58,7 +58,8 @@ extern "C"
     } ebpf_core_code_context_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);
-    typedef ebpf_result_t (*ebpf_program_native_entry_point_t)(void* context, const uintptr_t* map_addresses);
+    typedef ebpf_result_t (*ebpf_program_native_entry_point_t)(
+        void* context, const program_runtime_context_t* runtime_context);
 
     /**
      * @brief Initialize global state for the ebpf program module.

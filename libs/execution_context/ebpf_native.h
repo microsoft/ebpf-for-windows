@@ -11,7 +11,7 @@
 extern "C"
 {
 #endif
-    typedef struct _ebpf_native_module ebpf_native_module_binding_context_t;
+    typedef struct _ebpf_native_program ebpf_native_module_binding_context_t;
 
     /**
      * @brief Initialize the eBPF native code module.
@@ -107,20 +107,20 @@ extern "C"
     ebpf_native_get_count_of_maps(_In_ const GUID* module_id, _Out_ size_t* count_of_maps);
 
     /**
-     * @brief Acquire reference on the native module.
+     * @brief Acquire reference on the native binding context.
      *
-     * @param[inout] module Pointer to native module.
+     * @param[inout] module Pointer to binding context.
      */
     void
-    ebpf_native_acquire_reference(_Inout_ ebpf_native_module_binding_context_t* module);
+    ebpf_native_acquire_reference(_Inout_ ebpf_native_module_binding_context_t* binding_context);
 
     /**
-     * @brief Release reference to the native module.
+     * @brief Release reference to the native binding context.
      *
-     * @param[in] module Optionally, pointer to native module.
+     * @param[in] module Optionally, pointer to binding context.
      */
     void
-    ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_binding_context_t* module);
+    ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_binding_context_t* binding_context);
 
 #ifdef __cplusplus
 }
