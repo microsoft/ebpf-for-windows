@@ -136,14 +136,14 @@ caller(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 43 "sample/undocked/tail_call_map.c"
-    r0 = caller_helpers[0].address
+    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5);
 #line 43 "sample/undocked/tail_call_map.c"
-         (r1, r2, r3, r4, r5);
-#line 43 "sample/undocked/tail_call_map.c"
-    if ((caller_helpers[0].tail_call) && (r0 == 0))
+    if ((caller_helpers[0].tail_call) && (r0 == 0)) {
 #line 43 "sample/undocked/tail_call_map.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
+#line 43 "sample/undocked/tail_call_map.c"
+    }
+    // EBPF_OP_MOV64_REG pc=8 dst=r1 src=r6 offset=0 imm=0
 #line 45 "sample/undocked/tail_call_map.c"
     r1 = r6;
     // EBPF_OP_MOV64_REG pc=9 dst=r2 src=r0 offset=0 imm=0
@@ -154,14 +154,14 @@ caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=5
 #line 45 "sample/undocked/tail_call_map.c"
-    r0 = caller_helpers[1].address
+    r0 = caller_helpers[1].address(r1, r2, r3, r4, r5);
 #line 45 "sample/undocked/tail_call_map.c"
-         (r1, r2, r3, r4, r5);
-#line 45 "sample/undocked/tail_call_map.c"
-    if ((caller_helpers[1].tail_call) && (r0 == 0))
+    if ((caller_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/undocked/tail_call_map.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=6
+#line 45 "sample/undocked/tail_call_map.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=6
 #line 48 "sample/undocked/tail_call_map.c"
     r0 = IMMEDIATE(6);
     // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
@@ -255,13 +255,17 @@ _get_version(_Out_ bpf2c_version_t* version)
 }
 
 #pragma data_seg(push, "map_initial_values")
+// clang-format off
 static const char* _inner_map_initial_string_table[] = {
     "callee",
 };
+// clang-format on
 
+// clang-format off
 static const char* _outer_map_initial_string_table[] = {
     "inner_map",
 };
+// clang-format on
 
 static map_initial_values_t _map_initial_values_array[] = {
     {

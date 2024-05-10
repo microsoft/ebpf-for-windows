@@ -267,23 +267,29 @@ connection_monitor(void* context)
     r4 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_JEQ_IMM pc=3 dst=r4 src=r0 offset=8 imm=0
 #line 77 "sample/sockops.c"
-    if (r4 == IMMEDIATE(0))
+    if (r4 == IMMEDIATE(0)) {
 #line 77 "sample/sockops.c"
         goto label_2;
-        // EBPF_OP_JEQ_IMM pc=4 dst=r4 src=r0 offset=5 imm=2
 #line 77 "sample/sockops.c"
-    if (r4 == IMMEDIATE(2))
+    }
+    // EBPF_OP_JEQ_IMM pc=4 dst=r4 src=r0 offset=5 imm=2
+#line 77 "sample/sockops.c"
+    if (r4 == IMMEDIATE(2)) {
 #line 77 "sample/sockops.c"
         goto label_1;
-        // EBPF_OP_LDDW pc=5 dst=r0 src=r0 offset=0 imm=-1
+#line 77 "sample/sockops.c"
+    }
+    // EBPF_OP_LDDW pc=5 dst=r0 src=r0 offset=0 imm=-1
 #line 77 "sample/sockops.c"
     r0 = (uint64_t)4294967295;
     // EBPF_OP_JNE_IMM pc=7 dst=r4 src=r0 offset=162 imm=1
 #line 77 "sample/sockops.c"
-    if (r4 != IMMEDIATE(1))
+    if (r4 != IMMEDIATE(1)) {
 #line 77 "sample/sockops.c"
         goto label_5;
-        // EBPF_OP_MOV64_IMM pc=8 dst=r3 src=r0 offset=0 imm=0
+#line 77 "sample/sockops.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=8 dst=r3 src=r0 offset=0 imm=0
 #line 77 "sample/sockops.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_JA pc=9 dst=r0 src=r0 offset=2 imm=0
@@ -302,10 +308,12 @@ label_2:
     r4 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(4));
     // EBPF_OP_JNE_IMM pc=13 dst=r4 src=r0 offset=33 imm=2
 #line 94 "sample/sockops.c"
-    if (r4 != IMMEDIATE(2))
+    if (r4 != IMMEDIATE(2)) {
 #line 94 "sample/sockops.c"
         goto label_3;
-        // EBPF_OP_MOV64_IMM pc=14 dst=r4 src=r0 offset=0 imm=0
+#line 94 "sample/sockops.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=14 dst=r4 src=r0 offset=0 imm=0
 #line 94 "sample/sockops.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=15 dst=r10 src=r4 offset=-8 imm=0
@@ -385,14 +393,14 @@ label_2:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[0].address
+    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5);
 #line 26 "sample/sockops.c"
-         (r1, r2, r3, r4, r5);
-#line 26 "sample/sockops.c"
-    if ((connection_monitor_helpers[0].tail_call) && (r0 == 0))
+    if ((connection_monitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r0 offset=0 imm=0
+#line 26 "sample/sockops.c"
+    }
+    // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r0 offset=0 imm=0
 #line 26 "sample/sockops.c"
     r1 = r0;
     // EBPF_OP_LDDW pc=43 dst=r0 src=r0 offset=0 imm=-1
@@ -400,10 +408,12 @@ label_2:
     r0 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=45 dst=r1 src=r0 offset=124 imm=0
 #line 26 "sample/sockops.c"
-    if (r1 == IMMEDIATE(0))
+    if (r1 == IMMEDIATE(0)) {
 #line 26 "sample/sockops.c"
         goto label_5;
-        // EBPF_OP_JA pc=46 dst=r0 src=r0 offset=116 imm=0
+#line 26 "sample/sockops.c"
+    }
+    // EBPF_OP_JA pc=46 dst=r0 src=r0 offset=116 imm=0
 #line 26 "sample/sockops.c"
     goto label_4;
 label_3:
@@ -739,14 +749,14 @@ label_3:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[0].address
+    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5);
 #line 26 "sample/sockops.c"
-         (r1, r2, r3, r4, r5);
-#line 26 "sample/sockops.c"
-    if ((connection_monitor_helpers[0].tail_call) && (r0 == 0))
+    if ((connection_monitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=159 dst=r1 src=r0 offset=0 imm=0
+#line 26 "sample/sockops.c"
+    }
+    // EBPF_OP_MOV64_REG pc=159 dst=r1 src=r0 offset=0 imm=0
 #line 26 "sample/sockops.c"
     r1 = r0;
     // EBPF_OP_LDDW pc=160 dst=r0 src=r0 offset=0 imm=-1
@@ -754,9 +764,11 @@ label_3:
     r0 = (uint64_t)4294967295;
     // EBPF_OP_JEQ_IMM pc=162 dst=r1 src=r0 offset=7 imm=0
 #line 26 "sample/sockops.c"
-    if (r1 == IMMEDIATE(0))
+    if (r1 == IMMEDIATE(0)) {
 #line 26 "sample/sockops.c"
         goto label_5;
+#line 26 "sample/sockops.c"
+    }
 label_4:
     // EBPF_OP_MOV64_REG pc=163 dst=r2 src=r10 offset=0 imm=0
 #line 26 "sample/sockops.c"
@@ -775,13 +787,13 @@ label_4:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=169 dst=r0 src=r0 offset=0 imm=11
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[1].address
+    r0 = connection_monitor_helpers[1].address(r1, r2, r3, r4, r5);
 #line 26 "sample/sockops.c"
-         (r1, r2, r3, r4, r5);
-#line 26 "sample/sockops.c"
-    if ((connection_monitor_helpers[1].tail_call) && (r0 == 0))
+    if ((connection_monitor_helpers[1].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
         return 0;
+#line 26 "sample/sockops.c"
+    }
 label_5:
     // EBPF_OP_EXIT pc=170 dst=r0 src=r0 offset=0 imm=0
 #line 97 "sample/sockops.c"
