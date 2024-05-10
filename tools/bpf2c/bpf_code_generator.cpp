@@ -1316,13 +1316,14 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                         helper_array_prefix,
                         make_format_args(std::to_string(current_section->helper_functions[output.relocation].index)));
                 }
-                output.lines.push_back(get_register_name(0) + " = " + function_name + ".address");
                 output.lines.push_back(
-                    INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
-                    ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                    get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
+                    get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
+                    get_register_name(5) + ");");
                 output.lines.push_back(
-                    std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
+                    std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
+                output.lines.push_back("}");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -1333,8 +1334,9 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
 
                 std::string predicate =
                     vformat(format, make_format_args(destination_cast, destination, source_cast, source));
-                output.lines.push_back(vformat("if ({})", make_format_args(predicate)));
+                output.lines.push_back(vformat("if ({}) {{", make_format_args(predicate)));
                 output.lines.push_back(vformat(INDENT "goto {};", make_format_args(target)));
+                output.lines.push_back("}");
             }
         } break;
 
@@ -1688,6 +1690,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         for (const auto& [name, map_values] : map_initial_values) {
             std::string map_name = name.c_identifier();
             std::string map_initial_values_name = "_" + map_name + "_initial_string_table[]";
+            output_stream << "// clang-format off" << std::endl;
             output_stream << "static const char* " << map_initial_values_name << " = {" << std::endl;
             for (const auto& value : map_values) {
                 if (value.empty()) {
@@ -1697,6 +1700,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                 }
             }
             output_stream << "};" << std::endl;
+            output_stream << "// clang-format on" << std::endl;
             output_stream << std::endl;
         }
 

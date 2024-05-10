@@ -249,10 +249,12 @@ DropPacket(void* context)
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(9));
     // EBPF_OP_JNE_IMM pc=3 dst=r2 src=r0 offset=15 imm=17
 #line 41 "sample/unsafe/droppacket_unsafe.c"
-    if (r2 != IMMEDIATE(17))
+    if (r2 != IMMEDIATE(17)) {
 #line 41 "sample/unsafe/droppacket_unsafe.c"
         goto label_2;
-        // EBPF_OP_LDXH pc=4 dst=r1 src=r1 offset=24 imm=0
+#line 41 "sample/unsafe/droppacket_unsafe.c"
+    }
+    // EBPF_OP_LDXH pc=4 dst=r1 src=r1 offset=24 imm=0
 #line 42 "sample/unsafe/droppacket_unsafe.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(24));
     // EBPF_OP_BE pc=5 dst=r1 src=r0 offset=0 imm=16
@@ -262,10 +264,12 @@ DropPacket(void* context)
     r1 &= UINT32_MAX;
     // EBPF_OP_JGT_IMM pc=6 dst=r1 src=r0 offset=12 imm=8
 #line 42 "sample/unsafe/droppacket_unsafe.c"
-    if (r1 > IMMEDIATE(8))
+    if (r1 > IMMEDIATE(8)) {
 #line 42 "sample/unsafe/droppacket_unsafe.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=0
+#line 42 "sample/unsafe/droppacket_unsafe.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=0
 #line 42 "sample/unsafe/droppacket_unsafe.c"
     r1 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=8 dst=r10 src=r1 offset=-8 imm=0
@@ -282,19 +286,21 @@ DropPacket(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 44 "sample/unsafe/droppacket_unsafe.c"
-    r0 = DropPacket_helpers[0].address
+    r0 = DropPacket_helpers[0].address(r1, r2, r3, r4, r5);
 #line 44 "sample/unsafe/droppacket_unsafe.c"
-         (r1, r2, r3, r4, r5);
-#line 44 "sample/unsafe/droppacket_unsafe.c"
-    if ((DropPacket_helpers[0].tail_call) && (r0 == 0))
+    if ((DropPacket_helpers[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/unsafe/droppacket_unsafe.c"
         return 0;
-        // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
+#line 44 "sample/unsafe/droppacket_unsafe.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=14 dst=r0 src=r0 offset=3 imm=0
 #line 45 "sample/unsafe/droppacket_unsafe.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 45 "sample/unsafe/droppacket_unsafe.c"
         goto label_1;
-        // EBPF_OP_LDXDW pc=15 dst=r1 src=r0 offset=0 imm=0
+#line 45 "sample/unsafe/droppacket_unsafe.c"
+    }
+    // EBPF_OP_LDXDW pc=15 dst=r1 src=r0 offset=0 imm=0
 #line 46 "sample/unsafe/droppacket_unsafe.c"
     r1 = *(uint64_t*)(uintptr_t)(r0 + OFFSET(0));
     // EBPF_OP_ADD64_IMM pc=16 dst=r1 src=r0 offset=0 imm=1

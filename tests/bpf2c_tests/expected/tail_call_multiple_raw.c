@@ -83,14 +83,14 @@ caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
 #line 30 "sample/undocked/tail_call_multiple.c"
-    r0 = caller_helpers[0].address
+    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5);
 #line 30 "sample/undocked/tail_call_multiple.c"
-         (r1, r2, r3, r4, r5);
-#line 30 "sample/undocked/tail_call_multiple.c"
-    if ((caller_helpers[0].tail_call) && (r0 == 0))
+    if ((caller_helpers[0].tail_call) && (r0 == 0)) {
 #line 30 "sample/undocked/tail_call_multiple.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+#line 30 "sample/undocked/tail_call_multiple.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
 #line 33 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
@@ -148,14 +148,14 @@ callee0(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
 #line 41 "sample/undocked/tail_call_multiple.c"
-    r0 = callee0_helpers[0].address
+    r0 = callee0_helpers[0].address(r1, r2, r3, r4, r5);
 #line 41 "sample/undocked/tail_call_multiple.c"
-         (r1, r2, r3, r4, r5);
-#line 41 "sample/undocked/tail_call_multiple.c"
-    if ((callee0_helpers[0].tail_call) && (r0 == 0))
+    if ((callee0_helpers[0].tail_call) && (r0 == 0)) {
 #line 41 "sample/undocked/tail_call_multiple.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+#line 41 "sample/undocked/tail_call_multiple.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
 #line 44 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0

@@ -268,14 +268,14 @@ func(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=2
 #line 29 "sample/undocked/bpf_call.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 29 "sample/undocked/bpf_call.c"
-         (r1, r2, r3, r4, r5);
-#line 29 "sample/undocked/bpf_call.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 29 "sample/undocked/bpf_call.c"
         return 0;
-        // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
+#line 29 "sample/undocked/bpf_call.c"
+    }
+    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/bpf_call.c"
     return r0;
 #line 30 "sample/undocked/bpf_call.c"
