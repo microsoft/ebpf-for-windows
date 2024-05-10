@@ -1426,7 +1426,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
     ExReleaseRundownProtection(&program->program_information_rundown_reference);
 }
 
-ebpf_result_t
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
     _Inout_ void* context,
