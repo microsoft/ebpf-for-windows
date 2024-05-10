@@ -109,6 +109,25 @@ jobs:
       with:
         ref: ${{ github.event.workflow_run.head_branch }}
 
+    - name: Setup choco cache folder
+      # Set the choco cache to a local folder so that it can be cached.
+      if: steps.skip_check.outputs.should_skip != 'true'
+      id: choco-cache
+      run: |
+        mkdir ${{github.workspace}}\choco_cache
+        choco config set --name cacheLocation --value ${{github.workspace}}\choco_cache
+
+    - name: Cache choco packages
+      # Add cache entry for any choco packages that are installed.
+      # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
+      if: steps.skip_check.outputs.should_skip != 'true'
+      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+      env:
+        cache-name: cache-choco-packages
+      with:
+        path: ${{github.workspace}}\choco_cache
+        key: ${{ hashFiles('.github/workflows/reusable-test.yml') }}
+
     - name: Install ProcDump
       id: install_procdump
       if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
