@@ -121,7 +121,7 @@ jobs:
 
     # Check out just this file if code hasn't been checked out yet.
     - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
-      if: (inputs.gather_dumps == true)  (steps.check_reusable_test_locally.outputs.files_exists != 'true') && (steps.skip_check.outputs.should_skip != 'true')
+      if: (steps.check_reusable_test_locally.outputs.files_exists != 'true') && (steps.skip_check.outputs.should_skip != 'true')
       with:
         sparse-checkout: |
           .github/workflows/reusable-test.yml
