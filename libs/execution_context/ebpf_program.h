@@ -190,7 +190,7 @@ extern "C"
      * @param[out] result Output from the program.
      * @param[in] execution_state Execution context state.
      */
-    void
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(
         _In_ const ebpf_program_t* program,
         _Inout_ void* context,
