@@ -1827,7 +1827,7 @@ Done:
             state = ebpf_lock_lock(&module->lock);
             module->state = MODULE_STATE_UNINITIALIZED;
             KeSetEvent(&module->event, 0, false);
-            KeResetEvent(&module->event);
+            KeClearEvent(&module->event);
             ebpf_lock_unlock(&module->lock, state);
         }
         cxplat_free_preemptible_work_item(cleanup_work_item);

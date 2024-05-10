@@ -1578,13 +1578,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
         output_stream << prolog_line_info << INDENT "" << get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
-        if (section.referenced_map_indices.size() == 0) {
-            output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(map_addresses);" << std::endl;
+        if (section.referenced_map_indices.size() == 0 && section.helper_functions.size() == 0) {
+            output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
         }
         output_stream << std::endl;
-
-        if (section.referenced_map_indices.size() > 0) {
-        }
 
         // Emit encoded instructions.
         for (const auto& output : section.output) {
