@@ -567,6 +567,8 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
     ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
     program->extension_program_data = NULL;
     ebpf_lock_unlock(&program->lock, state);
+
+    ebpf_epoch_synchronize();
     return STATUS_SUCCESS;
 }
 
@@ -613,6 +615,8 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * @brief Free invoked when the current epoch ends. Scheduled by
  * _ebpf_program_free. This function will block until the provider has finished
  * detaching.
+ *
+ * Note: This function runs outside of any epoch.
  *
  * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
@@ -1422,7 +1426,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
     ExReleaseRundownProtection(&program->program_information_rundown_reference);
 }
 
-void
+ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
     _Inout_ void* context,
@@ -1431,7 +1435,12 @@ ebpf_program_invoke(
 {
     if (ebpf_program_disable_invoke) {
         *result = 0;
-        return;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+
+    if (ReadPointerNoFence((void* const volatile*)(&program->extension_program_data)) == NULL) {
+        *result = 0;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
     }
 
     // High volume call - Skip entry/exit logging.
@@ -1467,6 +1476,7 @@ ebpf_program_invoke(
             execution_state->tail_call_state.next_program = NULL;
         }
     }
+    return EBPF_SUCCESS;
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
@@ -2310,7 +2320,10 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        result = ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
     }
     end_time = ebpf_query_time_since_boot(false);
 
