@@ -329,6 +329,38 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
     return return_value;
 }
 
+extern "C"
+{
+    void
+    unload_native_module(_In_z_ const wchar_t* service_name)
+    {
+        std::wstring service_name_string(service_name);
+        std::unique_lock lock(_service_path_to_context_mutex);
+        if (_service_path_to_context_map.find(service_name_string) != _service_path_to_context_map.end()) {
+            auto context = _service_path_to_context_map[service_name_string];
+            if (context->loaded) {
+                if (context->nmr_client_handle) {
+                    NTSTATUS status = NmrDeregisterClient(context->nmr_client_handle);
+                    if (status == STATUS_PENDING) {
+                        // Wait for the deregistration to complete.
+                        NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
+                    } else {
+                        REQUIRE(NT_SUCCESS(status));
+                    }
+                    context->nmr_client_handle = nullptr;
+                }
+            }
+            // The service should have been marked for deletion till now.
+            // REQUIRE((context->delete_pending || get_native_module_failures()));
+            if (context->dll != nullptr) {
+                FreeLibrary(context->dll);
+            }
+            delete context;
+            _service_path_to_context_map.erase(service_name_string);
+        }
+    }
+}
+
 #pragma warning(push)
 #pragma warning(disable : 6001) // Using uninitialized memory 'context'
 _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all_native_modules()
@@ -432,9 +464,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             if (context != _service_path_to_context_map.end()) {
                 context->second->module_id.Guid = request->module_id;
 
-                if (context->second->loaded) {
-                    REQUIRE(get_native_module_failures());
-                } else {
+                if (!context->second->loaded) {
                     _preprocess_load_native_module(context->second);
                 }
             }

@@ -186,6 +186,12 @@ _stop_service(SC_HANDLE service_handle)
 
 } // namespace Platform
 
+void
+TestFunc(_In_z_ const wchar_t* service_name)
+{
+    UNREFERENCED_PARAMETER(service_name);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 // RPC related mock functions.
 

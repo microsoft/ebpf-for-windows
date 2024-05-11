@@ -61,12 +61,12 @@ typedef enum _ebpf_native_module_state
     MODULE_STATE_UNLOADING,
 } ebpf_native_module_state_t;
 
-typedef enum _ebpf_native_module_instance_state
-{
-    INSTANCE_STATE_UNINITIALIZED = 0,
-    INSTANCE_STATE_INITIALIZING,
-    INSTANCE_STATE_INITIALIZED,
-} ebpf_native_module_instance_state_t;
+// typedef enum _ebpf_native_module_instance_state
+// {
+//     INSTANCE_STATE_UNINITIALIZED = 0,
+//     INSTANCE_STATE_INITIALIZING,
+//     INSTANCE_STATE_INITIALIZED,
+// } ebpf_native_module_instance_state_t;
 
 typedef struct _ebpf_native_handle_cleanup_information
 {
@@ -111,10 +111,10 @@ typedef struct _ebpf_native_module_instance
     // ebpf_base_object_t base;
     GUID instance_id;
     // metadata_table_t table;
-    ebpf_native_module_instance_state_t state;
+    // ebpf_native_module_instance_state_t state;
     // bool detaching;
     // _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
-    ebpf_lock_t lock;
+    // ebpf_lock_t lock;
     ebpf_native_map_t* maps;
     size_t map_count;
     ebpf_native_program_t** programs;
@@ -1341,7 +1341,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 
         // Initialize runtime context for the program.
         if (helper_count > 0) {
-            result = ebpf_safe_size_t_add(sizeof(helper_function_data_t), helper_count, &helper_data_size);
+            result = ebpf_safe_size_t_multiply(sizeof(helper_function_data_t), helper_count, &helper_data_size);
             if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
@@ -1360,7 +1360,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         }
 
         if (instance->map_count > 0) {
-            result = ebpf_safe_size_t_add(sizeof(map_data_t), instance->map_count, &map_data_size);
+            result = ebpf_safe_size_t_multiply(sizeof(map_data_t), instance->map_count, &map_data_size);
             if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
@@ -1727,20 +1727,23 @@ ebpf_native_load(
                 "ebpf_native_load_driver failed",
                 local_service_name);
         }
+
+        // Find the native entry in hash table again. It should be present this time.
+        result = _get_native_module_from_hash_table(module_id, &module);
+        if (result != EBPF_SUCCESS) {
+            result = EBPF_OBJECT_NOT_FOUND;
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "ebpf_native_load: module not found",
+                module_id);
+            goto Done;
+        }
     }
 
     result = ebpf_allocate_preemptible_work_item(
         &cleanup_work_item, (cxplat_work_item_routine_t)_ebpf_native_unload_work_item, local_service_name);
     if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    // Find the native entry in hash table again. It should be present this time.
-    result = _get_native_module_from_hash_table(module_id, &module);
-    if (result != EBPF_SUCCESS) {
-        result = EBPF_OBJECT_NOT_FOUND;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "ebpf_native_load: module not found", module_id);
         goto Done;
     }
 

@@ -663,6 +663,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
     case EBPF_CODE_NATIVE:
         ebpf_native_release_reference(
             (ebpf_native_module_binding_context_t*)program->code_or_vm.native.code_context.native_module_context);
+        program->code_or_vm.native.code_context.native_module_context = NULL;
+        program->code_or_vm.native.code_context.runtime_context = NULL;
         // ebpf_free((void*)program->code_or_vm.native.map_context);
         break;
     case EBPF_CODE_NONE:
