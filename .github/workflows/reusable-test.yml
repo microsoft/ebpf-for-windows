@@ -96,7 +96,7 @@ jobs:
         paths_ignore: '["**.md", "**/docs/**"]'
 
     # Checking out the branch is needed to gather correct code coverage data.
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+    - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
       # Only check out source code if code coverage is being gathered.
       if: (inputs.code_coverage == true) && (steps.skip_check.outputs.should_skip != 'true')
       with:
@@ -104,7 +104,7 @@ jobs:
         ref: ${{ github.event.workflow_run.head_branch }}
 
     # Perform shallow checkout for self-hosted runner.
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+    - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
       if: (inputs.environment == 'ebpf_cicd_tests_ws2019' || inputs.environment == 'ebpf_cicd_tests_ws2022' || inputs.environment == 'ebpf_cicd_perf_ws2022') && (steps.skip_check.outputs.should_skip != 'true')
       with:
         ref: ${{ github.event.workflow_run.head_branch }}

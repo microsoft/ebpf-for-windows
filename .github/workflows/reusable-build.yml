@@ -104,7 +104,7 @@ jobs:
         powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
         powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
-    - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+    - uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         repository: ${{inputs.repository}}
