@@ -78,21 +78,26 @@ are merged to the release branch repeat the process until the workflow completes
 1. Fill in the release title as "`vX.Y.Z`". Note "`Z`" must be `0` for the monthly release. Otherwise, it should be the patch number.
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
 1. Microsoft maintains an internal mirror of the eBPF for Windows project. For a given release branch in GitHub, the mirror repo will have a corresponding one.
-The release manager must download the "`ebpf-for-windows - MSI installer (Build-x64_Release)`" and "`ebpf-for-windows - NuGet package (Build-x64_Release)`" build
-artifacts from the Microsoft internal repository's build pipeline. Extract the `*.nupkg` file from it, and rename it to `eBPF-for-Windows.X.Y.0.nupkg`
-    - **NOTE** : The Microsoft internal build pipeline has two flavors of nuget package. The release manager must pick the one that *does not* contain "Redist" in
-    the name.
-1.  Attach the `Build-x64-[Release|Debug].zip`, the `Build-x64-native-only-[Release|Debug].X.Y.Z.zip`, the `.msi`, and the `.nupkg`, by dropping them in the
-"`Attach binaries by dropping them here or selecting them.`" area. For example, the file list for `v0.12.0` should be:
-    - *Build-x64-Debug.zip*
-    - *Build-x64-Release.zip*
-    - *Build-x64-native-only-Debug.0.12.0.zip*
-    - *Build-x64-native-only-Release.0.12.0.zip*
-    - *ebpf-for-windows.0.12.0.msi*
-    - *eBPF-for-Windows.0.12.0.nupkg*
+The release manager must download the following artifacts from the latest build of the internal mirror repo:
+   - `Build-x64 Debug.zip`
+   - `Build-x64 Release.zip`.
+   - `Build-x64-native-only-NativeOnlyDebug.zip`
+   - `Build-x64-native-only-NativeOnlyRelease.zip`
+   - `ebpf-for-windows - MSI installer (Build-x64_Release).zip` - Extract the `.msi` file and rename it to `ebpf-for-windows.X.Y.0.msi`.
+   - `ebpf-for-windows - NuGet.zip` - Extract the `.nupkg` file.
+      - **NOTE** : The Microsoft internal build pipeline has two flavors of nuget package. The release manager must pick the one that *does not* contain "Redist" in
+      the name.
+1. Upload the above files, by dropping them in the "`Attach binaries by dropping them here or selecting them.`" area.
+    For example, the file list for `v0.12.0` should be:
+    - `Build-x64-Debug.zip`
+    - `Build-x64-Release.zip`
+    - `Build-x64-native-only-Debug.0.12.0.zip`
+    - `Build-x64-native-only-Release.0.12.0.zip`
+    - `ebpf-for-windows.0.12.0.msi`
+    - `eBPF-for-Windows.0.12.0.nupkg`
 
-1.  Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
-1.  Once the uploads are complete, click "`Publish release`".
+2.  Check the "`Set as a pre-release`" checkbox, unless the release is production-signed.
+3.  Once the uploads are complete, click "`Publish release`". Github will automatically upload the zipped up source code file.
 
 ## Publishing the Release to NuGet.org
 
