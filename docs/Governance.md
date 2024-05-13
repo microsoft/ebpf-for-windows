@@ -140,8 +140,8 @@ This label is used for low priority issues. Issues marked with `P3` label can be
 
 In the last triage meeting of the monthly milestone, triage drivers or administrators must move all issues that do not have an active pull request
 to the next milestone. Ideally, all `P1` issues should be addressed in their designated milestones. However, if that does not happen for any reason,
-`P1` issue can be moved to `N+1` milestone. Similarly, overdue `P2` issues can be moved to milestones `N+1` or `N+2`. Overdue `P3` issues can be moved to
-the `N+2` or `Backlog` milestones.
+overdue `P1` issues can be moved to `N+1` milestone. Overdue `P2` issues can be moved to the `N+1` or `N+2`milestones. Finally, overdue `P3` issues can be moved to
+the `N+1`, `N+2` or `Backlog` milestones.
 
 If any issue has been moved two times already, then the issue must be re-triaged for setting the appropriate priority and/or the milestone.
 
