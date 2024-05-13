@@ -104,6 +104,38 @@ typedef struct _overlapped_completion
 } overlapped_completion_t;
 std::map<OVERLAPPED*, overlapped_completion_t> _overlapped_buffers;
 
+typedef enum _registry_value_type
+{
+    REG_VALUE_STRING,
+    REG_VALUE_DWORD,
+    REG_VALUE_BINARY,
+} registry_value_type;
+
+typedef struct _registry_value
+{
+    registry_value_type type;
+    std::vector<uint8_t> data;
+} registry_value_t;
+
+class registry_manager_t
+{
+  public:
+    static registry_manager_t&
+    instance()
+    {
+        // This is a Meyers' Singleton pattern, which ensures thread safety
+        static registry_manager_t instance;
+        return instance;
+    }
+
+  private:
+    // Private constructor to prevent external instantiation.
+    registry_manager_t() = default;
+    ~registry_manager_t() noexcept = default;
+
+    std::unordered_map<std::string, std::vector<registry_value_t>> _registry;
+}
+
 class duplicate_handles_table_t
 {
   public:
@@ -332,7 +364,7 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 extern "C"
 {
     void
-    unload_native_module(_In_z_ const wchar_t* service_name)
+    ZwUnloadDriver(_In_z_ const wchar_t* service_name)
     {
         std::wstring service_name_string(service_name);
         std::unique_lock lock(_service_path_to_context_mutex);
@@ -349,14 +381,17 @@ extern "C"
                     }
                     context->nmr_client_handle = nullptr;
                 }
+                context->loaded = false;
             }
-            // The service should have been marked for deletion till now.
-            // REQUIRE((context->delete_pending || get_native_module_failures()));
             if (context->dll != nullptr) {
                 FreeLibrary(context->dll);
             }
-            delete context;
-            _service_path_to_context_map.erase(service_name_string);
+            if (context->delete_pending) {
+                // Service has been stopped and also marked for deletion.
+                // Delete it from the map.
+                delete context;
+                _service_path_to_context_map.erase(service_name_string);
+            }
         }
     }
 }

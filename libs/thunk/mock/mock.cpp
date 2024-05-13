@@ -154,6 +154,25 @@ _update_registry_value(
 }
 
 uint32_t
+_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size)
+{
+    UNREFERENCED_PARAMETER(root_key);
+    UNREFERENCED_PARAMETER(sub_key);
+    UNREFERENCED_PARAMETER(type);
+    UNREFERENCED_PARAMETER(value_name);
+    UNREFERENCED_PARAMETER(value);
+    UNREFERENCED_PARAMETER(value_size);
+
+    return ERROR_SUCCESS;
+}
+
+uint32_t
 _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
     return create_service_handler(service_name, file_path, service_handle);
@@ -185,12 +204,6 @@ _stop_service(SC_HANDLE service_handle)
 }
 
 } // namespace Platform
-
-void
-TestFunc(_In_z_ const wchar_t* service_name)
-{
-    UNREFERENCED_PARAMETER(service_name);
-}
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 // RPC related mock functions.

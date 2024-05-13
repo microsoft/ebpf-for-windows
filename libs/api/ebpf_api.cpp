@@ -176,6 +176,19 @@ _ebpf_update_registry_value(
 }
 CATCH_NO_MEMORY_WIN32
 
+inline static int
+_ebpf_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size) NO_EXCEPT_TRY
+{
+    return Platform::_get_registry_value(root_key, sub_key, type, value_name, value, value_size);
+}
+CATCH_NO_MEMORY_WIN32
+
 static std::wstring
 _get_wstring_from_string(std::string& text) noexcept(false)
 {
@@ -3608,8 +3621,97 @@ Done:
 //     // }
 // }
 
-// static ebpf_result_t
-// _ebpf_get_or_create_service()
+static std::wstring
+_ebpf_get_file_name_without_extension(_In_z_ const wchar_t* full_file_path)
+{
+    std::wstring file_name_wstring(full_file_path);
+
+    std::wstring file_name_without_extension;
+    size_t last_index = file_name_wstring.find_last_of(L".");
+    if (last_index == std::wstring::npos) {
+        file_name_without_extension = file_name_wstring;
+    } else {
+        file_name_without_extension = file_name_wstring.substr(0, last_index);
+    }
+    return file_name_without_extension;
+}
+
+static std::wstring
+_ebpf_get_unique_service_name(_In_z const wchar_t* full_file_path)
+{
+    // std::wstring service_name;
+    // std::string file_name_string(file_name);
+    // std::wstring file_name_wstring = _get_wstring_from_string(file_name_string);
+
+    // wchar_t full_file_path[MAX_PATH] = {0};
+    // count = GetFullPathName(file_name_wstring, MAX_PATH, full_file_path, nullptr);
+    // if (count == 0) {
+    //     throw std::runtime_error(std::string("GetFullPathName failed: ") + std::to_string(GetLastError()));
+    // }
+
+    // Compute hash of the absolute path of the file.
+    std::size_t hash = std::hash<std::wstring>{}(std::wstring(full_file_path));
+
+    return _ebpf_get_file_name_without_extension(full_file_path) + L"_" + std::to_wstring(hash);
+}
+
+static std::wstring
+_ebpf_create_service_native(_In_z_ const char* file_name)
+{}
+
+static uint32_t
+_ebpf_get_service_native(
+    _In_z_ const char* service_name, _In_z_ const char* full_file_path_name, _Out_ SC_HANDLE* service_handle)
+{
+    // ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t error = ERROR_SUCCESS;
+    SC_HANDLE local_service_handle = nullptr;
+    SC_STATUS service_status = {0};
+    uint32_t retry_count = 0;
+
+    *service_handle = nullptr;
+
+    while (retry_count < 3) {
+        retry_count++;
+
+        // Check if the service exists.
+        error = Platform::_open_service(service_name, &local_service_handle);
+        if (error = ERROR_SERVICE_DOES_NOT_EXIST) {
+            // Service does not exist.
+            result = EBPF_OBJECT_NOT_FOUND;
+            goto Done;
+        } else if (error != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        }
+
+        // Service exists. Check the state of the service.
+        error = Platform::_query_service_status(local_service_handle, &service_status);
+        if (service_status.dwCurrentState == SERVICE_RUNNING ||
+            service_status.dwCurrentState == SERVICE_START_PENDING) {
+            // Service is "running" or "start pending". Return the handle to the caller.
+            *service_handle = local_service_handle;
+            local_service_handle = nullptr;
+            goto Done;
+        }
+
+        // We have hit a race condition where the driver is getting unloaded.
+        // Service is not in a good state. Since the service is marked as "delete pending", close the handle and try
+        // again. Most likely the service get deleted next time we try.
+
+        Platform::_close_service(local_service_handle);
+        local_service_handle = nullptr;
+    }
+
+    // We have retried 3 times and the service is still not in a good state.
+    result = EBPF_FAILED;
+
+Done:
+    if (local_service_handle) {
+        Platform::_close_service(local_service_handle);
+    }
+    return result;
+}
 
 // ANUSA TODO: Have multiple retries in case EC returns EBPF_TRY_AGAIN.
 static ebpf_result_t
@@ -3635,6 +3737,7 @@ _ebpf_program_load_native(
     GUID provider_module_id;
     std::wstring service_name;
     std::string file_name_string(file_name);
+    std::wstring file_name_wstring(file_name);
     SC_HANDLE service_handle = nullptr;
     SERVICE_STATUS status = {0};
     std::wstring service_path(SERVICE_PATH_PREFIX);
@@ -3646,6 +3749,30 @@ _ebpf_program_load_native(
     fd_t native_module_fd = ebpf_fd_invalid;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
+    wchar_t full_file_path[MAX_PATH] = {0};
+
+    // 1. Create service name.
+    // 2. Check if a service already exists. This includes comparing both service name and absolute path of the file.
+    // 3. If service exists, use it. Get the module ID for that service from registry, and load the native module.
+    //    Question: Do we need to add retries (or use a lock) to ensure that the thread reusing the service gets to read
+    //    the module ID from the registry? Or return EBPF_TRY_AGAIN?
+    // 4. If service does not exist, create a new service, and follow the current path.
+    uint32_t count = GetFullPathName(file_name_wstring, MAX_PATH, full_file_path, nullptr);
+    if (count == 0) {
+        EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, GetFullPathName);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    try {
+        service_name = _ebpf_get_unique_service_name(full_file_path);
+
+        // Check if a matching service already exists.
+        error = _ebpf_get_service_native(service_name.c_str(), full_file_path, &service_handle);
+        if (error != EBPF_SUCCESS && error != EBPF_OBJECT_NOT_FOUND) {
+            result = error;
+            goto Done;
+        }
+    }
 
     if (UuidCreate(&service_instance_guid) != RPC_S_OK) {
         EBPF_LOG_MESSAGE_STRING(
@@ -3672,6 +3799,8 @@ _ebpf_program_load_native(
         file_name,
         &service_instance_guid,
         &provider_module_id);
+
+    // Get full file path for the file.
 
     try {
         // service_name = _generate_native_program_service_name()
