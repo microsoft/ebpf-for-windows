@@ -190,7 +190,7 @@ extern "C"
      * @param[out] result Output from the program.
      * @param[in] execution_state Execution context state.
      * @retval EBPF_SUCCESS The program was successfully invoked.
-     * @retval EBPF_EXTENSION_FAILED_TO_LOAD The program information provider is not available.s
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD The program information provider is not available.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(

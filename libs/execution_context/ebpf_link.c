@@ -531,7 +531,7 @@ _ebpf_link_instance_invoke_batch(
     _In_ const void* state)
 {
     // No function entry exit traces as this is a high volume function.
-    ebpf_result_t return_value = EBPF_SUCCESS;
+    ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
 
     return_value = ebpf_program_invoke(link->program, program_context, result, (ebpf_execution_context_state_t*)state);
