@@ -561,13 +561,19 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
 {
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
 
+    // Wait for any code that has an explicit reference to the program information to complete.
     ExWaitForRundownProtectionRelease(&program->program_information_rundown_reference);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
     ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
+    // Set the extension program data to NULL to prevent any further use of the program information by programs.
     program->extension_program_data = NULL;
+    // ebpf_lock_unlock imposes a full memory barrier that synchronizes with the
+    // _ebpf_epoch_messenger_propose_release_epoch memory barrier. This prevents any thread from using a stale pointer
+    // to the program information.
     ebpf_lock_unlock(&program->lock, state);
 
+    // Wait for any threads executing in the current epoch to complete.
     ebpf_epoch_synchronize();
     return STATUS_SUCCESS;
 }
@@ -701,6 +707,9 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     uint8_t* local_program_info_hash = NULL;
     // Work item to free the program if allocation fails. Required as _ebpf_program_free must be called outside of an
     // epoch.
+    // Note:
+    // This function is called within an epoch. The epoch is entered and exited by the caller during the protocol
+    // handler.
     ebpf_epoch_work_item_t* free_program_work_item = NULL;
 
     if (IsEqualGUID(&program_parameters->program_type, &EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
@@ -875,6 +884,8 @@ Done:
 
     if (free_program_work_item) {
         ebpf_epoch_schedule_work_item(free_program_work_item);
+    } else {
+        ebpf_free(local_program);
     }
 
     EBPF_RETURN_RESULT(retval);
@@ -1453,6 +1464,14 @@ ebpf_program_invoke(
         return EBPF_EXTENSION_FAILED_TO_LOAD;
     }
 
+    // If the pointer is null, then the extension has been unloaded and the program should not be invoked.
+    // If the pointer is not null, then the extension is loaded and will remain loaded until at least after
+    // the current epoch ends.
+    // Note: The call to ebpf_epoch_enter is a full memory barrier, so any values read after that
+    // point will be synchronized with the start of the epoch, so it is safe to call ReadPointerNoFence
+    // after the call to ebpf_epoch_enter.
+    // Note: The invoke path doesn't explicitly use the program->extension_program_data, but
+    // instead uses pointers that have been previously read from the extension_program_data.
     if (ReadPointerNoFence((void* const volatile*)(&program->extension_program_data)) == NULL) {
         *result = 0;
         return EBPF_EXTENSION_FAILED_TO_LOAD;
