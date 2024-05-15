@@ -134,7 +134,7 @@ class registry_manager_t
     ~registry_manager_t() noexcept = default;
 
     std::unordered_map<std::string, std::vector<registry_value_t>> _registry;
-}
+};
 
 class duplicate_handles_table_t
 {

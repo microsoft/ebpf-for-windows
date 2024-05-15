@@ -692,6 +692,7 @@ _ebpf_core_protocol_load_native_module(
         (wchar_t*)request->data,
         (uint16_t)service_name_length,
         &request->module_id,
+        &request->unload_driver_on_cleanup,
         &reply->native_module_handle,
         &reply->count_of_maps,
         &reply->count_of_programs);
@@ -776,7 +777,12 @@ _ebpf_core_protocol_load_native_programs(
     }
 
     result = ebpf_native_load_programs(
-        &request->module_id, count_of_map_handles, map_handles, count_of_program_handles, program_handles);
+        &request->module_id,
+        &request->instance_id,
+        count_of_map_handles,
+        map_handles,
+        count_of_program_handles,
+        program_handles);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }

@@ -103,6 +103,7 @@ typedef struct _ebpf_native_module
     cxplat_preemptible_work_item_t* cleanup_work_item;
     // ebpf_native_handle_cleanup_context_t handle_cleanup_context;
     KEVENT event;
+    bool unload_driver_on_cleanup;
 } ebpf_native_module_t;
 
 typedef struct _ebpf_native_module_instance
@@ -430,7 +431,7 @@ _ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* mod
         // is the case, explicitly unload the driver, if it is safe to do so.
         if (!module->detaching) {
             // If the module is not yet marked as detaching, and reference
-            // count is 1, it means all the program references have been
+            // count is 1, it means all the program and module references have been
             // released.
             EBPF_LOG_MESSAGE_GUID(
                 EBPF_TRACELOG_LEVEL_INFO,
@@ -1689,6 +1690,7 @@ ebpf_native_load(
     _In_reads_(service_name_length) const wchar_t* service_name,
     uint16_t service_name_length,
     _In_ const GUID* module_id,
+    bool unload_driver_on_cleanup,
     _Out_ ebpf_handle_t* module_handle,
     _Out_ size_t* count_of_maps,
     _Out_ size_t* count_of_programs)
@@ -1794,6 +1796,7 @@ ebpf_native_load(
         module->state = MODULE_STATE_INITIALIZED;
         module->service_name = local_service_name;
         module->cleanup_work_item = cleanup_work_item;
+        module->unload_driver_on_cleanup = unload_driver_on_cleanup;
 
         cleanup_work_item = NULL;
         local_service_name = NULL;
@@ -1812,6 +1815,10 @@ ebpf_native_load(
             result = EBPF_TRY_AGAIN;
             ebpf_lock_unlock(&module->lock, state);
             goto Done;
+        }
+        // If the user mode has send a request to unload the driver, set the flag.
+        if (unload_driver_on_cleanup) {
+            module->unload_driver_on_cleanup = true;
         }
         ebpf_lock_unlock(&module->lock, state);
     }
@@ -1846,6 +1853,7 @@ Done:
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_programs(
     _In_ const GUID* module_id,
+    _In_ const GUID* instance_id,
     size_t count_of_map_handles,
     _Out_writes_opt_(count_of_map_handles) ebpf_handle_t* map_handles,
     size_t count_of_program_handles,
@@ -1879,11 +1887,12 @@ ebpf_native_load_programs(
     result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)module_id, (uint8_t**)&existing_module);
     if (result != EBPF_SUCCESS) {
         result = EBPF_OBJECT_NOT_FOUND;
-        EBPF_LOG_MESSAGE_GUID(
+        EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: module not found",
-            module_id);
+            module_id,
+            instance_id);
         goto Done;
     }
     module = *existing_module;
@@ -1896,19 +1905,21 @@ ebpf_native_load_programs(
         if (module->detaching || module->state == MODULE_STATE_UNLOADING) {
             // This client is detaching / unloading.
             result = EBPF_EXTENSION_FAILED_TO_LOAD;
-            EBPF_LOG_MESSAGE_GUID(
+            EBPF_LOG_MESSAGE_GUID_GUID(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_load_programs: module already detaching / unloading",
-                module_id);
+                module_id,
+                instance_id);
         } else {
             // This client has already been loaded.
             result = EBPF_OBJECT_ALREADY_EXISTS;
-            EBPF_LOG_MESSAGE_GUID(
+            EBPF_LOG_MESSAGE_GUID_GUID(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "ebpf_native_load_programs: programs already loaded / loading",
-                module_id);
+                module_id,
+                instance_id);
         }
         goto Done;
     }
@@ -1931,11 +1942,12 @@ ebpf_native_load_programs(
     result = _ebpf_native_initialize_handle_cleanup_context(
         count_of_program_handles, count_of_map_handles, &instance.handle_cleanup_context);
     if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
+        EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: _ebpf_native_initialize_handle_cleanup_context failed",
-            module_id);
+            module_id,
+            instance_id);
         goto Done;
     }
     cleanup_context_created = true;
@@ -1943,11 +1955,12 @@ ebpf_native_load_programs(
     // Create maps.
     result = _ebpf_native_create_maps(&instance);
     if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
+        EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: map creation failed",
-            module_id);
+            module_id,
+            instance_id);
         goto Done;
     }
     maps_created = true;
@@ -1955,11 +1968,12 @@ ebpf_native_load_programs(
     // Create programs.
     result = _ebpf_native_load_programs(&instance);
     if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
+        EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: program load failed",
-            module_id);
+            module_id,
+            instance_id);
         goto Done;
     }
     programs_created = true;
@@ -1967,11 +1981,12 @@ ebpf_native_load_programs(
     // Set initial map values.
     result = _ebpf_native_set_initial_map_values(&instance);
     if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
+        EBPF_LOG_MESSAGE_GUID_GUID(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: set initial map values failed",
-            module_id);
+            module_id,
+            instance_id);
         goto Done;
     }
 

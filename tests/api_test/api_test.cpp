@@ -1314,3 +1314,54 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
     // Clean up.
     bpf_object__close(object);
 }
+
+TEST_CASE("anusa_test_1", "[native_tests]")
+{
+    struct bpf_object* new_object = bpf_object__open("test_sample_ebpf.sys");
+    REQUIRE(new_object != nullptr);
+
+    int error = bpf_object__load(new_object);
+    REQUIRE(error == 0);
+
+    bpf_object__close(new_object);
+}
+
+TEST_CASE("anusa_test_2", "[native_tests]")
+{
+    ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+
+    result = ebpf_initialize_native_program_state(file_name);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    struct bpf_object* new_object = bpf_object__open(file_name);
+    REQUIRE(new_object != nullptr);
+
+    int error = bpf_object__load(new_object);
+    REQUIRE(error == 0);
+
+    bpf_object__close(new_object);
+
+    result = ebpf_uninitialize_native_program_state(file_name);
+    REQUIRE(result == EBPF_SUCCESS);
+}
+
+TEST_CASE("anusa_test_3", "[native_tests]")
+{
+    ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+
+    result = ebpf_initialize_native_program_state(file_name);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    struct bpf_object* new_object = bpf_object__open(file_name);
+    REQUIRE(new_object != nullptr);
+
+    int error = bpf_object__load(new_object);
+    REQUIRE(error == 0);
+
+    // bpf_object__close(new_object);
+
+    result = ebpf_uninitialize_native_program_state(file_name);
+    REQUIRE(result == EBPF_SUCCESS);
+}

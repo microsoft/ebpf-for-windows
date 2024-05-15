@@ -374,7 +374,7 @@ _stop_service(SC_HANDLE service_handle)
 }
 
 uint32_t
-_get_service(_In_z_ const wchar_t* service_name, uint32_t access_flags, _Out_ SC_HANDLE* service_handle)
+_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
 {
     SC_HANDLE local_service_handle = nullptr;
     SC_HANDLE scm_handle = nullptr;
@@ -387,7 +387,7 @@ _get_service(_In_z_ const wchar_t* service_name, uint32_t access_flags, _Out_ SC
     }
 
     // Open service to get the handle.
-    local_service_handle = OpenService(scm_handle, service_name, access_flags);
+    local_service_handle = OpenService(scm_handle, service_name, SERVICE_ALL_ACCESS);
     if (local_service_handle == nullptr) {
         error = GetLastError();
         goto Done;
