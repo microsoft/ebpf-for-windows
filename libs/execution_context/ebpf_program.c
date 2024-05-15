@@ -91,7 +91,6 @@ typedef struct _ebpf_program
 
     _Guarded_by_(lock) ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
     _Guarded_by_(lock) void* helper_function_addresses_changed_context;
-    _Guarded_by_(lock) ebpf_epoch_work_item_t* type_specific_program_information_detach_complete_work_item;
 } ebpf_program_t;
 
 static struct
@@ -377,13 +376,6 @@ _ebpf_program_general_program_information_detach_provider(void* client_binding_c
     return STATUS_SUCCESS;
 }
 
-static void
-_ebpf_program_type_specific_program_information_detach_complete(_In_ void* context)
-{
-    HANDLE nmr_handle = (HANDLE)context;
-    NmrClientDetachProviderComplete(nmr_handle);
-}
-
 static NTSTATUS
 _ebpf_program_type_specific_program_information_attach_provider(
     _In_ HANDLE nmr_binding_handle,
@@ -437,13 +429,6 @@ _ebpf_program_type_specific_program_information_attach_provider(
 
     state = ebpf_lock_lock(&program->lock);
     lock_held = true;
-
-    program->type_specific_program_information_detach_complete_work_item = ebpf_epoch_allocate_work_item(
-        nmr_binding_handle, _ebpf_program_type_specific_program_information_detach_complete);
-    if (!program->type_specific_program_information_detach_complete_work_item) {
-        status = STATUS_NO_MEMORY;
-        goto Done;
-    }
 
     if (!program->general_helper_program_data) {
         EBPF_LOG_MESSAGE(
@@ -554,8 +539,6 @@ _ebpf_program_type_specific_program_information_attach_provider(
         lock_held = true;
 
         program->general_helper_program_data = NULL;
-        ebpf_epoch_cancel_work_item(program->type_specific_program_information_detach_complete_work_item);
-        program->type_specific_program_information_detach_complete_work_item = NULL;
         ebpf_lock_unlock(&program->lock, state);
         lock_held = false;
         goto Done;
@@ -583,10 +566,10 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
     ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
     program->extension_program_data = NULL;
-    ebpf_epoch_schedule_work_item(program->type_specific_program_information_detach_complete_work_item);
     ebpf_lock_unlock(&program->lock, state);
 
-    return STATUS_PENDING;
+    ebpf_epoch_synchronize();
+    return STATUS_SUCCESS;
 }
 
 /**
@@ -716,6 +699,9 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     cxplat_utf8_string_t local_file_name = {NULL, 0};
     cxplat_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
+    // Work item to free the program if allocation fails. Required as _ebpf_program_free must be called outside of an
+    // epoch.
+    ebpf_epoch_work_item_t* free_program_work_item = NULL;
 
     if (IsEqualGUID(&program_parameters->program_type, &EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
         EBPF_LOG_MESSAGE_GUID(
@@ -729,6 +715,12 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    free_program_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_free);
+    if (!free_program_work_item) {
         retval = EBPF_NO_MEMORY;
         goto Done;
     }
@@ -863,6 +855,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         _ebpf_program_free,
         _ebpf_program_zero_ref_count,
         _ebpf_program_get_program_type);
+
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -871,13 +864,18 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     local_program = NULL;
     retval = EBPF_SUCCESS;
 
+    ebpf_epoch_cancel_work_item(free_program_work_item);
+    free_program_work_item = NULL;
+
 Done:
     ebpf_free(local_program_info_hash);
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
 
-    _ebpf_program_free(local_program);
+    if (free_program_work_item) {
+        ebpf_epoch_schedule_work_item(free_program_work_item);
+    }
 
     EBPF_RETURN_RESULT(retval);
 }
