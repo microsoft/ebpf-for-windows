@@ -168,6 +168,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="sample_ext_app.cpp" />
   </ItemGroup>
   <ItemGroup>

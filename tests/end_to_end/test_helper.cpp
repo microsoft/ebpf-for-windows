@@ -113,7 +113,7 @@ typedef enum _registry_value_type
 
 typedef struct _registry_value
 {
-    registry_value_type type;
+    registry_value_type type{};
     std::vector<uint8_t> data;
 } registry_value_t;
 

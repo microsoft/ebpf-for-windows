@@ -171,6 +171,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="api_test.cpp" />
   </ItemGroup>
   <ItemGroup>

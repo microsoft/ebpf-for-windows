@@ -1153,17 +1153,17 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-static void
-_ebpf_native_initialize_programs(
-    _Out_writes_(program_count) ebpf_native_program_t** native_programs,
-    _In_reads_(program_count) program_entry_t* programs,
-    size_t program_count)
-{
-    for (uint32_t i = 0; i < program_count; i++) {
-        native_programs[i]->entry = &programs[i];
-        native_programs[i]->handle = ebpf_handle_invalid;
-    }
-}
+// static void
+// _ebpf_native_initialize_programs(
+//     _Out_writes_(program_count) ebpf_native_program_t** native_programs,
+//     _In_reads_(program_count) program_entry_t* programs,
+//     size_t program_count)
+// {
+//     for (uint32_t i = 0; i < program_count; i++) {
+//         native_programs[i]->entry = &programs[i];
+//         native_programs[i]->handle = ebpf_handle_invalid;
+//     }
+// }
 
 static ebpf_result_t
 _ebpf_native_resolve_maps_for_program(_In_ ebpf_native_module_instance_t* instance, _In_ ebpf_native_program_t* program)
@@ -1330,7 +1330,11 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     instance->program_count = program_count;
     native_programs = instance->programs;
 
-    _ebpf_native_initialize_programs(native_programs, programs, program_count);
+    // _ebpf_native_initialize_programs(native_programs, programs, program_count);
+    for (uint32_t i = 0; i < program_count; i++) {
+        native_programs[i]->entry = &programs[i];
+        native_programs[i]->handle = ebpf_handle_invalid;
+    }
 
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
@@ -2042,6 +2046,7 @@ Done:
         ebpf_free(local_service_name);
 
         if (cleanup_context_created) {
+            __analysis_assume(instance.handle_cleanup_context.handle_cleanup_work_item != NULL);
             // Queue work item to close map and program handles.
             cxplat_queue_preemptible_work_item(instance.handle_cleanup_context.handle_cleanup_work_item);
             instance.handle_cleanup_context.handle_cleanup_work_item = NULL;

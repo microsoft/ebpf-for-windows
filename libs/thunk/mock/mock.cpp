@@ -184,13 +184,13 @@ _delete_service(SC_HANDLE service_handle)
     return delete_service_handler(service_handle);
 }
 
-bool
+uint32_t
 _query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status)
 {
     UNREFERENCED_PARAMETER(service_handle);
     UNREFERENCED_PARAMETER(status);
 
-    return true;
+    return ERROR_SUCCESS;
 }
 
 uint32_t
@@ -207,7 +207,7 @@ uint32_t
 _get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
 {
     UNREFERENCED_PARAMETER(service_name);
-    UNREFERENCED_PARAMETER(service_handle);
+    *service_handle = reinterpret_cast<SC_HANDLE>(1);
 
     return ERROR_SUCCESS;
 }

@@ -1332,7 +1332,9 @@ TEST_CASE("anusa_test_2", "[native_tests]")
     const char* file_name = "test_sample_ebpf.sys";
 
     result = ebpf_initialize_native_program_state(file_name);
-    REQUIRE(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     struct bpf_object* new_object = bpf_object__open(file_name);
     REQUIRE(new_object != nullptr);
@@ -1343,7 +1345,9 @@ TEST_CASE("anusa_test_2", "[native_tests]")
     bpf_object__close(new_object);
 
     result = ebpf_uninitialize_native_program_state(file_name);
-    REQUIRE(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 }
 
 TEST_CASE("anusa_test_3", "[native_tests]")
@@ -1352,7 +1356,9 @@ TEST_CASE("anusa_test_3", "[native_tests]")
     const char* file_name = "test_sample_ebpf.sys";
 
     result = ebpf_initialize_native_program_state(file_name);
-    REQUIRE(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     struct bpf_object* new_object = bpf_object__open(file_name);
     REQUIRE(new_object != nullptr);
@@ -1363,5 +1369,7 @@ TEST_CASE("anusa_test_3", "[native_tests]")
     // bpf_object__close(new_object);
 
     result = ebpf_uninitialize_native_program_state(file_name);
-    REQUIRE(result == EBPF_SUCCESS);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 }
