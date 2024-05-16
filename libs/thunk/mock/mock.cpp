@@ -203,6 +203,22 @@ _stop_service(SC_HANDLE service_handle)
     return ERROR_SUCCESS;
 }
 
+uint32_t
+_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
+{
+    UNREFERENCED_PARAMETER(service_name);
+    UNREFERENCED_PARAMETER(service_handle);
+
+    return ERROR_SUCCESS;
+}
+
+bool
+_close_service_handle(SC_HANDLE service_handle)
+{
+    UNREFERENCED_PARAMETER(service_handle);
+    return true;
+}
+
 } // namespace Platform
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)

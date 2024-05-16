@@ -85,15 +85,11 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 #define CATCH_NO_MEMORY_INT(X) \
     catch (const std::bad_alloc&) { EBPF_RETURN_ERROR(X); }
 
-static std::string
-_to_lower(std::string s)
+int32_t
+_to_lower(_Inout_z_ wchar_t* text) noexcept
 {
-    // std::transform(
-    //     s.begin(),
-    //     s.end(),
-    //     s.begin(),
-    //     [](unsigned char c){ return std::tolower(c); });
-    return s;
+    size_t size = wcslen(text);
+    return _wcslwr_s(text, size + 1);
 }
 
 /**
@@ -273,24 +269,24 @@ _ebpf_get_registry_value(
 }
 CATCH_NO_MEMORY_WIN32
 
-static std::wstring
-_get_wstring_from_string(std::string& text) noexcept(false)
-{
-    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring wide = converter.from_bytes(text);
-
-    return wide;
-}
-
 // static std::wstring
-// _get_wstring_from_string(_In_z_ const char* text) noexcept(false)
+// _get_wstring_from_string(std::string& text) noexcept(false)
 // {
-//     std::string text_string(text);
 //     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-//     std::wstring wide = converter.from_bytes(text_string);
+//     std::wstring wide = converter.from_bytes(text);
 
 //     return wide;
 // }
+
+static std::wstring
+_get_wstring_from_string(_In_z_ const char* text) noexcept(false)
+{
+    std::string text_string(text);
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring wide = converter.from_bytes(text_string);
+
+    return wide;
+}
 
 _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_map_t* _get_ebpf_map_from_handle(
     ebpf_handle_t map_handle) NO_EXCEPT_TRY
@@ -3822,7 +3818,7 @@ _ebpf_program_load_native(
     ebpf_assert(program_fd);
 
     ebpf_result_t result = EBPF_SUCCESS;
-    uint32_t error;
+    int32_t error;
     GUID service_name_guid;
     GUID instance_id;
     GUID provider_module_id;
@@ -3846,14 +3842,23 @@ _ebpf_program_load_native(
     wchar_t full_file_path[MAX_PATH] = {0};
     bool service_created = false;
 
-    std::string file_name_lowercase = _to_lower(std::string(file_name));
-    file_name_wstring = _get_wstring_from_string(file_name_lowercase);
+    // std::string file_name_lowercase = _to_lower(std::string(file_name));
+    file_name_wstring = _get_wstring_from_string(file_name);
 
     // Check if the service already exists.
     uint32_t count = GetFullPathName(file_name_wstring.c_str(), MAX_PATH, full_file_path, nullptr);
     if (count == 0) {
         EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, GetFullPathName);
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    error = _to_lower(full_file_path);
+    if (error != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native: _to_lower() failed",
+            error);
+        EBPF_RETURN_RESULT(EBPF_FAILED);
     }
 
     if (UuidCreate(&instance_id) != RPC_S_OK) {
@@ -5030,7 +5035,7 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_initialize_native_program_state(_In_z_ const char* file) noexcept
+ebpf_initialize_native_program_state(_In_z_ const char* file_name) noexcept
 {
     EBPF_LOG_ENTRY();
     // 1. Compute service name.
@@ -5061,17 +5066,26 @@ ebpf_initialize_native_program_state(_In_z_ const char* file) noexcept
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_API,
             "_ebpf_program_load_native: Create UUID (provider module) failed.",
-            file);
+            file_name);
         EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
     }
 
     try {
-        std::string file_name_lowercase = _to_lower(std::string(file));
-        file_name_string = _get_wstring_from_string(file_name_lowercase);
+        // std::string file_name_lowercase = _to_lower(std::string(file));
+        file_name_string = _get_wstring_from_string(file_name);
         uint32_t count = GetFullPathName(file_name_string.c_str(), MAX_PATH, full_file_path, nullptr);
         if (count == 0) {
             EBPF_LOG_WIN32_WSTRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name_string.c_str(), GetFullPathName);
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+        error = _to_lower(full_file_path);
+        if (error != 0) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: _to_lower() failed",
+                error);
+            EBPF_RETURN_RESULT(EBPF_FAILED);
         }
 
         service_name = _ebpf_get_unique_service_name(full_file_path);
@@ -5195,7 +5209,7 @@ ebpf_initialize_native_program_state(_In_z_ const char* file) noexcept
         error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
         if (error != ERROR_SUCCESS) {
             result = win32_error_code_to_ebpf_result(error);
-            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file, _ebpf_create_registry_key);
+            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
             goto Done;
         }
         error = _ebpf_update_registry_value(
@@ -5223,20 +5237,30 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_uninitialize_native_program_state(_In_z_ const char* file) NO_EXCEPT_TRY
+ebpf_uninitialize_native_program_state(_In_z_ const char* file_name) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     std::wstring service_name;
     wchar_t full_file_path[MAX_PATH] = {0};
     std::wstring file_name_string;
+    int32_t error;
 
-    std::string file_name_lowercase = _to_lower(std::string(file));
-    file_name_string = _get_wstring_from_string(file_name_lowercase);
+    // std::string file_name_lowercase = _to_lower(std::string(file));
+    file_name_string = _get_wstring_from_string(file_name);
     uint32_t count = GetFullPathName(file_name_string.c_str(), MAX_PATH, full_file_path, nullptr);
     if (count == 0) {
-        EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file, GetFullPathName);
+        EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, GetFullPathName);
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    error = _to_lower(full_file_path);
+    if (error != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_uninitialize_native_program_state: _to_lower() failed",
+            error);
+        EBPF_RETURN_RESULT(EBPF_FAILED);
     }
     service_name = _ebpf_get_unique_service_name(full_file_path);
 

@@ -128,12 +128,85 @@ class registry_manager_t
         return instance;
     }
 
+    uint32_t
+    create_registry_key(HKEY root_key, const std::wstring& path)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        std::unique_lock lock(_registry_mutex);
+        if (_registry.find(path) == _registry.end()) {
+            // _registry[path] = std::vector<std::tuple<std::string, registry_value_t>>();
+            // _registry[path] = std::map<std::wstring, registry_value_t>();
+            std::map<std::wstring, registry_value_t> registry_value_map;
+            _registry[path] = registry_value_map;
+        }
+        // _registry[path] = {};
+        return ERROR_SUCCESS;
+    }
+
+    uint32_t
+    get_registry_value(
+        HKEY root_key,
+        const std::wstring& sub_key,
+        unsigned long type,
+        const std::wstring& value_name,
+        std::vector<uint8_t>& value,
+        uint32_t& value_size)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        UNREFERENCED_PARAMETER(type);
+        std::unique_lock lock(_registry_mutex);
+        auto it = _registry.find(sub_key);
+        if (it == _registry.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+
+        auto value_it = it->second.find(value_name);
+        if (value_it == it->second.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+
+        if (value_size < value_it->second.data.size()) {
+            value_size = static_cast<uint32_t>(value_it->second.data.size());
+            return ERROR_MORE_DATA;
+        }
+
+        value_size = static_cast<uint32_t>(value_it->second.data.size());
+        value = value_it->second.data;
+        return ERROR_SUCCESS;
+    }
+
+    uint32_t
+    update_registry_value(
+        HKEY root_key,
+        const std::wstring& sub_key,
+        registry_value_type type,
+        const std::wstring& value_name,
+        const void* value,
+        uint32_t value_size)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        std::unique_lock lock(_registry_mutex);
+        auto it = _registry.find(sub_key);
+        if (it == _registry.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+
+        registry_value_t registry_value;
+        registry_value.type = type;
+        registry_value.data.resize(value_size);
+        memcpy(registry_value.data.data(), value, value_size);
+        it->second[value_name] = registry_value;
+        return ERROR_SUCCESS;
+    }
+
   private:
     // Private constructor to prevent external instantiation.
     registry_manager_t() = default;
     ~registry_manager_t() noexcept = default;
 
-    std::unordered_map<std::string, std::vector<registry_value_t>> _registry;
+    static std::mutex _registry_mutex;
+    // key --> map of values.
+    std::map<std::wstring, std::map<std::wstring, registry_value_t>> _registry;
 };
 
 class duplicate_handles_table_t
