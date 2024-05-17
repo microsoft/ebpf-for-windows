@@ -56,12 +56,32 @@ map_register(int r)
     return 0;
 }
 
+#include "ubpf_int.h"
+
 // Thunk out JIT related calls.
 // Workaround until https://github.com/iovisor/ubpf/issues/185 is fixed.
-int
-ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size, char** errmsg)
+struct ubpf_jit_result
+ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size)
 {
-    return -1;
+    __fastfail(0);
+    struct ubpf_jit_result result = {0};
+    return result;
+}
+
+bool
+ubpf_jit_update_dispatcher_x86_64(
+    struct ubpf_vm* vm, external_function_dispatcher_t new_dispatcher, uint8_t* buffer, size_t size, uint32_t offset)
+{
+    __fastfail(0);
+    return false;
+}
+
+bool
+ubpf_jit_update_helper_x86_64(
+    struct ubpf_vm* vm, ext_func new_helper, unsigned int idx, uint8_t* buffer, size_t size, uint32_t offset)
+{
+    __fastfail(0);
+    return false;
 }
 
 #pragma warning(push)
