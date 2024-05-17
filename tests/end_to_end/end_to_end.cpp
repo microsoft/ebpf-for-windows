@@ -3394,3 +3394,38 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
 #endif
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }
+
+// // Load program multiple times from the same module.
+// TEST_CASE("test_multiple_load_1", "[end_to_end]")
+// {
+//     _test_helper_end_to_end test_helper;
+//     test_helper.initialize();
+
+//     ebpf_result_t result;
+//     const char* file_name = "test_sample_ebpf.sys";
+
+//     result = ebpf_initialize_native_program_state(file_name);
+//     if (result != EBPF_SUCCESS) {
+//         REQUIRE(result == EBPF_SUCCESS);
+//     }
+
+//     struct bpf_object* new_object1 = bpf_object__open(file_name);
+//     REQUIRE(new_object1 != nullptr);
+
+//     int error = bpf_object__load(new_object1);
+//     REQUIRE(error == 0);
+
+//     struct bpf_object* new_object2 = bpf_object__open(file_name);
+//     REQUIRE(new_object2 != nullptr);
+
+//     error = bpf_object__load(new_object2);
+//     REQUIRE(error == 0);
+
+//     bpf_object__close(new_object1);
+//     bpf_object__close(new_object2);
+
+//     result = ebpf_uninitialize_native_program_state(file_name);
+//     if (result != EBPF_SUCCESS) {
+//         REQUIRE(result == EBPF_SUCCESS);
+//     }
+// }

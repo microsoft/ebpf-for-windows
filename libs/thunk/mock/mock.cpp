@@ -20,6 +20,15 @@ std::function<decltype(_get_osfhandle)> get_osfhandle_handler;
 std::function<decltype(_open_osfhandle)> open_osfhandle_handler;
 std::function<decltype(_create_service)> create_service_handler;
 std::function<decltype(_delete_service)> delete_service_handler;
+std::function<decltype(_get_service)> get_service_handler;
+
+uint32_t
+Glue_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle);
+uint32_t
+Glue_create_service(
+    _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle);
+uint32_t
+Glue_delete_service(SC_HANDLE handle);
 
 namespace Platform {
 bool
@@ -175,13 +184,13 @@ _get_registry_value(
 uint32_t
 _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
-    return create_service_handler(service_name, file_path, service_handle);
+    return Glue_create_service(service_name, file_path, service_handle);
 }
 
 uint32_t
 _delete_service(SC_HANDLE service_handle)
 {
-    return delete_service_handler(service_handle);
+    return Glue_delete_service(service_handle);
 }
 
 uint32_t
@@ -206,10 +215,7 @@ _stop_service(SC_HANDLE service_handle)
 uint32_t
 _get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
 {
-    UNREFERENCED_PARAMETER(service_name);
-    *service_handle = reinterpret_cast<SC_HANDLE>(1);
-
-    return ERROR_SUCCESS;
+    return Glue_get_service(service_name, service_handle);
 }
 
 bool

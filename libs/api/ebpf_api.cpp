@@ -5112,9 +5112,12 @@ ebpf_initialize_native_program_state(_In_z_ const char* file_name) noexcept
 
             // Check if the service exists.
             error = Platform::_get_service(service_name.c_str(), &service_handle);
-            if (error != ERROR_SUCCESS) {
+            if (error == ERROR_SERVICE_DOES_NOT_EXIST) {
                 // Service does not exist.
                 goto create_service;
+            } else if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                goto Done;
             }
 
             // Query service status to hydrate SCM status.
@@ -5195,12 +5198,12 @@ ebpf_initialize_native_program_state(_In_z_ const char* file_name) noexcept
         }
         service_created = true;
 
-        // Get the service handle.
-        error = Platform::_get_service(service_name.c_str(), &service_handle);
-        if (error != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(error);
-            goto Done;
-        }
+        // // Get the service handle.
+        // error = Platform::_get_service(service_name.c_str(), &service_handle);
+        // if (error != ERROR_SUCCESS) {
+        //     result = win32_error_code_to_ebpf_result(error);
+        //     goto Done;
+        // }
 
         // Query the service status.
         Platform::_query_service_status(service_handle, &status);

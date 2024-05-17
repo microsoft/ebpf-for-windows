@@ -437,34 +437,38 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
 extern "C"
 {
     void
-    ZwUnloadDriver(_In_z_ const wchar_t* service_name)
+    ZwUnloadDriver(_In_z_ const wchar_t* service_name) noexcept
     {
-        std::wstring service_name_string(service_name);
-        std::unique_lock lock(_service_path_to_context_mutex);
-        if (_service_path_to_context_map.find(service_name_string) != _service_path_to_context_map.end()) {
-            auto context = _service_path_to_context_map[service_name_string];
-            if (context->loaded) {
-                if (context->nmr_client_handle) {
-                    NTSTATUS status = NmrDeregisterClient(context->nmr_client_handle);
-                    if (status == STATUS_PENDING) {
-                        // Wait for the deregistration to complete.
-                        NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
-                    } else {
-                        REQUIRE(NT_SUCCESS(status));
+        try {
+            std::wstring service_name_string(service_name);
+            std::unique_lock lock(_service_path_to_context_mutex);
+            if (_service_path_to_context_map.find(service_name_string) != _service_path_to_context_map.end()) {
+                auto context = _service_path_to_context_map[service_name_string];
+                if (context->loaded) {
+                    if (context->nmr_client_handle) {
+                        NTSTATUS status = NmrDeregisterClient(context->nmr_client_handle);
+                        if (status == STATUS_PENDING) {
+                            // Wait for the deregistration to complete.
+                            NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
+                        } else {
+                            REQUIRE(NT_SUCCESS(status));
+                        }
+                        context->nmr_client_handle = nullptr;
                     }
-                    context->nmr_client_handle = nullptr;
+                    context->loaded = false;
                 }
-                context->loaded = false;
+                if (context->dll != nullptr) {
+                    FreeLibrary(context->dll);
+                }
+                if (context->delete_pending) {
+                    // Service has been stopped and also marked for deletion.
+                    // Delete it from the map.
+                    delete context;
+                    _service_path_to_context_map.erase(service_name_string);
+                }
             }
-            if (context->dll != nullptr) {
-                FreeLibrary(context->dll);
-            }
-            if (context->delete_pending) {
-                // Service has been stopped and also marked for deletion.
-                // Delete it from the map.
-                delete context;
-                _service_path_to_context_map.erase(service_name_string);
-            }
+        } catch (std::bad_alloc&) {
+            // Ignore.
         }
     }
 }
@@ -791,6 +795,24 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_se
     return ERROR_SUCCESS;
 }
 
+_Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t
+    Glue_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
+{
+    *service_handle = (SC_HANDLE)0;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    service_path = service_path + service_name;
+
+    std::unique_lock lock(_service_path_to_context_mutex);
+    for (auto& [path, context] : _service_path_to_context_map) {
+        if (path == service_path) {
+            *service_handle = (SC_HANDLE)context->handle;
+            return ERROR_SUCCESS;
+        }
+    }
+
+    return ERROR_SERVICE_DOES_NOT_EXIST;
+}
+
 _test_helper_end_to_end::_test_helper_end_to_end()
 {
     if (_get_environment_variable_as_bool("EBPF_GENERATE_CORPUS")) {
@@ -850,6 +872,7 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     get_osfhandle_handler = Glue_get_osfhandle;
     close_handler = Glue_close;
     create_service_handler = Glue_create_service;
+    get_service_handler = Glue_get_service;
     delete_service_handler = Glue_delete_service;
 }
 

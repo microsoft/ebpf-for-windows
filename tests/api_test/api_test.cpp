@@ -52,6 +52,8 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define WAIT_TIME_IN_MS 5000
 
+#define OBJECT_LOAD_COUNT 10
+
 typedef struct _audit_entry
 {
     uint64_t logon_id;
@@ -1371,5 +1373,108 @@ TEST_CASE("anusa_test_3", "[native_tests]")
     result = ebpf_uninitialize_native_program_state(file_name);
     if (result != EBPF_SUCCESS) {
         REQUIRE(result == EBPF_SUCCESS);
+    }
+}
+
+TEST_CASE("test_multiple_load_1", "[native_tests]")
+{
+    ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[OBJECT_LOAD_COUNT];
+
+    result = ebpf_initialize_native_program_state(file_name);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+
+    // Load the same object multiple times.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        objects[i] = bpf_object__open(file_name);
+        REQUIRE(objects[i] != nullptr);
+
+        int error = bpf_object__load(objects[i]);
+        REQUIRE(error == 0);
+    }
+
+    // Now close all the objects.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        bpf_object__close(objects[i]);
+    }
+
+    result = ebpf_uninitialize_native_program_state(file_name);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+}
+
+TEST_CASE("test_multiple_load_2", "[native_tests]")
+{
+    ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[OBJECT_LOAD_COUNT];
+
+    result = ebpf_initialize_native_program_state(file_name);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+
+    // Load and unload the same object multiple times.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        objects[i] = bpf_object__open(file_name);
+        REQUIRE(objects[i] != nullptr);
+
+        int error = bpf_object__load(objects[i]);
+        REQUIRE(error == 0);
+
+        bpf_object__close(objects[i]);
+        objects[i] = nullptr;
+
+        // Add wait to allow the epoch to expire, and the program cleanup to complete.
+        Sleep(5000);
+    }
+
+    result = ebpf_uninitialize_native_program_state(file_name);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+}
+
+TEST_CASE("test_multiple_load_3", "[native_tests]")
+{
+    ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[2 * OBJECT_LOAD_COUNT];
+
+    // Load and unload the same object multiple times.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        // Since the module handles are closed in a worker thread, it is possible that the module is not
+        // yet unloaded, and hence the call can fail. It the call fails, add a wait and retry.
+        result = ebpf_initialize_native_program_state(file_name);
+        if (result != EBPF_SUCCESS && result != EBPF_INVALID_STATE) {
+            REQUIRE(false);
+        } else if (result == EBPF_INVALID_STATE) {
+            Sleep(1000);
+            result = ebpf_initialize_native_program_state(file_name);
+            if (result != EBPF_SUCCESS) {
+                REQUIRE(false);
+            }
+        }
+
+        for (uint32_t j = 0; j < 2; j++) {
+            objects[2 * i + j] = bpf_object__open(file_name);
+            REQUIRE(objects[2 * i + j] != nullptr);
+
+            int error = bpf_object__load(objects[2 * i + j]);
+            REQUIRE(error == 0);
+        }
+
+        for (uint32_t j = 0; j < 2; j++) {
+            bpf_object__close(objects[2 * i + j]);
+        }
+
+        result = ebpf_uninitialize_native_program_state(file_name);
+        if (result != EBPF_SUCCESS) {
+            REQUIRE(result == EBPF_SUCCESS);
+        }
     }
 }
