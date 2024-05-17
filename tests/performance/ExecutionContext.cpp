@@ -82,8 +82,9 @@ typedef class _ebpf_program_test_state
         ebpf_epoch_state_t epoch_state;
         ebpf_epoch_enter(&epoch_state);
         ebpf_get_execution_context_state(&state);
-        ebpf_program_invoke(program, context, &result, &state);
+        result = ebpf_program_invoke(program, context, &result, &state);
         ebpf_epoch_exit(&epoch_state);
+        REQUIRE(result == EBPF_SUCCESS);
     }
 
   private:
