@@ -26,10 +26,13 @@
 #define free(X) ebpf_free(X)
 
 #pragma warning(push)
-#pragma warning(disable : 4100) // unreferenced formal parameter
-#pragma warning(disable : 4211) // nonstandard extension used: redefined extern to static
-#pragma warning(disable : 6387) // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
+#pragma warning(disable : 4100)  // unreferenced formal parameter
+#pragma warning(disable : 4211)  // nonstandard extension used: redefined extern to static
+#pragma warning(disable : 6387)  // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
+#pragma warning(disable : 26451) // Arithmetic overflow: Using operator '*' on a 4 byte value and then casting the
+                                 // result to a 8 byte value.
 #include "ubpf_jit.c"
+#include "ubpf_jit_support.c"
 #include "ubpf_jit_x86_64.c"
-#pragma warning(pop)
 #include "ubpf_vm.c"
+#pragma warning(pop)
