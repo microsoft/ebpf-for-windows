@@ -455,7 +455,11 @@ extern "C"
      * initialized, multiple instances of the program can be loaded at the same
      * time from the same native module file. Once the loaded programs have been unloaded or
      * if no more instances of the programs need to be loaded from the same native module file,
-     * the state should be uninitialized using \ref ebpf_uninitialize_native_program_state.
+     * the state should be uninitialized using \ref ebpf_uninitialize_native_program_state().
+     *
+     * In case a previous call to \ref ebpf_uninitialize_native_program_state() is still pending,
+     * and the programs or driver have not been unloaded, this API call will return EBPF_INVALID_STATE.
+     * In such a case, the application should unload any loaded programs and retry after sometime.
      *
      * Note: If an application exclusively owns a native eBPF program file, and does not have
      * any requirement of multiple loads, it can skip calling this API and directly call
@@ -464,8 +468,8 @@ extern "C"
      * @param[in] file Name of the native module containing eBPF program.
      *
      * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_INVALID_OBJECT Invalid object was passed.
-     * @retval EBPF_TRY_AGAIN State cleanup from previous call to
+     * @retval EBPF_INVALID_ARGUMENT Invalid argument was passed.
+     * @retval EBPF_INVALID_STATE State cleanup from previous call to
      * \ref ebpf_uninitialize_native_program_state is still pending. Retry after sometime.
      */
     _Must_inspect_result_ ebpf_result_t

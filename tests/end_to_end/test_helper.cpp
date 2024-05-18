@@ -467,7 +467,7 @@ extern "C"
                     _service_path_to_context_map.erase(service_name_string);
                 }
             }
-        } catch (std::bad_alloc&) {
+        } catch (...) {
             // Ignore.
         }
     }
@@ -872,8 +872,8 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     get_osfhandle_handler = Glue_get_osfhandle;
     close_handler = Glue_close;
     create_service_handler = Glue_create_service;
-    get_service_handler = Glue_get_service;
     delete_service_handler = Glue_delete_service;
+    get_service_handler = Glue_get_service;
 }
 
 void

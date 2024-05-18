@@ -165,7 +165,7 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics 
 
 static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
-#define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
+// #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
 static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
 
@@ -433,13 +433,21 @@ _ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* mod
             // If the module is not yet marked as detaching, and reference
             // count is 1, it means all the program and module references have been
             // released.
-            EBPF_LOG_MESSAGE_GUID(
-                EBPF_TRACELOG_LEVEL_INFO,
-                EBPF_TRACELOG_KEYWORD_NATIVE,
-                "_ebpf_native_release_reference: all program references released. Unloading module",
-                &module->client_module_id);
+            if (module->unload_driver_on_cleanup) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_INFO,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_release_reference: all program references released. Unloading module",
+                    &module->client_module_id);
 
-            ebpf_assert_success(_ebpf_native_unload(module));
+                ebpf_assert_success(_ebpf_native_unload(module));
+            } else {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_INFO,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "_ebpf_native_release_reference: unload_driver_on_cleanup is false. Skip unloading module",
+                    &module->client_module_id);
+            }
         }
         ebpf_lock_unlock(&module->lock, module_lock_state);
         lock_acquired = false;
