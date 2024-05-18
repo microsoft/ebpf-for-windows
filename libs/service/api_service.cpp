@@ -350,7 +350,9 @@ ebpf_verify_and_load_program(
             }
 
             for (uint32_t helper_id = 0; (size_t)helper_id < helper_id_address.size(); helper_id++) {
-                if (ubpf_register(vm, helper_id, nullptr, reinterpret_cast<void*>(helper_id_address[helper_id])) < 0) {
+                if (ubpf_register(
+                        vm, helper_id, nullptr, reinterpret_cast<external_function_t>(helper_id_address[helper_id])) <
+                    0) {
                     result = EBPF_JIT_COMPILATION_FAILED;
                     goto Exit;
                 }

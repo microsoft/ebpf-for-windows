@@ -88,18 +88,22 @@ count_tcp_connect6(void* context)
     r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
     // EBPF_OP_JNE_IMM pc=2 dst=r2 src=r0 offset=27 imm=6
 #line 34 "sample/cgroup_count_connect6.c"
-    if (r2 != IMMEDIATE(6))
+    if (r2 != IMMEDIATE(6)) {
 #line 34 "sample/cgroup_count_connect6.c"
         goto label_2;
-        // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
+#line 34 "sample/cgroup_count_connect6.c"
+    }
+    // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
 #line 40 "sample/cgroup_count_connect6.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
     // EBPF_OP_JNE_IMM pc=4 dst=r1 src=r0 offset=25 imm=7459
 #line 40 "sample/cgroup_count_connect6.c"
-    if (r1 != IMMEDIATE(7459))
+    if (r1 != IMMEDIATE(7459)) {
 #line 40 "sample/cgroup_count_connect6.c"
         goto label_2;
-        // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=0
+#line 40 "sample/cgroup_count_connect6.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=5 dst=r6 src=r0 offset=0 imm=0
 #line 40 "sample/cgroup_count_connect6.c"
     r6 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=6 dst=r10 src=r6 offset=-16 imm=0
@@ -122,19 +126,21 @@ count_tcp_connect6(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect6.c"
-    r0 = count_tcp_connect6_helpers[0].address
+    r0 = count_tcp_connect6_helpers[0].address(r1, r2, r3, r4, r5);
 #line 48 "sample/cgroup_count_connect6.c"
-         (r1, r2, r3, r4, r5);
-#line 48 "sample/cgroup_count_connect6.c"
-    if ((count_tcp_connect6_helpers[0].tail_call) && (r0 == 0))
+    if ((count_tcp_connect6_helpers[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_count_connect6.c"
         return 0;
-        // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=12 imm=0
+#line 48 "sample/cgroup_count_connect6.c"
+    }
+    // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=12 imm=0
 #line 49 "sample/cgroup_count_connect6.c"
-    if (r0 != IMMEDIATE(0))
+    if (r0 != IMMEDIATE(0)) {
 #line 49 "sample/cgroup_count_connect6.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
+#line 49 "sample/cgroup_count_connect6.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=1
 #line 49 "sample/cgroup_count_connect6.c"
     r1 = IMMEDIATE(1);
     // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-16 imm=0
@@ -163,14 +169,14 @@ count_tcp_connect6(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_count_connect6.c"
-    r0 = count_tcp_connect6_helpers[1].address
+    r0 = count_tcp_connect6_helpers[1].address(r1, r2, r3, r4, r5);
 #line 51 "sample/cgroup_count_connect6.c"
-         (r1, r2, r3, r4, r5);
-#line 51 "sample/cgroup_count_connect6.c"
-    if ((count_tcp_connect6_helpers[1].tail_call) && (r0 == 0))
+    if ((count_tcp_connect6_helpers[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_count_connect6.c"
         return 0;
-        // EBPF_OP_JA pc=26 dst=r0 src=r0 offset=3 imm=0
+#line 51 "sample/cgroup_count_connect6.c"
+    }
+    // EBPF_OP_JA pc=26 dst=r0 src=r0 offset=3 imm=0
 #line 51 "sample/cgroup_count_connect6.c"
     goto label_2;
 label_1:
@@ -225,7 +231,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 
