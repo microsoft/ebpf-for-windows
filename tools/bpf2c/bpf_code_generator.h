@@ -220,14 +220,14 @@ class bpf_code_generator
     /**
      * @brief Parse the eBPF file.
      *
-     * @param[in] section_name Section in the ELF file to parse.
-     * @param[in] program_type Program type GUID for the section.
-     * @param[in] attach_type Expected attach type GUID for the section.
+     * @param[in] program Program to parse.
+     * @param[in] program_type Program type GUID for the program.
+     * @param[in] attach_type Expected attach type GUID for the program.
      * @param[in] program_info_hash_type Optional bytes containing hash type of the program info.
      */
     void
     parse(
-        const bpf_code_generator::unsafe_string& section_name,
+        const struct _ebpf_api_program_info* program,
         const GUID& program_type,
         const GUID& attach_type,
         const std::string& program_info_hash_type);
@@ -259,9 +259,10 @@ class bpf_code_generator
      * @brief Generate C code from the parsed eBPF file.
      *
      * @param[in] section_name Section in the ELF file to generate C code for.
+     * @param[in] program_name Section in the ELF file to generate C code for.
      */
     void
-    generate(const unsafe_string& section_name);
+    generate(const unsafe_string& section_name, const bpf_code_generator::unsafe_string& program_name);
 
     /**
      * @brief Emit the C code to a given output stream.
@@ -310,21 +311,24 @@ class bpf_code_generator
         unsafe_string relocation;
     } output_instruction_t;
 
-    typedef struct _section
+    typedef struct _program
     {
         std::vector<output_instruction_t> output;
         std::set<std::string> referenced_registers;
+        struct _ebpf_api_program_info* api_program_info{};
+        unsafe_string elf_section_name;
         unsafe_string pe_section_name;
+        size_t offset_in_section; // Byte offset of program in section.
         unsafe_string program_name;
         GUID program_type = {0};
         GUID expected_attach_type = {0};
         std::optional<std::vector<uint8_t>> program_info_hash;
-        // Indices of the maps used in this section.
+        // Indices of the maps used in this program.
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
         std::string program_info_hash_type{};
         ebpf_program_info_t* program_info = nullptr;
-    } section_t;
+    } program_t;
 
     typedef struct _line_info
     {
@@ -344,14 +348,14 @@ class bpf_code_generator
         symbol_visitor_t;
 
     /**
-     * @brief Extract the eBPF byte code from the eBPF file.
+     * @brief Extract the eBPF byte code from the eBPF program.
      *
      */
     void
-    extract_program(const unsafe_string& section_name);
+    extract_program(const struct _ebpf_api_program_info* program);
 
     /**
-     * @brief Set the program and attach type for the current section.
+     * @brief Set the program and attach type for the current program.
      *
      * @param[in] program_type Program type GUID.
      * @param[in] attach_type Attach type GUID.
@@ -394,7 +398,7 @@ class bpf_code_generator
      *
      */
     void
-    encode_instructions(const unsafe_string& section_name);
+    encode_instructions(const unsafe_string& program_name);
 
 #if defined(_MSC_VER)
     /**
@@ -443,8 +447,8 @@ class bpf_code_generator
     visit_symbols(symbol_visitor_t visitor, const unsafe_string& section_name);
 
     int pe_section_name_counter{};
-    std::map<unsafe_string, section_t> sections;
-    section_t* current_section;
+    std::map<unsafe_string, program_t> programs;
+    program_t* current_program;
     ELFIO::elfio reader;
     std::map<unsafe_string, map_entry_t> map_definitions;
     unsafe_string c_name;

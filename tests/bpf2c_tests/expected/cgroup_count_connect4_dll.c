@@ -147,7 +147,7 @@ count_tcp_connect4(void* context)
     // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-2
 #line 46 "sample/cgroup_count_connect4.c"
     r2 += IMMEDIATE(-2);
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=11 dst=r1 src=r1 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect4.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
@@ -187,7 +187,7 @@ count_tcp_connect4(void* context)
     // EBPF_OP_MOV64_IMM pc=21 dst=r6 src=r0 offset=0 imm=0
 #line 50 "sample/cgroup_count_connect4.c"
     r6 = IMMEDIATE(0);
-    // EBPF_OP_LDDW pc=22 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=22 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/cgroup_count_connect4.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=24 dst=r4 src=r0 offset=0 imm=0

@@ -108,7 +108,7 @@ test_GENERAL_map(struct _ebpf_map_definition_in_file* map)
     return 0;
 }
 
-__attribute__((always_inline)) int
+inline __attribute__((always_inline)) int
 test_LRU_map(struct _ebpf_map_definition_in_file* map)
 {
     uint32_t key = 0;
@@ -233,7 +233,7 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
 
 struct _ebpf_map_definition_in_file STACK_map;
 
-__attribute__((always_inline)) int
+inline __attribute__((always_inline)) int
 test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
 {
     int i;

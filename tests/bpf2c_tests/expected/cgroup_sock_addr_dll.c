@@ -101,7 +101,7 @@ static uint16_t authorize_connect4_maps[] = {
     2,
 };
 
-#pragma code_seg(push, "cgroup~1")
+#pragma code_seg(push, "cgroup~4")
 static uint64_t
 authorize_connect4(void* context)
 #line 83 "sample/cgroup_sock_addr.c"
@@ -198,7 +198,7 @@ authorize_connect4(void* context)
     // EBPF_OP_ADD64_IMM pc=19 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=20 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=20 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_MOV64_REG pc=22 dst=r2 src=r6 offset=0 imm=0
@@ -216,7 +216,7 @@ authorize_connect4(void* context)
         return 0;
 #line 45 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDDW pc=25 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=25 dst=r1 src=r1 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=27 dst=r2 src=r6 offset=0 imm=0
@@ -271,7 +271,7 @@ static uint16_t authorize_connect6_maps[] = {
     2,
 };
 
-#pragma code_seg(push, "cgroup~2")
+#pragma code_seg(push, "cgroup~3")
 static uint64_t
 authorize_connect6(void* context)
 #line 90 "sample/cgroup_sock_addr.c"
@@ -386,7 +386,7 @@ authorize_connect6(void* context)
     // EBPF_OP_ADD64_IMM pc=25 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=26 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=26 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_MOV64_REG pc=28 dst=r2 src=r6 offset=0 imm=0
@@ -404,7 +404,7 @@ authorize_connect6(void* context)
         return 0;
 #line 45 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDDW pc=31 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=33 dst=r2 src=r6 offset=0 imm=0
@@ -459,7 +459,7 @@ static uint16_t authorize_recv_accept4_maps[] = {
     2,
 };
 
-#pragma code_seg(push, "cgroup~3")
+#pragma code_seg(push, "cgroup~2")
 static uint64_t
 authorize_recv_accept4(void* context)
 #line 97 "sample/cgroup_sock_addr.c"
@@ -556,7 +556,7 @@ authorize_recv_accept4(void* context)
     // EBPF_OP_ADD64_IMM pc=19 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=20 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=20 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_MOV64_REG pc=22 dst=r2 src=r6 offset=0 imm=0
@@ -574,7 +574,7 @@ authorize_recv_accept4(void* context)
         return 0;
 #line 45 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDDW pc=25 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=25 dst=r1 src=r1 offset=0 imm=2
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_REG pc=27 dst=r2 src=r6 offset=0 imm=0
@@ -629,7 +629,7 @@ static uint16_t authorize_recv_accept6_maps[] = {
     2,
 };
 
-#pragma code_seg(push, "cgroup~4")
+#pragma code_seg(push, "cgroup~1")
 static uint64_t
 authorize_recv_accept6(void* context)
 #line 104 "sample/cgroup_sock_addr.c"
@@ -744,7 +744,7 @@ authorize_recv_accept6(void* context)
     // EBPF_OP_ADD64_IMM pc=25 dst=r3 src=r0 offset=0 imm=-8
 #line 44 "sample/cgroup_sock_addr.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=26 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=26 dst=r1 src=r1 offset=0 imm=3
 #line 45 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_MOV64_REG pc=28 dst=r2 src=r6 offset=0 imm=0
@@ -762,7 +762,7 @@ authorize_recv_accept6(void* context)
         return 0;
 #line 45 "sample/cgroup_sock_addr.c"
     }
-    // EBPF_OP_LDDW pc=31 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r1 src=r1 offset=0 imm=2
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_REG pc=33 dst=r2 src=r6 offset=0 imm=0
@@ -807,7 +807,7 @@ static program_entry_t _programs[] = {
     {
         0,
         authorize_connect4,
-        "cgroup~1",
+        "cgroup~4",
         "cgroup/connect4",
         "authorize_connect4",
         authorize_connect4_maps,
@@ -821,7 +821,7 @@ static program_entry_t _programs[] = {
     {
         0,
         authorize_connect6,
-        "cgroup~2",
+        "cgroup~3",
         "cgroup/connect6",
         "authorize_connect6",
         authorize_connect6_maps,
@@ -835,7 +835,7 @@ static program_entry_t _programs[] = {
     {
         0,
         authorize_recv_accept4,
-        "cgroup~3",
+        "cgroup~2",
         "cgroup/recv_accept4",
         "authorize_recv_accept4",
         authorize_recv_accept4_maps,
@@ -849,7 +849,7 @@ static program_entry_t _programs[] = {
     {
         0,
         authorize_recv_accept6,
-        "cgroup~4",
+        "cgroup~1",
         "cgroup/recv_accept6",
         "authorize_recv_accept6",
         authorize_recv_accept6_maps,
