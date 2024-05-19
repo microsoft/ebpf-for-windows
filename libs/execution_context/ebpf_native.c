@@ -1687,7 +1687,10 @@ _get_native_module_from_hash_table(_In_ const GUID* module_id, _Outptr_ ebpf_nat
     if (result != EBPF_SUCCESS) {
         result = EBPF_OBJECT_NOT_FOUND;
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "ebpf_native_load: module not found", module_id);
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_get_native_module_from_hash_table: module not found",
+            module_id);
         goto Done;
     }
     *module = *existing_module;
@@ -1852,6 +1855,8 @@ Done:
             KeClearEvent(&module->event);
             ebpf_lock_unlock(&module->lock, state);
         }
+    }
+    if (result != EBPF_SUCCESS || wait_for_initialization) {
         cxplat_free_preemptible_work_item(cleanup_work_item);
         ebpf_free(local_service_name);
     }
@@ -2063,6 +2068,13 @@ Done:
     } else {
         // Success case. No need to close program and map handles. Clean up handle cleanup context.
         _ebpf_native_clean_up_handle_cleanup_context(&instance.handle_cleanup_context);
+        // Free the map contexts.
+        _ebpf_native_clean_up_maps(instance.maps, instance.map_count, false, false);
+        instance.maps = NULL;
+        instance.map_count = 0;
+        // Free the program context array. Individual program contexts are freed when the program is unloaded.
+        ebpf_free(instance.programs);
+        instance.programs = NULL;
     }
 
     if (module_referenced) {

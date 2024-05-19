@@ -1618,7 +1618,10 @@ TEST_CASE("test_multiple_load_native", "[native_tests]")
     }
 
     // Unpin map1.
-    ebpf_object_unpin(map1_pin_path);
+    result = ebpf_object_unpin(map1_pin_path);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 
     // Uninitialize the program state.
     result = ebpf_uninitialize_native_program_state(file_name);

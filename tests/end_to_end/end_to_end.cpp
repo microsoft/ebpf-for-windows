@@ -3402,7 +3402,10 @@ TEST_CASE("test_multiple_load_1", "[end_to_end]")
     test_helper.initialize();
 
     ebpf_result_t result;
-    const char* file_name = "test_sample_ebpf.dll";
+    const char* file_name = "test_sample_ebpf_um.dll";
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     result = ebpf_initialize_native_program_state(file_name);
     if (result != EBPF_SUCCESS) {

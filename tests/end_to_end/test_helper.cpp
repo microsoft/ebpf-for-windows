@@ -39,6 +39,7 @@ get_metadata_table();
 static bool _expect_native_module_load_failures = false;
 
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+#define REGISTRY_SERVICE_PATH_PREFIX L"System\\CurrentControlSet\\Services\\"
 #define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -120,13 +121,15 @@ typedef struct _registry_value
 class registry_manager_t
 {
   public:
-    static registry_manager_t&
-    instance()
-    {
-        // This is a Meyers' Singleton pattern, which ensures thread safety
-        static registry_manager_t instance;
-        return instance;
-    }
+    registry_manager_t() = default;
+    ~registry_manager_t() noexcept = default;
+    // static registry_manager_t&
+    // instance()
+    // {
+    //     // This is a Meyers' Singleton pattern, which ensures thread safety
+    //     static registry_manager_t instance;
+    //     return instance;
+    // }
 
     uint32_t
     create_registry_key(HKEY root_key, const std::wstring& path)
@@ -140,6 +143,19 @@ class registry_manager_t
             _registry[path] = registry_value_map;
         }
         // _registry[path] = {};
+        return ERROR_SUCCESS;
+    }
+
+    uint32_t
+    delete_registry_key(HKEY root_key, const std::wstring& path)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        std::unique_lock lock(_registry_mutex);
+        auto it = _registry.find(path);
+        if (it == _registry.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+        _registry.erase(it);
         return ERROR_SUCCESS;
     }
 
@@ -201,10 +217,8 @@ class registry_manager_t
 
   private:
     // Private constructor to prevent external instantiation.
-    registry_manager_t() = default;
-    ~registry_manager_t() noexcept = default;
 
-    static std::mutex _registry_mutex;
+    std::mutex _registry_mutex;
     // key --> map of values.
     std::map<std::wstring, std::map<std::wstring, registry_value_t>> _registry;
 };
@@ -294,6 +308,7 @@ class duplicate_handles_table_t
 };
 
 static duplicate_handles_table_t _duplicate_handles;
+static registry_manager_t _registry_manager;
 
 static std::string
 _get_environment_variable_as_string(const std::string& name)
@@ -747,15 +762,70 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_close(int file_descriptor
     }
 }
 
+uint32_t
+Glue_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
+{
+    return _registry_manager.create_registry_key(root_key, path);
+}
+
+static uint32_t
+_delete_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
+{
+    return _registry_manager.delete_registry_key(root_key, path);
+}
+
+uint32_t
+Glue_update_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _In_reads_bytes_(value_size) const void* value,
+    uint32_t value_size)
+{
+    return _registry_manager.update_registry_value(
+        root_key, sub_key, (registry_value_type)type, value_name, value, value_size);
+}
+
+uint32_t
+Glue_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size)
+{
+    std::vector<uint8_t> value_buffer;
+    uint32_t value_buffer_size = *value_size;
+    uint32_t result =
+        _registry_manager.get_registry_value(root_key, sub_key, type, value_name, value_buffer, value_buffer_size);
+    if (result == ERROR_SUCCESS) {
+        if (value_buffer.size() > *value_size) {
+            *value_size = static_cast<uint32_t>(value_buffer.size());
+            return ERROR_MORE_DATA;
+        }
+        *value_size = static_cast<uint32_t>(value_buffer.size());
+        memcpy(value, value_buffer.data(), value_buffer.size());
+    }
+    return result;
+}
+
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_service(
     _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
+    uint32_t error = ERROR_SUCCESS;
+    bool registry_created = false;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    std::wstring service_path_registry(REGISTRY_SERVICE_PATH_PREFIX);
+    service_context_t* context = nullptr;
+
     *service_handle = (SC_HANDLE)0;
     try {
-        std::wstring service_path(SERVICE_PATH_PREFIX);
         service_path = service_path + service_name;
+        service_path_registry = service_path_registry + service_name;
 
-        service_context_t* context = new (std::nothrow) service_context_t();
+        context = new (std::nothrow) service_context_t();
         if (context == nullptr) {
             return ERROR_NOT_ENOUGH_MEMORY;
         }
@@ -763,16 +833,30 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_se
         context->name.assign(service_name);
         context->file_path.assign(file_path);
 
+        error = Glue_create_registry_key(HKEY_LOCAL_MACHINE, service_path_registry.c_str());
+        if (error != ERROR_SUCCESS) {
+            goto Exit;
+        }
+        registry_created = true;
+
         std::unique_lock lock(_service_path_to_context_mutex);
         _service_path_to_context_map.insert(std::pair<std::wstring, service_context_t*>(service_path, context));
         context->handle = InterlockedIncrement64((int64_t*)&_ebpf_service_handle_counter);
 
         *service_handle = (SC_HANDLE)context->handle;
     } catch (...) {
-        return ERROR_NOT_ENOUGH_MEMORY;
+        error = ERROR_NOT_ENOUGH_MEMORY;
     }
 
-    return ERROR_SUCCESS;
+Exit:
+    if (error != ERROR_SUCCESS) {
+        delete context;
+        if (registry_created) {
+            // Delete the registry key.
+            _delete_registry_key(HKEY_LOCAL_MACHINE, service_path.c_str());
+        }
+    }
+    return error;
 }
 
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_service(SC_HANDLE handle)
@@ -874,6 +958,9 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     create_service_handler = Glue_create_service;
     delete_service_handler = Glue_delete_service;
     get_service_handler = Glue_get_service;
+    create_registry_key_handler = Glue_create_registry_key;
+    get_registry_value_handler = Glue_get_registry_value;
+    update_registry_value_handler = Glue_update_registry_value;
 }
 
 void
