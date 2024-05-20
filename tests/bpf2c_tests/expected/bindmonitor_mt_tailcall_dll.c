@@ -40,7 +40,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -63,8 +63,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t BindMonitor_Caller_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Caller_program_type_guid = {
@@ -77,7 +77,7 @@ static uint16_t BindMonitor_Caller_maps[] = {
 
 #pragma code_seg(push, "bind")
 static uint64_t
-BindMonitor_Caller(void* context)
+BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_context)
 #line 31 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 31 "sample/bindmonitor_mt_tailcall.c"
@@ -153,9 +153,9 @@ BindMonitor_Caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=13
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Caller_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Caller_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 33 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 33 "sample/bindmonitor_mt_tailcall.c"
@@ -165,15 +165,15 @@ BindMonitor_Caller(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=22 dst=r2 src=r0 offset=0 imm=0
 #line 34 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=24 dst=r3 src=r0 offset=0 imm=0
 #line 34 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=5
 #line 34 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Caller_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 34 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Caller_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 34 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 34 "sample/bindmonitor_mt_tailcall.c"
@@ -190,8 +190,8 @@ BindMonitor_Caller(void* context)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee0_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee0_program_type_guid = {
@@ -204,7 +204,7 @@ static uint16_t BindMonitor_Callee0_maps[] = {
 
 #pragma code_seg(push, "bind/0")
 static uint64_t
-BindMonitor_Callee0(void* context)
+BindMonitor_Callee0(void* context, const program_runtime_context_t* runtime_context)
 #line 53 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -270,9 +270,9 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -282,15 +282,15 @@ BindMonitor_Callee0(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=1
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee0_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -343,9 +343,9 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -363,8 +363,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee1_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee1_program_type_guid = {
@@ -377,7 +377,7 @@ static uint16_t BindMonitor_Callee1_maps[] = {
 
 #pragma code_seg(push, "bind/1")
 static uint64_t
-BindMonitor_Callee1(void* context)
+BindMonitor_Callee1(void* context, const program_runtime_context_t* runtime_context)
 #line 54 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -443,9 +443,9 @@ BindMonitor_Callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -455,15 +455,15 @@ BindMonitor_Callee1(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=2
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -516,9 +516,9 @@ BindMonitor_Callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -536,8 +536,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee10_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee10_program_type_guid = {
@@ -550,7 +550,7 @@ static uint16_t BindMonitor_Callee10_maps[] = {
 
 #pragma code_seg(push, "bind/10")
 static uint64_t
-BindMonitor_Callee10(void* context)
+BindMonitor_Callee10(void* context, const program_runtime_context_t* runtime_context)
 #line 63 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -616,9 +616,9 @@ BindMonitor_Callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee10_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee10_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -628,15 +628,15 @@ BindMonitor_Callee10(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=11
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee10_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee10_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -689,9 +689,9 @@ BindMonitor_Callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee10_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee10_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -709,8 +709,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee11_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee11_program_type_guid = {
@@ -723,7 +723,7 @@ static uint16_t BindMonitor_Callee11_maps[] = {
 
 #pragma code_seg(push, "bind/11")
 static uint64_t
-BindMonitor_Callee11(void* context)
+BindMonitor_Callee11(void* context, const program_runtime_context_t* runtime_context)
 #line 64 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -789,9 +789,9 @@ BindMonitor_Callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee11_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee11_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -801,15 +801,15 @@ BindMonitor_Callee11(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=12
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee11_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee11_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -862,9 +862,9 @@ BindMonitor_Callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee11_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee11_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -882,8 +882,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee12_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee12_program_type_guid = {
@@ -896,7 +896,7 @@ static uint16_t BindMonitor_Callee12_maps[] = {
 
 #pragma code_seg(push, "bind/12")
 static uint64_t
-BindMonitor_Callee12(void* context)
+BindMonitor_Callee12(void* context, const program_runtime_context_t* runtime_context)
 #line 65 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -962,9 +962,9 @@ BindMonitor_Callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee12_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee12_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -974,15 +974,15 @@ BindMonitor_Callee12(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=13
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee12_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee12_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -1035,9 +1035,9 @@ BindMonitor_Callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee12_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee12_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -1055,8 +1055,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee13_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee13_program_type_guid = {
@@ -1069,7 +1069,7 @@ static uint16_t BindMonitor_Callee13_maps[] = {
 
 #pragma code_seg(push, "bind/13")
 static uint64_t
-BindMonitor_Callee13(void* context)
+BindMonitor_Callee13(void* context, const program_runtime_context_t* runtime_context)
 #line 66 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1135,9 +1135,9 @@ BindMonitor_Callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee13_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee13_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1147,15 +1147,15 @@ BindMonitor_Callee13(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=14
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee13_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee13_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1208,9 +1208,9 @@ BindMonitor_Callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee13_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee13_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1228,8 +1228,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee14_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee14_program_type_guid = {
@@ -1242,7 +1242,7 @@ static uint16_t BindMonitor_Callee14_maps[] = {
 
 #pragma code_seg(push, "bind/14")
 static uint64_t
-BindMonitor_Callee14(void* context)
+BindMonitor_Callee14(void* context, const program_runtime_context_t* runtime_context)
 #line 67 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1308,9 +1308,9 @@ BindMonitor_Callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee14_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee14_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1320,15 +1320,15 @@ BindMonitor_Callee14(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=15
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee14_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee14_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1381,9 +1381,9 @@ BindMonitor_Callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee14_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee14_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1401,8 +1401,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee15_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee15_program_type_guid = {
@@ -1415,7 +1415,7 @@ static uint16_t BindMonitor_Callee15_maps[] = {
 
 #pragma code_seg(push, "bind/15")
 static uint64_t
-BindMonitor_Callee15(void* context)
+BindMonitor_Callee15(void* context, const program_runtime_context_t* runtime_context)
 #line 68 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1481,9 +1481,9 @@ BindMonitor_Callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee15_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee15_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1493,15 +1493,15 @@ BindMonitor_Callee15(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=16
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee15_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee15_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1554,9 +1554,9 @@ BindMonitor_Callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee15_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee15_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1574,8 +1574,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee16_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee16_program_type_guid = {
@@ -1588,7 +1588,7 @@ static uint16_t BindMonitor_Callee16_maps[] = {
 
 #pragma code_seg(push, "bind/16")
 static uint64_t
-BindMonitor_Callee16(void* context)
+BindMonitor_Callee16(void* context, const program_runtime_context_t* runtime_context)
 #line 69 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1654,9 +1654,9 @@ BindMonitor_Callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee16_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee16_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1666,15 +1666,15 @@ BindMonitor_Callee16(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=17
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee16_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee16_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1727,9 +1727,9 @@ BindMonitor_Callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee16_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee16_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1747,8 +1747,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee17_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee17_program_type_guid = {
@@ -1761,7 +1761,7 @@ static uint16_t BindMonitor_Callee17_maps[] = {
 
 #pragma code_seg(push, "bind/17")
 static uint64_t
-BindMonitor_Callee17(void* context)
+BindMonitor_Callee17(void* context, const program_runtime_context_t* runtime_context)
 #line 70 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1827,9 +1827,9 @@ BindMonitor_Callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee17_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee17_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1839,15 +1839,15 @@ BindMonitor_Callee17(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=18
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee17_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee17_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1900,9 +1900,9 @@ BindMonitor_Callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee17_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee17_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1920,8 +1920,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee18_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee18_program_type_guid = {
@@ -1934,7 +1934,7 @@ static uint16_t BindMonitor_Callee18_maps[] = {
 
 #pragma code_seg(push, "bind/18")
 static uint64_t
-BindMonitor_Callee18(void* context)
+BindMonitor_Callee18(void* context, const program_runtime_context_t* runtime_context)
 #line 71 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2000,9 +2000,9 @@ BindMonitor_Callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee18_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee18_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2012,15 +2012,15 @@ BindMonitor_Callee18(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=19
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee18_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee18_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2073,9 +2073,9 @@ BindMonitor_Callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee18_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee18_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2093,8 +2093,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee19_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee19_program_type_guid = {
@@ -2107,7 +2107,7 @@ static uint16_t BindMonitor_Callee19_maps[] = {
 
 #pragma code_seg(push, "bind/19")
 static uint64_t
-BindMonitor_Callee19(void* context)
+BindMonitor_Callee19(void* context, const program_runtime_context_t* runtime_context)
 #line 72 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2173,9 +2173,9 @@ BindMonitor_Callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee19_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee19_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2185,15 +2185,15 @@ BindMonitor_Callee19(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=20
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee19_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee19_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2246,9 +2246,9 @@ BindMonitor_Callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee19_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee19_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2266,8 +2266,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee2_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee2_program_type_guid = {
@@ -2280,7 +2280,7 @@ static uint16_t BindMonitor_Callee2_maps[] = {
 
 #pragma code_seg(push, "bind/2")
 static uint64_t
-BindMonitor_Callee2(void* context)
+BindMonitor_Callee2(void* context, const program_runtime_context_t* runtime_context)
 #line 55 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2346,9 +2346,9 @@ BindMonitor_Callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee2_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee2_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2358,15 +2358,15 @@ BindMonitor_Callee2(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=3
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee2_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee2_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2419,9 +2419,9 @@ BindMonitor_Callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee2_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee2_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2439,8 +2439,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee20_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee20_program_type_guid = {
@@ -2453,7 +2453,7 @@ static uint16_t BindMonitor_Callee20_maps[] = {
 
 #pragma code_seg(push, "bind/20")
 static uint64_t
-BindMonitor_Callee20(void* context)
+BindMonitor_Callee20(void* context, const program_runtime_context_t* runtime_context)
 #line 73 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2519,9 +2519,9 @@ BindMonitor_Callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee20_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee20_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2531,15 +2531,15 @@ BindMonitor_Callee20(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=21
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee20_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee20_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2592,9 +2592,9 @@ BindMonitor_Callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee20_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee20_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2612,8 +2612,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee21_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee21_program_type_guid = {
@@ -2626,7 +2626,7 @@ static uint16_t BindMonitor_Callee21_maps[] = {
 
 #pragma code_seg(push, "bind/21")
 static uint64_t
-BindMonitor_Callee21(void* context)
+BindMonitor_Callee21(void* context, const program_runtime_context_t* runtime_context)
 #line 74 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2692,9 +2692,9 @@ BindMonitor_Callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee21_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee21_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2704,15 +2704,15 @@ BindMonitor_Callee21(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=22
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee21_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee21_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2765,9 +2765,9 @@ BindMonitor_Callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee21_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee21_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2785,8 +2785,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee22_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee22_program_type_guid = {
@@ -2799,7 +2799,7 @@ static uint16_t BindMonitor_Callee22_maps[] = {
 
 #pragma code_seg(push, "bind/22")
 static uint64_t
-BindMonitor_Callee22(void* context)
+BindMonitor_Callee22(void* context, const program_runtime_context_t* runtime_context)
 #line 75 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2865,9 +2865,9 @@ BindMonitor_Callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee22_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee22_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2877,15 +2877,15 @@ BindMonitor_Callee22(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=23
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee22_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee22_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2938,9 +2938,9 @@ BindMonitor_Callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee22_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee22_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2958,8 +2958,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee23_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee23_program_type_guid = {
@@ -2972,7 +2972,7 @@ static uint16_t BindMonitor_Callee23_maps[] = {
 
 #pragma code_seg(push, "bind/23")
 static uint64_t
-BindMonitor_Callee23(void* context)
+BindMonitor_Callee23(void* context, const program_runtime_context_t* runtime_context)
 #line 76 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3038,9 +3038,9 @@ BindMonitor_Callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee23_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee23_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3050,15 +3050,15 @@ BindMonitor_Callee23(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=24
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee23_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee23_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3111,9 +3111,9 @@ BindMonitor_Callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee23_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee23_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3131,8 +3131,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee24_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee24_program_type_guid = {
@@ -3145,7 +3145,7 @@ static uint16_t BindMonitor_Callee24_maps[] = {
 
 #pragma code_seg(push, "bind/24")
 static uint64_t
-BindMonitor_Callee24(void* context)
+BindMonitor_Callee24(void* context, const program_runtime_context_t* runtime_context)
 #line 77 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3211,9 +3211,9 @@ BindMonitor_Callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee24_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee24_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3223,15 +3223,15 @@ BindMonitor_Callee24(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=25
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee24_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee24_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3284,9 +3284,9 @@ BindMonitor_Callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee24_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee24_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3304,8 +3304,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee25_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee25_program_type_guid = {
@@ -3318,7 +3318,7 @@ static uint16_t BindMonitor_Callee25_maps[] = {
 
 #pragma code_seg(push, "bind/25")
 static uint64_t
-BindMonitor_Callee25(void* context)
+BindMonitor_Callee25(void* context, const program_runtime_context_t* runtime_context)
 #line 78 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3384,9 +3384,9 @@ BindMonitor_Callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee25_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee25_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3396,15 +3396,15 @@ BindMonitor_Callee25(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=26
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee25_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee25_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3457,9 +3457,9 @@ BindMonitor_Callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee25_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee25_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3477,8 +3477,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee26_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee26_program_type_guid = {
@@ -3491,7 +3491,7 @@ static uint16_t BindMonitor_Callee26_maps[] = {
 
 #pragma code_seg(push, "bind/26")
 static uint64_t
-BindMonitor_Callee26(void* context)
+BindMonitor_Callee26(void* context, const program_runtime_context_t* runtime_context)
 #line 79 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3557,9 +3557,9 @@ BindMonitor_Callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee26_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee26_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3569,15 +3569,15 @@ BindMonitor_Callee26(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=27
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee26_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee26_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3630,9 +3630,9 @@ BindMonitor_Callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee26_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee26_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3650,8 +3650,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee27_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee27_program_type_guid = {
@@ -3664,7 +3664,7 @@ static uint16_t BindMonitor_Callee27_maps[] = {
 
 #pragma code_seg(push, "bind/27")
 static uint64_t
-BindMonitor_Callee27(void* context)
+BindMonitor_Callee27(void* context, const program_runtime_context_t* runtime_context)
 #line 80 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3730,9 +3730,9 @@ BindMonitor_Callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee27_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee27_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3742,15 +3742,15 @@ BindMonitor_Callee27(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=28
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee27_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee27_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3803,9 +3803,9 @@ BindMonitor_Callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee27_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee27_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3823,8 +3823,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee28_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee28_program_type_guid = {
@@ -3837,7 +3837,7 @@ static uint16_t BindMonitor_Callee28_maps[] = {
 
 #pragma code_seg(push, "bind/28")
 static uint64_t
-BindMonitor_Callee28(void* context)
+BindMonitor_Callee28(void* context, const program_runtime_context_t* runtime_context)
 #line 81 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3903,9 +3903,9 @@ BindMonitor_Callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee28_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee28_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3915,15 +3915,15 @@ BindMonitor_Callee28(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=29
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee28_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee28_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3976,9 +3976,9 @@ BindMonitor_Callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee28_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee28_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3996,8 +3996,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee29_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee29_program_type_guid = {
@@ -4010,7 +4010,7 @@ static uint16_t BindMonitor_Callee29_maps[] = {
 
 #pragma code_seg(push, "bind/29")
 static uint64_t
-BindMonitor_Callee29(void* context)
+BindMonitor_Callee29(void* context, const program_runtime_context_t* runtime_context)
 #line 82 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4076,9 +4076,9 @@ BindMonitor_Callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee29_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee29_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4088,15 +4088,15 @@ BindMonitor_Callee29(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=30
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee29_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee29_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4149,9 +4149,9 @@ BindMonitor_Callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee29_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee29_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4169,8 +4169,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee3_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee3_program_type_guid = {
@@ -4183,7 +4183,7 @@ static uint16_t BindMonitor_Callee3_maps[] = {
 
 #pragma code_seg(push, "bind/3")
 static uint64_t
-BindMonitor_Callee3(void* context)
+BindMonitor_Callee3(void* context, const program_runtime_context_t* runtime_context)
 #line 56 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4249,9 +4249,9 @@ BindMonitor_Callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee3_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee3_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4261,15 +4261,15 @@ BindMonitor_Callee3(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=4
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee3_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee3_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4322,9 +4322,9 @@ BindMonitor_Callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee3_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee3_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4342,8 +4342,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee30_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee30_program_type_guid = {
@@ -4356,7 +4356,7 @@ static uint16_t BindMonitor_Callee30_maps[] = {
 
 #pragma code_seg(push, "bind/30")
 static uint64_t
-BindMonitor_Callee30(void* context)
+BindMonitor_Callee30(void* context, const program_runtime_context_t* runtime_context)
 #line 83 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4422,9 +4422,9 @@ BindMonitor_Callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee30_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee30_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4434,15 +4434,15 @@ BindMonitor_Callee30(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=31
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee30_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee30_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4495,9 +4495,9 @@ BindMonitor_Callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee30_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee30_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4515,8 +4515,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee31_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee31_program_type_guid = {
@@ -4529,7 +4529,7 @@ static uint16_t BindMonitor_Callee31_maps[] = {
 
 #pragma code_seg(push, "bind/31")
 static uint64_t
-BindMonitor_Callee31(void* context)
+BindMonitor_Callee31(void* context, const program_runtime_context_t* runtime_context)
 #line 84 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4595,9 +4595,9 @@ BindMonitor_Callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee31_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee31_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4607,15 +4607,15 @@ BindMonitor_Callee31(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=32
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee31_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee31_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4668,9 +4668,9 @@ BindMonitor_Callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee31_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee31_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4693,7 +4693,7 @@ static GUID BindMonitor_Callee32_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind/32")
 static uint64_t
-BindMonitor_Callee32(void* context)
+BindMonitor_Callee32(void* context, const program_runtime_context_t* runtime_context)
 #line 97 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 97 "sample/bindmonitor_mt_tailcall.c"
@@ -4711,6 +4711,8 @@ BindMonitor_Callee32(void* context)
     r1 = (uintptr_t)context;
 #line 97 "sample/bindmonitor_mt_tailcall.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 97 "sample/bindmonitor_mt_tailcall.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=0
 #line 97 "sample/bindmonitor_mt_tailcall.c"
@@ -4724,8 +4726,8 @@ BindMonitor_Callee32(void* context)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee4_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee4_program_type_guid = {
@@ -4738,7 +4740,7 @@ static uint16_t BindMonitor_Callee4_maps[] = {
 
 #pragma code_seg(push, "bind/4")
 static uint64_t
-BindMonitor_Callee4(void* context)
+BindMonitor_Callee4(void* context, const program_runtime_context_t* runtime_context)
 #line 57 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4804,9 +4806,9 @@ BindMonitor_Callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee4_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4816,15 +4818,15 @@ BindMonitor_Callee4(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=5
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee4_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4877,9 +4879,9 @@ BindMonitor_Callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee4_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4897,8 +4899,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee5_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee5_program_type_guid = {
@@ -4911,7 +4913,7 @@ static uint16_t BindMonitor_Callee5_maps[] = {
 
 #pragma code_seg(push, "bind/5")
 static uint64_t
-BindMonitor_Callee5(void* context)
+BindMonitor_Callee5(void* context, const program_runtime_context_t* runtime_context)
 #line 58 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -4977,9 +4979,9 @@ BindMonitor_Callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee5_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee5_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -4989,15 +4991,15 @@ BindMonitor_Callee5(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=6
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee5_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee5_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -5050,9 +5052,9 @@ BindMonitor_Callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee5_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee5_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -5070,8 +5072,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee6_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee6_program_type_guid = {
@@ -5084,7 +5086,7 @@ static uint16_t BindMonitor_Callee6_maps[] = {
 
 #pragma code_seg(push, "bind/6")
 static uint64_t
-BindMonitor_Callee6(void* context)
+BindMonitor_Callee6(void* context, const program_runtime_context_t* runtime_context)
 #line 59 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5150,9 +5152,9 @@ BindMonitor_Callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee6_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5162,15 +5164,15 @@ BindMonitor_Callee6(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=7
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee6_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5223,9 +5225,9 @@ BindMonitor_Callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee6_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5243,8 +5245,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee7_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee7_program_type_guid = {
@@ -5257,7 +5259,7 @@ static uint16_t BindMonitor_Callee7_maps[] = {
 
 #pragma code_seg(push, "bind/7")
 static uint64_t
-BindMonitor_Callee7(void* context)
+BindMonitor_Callee7(void* context, const program_runtime_context_t* runtime_context)
 #line 60 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5323,9 +5325,9 @@ BindMonitor_Callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee7_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee7_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5335,15 +5337,15 @@ BindMonitor_Callee7(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=8
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee7_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee7_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5396,9 +5398,9 @@ BindMonitor_Callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee7_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee7_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5416,8 +5418,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee8_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee8_program_type_guid = {
@@ -5430,7 +5432,7 @@ static uint16_t BindMonitor_Callee8_maps[] = {
 
 #pragma code_seg(push, "bind/8")
 static uint64_t
-BindMonitor_Callee8(void* context)
+BindMonitor_Callee8(void* context, const program_runtime_context_t* runtime_context)
 #line 61 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5496,9 +5498,9 @@ BindMonitor_Callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee8_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee8_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5508,15 +5510,15 @@ BindMonitor_Callee8(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=15 dst=r2 src=r0 offset=0 imm=0
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=17 dst=r3 src=r0 offset=0 imm=9
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee8_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee8_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5569,9 +5571,9 @@ BindMonitor_Callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee8_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee8_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5589,8 +5591,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee9_helpers[] = {
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee9_program_type_guid = {
@@ -5603,7 +5605,7 @@ static uint16_t BindMonitor_Callee9_maps[] = {
 
 #pragma code_seg(push, "bind/9")
 static uint64_t
-BindMonitor_Callee9(void* context)
+BindMonitor_Callee9(void* context, const program_runtime_context_t* runtime_context)
 #line 62 "sample/bindmonitor_mt_tailcall.c"
 {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
@@ -5674,9 +5676,9 @@ BindMonitor_Callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=13
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee9_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee9_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 62 "sample/bindmonitor_mt_tailcall.c"
@@ -5686,15 +5688,15 @@ BindMonitor_Callee9(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=16 dst=r2 src=r0 offset=0 imm=0
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=18 dst=r3 src=r0 offset=0 imm=10
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=19 dst=r0 src=r0 offset=0 imm=5
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee9_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee9_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 62 "sample/bindmonitor_mt_tailcall.c"
@@ -5744,9 +5746,9 @@ BindMonitor_Callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee9_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    if ((BindMonitor_Callee9_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
         return 0;
 #line 62 "sample/bindmonitor_mt_tailcall.c"

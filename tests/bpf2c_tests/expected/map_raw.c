@@ -14,7 +14,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          4,                 // Size in bytes of a map key.
@@ -26,7 +26,7 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "HASH_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PERCPU_HASH, // Type of map.
          4,                        // Size in bytes of a map key.
@@ -38,7 +38,7 @@ static map_entry_t _maps[] = {
          0,                        // The id of the inner map template.
      },
      "PERCPU_HASH_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -50,7 +50,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "ARRAY_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PERCPU_ARRAY, // Type of map.
          4,                         // Size in bytes of a map key.
@@ -62,7 +62,7 @@ static map_entry_t _maps[] = {
          0,                         // The id of the inner map template.
      },
      "PERCPU_ARRAY_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_LRU_HASH, // Type of map.
          4,                     // Size in bytes of a map key.
@@ -74,7 +74,7 @@ static map_entry_t _maps[] = {
          0,                     // The id of the inner map template.
      },
      "LRU_HASH_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_LRU_PERCPU_HASH, // Type of map.
          4,                            // Size in bytes of a map key.
@@ -86,7 +86,7 @@ static map_entry_t _maps[] = {
          0,                            // The id of the inner map template.
      },
      "LRU_PERCPU_HASH_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_QUEUE, // Type of map.
          0,                  // Size in bytes of a map key.
@@ -98,7 +98,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "QUEUE_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_STACK, // Type of map.
          0,                  // Size in bytes of a map key.
@@ -121,17 +121,17 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t test_maps_helpers[] = {
-    {NULL, 2, "helper_id_2"},
-    {NULL, 1, "helper_id_1"},
-    {NULL, 12, "helper_id_12"},
-    {NULL, 3, "helper_id_3"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 4, "helper_id_4"},
-    {NULL, 18, "helper_id_18"},
-    {NULL, 14, "helper_id_14"},
-    {NULL, 17, "helper_id_17"},
-    {NULL, 16, "helper_id_16"},
-    {NULL, 15, "helper_id_15"},
+    {2, "helper_id_2"},
+    {1, "helper_id_1"},
+    {12, "helper_id_12"},
+    {3, "helper_id_3"},
+    {13, "helper_id_13"},
+    {4, "helper_id_4"},
+    {18, "helper_id_18"},
+    {14, "helper_id_14"},
+    {17, "helper_id_17"},
+    {16, "helper_id_16"},
+    {15, "helper_id_15"},
 };
 
 static GUID test_maps_program_type_guid = {
@@ -150,7 +150,7 @@ static uint16_t test_maps_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-test_maps(void* context)
+test_maps(void* context, const program_runtime_context_t* runtime_context)
 #line 290 "sample/undocked/map.c"
 {
 #line 290 "sample/undocked/map.c"
@@ -209,15 +209,15 @@ test_maps(void* context)
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=10 dst=r4 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
         return 0;
 #line 74 "sample/undocked/map.c"
@@ -269,12 +269,12 @@ label_2:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=28 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/undocked/map.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/undocked/map.c"
-    if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
         return 0;
 #line 80 "sample/undocked/map.c"
@@ -328,9 +328,9 @@ label_2:
 label_3:
     // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 82 "sample/undocked/map.c"
-    if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
         return 0;
 #line 82 "sample/undocked/map.c"
@@ -350,12 +350,12 @@ label_4:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=55 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 86 "sample/undocked/map.c"
-    if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
         return 0;
 #line 86 "sample/undocked/map.c"
@@ -415,9 +415,9 @@ label_5:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=78 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 88 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
         return 0;
 #line 88 "sample/undocked/map.c"
@@ -481,9 +481,9 @@ label_7:
 label_8:
     // EBPF_OP_CALL pc=101 dst=r0 src=r0 offset=0 imm=13
 #line 293 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 293 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 293 "sample/undocked/map.c"
         return 0;
 #line 293 "sample/undocked/map.c"
@@ -510,15 +510,15 @@ label_10:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=108 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=110 dst=r4 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=111 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
         return 0;
 #line 92 "sample/undocked/map.c"
@@ -554,12 +554,12 @@ label_11:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=120 dst=r1 src=r0 offset=0 imm=0
 #line 103 "sample/undocked/map.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=122 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5);
 #line 103 "sample/undocked/map.c"
-    if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
         return 0;
 #line 103 "sample/undocked/map.c"
@@ -652,15 +652,15 @@ label_12:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=155 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=157 dst=r4 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
         return 0;
 #line 74 "sample/undocked/map.c"
@@ -712,12 +712,12 @@ label_14:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=175 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/undocked/map.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=177 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/undocked/map.c"
-    if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
         return 0;
 #line 80 "sample/undocked/map.c"
@@ -771,9 +771,9 @@ label_14:
 label_15:
     // EBPF_OP_CALL pc=196 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 82 "sample/undocked/map.c"
-    if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
         return 0;
 #line 82 "sample/undocked/map.c"
@@ -793,12 +793,12 @@ label_16:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=202 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=204 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 86 "sample/undocked/map.c"
-    if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
         return 0;
 #line 86 "sample/undocked/map.c"
@@ -858,9 +858,9 @@ label_17:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=225 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 88 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
         return 0;
 #line 88 "sample/undocked/map.c"
@@ -945,15 +945,15 @@ label_20:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=256 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=258 dst=r4 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=259 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
         return 0;
 #line 92 "sample/undocked/map.c"
@@ -989,12 +989,12 @@ label_21:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=268 dst=r1 src=r0 offset=0 imm=0
 #line 103 "sample/undocked/map.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=270 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5);
 #line 103 "sample/undocked/map.c"
-    if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
         return 0;
 #line 103 "sample/undocked/map.c"
@@ -1087,15 +1087,15 @@ label_22:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=303 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
-    r1 = POINTER(_maps[2].address);
+    r1 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_MOV64_IMM pc=305 dst=r4 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=306 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
         return 0;
 #line 74 "sample/undocked/map.c"
@@ -1131,12 +1131,12 @@ label_23:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=315 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/undocked/map.c"
-    r1 = POINTER(_maps[2].address);
+    r1 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_CALL pc=317 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/undocked/map.c"
-    if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
         return 0;
 #line 80 "sample/undocked/map.c"
@@ -1189,9 +1189,9 @@ label_23:
     r2 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=336 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 82 "sample/undocked/map.c"
-    if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
         return 0;
 #line 82 "sample/undocked/map.c"
@@ -1211,12 +1211,12 @@ label_24:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=342 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
-    r1 = POINTER(_maps[2].address);
+    r1 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_CALL pc=344 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 86 "sample/undocked/map.c"
-    if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
         return 0;
 #line 86 "sample/undocked/map.c"
@@ -1276,15 +1276,15 @@ label_25:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=364 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
-    r1 = POINTER(_maps[2].address);
+    r1 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_MOV64_IMM pc=366 dst=r4 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=367 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
         return 0;
 #line 92 "sample/undocked/map.c"
@@ -1345,9 +1345,9 @@ label_27:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=388 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 93 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 93 "sample/undocked/map.c"
         return 0;
 #line 93 "sample/undocked/map.c"
@@ -1440,15 +1440,15 @@ label_29:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=421 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
-    r1 = POINTER(_maps[3].address);
+    r1 = POINTER(runtime_context->map_data[3].address);
     // EBPF_OP_MOV64_IMM pc=423 dst=r4 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=424 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
         return 0;
 #line 74 "sample/undocked/map.c"
@@ -1484,12 +1484,12 @@ label_30:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=433 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/undocked/map.c"
-    r1 = POINTER(_maps[3].address);
+    r1 = POINTER(runtime_context->map_data[3].address);
     // EBPF_OP_CALL pc=435 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/undocked/map.c"
-    if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
         return 0;
 #line 80 "sample/undocked/map.c"
@@ -1542,9 +1542,9 @@ label_30:
     r2 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=454 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 82 "sample/undocked/map.c"
-    if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
         return 0;
 #line 82 "sample/undocked/map.c"
@@ -1564,12 +1564,12 @@ label_31:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=460 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
-    r1 = POINTER(_maps[3].address);
+    r1 = POINTER(runtime_context->map_data[3].address);
     // EBPF_OP_CALL pc=462 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 86 "sample/undocked/map.c"
-    if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
         return 0;
 #line 86 "sample/undocked/map.c"
@@ -1629,15 +1629,15 @@ label_32:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=482 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
-    r1 = POINTER(_maps[3].address);
+    r1 = POINTER(runtime_context->map_data[3].address);
     // EBPF_OP_MOV64_IMM pc=484 dst=r4 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=485 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
         return 0;
 #line 92 "sample/undocked/map.c"
@@ -1698,9 +1698,9 @@ label_34:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=506 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 93 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 93 "sample/undocked/map.c"
         return 0;
 #line 93 "sample/undocked/map.c"
@@ -1793,15 +1793,15 @@ label_36:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=540 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=542 dst=r4 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=543 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
         return 0;
 #line 74 "sample/undocked/map.c"
@@ -1853,12 +1853,12 @@ label_38:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=560 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_CALL pc=562 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/undocked/map.c"
-    if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
         return 0;
 #line 80 "sample/undocked/map.c"
@@ -1912,9 +1912,9 @@ label_38:
 label_39:
     // EBPF_OP_CALL pc=581 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 82 "sample/undocked/map.c"
-    if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
         return 0;
 #line 82 "sample/undocked/map.c"
@@ -1934,12 +1934,12 @@ label_40:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=587 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_CALL pc=589 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 86 "sample/undocked/map.c"
-    if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
         return 0;
 #line 86 "sample/undocked/map.c"
@@ -1999,9 +1999,9 @@ label_41:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=610 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 88 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
         return 0;
 #line 88 "sample/undocked/map.c"
@@ -2079,15 +2079,15 @@ label_43:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=639 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=641 dst=r4 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=642 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
         return 0;
 #line 92 "sample/undocked/map.c"
@@ -2123,12 +2123,12 @@ label_44:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=651 dst=r1 src=r0 offset=0 imm=0
 #line 103 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_CALL pc=653 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5);
 #line 103 "sample/undocked/map.c"
-    if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
         return 0;
 #line 103 "sample/undocked/map.c"
@@ -2221,15 +2221,15 @@ label_45:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=686 dst=r1 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=688 dst=r4 src=r0 offset=0 imm=0
 #line 74 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=689 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 74 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
         return 0;
 #line 74 "sample/undocked/map.c"
@@ -2281,12 +2281,12 @@ label_47:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=706 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_CALL pc=708 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 80 "sample/undocked/map.c"
-    if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
         return 0;
 #line 80 "sample/undocked/map.c"
@@ -2340,9 +2340,9 @@ label_47:
 label_48:
     // EBPF_OP_CALL pc=727 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 82 "sample/undocked/map.c"
-    if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
         return 0;
 #line 82 "sample/undocked/map.c"
@@ -2362,12 +2362,12 @@ label_49:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=733 dst=r1 src=r0 offset=0 imm=0
 #line 86 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_CALL pc=735 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 86 "sample/undocked/map.c"
-    if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
         return 0;
 #line 86 "sample/undocked/map.c"
@@ -2427,9 +2427,9 @@ label_50:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=756 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 88 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
         return 0;
 #line 88 "sample/undocked/map.c"
@@ -2513,15 +2513,15 @@ label_52:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=788 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=790 dst=r4 src=r0 offset=0 imm=0
 #line 92 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=791 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
         return 0;
 #line 92 "sample/undocked/map.c"
@@ -2557,12 +2557,12 @@ label_53:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=800 dst=r1 src=r0 offset=0 imm=0
 #line 103 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_CALL pc=802 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5);
 #line 103 "sample/undocked/map.c"
-    if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
         return 0;
 #line 103 "sample/undocked/map.c"
@@ -2655,15 +2655,15 @@ label_54:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=835 dst=r1 src=r0 offset=0 imm=0
 #line 129 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=837 dst=r4 src=r0 offset=0 imm=0
 #line 129 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=838 dst=r0 src=r0 offset=0 imm=2
 #line 129 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 129 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 129 "sample/undocked/map.c"
         return 0;
 #line 129 "sample/undocked/map.c"
@@ -2708,15 +2708,15 @@ label_55:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=850 dst=r1 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=852 dst=r4 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=853 dst=r0 src=r0 offset=0 imm=2
 #line 135 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 135 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/map.c"
         return 0;
 #line 135 "sample/undocked/map.c"
@@ -2764,15 +2764,15 @@ label_56:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=866 dst=r1 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=868 dst=r4 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=869 dst=r0 src=r0 offset=0 imm=2
 #line 141 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 141 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/map.c"
         return 0;
 #line 141 "sample/undocked/map.c"
@@ -2820,15 +2820,15 @@ label_57:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=882 dst=r1 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=884 dst=r4 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=885 dst=r0 src=r0 offset=0 imm=2
 #line 147 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 147 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/map.c"
         return 0;
 #line 147 "sample/undocked/map.c"
@@ -2876,15 +2876,15 @@ label_58:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=898 dst=r1 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=900 dst=r4 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=901 dst=r0 src=r0 offset=0 imm=2
 #line 153 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 153 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/map.c"
         return 0;
 #line 153 "sample/undocked/map.c"
@@ -2932,15 +2932,15 @@ label_59:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=914 dst=r1 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=916 dst=r4 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=917 dst=r0 src=r0 offset=0 imm=2
 #line 159 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 159 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/map.c"
         return 0;
 #line 159 "sample/undocked/map.c"
@@ -2988,15 +2988,15 @@ label_60:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=930 dst=r1 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=932 dst=r4 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=933 dst=r0 src=r0 offset=0 imm=2
 #line 165 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 165 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/map.c"
         return 0;
 #line 165 "sample/undocked/map.c"
@@ -3044,15 +3044,15 @@ label_61:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=946 dst=r1 src=r0 offset=0 imm=0
 #line 171 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=948 dst=r4 src=r0 offset=0 imm=0
 #line 171 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=949 dst=r0 src=r0 offset=0 imm=2
 #line 171 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 171 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 171 "sample/undocked/map.c"
         return 0;
 #line 171 "sample/undocked/map.c"
@@ -3100,15 +3100,15 @@ label_62:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=962 dst=r1 src=r0 offset=0 imm=0
 #line 177 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=964 dst=r4 src=r0 offset=0 imm=0
 #line 177 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=965 dst=r0 src=r0 offset=0 imm=2
 #line 177 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 177 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 177 "sample/undocked/map.c"
         return 0;
 #line 177 "sample/undocked/map.c"
@@ -3156,15 +3156,15 @@ label_63:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=978 dst=r1 src=r0 offset=0 imm=0
 #line 183 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=980 dst=r4 src=r0 offset=0 imm=0
 #line 183 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=981 dst=r0 src=r0 offset=0 imm=2
 #line 183 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 183 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 183 "sample/undocked/map.c"
         return 0;
 #line 183 "sample/undocked/map.c"
@@ -3215,15 +3215,15 @@ label_64:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=995 dst=r1 src=r0 offset=0 imm=0
 #line 189 "sample/undocked/map.c"
-    r1 = POINTER(_maps[4].address);
+    r1 = POINTER(runtime_context->map_data[4].address);
     // EBPF_OP_MOV64_IMM pc=997 dst=r4 src=r0 offset=0 imm=0
 #line 189 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=998 dst=r0 src=r0 offset=0 imm=2
 #line 189 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 189 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 189 "sample/undocked/map.c"
         return 0;
 #line 189 "sample/undocked/map.c"
@@ -3283,9 +3283,9 @@ label_65:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=1019 dst=r0 src=r0 offset=0 imm=13
 #line 190 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 190 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 190 "sample/undocked/map.c"
         return 0;
 #line 190 "sample/undocked/map.c"
@@ -3350,15 +3350,15 @@ label_66:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1043 dst=r1 src=r0 offset=0 imm=0
 #line 129 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1045 dst=r4 src=r0 offset=0 imm=0
 #line 129 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1046 dst=r0 src=r0 offset=0 imm=2
 #line 129 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 129 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 129 "sample/undocked/map.c"
         return 0;
 #line 129 "sample/undocked/map.c"
@@ -3403,15 +3403,15 @@ label_67:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1058 dst=r1 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1060 dst=r4 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1061 dst=r0 src=r0 offset=0 imm=2
 #line 135 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 135 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/map.c"
         return 0;
 #line 135 "sample/undocked/map.c"
@@ -3459,15 +3459,15 @@ label_68:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1074 dst=r1 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1076 dst=r4 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1077 dst=r0 src=r0 offset=0 imm=2
 #line 141 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 141 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/map.c"
         return 0;
 #line 141 "sample/undocked/map.c"
@@ -3515,15 +3515,15 @@ label_69:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1090 dst=r1 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1092 dst=r4 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1093 dst=r0 src=r0 offset=0 imm=2
 #line 147 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 147 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/map.c"
         return 0;
 #line 147 "sample/undocked/map.c"
@@ -3571,15 +3571,15 @@ label_70:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1106 dst=r1 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1108 dst=r4 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1109 dst=r0 src=r0 offset=0 imm=2
 #line 153 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 153 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/map.c"
         return 0;
 #line 153 "sample/undocked/map.c"
@@ -3627,15 +3627,15 @@ label_71:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1122 dst=r1 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1124 dst=r4 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1125 dst=r0 src=r0 offset=0 imm=2
 #line 159 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 159 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/map.c"
         return 0;
 #line 159 "sample/undocked/map.c"
@@ -3683,15 +3683,15 @@ label_72:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1138 dst=r1 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1140 dst=r4 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1141 dst=r0 src=r0 offset=0 imm=2
 #line 165 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 165 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/map.c"
         return 0;
 #line 165 "sample/undocked/map.c"
@@ -3739,15 +3739,15 @@ label_73:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1154 dst=r1 src=r0 offset=0 imm=0
 #line 171 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1156 dst=r4 src=r0 offset=0 imm=0
 #line 171 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1157 dst=r0 src=r0 offset=0 imm=2
 #line 171 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 171 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 171 "sample/undocked/map.c"
         return 0;
 #line 171 "sample/undocked/map.c"
@@ -3795,15 +3795,15 @@ label_74:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1170 dst=r1 src=r0 offset=0 imm=0
 #line 177 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1172 dst=r4 src=r0 offset=0 imm=0
 #line 177 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1173 dst=r0 src=r0 offset=0 imm=2
 #line 177 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 177 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 177 "sample/undocked/map.c"
         return 0;
 #line 177 "sample/undocked/map.c"
@@ -3851,15 +3851,15 @@ label_75:
     r3 += IMMEDIATE(-68);
     // EBPF_OP_LDDW pc=1186 dst=r1 src=r0 offset=0 imm=0
 #line 183 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1188 dst=r4 src=r0 offset=0 imm=0
 #line 183 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1189 dst=r0 src=r0 offset=0 imm=2
 #line 183 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 183 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 183 "sample/undocked/map.c"
         return 0;
 #line 183 "sample/undocked/map.c"
@@ -3910,15 +3910,15 @@ label_76:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1203 dst=r1 src=r0 offset=0 imm=0
 #line 189 "sample/undocked/map.c"
-    r1 = POINTER(_maps[5].address);
+    r1 = POINTER(runtime_context->map_data[5].address);
     // EBPF_OP_MOV64_IMM pc=1205 dst=r4 src=r0 offset=0 imm=0
 #line 189 "sample/undocked/map.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1206 dst=r0 src=r0 offset=0 imm=2
 #line 189 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 189 "sample/undocked/map.c"
-    if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 189 "sample/undocked/map.c"
         return 0;
 #line 189 "sample/undocked/map.c"
@@ -3978,9 +3978,9 @@ label_77:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=1227 dst=r0 src=r0 offset=0 imm=13
 #line 190 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 190 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 190 "sample/undocked/map.c"
         return 0;
 #line 190 "sample/undocked/map.c"
@@ -4039,12 +4039,12 @@ label_78:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1250 dst=r1 src=r0 offset=0 imm=0
 #line 240 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1252 dst=r0 src=r0 offset=0 imm=18
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 240 "sample/undocked/map.c"
-    if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
         return 0;
 #line 240 "sample/undocked/map.c"
@@ -4135,9 +4135,9 @@ label_80:
     r3 = IMMEDIATE(-7);
     // EBPF_OP_CALL pc=1286 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 240 "sample/undocked/map.c"
-    if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
         return 0;
 #line 240 "sample/undocked/map.c"
@@ -4209,9 +4209,9 @@ label_83:
 label_84:
     // EBPF_OP_CALL pc=1311 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 240 "sample/undocked/map.c"
-    if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
         return 0;
 #line 240 "sample/undocked/map.c"
@@ -4254,12 +4254,12 @@ label_86:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1323 dst=r1 src=r0 offset=0 imm=0
 #line 240 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=1325 dst=r0 src=r0 offset=0 imm=18
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 240 "sample/undocked/map.c"
-    if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
         return 0;
 #line 240 "sample/undocked/map.c"
@@ -4350,9 +4350,9 @@ label_88:
     r3 = IMMEDIATE(-7);
     // EBPF_OP_CALL pc=1359 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 240 "sample/undocked/map.c"
-    if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
         return 0;
 #line 240 "sample/undocked/map.c"
@@ -4418,12 +4418,12 @@ label_90:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1384 dst=r1 src=r0 offset=0 imm=0
 #line 241 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1386 dst=r0 src=r0 offset=0 imm=17
 #line 241 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 241 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 241 "sample/undocked/map.c"
         return 0;
 #line 241 "sample/undocked/map.c"
@@ -4577,15 +4577,15 @@ label_94:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1444 dst=r1 src=r0 offset=0 imm=0
 #line 249 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1446 dst=r3 src=r0 offset=0 imm=0
 #line 249 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1447 dst=r0 src=r0 offset=0 imm=16
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 249 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
         return 0;
 #line 249 "sample/undocked/map.c"
@@ -4686,9 +4686,9 @@ label_96:
 label_97:
     // EBPF_OP_CALL pc=1483 dst=r0 src=r0 offset=0 imm=15
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[10].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[10].address(r1, r2, r3, r4, r5);
 #line 249 "sample/undocked/map.c"
-    if ((test_maps_helpers[10].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[10].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
         return 0;
 #line 249 "sample/undocked/map.c"
@@ -4714,15 +4714,15 @@ label_98:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1490 dst=r1 src=r0 offset=0 imm=0
 #line 250 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1492 dst=r3 src=r0 offset=0 imm=0
 #line 250 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1493 dst=r0 src=r0 offset=0 imm=16
 #line 250 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 250 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 250 "sample/undocked/map.c"
         return 0;
 #line 250 "sample/undocked/map.c"
@@ -4770,15 +4770,15 @@ label_99:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1506 dst=r1 src=r0 offset=0 imm=0
 #line 251 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1508 dst=r3 src=r0 offset=0 imm=0
 #line 251 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1509 dst=r0 src=r0 offset=0 imm=16
 #line 251 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 251 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 251 "sample/undocked/map.c"
         return 0;
 #line 251 "sample/undocked/map.c"
@@ -4826,15 +4826,15 @@ label_100:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1522 dst=r1 src=r0 offset=0 imm=0
 #line 252 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1524 dst=r3 src=r0 offset=0 imm=0
 #line 252 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1525 dst=r0 src=r0 offset=0 imm=16
 #line 252 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 252 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 252 "sample/undocked/map.c"
         return 0;
 #line 252 "sample/undocked/map.c"
@@ -4882,15 +4882,15 @@ label_101:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1538 dst=r1 src=r0 offset=0 imm=0
 #line 253 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1540 dst=r3 src=r0 offset=0 imm=0
 #line 253 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1541 dst=r0 src=r0 offset=0 imm=16
 #line 253 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 253 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 253 "sample/undocked/map.c"
         return 0;
 #line 253 "sample/undocked/map.c"
@@ -4938,15 +4938,15 @@ label_102:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1554 dst=r1 src=r0 offset=0 imm=0
 #line 254 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1556 dst=r3 src=r0 offset=0 imm=0
 #line 254 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1557 dst=r0 src=r0 offset=0 imm=16
 #line 254 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 254 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 254 "sample/undocked/map.c"
         return 0;
 #line 254 "sample/undocked/map.c"
@@ -4994,15 +4994,15 @@ label_103:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1570 dst=r1 src=r0 offset=0 imm=0
 #line 255 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1572 dst=r3 src=r0 offset=0 imm=0
 #line 255 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1573 dst=r0 src=r0 offset=0 imm=16
 #line 255 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 255 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 255 "sample/undocked/map.c"
         return 0;
 #line 255 "sample/undocked/map.c"
@@ -5050,15 +5050,15 @@ label_104:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1586 dst=r1 src=r0 offset=0 imm=0
 #line 256 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1588 dst=r3 src=r0 offset=0 imm=0
 #line 256 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1589 dst=r0 src=r0 offset=0 imm=16
 #line 256 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 256 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 256 "sample/undocked/map.c"
         return 0;
 #line 256 "sample/undocked/map.c"
@@ -5106,15 +5106,15 @@ label_105:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1602 dst=r1 src=r0 offset=0 imm=0
 #line 257 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1604 dst=r3 src=r0 offset=0 imm=0
 #line 257 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1605 dst=r0 src=r0 offset=0 imm=16
 #line 257 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 257 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 257 "sample/undocked/map.c"
         return 0;
 #line 257 "sample/undocked/map.c"
@@ -5162,15 +5162,15 @@ label_106:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1618 dst=r1 src=r0 offset=0 imm=0
 #line 258 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1620 dst=r3 src=r0 offset=0 imm=0
 #line 258 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1621 dst=r0 src=r0 offset=0 imm=16
 #line 258 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 258 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 258 "sample/undocked/map.c"
         return 0;
 #line 258 "sample/undocked/map.c"
@@ -5218,15 +5218,15 @@ label_107:
     r8 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=1634 dst=r1 src=r0 offset=0 imm=0
 #line 261 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1636 dst=r3 src=r0 offset=0 imm=0
 #line 261 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1637 dst=r0 src=r0 offset=0 imm=16
 #line 261 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 261 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 261 "sample/undocked/map.c"
         return 0;
 #line 261 "sample/undocked/map.c"
@@ -5340,15 +5340,15 @@ label_108:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1679 dst=r1 src=r0 offset=0 imm=0
 #line 262 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_MOV64_IMM pc=1681 dst=r3 src=r0 offset=0 imm=2
 #line 262 "sample/undocked/map.c"
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=1682 dst=r0 src=r0 offset=0 imm=16
 #line 262 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 262 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 262 "sample/undocked/map.c"
         return 0;
 #line 262 "sample/undocked/map.c"
@@ -5447,12 +5447,12 @@ label_109:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1718 dst=r1 src=r0 offset=0 imm=0
 #line 264 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1720 dst=r0 src=r0 offset=0 imm=18
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 264 "sample/undocked/map.c"
-    if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
         return 0;
 #line 264 "sample/undocked/map.c"
@@ -5539,9 +5539,9 @@ label_110:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1752 dst=r0 src=r0 offset=0 imm=14
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 264 "sample/undocked/map.c"
-    if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
         return 0;
 #line 264 "sample/undocked/map.c"
@@ -5626,12 +5626,12 @@ label_112:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1782 dst=r1 src=r0 offset=0 imm=0
 #line 272 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1784 dst=r0 src=r0 offset=0 imm=17
 #line 272 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 272 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 272 "sample/undocked/map.c"
         return 0;
 #line 272 "sample/undocked/map.c"
@@ -5784,12 +5784,12 @@ label_115:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1841 dst=r1 src=r0 offset=0 imm=0
 #line 273 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1843 dst=r0 src=r0 offset=0 imm=17
 #line 273 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 273 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 273 "sample/undocked/map.c"
         return 0;
 #line 273 "sample/undocked/map.c"
@@ -5890,12 +5890,12 @@ label_117:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1877 dst=r1 src=r0 offset=0 imm=0
 #line 274 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1879 dst=r0 src=r0 offset=0 imm=17
 #line 274 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 274 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 274 "sample/undocked/map.c"
         return 0;
 #line 274 "sample/undocked/map.c"
@@ -5996,12 +5996,12 @@ label_119:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1913 dst=r1 src=r0 offset=0 imm=0
 #line 275 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1915 dst=r0 src=r0 offset=0 imm=17
 #line 275 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 275 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 275 "sample/undocked/map.c"
         return 0;
 #line 275 "sample/undocked/map.c"
@@ -6102,12 +6102,12 @@ label_121:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1949 dst=r1 src=r0 offset=0 imm=0
 #line 276 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1951 dst=r0 src=r0 offset=0 imm=17
 #line 276 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 276 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 276 "sample/undocked/map.c"
         return 0;
 #line 276 "sample/undocked/map.c"
@@ -6208,12 +6208,12 @@ label_123:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=1985 dst=r1 src=r0 offset=0 imm=0
 #line 277 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=1987 dst=r0 src=r0 offset=0 imm=17
 #line 277 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 277 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 277 "sample/undocked/map.c"
         return 0;
 #line 277 "sample/undocked/map.c"
@@ -6314,12 +6314,12 @@ label_125:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2021 dst=r1 src=r0 offset=0 imm=0
 #line 278 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=2023 dst=r0 src=r0 offset=0 imm=17
 #line 278 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 278 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 278 "sample/undocked/map.c"
         return 0;
 #line 278 "sample/undocked/map.c"
@@ -6420,12 +6420,12 @@ label_127:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2057 dst=r1 src=r0 offset=0 imm=0
 #line 279 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=2059 dst=r0 src=r0 offset=0 imm=17
 #line 279 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 279 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 279 "sample/undocked/map.c"
         return 0;
 #line 279 "sample/undocked/map.c"
@@ -6526,12 +6526,12 @@ label_129:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2093 dst=r1 src=r0 offset=0 imm=0
 #line 280 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=2095 dst=r0 src=r0 offset=0 imm=17
 #line 280 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 280 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 280 "sample/undocked/map.c"
         return 0;
 #line 280 "sample/undocked/map.c"
@@ -6632,12 +6632,12 @@ label_131:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2129 dst=r1 src=r0 offset=0 imm=0
 #line 281 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=2131 dst=r0 src=r0 offset=0 imm=17
 #line 281 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 281 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 281 "sample/undocked/map.c"
         return 0;
 #line 281 "sample/undocked/map.c"
@@ -6738,12 +6738,12 @@ label_133:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2165 dst=r1 src=r0 offset=0 imm=0
 #line 284 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=2167 dst=r0 src=r0 offset=0 imm=18
 #line 284 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 284 "sample/undocked/map.c"
-    if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 284 "sample/undocked/map.c"
         return 0;
 #line 284 "sample/undocked/map.c"
@@ -6805,12 +6805,12 @@ label_135:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2184 dst=r1 src=r0 offset=0 imm=0
 #line 285 "sample/undocked/map.c"
-    r1 = POINTER(_maps[6].address);
+    r1 = POINTER(runtime_context->map_data[6].address);
     // EBPF_OP_CALL pc=2186 dst=r0 src=r0 offset=0 imm=17
 #line 285 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 285 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 285 "sample/undocked/map.c"
         return 0;
 #line 285 "sample/undocked/map.c"
@@ -6921,9 +6921,9 @@ label_139:
 label_140:
     // EBPF_OP_CALL pc=2222 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 240 "sample/undocked/map.c"
-    if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
         return 0;
 #line 240 "sample/undocked/map.c"
@@ -6992,9 +6992,9 @@ label_141:
     r2 = IMMEDIATE(40);
     // EBPF_OP_CALL pc=2248 dst=r0 src=r0 offset=0 imm=13
 #line 304 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 304 "sample/undocked/map.c"
-    if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 304 "sample/undocked/map.c"
         return 0;
 #line 304 "sample/undocked/map.c"
@@ -7020,12 +7020,12 @@ label_142:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2255 dst=r1 src=r0 offset=0 imm=0
 #line 241 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2257 dst=r0 src=r0 offset=0 imm=17
 #line 241 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 241 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 241 "sample/undocked/map.c"
         return 0;
 #line 241 "sample/undocked/map.c"
@@ -7179,15 +7179,15 @@ label_146:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2315 dst=r1 src=r0 offset=0 imm=0
 #line 249 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2317 dst=r3 src=r0 offset=0 imm=0
 #line 249 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2318 dst=r0 src=r0 offset=0 imm=16
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 249 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
         return 0;
 #line 249 "sample/undocked/map.c"
@@ -7288,9 +7288,9 @@ label_148:
 label_149:
     // EBPF_OP_CALL pc=2354 dst=r0 src=r0 offset=0 imm=15
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[10].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[10].address(r1, r2, r3, r4, r5);
 #line 249 "sample/undocked/map.c"
-    if ((test_maps_helpers[10].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[10].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
         return 0;
 #line 249 "sample/undocked/map.c"
@@ -7316,15 +7316,15 @@ label_150:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2361 dst=r1 src=r0 offset=0 imm=0
 #line 250 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2363 dst=r3 src=r0 offset=0 imm=0
 #line 250 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2364 dst=r0 src=r0 offset=0 imm=16
 #line 250 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 250 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 250 "sample/undocked/map.c"
         return 0;
 #line 250 "sample/undocked/map.c"
@@ -7372,15 +7372,15 @@ label_151:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2377 dst=r1 src=r0 offset=0 imm=0
 #line 251 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2379 dst=r3 src=r0 offset=0 imm=0
 #line 251 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2380 dst=r0 src=r0 offset=0 imm=16
 #line 251 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 251 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 251 "sample/undocked/map.c"
         return 0;
 #line 251 "sample/undocked/map.c"
@@ -7428,15 +7428,15 @@ label_152:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2393 dst=r1 src=r0 offset=0 imm=0
 #line 252 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2395 dst=r3 src=r0 offset=0 imm=0
 #line 252 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2396 dst=r0 src=r0 offset=0 imm=16
 #line 252 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 252 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 252 "sample/undocked/map.c"
         return 0;
 #line 252 "sample/undocked/map.c"
@@ -7484,15 +7484,15 @@ label_153:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2409 dst=r1 src=r0 offset=0 imm=0
 #line 253 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2411 dst=r3 src=r0 offset=0 imm=0
 #line 253 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2412 dst=r0 src=r0 offset=0 imm=16
 #line 253 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 253 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 253 "sample/undocked/map.c"
         return 0;
 #line 253 "sample/undocked/map.c"
@@ -7540,15 +7540,15 @@ label_154:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2425 dst=r1 src=r0 offset=0 imm=0
 #line 254 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2427 dst=r3 src=r0 offset=0 imm=0
 #line 254 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2428 dst=r0 src=r0 offset=0 imm=16
 #line 254 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 254 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 254 "sample/undocked/map.c"
         return 0;
 #line 254 "sample/undocked/map.c"
@@ -7596,15 +7596,15 @@ label_155:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2441 dst=r1 src=r0 offset=0 imm=0
 #line 255 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2443 dst=r3 src=r0 offset=0 imm=0
 #line 255 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2444 dst=r0 src=r0 offset=0 imm=16
 #line 255 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 255 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 255 "sample/undocked/map.c"
         return 0;
 #line 255 "sample/undocked/map.c"
@@ -7652,15 +7652,15 @@ label_156:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2457 dst=r1 src=r0 offset=0 imm=0
 #line 256 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2459 dst=r3 src=r0 offset=0 imm=0
 #line 256 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2460 dst=r0 src=r0 offset=0 imm=16
 #line 256 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 256 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 256 "sample/undocked/map.c"
         return 0;
 #line 256 "sample/undocked/map.c"
@@ -7708,15 +7708,15 @@ label_157:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2473 dst=r1 src=r0 offset=0 imm=0
 #line 257 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2475 dst=r3 src=r0 offset=0 imm=0
 #line 257 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2476 dst=r0 src=r0 offset=0 imm=16
 #line 257 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 257 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 257 "sample/undocked/map.c"
         return 0;
 #line 257 "sample/undocked/map.c"
@@ -7764,15 +7764,15 @@ label_158:
     r6 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2489 dst=r1 src=r0 offset=0 imm=0
 #line 258 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2491 dst=r3 src=r0 offset=0 imm=0
 #line 258 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2492 dst=r0 src=r0 offset=0 imm=16
 #line 258 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 258 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 258 "sample/undocked/map.c"
         return 0;
 #line 258 "sample/undocked/map.c"
@@ -7820,15 +7820,15 @@ label_159:
     r8 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=2505 dst=r1 src=r0 offset=0 imm=0
 #line 261 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2507 dst=r3 src=r0 offset=0 imm=0
 #line 261 "sample/undocked/map.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2508 dst=r0 src=r0 offset=0 imm=16
 #line 261 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 261 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 261 "sample/undocked/map.c"
         return 0;
 #line 261 "sample/undocked/map.c"
@@ -7942,15 +7942,15 @@ label_160:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2550 dst=r1 src=r0 offset=0 imm=0
 #line 262 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_MOV64_IMM pc=2552 dst=r3 src=r0 offset=0 imm=2
 #line 262 "sample/undocked/map.c"
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=2553 dst=r0 src=r0 offset=0 imm=16
 #line 262 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[9].address(r1, r2, r3, r4, r5);
 #line 262 "sample/undocked/map.c"
-    if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[9].tail_call) && (r0 == 0)) {
 #line 262 "sample/undocked/map.c"
         return 0;
 #line 262 "sample/undocked/map.c"
@@ -8049,12 +8049,12 @@ label_161:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2589 dst=r1 src=r0 offset=0 imm=0
 #line 264 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2591 dst=r0 src=r0 offset=0 imm=18
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 264 "sample/undocked/map.c"
-    if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
         return 0;
 #line 264 "sample/undocked/map.c"
@@ -8141,9 +8141,9 @@ label_162:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2623 dst=r0 src=r0 offset=0 imm=14
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 264 "sample/undocked/map.c"
-    if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
         return 0;
 #line 264 "sample/undocked/map.c"
@@ -8228,12 +8228,12 @@ label_164:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2653 dst=r1 src=r0 offset=0 imm=0
 #line 272 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2655 dst=r0 src=r0 offset=0 imm=17
 #line 272 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 272 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 272 "sample/undocked/map.c"
         return 0;
 #line 272 "sample/undocked/map.c"
@@ -8386,12 +8386,12 @@ label_167:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2712 dst=r1 src=r0 offset=0 imm=0
 #line 273 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2714 dst=r0 src=r0 offset=0 imm=17
 #line 273 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 273 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 273 "sample/undocked/map.c"
         return 0;
 #line 273 "sample/undocked/map.c"
@@ -8492,12 +8492,12 @@ label_169:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2748 dst=r1 src=r0 offset=0 imm=0
 #line 274 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2750 dst=r0 src=r0 offset=0 imm=17
 #line 274 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 274 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 274 "sample/undocked/map.c"
         return 0;
 #line 274 "sample/undocked/map.c"
@@ -8598,12 +8598,12 @@ label_171:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2784 dst=r1 src=r0 offset=0 imm=0
 #line 275 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2786 dst=r0 src=r0 offset=0 imm=17
 #line 275 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 275 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 275 "sample/undocked/map.c"
         return 0;
 #line 275 "sample/undocked/map.c"
@@ -8704,12 +8704,12 @@ label_173:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2820 dst=r1 src=r0 offset=0 imm=0
 #line 276 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2822 dst=r0 src=r0 offset=0 imm=17
 #line 276 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 276 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 276 "sample/undocked/map.c"
         return 0;
 #line 276 "sample/undocked/map.c"
@@ -8810,12 +8810,12 @@ label_175:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2856 dst=r1 src=r0 offset=0 imm=0
 #line 277 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2858 dst=r0 src=r0 offset=0 imm=17
 #line 277 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 277 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 277 "sample/undocked/map.c"
         return 0;
 #line 277 "sample/undocked/map.c"
@@ -8916,12 +8916,12 @@ label_177:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2892 dst=r1 src=r0 offset=0 imm=0
 #line 278 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2894 dst=r0 src=r0 offset=0 imm=17
 #line 278 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 278 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 278 "sample/undocked/map.c"
         return 0;
 #line 278 "sample/undocked/map.c"
@@ -9022,12 +9022,12 @@ label_179:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2928 dst=r1 src=r0 offset=0 imm=0
 #line 279 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2930 dst=r0 src=r0 offset=0 imm=17
 #line 279 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 279 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 279 "sample/undocked/map.c"
         return 0;
 #line 279 "sample/undocked/map.c"
@@ -9128,12 +9128,12 @@ label_181:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=2964 dst=r1 src=r0 offset=0 imm=0
 #line 280 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=2966 dst=r0 src=r0 offset=0 imm=17
 #line 280 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 280 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 280 "sample/undocked/map.c"
         return 0;
 #line 280 "sample/undocked/map.c"
@@ -9234,12 +9234,12 @@ label_183:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=3000 dst=r1 src=r0 offset=0 imm=0
 #line 281 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=3002 dst=r0 src=r0 offset=0 imm=17
 #line 281 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 281 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 281 "sample/undocked/map.c"
         return 0;
 #line 281 "sample/undocked/map.c"
@@ -9340,12 +9340,12 @@ label_185:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=3036 dst=r1 src=r0 offset=0 imm=0
 #line 284 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=3038 dst=r0 src=r0 offset=0 imm=18
 #line 284 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 284 "sample/undocked/map.c"
-    if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 284 "sample/undocked/map.c"
         return 0;
 #line 284 "sample/undocked/map.c"
@@ -9407,12 +9407,12 @@ label_187:
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=3055 dst=r1 src=r0 offset=0 imm=0
 #line 285 "sample/undocked/map.c"
-    r1 = POINTER(_maps[7].address);
+    r1 = POINTER(runtime_context->map_data[7].address);
     // EBPF_OP_CALL pc=3057 dst=r0 src=r0 offset=0 imm=17
 #line 285 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[8].address(r1, r2, r3, r4, r5);
 #line 285 "sample/undocked/map.c"
-    if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[8].tail_call) && (r0 == 0)) {
 #line 285 "sample/undocked/map.c"
         return 0;
 #line 285 "sample/undocked/map.c"

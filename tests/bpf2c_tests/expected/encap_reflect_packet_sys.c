@@ -181,8 +181,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t encap_reflect_packet_helpers[] = {
-    {NULL, 65536, "helper_id_65536"},
-    {NULL, 10, "helper_id_10"},
+    {65536, "helper_id_65536"},
+    {10, "helper_id_10"},
 };
 
 static GUID encap_reflect_packet_program_type_guid = {
@@ -191,7 +191,7 @@ static GUID encap_reflect_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_te~1")
 static uint64_t
-encap_reflect_packet(void* context)
+encap_reflect_packet(void* context, const program_runtime_context_t* runtime_context)
 #line 167 "sample/encap_reflect_packet.c"
 {
 #line 167 "sample/encap_reflect_packet.c"
@@ -332,9 +332,9 @@ encap_reflect_packet(void* context)
     r2 = (uint64_t)4294967276;
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=65536
 #line 22 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 22 "sample/encap_reflect_packet.c"
-    if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 22 "sample/encap_reflect_packet.c"
         return 0;
 #line 22 "sample/encap_reflect_packet.c"
@@ -641,9 +641,9 @@ label_1:
     r5 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=117 dst=r0 src=r0 offset=0 imm=10
 #line 82 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 82 "sample/encap_reflect_packet.c"
-    if ((encap_reflect_packet_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 82 "sample/encap_reflect_packet.c"
         return 0;
 #line 82 "sample/encap_reflect_packet.c"
@@ -736,9 +736,9 @@ label_2:
     r2 = (uint64_t)4294967256;
     // EBPF_OP_CALL pc=142 dst=r0 src=r0 offset=0 imm=65536
 #line 96 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 96 "sample/encap_reflect_packet.c"
-    if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 96 "sample/encap_reflect_packet.c"
         return 0;
 #line 96 "sample/encap_reflect_packet.c"

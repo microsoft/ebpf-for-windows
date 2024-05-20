@@ -14,7 +14,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          8,                 // Size in bytes of a map key.
@@ -26,7 +26,7 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "process_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -38,7 +38,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "limits_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -50,7 +50,7 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "prog_array_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          4,                 // Size in bytes of a map key.
@@ -62,7 +62,7 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "dummy_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY_OF_MAPS, // Type of map.
          4,                          // Size in bytes of a map key.
@@ -74,7 +74,7 @@ static map_entry_t _maps[] = {
          10,                         // The id of the inner map template.
      },
      "dummy_outer_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
          4,                         // Size in bytes of a map key.
@@ -86,7 +86,7 @@ static map_entry_t _maps[] = {
          0,                         // The id of the inner map template.
      },
      "dummy_outer_idx_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          4,                 // Size in bytes of a map key.
@@ -109,8 +109,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t BindMonitor_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_program_type_guid = {
@@ -124,7 +124,7 @@ static uint16_t BindMonitor_maps[] = {
 
 #pragma code_seg(push, "bind")
 static uint64_t
-BindMonitor(void* context)
+BindMonitor(void* context, const program_runtime_context_t* runtime_context)
 #line 128 "sample/unsafe/invalid_helpers.c"
 {
 #line 128 "sample/unsafe/invalid_helpers.c"
@@ -170,12 +170,12 @@ BindMonitor(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 131 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[3].address);
+    r1 = POINTER(runtime_context->map_data[3].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 131 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 131 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 131 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 131 "sample/unsafe/invalid_helpers.c"
@@ -192,15 +192,15 @@ BindMonitor(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
 #line 136 "sample/unsafe/invalid_helpers.c"
-    r2 = POINTER(_maps[2].address);
+    r2 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_MOV64_IMM pc=12 dst=r3 src=r0 offset=0 imm=0
 #line 136 "sample/unsafe/invalid_helpers.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=5
 #line 136 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 136 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 136 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 136 "sample/unsafe/invalid_helpers.c"
@@ -218,8 +218,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee0_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {5, "helper_id_5"},
 };
 
 static GUID BindMonitor_Callee0_program_type_guid = {
@@ -233,7 +233,7 @@ static uint16_t BindMonitor_Callee0_maps[] = {
 
 #pragma code_seg(push, "bind/0")
 static uint64_t
-BindMonitor_Callee0(void* context)
+BindMonitor_Callee0(void* context, const program_runtime_context_t* runtime_context)
 #line 144 "sample/unsafe/invalid_helpers.c"
 {
 #line 144 "sample/unsafe/invalid_helpers.c"
@@ -279,12 +279,12 @@ BindMonitor_Callee0(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 147 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[3].address);
+    r1 = POINTER(runtime_context->map_data[3].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 147 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 147 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 147 "sample/unsafe/invalid_helpers.c"
@@ -301,15 +301,15 @@ BindMonitor_Callee0(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r0 offset=0 imm=0
 #line 152 "sample/unsafe/invalid_helpers.c"
-    r2 = POINTER(_maps[2].address);
+    r2 = POINTER(runtime_context->map_data[2].address);
     // EBPF_OP_MOV64_IMM pc=12 dst=r3 src=r0 offset=0 imm=1
 #line 152 "sample/unsafe/invalid_helpers.c"
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=5
 #line 152 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 152 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee0_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 152 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 152 "sample/unsafe/invalid_helpers.c"
@@ -327,10 +327,10 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee1_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 999, "helper_id_999"},
-    {NULL, 2, "helper_id_2"},
-    {NULL, 3, "helper_id_3"},
+    {1, "helper_id_1"},
+    {999, "helper_id_999"},
+    {2, "helper_id_2"},
+    {3, "helper_id_3"},
 };
 
 static GUID BindMonitor_Callee1_program_type_guid = {
@@ -344,7 +344,7 @@ static uint16_t BindMonitor_Callee1_maps[] = {
 
 #pragma code_seg(push, "bind/1")
 static uint64_t
-BindMonitor_Callee1(void* context)
+BindMonitor_Callee1(void* context, const program_runtime_context_t* runtime_context)
 #line 160 "sample/unsafe/invalid_helpers.c"
 {
 #line 160 "sample/unsafe/invalid_helpers.c"
@@ -396,12 +396,12 @@ BindMonitor_Callee1(void* context)
     r2 += IMMEDIATE(-84);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 164 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 164 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 164 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 164 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 164 "sample/unsafe/invalid_helpers.c"
@@ -470,12 +470,12 @@ BindMonitor_Callee1(void* context)
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=26 dst=r1 src=r0 offset=0 imm=0
 #line 87 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 87 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 87 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 87 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 87 "sample/unsafe/invalid_helpers.c"
@@ -499,12 +499,12 @@ label_1:
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=33 dst=r1 src=r0 offset=0 imm=0
 #line 92 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=999
 #line 92 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 92 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 92 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 92 "sample/unsafe/invalid_helpers.c"
@@ -567,7 +567,7 @@ label_2:
     r9 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=49 dst=r1 src=r0 offset=0 imm=0
 #line 105 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_REG pc=51 dst=r2 src=r8 offset=0 imm=0
 #line 105 "sample/unsafe/invalid_helpers.c"
     r2 = r8;
@@ -576,24 +576,24 @@ label_2:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=53 dst=r0 src=r0 offset=0 imm=2
 #line 105 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 105 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee1_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 105 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 105 "sample/unsafe/invalid_helpers.c"
     }
     // EBPF_OP_LDDW pc=54 dst=r1 src=r0 offset=0 imm=0
 #line 106 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_REG pc=56 dst=r2 src=r8 offset=0 imm=0
 #line 106 "sample/unsafe/invalid_helpers.c"
     r2 = r8;
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=1
 #line 106 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 106 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 106 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 106 "sample/unsafe/invalid_helpers.c"
@@ -749,12 +749,12 @@ label_8:
     r2 += IMMEDIATE(-80);
     // EBPF_OP_LDDW pc=95 dst=r1 src=r0 offset=0 imm=0
 #line 194 "sample/unsafe/invalid_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=97 dst=r0 src=r0 offset=0 imm=3
 #line 194 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 194 "sample/unsafe/invalid_helpers.c"
-    if ((BindMonitor_Callee1_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 194 "sample/unsafe/invalid_helpers.c"
         return 0;
 #line 194 "sample/unsafe/invalid_helpers.c"

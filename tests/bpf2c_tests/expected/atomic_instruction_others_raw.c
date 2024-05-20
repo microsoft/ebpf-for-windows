@@ -23,7 +23,7 @@ static GUID test_program_type_guid = {0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0
 static GUID test_attach_type_guid = {0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_test")
 static uint64_t
-test(void* context)
+test(void* context, const program_runtime_context_t* runtime_context)
 {
     // Prologue
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
@@ -34,6 +34,7 @@ test(void* context)
 
     r1 = (uintptr_t)context;
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-8 imm=0
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r1;

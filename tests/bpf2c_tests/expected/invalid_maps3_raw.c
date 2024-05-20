@@ -14,7 +14,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          8,                 // Size in bytes of a map key.
@@ -42,7 +42,7 @@ static GUID BindMonitor_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-BindMonitor(void* context)
+BindMonitor(void* context, const program_runtime_context_t* runtime_context)
 #line 52 "sample/unsafe/invalid_maps3.c"
 {
 #line 52 "sample/unsafe/invalid_maps3.c"
@@ -60,6 +60,8 @@ BindMonitor(void* context)
     r1 = (uintptr_t)context;
 #line 52 "sample/unsafe/invalid_maps3.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 52 "sample/unsafe/invalid_maps3.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=0
 #line 52 "sample/unsafe/invalid_maps3.c"

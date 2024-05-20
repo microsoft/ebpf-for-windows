@@ -40,7 +40,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -63,9 +63,9 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t bind_test_caller_helpers[] = {
-    {NULL, 12, "helper_id_12"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {12, "helper_id_12"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_caller_program_type_guid = {
@@ -78,7 +78,7 @@ static uint16_t bind_test_caller_maps[] = {
 
 #pragma code_seg(push, "bind")
 static uint64_t
-bind_test_caller(void* context)
+bind_test_caller(void* context, const program_runtime_context_t* runtime_context)
 #line 124 "sample/tail_call_max_exceed.c"
 {
 #line 124 "sample/tail_call_max_exceed.c"
@@ -159,9 +159,9 @@ bind_test_caller(void* context)
     r2 = IMMEDIATE(38);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 126 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_caller_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 126 "sample/tail_call_max_exceed.c"
-    if ((bind_test_caller_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 126 "sample/tail_call_max_exceed.c"
         return 0;
 #line 126 "sample/tail_call_max_exceed.c"
@@ -174,15 +174,15 @@ bind_test_caller(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=23 dst=r2 src=r0 offset=0 imm=0
 #line 127 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=25 dst=r3 src=r0 offset=0 imm=0
 #line 127 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=5
 #line 127 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_caller_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 127 "sample/tail_call_max_exceed.c"
-    if ((bind_test_caller_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 127 "sample/tail_call_max_exceed.c"
         return 0;
 #line 127 "sample/tail_call_max_exceed.c"
@@ -235,9 +235,9 @@ bind_test_caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=44 dst=r0 src=r0 offset=0 imm=13
 #line 128 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_caller_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 128 "sample/tail_call_max_exceed.c"
-    if ((bind_test_caller_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 128 "sample/tail_call_max_exceed.c"
         return 0;
 #line 128 "sample/tail_call_max_exceed.c"
@@ -255,9 +255,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee0_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee0_program_type_guid = {
@@ -270,7 +270,7 @@ static uint16_t bind_test_callee0_maps[] = {
 
 #pragma code_seg(push, "bind/0")
 static uint64_t
-bind_test_callee0(void* context)
+bind_test_callee0(void* context, const program_runtime_context_t* runtime_context)
 #line 85 "sample/tail_call_max_exceed.c"
 {
 #line 85 "sample/tail_call_max_exceed.c"
@@ -363,9 +363,9 @@ bind_test_callee0(void* context)
     r4 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 85 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee0_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
 #line 85 "sample/tail_call_max_exceed.c"
@@ -375,15 +375,15 @@ bind_test_callee0(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee0_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 85 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee0_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
 #line 85 "sample/tail_call_max_exceed.c"
@@ -436,9 +436,9 @@ bind_test_callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee0_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 85 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee0_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
 #line 85 "sample/tail_call_max_exceed.c"
@@ -456,9 +456,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee1_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee1_program_type_guid = {
@@ -471,7 +471,7 @@ static uint16_t bind_test_callee1_maps[] = {
 
 #pragma code_seg(push, "bind/1")
 static uint64_t
-bind_test_callee1(void* context)
+bind_test_callee1(void* context, const program_runtime_context_t* runtime_context)
 #line 86 "sample/tail_call_max_exceed.c"
 {
 #line 86 "sample/tail_call_max_exceed.c"
@@ -564,9 +564,9 @@ bind_test_callee1(void* context)
     r4 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 86 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
 #line 86 "sample/tail_call_max_exceed.c"
@@ -576,15 +576,15 @@ bind_test_callee1(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=2
 #line 86 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee1_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 86 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee1_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
 #line 86 "sample/tail_call_max_exceed.c"
@@ -637,9 +637,9 @@ bind_test_callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee1_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 86 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee1_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
 #line 86 "sample/tail_call_max_exceed.c"
@@ -657,9 +657,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee10_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee10_program_type_guid = {
@@ -672,7 +672,7 @@ static uint16_t bind_test_callee10_maps[] = {
 
 #pragma code_seg(push, "bind/10")
 static uint64_t
-bind_test_callee10(void* context)
+bind_test_callee10(void* context, const program_runtime_context_t* runtime_context)
 #line 95 "sample/tail_call_max_exceed.c"
 {
 #line 95 "sample/tail_call_max_exceed.c"
@@ -765,9 +765,9 @@ bind_test_callee10(void* context)
     r4 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee10_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 95 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee10_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
 #line 95 "sample/tail_call_max_exceed.c"
@@ -777,15 +777,15 @@ bind_test_callee10(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=11
 #line 95 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee10_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 95 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee10_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
 #line 95 "sample/tail_call_max_exceed.c"
@@ -838,9 +838,9 @@ bind_test_callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee10_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 95 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee10_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
 #line 95 "sample/tail_call_max_exceed.c"
@@ -858,9 +858,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee11_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee11_program_type_guid = {
@@ -873,7 +873,7 @@ static uint16_t bind_test_callee11_maps[] = {
 
 #pragma code_seg(push, "bind/11")
 static uint64_t
-bind_test_callee11(void* context)
+bind_test_callee11(void* context, const program_runtime_context_t* runtime_context)
 #line 96 "sample/tail_call_max_exceed.c"
 {
 #line 96 "sample/tail_call_max_exceed.c"
@@ -966,9 +966,9 @@ bind_test_callee11(void* context)
     r4 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee11_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 96 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee11_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
 #line 96 "sample/tail_call_max_exceed.c"
@@ -978,15 +978,15 @@ bind_test_callee11(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=12
 #line 96 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee11_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 96 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee11_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
 #line 96 "sample/tail_call_max_exceed.c"
@@ -1039,9 +1039,9 @@ bind_test_callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee11_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 96 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee11_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
 #line 96 "sample/tail_call_max_exceed.c"
@@ -1059,9 +1059,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee12_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee12_program_type_guid = {
@@ -1074,7 +1074,7 @@ static uint16_t bind_test_callee12_maps[] = {
 
 #pragma code_seg(push, "bind/12")
 static uint64_t
-bind_test_callee12(void* context)
+bind_test_callee12(void* context, const program_runtime_context_t* runtime_context)
 #line 97 "sample/tail_call_max_exceed.c"
 {
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1167,9 +1167,9 @@ bind_test_callee12(void* context)
     r4 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee12_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 97 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee12_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1179,15 +1179,15 @@ bind_test_callee12(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee12_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 97 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee12_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1240,9 +1240,9 @@ bind_test_callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee12_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 97 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee12_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1260,9 +1260,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee13_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee13_program_type_guid = {
@@ -1275,7 +1275,7 @@ static uint16_t bind_test_callee13_maps[] = {
 
 #pragma code_seg(push, "bind/13")
 static uint64_t
-bind_test_callee13(void* context)
+bind_test_callee13(void* context, const program_runtime_context_t* runtime_context)
 #line 98 "sample/tail_call_max_exceed.c"
 {
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1368,9 +1368,9 @@ bind_test_callee13(void* context)
     r4 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee13_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 98 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee13_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1380,15 +1380,15 @@ bind_test_callee13(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee13_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 98 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee13_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1441,9 +1441,9 @@ bind_test_callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee13_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 98 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee13_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1461,9 +1461,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee14_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee14_program_type_guid = {
@@ -1476,7 +1476,7 @@ static uint16_t bind_test_callee14_maps[] = {
 
 #pragma code_seg(push, "bind/14")
 static uint64_t
-bind_test_callee14(void* context)
+bind_test_callee14(void* context, const program_runtime_context_t* runtime_context)
 #line 99 "sample/tail_call_max_exceed.c"
 {
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1569,9 +1569,9 @@ bind_test_callee14(void* context)
     r4 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee14_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 99 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee14_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1581,15 +1581,15 @@ bind_test_callee14(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=15
 #line 99 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee14_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 99 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee14_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1642,9 +1642,9 @@ bind_test_callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee14_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 99 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee14_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1662,9 +1662,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee15_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee15_program_type_guid = {
@@ -1677,7 +1677,7 @@ static uint16_t bind_test_callee15_maps[] = {
 
 #pragma code_seg(push, "bind/15")
 static uint64_t
-bind_test_callee15(void* context)
+bind_test_callee15(void* context, const program_runtime_context_t* runtime_context)
 #line 100 "sample/tail_call_max_exceed.c"
 {
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1770,9 +1770,9 @@ bind_test_callee15(void* context)
     r4 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee15_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 100 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee15_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1782,15 +1782,15 @@ bind_test_callee15(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=16
 #line 100 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee15_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 100 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee15_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1843,9 +1843,9 @@ bind_test_callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee15_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 100 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee15_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1863,9 +1863,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee16_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee16_program_type_guid = {
@@ -1878,7 +1878,7 @@ static uint16_t bind_test_callee16_maps[] = {
 
 #pragma code_seg(push, "bind/16")
 static uint64_t
-bind_test_callee16(void* context)
+bind_test_callee16(void* context, const program_runtime_context_t* runtime_context)
 #line 101 "sample/tail_call_max_exceed.c"
 {
 #line 101 "sample/tail_call_max_exceed.c"
@@ -1971,9 +1971,9 @@ bind_test_callee16(void* context)
     r4 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee16_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 101 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee16_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
 #line 101 "sample/tail_call_max_exceed.c"
@@ -1983,15 +1983,15 @@ bind_test_callee16(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=17
 #line 101 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee16_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 101 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee16_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
 #line 101 "sample/tail_call_max_exceed.c"
@@ -2044,9 +2044,9 @@ bind_test_callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee16_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 101 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee16_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
 #line 101 "sample/tail_call_max_exceed.c"
@@ -2064,9 +2064,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee17_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee17_program_type_guid = {
@@ -2079,7 +2079,7 @@ static uint16_t bind_test_callee17_maps[] = {
 
 #pragma code_seg(push, "bind/17")
 static uint64_t
-bind_test_callee17(void* context)
+bind_test_callee17(void* context, const program_runtime_context_t* runtime_context)
 #line 102 "sample/tail_call_max_exceed.c"
 {
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2172,9 +2172,9 @@ bind_test_callee17(void* context)
     r4 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee17_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 102 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee17_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2184,15 +2184,15 @@ bind_test_callee17(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=18
 #line 102 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee17_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 102 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee17_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2245,9 +2245,9 @@ bind_test_callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee17_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 102 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee17_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2265,9 +2265,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee18_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee18_program_type_guid = {
@@ -2280,7 +2280,7 @@ static uint16_t bind_test_callee18_maps[] = {
 
 #pragma code_seg(push, "bind/18")
 static uint64_t
-bind_test_callee18(void* context)
+bind_test_callee18(void* context, const program_runtime_context_t* runtime_context)
 #line 103 "sample/tail_call_max_exceed.c"
 {
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2373,9 +2373,9 @@ bind_test_callee18(void* context)
     r4 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee18_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 103 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee18_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2385,15 +2385,15 @@ bind_test_callee18(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=19
 #line 103 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee18_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 103 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee18_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2446,9 +2446,9 @@ bind_test_callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee18_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 103 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee18_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2466,9 +2466,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee19_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee19_program_type_guid = {
@@ -2481,7 +2481,7 @@ static uint16_t bind_test_callee19_maps[] = {
 
 #pragma code_seg(push, "bind/19")
 static uint64_t
-bind_test_callee19(void* context)
+bind_test_callee19(void* context, const program_runtime_context_t* runtime_context)
 #line 104 "sample/tail_call_max_exceed.c"
 {
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2574,9 +2574,9 @@ bind_test_callee19(void* context)
     r4 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee19_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 104 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee19_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2586,15 +2586,15 @@ bind_test_callee19(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=20
 #line 104 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee19_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 104 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee19_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2647,9 +2647,9 @@ bind_test_callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee19_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 104 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee19_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2667,9 +2667,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee2_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee2_program_type_guid = {
@@ -2682,7 +2682,7 @@ static uint16_t bind_test_callee2_maps[] = {
 
 #pragma code_seg(push, "bind/2")
 static uint64_t
-bind_test_callee2(void* context)
+bind_test_callee2(void* context, const program_runtime_context_t* runtime_context)
 #line 87 "sample/tail_call_max_exceed.c"
 {
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2775,9 +2775,9 @@ bind_test_callee2(void* context)
     r4 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee2_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 87 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee2_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2787,15 +2787,15 @@ bind_test_callee2(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=3
 #line 87 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee2_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 87 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee2_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2848,9 +2848,9 @@ bind_test_callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee2_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 87 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee2_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2868,9 +2868,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee20_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee20_program_type_guid = {
@@ -2883,7 +2883,7 @@ static uint16_t bind_test_callee20_maps[] = {
 
 #pragma code_seg(push, "bind/20")
 static uint64_t
-bind_test_callee20(void* context)
+bind_test_callee20(void* context, const program_runtime_context_t* runtime_context)
 #line 105 "sample/tail_call_max_exceed.c"
 {
 #line 105 "sample/tail_call_max_exceed.c"
@@ -2976,9 +2976,9 @@ bind_test_callee20(void* context)
     r4 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee20_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 105 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee20_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
 #line 105 "sample/tail_call_max_exceed.c"
@@ -2988,15 +2988,15 @@ bind_test_callee20(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=21
 #line 105 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee20_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 105 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee20_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
 #line 105 "sample/tail_call_max_exceed.c"
@@ -3049,9 +3049,9 @@ bind_test_callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee20_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 105 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee20_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
 #line 105 "sample/tail_call_max_exceed.c"
@@ -3069,9 +3069,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee21_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee21_program_type_guid = {
@@ -3084,7 +3084,7 @@ static uint16_t bind_test_callee21_maps[] = {
 
 #pragma code_seg(push, "bind/21")
 static uint64_t
-bind_test_callee21(void* context)
+bind_test_callee21(void* context, const program_runtime_context_t* runtime_context)
 #line 106 "sample/tail_call_max_exceed.c"
 {
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3177,9 +3177,9 @@ bind_test_callee21(void* context)
     r4 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee21_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 106 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee21_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3189,15 +3189,15 @@ bind_test_callee21(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=22
 #line 106 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee21_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 106 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee21_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3250,9 +3250,9 @@ bind_test_callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee21_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 106 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee21_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3270,9 +3270,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee22_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee22_program_type_guid = {
@@ -3285,7 +3285,7 @@ static uint16_t bind_test_callee22_maps[] = {
 
 #pragma code_seg(push, "bind/22")
 static uint64_t
-bind_test_callee22(void* context)
+bind_test_callee22(void* context, const program_runtime_context_t* runtime_context)
 #line 107 "sample/tail_call_max_exceed.c"
 {
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3378,9 +3378,9 @@ bind_test_callee22(void* context)
     r4 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee22_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 107 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee22_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3390,15 +3390,15 @@ bind_test_callee22(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=23
 #line 107 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee22_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 107 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee22_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3451,9 +3451,9 @@ bind_test_callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee22_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 107 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee22_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3471,9 +3471,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee23_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee23_program_type_guid = {
@@ -3486,7 +3486,7 @@ static uint16_t bind_test_callee23_maps[] = {
 
 #pragma code_seg(push, "bind/23")
 static uint64_t
-bind_test_callee23(void* context)
+bind_test_callee23(void* context, const program_runtime_context_t* runtime_context)
 #line 108 "sample/tail_call_max_exceed.c"
 {
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3579,9 +3579,9 @@ bind_test_callee23(void* context)
     r4 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee23_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 108 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee23_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3591,15 +3591,15 @@ bind_test_callee23(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=24
 #line 108 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee23_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 108 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee23_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3652,9 +3652,9 @@ bind_test_callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee23_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 108 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee23_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3672,9 +3672,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee24_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee24_program_type_guid = {
@@ -3687,7 +3687,7 @@ static uint16_t bind_test_callee24_maps[] = {
 
 #pragma code_seg(push, "bind/24")
 static uint64_t
-bind_test_callee24(void* context)
+bind_test_callee24(void* context, const program_runtime_context_t* runtime_context)
 #line 109 "sample/tail_call_max_exceed.c"
 {
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3780,9 +3780,9 @@ bind_test_callee24(void* context)
     r4 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee24_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 109 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee24_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3792,15 +3792,15 @@ bind_test_callee24(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=25
 #line 109 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee24_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 109 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee24_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3853,9 +3853,9 @@ bind_test_callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee24_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 109 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee24_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3873,9 +3873,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee25_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee25_program_type_guid = {
@@ -3888,7 +3888,7 @@ static uint16_t bind_test_callee25_maps[] = {
 
 #pragma code_seg(push, "bind/25")
 static uint64_t
-bind_test_callee25(void* context)
+bind_test_callee25(void* context, const program_runtime_context_t* runtime_context)
 #line 110 "sample/tail_call_max_exceed.c"
 {
 #line 110 "sample/tail_call_max_exceed.c"
@@ -3981,9 +3981,9 @@ bind_test_callee25(void* context)
     r4 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee25_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 110 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee25_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
 #line 110 "sample/tail_call_max_exceed.c"
@@ -3993,15 +3993,15 @@ bind_test_callee25(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=26
 #line 110 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee25_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 110 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee25_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
 #line 110 "sample/tail_call_max_exceed.c"
@@ -4054,9 +4054,9 @@ bind_test_callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee25_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 110 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee25_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
 #line 110 "sample/tail_call_max_exceed.c"
@@ -4074,9 +4074,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee26_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee26_program_type_guid = {
@@ -4089,7 +4089,7 @@ static uint16_t bind_test_callee26_maps[] = {
 
 #pragma code_seg(push, "bind/26")
 static uint64_t
-bind_test_callee26(void* context)
+bind_test_callee26(void* context, const program_runtime_context_t* runtime_context)
 #line 111 "sample/tail_call_max_exceed.c"
 {
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4182,9 +4182,9 @@ bind_test_callee26(void* context)
     r4 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee26_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 111 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee26_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4194,15 +4194,15 @@ bind_test_callee26(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=27
 #line 111 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee26_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 111 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee26_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4255,9 +4255,9 @@ bind_test_callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee26_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 111 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee26_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4275,9 +4275,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee27_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee27_program_type_guid = {
@@ -4290,7 +4290,7 @@ static uint16_t bind_test_callee27_maps[] = {
 
 #pragma code_seg(push, "bind/27")
 static uint64_t
-bind_test_callee27(void* context)
+bind_test_callee27(void* context, const program_runtime_context_t* runtime_context)
 #line 112 "sample/tail_call_max_exceed.c"
 {
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4383,9 +4383,9 @@ bind_test_callee27(void* context)
     r4 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee27_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 112 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee27_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4395,15 +4395,15 @@ bind_test_callee27(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=28
 #line 112 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee27_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 112 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee27_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4456,9 +4456,9 @@ bind_test_callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee27_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 112 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee27_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4476,9 +4476,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee28_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee28_program_type_guid = {
@@ -4491,7 +4491,7 @@ static uint16_t bind_test_callee28_maps[] = {
 
 #pragma code_seg(push, "bind/28")
 static uint64_t
-bind_test_callee28(void* context)
+bind_test_callee28(void* context, const program_runtime_context_t* runtime_context)
 #line 113 "sample/tail_call_max_exceed.c"
 {
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4584,9 +4584,9 @@ bind_test_callee28(void* context)
     r4 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee28_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 113 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee28_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4596,15 +4596,15 @@ bind_test_callee28(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=29
 #line 113 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee28_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 113 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee28_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4657,9 +4657,9 @@ bind_test_callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee28_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 113 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee28_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4677,9 +4677,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee29_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee29_program_type_guid = {
@@ -4692,7 +4692,7 @@ static uint16_t bind_test_callee29_maps[] = {
 
 #pragma code_seg(push, "bind/29")
 static uint64_t
-bind_test_callee29(void* context)
+bind_test_callee29(void* context, const program_runtime_context_t* runtime_context)
 #line 114 "sample/tail_call_max_exceed.c"
 {
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4785,9 +4785,9 @@ bind_test_callee29(void* context)
     r4 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee29_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 114 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee29_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4797,15 +4797,15 @@ bind_test_callee29(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=30
 #line 114 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee29_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 114 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee29_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4858,9 +4858,9 @@ bind_test_callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee29_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 114 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee29_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4878,9 +4878,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee3_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee3_program_type_guid = {
@@ -4893,7 +4893,7 @@ static uint16_t bind_test_callee3_maps[] = {
 
 #pragma code_seg(push, "bind/3")
 static uint64_t
-bind_test_callee3(void* context)
+bind_test_callee3(void* context, const program_runtime_context_t* runtime_context)
 #line 88 "sample/tail_call_max_exceed.c"
 {
 #line 88 "sample/tail_call_max_exceed.c"
@@ -4986,9 +4986,9 @@ bind_test_callee3(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee3_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 88 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee3_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
 #line 88 "sample/tail_call_max_exceed.c"
@@ -4998,15 +4998,15 @@ bind_test_callee3(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=4
 #line 88 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee3_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 88 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee3_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
 #line 88 "sample/tail_call_max_exceed.c"
@@ -5059,9 +5059,9 @@ bind_test_callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee3_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 88 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee3_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
 #line 88 "sample/tail_call_max_exceed.c"
@@ -5079,9 +5079,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee30_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee30_program_type_guid = {
@@ -5094,7 +5094,7 @@ static uint16_t bind_test_callee30_maps[] = {
 
 #pragma code_seg(push, "bind/30")
 static uint64_t
-bind_test_callee30(void* context)
+bind_test_callee30(void* context, const program_runtime_context_t* runtime_context)
 #line 115 "sample/tail_call_max_exceed.c"
 {
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5187,9 +5187,9 @@ bind_test_callee30(void* context)
     r4 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee30_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 115 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee30_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5199,15 +5199,15 @@ bind_test_callee30(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=31
 #line 115 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee30_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 115 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee30_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5260,9 +5260,9 @@ bind_test_callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee30_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 115 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee30_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5280,9 +5280,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee31_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee31_program_type_guid = {
@@ -5295,7 +5295,7 @@ static uint16_t bind_test_callee31_maps[] = {
 
 #pragma code_seg(push, "bind/31")
 static uint64_t
-bind_test_callee31(void* context)
+bind_test_callee31(void* context, const program_runtime_context_t* runtime_context)
 #line 116 "sample/tail_call_max_exceed.c"
 {
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5388,9 +5388,9 @@ bind_test_callee31(void* context)
     r4 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee31_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 116 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee31_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5400,15 +5400,15 @@ bind_test_callee31(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=32
 #line 116 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee31_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 116 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee31_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5461,9 +5461,9 @@ bind_test_callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee31_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 116 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee31_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5481,9 +5481,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee32_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee32_program_type_guid = {
@@ -5496,7 +5496,7 @@ static uint16_t bind_test_callee32_maps[] = {
 
 #pragma code_seg(push, "bind/32")
 static uint64_t
-bind_test_callee32(void* context)
+bind_test_callee32(void* context, const program_runtime_context_t* runtime_context)
 #line 117 "sample/tail_call_max_exceed.c"
 {
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5589,9 +5589,9 @@ bind_test_callee32(void* context)
     r4 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee32_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 117 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee32_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5601,15 +5601,15 @@ bind_test_callee32(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=33
 #line 117 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee32_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 117 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee32_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5662,9 +5662,9 @@ bind_test_callee32(void* context)
     r3 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee32_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 117 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee32_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5682,9 +5682,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee33_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee33_program_type_guid = {
@@ -5697,7 +5697,7 @@ static uint16_t bind_test_callee33_maps[] = {
 
 #pragma code_seg(push, "bind/33")
 static uint64_t
-bind_test_callee33(void* context)
+bind_test_callee33(void* context, const program_runtime_context_t* runtime_context)
 #line 118 "sample/tail_call_max_exceed.c"
 {
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5790,9 +5790,9 @@ bind_test_callee33(void* context)
     r4 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee33_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 118 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee33_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5802,15 +5802,15 @@ bind_test_callee33(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=34
 #line 118 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee33_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 118 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee33_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5863,9 +5863,9 @@ bind_test_callee33(void* context)
     r3 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee33_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 118 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee33_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5883,7 +5883,7 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee34_helpers[] = {
-    {NULL, 12, "helper_id_12"},
+    {12, "helper_id_12"},
 };
 
 static GUID bind_test_callee34_program_type_guid = {
@@ -5892,7 +5892,7 @@ static GUID bind_test_callee34_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind/34")
 static uint64_t
-bind_test_callee34(void* context)
+bind_test_callee34(void* context, const program_runtime_context_t* runtime_context)
 #line 136 "sample/tail_call_max_exceed.c"
 {
 #line 136 "sample/tail_call_max_exceed.c"
@@ -5966,9 +5966,9 @@ bind_test_callee34(void* context)
     r2 = IMMEDIATE(42);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 138 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee34_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 138 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee34_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 138 "sample/tail_call_max_exceed.c"
         return 0;
 #line 138 "sample/tail_call_max_exceed.c"
@@ -5985,9 +5985,9 @@ bind_test_callee34(void* context)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee4_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee4_program_type_guid = {
@@ -6000,7 +6000,7 @@ static uint16_t bind_test_callee4_maps[] = {
 
 #pragma code_seg(push, "bind/4")
 static uint64_t
-bind_test_callee4(void* context)
+bind_test_callee4(void* context, const program_runtime_context_t* runtime_context)
 #line 89 "sample/tail_call_max_exceed.c"
 {
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6093,9 +6093,9 @@ bind_test_callee4(void* context)
     r4 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 89 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee4_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6105,15 +6105,15 @@ bind_test_callee4(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 89 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee4_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6166,9 +6166,9 @@ bind_test_callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee4_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 89 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee4_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6186,9 +6186,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee5_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee5_program_type_guid = {
@@ -6201,7 +6201,7 @@ static uint16_t bind_test_callee5_maps[] = {
 
 #pragma code_seg(push, "bind/5")
 static uint64_t
-bind_test_callee5(void* context)
+bind_test_callee5(void* context, const program_runtime_context_t* runtime_context)
 #line 90 "sample/tail_call_max_exceed.c"
 {
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6294,9 +6294,9 @@ bind_test_callee5(void* context)
     r4 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee5_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 90 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee5_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6306,15 +6306,15 @@ bind_test_callee5(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=6
 #line 90 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee5_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 90 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee5_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6367,9 +6367,9 @@ bind_test_callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee5_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 90 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee5_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6387,9 +6387,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee6_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee6_program_type_guid = {
@@ -6402,7 +6402,7 @@ static uint16_t bind_test_callee6_maps[] = {
 
 #pragma code_seg(push, "bind/6")
 static uint64_t
-bind_test_callee6(void* context)
+bind_test_callee6(void* context, const program_runtime_context_t* runtime_context)
 #line 91 "sample/tail_call_max_exceed.c"
 {
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6495,9 +6495,9 @@ bind_test_callee6(void* context)
     r4 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 91 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee6_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6507,15 +6507,15 @@ bind_test_callee6(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=7
 #line 91 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 91 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee6_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6568,9 +6568,9 @@ bind_test_callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee6_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 91 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee6_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6588,9 +6588,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee7_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee7_program_type_guid = {
@@ -6603,7 +6603,7 @@ static uint16_t bind_test_callee7_maps[] = {
 
 #pragma code_seg(push, "bind/7")
 static uint64_t
-bind_test_callee7(void* context)
+bind_test_callee7(void* context, const program_runtime_context_t* runtime_context)
 #line 92 "sample/tail_call_max_exceed.c"
 {
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6696,9 +6696,9 @@ bind_test_callee7(void* context)
     r4 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee7_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee7_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6708,15 +6708,15 @@ bind_test_callee7(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=8
 #line 92 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee7_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 92 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee7_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6769,9 +6769,9 @@ bind_test_callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee7_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 92 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee7_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6789,9 +6789,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee8_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee8_program_type_guid = {
@@ -6804,7 +6804,7 @@ static uint16_t bind_test_callee8_maps[] = {
 
 #pragma code_seg(push, "bind/8")
 static uint64_t
-bind_test_callee8(void* context)
+bind_test_callee8(void* context, const program_runtime_context_t* runtime_context)
 #line 93 "sample/tail_call_max_exceed.c"
 {
 #line 93 "sample/tail_call_max_exceed.c"
@@ -6897,9 +6897,9 @@ bind_test_callee8(void* context)
     r4 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee8_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 93 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee8_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
 #line 93 "sample/tail_call_max_exceed.c"
@@ -6909,15 +6909,15 @@ bind_test_callee8(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=9
 #line 93 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee8_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 93 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee8_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
 #line 93 "sample/tail_call_max_exceed.c"
@@ -6970,9 +6970,9 @@ bind_test_callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee8_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 93 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee8_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
 #line 93 "sample/tail_call_max_exceed.c"
@@ -6990,9 +6990,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee9_helpers[] = {
-    {NULL, 14, "helper_id_14"},
-    {NULL, 5, "helper_id_5"},
-    {NULL, 13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {5, "helper_id_5"},
+    {13, "helper_id_13"},
 };
 
 static GUID bind_test_callee9_program_type_guid = {
@@ -7005,7 +7005,7 @@ static uint16_t bind_test_callee9_maps[] = {
 
 #pragma code_seg(push, "bind/9")
 static uint64_t
-bind_test_callee9(void* context)
+bind_test_callee9(void* context, const program_runtime_context_t* runtime_context)
 #line 94 "sample/tail_call_max_exceed.c"
 {
 #line 94 "sample/tail_call_max_exceed.c"
@@ -7098,9 +7098,9 @@ bind_test_callee9(void* context)
     r4 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee9_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 94 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee9_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
 #line 94 "sample/tail_call_max_exceed.c"
@@ -7110,15 +7110,15 @@ bind_test_callee9(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=10
 #line 94 "sample/tail_call_max_exceed.c"
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee9_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 94 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee9_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
 #line 94 "sample/tail_call_max_exceed.c"
@@ -7171,9 +7171,9 @@ bind_test_callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee9_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 94 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee9_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
 #line 94 "sample/tail_call_max_exceed.c"

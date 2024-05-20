@@ -175,7 +175,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY_OF_MAPS, // Type of map.
          4,                          // Size in bytes of a map key.
@@ -187,7 +187,7 @@ static map_entry_t _maps[] = {
          0,                          // The id of the inner map template.
      },
      "outer_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          4,                 // Size in bytes of a map key.
@@ -210,7 +210,7 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t lookup_helpers[] = {
-    {NULL, 1, "helper_id_1"},
+    {1, "helper_id_1"},
 };
 
 static GUID lookup_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -221,7 +221,7 @@ static uint16_t lookup_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-lookup(void* context)
+lookup(void* context, const program_runtime_context_t* runtime_context)
 #line 30 "sample/undocked/map_in_map_legacy_idx.c"
 {
 #line 30 "sample/undocked/map_in_map_legacy_idx.c"
@@ -264,12 +264,12 @@ lookup(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
-    if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
         return 0;
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
@@ -298,9 +298,9 @@ lookup(void* context)
     r1 = r0;
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"
-    if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"
         return 0;
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"

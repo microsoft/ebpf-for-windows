@@ -175,7 +175,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -198,7 +198,7 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t caller_helpers[] = {
-    {NULL, 5, "helper_id_5"},
+    {5, "helper_id_5"},
 };
 
 static GUID caller_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -209,7 +209,7 @@ static uint16_t caller_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-caller(void* context)
+caller(void* context, const program_runtime_context_t* runtime_context)
 #line 30 "sample/undocked/tail_call_multiple.c"
 {
 #line 30 "sample/undocked/tail_call_multiple.c"
@@ -238,15 +238,15 @@ caller(void* context)
 
     // EBPF_OP_LDDW pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/tail_call_multiple.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/tail_call_multiple.c"
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
 #line 30 "sample/undocked/tail_call_multiple.c"
-    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 30 "sample/undocked/tail_call_multiple.c"
-    if ((caller_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 30 "sample/undocked/tail_call_multiple.c"
         return 0;
 #line 30 "sample/undocked/tail_call_multiple.c"
@@ -263,7 +263,7 @@ caller(void* context)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t callee0_helpers[] = {
-    {NULL, 5, "helper_id_5"},
+    {5, "helper_id_5"},
 };
 
 static GUID callee0_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -274,7 +274,7 @@ static uint16_t callee0_maps[] = {
 
 #pragma code_seg(push, "sample~2")
 static uint64_t
-callee0(void* context)
+callee0(void* context, const program_runtime_context_t* runtime_context)
 #line 41 "sample/undocked/tail_call_multiple.c"
 {
 #line 41 "sample/undocked/tail_call_multiple.c"
@@ -303,15 +303,15 @@ callee0(void* context)
 
     // EBPF_OP_LDDW pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 41 "sample/undocked/tail_call_multiple.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=9
 #line 41 "sample/undocked/tail_call_multiple.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
 #line 41 "sample/undocked/tail_call_multiple.c"
-    r0 = callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 41 "sample/undocked/tail_call_multiple.c"
-    if ((callee0_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 41 "sample/undocked/tail_call_multiple.c"
         return 0;
 #line 41 "sample/undocked/tail_call_multiple.c"
@@ -331,7 +331,7 @@ static GUID callee1_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf
 static GUID callee1_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 #pragma code_seg(push, "sample~3")
 static uint64_t
-callee1(void* context)
+callee1(void* context, const program_runtime_context_t* runtime_context)
 #line 47 "sample/undocked/tail_call_multiple.c"
 {
 #line 47 "sample/undocked/tail_call_multiple.c"
@@ -349,6 +349,8 @@ callee1(void* context)
     r1 = (uintptr_t)context;
 #line 47 "sample/undocked/tail_call_multiple.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 47 "sample/undocked/tail_call_multiple.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
 #line 47 "sample/undocked/tail_call_multiple.c"

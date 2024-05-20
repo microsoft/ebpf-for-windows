@@ -51,7 +51,7 @@ static GUID reflect_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_te~1")
 static uint64_t
-reflect_packet(void* context)
+reflect_packet(void* context, const program_runtime_context_t* runtime_context)
 #line 23 "sample/reflect_packet.c"
 {
 #line 23 "sample/reflect_packet.c"
@@ -77,6 +77,8 @@ reflect_packet(void* context)
     r1 = (uintptr_t)context;
 #line 23 "sample/reflect_packet.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 23 "sample/reflect_packet.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
 #line 23 "sample/reflect_packet.c"

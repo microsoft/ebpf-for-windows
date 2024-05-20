@@ -184,7 +184,7 @@ static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0
 static GUID func_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, ".text")
 static uint64_t
-func(void* context)
+func(void* context, const program_runtime_context_t* runtime_context)
 #line 17 "sample/custom_program_type/bpf.c"
 {
 #line 17 "sample/custom_program_type/bpf.c"
@@ -202,6 +202,8 @@ func(void* context)
     r1 = (uintptr_t)context;
 #line 17 "sample/custom_program_type/bpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 17 "sample/custom_program_type/bpf.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
 #line 17 "sample/custom_program_type/bpf.c"
