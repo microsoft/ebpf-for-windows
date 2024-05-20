@@ -140,3 +140,4 @@ EXPORTS
     libbpf_strerror
     ring_buffer__new
     ring_buffer__free
+    ebpf_ring_buffer_map_write

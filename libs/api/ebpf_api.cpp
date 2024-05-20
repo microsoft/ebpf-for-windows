@@ -4426,6 +4426,43 @@ ebpf_ring_buffer_map_subscribe(
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_write(fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t ring_buffer_map_handle = ebpf_handle_invalid;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_ring_buffer_map_write_data_request_t* request;
+
+    if (!data || !data_length) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    try {
+        ring_buffer_map_handle = _get_handle_from_file_descriptor(ring_buffer_map_fd);
+        if (ring_buffer_map_handle == ebpf_handle_invalid) {
+            result = EBPF_INVALID_FD;
+            EBPF_RETURN_RESULT(result);
+        }
+
+        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data) + data_length);
+        request = reinterpret_cast<_ebpf_operation_ring_buffer_map_write_data_request*>(request_buffer.data());
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_WRITE_DATA;
+        request->map_handle = (uint64_t)ring_buffer_map_handle;
+        request->data_length = data_length;
+        std::copy((uint8_t*)data, (uint8_t*)data + data_length, request->data);
+
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    } catch (const std::bad_alloc&) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
 bool
 ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t* subscription) NO_EXCEPT_TRY
 {
