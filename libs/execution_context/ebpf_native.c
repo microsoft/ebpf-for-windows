@@ -412,6 +412,8 @@ _ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* mod
     ebpf_lock_state_t module_lock_state = 0;
     bool lock_acquired = false;
 
+    EBPF_LOG_ENTRY();
+
     if (!module) {
         EBPF_RETURN_VOID();
     }
@@ -1678,6 +1680,7 @@ _get_native_module_from_hash_table(_In_ const GUID* module_id, _Outptr_ ebpf_nat
 {
     ebpf_result_t result;
     ebpf_lock_state_t hash_table_state = 0;
+    ebpf_lock_state_t module_state = 0;
     ebpf_native_module_t** existing_module = NULL;
     *module = NULL;
 
@@ -1693,6 +1696,20 @@ _get_native_module_from_hash_table(_In_ const GUID* module_id, _Outptr_ ebpf_nat
             module_id);
         goto Done;
     }
+
+    // The module is deleted from the hash table when the reference count becomes 0. A tiny race condition is possible
+    // where one thread has released a reference on the module that made the reference count to be 0, and is about to
+    // delete the module from hash table, and clean it up. Another thread at the same time is trying to find the module
+    // in the hash table. To handle this, check the reference count of the module. If it is 0, return
+    // EBPF_OBJECT_NOT_FOUND. If the reference count is not 0, acquire a reference on the module.
+    module_state = ebpf_lock_lock(&(*existing_module)->lock);
+    if ((*existing_module)->base.reference_count == 0) {
+        result = EBPF_OBJECT_NOT_FOUND;
+        ebpf_lock_unlock(&(*existing_module)->lock, module_state);
+        goto Done;
+    }
+    _ebpf_native_acquire_reference_under_lock(*existing_module);
+    ebpf_lock_unlock(&(*existing_module)->lock, module_state);
     *module = *existing_module;
 
 Done:
@@ -1863,6 +1880,9 @@ Done:
     if (local_module_handle != ebpf_handle_invalid) {
         ebpf_assert_success(ebpf_handle_close(local_module_handle));
     }
+    if (module) {
+        _ebpf_native_release_reference(module);
+    }
 
     EBPF_RETURN_RESULT(result);
 }
@@ -1916,6 +1936,18 @@ ebpf_native_load_programs(
     instance.module = module;
     module_state = ebpf_lock_lock(&module->lock);
     native_lock_acquired = true;
+
+    // Check if the module has reference count > 0.
+    if (module->base.reference_count == 0) {
+        result = EBPF_OBJECT_NOT_FOUND;
+        EBPF_LOG_MESSAGE_GUID_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "ebpf_native_load_programs: module reference is already 0.",
+            module_id,
+            instance_id);
+        goto Done;
+    }
 
     if (module->state != MODULE_STATE_INITIALIZED || module->detaching) {
 
