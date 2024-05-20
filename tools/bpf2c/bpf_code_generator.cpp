@@ -1487,7 +1487,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << INDENT "{ " << id << ", " << helper_name.quoted() << "}," << std::endl;
+                output_stream << INDENT "{" << id << ", " << helper_name.quoted() << "}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
