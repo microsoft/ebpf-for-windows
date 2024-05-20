@@ -236,6 +236,31 @@ If the change in data structure is such that it is no longer backward compatible
 then the version number will be updated. In this case, the product version of eBPF for Windows must be updated to indicate a breaking change
 as well. Existing eBPF extensions would need to be re-compiled to work with the latest version of eBPF.
 
+#### 2.2.1 Hashing of data structures to validate verification of native images
+When native images are generated, bpf2c uses the verifier to ensure that the program is safe to execute and then
+computes a hash over the invariants used to validate the program. These invariants include the properties of the
+program information provider and the signature of helper functions. The following fields are included in the hash:
+1. ebpf_program_type_descriptor_t::name
+2. ebpf_program_type_descriptor_t::context_descriptor
+3. ebpf_program_type_descriptor_t::program_type
+4. ebpf_program_type_descriptor_t::bpf_prog_type
+5. ebpf_program_type_descriptor_t::is_privileged
+6. Count of helper ids being used (as a unsigned 64bit integer)
+7. Each helper function being used is then appended to the hash in order of id.
+    1. ebpf_helper_function_prototype_t::helper_id
+    2. ebpf_helper_function_prototype_t::name
+    3. ebpf_helper_function_prototype_t::return_type
+    4. Each ebpf_helper_function_prototype_t::arguments
+    5. ebpf_helper_function_prototype_t::flags - only if non-default value.
+
+Any new fields MUST be added to the end of the hash and the hash MUST include all fields up to and including the last
+field containing a non-default value. Fields containing default values after the last non-default value MUST NOT
+be included. This ensures that hashes computed over older versions of the structure remain valid if new functionality
+is not being used. If a new feature or functionality is being used, the hash value MUST change to ensure that the
+verification constraints are honored. All new fields that affect verification MUST be included with a non-default value
+and all fields that do not affect verification MUST NOT be included.
+
+
 ### 2.3 Program Information NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that
 gets loaded. The Execution Context will use the program type GUID of the program as the NPI ID of the client module.
