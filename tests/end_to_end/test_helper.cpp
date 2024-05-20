@@ -797,12 +797,17 @@ Glue_get_registry_value(
     _Inout_opt_ uint32_t* value_size)
 {
     std::vector<uint8_t> value_buffer;
-    uint32_t value_buffer_size = *value_size;
+    uint32_t value_buffer_size = 0;
+    if (value_size) {
+        value_buffer_size = *value_size;
+    }
     uint32_t result =
         _registry_manager.get_registry_value(root_key, sub_key, type, value_name, value_buffer, value_buffer_size);
     if (result == ERROR_SUCCESS) {
-        if (value_buffer.size() > *value_size) {
-            *value_size = static_cast<uint32_t>(value_buffer.size());
+        if (!value || !value_size || value_buffer.size() > *value_size) {
+            if (value_size) {
+                *value_size = static_cast<uint32_t>(value_buffer.size());
+            }
             return ERROR_MORE_DATA;
         }
         *value_size = static_cast<uint32_t>(value_buffer.size());
