@@ -836,7 +836,11 @@ TEST_CASE("program", "[execution_context]")
     ebpf_get_execution_context_state(&state);
     ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(ebpf_result == EBPF_SUCCESS);
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(result == TEST_FUNCTION_RETURN);
+#else
+    REQUIRE(result == 0);
+#endif
 
     ebpf_program_test_run_options_t options = {0};
     sample_program_context_t in_ctx{0};
