@@ -3237,38 +3237,39 @@ void
 _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts, bool concurrent_delete)
 {
     // Retrieve in batches.
-    uint32_t* next_key_ptr = nullptr;
-    uint32_t next_key = 0;
+    uint32_t* in_batch = nullptr;
+    uint32_t out_batch = 0;
     std::vector<uint32_t> returned_keys(0);
     std::vector<uint64_t> returned_values(0);
     uint32_t requested_batch_size = batch_size / 10 - 2;
-    uint32_t temp_batch_size = 0;
-    int ret = 0;
+    uint32_t batch_size_count = 0;
+    int result = 0;
 
     for (;;) {
-        std::vector<uint32_t> temp_keys(requested_batch_size);
-        std::vector<uint64_t> temp_values(requested_batch_size);
+        std::vector<uint32_t> batch_keys(requested_batch_size);
+        std::vector<uint64_t> batch_values(requested_batch_size);
 
-        temp_batch_size = static_cast<uint32_t>(temp_keys.size());
-        ret = bpf_map_lookup_batch(
-            map_fd, next_key_ptr, &next_key, temp_keys.data(), temp_values.data(), &temp_batch_size, opts);
-        if (ret == -ENOENT) {
+        batch_size_count = static_cast<uint32_t>(batch_keys.size());
+        result = bpf_map_lookup_batch(
+            map_fd, in_batch, &out_batch, batch_keys.data(), batch_values.data(), &batch_size_count, opts);
+        if (result == -ENOENT) {
             printf("No more entries. End of map reached.\n");
             break;
         }
 
-        REQUIRE(ret == 0);
-        REQUIRE(temp_batch_size <= static_cast<uint32_t>(temp_keys.size()));
-        REQUIRE(temp_batch_size <= static_cast<uint32_t>(temp_values.size()));
+        REQUIRE(result == 0);
+        // Number of entries retrieved (batch_size_count) should be less than or equal to requested_batch_size.
+        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_keys.size()));
+        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_values.size()));
 
-        temp_keys.resize(temp_batch_size);
-        temp_values.resize(temp_batch_size);
-        returned_keys.insert(returned_keys.end(), temp_keys.begin(), temp_keys.end());
-        returned_values.insert(returned_values.end(), temp_values.begin(), temp_values.end());
+        batch_keys.resize(batch_size_count);
+        batch_values.resize(batch_size_count);
+        returned_keys.insert(returned_keys.end(), batch_keys.begin(), batch_keys.end());
+        returned_values.insert(returned_values.end(), batch_values.begin(), batch_values.end());
 
-        next_key_ptr = &next_key;
+        in_batch = &out_batch;
         if (concurrent_delete) {
-            REQUIRE(bpf_map_delete_elem(map_fd, &next_key) == 0);
+            REQUIRE(bpf_map_delete_elem(map_fd, &out_batch) == 0);
             batch_size -= 1;
         }
     }
