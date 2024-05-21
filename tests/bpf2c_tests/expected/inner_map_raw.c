@@ -148,7 +148,7 @@ lookup_update(void* context)
     // EBPF_OP_MOV64_REG pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 60 "sample/undocked/inner_map.c"
     r6 = r0;
-    // EBPF_OP_JEQ_IMM pc=9 dst=r6 src=r0 offset=11 imm=0
+    // EBPF_OP_JEQ_IMM pc=9 dst=r6 src=r0 offset=10 imm=0
 #line 61 "sample/undocked/inner_map.c"
     if (r6 == IMMEDIATE(0)) {
 #line 61 "sample/undocked/inner_map.c"
@@ -176,7 +176,7 @@ lookup_update(void* context)
         return 0;
 #line 63 "sample/undocked/inner_map.c"
     }
-    // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=5 imm=0
+    // EBPF_OP_JEQ_IMM pc=15 dst=r0 src=r0 offset=4 imm=0
 #line 64 "sample/undocked/inner_map.c"
     if (r0 == IMMEDIATE(0)) {
 #line 64 "sample/undocked/inner_map.c"
@@ -190,27 +190,24 @@ label_1:
     // EBPF_OP_STXW pc=17 dst=r0 src=r1 offset=0 imm=0
 #line 64 "sample/undocked/inner_map.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
-    // EBPF_OP_MOV64_IMM pc=18 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=18 dst=r0 src=r0 offset=0 imm=0
 #line 64 "sample/undocked/inner_map.c"
-    r7 = IMMEDIATE(0);
+    r0 = IMMEDIATE(0);
 label_2:
-    // EBPF_OP_MOV64_REG pc=19 dst=r0 src=r7 offset=0 imm=0
-#line 84 "sample/undocked/inner_map.c"
-    r0 = r7;
-    // EBPF_OP_EXIT pc=20 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=19 dst=r0 src=r0 offset=0 imm=0
 #line 84 "sample/undocked/inner_map.c"
     return r0;
 label_3:
-    // EBPF_OP_MOV64_REG pc=21 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=20 dst=r2 src=r10 offset=0 imm=0
 #line 84 "sample/undocked/inner_map.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=22 dst=r2 src=r0 offset=0 imm=-6
-#line 84 "sample/undocked/inner_map.c"
+    // EBPF_OP_ADD64_IMM pc=21 dst=r2 src=r0 offset=0 imm=-6
+#line 72 "sample/undocked/inner_map.c"
     r2 += IMMEDIATE(-6);
-    // EBPF_OP_LDDW pc=23 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=22 dst=r1 src=r0 offset=0 imm=0
 #line 72 "sample/undocked/inner_map.c"
     r1 = POINTER(_maps[1].address);
-    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=1
 #line 72 "sample/undocked/inner_map.c"
     r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 72 "sample/undocked/inner_map.c"
@@ -219,12 +216,15 @@ label_3:
         return 0;
 #line 72 "sample/undocked/inner_map.c"
     }
-    // EBPF_OP_MOV64_IMM pc=26 dst=r7 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 72 "sample/undocked/inner_map.c"
-    r7 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=27 dst=r0 src=r0 offset=-9 imm=0
+    r1 = r0;
+    // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
+#line 72 "sample/undocked/inner_map.c"
+    r0 = IMMEDIATE(1);
+    // EBPF_OP_JEQ_IMM pc=27 dst=r1 src=r0 offset=-9 imm=0
 #line 73 "sample/undocked/inner_map.c"
-    if (r0 == IMMEDIATE(0)) {
+    if (r1 == IMMEDIATE(0)) {
 #line 73 "sample/undocked/inner_map.c"
         goto label_2;
 #line 73 "sample/undocked/inner_map.c"
@@ -253,16 +253,23 @@ label_3:
         return 0;
 #line 75 "sample/undocked/inner_map.c"
     }
-    // EBPF_OP_JEQ_IMM pc=34 dst=r0 src=r0 offset=-16 imm=0
+    // EBPF_OP_JEQ_IMM pc=34 dst=r0 src=r0 offset=1 imm=0
 #line 76 "sample/undocked/inner_map.c"
     if (r0 == IMMEDIATE(0)) {
 #line 76 "sample/undocked/inner_map.c"
-        goto label_2;
+        goto label_4;
 #line 76 "sample/undocked/inner_map.c"
     }
     // EBPF_OP_JA pc=35 dst=r0 src=r0 offset=-20 imm=0
 #line 76 "sample/undocked/inner_map.c"
     goto label_1;
+label_4:
+    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
+#line 76 "sample/undocked/inner_map.c"
+    r0 = IMMEDIATE(1);
+    // EBPF_OP_JA pc=37 dst=r0 src=r0 offset=-19 imm=0
+#line 76 "sample/undocked/inner_map.c"
+    goto label_2;
 #line 76 "sample/undocked/inner_map.c"
 }
 #pragma code_seg(pop)
@@ -280,7 +287,7 @@ static program_entry_t _programs[] = {
         2,
         lookup_update_helpers,
         1,
-        36,
+        38,
         &lookup_update_program_type_guid,
         &lookup_update_attach_type_guid,
     },

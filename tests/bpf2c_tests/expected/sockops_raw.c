@@ -86,8 +86,6 @@ connection_monitor(void* context)
 #line 72 "sample/sockops.c"
     register uint64_t r6 = 0;
 #line 72 "sample/sockops.c"
-    register uint64_t r7 = 0;
-#line 72 "sample/sockops.c"
     register uint64_t r10 = 0;
 
 #line 72 "sample/sockops.c"
@@ -260,269 +258,269 @@ label_3:
 #line 26 "sample/sockops.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_STXDW pc=48 dst=r10 src=r4 offset=-8 imm=0
-#line 57 "sample/sockops.c"
+#line 53 "sample/sockops.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r4;
     // EBPF_OP_STXDW pc=49 dst=r10 src=r4 offset=-16 imm=0
-#line 57 "sample/sockops.c"
+#line 53 "sample/sockops.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r4;
     // EBPF_OP_STXDW pc=50 dst=r10 src=r4 offset=-24 imm=0
-#line 57 "sample/sockops.c"
+#line 53 "sample/sockops.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r4;
     // EBPF_OP_STXDW pc=51 dst=r10 src=r4 offset=-32 imm=0
-#line 57 "sample/sockops.c"
+#line 53 "sample/sockops.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r4;
     // EBPF_OP_STXDW pc=52 dst=r10 src=r4 offset=-40 imm=0
-#line 57 "sample/sockops.c"
+#line 53 "sample/sockops.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r4;
     // EBPF_OP_STXDW pc=53 dst=r10 src=r4 offset=-48 imm=0
-#line 57 "sample/sockops.c"
+#line 53 "sample/sockops.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint64_t)r4;
-    // EBPF_OP_LDXB pc=54 dst=r5 src=r1 offset=21 imm=0
+    // EBPF_OP_LDXB pc=54 dst=r5 src=r1 offset=17 imm=0
 #line 57 "sample/sockops.c"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(21));
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(17));
     // EBPF_OP_LSH64_IMM pc=55 dst=r5 src=r0 offset=0 imm=8
 #line 57 "sample/sockops.c"
     r5 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=56 dst=r4 src=r1 offset=20 imm=0
+    // EBPF_OP_LDXB pc=56 dst=r4 src=r1 offset=16 imm=0
 #line 57 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(20));
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(16));
     // EBPF_OP_OR64_REG pc=57 dst=r5 src=r4 offset=0 imm=0
 #line 57 "sample/sockops.c"
     r5 |= r4;
-    // EBPF_OP_LDXB pc=58 dst=r4 src=r1 offset=23 imm=0
+    // EBPF_OP_LDXB pc=58 dst=r0 src=r1 offset=18 imm=0
 #line 57 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
-    // EBPF_OP_LSH64_IMM pc=59 dst=r4 src=r0 offset=0 imm=8
-#line 57 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=60 dst=r0 src=r1 offset=22 imm=0
-#line 57 "sample/sockops.c"
-    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(22));
-    // EBPF_OP_OR64_REG pc=61 dst=r4 src=r0 offset=0 imm=0
-#line 57 "sample/sockops.c"
-    r4 |= r0;
-    // EBPF_OP_LDXB pc=62 dst=r6 src=r1 offset=17 imm=0
-#line 57 "sample/sockops.c"
-    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(17));
-    // EBPF_OP_LSH64_IMM pc=63 dst=r6 src=r0 offset=0 imm=8
-#line 57 "sample/sockops.c"
-    r6 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=64 dst=r0 src=r1 offset=16 imm=0
-#line 57 "sample/sockops.c"
-    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(16));
-    // EBPF_OP_OR64_REG pc=65 dst=r6 src=r0 offset=0 imm=0
-#line 57 "sample/sockops.c"
-    r6 |= r0;
-    // EBPF_OP_LDXB pc=66 dst=r0 src=r1 offset=19 imm=0
-#line 57 "sample/sockops.c"
-    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(19));
-    // EBPF_OP_LSH64_IMM pc=67 dst=r0 src=r0 offset=0 imm=8
-#line 57 "sample/sockops.c"
-    r0 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=68 dst=r7 src=r1 offset=18 imm=0
-#line 57 "sample/sockops.c"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(18));
-    // EBPF_OP_OR64_REG pc=69 dst=r0 src=r7 offset=0 imm=0
-#line 57 "sample/sockops.c"
-    r0 |= r7;
-    // EBPF_OP_LSH64_IMM pc=70 dst=r0 src=r0 offset=0 imm=16
+    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(18));
+    // EBPF_OP_LSH64_IMM pc=59 dst=r0 src=r0 offset=0 imm=16
 #line 57 "sample/sockops.c"
     r0 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=71 dst=r0 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXB pc=60 dst=r4 src=r1 offset=19 imm=0
 #line 57 "sample/sockops.c"
-    r0 |= r6;
-    // EBPF_OP_LSH64_IMM pc=72 dst=r4 src=r0 offset=0 imm=16
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(19));
+    // EBPF_OP_LSH64_IMM pc=61 dst=r4 src=r0 offset=0 imm=24
 #line 57 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=73 dst=r4 src=r5 offset=0 imm=0
-#line 57 "sample/sockops.c"
-    r4 |= r5;
-    // EBPF_OP_LDXB pc=74 dst=r6 src=r1 offset=9 imm=0
-#line 57 "sample/sockops.c"
-    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(9));
-    // EBPF_OP_LSH64_IMM pc=75 dst=r6 src=r0 offset=0 imm=8
-#line 57 "sample/sockops.c"
-    r6 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=76 dst=r5 src=r1 offset=8 imm=0
-#line 57 "sample/sockops.c"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(8));
-    // EBPF_OP_OR64_REG pc=77 dst=r6 src=r5 offset=0 imm=0
-#line 57 "sample/sockops.c"
-    r6 |= r5;
-    // EBPF_OP_LDXB pc=78 dst=r5 src=r1 offset=11 imm=0
-#line 57 "sample/sockops.c"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(11));
-    // EBPF_OP_LSH64_IMM pc=79 dst=r5 src=r0 offset=0 imm=8
-#line 57 "sample/sockops.c"
-    r5 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=80 dst=r7 src=r1 offset=10 imm=0
-#line 57 "sample/sockops.c"
-    r7 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(10));
-    // EBPF_OP_OR64_REG pc=81 dst=r5 src=r7 offset=0 imm=0
-#line 57 "sample/sockops.c"
-    r5 |= r7;
-    // EBPF_OP_OR64_REG pc=82 dst=r2 src=r3 offset=0 imm=0
-#line 64 "sample/sockops.c"
-    r2 |= r3;
-    // EBPF_OP_LSH64_IMM pc=83 dst=r4 src=r0 offset=0 imm=32
-#line 57 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_OR64_REG pc=84 dst=r4 src=r0 offset=0 imm=0
+    r4 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=62 dst=r4 src=r0 offset=0 imm=0
 #line 57 "sample/sockops.c"
     r4 |= r0;
-    // EBPF_OP_STXDW pc=85 dst=r10 src=r4 offset=-56 imm=0
+    // EBPF_OP_OR64_REG pc=63 dst=r4 src=r5 offset=0 imm=0
 #line 57 "sample/sockops.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r4;
-    // EBPF_OP_LSH64_IMM pc=86 dst=r5 src=r0 offset=0 imm=16
+    r4 |= r5;
+    // EBPF_OP_LDXB pc=64 dst=r0 src=r1 offset=21 imm=0
 #line 57 "sample/sockops.c"
-    r5 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=87 dst=r5 src=r6 offset=0 imm=0
+    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(21));
+    // EBPF_OP_LSH64_IMM pc=65 dst=r0 src=r0 offset=0 imm=8
+#line 57 "sample/sockops.c"
+    r0 <<= (IMMEDIATE(8) & 63);
+    // EBPF_OP_LDXB pc=66 dst=r5 src=r1 offset=20 imm=0
+#line 57 "sample/sockops.c"
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(20));
+    // EBPF_OP_OR64_REG pc=67 dst=r0 src=r5 offset=0 imm=0
+#line 57 "sample/sockops.c"
+    r0 |= r5;
+    // EBPF_OP_LDXB pc=68 dst=r6 src=r1 offset=22 imm=0
+#line 57 "sample/sockops.c"
+    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(22));
+    // EBPF_OP_LSH64_IMM pc=69 dst=r6 src=r0 offset=0 imm=16
+#line 57 "sample/sockops.c"
+    r6 <<= (IMMEDIATE(16) & 63);
+    // EBPF_OP_LDXB pc=70 dst=r5 src=r1 offset=23 imm=0
+#line 57 "sample/sockops.c"
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(23));
+    // EBPF_OP_LSH64_IMM pc=71 dst=r5 src=r0 offset=0 imm=24
+#line 57 "sample/sockops.c"
+    r5 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=72 dst=r5 src=r6 offset=0 imm=0
 #line 57 "sample/sockops.c"
     r5 |= r6;
+    // EBPF_OP_OR64_REG pc=73 dst=r5 src=r0 offset=0 imm=0
+#line 57 "sample/sockops.c"
+    r5 |= r0;
+    // EBPF_OP_LSH64_IMM pc=74 dst=r5 src=r0 offset=0 imm=32
+#line 57 "sample/sockops.c"
+    r5 <<= (IMMEDIATE(32) & 63);
+    // EBPF_OP_OR64_REG pc=75 dst=r5 src=r4 offset=0 imm=0
+#line 57 "sample/sockops.c"
+    r5 |= r4;
+    // EBPF_OP_LDXB pc=76 dst=r0 src=r1 offset=9 imm=0
+#line 57 "sample/sockops.c"
+    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(9));
+    // EBPF_OP_LSH64_IMM pc=77 dst=r0 src=r0 offset=0 imm=8
+#line 57 "sample/sockops.c"
+    r0 <<= (IMMEDIATE(8) & 63);
+    // EBPF_OP_LDXB pc=78 dst=r4 src=r1 offset=8 imm=0
+#line 57 "sample/sockops.c"
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(8));
+    // EBPF_OP_OR64_REG pc=79 dst=r0 src=r4 offset=0 imm=0
+#line 57 "sample/sockops.c"
+    r0 |= r4;
+    // EBPF_OP_LDXB pc=80 dst=r6 src=r1 offset=10 imm=0
+#line 57 "sample/sockops.c"
+    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(10));
+    // EBPF_OP_LSH64_IMM pc=81 dst=r6 src=r0 offset=0 imm=16
+#line 57 "sample/sockops.c"
+    r6 <<= (IMMEDIATE(16) & 63);
+    // EBPF_OP_LDXB pc=82 dst=r4 src=r1 offset=11 imm=0
+#line 57 "sample/sockops.c"
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(11));
+    // EBPF_OP_LSH64_IMM pc=83 dst=r4 src=r0 offset=0 imm=24
+#line 57 "sample/sockops.c"
+    r4 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=84 dst=r4 src=r6 offset=0 imm=0
+#line 57 "sample/sockops.c"
+    r4 |= r6;
+    // EBPF_OP_OR64_REG pc=85 dst=r2 src=r3 offset=0 imm=0
+#line 64 "sample/sockops.c"
+    r2 |= r3;
+    // EBPF_OP_STXDW pc=86 dst=r10 src=r5 offset=-56 imm=0
+#line 57 "sample/sockops.c"
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r5;
+    // EBPF_OP_OR64_REG pc=87 dst=r4 src=r0 offset=0 imm=0
+#line 57 "sample/sockops.c"
+    r4 |= r0;
     // EBPF_OP_LDXB pc=88 dst=r3 src=r1 offset=13 imm=0
 #line 57 "sample/sockops.c"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(13));
     // EBPF_OP_LSH64_IMM pc=89 dst=r3 src=r0 offset=0 imm=8
 #line 57 "sample/sockops.c"
     r3 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=90 dst=r4 src=r1 offset=12 imm=0
+    // EBPF_OP_LDXB pc=90 dst=r5 src=r1 offset=12 imm=0
 #line 57 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(12));
-    // EBPF_OP_OR64_REG pc=91 dst=r3 src=r4 offset=0 imm=0
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(12));
+    // EBPF_OP_OR64_REG pc=91 dst=r3 src=r5 offset=0 imm=0
 #line 57 "sample/sockops.c"
-    r3 |= r4;
-    // EBPF_OP_LDXB pc=92 dst=r4 src=r1 offset=15 imm=0
+    r3 |= r5;
+    // EBPF_OP_LDXB pc=92 dst=r5 src=r1 offset=14 imm=0
 #line 57 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(15));
-    // EBPF_OP_LSH64_IMM pc=93 dst=r4 src=r0 offset=0 imm=8
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
+    // EBPF_OP_LSH64_IMM pc=93 dst=r5 src=r0 offset=0 imm=16
 #line 57 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=94 dst=r0 src=r1 offset=14 imm=0
+    r5 <<= (IMMEDIATE(16) & 63);
+    // EBPF_OP_LDXB pc=94 dst=r0 src=r1 offset=15 imm=0
 #line 57 "sample/sockops.c"
-    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
-    // EBPF_OP_OR64_REG pc=95 dst=r4 src=r0 offset=0 imm=0
+    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(15));
+    // EBPF_OP_LSH64_IMM pc=95 dst=r0 src=r0 offset=0 imm=24
 #line 57 "sample/sockops.c"
-    r4 |= r0;
-    // EBPF_OP_LSH64_IMM pc=96 dst=r4 src=r0 offset=0 imm=16
+    r0 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=96 dst=r0 src=r5 offset=0 imm=0
 #line 57 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=97 dst=r4 src=r3 offset=0 imm=0
+    r0 |= r5;
+    // EBPF_OP_OR64_REG pc=97 dst=r0 src=r3 offset=0 imm=0
 #line 57 "sample/sockops.c"
-    r4 |= r3;
-    // EBPF_OP_LSH64_IMM pc=98 dst=r4 src=r0 offset=0 imm=32
+    r0 |= r3;
+    // EBPF_OP_LSH64_IMM pc=98 dst=r0 src=r0 offset=0 imm=32
 #line 57 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_OR64_REG pc=99 dst=r4 src=r5 offset=0 imm=0
+    r0 <<= (IMMEDIATE(32) & 63);
+    // EBPF_OP_OR64_REG pc=99 dst=r0 src=r4 offset=0 imm=0
 #line 57 "sample/sockops.c"
-    r4 |= r5;
-    // EBPF_OP_STXDW pc=100 dst=r10 src=r4 offset=-64 imm=0
+    r0 |= r4;
+    // EBPF_OP_STXDW pc=100 dst=r10 src=r0 offset=-64 imm=0
 #line 57 "sample/sockops.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint64_t)r4;
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint64_t)r0;
     // EBPF_OP_LDXW pc=101 dst=r3 src=r1 offset=24 imm=0
 #line 58 "sample/sockops.c"
     r3 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(24));
     // EBPF_OP_STXH pc=102 dst=r10 src=r3 offset=-48 imm=0
 #line 58 "sample/sockops.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint16_t)r3;
-    // EBPF_OP_LDXB pc=103 dst=r5 src=r1 offset=41 imm=0
+    // EBPF_OP_LDXB pc=103 dst=r4 src=r1 offset=41 imm=0
 #line 60 "sample/sockops.c"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(41));
-    // EBPF_OP_LSH64_IMM pc=104 dst=r5 src=r0 offset=0 imm=8
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(41));
+    // EBPF_OP_LSH64_IMM pc=104 dst=r4 src=r0 offset=0 imm=8
 #line 60 "sample/sockops.c"
-    r5 <<= (IMMEDIATE(8) & 63);
+    r4 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=105 dst=r3 src=r1 offset=40 imm=0
 #line 60 "sample/sockops.c"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(40));
-    // EBPF_OP_OR64_REG pc=106 dst=r5 src=r3 offset=0 imm=0
+    // EBPF_OP_OR64_REG pc=106 dst=r4 src=r3 offset=0 imm=0
 #line 60 "sample/sockops.c"
-    r5 |= r3;
-    // EBPF_OP_LDXB pc=107 dst=r3 src=r1 offset=43 imm=0
+    r4 |= r3;
+    // EBPF_OP_LDXB pc=107 dst=r5 src=r1 offset=42 imm=0
+#line 60 "sample/sockops.c"
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(42));
+    // EBPF_OP_LSH64_IMM pc=108 dst=r5 src=r0 offset=0 imm=16
+#line 60 "sample/sockops.c"
+    r5 <<= (IMMEDIATE(16) & 63);
+    // EBPF_OP_LDXB pc=109 dst=r3 src=r1 offset=43 imm=0
 #line 60 "sample/sockops.c"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(43));
-    // EBPF_OP_LSH64_IMM pc=108 dst=r3 src=r0 offset=0 imm=8
+    // EBPF_OP_LSH64_IMM pc=110 dst=r3 src=r0 offset=0 imm=24
 #line 60 "sample/sockops.c"
-    r3 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=109 dst=r4 src=r1 offset=42 imm=0
-#line 60 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(42));
-    // EBPF_OP_OR64_REG pc=110 dst=r3 src=r4 offset=0 imm=0
-#line 60 "sample/sockops.c"
-    r3 |= r4;
-    // EBPF_OP_LDXB pc=111 dst=r0 src=r1 offset=29 imm=0
-#line 60 "sample/sockops.c"
-    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(29));
-    // EBPF_OP_LSH64_IMM pc=112 dst=r0 src=r0 offset=0 imm=8
-#line 60 "sample/sockops.c"
-    r0 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=113 dst=r4 src=r1 offset=28 imm=0
-#line 60 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(28));
-    // EBPF_OP_OR64_REG pc=114 dst=r0 src=r4 offset=0 imm=0
-#line 60 "sample/sockops.c"
-    r0 |= r4;
-    // EBPF_OP_LDXB pc=115 dst=r4 src=r1 offset=31 imm=0
-#line 60 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(31));
-    // EBPF_OP_LSH64_IMM pc=116 dst=r4 src=r0 offset=0 imm=8
-#line 60 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=117 dst=r6 src=r1 offset=30 imm=0
-#line 60 "sample/sockops.c"
-    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(30));
-    // EBPF_OP_OR64_REG pc=118 dst=r4 src=r6 offset=0 imm=0
-#line 60 "sample/sockops.c"
-    r4 |= r6;
-    // EBPF_OP_LSH64_IMM pc=119 dst=r4 src=r0 offset=0 imm=16
-#line 60 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=120 dst=r4 src=r0 offset=0 imm=0
-#line 60 "sample/sockops.c"
-    r4 |= r0;
-    // EBPF_OP_LSH64_IMM pc=121 dst=r3 src=r0 offset=0 imm=16
-#line 60 "sample/sockops.c"
-    r3 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=122 dst=r3 src=r5 offset=0 imm=0
+    r3 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=111 dst=r3 src=r5 offset=0 imm=0
 #line 60 "sample/sockops.c"
     r3 |= r5;
-    // EBPF_OP_LDXB pc=123 dst=r5 src=r1 offset=37 imm=0
+    // EBPF_OP_LDXB pc=112 dst=r0 src=r1 offset=29 imm=0
 #line 60 "sample/sockops.c"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(37));
-    // EBPF_OP_LSH64_IMM pc=124 dst=r5 src=r0 offset=0 imm=8
+    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(29));
+    // EBPF_OP_LSH64_IMM pc=113 dst=r0 src=r0 offset=0 imm=8
 #line 60 "sample/sockops.c"
-    r5 <<= (IMMEDIATE(8) & 63);
+    r0 <<= (IMMEDIATE(8) & 63);
+    // EBPF_OP_LDXB pc=114 dst=r5 src=r1 offset=28 imm=0
+#line 60 "sample/sockops.c"
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(28));
+    // EBPF_OP_OR64_REG pc=115 dst=r0 src=r5 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r0 |= r5;
+    // EBPF_OP_LDXB pc=116 dst=r6 src=r1 offset=30 imm=0
+#line 60 "sample/sockops.c"
+    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(30));
+    // EBPF_OP_LSH64_IMM pc=117 dst=r6 src=r0 offset=0 imm=16
+#line 60 "sample/sockops.c"
+    r6 <<= (IMMEDIATE(16) & 63);
+    // EBPF_OP_LDXB pc=118 dst=r5 src=r1 offset=31 imm=0
+#line 60 "sample/sockops.c"
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(31));
+    // EBPF_OP_LSH64_IMM pc=119 dst=r5 src=r0 offset=0 imm=24
+#line 60 "sample/sockops.c"
+    r5 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=120 dst=r5 src=r6 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r5 |= r6;
+    // EBPF_OP_OR64_REG pc=121 dst=r5 src=r0 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r5 |= r0;
+    // EBPF_OP_OR64_REG pc=122 dst=r3 src=r4 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r3 |= r4;
+    // EBPF_OP_LDXB pc=123 dst=r4 src=r1 offset=37 imm=0
+#line 60 "sample/sockops.c"
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(37));
+    // EBPF_OP_LSH64_IMM pc=124 dst=r4 src=r0 offset=0 imm=8
+#line 60 "sample/sockops.c"
+    r4 <<= (IMMEDIATE(8) & 63);
     // EBPF_OP_LDXB pc=125 dst=r0 src=r1 offset=36 imm=0
 #line 60 "sample/sockops.c"
     r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(36));
-    // EBPF_OP_OR64_REG pc=126 dst=r5 src=r0 offset=0 imm=0
+    // EBPF_OP_OR64_REG pc=126 dst=r4 src=r0 offset=0 imm=0
 #line 60 "sample/sockops.c"
-    r5 |= r0;
-    // EBPF_OP_LDXB pc=127 dst=r0 src=r1 offset=39 imm=0
+    r4 |= r0;
+    // EBPF_OP_LDXB pc=127 dst=r0 src=r1 offset=38 imm=0
 #line 60 "sample/sockops.c"
-    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(39));
-    // EBPF_OP_LSH64_IMM pc=128 dst=r0 src=r0 offset=0 imm=8
-#line 60 "sample/sockops.c"
-    r0 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=129 dst=r6 src=r1 offset=38 imm=0
-#line 60 "sample/sockops.c"
-    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(38));
-    // EBPF_OP_OR64_REG pc=130 dst=r0 src=r6 offset=0 imm=0
-#line 60 "sample/sockops.c"
-    r0 |= r6;
-    // EBPF_OP_LSH64_IMM pc=131 dst=r0 src=r0 offset=0 imm=16
+    r0 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(38));
+    // EBPF_OP_LSH64_IMM pc=128 dst=r0 src=r0 offset=0 imm=16
 #line 60 "sample/sockops.c"
     r0 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=132 dst=r0 src=r5 offset=0 imm=0
+    // EBPF_OP_LDXB pc=129 dst=r6 src=r1 offset=39 imm=0
 #line 60 "sample/sockops.c"
-    r0 |= r5;
-    // EBPF_OP_STXW pc=133 dst=r10 src=r0 offset=-36 imm=0
+    r6 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(39));
+    // EBPF_OP_LSH64_IMM pc=130 dst=r6 src=r0 offset=0 imm=24
 #line 60 "sample/sockops.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-36)) = (uint32_t)r0;
+    r6 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=131 dst=r6 src=r0 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r6 |= r0;
+    // EBPF_OP_OR64_REG pc=132 dst=r6 src=r4 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r6 |= r4;
+    // EBPF_OP_STXW pc=133 dst=r10 src=r6 offset=-36 imm=0
+#line 60 "sample/sockops.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-36)) = (uint32_t)r6;
     // EBPF_OP_STXW pc=134 dst=r10 src=r3 offset=-32 imm=0
 #line 60 "sample/sockops.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint32_t)r3;
-    // EBPF_OP_STXW pc=135 dst=r10 src=r4 offset=-44 imm=0
+    // EBPF_OP_STXW pc=135 dst=r10 src=r5 offset=-44 imm=0
 #line 60 "sample/sockops.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-44)) = (uint32_t)r4;
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-44)) = (uint32_t)r5;
     // EBPF_OP_LDXB pc=136 dst=r3 src=r1 offset=33 imm=0
 #line 60 "sample/sockops.c"
     r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(33));
@@ -535,27 +533,27 @@ label_3:
     // EBPF_OP_OR64_REG pc=139 dst=r3 src=r4 offset=0 imm=0
 #line 60 "sample/sockops.c"
     r3 |= r4;
-    // EBPF_OP_LDXB pc=140 dst=r4 src=r1 offset=35 imm=0
+    // EBPF_OP_LDXB pc=140 dst=r4 src=r1 offset=34 imm=0
 #line 60 "sample/sockops.c"
-    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(35));
-    // EBPF_OP_LSH64_IMM pc=141 dst=r4 src=r0 offset=0 imm=8
-#line 60 "sample/sockops.c"
-    r4 <<= (IMMEDIATE(8) & 63);
-    // EBPF_OP_LDXB pc=142 dst=r5 src=r1 offset=34 imm=0
-#line 60 "sample/sockops.c"
-    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(34));
-    // EBPF_OP_OR64_REG pc=143 dst=r4 src=r5 offset=0 imm=0
-#line 60 "sample/sockops.c"
-    r4 |= r5;
-    // EBPF_OP_LSH64_IMM pc=144 dst=r4 src=r0 offset=0 imm=16
+    r4 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(34));
+    // EBPF_OP_LSH64_IMM pc=141 dst=r4 src=r0 offset=0 imm=16
 #line 60 "sample/sockops.c"
     r4 <<= (IMMEDIATE(16) & 63);
-    // EBPF_OP_OR64_REG pc=145 dst=r4 src=r3 offset=0 imm=0
+    // EBPF_OP_LDXB pc=142 dst=r5 src=r1 offset=35 imm=0
 #line 60 "sample/sockops.c"
-    r4 |= r3;
-    // EBPF_OP_STXW pc=146 dst=r10 src=r4 offset=-40 imm=0
+    r5 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(35));
+    // EBPF_OP_LSH64_IMM pc=143 dst=r5 src=r0 offset=0 imm=24
 #line 60 "sample/sockops.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint32_t)r4;
+    r5 <<= (IMMEDIATE(24) & 63);
+    // EBPF_OP_OR64_REG pc=144 dst=r5 src=r4 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r5 |= r4;
+    // EBPF_OP_OR64_REG pc=145 dst=r5 src=r3 offset=0 imm=0
+#line 60 "sample/sockops.c"
+    r5 |= r3;
+    // EBPF_OP_STXW pc=146 dst=r10 src=r5 offset=-40 imm=0
+#line 60 "sample/sockops.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint32_t)r5;
     // EBPF_OP_LDXW pc=147 dst=r3 src=r1 offset=44 imm=0
 #line 61 "sample/sockops.c"
     r3 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
@@ -613,25 +611,25 @@ label_4:
 #line 26 "sample/sockops.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=164 dst=r2 src=r0 offset=0 imm=-64
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     r2 += IMMEDIATE(-64);
     // EBPF_OP_LDDW pc=165 dst=r1 src=r0 offset=0 imm=0
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=167 dst=r3 src=r0 offset=0 imm=64
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     r3 = IMMEDIATE(64);
     // EBPF_OP_MOV64_IMM pc=168 dst=r4 src=r0 offset=0 imm=0
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=169 dst=r0 src=r0 offset=0 imm=11
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     r0 = connection_monitor_helpers[1].address(r1, r2, r3, r4, r5);
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     if ((connection_monitor_helpers[1].tail_call) && (r0 == 0)) {
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
         return 0;
-#line 26 "sample/sockops.c"
+#line 94 "sample/sockops.c"
     }
 label_5:
     // EBPF_OP_EXIT pc=170 dst=r0 src=r0 offset=0 imm=0
