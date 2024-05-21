@@ -18,13 +18,15 @@ To ensure service creation / deletion, and driver load / unload are synchronized
 
 1. ebpfcore exposes a new IOCTL `GET_NATIVE_MODULE_HANDLE` which takes service name as input.
 2. Any user app that wants to load the native module calls `GET_NATIVE_MODULE_HANDLE` IOCTL.
-3. If ebpfcore finds a module entry which is already loaded, it returns success. App continues to step 7.
-6. If the user app gets `EBPF_SERVICE_NOT_PRESENT`, it deletes any possible previous service entry, and creates a new service entry. Continue to step 7.
-7. If 2 threads are calling `GET_NATIVE_MODULE_HANDLE` in parallel for the same module that is not yet loaded, one thread will get `EBPF_SERVICE_NOT_PRESENT` error, which delegates service entry creation to that app. Other threads will be blocked until the delegated thread creates a service entry and loads the driver.
-8. If user app gets SUCCESS, it proceeds to call `LOAD_NATIVE_MODULE` by passing the module handle that was provided by ebpfcore.
-9. Once the module is loaded, threads that were blocked earlier for `GET_NATIVE_MODULE_HANDLE` will be unblocked.
-10. Apps can then call `LOAD_NATIVE_MODULE_PROGRAMS` to load the programs from the native module.
-11. If an app calls `GET_NATIVE_MODULE_HANDLE` while the native module is being unloaded, it will block until the driver has been unloaded. Once the driver has been unloaded, the thread will be unblocked and will get `EBPF_SERVICE_NOT_PRESENT` return code.
+3. If ebpfcore finds a module entry which is already loaded, it returns `SUCCESS`. App continues to step 6.
+4. If ebpfcore does not find a module entry with that service name, it returns `EBPF_SERVICE_NOT_PRESENT` to user mode.
+5. If the user app gets `EBPF_SERVICE_NOT_PRESENT`, it deletes any possible previous service entry, and creates a new service entry. Continue to step 6.
+6. If 2 threads are calling `GET_NATIVE_MODULE_HANDLE` in parallel for the same module that is not yet loaded, one thread will get `EBPF_SERVICE_NOT_PRESENT` error, which delegates service entry creation to that thread. Other threads will be blocked until the delegated thread creates a service entry and loads the driver (by calling `LOAD_NATIVE_MODULE`).
+7. If user app gets SUCCESS, it proceeds to call `LOAD_NATIVE_MODULE` by passing the module handle that was provided by ebpfcore.
+8. Once the module is loaded, threads that were blocked earlier for `GET_NATIVE_MODULE_HANDLE` will be unblocked.
+9. Apps can then call `LOAD_NATIVE_MODULE_PROGRAMS` to load the programs from the native module.
+10. If an app calls `GET_NATIVE_MODULE_HANDLE` while the native module is being unloaded, it will block until the driver has been unloaded. Once the driver has been unloaded, the thread will be unblocked and will get `EBPF_SERVICE_NOT_PRESENT` return code.
+11. If the delegated app that was creating the service crashes, that will cause the module handle to be closed. Closing the handle will give an indication to ebpfcore to choose one of the other waiting threads (if any) to create the service entry and load the driver.
 
 #### `GET_NATIVE_MODULE_HANDLE` Design:
 1. UM will pass the service name. ebpfcore looks for the module based on the service name.
