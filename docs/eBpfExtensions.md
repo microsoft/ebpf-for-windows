@@ -250,8 +250,8 @@ program information provider and the signature of any helper functions used. The
     1. ebpf_helper_function_prototype_t::helper_id
     2. ebpf_helper_function_prototype_t::name
     3. ebpf_helper_function_prototype_t::return_type
-    4. Each ebpf_helper_function_prototype_t::arguments
-    5. ebpf_helper_function_prototype_t::flags - only if non-default value.
+    4. Each element of the ebpf_helper_function_prototype_t::arguments array
+    5. ebpf_helper_function_prototype_t::flags - only if non-default value
 
 Any new fields MUST be added to the end of the hash and the hash MUST include all fields up to and including the last
 field containing a non-default value. Fields containing default values after the last non-default value MUST NOT
