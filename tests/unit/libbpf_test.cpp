@@ -3234,14 +3234,15 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
 }
 
 void
-_test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts, bool concurrent_delete)
+_test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts)
 {
     // Retrieve in batches.
+    const uint8_t batch_size_divisor = 10;
     uint32_t* in_batch = nullptr;
     uint32_t out_batch = 0;
     std::vector<uint32_t> returned_keys(0);
     std::vector<uint64_t> returned_values(0);
-    uint32_t requested_batch_size = batch_size / 10 - 2;
+    uint32_t requested_batch_size = (batch_size / batch_size_divisor) - 2;
     uint32_t batch_size_count = 0;
     int result = 0;
 
@@ -3268,10 +3269,6 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
         returned_values.insert(returned_values.end(), batch_values.begin(), batch_values.end());
 
         in_batch = &out_batch;
-        if (concurrent_delete) {
-            REQUIRE(bpf_map_delete_elem(map_fd, &out_batch) == 0);
-            batch_size -= 1;
-        }
     }
 
     REQUIRE(returned_keys.size() == batch_size);
@@ -3288,7 +3285,7 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
 }
 
 void
-_test_maps_batch(bpf_map_type map_type, bool concurrent_delete = false)
+_test_maps_batch(bpf_map_type map_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3353,7 +3350,7 @@ _test_maps_batch(bpf_map_type map_type, bool concurrent_delete = false)
             &opts) == -ENOENT);
 
     // Fetch all keys in batches.
-    _test_batch_iteration_maps(map_fd, batch_size, &opts, concurrent_delete);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts);
 
     // Delete the batch.
     uint32_t delete_batch_size = batch_size;
