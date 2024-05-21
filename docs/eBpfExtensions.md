@@ -239,7 +239,7 @@ as well. Existing eBPF extensions would need to be re-compiled to work with the 
 #### 2.2.1 Hashing of data structures to validate verification of native images
 When native images are generated, bpf2c uses the verifier to ensure that the program is safe to execute and then
 computes a hash over the invariants used to validate the program. These invariants include the properties of the
-program information provider and the signature of helper functions. The following fields are included in the hash:
+program information provider and the signature of any helper functions used. The following fields are included in the hash:
 1. ebpf_program_type_descriptor_t::name
 2. ebpf_program_type_descriptor_t::context_descriptor
 3. ebpf_program_type_descriptor_t::program_type
@@ -259,7 +259,6 @@ be included. This ensures that hashes computed over older versions of the struct
 is not being used. If a new feature or functionality is being used, the hash value MUST change to ensure that the
 verification constraints are honored. All new fields that affect verification MUST be included with a non-default value
 and all fields that do not affect verification MUST NOT be included.
-
 
 ### 2.3 Program Information NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that
