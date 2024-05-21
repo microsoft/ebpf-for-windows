@@ -1,6 +1,6 @@
 # Load Multiple Instances of Native Module
 
-When using the native mode on Windows, the programs are loaded from a native driver instead of an ELF file. As part of the load operation, the native driver is loaded in the kernel and the eBPF execution context orchestrates the creation of maps and loading the programs from the native driver. The execution context fetches the map properties from the native module (using functions exported by the native driver via NMR) and creates the required maps.
+When using native mode on Windows, the programs are loaded from a native driver instead of an ELF file. As part of the load operation, the native driver is loaded in the kernel and the eBPF execution context orchestrates the creation of maps and loading the programs from the native driver. The execution context fetches the map properties from the native module (using functions exported by the native driver via NMR) and creates the required maps.
 But when trying to load the same native driver again, we hit a restriction that a driver cannot be loaded multiples times. This restriction creates a limitation where the same program(s) cannot be loaded multiple times when using native mode.
 
 This document discusses proposal(s) for loading eBPF programs multiple times from the same native module.
@@ -17,14 +17,14 @@ To ensure service creation / deletion, and driver load / unload are synchronized
 ### Option 1
 
 1. ebpfcore exposes a new IOCTL `GET_NATIVE_MODULE_HANDLE` which takes service name as input.
-2. Any user app that wants to load the native module calls `GET_NATIVE_MODULE_HANDLE` IOCTL.
-3. If ebpfcore finds a module entry which is already loaded, it returns `SUCCESS`. App continues to step 6.
+2. Any user app that wants to load the native module first calls `GET_NATIVE_MODULE_HANDLE` IOCTL.
+3. If ebpfcore finds a module entry which is already loaded, it returns `SUCCESS`. App continues to step 7.
 4. If ebpfcore does not find a module entry with that service name, it returns `EBPF_SERVICE_NOT_PRESENT` to user mode.
-5. If the user app gets `EBPF_SERVICE_NOT_PRESENT`, it deletes any possible previous service entry, and creates a new service entry. Continue to step 6.
+5. If the user app gets `EBPF_SERVICE_NOT_PRESENT`, it deletes any possible previous service entry, and creates a new service entry. Continue to step 7.
 6. If 2 threads are calling `GET_NATIVE_MODULE_HANDLE` in parallel for the same module that is not yet loaded, one thread will get `EBPF_SERVICE_NOT_PRESENT` error, which delegates service entry creation to that thread. Other threads will be blocked until the delegated thread creates a service entry and loads the driver (by calling `LOAD_NATIVE_MODULE`).
 7. If user app gets SUCCESS, it proceeds to call `LOAD_NATIVE_MODULE` by passing the module handle that was provided by ebpfcore.
 8. Once the module is loaded, threads that were blocked earlier for `GET_NATIVE_MODULE_HANDLE` will be unblocked.
-9. Apps can then call `LOAD_NATIVE_MODULE_PROGRAMS` to load the programs from the native module.
+9. Apps can then call `LOAD_NATIVE_MODULE_PROGRAMS` to load multiple instances of programs from the native module.
 10. If an app calls `GET_NATIVE_MODULE_HANDLE` while the native module is being unloaded, it will block until the driver has been unloaded. Once the driver has been unloaded, the thread will be unblocked and will get `EBPF_SERVICE_NOT_PRESENT` return code.
 11. If the delegated app that was creating the service crashes, that will cause the module handle to be closed. Closing the handle will give an indication to ebpfcore to choose one of the other waiting threads (if any) to create the service entry and load the driver.
 
@@ -50,7 +50,7 @@ Changes needed to implement this:
 1. Installer installs the service entry. We need to ensure the service name is unique. Two native modules with same name but in different locations should be installed as 2 different services. Installer also populates the client module ID registry key with a random GUID.
 2. The app that loads the program will pass the service name to ebpfapi (TBD: How does app know the service name for its service). We can still use the existing `bpf_object__open` API, and the API can take the service name instead of file name as input.
 
-If we want to continue using existing APIs without any change, it causes a limitation that with this approach, **every user** of native module will need to implement the installer logic.
+**Note**: If we want to continue using existing APIs without any change, it causes a limitation that with this approach, **every user** of native module will need to implement the installer logic.
 
 ## Native Module Changes
 This section captures the changes needed to support multiple instances of program in native module driver.
