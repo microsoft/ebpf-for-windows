@@ -3233,14 +3233,70 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     usersim_trace_logging_set_enabled(false, 0, 0);
 }
 
-TEST_CASE("libbpf map batch", "[libbpf]")
+void
+_test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts, bool concurrent_delete)
+{
+    // Retrieve in batches.
+    uint32_t* next_key_ptr = nullptr;
+    uint32_t next_key = 0;
+    uint32_t total_keys = 0;
+    std::vector<uint32_t> returned_keys(0);
+    std::vector<uint64_t> returned_values(0);
+    uint32_t requested_batch_size = batch_size / 10 - 2;
+    uint32_t temp_batch_size = 0;
+    int ret = 0;
+
+    for (;;) {
+        std::vector<uint32_t> temp_keys(requested_batch_size);
+        std::vector<uint64_t> temp_values(requested_batch_size);
+
+        temp_batch_size = static_cast<uint32_t>(temp_keys.size());
+        ret = bpf_map_lookup_batch(
+            map_fd, next_key_ptr, &next_key, temp_keys.data(), temp_values.data(), &temp_batch_size, opts);
+        if (ret == -ENOENT) {
+            printf("No more entries. End of map reached.\n");
+            break;
+        }
+
+        REQUIRE(ret == 0);
+        REQUIRE(temp_batch_size <= static_cast<uint32_t>(temp_keys.size()));
+        REQUIRE(temp_batch_size <= static_cast<uint32_t>(temp_values.size()));
+
+        temp_keys.resize(temp_batch_size);
+        temp_values.resize(temp_batch_size);
+        returned_keys.insert(returned_keys.end(), temp_keys.begin(), temp_keys.end());
+        returned_values.insert(returned_values.end(), temp_values.begin(), temp_values.end());
+
+        next_key_ptr = &next_key;
+        total_keys += temp_batch_size;
+
+        if (concurrent_delete) {
+            REQUIRE(bpf_map_delete_elem(map_fd, &next_key) == 0);
+        }
+    }
+
+    REQUIRE(returned_keys.size() == total_keys);
+    REQUIRE(returned_values.size() == total_keys);
+
+    std::sort(returned_keys.begin(), returned_keys.end());
+    std::sort(returned_values.begin(), returned_values.end());
+
+    // Verify the returned keys and values.
+    for (uint32_t i = 0; i < total_keys; i++) {
+        REQUIRE(returned_keys[i] == i);
+        REQUIRE(returned_values[i] == static_cast<uint64_t>(i) * 2ul);
+    }
+}
+
+void
+_test_maps_batch(bpf_map_type map_type, bool concurrent_delete = false)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // Create a hash map.
     union bpf_attr attr = {};
-    attr.map_type = BPF_MAP_TYPE_HASH;
+    attr.map_type = map_type;
     attr.key_size = sizeof(uint32_t);
     attr.value_size = sizeof(uint64_t);
     attr.max_entries = 1024 * 1024;
@@ -3296,6 +3352,9 @@ TEST_CASE("libbpf map batch", "[libbpf]")
             fetched_values.data(),
             &large_fetched_batch_size,
             &opts) == -ENOENT);
+
+    // Fetch all keys in batches.
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, concurrent_delete);
 
     // Delete the batch.
     uint32_t delete_batch_size = batch_size;
@@ -3378,6 +3437,10 @@ TEST_CASE("libbpf map batch", "[libbpf]")
     delete_batch_size = batch_size;
     REQUIRE(bpf_map_delete_batch(invalid_map_fd, keys.data(), &delete_batch_size, &opts) == -EBADF);
 }
+
+TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_HASH); }
+
+TEST_CASE("libbpf lru hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_HASH); }
 
 void
 _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)
