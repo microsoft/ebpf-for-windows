@@ -3239,7 +3239,6 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
     // Retrieve in batches.
     uint32_t* next_key_ptr = nullptr;
     uint32_t next_key = 0;
-    uint32_t total_keys = 0;
     std::vector<uint32_t> returned_keys(0);
     std::vector<uint64_t> returned_values(0);
     uint32_t requested_batch_size = batch_size / 10 - 2;
@@ -3268,21 +3267,20 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
         returned_values.insert(returned_values.end(), temp_values.begin(), temp_values.end());
 
         next_key_ptr = &next_key;
-        total_keys += temp_batch_size;
-
         if (concurrent_delete) {
             REQUIRE(bpf_map_delete_elem(map_fd, &next_key) == 0);
+            batch_size -= 1;
         }
     }
 
-    REQUIRE(returned_keys.size() == total_keys);
-    REQUIRE(returned_values.size() == total_keys);
+    REQUIRE(returned_keys.size() == batch_size);
+    REQUIRE(returned_values.size() == batch_size);
 
     std::sort(returned_keys.begin(), returned_keys.end());
     std::sort(returned_values.begin(), returned_values.end());
 
     // Verify the returned keys and values.
-    for (uint32_t i = 0; i < total_keys; i++) {
+    for (uint32_t i = 0; i < batch_size; i++) {
         REQUIRE(returned_keys[i] == i);
         REQUIRE(returned_values[i] == static_cast<uint64_t>(i) * 2ul);
     }
