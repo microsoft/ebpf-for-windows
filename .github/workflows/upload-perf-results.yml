@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 # This workflow executes a single test, optionally gathering code coverage and logs.
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142 # v2.7.0
+      uses: step-security/harden-runner@a4aa98b93cab29d9b1101a6143fb8bce00e2eac4 # v2.7.1
       with:
         egress-policy: audit
 
@@ -71,7 +71,7 @@ jobs:
         path: ${{github.workspace}}/results
 
     - name: Log into Azure
-      uses: azure/login@8c334a195cbb38e46038007b304988d888bf676a
+      uses: azure/login@6b2456866fc08b011acb422a92a4aa20e2c4de32
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}

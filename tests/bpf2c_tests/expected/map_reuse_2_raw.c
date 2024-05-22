@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -124,18 +124,20 @@ lookup_update(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 55 "sample/undocked/map_reuse_2.c"
-    r0 = lookup_update_helpers[0].address
+    r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 55 "sample/undocked/map_reuse_2.c"
-         (r1, r2, r3, r4, r5);
-#line 55 "sample/undocked/map_reuse_2.c"
-    if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[0].tail_call) && (r0 == 0)) {
 #line 55 "sample/undocked/map_reuse_2.c"
         return 0;
+#line 55 "sample/undocked/map_reuse_2.c"
+    }
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=21 imm=0
 #line 56 "sample/undocked/map_reuse_2.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 56 "sample/undocked/map_reuse_2.c"
         goto label_2;
+#line 56 "sample/undocked/map_reuse_2.c"
+    }
     // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 56 "sample/undocked/map_reuse_2.c"
     r6 = IMMEDIATE(0);
@@ -153,21 +155,23 @@ lookup_update(void* context)
     r1 = r0;
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 58 "sample/undocked/map_reuse_2.c"
-    r0 = lookup_update_helpers[0].address
+    r0 = lookup_update_helpers[0].address(r1, r2, r3, r4, r5);
 #line 58 "sample/undocked/map_reuse_2.c"
-         (r1, r2, r3, r4, r5);
-#line 58 "sample/undocked/map_reuse_2.c"
-    if ((lookup_update_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[0].tail_call) && (r0 == 0)) {
 #line 58 "sample/undocked/map_reuse_2.c"
         return 0;
+#line 58 "sample/undocked/map_reuse_2.c"
+    }
     // EBPF_OP_MOV64_REG pc=14 dst=r7 src=r0 offset=0 imm=0
 #line 58 "sample/undocked/map_reuse_2.c"
     r7 = r0;
     // EBPF_OP_JNE_IMM pc=15 dst=r7 src=r0 offset=1 imm=0
 #line 59 "sample/undocked/map_reuse_2.c"
-    if (r7 != IMMEDIATE(0))
+    if (r7 != IMMEDIATE(0)) {
 #line 59 "sample/undocked/map_reuse_2.c"
         goto label_1;
+#line 59 "sample/undocked/map_reuse_2.c"
+    }
     // EBPF_OP_JA pc=16 dst=r0 src=r0 offset=12 imm=0
 #line 59 "sample/undocked/map_reuse_2.c"
     goto label_2;
@@ -201,13 +205,13 @@ label_1:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=2
 #line 63 "sample/undocked/map_reuse_2.c"
-    r0 = lookup_update_helpers[1].address
+    r0 = lookup_update_helpers[1].address(r1, r2, r3, r4, r5);
 #line 63 "sample/undocked/map_reuse_2.c"
-         (r1, r2, r3, r4, r5);
-#line 63 "sample/undocked/map_reuse_2.c"
-    if ((lookup_update_helpers[1].tail_call) && (r0 == 0))
+    if ((lookup_update_helpers[1].tail_call) && (r0 == 0)) {
 #line 63 "sample/undocked/map_reuse_2.c"
         return 0;
+#line 63 "sample/undocked/map_reuse_2.c"
+    }
     // EBPF_OP_LDXW pc=28 dst=r6 src=r7 offset=0 imm=0
 #line 65 "sample/undocked/map_reuse_2.c"
     r6 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
@@ -253,7 +257,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 

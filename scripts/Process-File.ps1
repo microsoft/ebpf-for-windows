@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
 # Process-File Reads $InputFile and $ConfigFile and performs replacement of strings in the content of $InputFile based

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #define EBPF_FILE_ID EBPF_FILE_ID_PROGRAM
@@ -561,12 +561,20 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
 {
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
 
+    // Wait for any code that has an explicit reference to the program information to complete.
     ExWaitForRundownProtectionRelease(&program->program_information_rundown_reference);
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
     ebpf_program_data_free((ebpf_program_data_t*)program->extension_program_data);
+    // Set the extension program data to NULL to prevent any further use of the program information by programs.
     program->extension_program_data = NULL;
+    // ebpf_lock_unlock imposes a full memory barrier that synchronizes with the
+    // _ebpf_epoch_messenger_propose_release_epoch memory barrier. This prevents any thread from using a stale pointer
+    // to the program information.
     ebpf_lock_unlock(&program->lock, state);
+
+    // Wait for any threads executing in the current epoch to complete.
+    ebpf_epoch_synchronize();
     return STATUS_SUCCESS;
 }
 
@@ -613,6 +621,8 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * @brief Free invoked when the current epoch ends. Scheduled by
  * _ebpf_program_free. This function will block until the provider has finished
  * detaching.
+ *
+ * Note: This function runs outside of any epoch.
  *
  * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
@@ -695,6 +705,12 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     cxplat_utf8_string_t local_file_name = {NULL, 0};
     cxplat_utf8_string_t local_hash_type_name = {NULL, 0};
     uint8_t* local_program_info_hash = NULL;
+    // Work item to free the program if allocation fails. Required as _ebpf_program_free must be called outside of an
+    // epoch.
+    // Note:
+    // This function is called within an epoch. The epoch is entered and exited by the caller during the protocol
+    // handler.
+    ebpf_epoch_work_item_t* free_program_work_item = NULL;
 
     if (IsEqualGUID(&program_parameters->program_type, &EBPF_PROGRAM_TYPE_UNSPECIFIED)) {
         EBPF_LOG_MESSAGE_GUID(
@@ -708,6 +724,12 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
 
     local_program = (ebpf_program_t*)ebpf_allocate_with_tag(sizeof(ebpf_program_t), EBPF_POOL_TAG_PROGRAM);
     if (!local_program) {
+        retval = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    free_program_work_item = ebpf_epoch_allocate_work_item(local_program, _ebpf_program_free);
+    if (!free_program_work_item) {
         retval = EBPF_NO_MEMORY;
         goto Done;
     }
@@ -842,6 +864,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         _ebpf_program_free,
         _ebpf_program_zero_ref_count,
         _ebpf_program_get_program_type);
+
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -850,13 +873,20 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
     local_program = NULL;
     retval = EBPF_SUCCESS;
 
+    ebpf_epoch_cancel_work_item(free_program_work_item);
+    free_program_work_item = NULL;
+
 Done:
     ebpf_free(local_program_info_hash);
     ebpf_free(local_program_name.value);
     ebpf_free(local_section_name.value);
     ebpf_free(local_file_name.value);
 
-    _ebpf_program_free(local_program);
+    if (free_program_work_item) {
+        ebpf_epoch_schedule_work_item(free_program_work_item);
+    } else {
+        ebpf_free(local_program);
+    }
 
     EBPF_RETURN_RESULT(retval);
 }
@@ -1087,7 +1117,7 @@ _ebpf_program_update_interpret_helpers(
         }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (void*)helper) < 0) {
+        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (external_function_t)helper) < 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
             result = EBPF_INVALID_ARGUMENT;
@@ -1422,7 +1452,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
     ExReleaseRundownProtection(&program->program_information_rundown_reference);
 }
 
-void
+_Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
     _Inout_ void* context,
@@ -1431,7 +1461,20 @@ ebpf_program_invoke(
 {
     if (ebpf_program_disable_invoke) {
         *result = 0;
-        return;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
+    }
+
+    // If the pointer is null, then the extension has been unloaded and the program should not be invoked.
+    // If the pointer is not null, then the extension is loaded and will remain loaded until at least after
+    // the current epoch ends.
+    // Note: The call to ebpf_epoch_enter is a full memory barrier, so any values read after that
+    // point will be synchronized with the start of the epoch, so it is safe to call ReadPointerNoFence
+    // after the call to ebpf_epoch_enter.
+    // Note: The invoke path doesn't explicitly use the program->extension_program_data, but
+    // instead uses pointers that have been previously read from the extension_program_data.
+    if (ReadPointerNoFence((void* const volatile*)(&program->extension_program_data)) == NULL) {
+        *result = 0;
+        return EBPF_EXTENSION_FAILED_TO_LOAD;
     }
 
     // High volume call - Skip entry/exit logging.
@@ -1467,6 +1510,7 @@ ebpf_program_invoke(
             execution_state->tail_call_state.next_program = NULL;
         }
     }
+    return EBPF_SUCCESS;
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
@@ -2310,7 +2354,10 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        result = ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
     }
     end_time = ebpf_query_time_since_boot(false);
 

@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // clang -O2 -Werror -c xdp_adjust_head_unsafe.c -o xdp_adjust_head_unsafe_jit.o

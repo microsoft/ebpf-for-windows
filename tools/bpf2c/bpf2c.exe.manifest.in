@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-  Copyright (c) Microsoft Corporation
+  Copyright (c) eBPF for Windows contributors
   SPDX-License-Identifier: MIT
 
   Overrides the default heap implementation with segment heap.

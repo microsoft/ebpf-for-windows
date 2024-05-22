@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 /**
@@ -32,3 +32,15 @@ DllMain(HMODULE hModule, unsigned long ul_reason_for_call, void* lpReserved)
     }
     return TRUE;
 }
+
+// This entry point exists to satisfy the requirements of the fuzzing engine, but it is not used.
+#if defined(FUZZER_DEBUG)
+extern "C" int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
+{
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(size);
+
+    __fastfail(0);
+    return 0;
+}
+#endif

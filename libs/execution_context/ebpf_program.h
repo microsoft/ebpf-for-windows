@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #pragma once
@@ -189,8 +189,10 @@ extern "C"
      * @param[in,out] context Pointer to eBPF context for this program.
      * @param[out] result Output from the program.
      * @param[in] execution_state Execution context state.
+     * @retval EBPF_SUCCESS The program was successfully invoked.
+     * @retval EBPF_EXTENSION_FAILED_TO_LOAD The program information provider is not available.
      */
-    void
+    _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(
         _In_ const ebpf_program_t* program,
         _Inout_ void* context,

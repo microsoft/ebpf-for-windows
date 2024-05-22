@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -103,13 +103,13 @@ caller(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=5
 #line 38 "sample/undocked/tail_call.c"
-    r0 = caller_helpers[0].address
+    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5);
 #line 38 "sample/undocked/tail_call.c"
-         (r1, r2, r3, r4, r5);
-#line 38 "sample/undocked/tail_call.c"
-    if ((caller_helpers[0].tail_call) && (r0 == 0))
+    if ((caller_helpers[0].tail_call) && (r0 == 0)) {
 #line 38 "sample/undocked/tail_call.c"
         return 0;
+#line 38 "sample/undocked/tail_call.c"
+    }
     // EBPF_OP_MOV64_REG pc=6 dst=r2 src=r10 offset=0 imm=0
 #line 38 "sample/undocked/tail_call.c"
     r2 = r10;
@@ -121,18 +121,20 @@ caller(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 41 "sample/undocked/tail_call.c"
-    r0 = caller_helpers[1].address
+    r0 = caller_helpers[1].address(r1, r2, r3, r4, r5);
 #line 41 "sample/undocked/tail_call.c"
-         (r1, r2, r3, r4, r5);
-#line 41 "sample/undocked/tail_call.c"
-    if ((caller_helpers[1].tail_call) && (r0 == 0))
+    if ((caller_helpers[1].tail_call) && (r0 == 0)) {
 #line 41 "sample/undocked/tail_call.c"
         return 0;
+#line 41 "sample/undocked/tail_call.c"
+    }
     // EBPF_OP_JEQ_IMM pc=11 dst=r0 src=r0 offset=2 imm=0
 #line 42 "sample/undocked/tail_call.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 42 "sample/undocked/tail_call.c"
         goto label_1;
+#line 42 "sample/undocked/tail_call.c"
+    }
     // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=1
 #line 42 "sample/undocked/tail_call.c"
     r1 = IMMEDIATE(1);
@@ -229,7 +231,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 

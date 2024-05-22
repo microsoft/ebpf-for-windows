@@ -1,6 +1,6 @@
 {
     "Copyright Notice" : [
-        "Copyright (c) Microsoft Corporation",
+        "Copyright (c) eBPF for Windows contributors",
         "SPDX-License-Identifier: MIT"
     ],
     "Description" : "This file controls the replacement of symbols with escaped strings",

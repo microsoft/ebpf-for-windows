@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -144,13 +144,13 @@ sequential0(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential0_helpers[0].address
+    r0 = sequential0_helpers[0].address(r1, r2, r3, r4, r5);
 #line 133 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 133 "sample/undocked/tail_call_sequential.c"
-    if ((sequential0_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential0_helpers[0].tail_call) && (r0 == 0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 133 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -159,9 +159,11 @@ sequential0(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 133 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -194,21 +196,23 @@ sequential0(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential0_helpers[1].address
+    r0 = sequential0_helpers[1].address(r1, r2, r3, r4, r5);
 #line 133 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 133 "sample/undocked/tail_call_sequential.c"
-    if ((sequential0_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential0_helpers[1].tail_call) && (r0 == 0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 133 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(0))
+    if (r1 != IMMEDIATE(0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 133 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(1);
@@ -226,13 +230,13 @@ sequential0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential0_helpers[2].address
+    r0 = sequential0_helpers[2].address(r1, r2, r3, r4, r5);
 #line 133 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 133 "sample/undocked/tail_call_sequential.c"
-    if ((sequential0_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential0_helpers[2].tail_call) && (r0 == 0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 133 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -318,13 +322,13 @@ sequential1(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential1_helpers[0].address
+    r0 = sequential1_helpers[0].address(r1, r2, r3, r4, r5);
 #line 134 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 134 "sample/undocked/tail_call_sequential.c"
-    if ((sequential1_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential1_helpers[0].tail_call) && (r0 == 0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 134 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -333,9 +337,11 @@ sequential1(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 134 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -368,21 +374,23 @@ sequential1(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential1_helpers[1].address
+    r0 = sequential1_helpers[1].address(r1, r2, r3, r4, r5);
 #line 134 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 134 "sample/undocked/tail_call_sequential.c"
-    if ((sequential1_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential1_helpers[1].tail_call) && (r0 == 0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 134 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=1
 #line 134 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(1))
+    if (r1 != IMMEDIATE(1)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 134 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=2
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(2);
@@ -400,13 +408,13 @@ sequential1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential1_helpers[2].address
+    r0 = sequential1_helpers[2].address(r1, r2, r3, r4, r5);
 #line 134 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 134 "sample/undocked/tail_call_sequential.c"
-    if ((sequential1_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential1_helpers[2].tail_call) && (r0 == 0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 134 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -494,13 +502,13 @@ sequential10(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential10_helpers[0].address
+    r0 = sequential10_helpers[0].address(r1, r2, r3, r4, r5);
 #line 143 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 143 "sample/undocked/tail_call_sequential.c"
-    if ((sequential10_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential10_helpers[0].tail_call) && (r0 == 0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 143 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -509,9 +517,11 @@ sequential10(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 143 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -547,21 +557,23 @@ sequential10(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential10_helpers[1].address
+    r0 = sequential10_helpers[1].address(r1, r2, r3, r4, r5);
 #line 143 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 143 "sample/undocked/tail_call_sequential.c"
-    if ((sequential10_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential10_helpers[1].tail_call) && (r0 == 0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 143 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=10
 #line 143 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(10))
+    if (r1 != IMMEDIATE(10)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 143 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=11
 #line 143 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(11);
@@ -579,13 +591,13 @@ sequential10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential10_helpers[2].address
+    r0 = sequential10_helpers[2].address(r1, r2, r3, r4, r5);
 #line 143 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 143 "sample/undocked/tail_call_sequential.c"
-    if ((sequential10_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential10_helpers[2].tail_call) && (r0 == 0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 143 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -673,13 +685,13 @@ sequential11(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential11_helpers[0].address
+    r0 = sequential11_helpers[0].address(r1, r2, r3, r4, r5);
 #line 144 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 144 "sample/undocked/tail_call_sequential.c"
-    if ((sequential11_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential11_helpers[0].tail_call) && (r0 == 0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 144 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -688,9 +700,11 @@ sequential11(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 144 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -726,21 +740,23 @@ sequential11(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential11_helpers[1].address
+    r0 = sequential11_helpers[1].address(r1, r2, r3, r4, r5);
 #line 144 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 144 "sample/undocked/tail_call_sequential.c"
-    if ((sequential11_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential11_helpers[1].tail_call) && (r0 == 0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 144 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=11
 #line 144 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(11))
+    if (r1 != IMMEDIATE(11)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 144 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=12
 #line 144 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(12);
@@ -758,13 +774,13 @@ sequential11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential11_helpers[2].address
+    r0 = sequential11_helpers[2].address(r1, r2, r3, r4, r5);
 #line 144 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 144 "sample/undocked/tail_call_sequential.c"
-    if ((sequential11_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential11_helpers[2].tail_call) && (r0 == 0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 144 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -852,13 +868,13 @@ sequential12(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential12_helpers[0].address
+    r0 = sequential12_helpers[0].address(r1, r2, r3, r4, r5);
 #line 145 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 145 "sample/undocked/tail_call_sequential.c"
-    if ((sequential12_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential12_helpers[0].tail_call) && (r0 == 0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 145 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -867,9 +883,11 @@ sequential12(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 145 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -905,21 +923,23 @@ sequential12(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential12_helpers[1].address
+    r0 = sequential12_helpers[1].address(r1, r2, r3, r4, r5);
 #line 145 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 145 "sample/undocked/tail_call_sequential.c"
-    if ((sequential12_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential12_helpers[1].tail_call) && (r0 == 0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 145 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=12
 #line 145 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(12))
+    if (r1 != IMMEDIATE(12)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 145 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=13
 #line 145 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(13);
@@ -937,13 +957,13 @@ sequential12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential12_helpers[2].address
+    r0 = sequential12_helpers[2].address(r1, r2, r3, r4, r5);
 #line 145 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 145 "sample/undocked/tail_call_sequential.c"
-    if ((sequential12_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential12_helpers[2].tail_call) && (r0 == 0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 145 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -1031,13 +1051,13 @@ sequential13(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential13_helpers[0].address
+    r0 = sequential13_helpers[0].address(r1, r2, r3, r4, r5);
 #line 146 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 146 "sample/undocked/tail_call_sequential.c"
-    if ((sequential13_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential13_helpers[0].tail_call) && (r0 == 0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 146 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1046,9 +1066,11 @@ sequential13(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 146 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -1084,21 +1106,23 @@ sequential13(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential13_helpers[1].address
+    r0 = sequential13_helpers[1].address(r1, r2, r3, r4, r5);
 #line 146 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 146 "sample/undocked/tail_call_sequential.c"
-    if ((sequential13_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential13_helpers[1].tail_call) && (r0 == 0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 146 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=13
 #line 146 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(13))
+    if (r1 != IMMEDIATE(13)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 146 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=14
 #line 146 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(14);
@@ -1116,13 +1140,13 @@ sequential13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential13_helpers[2].address
+    r0 = sequential13_helpers[2].address(r1, r2, r3, r4, r5);
 #line 146 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 146 "sample/undocked/tail_call_sequential.c"
-    if ((sequential13_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential13_helpers[2].tail_call) && (r0 == 0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 146 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -1210,13 +1234,13 @@ sequential14(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential14_helpers[0].address
+    r0 = sequential14_helpers[0].address(r1, r2, r3, r4, r5);
 #line 147 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 147 "sample/undocked/tail_call_sequential.c"
-    if ((sequential14_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential14_helpers[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 147 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1225,9 +1249,11 @@ sequential14(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 147 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -1263,21 +1289,23 @@ sequential14(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential14_helpers[1].address
+    r0 = sequential14_helpers[1].address(r1, r2, r3, r4, r5);
 #line 147 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 147 "sample/undocked/tail_call_sequential.c"
-    if ((sequential14_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential14_helpers[1].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 147 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=14
 #line 147 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(14))
+    if (r1 != IMMEDIATE(14)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 147 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=15
 #line 147 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(15);
@@ -1295,13 +1323,13 @@ sequential14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential14_helpers[2].address
+    r0 = sequential14_helpers[2].address(r1, r2, r3, r4, r5);
 #line 147 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 147 "sample/undocked/tail_call_sequential.c"
-    if ((sequential14_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential14_helpers[2].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 147 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -1389,13 +1417,13 @@ sequential15(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential15_helpers[0].address
+    r0 = sequential15_helpers[0].address(r1, r2, r3, r4, r5);
 #line 148 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 148 "sample/undocked/tail_call_sequential.c"
-    if ((sequential15_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential15_helpers[0].tail_call) && (r0 == 0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 148 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1404,9 +1432,11 @@ sequential15(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 148 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -1442,21 +1472,23 @@ sequential15(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential15_helpers[1].address
+    r0 = sequential15_helpers[1].address(r1, r2, r3, r4, r5);
 #line 148 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 148 "sample/undocked/tail_call_sequential.c"
-    if ((sequential15_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential15_helpers[1].tail_call) && (r0 == 0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 148 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=15
 #line 148 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(15))
+    if (r1 != IMMEDIATE(15)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 148 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=16
 #line 148 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(16);
@@ -1474,13 +1506,13 @@ sequential15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential15_helpers[2].address
+    r0 = sequential15_helpers[2].address(r1, r2, r3, r4, r5);
 #line 148 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 148 "sample/undocked/tail_call_sequential.c"
-    if ((sequential15_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential15_helpers[2].tail_call) && (r0 == 0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 148 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -1568,13 +1600,13 @@ sequential16(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential16_helpers[0].address
+    r0 = sequential16_helpers[0].address(r1, r2, r3, r4, r5);
 #line 149 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 149 "sample/undocked/tail_call_sequential.c"
-    if ((sequential16_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential16_helpers[0].tail_call) && (r0 == 0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 149 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1583,9 +1615,11 @@ sequential16(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 149 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -1621,21 +1655,23 @@ sequential16(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential16_helpers[1].address
+    r0 = sequential16_helpers[1].address(r1, r2, r3, r4, r5);
 #line 149 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 149 "sample/undocked/tail_call_sequential.c"
-    if ((sequential16_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential16_helpers[1].tail_call) && (r0 == 0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 149 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=16
 #line 149 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(16))
+    if (r1 != IMMEDIATE(16)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 149 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=17
 #line 149 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(17);
@@ -1653,13 +1689,13 @@ sequential16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential16_helpers[2].address
+    r0 = sequential16_helpers[2].address(r1, r2, r3, r4, r5);
 #line 149 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 149 "sample/undocked/tail_call_sequential.c"
-    if ((sequential16_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential16_helpers[2].tail_call) && (r0 == 0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 149 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -1747,13 +1783,13 @@ sequential17(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential17_helpers[0].address
+    r0 = sequential17_helpers[0].address(r1, r2, r3, r4, r5);
 #line 150 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 150 "sample/undocked/tail_call_sequential.c"
-    if ((sequential17_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential17_helpers[0].tail_call) && (r0 == 0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 150 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1762,9 +1798,11 @@ sequential17(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 150 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -1800,21 +1838,23 @@ sequential17(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential17_helpers[1].address
+    r0 = sequential17_helpers[1].address(r1, r2, r3, r4, r5);
 #line 150 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 150 "sample/undocked/tail_call_sequential.c"
-    if ((sequential17_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential17_helpers[1].tail_call) && (r0 == 0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 150 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=17
 #line 150 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(17))
+    if (r1 != IMMEDIATE(17)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 150 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=18
 #line 150 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(18);
@@ -1832,13 +1872,13 @@ sequential17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential17_helpers[2].address
+    r0 = sequential17_helpers[2].address(r1, r2, r3, r4, r5);
 #line 150 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 150 "sample/undocked/tail_call_sequential.c"
-    if ((sequential17_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential17_helpers[2].tail_call) && (r0 == 0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 150 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -1926,13 +1966,13 @@ sequential18(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential18_helpers[0].address
+    r0 = sequential18_helpers[0].address(r1, r2, r3, r4, r5);
 #line 151 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 151 "sample/undocked/tail_call_sequential.c"
-    if ((sequential18_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential18_helpers[0].tail_call) && (r0 == 0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 151 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -1941,9 +1981,11 @@ sequential18(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 151 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -1979,21 +2021,23 @@ sequential18(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential18_helpers[1].address
+    r0 = sequential18_helpers[1].address(r1, r2, r3, r4, r5);
 #line 151 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 151 "sample/undocked/tail_call_sequential.c"
-    if ((sequential18_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential18_helpers[1].tail_call) && (r0 == 0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 151 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=18
 #line 151 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(18))
+    if (r1 != IMMEDIATE(18)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 151 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=19
 #line 151 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(19);
@@ -2011,13 +2055,13 @@ sequential18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential18_helpers[2].address
+    r0 = sequential18_helpers[2].address(r1, r2, r3, r4, r5);
 #line 151 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 151 "sample/undocked/tail_call_sequential.c"
-    if ((sequential18_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential18_helpers[2].tail_call) && (r0 == 0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 151 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -2105,13 +2149,13 @@ sequential19(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential19_helpers[0].address
+    r0 = sequential19_helpers[0].address(r1, r2, r3, r4, r5);
 #line 152 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 152 "sample/undocked/tail_call_sequential.c"
-    if ((sequential19_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential19_helpers[0].tail_call) && (r0 == 0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 152 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2120,9 +2164,11 @@ sequential19(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 152 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -2158,21 +2204,23 @@ sequential19(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential19_helpers[1].address
+    r0 = sequential19_helpers[1].address(r1, r2, r3, r4, r5);
 #line 152 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 152 "sample/undocked/tail_call_sequential.c"
-    if ((sequential19_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential19_helpers[1].tail_call) && (r0 == 0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 152 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=19
 #line 152 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(19))
+    if (r1 != IMMEDIATE(19)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 152 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=20
 #line 152 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(20);
@@ -2190,13 +2238,13 @@ sequential19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential19_helpers[2].address
+    r0 = sequential19_helpers[2].address(r1, r2, r3, r4, r5);
 #line 152 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 152 "sample/undocked/tail_call_sequential.c"
-    if ((sequential19_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential19_helpers[2].tail_call) && (r0 == 0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 152 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -2282,13 +2330,13 @@ sequential2(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential2_helpers[0].address
+    r0 = sequential2_helpers[0].address(r1, r2, r3, r4, r5);
 #line 135 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 135 "sample/undocked/tail_call_sequential.c"
-    if ((sequential2_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential2_helpers[0].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 135 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2297,9 +2345,11 @@ sequential2(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 135 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -2332,21 +2382,23 @@ sequential2(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential2_helpers[1].address
+    r0 = sequential2_helpers[1].address(r1, r2, r3, r4, r5);
 #line 135 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 135 "sample/undocked/tail_call_sequential.c"
-    if ((sequential2_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential2_helpers[1].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 135 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=2
 #line 135 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(2))
+    if (r1 != IMMEDIATE(2)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 135 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=3
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(3);
@@ -2364,13 +2416,13 @@ sequential2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential2_helpers[2].address
+    r0 = sequential2_helpers[2].address(r1, r2, r3, r4, r5);
 #line 135 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 135 "sample/undocked/tail_call_sequential.c"
-    if ((sequential2_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential2_helpers[2].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 135 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -2458,13 +2510,13 @@ sequential20(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential20_helpers[0].address
+    r0 = sequential20_helpers[0].address(r1, r2, r3, r4, r5);
 #line 153 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 153 "sample/undocked/tail_call_sequential.c"
-    if ((sequential20_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential20_helpers[0].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 153 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2473,9 +2525,11 @@ sequential20(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 153 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -2511,21 +2565,23 @@ sequential20(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential20_helpers[1].address
+    r0 = sequential20_helpers[1].address(r1, r2, r3, r4, r5);
 #line 153 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 153 "sample/undocked/tail_call_sequential.c"
-    if ((sequential20_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential20_helpers[1].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 153 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=20
 #line 153 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(20))
+    if (r1 != IMMEDIATE(20)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 153 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=21
 #line 153 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(21);
@@ -2543,13 +2599,13 @@ sequential20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential20_helpers[2].address
+    r0 = sequential20_helpers[2].address(r1, r2, r3, r4, r5);
 #line 153 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 153 "sample/undocked/tail_call_sequential.c"
-    if ((sequential20_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential20_helpers[2].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 153 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -2637,13 +2693,13 @@ sequential21(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential21_helpers[0].address
+    r0 = sequential21_helpers[0].address(r1, r2, r3, r4, r5);
 #line 154 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 154 "sample/undocked/tail_call_sequential.c"
-    if ((sequential21_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential21_helpers[0].tail_call) && (r0 == 0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 154 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2652,9 +2708,11 @@ sequential21(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 154 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -2690,21 +2748,23 @@ sequential21(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential21_helpers[1].address
+    r0 = sequential21_helpers[1].address(r1, r2, r3, r4, r5);
 #line 154 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 154 "sample/undocked/tail_call_sequential.c"
-    if ((sequential21_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential21_helpers[1].tail_call) && (r0 == 0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 154 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=21
 #line 154 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(21))
+    if (r1 != IMMEDIATE(21)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 154 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=22
 #line 154 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(22);
@@ -2722,13 +2782,13 @@ sequential21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential21_helpers[2].address
+    r0 = sequential21_helpers[2].address(r1, r2, r3, r4, r5);
 #line 154 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 154 "sample/undocked/tail_call_sequential.c"
-    if ((sequential21_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential21_helpers[2].tail_call) && (r0 == 0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 154 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -2816,13 +2876,13 @@ sequential22(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential22_helpers[0].address
+    r0 = sequential22_helpers[0].address(r1, r2, r3, r4, r5);
 #line 155 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 155 "sample/undocked/tail_call_sequential.c"
-    if ((sequential22_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential22_helpers[0].tail_call) && (r0 == 0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 155 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -2831,9 +2891,11 @@ sequential22(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 155 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -2869,21 +2931,23 @@ sequential22(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential22_helpers[1].address
+    r0 = sequential22_helpers[1].address(r1, r2, r3, r4, r5);
 #line 155 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 155 "sample/undocked/tail_call_sequential.c"
-    if ((sequential22_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential22_helpers[1].tail_call) && (r0 == 0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 155 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=22
 #line 155 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(22))
+    if (r1 != IMMEDIATE(22)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 155 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=23
 #line 155 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(23);
@@ -2901,13 +2965,13 @@ sequential22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential22_helpers[2].address
+    r0 = sequential22_helpers[2].address(r1, r2, r3, r4, r5);
 #line 155 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 155 "sample/undocked/tail_call_sequential.c"
-    if ((sequential22_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential22_helpers[2].tail_call) && (r0 == 0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 155 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -2995,13 +3059,13 @@ sequential23(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential23_helpers[0].address
+    r0 = sequential23_helpers[0].address(r1, r2, r3, r4, r5);
 #line 156 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 156 "sample/undocked/tail_call_sequential.c"
-    if ((sequential23_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential23_helpers[0].tail_call) && (r0 == 0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 156 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3010,9 +3074,11 @@ sequential23(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 156 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -3048,21 +3114,23 @@ sequential23(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential23_helpers[1].address
+    r0 = sequential23_helpers[1].address(r1, r2, r3, r4, r5);
 #line 156 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 156 "sample/undocked/tail_call_sequential.c"
-    if ((sequential23_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential23_helpers[1].tail_call) && (r0 == 0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 156 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=23
 #line 156 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(23))
+    if (r1 != IMMEDIATE(23)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 156 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=24
 #line 156 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(24);
@@ -3080,13 +3148,13 @@ sequential23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential23_helpers[2].address
+    r0 = sequential23_helpers[2].address(r1, r2, r3, r4, r5);
 #line 156 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 156 "sample/undocked/tail_call_sequential.c"
-    if ((sequential23_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential23_helpers[2].tail_call) && (r0 == 0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 156 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -3174,13 +3242,13 @@ sequential24(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential24_helpers[0].address
+    r0 = sequential24_helpers[0].address(r1, r2, r3, r4, r5);
 #line 157 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 157 "sample/undocked/tail_call_sequential.c"
-    if ((sequential24_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential24_helpers[0].tail_call) && (r0 == 0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 157 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3189,9 +3257,11 @@ sequential24(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 157 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -3230,21 +3300,23 @@ sequential24(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=13
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential24_helpers[1].address
+    r0 = sequential24_helpers[1].address(r1, r2, r3, r4, r5);
 #line 157 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 157 "sample/undocked/tail_call_sequential.c"
-    if ((sequential24_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential24_helpers[1].tail_call) && (r0 == 0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 157 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=27 dst=r1 src=r8 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=28 dst=r1 src=r0 offset=7 imm=24
 #line 157 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(24))
+    if (r1 != IMMEDIATE(24)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 157 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXW pc=29 dst=r8 src=r9 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     *(uint32_t*)(uintptr_t)(r8 + OFFSET(0)) = (uint32_t)r9;
@@ -3259,13 +3331,13 @@ sequential24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential24_helpers[2].address
+    r0 = sequential24_helpers[2].address(r1, r2, r3, r4, r5);
 #line 157 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 157 "sample/undocked/tail_call_sequential.c"
-    if ((sequential24_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential24_helpers[2].tail_call) && (r0 == 0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 157 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -3353,13 +3425,13 @@ sequential25(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential25_helpers[0].address
+    r0 = sequential25_helpers[0].address(r1, r2, r3, r4, r5);
 #line 158 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 158 "sample/undocked/tail_call_sequential.c"
-    if ((sequential25_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential25_helpers[0].tail_call) && (r0 == 0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 158 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3368,9 +3440,11 @@ sequential25(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 158 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -3406,21 +3480,23 @@ sequential25(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential25_helpers[1].address
+    r0 = sequential25_helpers[1].address(r1, r2, r3, r4, r5);
 #line 158 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 158 "sample/undocked/tail_call_sequential.c"
-    if ((sequential25_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential25_helpers[1].tail_call) && (r0 == 0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 158 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=25
 #line 158 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(25))
+    if (r1 != IMMEDIATE(25)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 158 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=26
 #line 158 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(26);
@@ -3438,13 +3514,13 @@ sequential25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential25_helpers[2].address
+    r0 = sequential25_helpers[2].address(r1, r2, r3, r4, r5);
 #line 158 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 158 "sample/undocked/tail_call_sequential.c"
-    if ((sequential25_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential25_helpers[2].tail_call) && (r0 == 0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 158 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -3532,13 +3608,13 @@ sequential26(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential26_helpers[0].address
+    r0 = sequential26_helpers[0].address(r1, r2, r3, r4, r5);
 #line 159 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 159 "sample/undocked/tail_call_sequential.c"
-    if ((sequential26_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential26_helpers[0].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 159 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3547,9 +3623,11 @@ sequential26(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 159 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -3585,21 +3663,23 @@ sequential26(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential26_helpers[1].address
+    r0 = sequential26_helpers[1].address(r1, r2, r3, r4, r5);
 #line 159 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 159 "sample/undocked/tail_call_sequential.c"
-    if ((sequential26_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential26_helpers[1].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 159 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=26
 #line 159 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(26))
+    if (r1 != IMMEDIATE(26)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 159 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=27
 #line 159 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(27);
@@ -3617,13 +3697,13 @@ sequential26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential26_helpers[2].address
+    r0 = sequential26_helpers[2].address(r1, r2, r3, r4, r5);
 #line 159 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 159 "sample/undocked/tail_call_sequential.c"
-    if ((sequential26_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential26_helpers[2].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 159 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -3711,13 +3791,13 @@ sequential27(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential27_helpers[0].address
+    r0 = sequential27_helpers[0].address(r1, r2, r3, r4, r5);
 #line 160 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 160 "sample/undocked/tail_call_sequential.c"
-    if ((sequential27_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential27_helpers[0].tail_call) && (r0 == 0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 160 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3726,9 +3806,11 @@ sequential27(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 160 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -3764,21 +3846,23 @@ sequential27(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential27_helpers[1].address
+    r0 = sequential27_helpers[1].address(r1, r2, r3, r4, r5);
 #line 160 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 160 "sample/undocked/tail_call_sequential.c"
-    if ((sequential27_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential27_helpers[1].tail_call) && (r0 == 0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 160 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=27
 #line 160 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(27))
+    if (r1 != IMMEDIATE(27)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 160 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=28
 #line 160 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(28);
@@ -3796,13 +3880,13 @@ sequential27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential27_helpers[2].address
+    r0 = sequential27_helpers[2].address(r1, r2, r3, r4, r5);
 #line 160 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 160 "sample/undocked/tail_call_sequential.c"
-    if ((sequential27_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential27_helpers[2].tail_call) && (r0 == 0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 160 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -3890,13 +3974,13 @@ sequential28(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential28_helpers[0].address
+    r0 = sequential28_helpers[0].address(r1, r2, r3, r4, r5);
 #line 161 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 161 "sample/undocked/tail_call_sequential.c"
-    if ((sequential28_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential28_helpers[0].tail_call) && (r0 == 0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 161 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -3905,9 +3989,11 @@ sequential28(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 161 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -3943,21 +4029,23 @@ sequential28(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential28_helpers[1].address
+    r0 = sequential28_helpers[1].address(r1, r2, r3, r4, r5);
 #line 161 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 161 "sample/undocked/tail_call_sequential.c"
-    if ((sequential28_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential28_helpers[1].tail_call) && (r0 == 0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 161 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=28
 #line 161 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(28))
+    if (r1 != IMMEDIATE(28)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 161 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=29
 #line 161 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(29);
@@ -3975,13 +4063,13 @@ sequential28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential28_helpers[2].address
+    r0 = sequential28_helpers[2].address(r1, r2, r3, r4, r5);
 #line 161 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 161 "sample/undocked/tail_call_sequential.c"
-    if ((sequential28_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential28_helpers[2].tail_call) && (r0 == 0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 161 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -4069,13 +4157,13 @@ sequential29(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential29_helpers[0].address
+    r0 = sequential29_helpers[0].address(r1, r2, r3, r4, r5);
 #line 162 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 162 "sample/undocked/tail_call_sequential.c"
-    if ((sequential29_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential29_helpers[0].tail_call) && (r0 == 0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 162 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4084,9 +4172,11 @@ sequential29(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 162 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -4122,21 +4212,23 @@ sequential29(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential29_helpers[1].address
+    r0 = sequential29_helpers[1].address(r1, r2, r3, r4, r5);
 #line 162 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 162 "sample/undocked/tail_call_sequential.c"
-    if ((sequential29_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential29_helpers[1].tail_call) && (r0 == 0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 162 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=29
 #line 162 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(29))
+    if (r1 != IMMEDIATE(29)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 162 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=30
 #line 162 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(30);
@@ -4154,13 +4246,13 @@ sequential29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential29_helpers[2].address
+    r0 = sequential29_helpers[2].address(r1, r2, r3, r4, r5);
 #line 162 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 162 "sample/undocked/tail_call_sequential.c"
-    if ((sequential29_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential29_helpers[2].tail_call) && (r0 == 0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 162 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -4246,13 +4338,13 @@ sequential3(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential3_helpers[0].address
+    r0 = sequential3_helpers[0].address(r1, r2, r3, r4, r5);
 #line 136 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 136 "sample/undocked/tail_call_sequential.c"
-    if ((sequential3_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential3_helpers[0].tail_call) && (r0 == 0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 136 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4261,9 +4353,11 @@ sequential3(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 136 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -4296,21 +4390,23 @@ sequential3(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential3_helpers[1].address
+    r0 = sequential3_helpers[1].address(r1, r2, r3, r4, r5);
 #line 136 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 136 "sample/undocked/tail_call_sequential.c"
-    if ((sequential3_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential3_helpers[1].tail_call) && (r0 == 0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 136 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=3
 #line 136 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(3))
+    if (r1 != IMMEDIATE(3)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 136 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=4
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(4);
@@ -4328,13 +4424,13 @@ sequential3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential3_helpers[2].address
+    r0 = sequential3_helpers[2].address(r1, r2, r3, r4, r5);
 #line 136 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 136 "sample/undocked/tail_call_sequential.c"
-    if ((sequential3_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential3_helpers[2].tail_call) && (r0 == 0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 136 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -4422,13 +4518,13 @@ sequential30(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential30_helpers[0].address
+    r0 = sequential30_helpers[0].address(r1, r2, r3, r4, r5);
 #line 163 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 163 "sample/undocked/tail_call_sequential.c"
-    if ((sequential30_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential30_helpers[0].tail_call) && (r0 == 0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 163 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4437,9 +4533,11 @@ sequential30(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 163 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -4475,21 +4573,23 @@ sequential30(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential30_helpers[1].address
+    r0 = sequential30_helpers[1].address(r1, r2, r3, r4, r5);
 #line 163 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 163 "sample/undocked/tail_call_sequential.c"
-    if ((sequential30_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential30_helpers[1].tail_call) && (r0 == 0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 163 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=30
 #line 163 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(30))
+    if (r1 != IMMEDIATE(30)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 163 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=31
 #line 163 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(31);
@@ -4507,13 +4607,13 @@ sequential30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential30_helpers[2].address
+    r0 = sequential30_helpers[2].address(r1, r2, r3, r4, r5);
 #line 163 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 163 "sample/undocked/tail_call_sequential.c"
-    if ((sequential30_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential30_helpers[2].tail_call) && (r0 == 0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 163 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -4601,13 +4701,13 @@ sequential31(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential31_helpers[0].address
+    r0 = sequential31_helpers[0].address(r1, r2, r3, r4, r5);
 #line 164 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 164 "sample/undocked/tail_call_sequential.c"
-    if ((sequential31_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential31_helpers[0].tail_call) && (r0 == 0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 164 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4616,9 +4716,11 @@ sequential31(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 164 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -4654,21 +4756,23 @@ sequential31(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential31_helpers[1].address
+    r0 = sequential31_helpers[1].address(r1, r2, r3, r4, r5);
 #line 164 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 164 "sample/undocked/tail_call_sequential.c"
-    if ((sequential31_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential31_helpers[1].tail_call) && (r0 == 0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 164 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=31
 #line 164 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(31))
+    if (r1 != IMMEDIATE(31)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 164 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=32
 #line 164 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(32);
@@ -4686,13 +4790,13 @@ sequential31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential31_helpers[2].address
+    r0 = sequential31_helpers[2].address(r1, r2, r3, r4, r5);
 #line 164 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 164 "sample/undocked/tail_call_sequential.c"
-    if ((sequential31_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential31_helpers[2].tail_call) && (r0 == 0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 164 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -4780,13 +4884,13 @@ sequential32(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential32_helpers[0].address
+    r0 = sequential32_helpers[0].address(r1, r2, r3, r4, r5);
 #line 165 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 165 "sample/undocked/tail_call_sequential.c"
-    if ((sequential32_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential32_helpers[0].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 165 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4795,9 +4899,11 @@ sequential32(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 165 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -4833,21 +4939,23 @@ sequential32(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential32_helpers[1].address
+    r0 = sequential32_helpers[1].address(r1, r2, r3, r4, r5);
 #line 165 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 165 "sample/undocked/tail_call_sequential.c"
-    if ((sequential32_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential32_helpers[1].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 165 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=32
 #line 165 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(32))
+    if (r1 != IMMEDIATE(32)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 165 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=33
 #line 165 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(33);
@@ -4865,13 +4973,13 @@ sequential32(void* context)
     r3 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential32_helpers[2].address
+    r0 = sequential32_helpers[2].address(r1, r2, r3, r4, r5);
 #line 165 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 165 "sample/undocked/tail_call_sequential.c"
-    if ((sequential32_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential32_helpers[2].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 165 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -4959,13 +5067,13 @@ sequential33(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential33_helpers[0].address
+    r0 = sequential33_helpers[0].address(r1, r2, r3, r4, r5);
 #line 166 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 166 "sample/undocked/tail_call_sequential.c"
-    if ((sequential33_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential33_helpers[0].tail_call) && (r0 == 0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 166 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -4974,9 +5082,11 @@ sequential33(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 166 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -5012,21 +5122,23 @@ sequential33(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential33_helpers[1].address
+    r0 = sequential33_helpers[1].address(r1, r2, r3, r4, r5);
 #line 166 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 166 "sample/undocked/tail_call_sequential.c"
-    if ((sequential33_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential33_helpers[1].tail_call) && (r0 == 0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 166 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=33
 #line 166 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(33))
+    if (r1 != IMMEDIATE(33)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 166 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=34
 #line 166 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(34);
@@ -5044,13 +5156,13 @@ sequential33(void* context)
     r3 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential33_helpers[2].address
+    r0 = sequential33_helpers[2].address(r1, r2, r3, r4, r5);
 #line 166 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 166 "sample/undocked/tail_call_sequential.c"
-    if ((sequential33_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential33_helpers[2].tail_call) && (r0 == 0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 166 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -5138,13 +5250,13 @@ sequential34(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential34_helpers[0].address
+    r0 = sequential34_helpers[0].address(r1, r2, r3, r4, r5);
 #line 167 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 167 "sample/undocked/tail_call_sequential.c"
-    if ((sequential34_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential34_helpers[0].tail_call) && (r0 == 0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 167 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5153,9 +5265,11 @@ sequential34(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=25 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 167 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_STXB pc=11 dst=r10 src=r9 offset=-8 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint8_t)r9;
@@ -5191,21 +5305,23 @@ sequential34(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential34_helpers[1].address
+    r0 = sequential34_helpers[1].address(r1, r2, r3, r4, r5);
 #line 167 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 167 "sample/undocked/tail_call_sequential.c"
-    if ((sequential34_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential34_helpers[1].tail_call) && (r0 == 0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 167 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=26 dst=r1 src=r8 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=27 dst=r1 src=r0 offset=8 imm=34
 #line 167 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(34))
+    if (r1 != IMMEDIATE(34)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 167 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=35
 #line 167 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(35);
@@ -5223,13 +5339,13 @@ sequential34(void* context)
     r3 = IMMEDIATE(35);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential34_helpers[2].address
+    r0 = sequential34_helpers[2].address(r1, r2, r3, r4, r5);
 #line 167 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 167 "sample/undocked/tail_call_sequential.c"
-    if ((sequential34_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential34_helpers[2].tail_call) && (r0 == 0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 167 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=35 dst=r7 src=r0 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -5315,13 +5431,13 @@ sequential4(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential4_helpers[0].address
+    r0 = sequential4_helpers[0].address(r1, r2, r3, r4, r5);
 #line 137 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 137 "sample/undocked/tail_call_sequential.c"
-    if ((sequential4_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential4_helpers[0].tail_call) && (r0 == 0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 137 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5330,9 +5446,11 @@ sequential4(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 137 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -5365,21 +5483,23 @@ sequential4(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential4_helpers[1].address
+    r0 = sequential4_helpers[1].address(r1, r2, r3, r4, r5);
 #line 137 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 137 "sample/undocked/tail_call_sequential.c"
-    if ((sequential4_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential4_helpers[1].tail_call) && (r0 == 0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 137 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=4
 #line 137 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(4))
+    if (r1 != IMMEDIATE(4)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 137 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=5
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(5);
@@ -5397,13 +5517,13 @@ sequential4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential4_helpers[2].address
+    r0 = sequential4_helpers[2].address(r1, r2, r3, r4, r5);
 #line 137 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 137 "sample/undocked/tail_call_sequential.c"
-    if ((sequential4_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential4_helpers[2].tail_call) && (r0 == 0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 137 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -5489,13 +5609,13 @@ sequential5(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential5_helpers[0].address
+    r0 = sequential5_helpers[0].address(r1, r2, r3, r4, r5);
 #line 138 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 138 "sample/undocked/tail_call_sequential.c"
-    if ((sequential5_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential5_helpers[0].tail_call) && (r0 == 0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 138 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5504,9 +5624,11 @@ sequential5(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 138 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -5539,21 +5661,23 @@ sequential5(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential5_helpers[1].address
+    r0 = sequential5_helpers[1].address(r1, r2, r3, r4, r5);
 #line 138 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 138 "sample/undocked/tail_call_sequential.c"
-    if ((sequential5_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential5_helpers[1].tail_call) && (r0 == 0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 138 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=5
 #line 138 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(5))
+    if (r1 != IMMEDIATE(5)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 138 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=6
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(6);
@@ -5571,13 +5695,13 @@ sequential5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential5_helpers[2].address
+    r0 = sequential5_helpers[2].address(r1, r2, r3, r4, r5);
 #line 138 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 138 "sample/undocked/tail_call_sequential.c"
-    if ((sequential5_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential5_helpers[2].tail_call) && (r0 == 0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 138 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -5663,13 +5787,13 @@ sequential6(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential6_helpers[0].address
+    r0 = sequential6_helpers[0].address(r1, r2, r3, r4, r5);
 #line 139 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 139 "sample/undocked/tail_call_sequential.c"
-    if ((sequential6_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential6_helpers[0].tail_call) && (r0 == 0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 139 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5678,9 +5802,11 @@ sequential6(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 139 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -5713,21 +5839,23 @@ sequential6(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential6_helpers[1].address
+    r0 = sequential6_helpers[1].address(r1, r2, r3, r4, r5);
 #line 139 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 139 "sample/undocked/tail_call_sequential.c"
-    if ((sequential6_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential6_helpers[1].tail_call) && (r0 == 0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 139 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=6
 #line 139 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(6))
+    if (r1 != IMMEDIATE(6)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 139 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=7
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(7);
@@ -5745,13 +5873,13 @@ sequential6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential6_helpers[2].address
+    r0 = sequential6_helpers[2].address(r1, r2, r3, r4, r5);
 #line 139 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 139 "sample/undocked/tail_call_sequential.c"
-    if ((sequential6_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential6_helpers[2].tail_call) && (r0 == 0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 139 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -5837,13 +5965,13 @@ sequential7(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential7_helpers[0].address
+    r0 = sequential7_helpers[0].address(r1, r2, r3, r4, r5);
 #line 140 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 140 "sample/undocked/tail_call_sequential.c"
-    if ((sequential7_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential7_helpers[0].tail_call) && (r0 == 0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 140 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -5852,9 +5980,11 @@ sequential7(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 140 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -5887,21 +6017,23 @@ sequential7(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential7_helpers[1].address
+    r0 = sequential7_helpers[1].address(r1, r2, r3, r4, r5);
 #line 140 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 140 "sample/undocked/tail_call_sequential.c"
-    if ((sequential7_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential7_helpers[1].tail_call) && (r0 == 0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 140 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=7
 #line 140 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(7))
+    if (r1 != IMMEDIATE(7)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 140 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=8
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(8);
@@ -5919,13 +6051,13 @@ sequential7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential7_helpers[2].address
+    r0 = sequential7_helpers[2].address(r1, r2, r3, r4, r5);
 #line 140 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 140 "sample/undocked/tail_call_sequential.c"
-    if ((sequential7_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential7_helpers[2].tail_call) && (r0 == 0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 140 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -6011,13 +6143,13 @@ sequential8(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential8_helpers[0].address
+    r0 = sequential8_helpers[0].address(r1, r2, r3, r4, r5);
 #line 141 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 141 "sample/undocked/tail_call_sequential.c"
-    if ((sequential8_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential8_helpers[0].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 141 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -6026,9 +6158,11 @@ sequential8(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 141 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -6061,21 +6195,23 @@ sequential8(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential8_helpers[1].address
+    r0 = sequential8_helpers[1].address(r1, r2, r3, r4, r5);
 #line 141 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 141 "sample/undocked/tail_call_sequential.c"
-    if ((sequential8_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential8_helpers[1].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 141 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=8
 #line 141 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(8))
+    if (r1 != IMMEDIATE(8)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 141 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=9
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(9);
@@ -6093,13 +6229,13 @@ sequential8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential8_helpers[2].address
+    r0 = sequential8_helpers[2].address(r1, r2, r3, r4, r5);
 #line 141 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 141 "sample/undocked/tail_call_sequential.c"
-    if ((sequential8_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential8_helpers[2].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 141 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -6185,13 +6321,13 @@ sequential9(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential9_helpers[0].address
+    r0 = sequential9_helpers[0].address(r1, r2, r3, r4, r5);
 #line 142 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 142 "sample/undocked/tail_call_sequential.c"
-    if ((sequential9_helpers[0].tail_call) && (r0 == 0))
+    if ((sequential9_helpers[0].tail_call) && (r0 == 0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 142 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=8 dst=r8 src=r0 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r8 = r0;
@@ -6200,9 +6336,11 @@ sequential9(void* context)
     r7 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=10 dst=r8 src=r0 offset=24 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 142 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1030059372
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = (uint64_t)2924860873733484;
@@ -6235,21 +6373,23 @@ sequential9(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential9_helpers[1].address
+    r0 = sequential9_helpers[1].address(r1, r2, r3, r4, r5);
 #line 142 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 142 "sample/undocked/tail_call_sequential.c"
-    if ((sequential9_helpers[1].tail_call) && (r0 == 0))
+    if ((sequential9_helpers[1].tail_call) && (r0 == 0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 142 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_LDXW pc=25 dst=r1 src=r8 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=26 dst=r1 src=r0 offset=8 imm=9
 #line 142 "sample/undocked/tail_call_sequential.c"
-    if (r1 != IMMEDIATE(9))
+    if (r1 != IMMEDIATE(9)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         goto label_1;
+#line 142 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_IMM pc=27 dst=r1 src=r0 offset=0 imm=10
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = IMMEDIATE(10);
@@ -6267,13 +6407,13 @@ sequential9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential9_helpers[2].address
+    r0 = sequential9_helpers[2].address(r1, r2, r3, r4, r5);
 #line 142 "sample/undocked/tail_call_sequential.c"
-         (r1, r2, r3, r4, r5);
-#line 142 "sample/undocked/tail_call_sequential.c"
-    if ((sequential9_helpers[2].tail_call) && (r0 == 0))
+    if ((sequential9_helpers[2].tail_call) && (r0 == 0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
+#line 142 "sample/undocked/tail_call_sequential.c"
+    }
     // EBPF_OP_MOV64_REG pc=34 dst=r7 src=r0 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r7 = r0;
@@ -6795,11 +6935,12 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 
 #pragma data_seg(push, "map_initial_values")
+// clang-format off
 static const char* _map_initial_string_table[] = {
     "sequential0",
     "sequential1",
@@ -6837,6 +6978,7 @@ static const char* _map_initial_string_table[] = {
     "sequential33",
     "sequential34",
 };
+// clang-format on
 
 static map_initial_values_t _map_initial_values_array[] = {
     {

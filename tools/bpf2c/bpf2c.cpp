@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #include "bpf_code_generator.h"
@@ -23,7 +23,7 @@
 
 #pragma comment(lib, "Bcrypt.lib")
 
-const char copyright_notice[] = "// Copyright (c) Microsoft Corporation\n// SPDX-License-Identifier: MIT\n";
+const char copyright_notice[] = "// Copyright (c) eBPF for Windows contributors\n// SPDX-License-Identifier: MIT\n";
 
 const char bpf2c_driver[] =
 #include "bpf2c_driver.template"
