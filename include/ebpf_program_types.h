@@ -13,7 +13,7 @@
 // when version is EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION.
 typedef struct _ebpf_program_type_descriptor
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     const char* name;
     const ebpf_context_descriptor_t* context_descriptor;
     GUID program_type;
@@ -30,7 +30,7 @@ typedef struct _ebpf_helper_function_prototype_flags
 // when version is EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION.
 typedef struct _ebpf_helper_function_prototype
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     uint32_t helper_id;
     const char* name;
     ebpf_return_type_t return_type;
@@ -42,7 +42,7 @@ typedef struct _ebpf_helper_function_prototype
 // when version is EBPF_PROGRAM_INFORMATION_CURRENT_VERSION.
 typedef struct _ebpf_program_info
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     const ebpf_program_type_descriptor_t* program_type_descriptor;
     uint32_t count_of_program_type_specific_helpers;
     const ebpf_helper_function_prototype_t* program_type_specific_helper_prototype;
@@ -54,7 +54,7 @@ typedef struct _ebpf_program_info
 // when version is EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION.
 typedef struct _ebpf_helper_function_addresses
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     uint32_t helper_function_count;
     uint64_t* helper_function_address;
 } ebpf_helper_function_addresses_t;
@@ -77,7 +77,7 @@ typedef void (*ebpf_program_context_destroy_t)(
 // when version is EBPF_PROGRAM_DATA_CURRENT_VERSION.
 typedef struct _ebpf_program_data
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     const ebpf_program_info_t* program_info; ///< Pointer to program information.
     const ebpf_helper_function_addresses_t*
         program_type_specific_helper_function_addresses; ///< Pointer to program type specific helper function
@@ -93,7 +93,7 @@ typedef struct _ebpf_program_data
 // when version is EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION.
 typedef struct _ebpf_program_section_info
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     const wchar_t* section_name;
     const GUID* program_type;
     const GUID* attach_type;

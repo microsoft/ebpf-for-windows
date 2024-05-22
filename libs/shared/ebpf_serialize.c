@@ -14,7 +14,7 @@
 typedef struct _ebpf_serialized_program_type_descriptor
 {
     size_t size;
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     ebpf_context_descriptor_t context_descriptor;
     GUID program_type;
     uint32_t bpf_prog_type;
@@ -29,7 +29,7 @@ typedef struct _ebpf_serialized_program_type_descriptor
 typedef struct _ebpf_serialized_helper_function_prototype
 {
     size_t size;
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     uint32_t helper_id;
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
@@ -44,7 +44,7 @@ typedef struct _ebpf_serialized_helper_function_prototype
 typedef struct _ebpf_serialized_helper_function_prototype_array
 {
     size_t size;
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     uint32_t helper_function_count;
     uint8_t prototypes[1];
 } ebpf_serialized_helper_function_prototype_array_t;

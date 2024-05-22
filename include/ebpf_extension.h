@@ -87,13 +87,13 @@ typedef struct _ebpf_extension_program_dispatch_table
 
 typedef struct _ebpf_extension_data
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     const void* data;
 } ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data
 {
-    ebpf_version_header_t header;
+    ebpf_extension_header_t header;
     ebpf_program_type_t supported_program_type;
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;

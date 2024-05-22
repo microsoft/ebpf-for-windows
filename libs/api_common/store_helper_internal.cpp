@@ -29,7 +29,7 @@ _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
 }
 
 static ebpf_result_t
-_load_extension_header(HKEY data_key, _Out_ ebpf_version_header_t* extension_header)
+_load_extension_header(HKEY data_key, _Out_ ebpf_extension_header_t* extension_header)
 {
     uint32_t version, size;
 

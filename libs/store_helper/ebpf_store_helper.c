@@ -11,7 +11,7 @@
 #define IS_SUCCESS(x) (x == EBPF_SUCCESS)
 
 static ebpf_result_t
-_ebpf_store_update_extension_header_information(ebpf_store_key_t key, _In_ const ebpf_version_header_t* header)
+_ebpf_store_update_extension_header_information(ebpf_store_key_t key, _In_ const ebpf_extension_header_t* header)
 {
     ebpf_result_t result;
     result = ebpf_write_registry_value_dword(key, EBPF_EXTENSION_HEADER_VERSION, header->version);
