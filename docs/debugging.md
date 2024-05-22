@@ -82,7 +82,7 @@ the hook context (ctx) structure pointer that is
 passed to the program as its first argument.
 
 **Step 4)** To understand what went wrong, we can ask netsh for the informational or verbose output by using
-"level=information" or "level=verbose":
+"level=informational" or "level=verbose":
 
 Note: Informational level will only show the first failure the verifier encounters on a specific path and not show
 dependent failures. Verbose level will show both the initial failures as well as failures arising from that initial

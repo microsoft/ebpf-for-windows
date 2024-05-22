@@ -122,7 +122,7 @@ extern "C"
      * @param[in] section The name of the section to query.
      * @param[in] program_type Optional program type.
      *  If NULL, the program type is derived from the section name.
-     * @param[in] verbosity Obtain additional info about the programs.
+     * @param[in] verbosity How much additional info about the programs to obtain.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
@@ -147,7 +147,7 @@ extern "C"
      * @param[in] section The name of the section to query.
      * @param[in] program_type Optional program type.
      *  If NULL, the program type is derived from the section name.
-     * @param[in] verbosity Obtain additional info about the programs.
+     * @param[in] verbosity How much additional info about the programs to obtain.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
