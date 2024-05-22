@@ -175,12 +175,12 @@ label_1:
     // EBPF_OP_MOV64_IMM pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 58 "sample/droppacket.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_LDXDW pc=15 dst=r2 src=r6 offset=8 imm=0
-#line 64 "sample/droppacket.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_LDXDW pc=16 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=15 dst=r1 src=r6 offset=0 imm=0
 #line 64 "sample/droppacket.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_LDXDW pc=16 dst=r2 src=r6 offset=8 imm=0
+#line 64 "sample/droppacket.c"
+    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_MOV64_REG pc=17 dst=r3 src=r1 offset=0 imm=0
 #line 64 "sample/droppacket.c"
     r3 = r1;
@@ -261,7 +261,7 @@ label_1:
 #line 79 "sample/droppacket.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-8
-#line 79 "sample/droppacket.c"
+#line 80 "sample/droppacket.c"
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=0
 #line 80 "sample/droppacket.c"

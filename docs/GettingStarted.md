@@ -37,8 +37,8 @@ install it directly from [here](https://www.microsoft.com/en-us/download/details
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
   check box is checked before completing the installer).
     >Note: as multiple versions of WDKs cannot coexist side-by-side, you may be asked to uninstall previous versions.
-1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
- Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
+1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.5/LLVM-18.1.5-win64.exe) (version **18.1.5**).
+ Note: -O2 may have optimizations that are incompatible with the PREVAIL verifier
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.3.1 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
 
@@ -234,7 +234,7 @@ On a defender machine with [eBPF installed](#installing-ebpf-for-windows), do th
 1. Install and set up a DNS server.
 1. Make sure that either test signing was enabled as discussed in
    [Installing eBPF for Windows](#installing-ebpf-for-windows), or the kernel debugger (KD) is attached and running.
-1. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe)
+1. Install [clang](https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.5/LLVM-18.1.5-win64.exe)
    if not already installed on the defender machine.
 1. Copy `droppacket.c` and `ebpf.h` to a folder (such as `c:\test`).
 

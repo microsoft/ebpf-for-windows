@@ -12,7 +12,7 @@ choco install visualstudio2022buildtools --version 117.4.2.0 -y
 # WDK for Windows 11 not currently available on Chocolate!
 #choco install windowsdriverkit11 --version 10.0.22621.382 -y
 
-choco install llvm --version 11.0.1 -y
+choco install llvm --version 18.1.5 -y
 choco install nuget.commandline --version 6.4.0 -y
 choco install cmake.portable --version 3.25.1 -y
 choco install wixtoolset

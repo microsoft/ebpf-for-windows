@@ -191,47 +191,47 @@ static GUID decapsulate_permit_packet_attach_type_guid = {
 #pragma code_seg(push, "xdp_te~1")
 static uint64_t
 decapsulate_permit_packet(void* context)
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
 {
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     // Prologue
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r0 = 0;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r1 = 0;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r2 = 0;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r3 = 0;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r4 = 0;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r5 = 0;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     register uint64_t r10 = 0;
 
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     r1 = (uintptr_t)context;
-#line 88 "sample/decap_permit_packet.c"
+#line 94 "sample/decap_permit_packet.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
-#line 88 "sample/decap_permit_packet.c"
-    r0 = IMMEDIATE(1);
-    // EBPF_OP_LDXDW pc=1 dst=r3 src=r1 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=0 dst=r3 src=r1 offset=8 imm=0
 #line 94 "sample/decap_permit_packet.c"
     r3 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
-    // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=1 dst=r2 src=r1 offset=0 imm=0
 #line 93 "sample/decap_permit_packet.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
-    // EBPF_OP_MOV64_REG pc=3 dst=r4 src=r2 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=2 dst=r4 src=r2 offset=0 imm=0
 #line 94 "sample/decap_permit_packet.c"
     r4 = r2;
-    // EBPF_OP_ADD64_IMM pc=4 dst=r4 src=r0 offset=0 imm=14
+    // EBPF_OP_ADD64_IMM pc=3 dst=r4 src=r0 offset=0 imm=14
 #line 94 "sample/decap_permit_packet.c"
     r4 += IMMEDIATE(14);
+    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+#line 94 "sample/decap_permit_packet.c"
+    r0 = IMMEDIATE(1);
     // EBPF_OP_JGT_REG pc=5 dst=r4 src=r3 offset=103 imm=0
 #line 94 "sample/decap_permit_packet.c"
     if (r4 > r3) {
@@ -429,15 +429,15 @@ decapsulate_permit_packet(void* context)
     // EBPF_OP_MOV64_REG pc=57 dst=r1 src=r0 offset=0 imm=0
 #line 41 "sample/decap_permit_packet.c"
     r1 = r0;
-    // EBPF_OP_LSH64_IMM pc=58 dst=r1 src=r0 offset=0 imm=32
-#line 41 "sample/decap_permit_packet.c"
-    r1 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_ARSH64_IMM pc=59 dst=r1 src=r0 offset=0 imm=32
-#line 41 "sample/decap_permit_packet.c"
-    r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
-    // EBPF_OP_MOV64_IMM pc=60 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=58 dst=r0 src=r0 offset=0 imm=2
 #line 41 "sample/decap_permit_packet.c"
     r0 = IMMEDIATE(2);
+    // EBPF_OP_LSH64_IMM pc=59 dst=r1 src=r0 offset=0 imm=32
+#line 41 "sample/decap_permit_packet.c"
+    r1 <<= (IMMEDIATE(32) & 63);
+    // EBPF_OP_ARSH64_IMM pc=60 dst=r1 src=r0 offset=0 imm=32
+#line 41 "sample/decap_permit_packet.c"
+    r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
     // EBPF_OP_MOV64_IMM pc=61 dst=r2 src=r0 offset=0 imm=0
 #line 41 "sample/decap_permit_packet.c"
     r2 = IMMEDIATE(0);
@@ -465,25 +465,25 @@ label_1:
         goto label_3;
 #line 114 "sample/decap_permit_packet.c"
     }
-    // EBPF_OP_MOV64_REG pc=67 dst=r4 src=r2 offset=0 imm=0
-#line 114 "sample/decap_permit_packet.c"
-    r4 = r2;
-    // EBPF_OP_ADD64_IMM pc=68 dst=r4 src=r0 offset=0 imm=94
-#line 114 "sample/decap_permit_packet.c"
-    r4 += IMMEDIATE(94);
-    // EBPF_OP_JGT_REG pc=69 dst=r4 src=r3 offset=39 imm=0
+    // EBPF_OP_LDXB pc=67 dst=r4 src=r2 offset=20 imm=0
 #line 120 "sample/decap_permit_packet.c"
-    if (r4 > r3) {
+    r4 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(20));
+    // EBPF_OP_JNE_IMM pc=68 dst=r4 src=r0 offset=40 imm=41
+#line 120 "sample/decap_permit_packet.c"
+    if (r4 != IMMEDIATE(41)) {
 #line 120 "sample/decap_permit_packet.c"
         goto label_3;
 #line 120 "sample/decap_permit_packet.c"
     }
-    // EBPF_OP_LDXB pc=70 dst=r3 src=r2 offset=20 imm=0
+    // EBPF_OP_MOV64_REG pc=69 dst=r4 src=r2 offset=0 imm=0
 #line 120 "sample/decap_permit_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(20));
-    // EBPF_OP_JNE_IMM pc=71 dst=r3 src=r0 offset=37 imm=41
+    r4 = r2;
+    // EBPF_OP_ADD64_IMM pc=70 dst=r4 src=r0 offset=0 imm=94
 #line 120 "sample/decap_permit_packet.c"
-    if (r3 != IMMEDIATE(41)) {
+    r4 += IMMEDIATE(94);
+    // EBPF_OP_JGT_REG pc=71 dst=r4 src=r3 offset=37 imm=0
+#line 120 "sample/decap_permit_packet.c"
+    if (r4 > r3) {
 #line 120 "sample/decap_permit_packet.c"
         goto label_3;
 #line 120 "sample/decap_permit_packet.c"
@@ -587,15 +587,15 @@ label_1:
     // EBPF_OP_MOV64_REG pc=102 dst=r1 src=r0 offset=0 imm=0
 #line 70 "sample/decap_permit_packet.c"
     r1 = r0;
-    // EBPF_OP_LSH64_IMM pc=103 dst=r1 src=r0 offset=0 imm=32
-#line 70 "sample/decap_permit_packet.c"
-    r1 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_ARSH64_IMM pc=104 dst=r1 src=r0 offset=0 imm=32
-#line 70 "sample/decap_permit_packet.c"
-    r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
-    // EBPF_OP_MOV64_IMM pc=105 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=103 dst=r0 src=r0 offset=0 imm=2
 #line 70 "sample/decap_permit_packet.c"
     r0 = IMMEDIATE(2);
+    // EBPF_OP_LSH64_IMM pc=104 dst=r1 src=r0 offset=0 imm=32
+#line 70 "sample/decap_permit_packet.c"
+    r1 <<= (IMMEDIATE(32) & 63);
+    // EBPF_OP_ARSH64_IMM pc=105 dst=r1 src=r0 offset=0 imm=32
+#line 70 "sample/decap_permit_packet.c"
+    r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
     // EBPF_OP_MOV64_IMM pc=106 dst=r2 src=r0 offset=0 imm=0
 #line 70 "sample/decap_permit_packet.c"
     r2 = IMMEDIATE(0);

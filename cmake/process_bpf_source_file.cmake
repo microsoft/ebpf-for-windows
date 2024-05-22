@@ -58,7 +58,7 @@ function(build_bpf_samples unsafe_program)
     add_custom_target(${target_name}_native ALL DEPENDS "${native_driver_list}" SOURCES ${elf_list})
     add_dependencies(${target_name}_native ${target_name}_elf "bpf2c")
 
-    set_target_properties(${target_name}_elf PROPERTIES VS_GLOBAL_ClangFlags "-g -target bpf -O2 -Werror")
+    set_target_properties(${target_name}_elf PROPERTIES VS_GLOBAL_ClangFlags "-g -target bpf -O1 -Werror")
     set_target_properties(${target_name}_elf PROPERTIES VS_GLOBAL_IncludePath
       "-I${CMAKE_SOURCE_DIR}/include -I${CMAKE_SOURCE_DIR}/external/bpftool -I${CMAKE_SOURCE_DIR}/tests/xdp -I${CMAKE_SOURCE_DIR}/tests/socket -I${CMAKE_SOURCE_DIR}/tests/sample/ext/inc")
 
