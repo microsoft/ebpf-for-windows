@@ -107,62 +107,62 @@ test_utility_helpers(void* context)
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint64_t)r1;
     // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=6
 #line 16 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[0].address
+    r0 = test_utility_helpers_helpers[0].address(r1, r2, r3, r4, r5);
 #line 16 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 16 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[0].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[0].tail_call) && (r0 == 0)) {
 #line 16 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXW pc=9 dst=r10 src=r0 offset=-48 imm=0
+#line 16 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXW pc=9 dst=r10 src=r0 offset=-48 imm=0
 #line 16 "sample/./sample_common_routines.h"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint32_t)r0;
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=7
 #line 24 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[1].address
+    r0 = test_utility_helpers_helpers[1].address(r1, r2, r3, r4, r5);
 #line 24 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 24 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0)) {
 #line 24 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=11 dst=r10 src=r0 offset=-32 imm=0
+#line 24 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXDW pc=11 dst=r10 src=r0 offset=-32 imm=0
 #line 24 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=12 dst=r0 src=r0 offset=0 imm=9
 #line 27 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[2].address
+    r0 = test_utility_helpers_helpers[2].address(r1, r2, r3, r4, r5);
 #line 27 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 27 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[2].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[2].tail_call) && (r0 == 0)) {
 #line 27 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=13 dst=r10 src=r0 offset=-40 imm=0
+#line 27 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXDW pc=13 dst=r10 src=r0 offset=-40 imm=0
 #line 27 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=8
 #line 30 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[3].address
+    r0 = test_utility_helpers_helpers[3].address(r1, r2, r3, r4, r5);
 #line 30 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 30 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[3].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[3].tail_call) && (r0 == 0)) {
 #line 30 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXW pc=15 dst=r10 src=r0 offset=-24 imm=0
+#line 30 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXW pc=15 dst=r10 src=r0 offset=-24 imm=0
 #line 30 "sample/./sample_common_routines.h"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r0;
     // EBPF_OP_CALL pc=16 dst=r0 src=r0 offset=0 imm=19
 #line 33 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[4].address
+    r0 = test_utility_helpers_helpers[4].address(r1, r2, r3, r4, r5);
 #line 33 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 33 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[4].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[4].tail_call) && (r0 == 0)) {
 #line 33 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=17 dst=r10 src=r0 offset=-16 imm=0
+#line 33 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXDW pc=17 dst=r10 src=r0 offset=-16 imm=0
 #line 33 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=18 dst=r2 src=r10 offset=0 imm=0
@@ -188,59 +188,59 @@ test_utility_helpers(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=2
 #line 36 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[5].address
+    r0 = test_utility_helpers_helpers[5].address(r1, r2, r3, r4, r5);
 #line 36 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 36 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[5].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[5].tail_call) && (r0 == 0)) {
 #line 36 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=6
+#line 36 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=6
 #line 39 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[0].address
+    r0 = test_utility_helpers_helpers[0].address(r1, r2, r3, r4, r5);
 #line 39 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 39 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[0].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[0].tail_call) && (r0 == 0)) {
 #line 39 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXW pc=28 dst=r10 src=r0 offset=-48 imm=0
+#line 39 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXW pc=28 dst=r10 src=r0 offset=-48 imm=0
 #line 39 "sample/./sample_common_routines.h"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint32_t)r0;
     // EBPF_OP_CALL pc=29 dst=r0 src=r0 offset=0 imm=9
 #line 42 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[2].address
+    r0 = test_utility_helpers_helpers[2].address(r1, r2, r3, r4, r5);
 #line 42 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 42 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[2].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[2].tail_call) && (r0 == 0)) {
 #line 42 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=30 dst=r10 src=r0 offset=-40 imm=0
+#line 42 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXDW pc=30 dst=r10 src=r0 offset=-40 imm=0
 #line 42 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=7
 #line 45 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[1].address
+    r0 = test_utility_helpers_helpers[1].address(r1, r2, r3, r4, r5);
 #line 45 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 45 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=32 dst=r10 src=r0 offset=-32 imm=0
+#line 45 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXDW pc=32 dst=r10 src=r0 offset=-32 imm=0
 #line 45 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r0;
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=19
 #line 48 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[4].address
+    r0 = test_utility_helpers_helpers[4].address(r1, r2, r3, r4, r5);
 #line 48 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 48 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[4].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[4].tail_call) && (r0 == 0)) {
 #line 48 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_STXDW pc=34 dst=r10 src=r0 offset=-16 imm=0
+#line 48 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_STXDW pc=34 dst=r10 src=r0 offset=-16 imm=0
 #line 48 "sample/./sample_common_routines.h"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=35 dst=r2 src=r10 offset=0 imm=0
@@ -260,14 +260,14 @@ test_utility_helpers(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/./sample_common_routines.h"
-    r0 = test_utility_helpers_helpers[5].address
+    r0 = test_utility_helpers_helpers[5].address(r1, r2, r3, r4, r5);
 #line 51 "sample/./sample_common_routines.h"
-         (r1, r2, r3, r4, r5);
-#line 51 "sample/./sample_common_routines.h"
-    if ((test_utility_helpers_helpers[5].tail_call) && (r0 == 0))
+    if ((test_utility_helpers_helpers[5].tail_call) && (r0 == 0)) {
 #line 51 "sample/./sample_common_routines.h"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=42 dst=r0 src=r0 offset=0 imm=0
+#line 51 "sample/./sample_common_routines.h"
+    }
+    // EBPF_OP_MOV64_IMM pc=42 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/undocked/test_utility_helpers.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=43 dst=r0 src=r0 offset=0 imm=0
@@ -308,7 +308,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 
