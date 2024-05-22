@@ -159,14 +159,14 @@ bind_test_caller(void* context)
     r2 = IMMEDIATE(38);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 126 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_caller_helpers[0].address
+    r0 = bind_test_caller_helpers[0].address(r1, r2, r3, r4, r5);
 #line 126 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 126 "sample/tail_call_max_exceed.c"
-    if ((bind_test_caller_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_caller_helpers[0].tail_call) && (r0 == 0)) {
 #line 126 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=21 dst=r7 src=r0 offset=0 imm=0
+#line 126 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=21 dst=r7 src=r0 offset=0 imm=0
 #line 126 "sample/tail_call_max_exceed.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_MOV64_REG pc=22 dst=r1 src=r6 offset=0 imm=0
@@ -180,19 +180,21 @@ bind_test_caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=5
 #line 127 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_caller_helpers[1].address
+    r0 = bind_test_caller_helpers[1].address(r1, r2, r3, r4, r5);
 #line 127 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 127 "sample/tail_call_max_exceed.c"
-    if ((bind_test_caller_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_caller_helpers[1].tail_call) && (r0 == 0)) {
 #line 127 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=27 dst=r0 src=r0 offset=17 imm=-1
 #line 127 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=27 dst=r0 src=r0 offset=17 imm=-1
+#line 127 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 127 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=2660
+#line 127 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=2660
 #line 127 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(2660);
     // EBPF_OP_STXH pc=29 dst=r10 src=r1 offset=-16 imm=0
@@ -233,13 +235,13 @@ bind_test_caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=44 dst=r0 src=r0 offset=0 imm=13
 #line 128 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_caller_helpers[2].address
+    r0 = bind_test_caller_helpers[2].address(r1, r2, r3, r4, r5);
 #line 128 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 128 "sample/tail_call_max_exceed.c"
-    if ((bind_test_caller_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_caller_helpers[2].tail_call) && (r0 == 0)) {
 #line 128 "sample/tail_call_max_exceed.c"
         return 0;
+#line 128 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=45 dst=r0 src=r0 offset=0 imm=1
 #line 131 "sample/tail_call_max_exceed.c"
@@ -361,14 +363,14 @@ bind_test_callee0(void* context)
     r4 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee0_helpers[0].address
+    r0 = bind_test_callee0_helpers[0].address(r1, r2, r3, r4, r5);
 #line 85 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 85 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee0_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee0_helpers[0].tail_call) && (r0 == 0)) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 85 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -379,19 +381,21 @@ bind_test_callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee0_helpers[1].address
+    r0 = bind_test_callee0_helpers[1].address(r1, r2, r3, r4, r5);
 #line 85 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 85 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee0_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee0_helpers[1].tail_call) && (r0 == 0)) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 85 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 85 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 85 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 85 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 85 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -432,13 +436,13 @@ bind_test_callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 85 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee0_helpers[2].address
+    r0 = bind_test_callee0_helpers[2].address(r1, r2, r3, r4, r5);
 #line 85 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 85 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee0_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee0_helpers[2].tail_call) && (r0 == 0)) {
 #line 85 "sample/tail_call_max_exceed.c"
         return 0;
+#line 85 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 85 "sample/tail_call_max_exceed.c"
@@ -560,14 +564,14 @@ bind_test_callee1(void* context)
     r4 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee1_helpers[0].address
+    r0 = bind_test_callee1_helpers[0].address(r1, r2, r3, r4, r5);
 #line 86 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 86 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee1_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 86 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -578,19 +582,21 @@ bind_test_callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee1_helpers[1].address
+    r0 = bind_test_callee1_helpers[1].address(r1, r2, r3, r4, r5);
 #line 86 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 86 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee1_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee1_helpers[1].tail_call) && (r0 == 0)) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 86 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 86 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 86 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 86 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 86 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -631,13 +637,13 @@ bind_test_callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 86 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee1_helpers[2].address
+    r0 = bind_test_callee1_helpers[2].address(r1, r2, r3, r4, r5);
 #line 86 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 86 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee1_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee1_helpers[2].tail_call) && (r0 == 0)) {
 #line 86 "sample/tail_call_max_exceed.c"
         return 0;
+#line 86 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 86 "sample/tail_call_max_exceed.c"
@@ -759,14 +765,14 @@ bind_test_callee10(void* context)
     r4 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee10_helpers[0].address
+    r0 = bind_test_callee10_helpers[0].address(r1, r2, r3, r4, r5);
 #line 95 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 95 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee10_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee10_helpers[0].tail_call) && (r0 == 0)) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 95 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -777,19 +783,21 @@ bind_test_callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee10_helpers[1].address
+    r0 = bind_test_callee10_helpers[1].address(r1, r2, r3, r4, r5);
 #line 95 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 95 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee10_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee10_helpers[1].tail_call) && (r0 == 0)) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 95 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 95 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 95 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 95 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 95 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -830,13 +838,13 @@ bind_test_callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 95 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee10_helpers[2].address
+    r0 = bind_test_callee10_helpers[2].address(r1, r2, r3, r4, r5);
 #line 95 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 95 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee10_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee10_helpers[2].tail_call) && (r0 == 0)) {
 #line 95 "sample/tail_call_max_exceed.c"
         return 0;
+#line 95 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 95 "sample/tail_call_max_exceed.c"
@@ -958,14 +966,14 @@ bind_test_callee11(void* context)
     r4 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee11_helpers[0].address
+    r0 = bind_test_callee11_helpers[0].address(r1, r2, r3, r4, r5);
 #line 96 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 96 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee11_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee11_helpers[0].tail_call) && (r0 == 0)) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 96 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -976,19 +984,21 @@ bind_test_callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee11_helpers[1].address
+    r0 = bind_test_callee11_helpers[1].address(r1, r2, r3, r4, r5);
 #line 96 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 96 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee11_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee11_helpers[1].tail_call) && (r0 == 0)) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 96 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 96 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 96 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 96 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 96 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1029,13 +1039,13 @@ bind_test_callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 96 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee11_helpers[2].address
+    r0 = bind_test_callee11_helpers[2].address(r1, r2, r3, r4, r5);
 #line 96 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 96 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee11_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee11_helpers[2].tail_call) && (r0 == 0)) {
 #line 96 "sample/tail_call_max_exceed.c"
         return 0;
+#line 96 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 96 "sample/tail_call_max_exceed.c"
@@ -1157,14 +1167,14 @@ bind_test_callee12(void* context)
     r4 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee12_helpers[0].address
+    r0 = bind_test_callee12_helpers[0].address(r1, r2, r3, r4, r5);
 #line 97 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 97 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee12_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee12_helpers[0].tail_call) && (r0 == 0)) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 97 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1175,19 +1185,21 @@ bind_test_callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee12_helpers[1].address
+    r0 = bind_test_callee12_helpers[1].address(r1, r2, r3, r4, r5);
 #line 97 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 97 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee12_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee12_helpers[1].tail_call) && (r0 == 0)) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 97 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 97 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 97 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 97 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 97 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1228,13 +1240,13 @@ bind_test_callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 97 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee12_helpers[2].address
+    r0 = bind_test_callee12_helpers[2].address(r1, r2, r3, r4, r5);
 #line 97 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 97 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee12_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee12_helpers[2].tail_call) && (r0 == 0)) {
 #line 97 "sample/tail_call_max_exceed.c"
         return 0;
+#line 97 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1356,14 +1368,14 @@ bind_test_callee13(void* context)
     r4 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee13_helpers[0].address
+    r0 = bind_test_callee13_helpers[0].address(r1, r2, r3, r4, r5);
 #line 98 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 98 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee13_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee13_helpers[0].tail_call) && (r0 == 0)) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 98 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1374,19 +1386,21 @@ bind_test_callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee13_helpers[1].address
+    r0 = bind_test_callee13_helpers[1].address(r1, r2, r3, r4, r5);
 #line 98 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 98 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee13_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee13_helpers[1].tail_call) && (r0 == 0)) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 98 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 98 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 98 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 98 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 98 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1427,13 +1441,13 @@ bind_test_callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 98 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee13_helpers[2].address
+    r0 = bind_test_callee13_helpers[2].address(r1, r2, r3, r4, r5);
 #line 98 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 98 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee13_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee13_helpers[2].tail_call) && (r0 == 0)) {
 #line 98 "sample/tail_call_max_exceed.c"
         return 0;
+#line 98 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1555,14 +1569,14 @@ bind_test_callee14(void* context)
     r4 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee14_helpers[0].address
+    r0 = bind_test_callee14_helpers[0].address(r1, r2, r3, r4, r5);
 #line 99 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 99 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee14_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee14_helpers[0].tail_call) && (r0 == 0)) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 99 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1573,19 +1587,21 @@ bind_test_callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee14_helpers[1].address
+    r0 = bind_test_callee14_helpers[1].address(r1, r2, r3, r4, r5);
 #line 99 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 99 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee14_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee14_helpers[1].tail_call) && (r0 == 0)) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 99 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 99 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 99 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 99 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 99 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1626,13 +1642,13 @@ bind_test_callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 99 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee14_helpers[2].address
+    r0 = bind_test_callee14_helpers[2].address(r1, r2, r3, r4, r5);
 #line 99 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 99 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee14_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee14_helpers[2].tail_call) && (r0 == 0)) {
 #line 99 "sample/tail_call_max_exceed.c"
         return 0;
+#line 99 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1754,14 +1770,14 @@ bind_test_callee15(void* context)
     r4 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee15_helpers[0].address
+    r0 = bind_test_callee15_helpers[0].address(r1, r2, r3, r4, r5);
 #line 100 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 100 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee15_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee15_helpers[0].tail_call) && (r0 == 0)) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 100 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1772,19 +1788,21 @@ bind_test_callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee15_helpers[1].address
+    r0 = bind_test_callee15_helpers[1].address(r1, r2, r3, r4, r5);
 #line 100 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 100 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee15_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee15_helpers[1].tail_call) && (r0 == 0)) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 100 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 100 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 100 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 100 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 100 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -1825,13 +1843,13 @@ bind_test_callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 100 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee15_helpers[2].address
+    r0 = bind_test_callee15_helpers[2].address(r1, r2, r3, r4, r5);
 #line 100 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 100 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee15_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee15_helpers[2].tail_call) && (r0 == 0)) {
 #line 100 "sample/tail_call_max_exceed.c"
         return 0;
+#line 100 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1953,14 +1971,14 @@ bind_test_callee16(void* context)
     r4 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee16_helpers[0].address
+    r0 = bind_test_callee16_helpers[0].address(r1, r2, r3, r4, r5);
 #line 101 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 101 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee16_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee16_helpers[0].tail_call) && (r0 == 0)) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 101 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -1971,19 +1989,21 @@ bind_test_callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee16_helpers[1].address
+    r0 = bind_test_callee16_helpers[1].address(r1, r2, r3, r4, r5);
 #line 101 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 101 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee16_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee16_helpers[1].tail_call) && (r0 == 0)) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 101 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 101 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 101 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 101 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 101 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2024,13 +2044,13 @@ bind_test_callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 101 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee16_helpers[2].address
+    r0 = bind_test_callee16_helpers[2].address(r1, r2, r3, r4, r5);
 #line 101 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 101 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee16_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee16_helpers[2].tail_call) && (r0 == 0)) {
 #line 101 "sample/tail_call_max_exceed.c"
         return 0;
+#line 101 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 101 "sample/tail_call_max_exceed.c"
@@ -2152,14 +2172,14 @@ bind_test_callee17(void* context)
     r4 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee17_helpers[0].address
+    r0 = bind_test_callee17_helpers[0].address(r1, r2, r3, r4, r5);
 #line 102 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 102 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee17_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee17_helpers[0].tail_call) && (r0 == 0)) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 102 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2170,19 +2190,21 @@ bind_test_callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee17_helpers[1].address
+    r0 = bind_test_callee17_helpers[1].address(r1, r2, r3, r4, r5);
 #line 102 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 102 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee17_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee17_helpers[1].tail_call) && (r0 == 0)) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 102 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 102 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 102 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 102 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 102 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2223,13 +2245,13 @@ bind_test_callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 102 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee17_helpers[2].address
+    r0 = bind_test_callee17_helpers[2].address(r1, r2, r3, r4, r5);
 #line 102 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 102 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee17_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee17_helpers[2].tail_call) && (r0 == 0)) {
 #line 102 "sample/tail_call_max_exceed.c"
         return 0;
+#line 102 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2351,14 +2373,14 @@ bind_test_callee18(void* context)
     r4 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee18_helpers[0].address
+    r0 = bind_test_callee18_helpers[0].address(r1, r2, r3, r4, r5);
 #line 103 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 103 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee18_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee18_helpers[0].tail_call) && (r0 == 0)) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 103 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2369,19 +2391,21 @@ bind_test_callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee18_helpers[1].address
+    r0 = bind_test_callee18_helpers[1].address(r1, r2, r3, r4, r5);
 #line 103 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 103 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee18_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee18_helpers[1].tail_call) && (r0 == 0)) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 103 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 103 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 103 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 103 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 103 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2422,13 +2446,13 @@ bind_test_callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 103 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee18_helpers[2].address
+    r0 = bind_test_callee18_helpers[2].address(r1, r2, r3, r4, r5);
 #line 103 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 103 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee18_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee18_helpers[2].tail_call) && (r0 == 0)) {
 #line 103 "sample/tail_call_max_exceed.c"
         return 0;
+#line 103 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2550,14 +2574,14 @@ bind_test_callee19(void* context)
     r4 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee19_helpers[0].address
+    r0 = bind_test_callee19_helpers[0].address(r1, r2, r3, r4, r5);
 #line 104 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 104 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee19_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee19_helpers[0].tail_call) && (r0 == 0)) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 104 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2568,19 +2592,21 @@ bind_test_callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee19_helpers[1].address
+    r0 = bind_test_callee19_helpers[1].address(r1, r2, r3, r4, r5);
 #line 104 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 104 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee19_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee19_helpers[1].tail_call) && (r0 == 0)) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 104 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 104 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 104 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 104 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 104 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2621,13 +2647,13 @@ bind_test_callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 104 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee19_helpers[2].address
+    r0 = bind_test_callee19_helpers[2].address(r1, r2, r3, r4, r5);
 #line 104 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 104 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee19_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee19_helpers[2].tail_call) && (r0 == 0)) {
 #line 104 "sample/tail_call_max_exceed.c"
         return 0;
+#line 104 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2749,14 +2775,14 @@ bind_test_callee2(void* context)
     r4 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee2_helpers[0].address
+    r0 = bind_test_callee2_helpers[0].address(r1, r2, r3, r4, r5);
 #line 87 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 87 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee2_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee2_helpers[0].tail_call) && (r0 == 0)) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 87 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2767,19 +2793,21 @@ bind_test_callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee2_helpers[1].address
+    r0 = bind_test_callee2_helpers[1].address(r1, r2, r3, r4, r5);
 #line 87 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 87 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee2_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee2_helpers[1].tail_call) && (r0 == 0)) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 87 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 87 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 87 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 87 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 87 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -2820,13 +2848,13 @@ bind_test_callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 87 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee2_helpers[2].address
+    r0 = bind_test_callee2_helpers[2].address(r1, r2, r3, r4, r5);
 #line 87 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 87 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee2_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee2_helpers[2].tail_call) && (r0 == 0)) {
 #line 87 "sample/tail_call_max_exceed.c"
         return 0;
+#line 87 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2948,14 +2976,14 @@ bind_test_callee20(void* context)
     r4 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee20_helpers[0].address
+    r0 = bind_test_callee20_helpers[0].address(r1, r2, r3, r4, r5);
 #line 105 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 105 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee20_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee20_helpers[0].tail_call) && (r0 == 0)) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 105 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -2966,19 +2994,21 @@ bind_test_callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee20_helpers[1].address
+    r0 = bind_test_callee20_helpers[1].address(r1, r2, r3, r4, r5);
 #line 105 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 105 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee20_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee20_helpers[1].tail_call) && (r0 == 0)) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 105 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 105 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 105 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 105 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 105 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3019,13 +3049,13 @@ bind_test_callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 105 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee20_helpers[2].address
+    r0 = bind_test_callee20_helpers[2].address(r1, r2, r3, r4, r5);
 #line 105 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 105 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee20_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee20_helpers[2].tail_call) && (r0 == 0)) {
 #line 105 "sample/tail_call_max_exceed.c"
         return 0;
+#line 105 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 105 "sample/tail_call_max_exceed.c"
@@ -3147,14 +3177,14 @@ bind_test_callee21(void* context)
     r4 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee21_helpers[0].address
+    r0 = bind_test_callee21_helpers[0].address(r1, r2, r3, r4, r5);
 #line 106 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 106 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee21_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee21_helpers[0].tail_call) && (r0 == 0)) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 106 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3165,19 +3195,21 @@ bind_test_callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee21_helpers[1].address
+    r0 = bind_test_callee21_helpers[1].address(r1, r2, r3, r4, r5);
 #line 106 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 106 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee21_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee21_helpers[1].tail_call) && (r0 == 0)) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 106 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 106 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 106 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 106 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 106 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3218,13 +3250,13 @@ bind_test_callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 106 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee21_helpers[2].address
+    r0 = bind_test_callee21_helpers[2].address(r1, r2, r3, r4, r5);
 #line 106 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 106 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee21_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee21_helpers[2].tail_call) && (r0 == 0)) {
 #line 106 "sample/tail_call_max_exceed.c"
         return 0;
+#line 106 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3346,14 +3378,14 @@ bind_test_callee22(void* context)
     r4 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee22_helpers[0].address
+    r0 = bind_test_callee22_helpers[0].address(r1, r2, r3, r4, r5);
 #line 107 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 107 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee22_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee22_helpers[0].tail_call) && (r0 == 0)) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 107 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3364,19 +3396,21 @@ bind_test_callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee22_helpers[1].address
+    r0 = bind_test_callee22_helpers[1].address(r1, r2, r3, r4, r5);
 #line 107 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 107 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee22_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee22_helpers[1].tail_call) && (r0 == 0)) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 107 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 107 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 107 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 107 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 107 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3417,13 +3451,13 @@ bind_test_callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 107 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee22_helpers[2].address
+    r0 = bind_test_callee22_helpers[2].address(r1, r2, r3, r4, r5);
 #line 107 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 107 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee22_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee22_helpers[2].tail_call) && (r0 == 0)) {
 #line 107 "sample/tail_call_max_exceed.c"
         return 0;
+#line 107 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3545,14 +3579,14 @@ bind_test_callee23(void* context)
     r4 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee23_helpers[0].address
+    r0 = bind_test_callee23_helpers[0].address(r1, r2, r3, r4, r5);
 #line 108 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 108 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee23_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee23_helpers[0].tail_call) && (r0 == 0)) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 108 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3563,19 +3597,21 @@ bind_test_callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee23_helpers[1].address
+    r0 = bind_test_callee23_helpers[1].address(r1, r2, r3, r4, r5);
 #line 108 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 108 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee23_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee23_helpers[1].tail_call) && (r0 == 0)) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 108 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 108 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 108 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 108 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 108 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3616,13 +3652,13 @@ bind_test_callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 108 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee23_helpers[2].address
+    r0 = bind_test_callee23_helpers[2].address(r1, r2, r3, r4, r5);
 #line 108 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 108 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee23_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee23_helpers[2].tail_call) && (r0 == 0)) {
 #line 108 "sample/tail_call_max_exceed.c"
         return 0;
+#line 108 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3744,14 +3780,14 @@ bind_test_callee24(void* context)
     r4 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee24_helpers[0].address
+    r0 = bind_test_callee24_helpers[0].address(r1, r2, r3, r4, r5);
 #line 109 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 109 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee24_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee24_helpers[0].tail_call) && (r0 == 0)) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 109 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3762,19 +3798,21 @@ bind_test_callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee24_helpers[1].address
+    r0 = bind_test_callee24_helpers[1].address(r1, r2, r3, r4, r5);
 #line 109 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 109 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee24_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee24_helpers[1].tail_call) && (r0 == 0)) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 109 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 109 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 109 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 109 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 109 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -3815,13 +3853,13 @@ bind_test_callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 109 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee24_helpers[2].address
+    r0 = bind_test_callee24_helpers[2].address(r1, r2, r3, r4, r5);
 #line 109 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 109 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee24_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee24_helpers[2].tail_call) && (r0 == 0)) {
 #line 109 "sample/tail_call_max_exceed.c"
         return 0;
+#line 109 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3943,14 +3981,14 @@ bind_test_callee25(void* context)
     r4 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee25_helpers[0].address
+    r0 = bind_test_callee25_helpers[0].address(r1, r2, r3, r4, r5);
 #line 110 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 110 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee25_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee25_helpers[0].tail_call) && (r0 == 0)) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 110 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -3961,19 +3999,21 @@ bind_test_callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee25_helpers[1].address
+    r0 = bind_test_callee25_helpers[1].address(r1, r2, r3, r4, r5);
 #line 110 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 110 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee25_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee25_helpers[1].tail_call) && (r0 == 0)) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 110 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 110 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 110 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 110 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 110 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4014,13 +4054,13 @@ bind_test_callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 110 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee25_helpers[2].address
+    r0 = bind_test_callee25_helpers[2].address(r1, r2, r3, r4, r5);
 #line 110 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 110 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee25_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee25_helpers[2].tail_call) && (r0 == 0)) {
 #line 110 "sample/tail_call_max_exceed.c"
         return 0;
+#line 110 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 110 "sample/tail_call_max_exceed.c"
@@ -4142,14 +4182,14 @@ bind_test_callee26(void* context)
     r4 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee26_helpers[0].address
+    r0 = bind_test_callee26_helpers[0].address(r1, r2, r3, r4, r5);
 #line 111 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 111 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee26_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee26_helpers[0].tail_call) && (r0 == 0)) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 111 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4160,19 +4200,21 @@ bind_test_callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee26_helpers[1].address
+    r0 = bind_test_callee26_helpers[1].address(r1, r2, r3, r4, r5);
 #line 111 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 111 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee26_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee26_helpers[1].tail_call) && (r0 == 0)) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 111 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 111 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 111 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 111 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 111 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4213,13 +4255,13 @@ bind_test_callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 111 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee26_helpers[2].address
+    r0 = bind_test_callee26_helpers[2].address(r1, r2, r3, r4, r5);
 #line 111 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 111 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee26_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee26_helpers[2].tail_call) && (r0 == 0)) {
 #line 111 "sample/tail_call_max_exceed.c"
         return 0;
+#line 111 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4341,14 +4383,14 @@ bind_test_callee27(void* context)
     r4 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee27_helpers[0].address
+    r0 = bind_test_callee27_helpers[0].address(r1, r2, r3, r4, r5);
 #line 112 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 112 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee27_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee27_helpers[0].tail_call) && (r0 == 0)) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 112 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4359,19 +4401,21 @@ bind_test_callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee27_helpers[1].address
+    r0 = bind_test_callee27_helpers[1].address(r1, r2, r3, r4, r5);
 #line 112 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 112 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee27_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee27_helpers[1].tail_call) && (r0 == 0)) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 112 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 112 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 112 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 112 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 112 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4412,13 +4456,13 @@ bind_test_callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 112 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee27_helpers[2].address
+    r0 = bind_test_callee27_helpers[2].address(r1, r2, r3, r4, r5);
 #line 112 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 112 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee27_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee27_helpers[2].tail_call) && (r0 == 0)) {
 #line 112 "sample/tail_call_max_exceed.c"
         return 0;
+#line 112 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4540,14 +4584,14 @@ bind_test_callee28(void* context)
     r4 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee28_helpers[0].address
+    r0 = bind_test_callee28_helpers[0].address(r1, r2, r3, r4, r5);
 #line 113 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 113 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee28_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee28_helpers[0].tail_call) && (r0 == 0)) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 113 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4558,19 +4602,21 @@ bind_test_callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee28_helpers[1].address
+    r0 = bind_test_callee28_helpers[1].address(r1, r2, r3, r4, r5);
 #line 113 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 113 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee28_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee28_helpers[1].tail_call) && (r0 == 0)) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 113 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 113 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 113 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 113 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 113 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4611,13 +4657,13 @@ bind_test_callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 113 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee28_helpers[2].address
+    r0 = bind_test_callee28_helpers[2].address(r1, r2, r3, r4, r5);
 #line 113 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 113 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee28_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee28_helpers[2].tail_call) && (r0 == 0)) {
 #line 113 "sample/tail_call_max_exceed.c"
         return 0;
+#line 113 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4739,14 +4785,14 @@ bind_test_callee29(void* context)
     r4 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee29_helpers[0].address
+    r0 = bind_test_callee29_helpers[0].address(r1, r2, r3, r4, r5);
 #line 114 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 114 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee29_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee29_helpers[0].tail_call) && (r0 == 0)) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 114 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4757,19 +4803,21 @@ bind_test_callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee29_helpers[1].address
+    r0 = bind_test_callee29_helpers[1].address(r1, r2, r3, r4, r5);
 #line 114 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 114 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee29_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee29_helpers[1].tail_call) && (r0 == 0)) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 114 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 114 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 114 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 114 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 114 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -4810,13 +4858,13 @@ bind_test_callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 114 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee29_helpers[2].address
+    r0 = bind_test_callee29_helpers[2].address(r1, r2, r3, r4, r5);
 #line 114 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 114 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee29_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee29_helpers[2].tail_call) && (r0 == 0)) {
 #line 114 "sample/tail_call_max_exceed.c"
         return 0;
+#line 114 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4938,14 +4986,14 @@ bind_test_callee3(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee3_helpers[0].address
+    r0 = bind_test_callee3_helpers[0].address(r1, r2, r3, r4, r5);
 #line 88 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 88 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee3_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee3_helpers[0].tail_call) && (r0 == 0)) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 88 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -4956,19 +5004,21 @@ bind_test_callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee3_helpers[1].address
+    r0 = bind_test_callee3_helpers[1].address(r1, r2, r3, r4, r5);
 #line 88 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 88 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee3_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee3_helpers[1].tail_call) && (r0 == 0)) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 88 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 88 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 88 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 88 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 88 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5009,13 +5059,13 @@ bind_test_callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee3_helpers[2].address
+    r0 = bind_test_callee3_helpers[2].address(r1, r2, r3, r4, r5);
 #line 88 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 88 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee3_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee3_helpers[2].tail_call) && (r0 == 0)) {
 #line 88 "sample/tail_call_max_exceed.c"
         return 0;
+#line 88 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 88 "sample/tail_call_max_exceed.c"
@@ -5137,14 +5187,14 @@ bind_test_callee30(void* context)
     r4 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee30_helpers[0].address
+    r0 = bind_test_callee30_helpers[0].address(r1, r2, r3, r4, r5);
 #line 115 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 115 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee30_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee30_helpers[0].tail_call) && (r0 == 0)) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 115 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5155,19 +5205,21 @@ bind_test_callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee30_helpers[1].address
+    r0 = bind_test_callee30_helpers[1].address(r1, r2, r3, r4, r5);
 #line 115 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 115 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee30_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee30_helpers[1].tail_call) && (r0 == 0)) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 115 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 115 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 115 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 115 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 115 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5208,13 +5260,13 @@ bind_test_callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 115 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee30_helpers[2].address
+    r0 = bind_test_callee30_helpers[2].address(r1, r2, r3, r4, r5);
 #line 115 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 115 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee30_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee30_helpers[2].tail_call) && (r0 == 0)) {
 #line 115 "sample/tail_call_max_exceed.c"
         return 0;
+#line 115 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5336,14 +5388,14 @@ bind_test_callee31(void* context)
     r4 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee31_helpers[0].address
+    r0 = bind_test_callee31_helpers[0].address(r1, r2, r3, r4, r5);
 #line 116 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 116 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee31_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee31_helpers[0].tail_call) && (r0 == 0)) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 116 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5354,19 +5406,21 @@ bind_test_callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee31_helpers[1].address
+    r0 = bind_test_callee31_helpers[1].address(r1, r2, r3, r4, r5);
 #line 116 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 116 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee31_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee31_helpers[1].tail_call) && (r0 == 0)) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 116 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 116 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 116 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 116 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 116 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5407,13 +5461,13 @@ bind_test_callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 116 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee31_helpers[2].address
+    r0 = bind_test_callee31_helpers[2].address(r1, r2, r3, r4, r5);
 #line 116 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 116 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee31_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee31_helpers[2].tail_call) && (r0 == 0)) {
 #line 116 "sample/tail_call_max_exceed.c"
         return 0;
+#line 116 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5535,14 +5589,14 @@ bind_test_callee32(void* context)
     r4 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee32_helpers[0].address
+    r0 = bind_test_callee32_helpers[0].address(r1, r2, r3, r4, r5);
 #line 117 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 117 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee32_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee32_helpers[0].tail_call) && (r0 == 0)) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 117 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5553,19 +5607,21 @@ bind_test_callee32(void* context)
     r3 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee32_helpers[1].address
+    r0 = bind_test_callee32_helpers[1].address(r1, r2, r3, r4, r5);
 #line 117 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 117 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee32_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee32_helpers[1].tail_call) && (r0 == 0)) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 117 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 117 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 117 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 117 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 117 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5606,13 +5662,13 @@ bind_test_callee32(void* context)
     r3 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 117 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee32_helpers[2].address
+    r0 = bind_test_callee32_helpers[2].address(r1, r2, r3, r4, r5);
 #line 117 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 117 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee32_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee32_helpers[2].tail_call) && (r0 == 0)) {
 #line 117 "sample/tail_call_max_exceed.c"
         return 0;
+#line 117 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5734,14 +5790,14 @@ bind_test_callee33(void* context)
     r4 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee33_helpers[0].address
+    r0 = bind_test_callee33_helpers[0].address(r1, r2, r3, r4, r5);
 #line 118 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 118 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee33_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee33_helpers[0].tail_call) && (r0 == 0)) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 118 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -5752,19 +5808,21 @@ bind_test_callee33(void* context)
     r3 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee33_helpers[1].address
+    r0 = bind_test_callee33_helpers[1].address(r1, r2, r3, r4, r5);
 #line 118 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 118 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee33_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee33_helpers[1].tail_call) && (r0 == 0)) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 118 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 118 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 118 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 118 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 118 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -5805,13 +5863,13 @@ bind_test_callee33(void* context)
     r3 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 118 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee33_helpers[2].address
+    r0 = bind_test_callee33_helpers[2].address(r1, r2, r3, r4, r5);
 #line 118 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 118 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee33_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee33_helpers[2].tail_call) && (r0 == 0)) {
 #line 118 "sample/tail_call_max_exceed.c"
         return 0;
+#line 118 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5908,14 +5966,14 @@ bind_test_callee34(void* context)
     r2 = IMMEDIATE(42);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 138 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee34_helpers[0].address
+    r0 = bind_test_callee34_helpers[0].address(r1, r2, r3, r4, r5);
 #line 138 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 138 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee34_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee34_helpers[0].tail_call) && (r0 == 0)) {
 #line 138 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
+#line 138 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
 #line 141 "sample/tail_call_max_exceed.c"
     r0 = IMMEDIATE(0);
     // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
@@ -6035,14 +6093,14 @@ bind_test_callee4(void* context)
     r4 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee4_helpers[0].address
+    r0 = bind_test_callee4_helpers[0].address(r1, r2, r3, r4, r5);
 #line 89 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 89 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee4_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee4_helpers[0].tail_call) && (r0 == 0)) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 89 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6053,19 +6111,21 @@ bind_test_callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee4_helpers[1].address
+    r0 = bind_test_callee4_helpers[1].address(r1, r2, r3, r4, r5);
 #line 89 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 89 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee4_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee4_helpers[1].tail_call) && (r0 == 0)) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 89 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 89 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 89 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 89 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 89 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6106,13 +6166,13 @@ bind_test_callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 89 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee4_helpers[2].address
+    r0 = bind_test_callee4_helpers[2].address(r1, r2, r3, r4, r5);
 #line 89 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 89 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee4_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee4_helpers[2].tail_call) && (r0 == 0)) {
 #line 89 "sample/tail_call_max_exceed.c"
         return 0;
+#line 89 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 89 "sample/tail_call_max_exceed.c"
@@ -6234,14 +6294,14 @@ bind_test_callee5(void* context)
     r4 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee5_helpers[0].address
+    r0 = bind_test_callee5_helpers[0].address(r1, r2, r3, r4, r5);
 #line 90 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 90 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee5_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee5_helpers[0].tail_call) && (r0 == 0)) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 90 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6252,19 +6312,21 @@ bind_test_callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee5_helpers[1].address
+    r0 = bind_test_callee5_helpers[1].address(r1, r2, r3, r4, r5);
 #line 90 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 90 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee5_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee5_helpers[1].tail_call) && (r0 == 0)) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 90 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 90 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 90 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 90 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 90 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6305,13 +6367,13 @@ bind_test_callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 90 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee5_helpers[2].address
+    r0 = bind_test_callee5_helpers[2].address(r1, r2, r3, r4, r5);
 #line 90 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 90 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee5_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee5_helpers[2].tail_call) && (r0 == 0)) {
 #line 90 "sample/tail_call_max_exceed.c"
         return 0;
+#line 90 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6433,14 +6495,14 @@ bind_test_callee6(void* context)
     r4 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee6_helpers[0].address
+    r0 = bind_test_callee6_helpers[0].address(r1, r2, r3, r4, r5);
 #line 91 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 91 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee6_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee6_helpers[0].tail_call) && (r0 == 0)) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 91 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6451,19 +6513,21 @@ bind_test_callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee6_helpers[1].address
+    r0 = bind_test_callee6_helpers[1].address(r1, r2, r3, r4, r5);
 #line 91 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 91 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee6_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee6_helpers[1].tail_call) && (r0 == 0)) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 91 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 91 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 91 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 91 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 91 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6504,13 +6568,13 @@ bind_test_callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 91 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee6_helpers[2].address
+    r0 = bind_test_callee6_helpers[2].address(r1, r2, r3, r4, r5);
 #line 91 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 91 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee6_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee6_helpers[2].tail_call) && (r0 == 0)) {
 #line 91 "sample/tail_call_max_exceed.c"
         return 0;
+#line 91 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6632,14 +6696,14 @@ bind_test_callee7(void* context)
     r4 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee7_helpers[0].address
+    r0 = bind_test_callee7_helpers[0].address(r1, r2, r3, r4, r5);
 #line 92 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 92 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee7_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee7_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 92 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6650,19 +6714,21 @@ bind_test_callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee7_helpers[1].address
+    r0 = bind_test_callee7_helpers[1].address(r1, r2, r3, r4, r5);
 #line 92 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 92 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee7_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee7_helpers[1].tail_call) && (r0 == 0)) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 92 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 92 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 92 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 92 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 92 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6703,13 +6769,13 @@ bind_test_callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 92 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee7_helpers[2].address
+    r0 = bind_test_callee7_helpers[2].address(r1, r2, r3, r4, r5);
 #line 92 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 92 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee7_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee7_helpers[2].tail_call) && (r0 == 0)) {
 #line 92 "sample/tail_call_max_exceed.c"
         return 0;
+#line 92 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6831,14 +6897,14 @@ bind_test_callee8(void* context)
     r4 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee8_helpers[0].address
+    r0 = bind_test_callee8_helpers[0].address(r1, r2, r3, r4, r5);
 #line 93 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 93 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee8_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee8_helpers[0].tail_call) && (r0 == 0)) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 93 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -6849,19 +6915,21 @@ bind_test_callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee8_helpers[1].address
+    r0 = bind_test_callee8_helpers[1].address(r1, r2, r3, r4, r5);
 #line 93 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 93 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee8_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee8_helpers[1].tail_call) && (r0 == 0)) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 93 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 93 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 93 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
+#line 93 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_STXH pc=32 dst=r10 src=r7 offset=-20 imm=0
 #line 93 "sample/tail_call_max_exceed.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-20)) = (uint16_t)r7;
     // EBPF_OP_MOV64_IMM pc=33 dst=r1 src=r0 offset=0 imm=1680154744
@@ -6902,13 +6970,13 @@ bind_test_callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee8_helpers[2].address
+    r0 = bind_test_callee8_helpers[2].address(r1, r2, r3, r4, r5);
 #line 93 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 93 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee8_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee8_helpers[2].tail_call) && (r0 == 0)) {
 #line 93 "sample/tail_call_max_exceed.c"
         return 0;
+#line 93 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 93 "sample/tail_call_max_exceed.c"
@@ -7030,14 +7098,14 @@ bind_test_callee9(void* context)
     r4 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=14
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee9_helpers[0].address
+    r0 = bind_test_callee9_helpers[0].address(r1, r2, r3, r4, r5);
 #line 94 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 94 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee9_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_test_callee9_helpers[0].tail_call) && (r0 == 0)) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
+#line 94 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
@@ -7048,19 +7116,21 @@ bind_test_callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee9_helpers[1].address
+    r0 = bind_test_callee9_helpers[1].address(r1, r2, r3, r4, r5);
 #line 94 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 94 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee9_helpers[1].tail_call) && (r0 == 0))
+    if ((bind_test_callee9_helpers[1].tail_call) && (r0 == 0)) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
-        // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
 #line 94 "sample/tail_call_max_exceed.c"
-    if ((int64_t)r0 > IMMEDIATE(-1))
+    }
+    // EBPF_OP_JSGT_IMM pc=31 dst=r0 src=r0 offset=17 imm=-1
+#line 94 "sample/tail_call_max_exceed.c"
+    if ((int64_t)r0 > IMMEDIATE(-1)) {
 #line 94 "sample/tail_call_max_exceed.c"
         goto label_1;
-        // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=1680154744
+#line 94 "sample/tail_call_max_exceed.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=1680154744
 #line 94 "sample/tail_call_max_exceed.c"
     r1 = IMMEDIATE(1680154744);
     // EBPF_OP_STXW pc=33 dst=r10 src=r1 offset=-24 imm=0
@@ -7101,13 +7171,13 @@ bind_test_callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=48 dst=r0 src=r0 offset=0 imm=13
 #line 94 "sample/tail_call_max_exceed.c"
-    r0 = bind_test_callee9_helpers[2].address
+    r0 = bind_test_callee9_helpers[2].address(r1, r2, r3, r4, r5);
 #line 94 "sample/tail_call_max_exceed.c"
-         (r1, r2, r3, r4, r5);
-#line 94 "sample/tail_call_max_exceed.c"
-    if ((bind_test_callee9_helpers[2].tail_call) && (r0 == 0))
+    if ((bind_test_callee9_helpers[2].tail_call) && (r0 == 0)) {
 #line 94 "sample/tail_call_max_exceed.c"
         return 0;
+#line 94 "sample/tail_call_max_exceed.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 94 "sample/tail_call_max_exceed.c"
@@ -7640,11 +7710,12 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 
 #pragma data_seg(push, "map_initial_values")
+// clang-format off
 static const char* _bind_tail_call_map_initial_string_table[] = {
     "bind_test_callee0",
     "bind_test_callee1",
@@ -7682,6 +7753,7 @@ static const char* _bind_tail_call_map_initial_string_table[] = {
     "bind_test_callee33",
     "bind_test_callee34",
 };
+// clang-format on
 
 static map_initial_values_t _map_initial_values_array[] = {
     {

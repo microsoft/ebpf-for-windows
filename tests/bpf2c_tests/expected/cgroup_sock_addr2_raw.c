@@ -152,24 +152,30 @@ connect_redirect4(void* context)
     r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
     // EBPF_OP_JEQ_IMM pc=18 dst=r1 src=r0 offset=1 imm=17
 #line 61 "sample/cgroup_sock_addr2.c"
-    if (r1 == IMMEDIATE(17))
+    if (r1 == IMMEDIATE(17)) {
 #line 61 "sample/cgroup_sock_addr2.c"
         goto label_1;
-        // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=80 imm=6
 #line 61 "sample/cgroup_sock_addr2.c"
-    if (r1 != IMMEDIATE(6))
+    }
+    // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=80 imm=6
+#line 61 "sample/cgroup_sock_addr2.c"
+    if (r1 != IMMEDIATE(6)) {
 #line 61 "sample/cgroup_sock_addr2.c"
         goto label_4;
+#line 61 "sample/cgroup_sock_addr2.c"
+    }
 label_1:
     // EBPF_OP_LDXW pc=20 dst=r2 src=r6 offset=0 imm=0
 #line 61 "sample/cgroup_sock_addr2.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=21 dst=r2 src=r0 offset=78 imm=2
 #line 61 "sample/cgroup_sock_addr2.c"
-    if (r2 != IMMEDIATE(2))
+    if (r2 != IMMEDIATE(2)) {
 #line 61 "sample/cgroup_sock_addr2.c"
         goto label_4;
-        // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=24 imm=0
+#line 61 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=24 imm=0
 #line 65 "sample/cgroup_sock_addr2.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(24));
     // EBPF_OP_STXW pc=23 dst=r10 src=r2 offset=-32 imm=0
@@ -195,14 +201,14 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=1
 #line 70 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[0].address
+    r0 = connect_redirect4_helpers[0].address(r1, r2, r3, r4, r5);
 #line 70 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 70 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[0].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=32 dst=r8 src=r0 offset=0 imm=0
+#line 70 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_REG pc=32 dst=r8 src=r0 offset=0 imm=0
 #line 70 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=33 dst=r9 src=r0 offset=0 imm=0
@@ -213,10 +219,12 @@ label_1:
     r7 = IMMEDIATE(0);
     // EBPF_OP_JEQ_IMM pc=35 dst=r8 src=r0 offset=37 imm=0
 #line 71 "sample/cgroup_sock_addr2.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 71 "sample/cgroup_sock_addr2.c"
         goto label_3;
-        // EBPF_OP_MOV64_IMM pc=36 dst=r7 src=r0 offset=0 imm=0
+#line 71 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=36 dst=r7 src=r0 offset=0 imm=0
 #line 71 "sample/cgroup_sock_addr2.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=37 dst=r10 src=r7 offset=-70 imm=0
@@ -269,22 +277,24 @@ label_1:
     r2 = IMMEDIATE(35);
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=14
 #line 72 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[1].address
+    r0 = connect_redirect4_helpers[1].address(r1, r2, r3, r4, r5);
 #line 72 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 72 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[1].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[1].tail_call) && (r0 == 0)) {
 #line 72 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LDXW pc=58 dst=r1 src=r8 offset=20 imm=0
+#line 72 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_LDXW pc=58 dst=r1 src=r8 offset=20 imm=0
 #line 78 "sample/cgroup_sock_addr2.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(20));
     // EBPF_OP_JEQ_IMM pc=59 dst=r1 src=r0 offset=8 imm=3
 #line 78 "sample/cgroup_sock_addr2.c"
-    if (r1 == IMMEDIATE(3))
+    if (r1 == IMMEDIATE(3)) {
 #line 78 "sample/cgroup_sock_addr2.c"
         goto label_2;
-        // EBPF_OP_MOV64_REG pc=60 dst=r2 src=r10 offset=0 imm=0
+#line 78 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_REG pc=60 dst=r2 src=r10 offset=0 imm=0
 #line 78 "sample/cgroup_sock_addr2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=61 dst=r2 src=r0 offset=0 imm=-64
@@ -298,14 +308,14 @@ label_1:
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=64 dst=r0 src=r0 offset=0 imm=65537
 #line 79 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[2].address
+    r0 = connect_redirect4_helpers[2].address(r1, r2, r3, r4, r5);
 #line 79 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 79 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[2].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[2].tail_call) && (r0 == 0)) {
 #line 79 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LSH64_IMM pc=65 dst=r0 src=r0 offset=0 imm=32
+#line 79 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_LSH64_IMM pc=65 dst=r0 src=r0 offset=0 imm=32
 #line 79 "sample/cgroup_sock_addr2.c"
     r0 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_ARSH64_IMM pc=66 dst=r0 src=r0 offset=0 imm=32
@@ -313,9 +323,11 @@ label_1:
     r0 = (int64_t)r0 >> (uint32_t)(IMMEDIATE(32) & 63);
     // EBPF_OP_JSGT_REG pc=67 dst=r7 src=r0 offset=32 imm=0
 #line 79 "sample/cgroup_sock_addr2.c"
-    if ((int64_t)r7 > (int64_t)r0)
+    if ((int64_t)r7 > (int64_t)r0) {
 #line 79 "sample/cgroup_sock_addr2.c"
         goto label_4;
+#line 79 "sample/cgroup_sock_addr2.c"
+    }
 label_2:
     // EBPF_OP_LDXW pc=68 dst=r1 src=r8 offset=0 imm=0
 #line 84 "sample/cgroup_sock_addr2.c"
@@ -347,14 +359,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=77 dst=r0 src=r0 offset=0 imm=65536
 #line 44 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[3].address
+    r0 = connect_redirect4_helpers[3].address(r1, r2, r3, r4, r5);
 #line 44 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 44 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[3].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[3].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=78 dst=r8 src=r0 offset=0 imm=0
+#line 44 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_REG pc=78 dst=r8 src=r0 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_STXDW pc=79 dst=r10 src=r8 offset=-96 imm=0
@@ -365,14 +377,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=81 dst=r0 src=r0 offset=0 imm=20
 #line 45 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[4].address
+    r0 = connect_redirect4_helpers[4].address(r1, r2, r3, r4, r5);
 #line 45 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 45 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[4].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[4].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=82 dst=r10 src=r0 offset=-104 imm=0
+#line 45 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_STXDW pc=82 dst=r10 src=r0 offset=-104 imm=0
 #line 45 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-104)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=83 dst=r1 src=r6 offset=0 imm=0
@@ -380,14 +392,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=84 dst=r0 src=r0 offset=0 imm=21
 #line 46 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[5].address
+    r0 = connect_redirect4_helpers[5].address(r1, r2, r3, r4, r5);
 #line 46 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 46 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[5].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[5].tail_call) && (r0 == 0)) {
 #line 46 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXW pc=85 dst=r10 src=r0 offset=-88 imm=0
+#line 46 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_STXW pc=85 dst=r10 src=r0 offset=-88 imm=0
 #line 46 "sample/cgroup_sock_addr2.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-88)) = (uint32_t)r0;
     // EBPF_OP_LDXH pc=86 dst=r1 src=r6 offset=20 imm=0
@@ -401,14 +413,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=89 dst=r0 src=r0 offset=0 imm=26
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[6].address
+    r0 = connect_redirect4_helpers[6].address(r1, r2, r3, r4, r5);
 #line 48 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 48 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[6].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[6].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=90 dst=r10 src=r0 offset=-80 imm=0
+#line 48 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_STXDW pc=90 dst=r10 src=r0 offset=-80 imm=0
 #line 48 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-80)) = (uint64_t)r0;
     // EBPF_OP_STXDW pc=91 dst=r10 src=r8 offset=-8 imm=0
@@ -434,13 +446,13 @@ label_3:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=99 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[7].address
+    r0 = connect_redirect4_helpers[7].address(r1, r2, r3, r4, r5);
 #line 51 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 51 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[7].tail_call) && (r0 == 0))
+    if ((connect_redirect4_helpers[7].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_sock_addr2.c"
         return 0;
+#line 51 "sample/cgroup_sock_addr2.c"
+    }
 label_4:
     // EBPF_OP_MOV64_REG pc=100 dst=r0 src=r7 offset=0 imm=0
 #line 142 "sample/cgroup_sock_addr2.c"
@@ -557,24 +569,30 @@ connect_redirect6(void* context)
     r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
     // EBPF_OP_JEQ_IMM pc=18 dst=r1 src=r0 offset=1 imm=17
 #line 102 "sample/cgroup_sock_addr2.c"
-    if (r1 == IMMEDIATE(17))
+    if (r1 == IMMEDIATE(17)) {
 #line 102 "sample/cgroup_sock_addr2.c"
         goto label_1;
-        // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=91 imm=6
 #line 102 "sample/cgroup_sock_addr2.c"
-    if (r1 != IMMEDIATE(6))
+    }
+    // EBPF_OP_JNE_IMM pc=19 dst=r1 src=r0 offset=91 imm=6
+#line 102 "sample/cgroup_sock_addr2.c"
+    if (r1 != IMMEDIATE(6)) {
 #line 102 "sample/cgroup_sock_addr2.c"
         goto label_4;
+#line 102 "sample/cgroup_sock_addr2.c"
+    }
 label_1:
     // EBPF_OP_LDXW pc=20 dst=r2 src=r6 offset=0 imm=0
 #line 102 "sample/cgroup_sock_addr2.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(0));
     // EBPF_OP_JNE_IMM pc=21 dst=r2 src=r0 offset=89 imm=23
 #line 102 "sample/cgroup_sock_addr2.c"
-    if (r2 != IMMEDIATE(23))
+    if (r2 != IMMEDIATE(23)) {
 #line 102 "sample/cgroup_sock_addr2.c"
         goto label_4;
-        // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=36 imm=0
+#line 102 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_LDXW pc=22 dst=r2 src=r6 offset=36 imm=0
 #line 109 "sample/cgroup_sock_addr2.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(36));
     // EBPF_OP_LSH64_IMM pc=23 dst=r2 src=r0 offset=0 imm=32
@@ -624,14 +642,14 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 114 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[0].address
+    r0 = connect_redirect6_helpers[0].address(r1, r2, r3, r4, r5);
 #line 114 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 114 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[0].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[0].tail_call) && (r0 == 0)) {
 #line 114 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=40 dst=r8 src=r0 offset=0 imm=0
+#line 114 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_REG pc=40 dst=r8 src=r0 offset=0 imm=0
 #line 114 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_MOV64_IMM pc=41 dst=r9 src=r0 offset=0 imm=0
@@ -642,10 +660,12 @@ label_1:
     r7 = IMMEDIATE(0);
     // EBPF_OP_JEQ_IMM pc=43 dst=r8 src=r0 offset=40 imm=0
 #line 115 "sample/cgroup_sock_addr2.c"
-    if (r8 == IMMEDIATE(0))
+    if (r8 == IMMEDIATE(0)) {
 #line 115 "sample/cgroup_sock_addr2.c"
         goto label_3;
-        // EBPF_OP_MOV64_IMM pc=44 dst=r7 src=r0 offset=0 imm=0
+#line 115 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_IMM pc=44 dst=r7 src=r0 offset=0 imm=0
 #line 115 "sample/cgroup_sock_addr2.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_STXB pc=45 dst=r10 src=r7 offset=-14 imm=0
@@ -686,22 +706,24 @@ label_1:
     r2 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=60 dst=r0 src=r0 offset=0 imm=12
 #line 116 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[1].address
+    r0 = connect_redirect6_helpers[1].address(r1, r2, r3, r4, r5);
 #line 116 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 116 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[1].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[1].tail_call) && (r0 == 0)) {
 #line 116 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LDXW pc=61 dst=r1 src=r8 offset=20 imm=0
+#line 116 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_LDXW pc=61 dst=r1 src=r8 offset=20 imm=0
 #line 122 "sample/cgroup_sock_addr2.c"
     r1 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(20));
     // EBPF_OP_JEQ_IMM pc=62 dst=r1 src=r0 offset=8 imm=3
 #line 122 "sample/cgroup_sock_addr2.c"
-    if (r1 == IMMEDIATE(3))
+    if (r1 == IMMEDIATE(3)) {
 #line 122 "sample/cgroup_sock_addr2.c"
         goto label_2;
-        // EBPF_OP_MOV64_REG pc=63 dst=r2 src=r10 offset=0 imm=0
+#line 122 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_REG pc=63 dst=r2 src=r10 offset=0 imm=0
 #line 122 "sample/cgroup_sock_addr2.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=64 dst=r2 src=r0 offset=0 imm=-96
@@ -715,14 +737,14 @@ label_1:
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=67 dst=r0 src=r0 offset=0 imm=65537
 #line 123 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[2].address
+    r0 = connect_redirect6_helpers[2].address(r1, r2, r3, r4, r5);
 #line 123 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 123 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[2].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[2].tail_call) && (r0 == 0)) {
 #line 123 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_LSH64_IMM pc=68 dst=r0 src=r0 offset=0 imm=32
+#line 123 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_LSH64_IMM pc=68 dst=r0 src=r0 offset=0 imm=32
 #line 123 "sample/cgroup_sock_addr2.c"
     r0 <<= (IMMEDIATE(32) & 63);
     // EBPF_OP_ARSH64_IMM pc=69 dst=r0 src=r0 offset=0 imm=32
@@ -730,9 +752,11 @@ label_1:
     r0 = (int64_t)r0 >> (uint32_t)(IMMEDIATE(32) & 63);
     // EBPF_OP_JSGT_REG pc=70 dst=r7 src=r0 offset=40 imm=0
 #line 123 "sample/cgroup_sock_addr2.c"
-    if ((int64_t)r7 > (int64_t)r0)
+    if ((int64_t)r7 > (int64_t)r0) {
 #line 123 "sample/cgroup_sock_addr2.c"
         goto label_4;
+#line 123 "sample/cgroup_sock_addr2.c"
+    }
 label_2:
     // EBPF_OP_MOV64_REG pc=71 dst=r1 src=r6 offset=0 imm=0
 #line 123 "sample/cgroup_sock_addr2.c"
@@ -788,14 +812,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=88 dst=r0 src=r0 offset=0 imm=65536
 #line 44 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[3].address
+    r0 = connect_redirect6_helpers[3].address(r1, r2, r3, r4, r5);
 #line 44 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 44 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[3].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[3].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_MOV64_REG pc=89 dst=r8 src=r0 offset=0 imm=0
+#line 44 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_MOV64_REG pc=89 dst=r8 src=r0 offset=0 imm=0
 #line 44 "sample/cgroup_sock_addr2.c"
     r8 = r0;
     // EBPF_OP_STXDW pc=90 dst=r10 src=r8 offset=-32 imm=0
@@ -806,14 +830,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=92 dst=r0 src=r0 offset=0 imm=20
 #line 45 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[4].address
+    r0 = connect_redirect6_helpers[4].address(r1, r2, r3, r4, r5);
 #line 45 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 45 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[4].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[4].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=93 dst=r10 src=r0 offset=-40 imm=0
+#line 45 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_STXDW pc=93 dst=r10 src=r0 offset=-40 imm=0
 #line 45 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r0;
     // EBPF_OP_MOV64_REG pc=94 dst=r1 src=r6 offset=0 imm=0
@@ -821,14 +845,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=95 dst=r0 src=r0 offset=0 imm=21
 #line 46 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[5].address
+    r0 = connect_redirect6_helpers[5].address(r1, r2, r3, r4, r5);
 #line 46 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 46 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[5].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[5].tail_call) && (r0 == 0)) {
 #line 46 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXW pc=96 dst=r10 src=r0 offset=-24 imm=0
+#line 46 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_STXW pc=96 dst=r10 src=r0 offset=-24 imm=0
 #line 46 "sample/cgroup_sock_addr2.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r0;
     // EBPF_OP_LDXH pc=97 dst=r1 src=r6 offset=20 imm=0
@@ -842,14 +866,14 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=100 dst=r0 src=r0 offset=0 imm=26
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[6].address
+    r0 = connect_redirect6_helpers[6].address(r1, r2, r3, r4, r5);
 #line 48 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 48 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[6].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[6].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
-        // EBPF_OP_STXDW pc=101 dst=r10 src=r0 offset=-16 imm=0
+#line 48 "sample/cgroup_sock_addr2.c"
+    }
+    // EBPF_OP_STXDW pc=101 dst=r10 src=r0 offset=-16 imm=0
 #line 48 "sample/cgroup_sock_addr2.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
     // EBPF_OP_STXDW pc=102 dst=r10 src=r8 offset=-8 imm=0
@@ -875,13 +899,13 @@ label_3:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=110 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[7].address
+    r0 = connect_redirect6_helpers[7].address(r1, r2, r3, r4, r5);
 #line 51 "sample/cgroup_sock_addr2.c"
-         (r1, r2, r3, r4, r5);
-#line 51 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[7].tail_call) && (r0 == 0))
+    if ((connect_redirect6_helpers[7].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_sock_addr2.c"
         return 0;
+#line 51 "sample/cgroup_sock_addr2.c"
+    }
 label_4:
     // EBPF_OP_MOV64_REG pc=111 dst=r0 src=r7 offset=0 imm=0
 #line 149 "sample/cgroup_sock_addr2.c"
@@ -938,7 +962,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 
