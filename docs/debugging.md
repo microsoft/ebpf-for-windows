@@ -81,10 +81,16 @@ r0 and r1, where r0 is for the return value and r1 holds
 the hook context (ctx) structure pointer that is
 passed to the program as its first argument.
 
-**Step 4)** To understand what went wrong, we can ask netsh for the verbose output by using "level=verbose":
+**Step 4)** To understand what went wrong, we can ask netsh for the informational or verbose output by using
+"level=information" or "level=verbose":
+
+Note: Informational level will only show the first failure the verifier encounters on a specific path and not show
+dependent failures. Verbose level will show both the initial failures as well as failures arising from that initial
+failure. Informational is usually sufficient to understand the root cause of a failure, while verbose is useful to
+gain a deeper understanding of what the impact of this failure is.
 
 ```
-> netsh ebpf show ver droppacket_unsafe.o .text level=verbose
+> netsh ebpf show ver droppacket_unsafe.o .text level=informational
 Verification failed
 
 Verification report:
@@ -328,10 +334,10 @@ The destination of jumps are shown after the goto.  For example, instruction
 3 will jump to instruction 19 if the condition is true.
 
 
-**Step 7)** Let's now look at the verification failures of xdp_test using level=verbose:
+**Step 7)** Let's now look at the verification failures of xdp_test using level=informational:
 
 ```
-> netsh ebpf show ver droppacket_unsafe.o xdp_test level=verbose
+> netsh ebpf show ver droppacket_unsafe.o xdp_test level=informational
 ...
 Pre-invariant : [
     instruction_count=3,
@@ -599,7 +605,7 @@ which is passed as the map_key to `bpf_map_lookup_elem`.  Let's see how the veri
 understands this.
 
 ```
-> netsh ebpf show ver droppacket_unsafe.o xdp_test level=verbose
+> netsh ebpf show ver droppacket_unsafe.o xdp_test level=informational
 ...
 Pre-invariant : [
     instruction_count=28,

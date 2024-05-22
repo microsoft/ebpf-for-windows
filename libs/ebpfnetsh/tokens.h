@@ -17,7 +17,8 @@
 typedef enum
 {
     VL_NORMAL = 0,
+    VL_INFORMATIONAL = 2,
     VL_VERBOSE = 1,
 } VERBOSITY_LEVEL;
 
-extern TOKEN_VALUE g_LevelEnum[2];
+extern TOKEN_VALUE g_LevelEnum[3];

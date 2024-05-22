@@ -9,8 +9,9 @@
 #include <iomanip>
 #include <locale>
 
-TOKEN_VALUE g_LevelEnum[2] = {
+TOKEN_VALUE g_LevelEnum[3] = {
     {L"normal", VL_NORMAL},
+    {L"informational", VL_INFORMATIONAL},
     {L"verbose", VL_VERBOSE},
 };
 
@@ -325,8 +326,24 @@ handle_ebpf_show_verification(
         }
     }
 
+    ebpf_verification_verbosity_t verbosity;
+    switch (level) {
+    case VL_NORMAL:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
+        break;
+    case VL_INFORMATIONAL:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
+        break;
+    case VL_VERBOSE:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_VERBOSE;
+        break;
+    default:
+        std::cerr << "Invalid verbosity level" << std::endl;
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+
     status = ebpf_api_elf_verify_section_from_file(
-        filename.c_str(), section.c_str(), &program_type, level == VL_VERBOSE, &report, &error_message, &stats);
+        filename.c_str(), section.c_str(), &program_type, verbosity, &report, &error_message, &stats);
     if (status == ERROR_SUCCESS) {
         std::cout << report;
         std::cout << "\nProgram terminates within " << stats.max_loop_count << " loop iterations\n";
