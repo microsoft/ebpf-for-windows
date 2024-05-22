@@ -6,6 +6,7 @@
 #include "tokens.h"
 #include "utilities.h"
 
+#include <cassert>
 #include <iomanip>
 #include <locale>
 
@@ -326,7 +327,7 @@ handle_ebpf_show_verification(
         }
     }
 
-    ebpf_verification_verbosity_t verbosity;
+    ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
     switch (level) {
     case VL_NORMAL:
         verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
@@ -338,8 +339,9 @@ handle_ebpf_show_verification(
         verbosity = EBPF_VERIFICATION_VERBOSITY_VERBOSE;
         break;
     default:
-        std::cerr << "Invalid verbosity level" << std::endl;
-        return ERROR_SUPPRESS_OUTPUT;
+        // Assert this never happens.
+        assert(!"Invalid verbosity level");
+        break;
     }
 
     status = ebpf_api_elf_verify_section_from_file(
