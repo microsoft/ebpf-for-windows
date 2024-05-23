@@ -2419,6 +2419,7 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
     REQUIRE(insn_cnt != 0);
 
     fd_t program_fd;
+#pragma warning(suppress : 28193) // result is examined
     ebpf_result_t result = ebpf_program_load_bytes(
         program_type,
         nullptr,
