@@ -1051,7 +1051,13 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1075,7 +1081,7 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
         SAMPLE_PATH "test_sample_ebpf.o",
         "sample_ext",
         &EBPF_PROGRAM_TYPE_UNSPECIFIED,
-        false,
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
         &report,
         &error_message,
         &stats);
@@ -1192,7 +1198,13 @@ TEST_CASE("verify_test0", "[sample_extension]")
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1215,7 +1227,13 @@ TEST_CASE("verify_test1", "[sample_extension]")
 
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
