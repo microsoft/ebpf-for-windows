@@ -69,6 +69,7 @@ $(function() {
 <a href="#nested-classes">Data Structures</a> &#124;
 <a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
 <a href="#func-members">Functions</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
@@ -111,10 +112,20 @@ Typedefs</h2></td></tr>
 <tr class="separator:a03e330e1ab6b5c901410d1ffbe0196a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a87ea605d393a9719bf6ca18530adb006"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__section__info.html">_ebpf_section_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a87ea605d393a9719bf6ca18530adb006">ebpf_section_info_t</a></td></tr>
 <tr class="separator:a87ea605d393a9719bf6ca18530adb006"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a77a54bc7b898a9e72050b9af829c7f8f"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0">_ebpf_verification_verbosity</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a></td></tr>
+<tr class="separator:a77a54bc7b898a9e72050b9af829c7f8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__info.html">_ebpf_program_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a></td></tr>
 <tr class="separator:af4c03ef813e8625b8c4c869eea6e7a43"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a19411f9f52f8091cc292b69f1eabe341"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__test__run__options.html">_ebpf_test_run_options</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a19411f9f52f8091cc292b69f1eabe341">ebpf_test_run_options_t</a></td></tr>
 <tr class="separator:a19411f9f52f8091cc292b69f1eabe341"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:a2b26aaf28a9886a3df24b9e6568347e0"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0">_ebpf_verification_verbosity</a> { <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0a4956939946a0178e2c93ba718f837f8b">EBPF_VERIFICATION_VERBOSITY_NORMAL</a> = 0
+, <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0af1b136b342f4d1b114f4d7eb22fed03e">EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL</a> = 1
+, <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0a4578cc38b7cd84b5c3ce85bc5ac5c1ce">EBPF_VERIFICATION_VERBOSITY_VERBOSE</a> = 2
+ }</td></tr>
+<tr class="separator:a2b26aaf28a9886a3df24b9e6568347e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
@@ -130,12 +141,12 @@ Functions</h2></td></tr>
 <tr class="memitem:aea9ceb50adb06fa4e0525dbfd4ddcdbb"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aea9ceb50adb06fa4e0525dbfd4ddcdbb">ebpf_api_elf_disassemble_section</a> (const char *file, const char *section, const char **disassembly, const char **error_message) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:aea9ceb50adb06fa4e0525dbfd4ddcdbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Convert an eBPF program to human readable byte code.  <a href="ebpf__api_8h.html#aea9ceb50adb06fa4e0525dbfd4ddcdbb">More...</a><br /></td></tr>
 <tr class="separator:aea9ceb50adb06fa4e0525dbfd4ddcdbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3d8b8fdba49c7f61cc493f64f4d12fbe"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a3d8b8fdba49c7f61cc493f64f4d12fbe">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
-<tr class="memdesc:a3d8b8fdba49c7f61cc493f64f4d12fbe"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a3d8b8fdba49c7f61cc493f64f4d12fbe">More...</a><br /></td></tr>
-<tr class="separator:a3d8b8fdba49c7f61cc493f64f4d12fbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a139fa02674f20df5036e03b06d4b9bca"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a139fa02674f20df5036e03b06d4b9bca">ebpf_api_elf_verify_section_from_memory</a> (_In_reads_(data_length) const char *data, size_t data_length, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, bool verbose, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
-<tr class="memdesc:a139fa02674f20df5036e03b06d4b9bca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a139fa02674f20df5036e03b06d4b9bca">More...</a><br /></td></tr>
-<tr class="separator:a139fa02674f20df5036e03b06d4b9bca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6b0b1ff9ebe62b691420affe684d8587"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a6b0b1ff9ebe62b691420affe684d8587">ebpf_api_elf_verify_section_from_file</a> (const char *file, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a> verbosity, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a6b0b1ff9ebe62b691420affe684d8587"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#a6b0b1ff9ebe62b691420affe684d8587">More...</a><br /></td></tr>
+<tr class="separator:a6b0b1ff9ebe62b691420affe684d8587"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae622478d802c4b697f963ab4d5ffa33d"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae622478d802c4b697f963ab4d5ffa33d">ebpf_api_elf_verify_section_from_memory</a> (_In_reads_(data_length) const char *data, size_t data_length, const char *section, const <a class="el" href="ebpf__windows_8h.html#a7392ed9f9037688cd94f7069c523c251">ebpf_program_type_t</a> *program_type, <a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a> verbosity, const char **report, const char **error_message, _Out_opt_ <a class="el" href="structebpf__api__verifier__stats__t.html">ebpf_api_verifier_stats_t</a> *stats) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:ae622478d802c4b697f963ab4d5ffa33d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Verify that the program is safe to execute.  <a href="ebpf__api_8h.html#ae622478d802c4b697f963ab4d5ffa33d">More...</a><br /></td></tr>
+<tr class="separator:ae622478d802c4b697f963ab4d5ffa33d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a14787e155f85da98a152d5117d8e044c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a14787e155f85da98a152d5117d8e044c">ebpf_free_string</a> (const char *string) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a14787e155f85da98a152d5117d8e044c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free memory for a string returned from an eBPF API.  <a href="ebpf__api_8h.html#a14787e155f85da98a152d5117d8e044c">More...</a><br /></td></tr>
 <tr class="separator:a14787e155f85da98a152d5117d8e044c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -290,6 +301,20 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a77a54bc7b898a9e72050b9af829c7f8f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a77a54bc7b898a9e72050b9af829c7f8f">&#9670;&nbsp;</a></span>ebpf_verification_verbosity_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef enum <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0">_ebpf_verification_verbosity</a> <a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a90a344fbc365e792f103e07afeca9a7b"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a90a344fbc365e792f103e07afeca9a7b">&#9670;&nbsp;</a></span>fd_t</h2>
 
@@ -301,6 +326,26 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a2b26aaf28a9886a3df24b9e6568347e0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a2b26aaf28a9886a3df24b9e6568347e0">&#9670;&nbsp;</a></span>_ebpf_verification_verbosity</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__api_8h.html#a2b26aaf28a9886a3df24b9e6568347e0">_ebpf_verification_verbosity</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a2b26aaf28a9886a3df24b9e6568347e0a4956939946a0178e2c93ba718f837f8b"></a>EBPF_VERIFICATION_VERBOSITY_NORMAL&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a2b26aaf28a9886a3df24b9e6568347e0af1b136b342f4d1b114f4d7eb22fed03e"></a>EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a2b26aaf28a9886a3df24b9e6568347e0a4578cc38b7cd84b5c3ce85bc5ac5c1ce"></a>EBPF_VERIFICATION_VERBOSITY_VERBOSE&#160;</td><td class="fielddoc"></td></tr>
+</table>
 
 </div>
 </div>
@@ -389,8 +434,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a3d8b8fdba49c7f61cc493f64f4d12fbe"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3d8b8fdba49c7f61cc493f64f4d12fbe">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
+<a id="a6b0b1ff9ebe62b691420affe684d8587"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6b0b1ff9ebe62b691420affe684d8587">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_file()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -416,8 +461,8 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>verbose</em>, </td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a>&#160;</td>
+          <td class="paramname"><em>verbosity</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -451,7 +496,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">file</td><td>Name of ELF file containing eBPF program. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">section</td><td>The name of the section to query. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>Optional program type. If NULL, the program type is derived from the section name. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">verbose</td><td>Obtain additional info about the programs. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">verbosity</td><td>How much additional info about the programs to obtain. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">report</td><td>Points to a text section describing why the program failed verification. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of the error. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">stats</td><td>If non-NULL, returns verification statistics. </td></tr>
@@ -468,8 +513,8 @@ Variables</h2></td></tr>
 
 </div>
 </div>
-<a id="a139fa02674f20df5036e03b06d4b9bca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a139fa02674f20df5036e03b06d4b9bca">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
+<a id="ae622478d802c4b697f963ab4d5ffa33d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae622478d802c4b697f963ab4d5ffa33d">&#9670;&nbsp;</a></span>ebpf_api_elf_verify_section_from_memory()</h2>
 
 <div class="memitem">
 <div class="memproto">
@@ -501,8 +546,8 @@ Variables</h2></td></tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>verbose</em>, </td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a77a54bc7b898a9e72050b9af829c7f8f">ebpf_verification_verbosity_t</a>&#160;</td>
+          <td class="paramname"><em>verbosity</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -537,7 +582,7 @@ Variables</h2></td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">data_length</td><td>Length of data. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">section</td><td>The name of the section to query. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">program_type</td><td>Optional program type. If NULL, the program type is derived from the section name. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">verbose</td><td>Obtain additional info about the programs. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">verbosity</td><td>How much additional info about the programs to obtain. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">report</td><td>Points to a text section describing why the program failed verification. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">error_message</td><td>On failure points to a text description of the error. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">stats</td><td>If non-NULL, returns verification statistics. </td></tr>
