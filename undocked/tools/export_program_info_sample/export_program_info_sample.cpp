@@ -25,7 +25,7 @@ typedef struct _ebpf_program_section_info_with_count
 static const ebpf_program_info_t* _program_information_array[] = {&_sample_ebpf_extension_program_info};
 
 ebpf_program_section_info_t _sample_ext_section_info[] = {
-    {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},
+    {EBPF_PROGRAM_SECTION_INFORMATION_HEADER,
      L"sample_ext",
      &EBPF_PROGRAM_TYPE_SAMPLE,
      &EBPF_ATTACH_TYPE_SAMPLE,

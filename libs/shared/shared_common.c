@@ -239,6 +239,7 @@ _duplicate_program_descriptor(
     memcpy(program_type_descriptor_copy, program_type_descriptor, program_type_descriptor->header.size);
     program_type_descriptor_copy->header.version = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION;
     program_type_descriptor_copy->header.size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE;
+    program_type_descriptor_copy->header.total_size = EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE;
 
     // Initialize pointers to NULL.
     program_type_descriptor_copy->context_descriptor = NULL;
@@ -300,6 +301,7 @@ _duplicate_helper_function_prototype_array(
         memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;
+        local_helper_prototype_array[i].header.total_size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE;
 
         local_helper_prototype_array[i].name = cxplat_duplicate_string(helper_prototype->name);
         if (local_helper_prototype_array[i].name == NULL) {
@@ -369,6 +371,7 @@ ebpf_duplicate_program_info(_In_ const ebpf_program_info_t* info, _Outptr_ ebpf_
 
     program_info->header.version = EBPF_PROGRAM_INFORMATION_CURRENT_VERSION;
     program_info->header.size = EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE;
+    program_info->header.total_size = EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE;
 
     program_info->count_of_global_helpers = info->count_of_global_helpers;
     if (info->count_of_global_helpers > 0) {
@@ -435,6 +438,7 @@ _duplicate_helper_function_addresses(
     memcpy(helper_function_addresses_copy, helper_function_addresses, helper_function_addresses->header.size);
     helper_function_addresses_copy->header.version = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION;
     helper_function_addresses_copy->header.size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE;
+    helper_function_addresses_copy->header.total_size = EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE;
 
     helper_function_addresses_copy->helper_function_address =
         (uint64_t*)ebpf_allocate(helper_function_addresses->helper_function_count * sizeof(uint64_t));
@@ -490,6 +494,7 @@ ebpf_duplicate_program_data(
     memcpy(program_data_copy, program_data, program_data->header.size);
     program_data_copy->header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
     program_data_copy->header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
+    program_data_copy->header.total_size = EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE;
 
     // Initialize pointers to NULL.
     program_data_copy->program_type_specific_helper_function_addresses = NULL;

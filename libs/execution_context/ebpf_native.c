@@ -83,7 +83,6 @@ typedef struct _ebpf_native_module
     bool detaching;
     _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
     ebpf_lock_t lock;
-    void* map_addresses;
     ebpf_native_map_t* maps;
     size_t map_count;
     ebpf_native_program_t* programs;
