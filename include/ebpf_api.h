@@ -109,13 +109,20 @@ extern "C"
         int max_loop_count;
     } ebpf_api_verifier_stats_t;
 
+    typedef enum _ebpf_verification_verbosity
+    {
+        EBPF_VERIFICATION_VERBOSITY_NORMAL = 0,
+        EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL = 1,
+        EBPF_VERIFICATION_VERBOSITY_VERBOSE = 2,
+    } ebpf_verification_verbosity_t;
+
     /**
      * @brief Verify that the program is safe to execute.
      * @param[in] file Name of ELF file containing eBPF program.
      * @param[in] section The name of the section to query.
      * @param[in] program_type Optional program type.
      *  If NULL, the program type is derived from the section name.
-     * @param[in] verbose Obtain additional info about the programs.
+     * @param[in] verbosity How much additional info about the programs to obtain.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
@@ -128,7 +135,7 @@ extern "C"
         _In_z_ const char* file,
         _In_z_ const char* section,
         _In_opt_ const ebpf_program_type_t* program_type,
-        bool verbose,
+        ebpf_verification_verbosity_t verbosity,
         _Outptr_result_maybenull_z_ const char** report,
         _Outptr_result_maybenull_z_ const char** error_message,
         _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
@@ -140,7 +147,7 @@ extern "C"
      * @param[in] section The name of the section to query.
      * @param[in] program_type Optional program type.
      *  If NULL, the program type is derived from the section name.
-     * @param[in] verbose Obtain additional info about the programs.
+     * @param[in] verbosity How much additional info about the programs to obtain.
      * @param[out] report Points to a text section describing why the program
      *  failed verification.
      * @param[out] error_message On failure points to a text description of
@@ -154,7 +161,7 @@ extern "C"
         size_t data_length,
         _In_z_ const char* section,
         _In_opt_ const ebpf_program_type_t* program_type,
-        bool verbose,
+        ebpf_verification_verbosity_t verbosity,
         _Outptr_result_maybenull_z_ const char** report,
         _Outptr_result_maybenull_z_ const char** error_message,
         _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
