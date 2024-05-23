@@ -3164,6 +3164,7 @@ ebpf_program_load_bytes(
     if (program_name == nullptr) {
         // If the program name isn't set, use the SHA256 hash of the instructions.
         // This is also used as the object and section name.
+        // NOTE: we only keep the first 63 bytes of the hash to stay under BPF_OBJ_NAME_LEN
         hash_t hash("SHA256");
         auto sha256_hash = hash.hash_byte_ranges({{(uint8_t*)instructions, instruction_count * sizeof(ebpf_inst)}});
 
@@ -3173,7 +3174,7 @@ ebpf_program_load_bytes(
         for (auto byte : sha256_hash) {
             program_hash << std::setw(2) << (int)byte;
         }
-        program_hash_string = program_hash.str();
+        program_hash_string = program_hash.str().substr(0, 63);
         program_name = program_hash_string.c_str();
     }
 

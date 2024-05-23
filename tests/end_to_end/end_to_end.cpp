@@ -2412,8 +2412,7 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
         {INST_OP_EXIT},             // return r0
     };
     uint32_t insn_cnt = _countof(instructions);
-    const bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
-    // const bpf_prog_type_t prog_type = BPF_PROG_TYPE_SAMPLE;
+    const bpf_prog_type_t prog_type = BPF_PROG_TYPE_SAMPLE;
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(prog_type);
 
     REQUIRE(program_type != nullptr);
@@ -2441,12 +2440,11 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
     REQUIRE(program_info.nr_map_ids == 0);
     REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.name != NULL);
-    // Name should contain SHA256 hash (i.e. 64 bytes)
-    REQUIRE(strlen(program_info.name) == 64);
+    // Name should contain SHA256 hash in hex (minus last char to stay under BPF_OBJ_NAME_LEN)
+    REQUIRE(strlen(program_info.name) == 63);
 
     REQUIRE(program_info.type == prog_type);
 
-    // REQUIRE(ebpf_close_fd(program_fd) == EBPF_SUCCESS);
     Platform::_close(program_fd);
 }
 #endif
