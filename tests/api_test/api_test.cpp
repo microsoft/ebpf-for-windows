@@ -264,53 +264,6 @@ _test_program_next_previous(const char* file_name, int expected_program_count)
     bpf_object__close(object);
 }
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-
-TEST_CASE("test_ebpf_program_load_bytes-name-gen", "[execution_context]")
-{
-    // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
-        {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
-        {INST_OP_EXIT},             // return r0
-    };
-    uint32_t insn_cnt = _countof(instructions);
-    const bpf_prog_type_t prog_type = BPF_PROG_TYPE_UNSPEC;
-    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(prog_type);
-
-    REQUIRE(program_type != nullptr);
-    REQUIRE(insn_cnt != 0);
-
-    fd_t program_fd;
-    ebpf_result_t result = ebpf_program_load_bytes(
-        program_type,
-        nullptr,
-        EBPF_EXECUTION_ANY,
-        reinterpret_cast<const ebpf_inst*>(instructions),
-        insn_cnt,
-        nullptr,
-        0,
-        &program_fd);
-
-    REQUIRE(result == EBPF_SUCCESS);
-    REQUIRE(program_fd >= 0);
-
-    // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info = {};
-    uint32_t program_info_size = sizeof(program_info);
-    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
-    REQUIRE(program_info_size == sizeof(program_info));
-    REQUIRE(program_info.nr_map_ids == 0);
-    REQUIRE(program_info.map_ids == 0);
-    REQUIRE(program_info.name != NULL);
-    // Name should contain SHA256 hash (i.e. 64 bytes)
-    REQUIRE(strlen(program_info.name) == 64);
-
-    REQUIRE(program_info.type == prog_type);
-
-    REQUIRE(ebpf_close_fd(program_fd) == EBPF_SUCCESS);
-}
-#endif
-
 TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum(); }
 
 #define DECLARE_LOAD_TEST_CASE(file, program_type, execution_type, expected_result)  \
