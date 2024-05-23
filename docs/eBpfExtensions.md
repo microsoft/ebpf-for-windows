@@ -66,7 +66,8 @@ This is a mandatory header that is common to all data structures needed by eBPF 
 * `version`: Version of the extension data structure.
 * `size`: Size of the extension data structure.
 * `total_size` Total size of the extension data structure, including any padding.
- When populating these data structures, the correct `version` and `size` fields must be set. The set of current version numbers and the
+
+ When populating these data structures, the correct `version`, `size` and `total_size` fields must be set. The set of current version numbers and the
  size for the various extension structures are listed in `ebpf_windows.h`. For example:
 ```c
  #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
