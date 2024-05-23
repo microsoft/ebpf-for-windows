@@ -1037,6 +1037,35 @@ TEST_CASE("enum programs", "[end_to_end]")
     ebpf_free_string(error_message);
 }
 
+TEST_CASE("verify section", "[end_to_end][deprecated]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+    program_info_provider_t sample_test_program_info;
+    REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    ebpf_api_verifier_stats_t stats;
+#pragma warning(suppress : 4996) // deprecated
+    REQUIRE(
+        (result = ebpf_api_elf_verify_section_from_file(
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
+    REQUIRE(report != nullptr);
+    ebpf_free_string(report);
+}
+
 TEST_CASE("verify program", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
