@@ -683,7 +683,7 @@ _ebpf_api_elf_verify_section_from_stream(
     std::istream& stream,
     const char* stream_name,
     const char* section,
-    bool verbose,
+    ebpf_verification_verbosity_t verbosity,
     const char** report,
     const char** error_message,
     ebpf_api_verifier_stats_t* stats) noexcept
@@ -696,8 +696,9 @@ _ebpf_api_elf_verify_section_from_stream(
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
         ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
+        verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
         verifier_options.check_termination = true;
-        verifier_options.print_invariants = verbose;
+        verifier_options.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
         verifier_options.print_failures = true;
         verifier_options.mock_map_fds = true;
         verifier_options.print_line_info = true;
@@ -771,7 +772,7 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
     _In_z_ const char* name,
     _In_z_ const char* section,
     _In_opt_ const ebpf_program_type_t* program_type,
-    bool verbose,
+    ebpf_verification_verbosity_t verbosity,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
     _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
@@ -798,14 +799,14 @@ static _Success_(return == 0) uint32_t _verify_section_from_string(
 
     set_global_program_and_attach_type(program_type, nullptr);
     _verification_in_progress_helper helper;
-    return _ebpf_api_elf_verify_section_from_stream(stream, name, section, verbose, report, error_message, stats);
+    return _ebpf_api_elf_verify_section_from_stream(stream, name, section, verbosity, report, error_message, stats);
 }
 
 _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
     _In_z_ const char* file,
     _In_z_ const char* section,
     _In_opt_ const ebpf_program_type_t* program_type,
-    bool verbose,
+    ebpf_verification_verbosity_t verbosity,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
     _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
@@ -817,7 +818,7 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
     if (error) {
         return error;
     }
-    return _verify_section_from_string(data, file, section, program_type, verbose, report, error_message, stats);
+    return _verify_section_from_string(data, file, section, program_type, verbosity, report, error_message, stats);
 }
 
 _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
@@ -825,11 +826,11 @@ _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
     size_t data_length,
     _In_z_ const char* section,
     _In_opt_ const ebpf_program_type_t* program_type,
-    bool verbose,
+    ebpf_verification_verbosity_t verbosity,
     _Outptr_result_maybenull_z_ const char** report,
     _Outptr_result_maybenull_z_ const char** error_message,
     _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     return _verify_section_from_string(
-        std::string(data, data_length), "memory", section, program_type, verbose, report, error_message, stats);
+        std::string(data, data_length), "memory", section, program_type, verbosity, report, error_message, stats);
 }
