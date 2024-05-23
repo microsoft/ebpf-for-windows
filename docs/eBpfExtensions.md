@@ -64,7 +64,7 @@ initialized as follows:
 #### `ebpf_extension_header_t` Struct
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
 * `version`: Version of the extension data structure.
-* `size`: Size of the extension data structure.
+* `size`: Size of the extension data structure, not including any padding.
 * `total_size` Total size of the extension data structure, including any padding.
 
  When populating these data structures, the correct `version`, `size` and `total_size` fields must be set. The set of current version numbers and the

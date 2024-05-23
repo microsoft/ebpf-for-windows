@@ -122,7 +122,7 @@ ebpf_validate_helper_function_prototype_array(
     _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype_array, uint32_t count)
 {
     if (count > 0) {
-        // Use "total_size" to calculate the actual size of ebpf_helper_function_prototype_t struct.
+        // Use "total_size" to calculate the actual size of the ebpf_helper_function_prototype_t struct.
         size_t helper_prototype_size = helper_prototype_array[0].header.total_size;
         for (uint32_t i = 0; i < count; i++) {
             ebpf_helper_function_prototype_t* helper_prototype =

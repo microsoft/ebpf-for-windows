@@ -152,6 +152,6 @@ typedef enum _ebpf_helper_function
 typedef struct _ebpf_extension_header
 {
     uint16_t version;  ///< Version of the extension data structure.
-    size_t size;       ///< Size of the extension data structure.
+    size_t size;       ///< Size of the extension data structure not including any padding.
     size_t total_size; ///< Total size of the extension data structure including any padding.
 } ebpf_extension_header_t;
