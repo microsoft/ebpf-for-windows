@@ -587,14 +587,11 @@ ebpf_api_elf_disassemble_program(
     try {
         std::string section(section_name ? section_name : "");
         auto raw_programs = read_elf(file, section, &verifier_options, platform);
-        std::optional<raw_program> found_program;
-        for (auto& program : raw_programs) {
-            if ((program_name == nullptr) || (program.function_name == program_name)) {
-                found_program = program;
-                break;
-            }
-        }
-        if (!found_program) {
+        auto found_program =
+            std::find_if(raw_programs.begin(), raw_programs.end(), [&program_name](const raw_program& program) {
+                return (program_name == nullptr) || (program.function_name == program_name);
+            });
+        if (found_program == raw_programs.end()) {
             if (program_name != nullptr) {
                 throw std::runtime_error(std::string("No such program ") + program_name);
             } else {
