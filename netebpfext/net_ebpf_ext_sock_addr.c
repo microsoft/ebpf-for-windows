@@ -770,10 +770,10 @@ _net_ebpf_ext_uninitialize_blocked_connection_contexts()
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_sock_addr_blocked_contexts.lock);
 
-    // Cleanup all in use connect contexts.
+    // Clean up all in use connect contexts.
     _net_ebpf_ext_purge_blocked_connect_contexts(true);
 
-    // Cleanup pre-allocated connect contexts.
+    // Clean up pre-allocated connect contexts.
     while (!IsListEmpty(&_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_free_context_list)) {
         PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_sock_addr_blocked_contexts.low_memory_free_context_list);
         net_ebpf_extension_connection_context_t* context =
@@ -879,9 +879,9 @@ _net_ebpf_ext_compare_destination_address(_In_ const bpf_sock_addr_t* addr1, _In
 
 static void
 _net_ebpf_extension_connection_context_initialize(
-    _In_ uint64_t transport_endpoint_handle,
+    uint64_t transport_endpoint_handle,
     _In_ const bpf_sock_addr_t* sock_addr_ctx,
-    _In_ uint32_t flags,
+    uint32_t flags,
     _Out_ net_ebpf_extension_connection_context_t* connection_context)
 {
     bool set_timestamp = flags & CONNECTION_CONTEXT_INITIALIZATION_SET_TIMESTAMP;
