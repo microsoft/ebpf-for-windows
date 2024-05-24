@@ -311,7 +311,7 @@ main(int argc, char** argv)
                                        data.size(),
                                        section.raw().c_str(),
                                        &program_type,
-                                       false,
+                                       EBPF_VERIFICATION_VERBOSITY_NORMAL,
                                        &report,
                                        &error_message,
                                        &stats) != 0) {
