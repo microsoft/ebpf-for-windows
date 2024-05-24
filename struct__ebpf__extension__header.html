@@ -79,8 +79,11 @@ Data Fields</h2></td></tr>
 <tr class="memdesc:a37abb903576864b552ccbedfe2f9415d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Version of the extension data structure.  <a href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">More...</a><br /></td></tr>
 <tr class="separator:a37abb903576864b552ccbedfe2f9415d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0eb703712bfe98678ef9ffc1fe327282"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">size</a></td></tr>
-<tr class="memdesc:a0eb703712bfe98678ef9ffc1fe327282"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size of the extension data structure.  <a href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">More...</a><br /></td></tr>
+<tr class="memdesc:a0eb703712bfe98678ef9ffc1fe327282"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size of the extension data structure not including any padding.  <a href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">More...</a><br /></td></tr>
 <tr class="separator:a0eb703712bfe98678ef9ffc1fe327282"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1434771369379cf540e1448184f639dd"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">total_size</a></td></tr>
+<tr class="memdesc:a1434771369379cf540e1448184f639dd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Total size of the extension data structure including any padding.  <a href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">More...</a><br /></td></tr>
+<tr class="separator:a1434771369379cf540e1448184f639dd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Header of an eBPF extension data structure. Every eBPF extension data structure must start with this header. New fields can be added to the end of an eBPF extension data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible. </p>
@@ -97,7 +100,23 @@ Data Fields</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Size of the extension data structure. </p>
+<p>Size of the extension data structure not including any padding. </p>
+
+</div>
+</div>
+<a id="a1434771369379cf540e1448184f639dd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1434771369379cf540e1448184f639dd">&#9670;&nbsp;</a></span>total_size</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t _ebpf_extension_header::total_size</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Total size of the extension data structure including any padding. </p>
 
 </div>
 </div>
