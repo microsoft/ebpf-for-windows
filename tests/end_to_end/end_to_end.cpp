@@ -1042,12 +1042,7 @@ map_test(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
-#if 0
-// TODO(uBPF issues 275 and 437): uBPF doesn't yet support bpf2bpf calls.
 DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
-#else
-DECLARE_NATIVE_TEST("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test)
-#endif
 DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
