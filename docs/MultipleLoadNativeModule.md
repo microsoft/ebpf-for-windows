@@ -101,8 +101,11 @@ service). We can still use the existing `bpf_object__open` API, and the API can 
 name as input.
 
 **Note**:
-1. If we want to continue using existing APIs without any change, it causes a limitation that with this approach,
-**every application / product** using a native eBPF program will need to implement the installer logic.
+1. One limitation with option 2 is that all existing applications that are using native eBPF programs need to now
+also have an explicit installer / un-installer for the native programs that are they are using. This installer can
+either be a separate entity (in the cases where the native eBPF program is a common program shared between multiple
+applications / products), or it can be integrated with the application that loads the program (in the cases where the
+native eBPF program is exclusively owned by that application / product).
 2. Since this approach requires multiple components to generate the service name for the sys file, one option can be to
 export an API from ebpfapi.dll that takes file name as input and generates and returns a service name for that file.
 
