@@ -80,7 +80,7 @@ module is loaded.
 call to driver unload returns. Once this event is set, this thread will be unblocked and move to step 2.
 
 #### Misc. Changes
-1. ebpfcore will now maintain 2 hash tables to lookup the native modules. One hash table has service name as key, and
+1. ebpfcore will now maintain 2 hash tables to look up the native modules. One hash table has service name as key, and
 another has module ID as key.
 2. Currently native module is deleted from hash table when ref count becomes 0, which is before the driver is unloaded.
 In this new design the native module should be deleted from the hash table only when the driver unload call has
@@ -102,7 +102,7 @@ name as input.
 
 **Note**:
 1. If we want to continue using existing APIs without any change, it causes a limitation that with this approach,
-**every user** of native module will need to implement the installer logic.
+**every application / product** using a native eBPF program will need to implement the installer logic.
 2. Since this approach requires multiple components to generate the service name for the sys file, one option can be to
 export an API from ebpfapi.dll that takes file name as input and generates and returns a service name for that file.
 
