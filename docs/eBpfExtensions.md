@@ -64,13 +64,25 @@ initialized as follows:
 #### `ebpf_extension_header_t` Struct
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
 * `version`: Version of the extension data structure.
-* `size`: Size of the extension data structure.
- When populating these data structures, the correct `version` and `size` fields must be set. The set of current version numbers and the
+* `size`: Size of the extension data structure, not including any padding.
+* `total_size` Total size of the extension data structure, including any padding.
+
+ When populating these data structures, the correct `version`, `size` and `total_size` fields must be set. The set of current version numbers and the
  size for the various extension structures are listed in `ebpf_windows.h`. For example:
 ```c
  #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
  #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
     (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
+ #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_type_descriptor_t)
+```
+
+When initializing the `ebpf_extension_header_t` struct, instead of using the individual values listed above, macros like below can also be used for convenience.
+```c
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER                                                              \
+    {                                                                                                    \
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE, \
+            EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE                                      \
+    }
 ```
 > NOTE: Extension developers **must not** set the `size` field of these structures to `sizeof()` of the corresponding type. Instead,
 > the `CURRENT_VERSION_SIZE` macros defined in `ebpf_windows.h` should be used.
