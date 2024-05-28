@@ -117,8 +117,7 @@ typedef class _single_instance_hook : public _hook_helper
           client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
           nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
     {
-        attach_provider_data.header.version = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION;
-        attach_provider_data.header.size = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE;
+        attach_provider_data.header = EBPF_ATTACH_PROVIDER_DATA_HEADER;
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
@@ -621,26 +620,25 @@ _sample_test_context_destroy(
 static const void* _mock_xdp_helper_functions[] = {(void*)&test_xdp_helper_t::adjust_head};
 
 static ebpf_helper_function_addresses_t _mock_xdp_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_mock_xdp_helper_functions),
     (uint64_t*)_mock_xdp_helper_functions};
 
 static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE,
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
     "xdp",
     &_ebpf_xdp_test_context_descriptor,
     EBPF_PROGRAM_TYPE_XDP_GUID,
     BPF_PROG_TYPE_XDP,
     0};
 static const ebpf_program_info_t _mock_xdp_program_info = {
-    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_INFORMATION_HEADER,
     &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype};
 
 static ebpf_program_data_t _mock_xdp_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_DATA_HEADER,
     &_mock_xdp_program_info,
     &_mock_xdp_helper_function_address_table,
     nullptr,
@@ -649,7 +647,7 @@ static ebpf_program_data_t _mock_xdp_program_data = {
 
 // XDP_TEST.
 static ebpf_program_data_t _ebpf_xdp_test_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_DATA_HEADER,
     &_ebpf_xdp_test_program_info,
     &_mock_xdp_helper_function_address_table,
     nullptr,
@@ -657,8 +655,7 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     _xdp_context_destroy};
 
 // Bind.
-static ebpf_program_data_t _ebpf_bind_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE}, &_ebpf_bind_program_info, NULL};
+static ebpf_program_data_t _ebpf_bind_program_data = {EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL};
 
 // SOCK_ADDR.
 static int
@@ -767,7 +764,7 @@ static const void* _ebpf_sock_addr_specific_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_ebpf_sock_addr_specific_helper_functions),
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
@@ -777,12 +774,12 @@ static const void* _ebpf_sock_addr_global_helper_functions[] = {
     (void*)_ebpf_sock_addr_get_socket_cookie};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_global_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_ebpf_sock_addr_global_helper_functions),
     (uint64_t*)_ebpf_sock_addr_global_helper_functions};
 
 static ebpf_program_data_t _ebpf_sock_addr_program_data = {
-    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_addr_program_info,
     .program_type_specific_helper_function_addresses = &_ebpf_sock_addr_specific_helper_function_address_table,
     .global_helper_function_addresses = &_ebpf_sock_addr_global_helper_function_address_table,
@@ -856,7 +853,7 @@ _ebpf_sock_ops_context_destroy(
 }
 
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
-    .header = {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
@@ -870,19 +867,19 @@ static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_replace};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_sample_ebpf_ext_helper_functions),
     (uint64_t*)_sample_ebpf_ext_helper_functions};
 
 static const void* _test_global_helper_functions[] = {test_global_helper_t::_sample_get_pid_tgid};
 
 static ebpf_helper_function_addresses_t _test_global_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_test_global_helper_functions),
     (uint64_t*)_test_global_helper_functions};
 
 static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_DATA_HEADER,
     &_sample_ebpf_extension_program_info,
     &_sample_ebpf_ext_helper_function_address_table,
     &_test_global_helper_function_address_table,

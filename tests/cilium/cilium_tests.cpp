@@ -38,7 +38,13 @@ verify_program(_In_z_ const char* file, uint32_t expected_section_count)
         const char* report = nullptr;
         REQUIRE(
             (result = ebpf_api_elf_verify_section_from_file(
-                 file, section_name, &EBPF_PROGRAM_TYPE_XDP, false, &report, &log_buffer, &stats),
+                 file,
+                 section_name,
+                 &EBPF_PROGRAM_TYPE_XDP,
+                 EBPF_VERIFICATION_VERBOSITY_NORMAL,
+                 &report,
+                 &log_buffer,
+                 &stats),
              ebpf_free_string(log_buffer),
              log_buffer = nullptr,
              result == 0));
