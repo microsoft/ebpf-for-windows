@@ -1325,7 +1325,6 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
                 output.lines.push_back("}");
-
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {

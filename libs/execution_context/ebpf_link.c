@@ -514,6 +514,7 @@ Done:
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_size) void* state)
 {
+    UNREFERENCED_PARAMETER(client_binding_context);
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
     ebpf_result_t return_value;
@@ -615,6 +616,7 @@ Done:
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state)
 {
+    UNREFERENCED_PARAMETER(extension_client_binding_context);
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     return EBPF_SUCCESS;

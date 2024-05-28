@@ -3666,10 +3666,13 @@ TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_H
 
 TEST_CASE("libbpf lru hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_HASH); }
 
+<<<<<<< HEAD
 TEST_CASE("libbpf percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_PERCPU_HASH); }
 
 TEST_CASE("libbpf lru percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_PERCPU_HASH); }
 
+=======
+>>>>>>> 16cbe3b6 (Merged PR 31250: Merge main into feature/security_fix)
 void
 _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)
 {
