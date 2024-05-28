@@ -1102,6 +1102,11 @@ _print_test_control_info(const test_control_info& test_control_info)
     }
 }
 
+// The following code is used by the "bindmonitor_tail_call_invoke_program_test" test which is currently disabled due
+// to a potential WFP bug exposed while investigating Issue #3337.  Uncomment the following line to re-enable test.
+// #define ENABLE_TAIL_CALL_STRESS_TEST
+
+#if (defined ENABLE_TAIL_CALL_STRESS_TEST)
 static void
 _set_up_tailcall_program(bpf_object* object, const std::string& map_name)
 {
@@ -1400,6 +1405,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     // Clean up Winsock.
     WSACleanup();
 }
+#endif
 
 TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
 {
@@ -1533,6 +1539,8 @@ TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
     _mt_sockaddr_invoke_program_test(local_test_control_info);
 }
 
+// The following test is currently disabled due to a potential WFP bug exposed while investigating Issue #3337.
+#if (defined ENABLE_TAIL_CALL_STRESS_TEST)
 TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]")
 {
     // Test layout:
@@ -1549,3 +1557,4 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     _print_test_control_info(local_test_control_info);
     _mt_bindmonitor_tail_call_invoke_program_test(local_test_control_info);
 }
+#endif
