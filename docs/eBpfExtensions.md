@@ -64,13 +64,25 @@ initialized as follows:
 #### `ebpf_extension_header_t` Struct
 This is a mandatory header that is common to all data structures needed by eBPF extensions to register with the eBPF framework.
 * `version`: Version of the extension data structure.
-* `size`: Size of the extension data structure.
- When populating these data structures, the correct `version` and `size` fields must be set. The set of current version numbers and the
+* `size`: Size of the extension data structure, not including any padding.
+* `total_size` Total size of the extension data structure, including any padding.
+
+ When populating these data structures, the correct `version`, `size` and `total_size` fields must be set. The set of current version numbers and the
  size for the various extension structures are listed in `ebpf_windows.h`. For example:
 ```c
  #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
  #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
     (EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char))
+ #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_type_descriptor_t)
+```
+
+When initializing the `ebpf_extension_header_t` struct, instead of using the individual values listed above, macros like below can also be used for convenience.
+```c
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER                                                              \
+    {                                                                                                    \
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE, \
+            EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE                                      \
+    }
 ```
 > NOTE: Extension developers **must not** set the `size` field of these structures to `sizeof()` of the corresponding type. Instead,
 > the `CURRENT_VERSION_SIZE` macros defined in `ebpf_windows.h` should be used.
@@ -235,6 +247,30 @@ field must be updated accordingly.
 If the change in data structure is such that it is no longer backward compatible (such as changing field type or position),
 then the version number will be updated. In this case, the product version of eBPF for Windows must be updated to indicate a breaking change
 as well. Existing eBPF extensions would need to be re-compiled to work with the latest version of eBPF.
+
+#### 2.2.1 Hashing of data structures to validate verification of native images
+When native images are generated, bpf2c uses the verifier to ensure that the program is safe to execute and then
+computes a hash over the invariants used to validate the program. These invariants include the properties of the
+program information provider and the signature of any helper functions used. The following fields are included in the hash:
+1. ebpf_program_type_descriptor_t::name
+2. ebpf_program_type_descriptor_t::context_descriptor
+3. ebpf_program_type_descriptor_t::program_type
+4. ebpf_program_type_descriptor_t::bpf_prog_type
+5. ebpf_program_type_descriptor_t::is_privileged
+6. Count of helper ids being used (as a unsigned 64bit integer)
+7. Each helper function being used is then appended to the hash in order of id.
+    1. ebpf_helper_function_prototype_t::helper_id
+    2. ebpf_helper_function_prototype_t::name
+    3. ebpf_helper_function_prototype_t::return_type
+    4. Each element of the ebpf_helper_function_prototype_t::arguments array
+    5. ebpf_helper_function_prototype_t::flags - only if non-default value
+
+Any new fields MUST be added to the end of the hash and the hash MUST include all fields up to and including the last
+field containing a non-default value. Fields containing default values after the last non-default value MUST NOT
+be included. This ensures that hashes computed over older versions of the structure remain valid if new functionality
+is not being used. If a new feature or functionality is being used, the hash value MUST change to ensure that the
+verification constraints are honored. All new fields that affect verification MUST be included with a non-default value
+and all fields that do not affect verification MUST NOT be included.
 
 ### 2.3 Program Information NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Program Information NPI client module with the NMR for every eBPF program that

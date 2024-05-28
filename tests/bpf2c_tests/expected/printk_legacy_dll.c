@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -123,13 +123,13 @@ func(void* context)
     r2 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=12
 #line 31 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 31 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 31 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 31 "sample/printk_legacy.c"
         return 0;
+#line 31 "sample/printk_legacy.c"
+    }
     // EBPF_OP_MOV64_REG pc=12 dst=r8 src=r0 offset=0 imm=0
 #line 31 "sample/printk_legacy.c"
     r8 = r0;
@@ -156,13 +156,13 @@ func(void* context)
     r2 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 32 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 32 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 32 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 32 "sample/printk_legacy.c"
         return 0;
+#line 32 "sample/printk_legacy.c"
+    }
     // EBPF_OP_MOV64_REG pc=21 dst=r6 src=r0 offset=0 imm=0
 #line 32 "sample/printk_legacy.c"
     r6 = r0;
@@ -189,13 +189,13 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=13
 #line 35 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
 #line 35 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 35 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0))
+    if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 35 "sample/printk_legacy.c"
         return 0;
+#line 35 "sample/printk_legacy.c"
+    }
     // EBPF_OP_ADD64_REG pc=31 dst=r6 src=r0 offset=0 imm=0
 #line 35 "sample/printk_legacy.c"
     r6 += r0;
@@ -234,13 +234,13 @@ func(void* context)
     r2 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=14
 #line 36 "sample/printk_legacy.c"
-    r0 = func_helpers[2].address
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
 #line 36 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 36 "sample/printk_legacy.c"
-    if ((func_helpers[2].tail_call) && (r0 == 0))
+    if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 36 "sample/printk_legacy.c"
         return 0;
+#line 36 "sample/printk_legacy.c"
+    }
     // EBPF_OP_STXH pc=46 dst=r10 src=r8 offset=-4 imm=0
 #line 38 "sample/printk_legacy.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint16_t)r8;
@@ -288,13 +288,13 @@ func(void* context)
     r2 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=15
 #line 38 "sample/printk_legacy.c"
-    r0 = func_helpers[3].address
+    r0 = func_helpers[3].address(r1, r2, r3, r4, r5);
 #line 38 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 38 "sample/printk_legacy.c"
-    if ((func_helpers[3].tail_call) && (r0 == 0))
+    if ((func_helpers[3].tail_call) && (r0 == 0)) {
 #line 38 "sample/printk_legacy.c"
         return 0;
+#line 38 "sample/printk_legacy.c"
+    }
     // EBPF_OP_MOV64_IMM pc=64 dst=r1 src=r0 offset=0 imm=9504
 #line 38 "sample/printk_legacy.c"
     r1 = IMMEDIATE(9504);
@@ -327,13 +327,13 @@ func(void* context)
     r2 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=74 dst=r0 src=r0 offset=0 imm=12
 #line 42 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 42 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 42 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 42 "sample/printk_legacy.c"
         return 0;
+#line 42 "sample/printk_legacy.c"
+    }
     // EBPF_OP_LDDW pc=75 dst=r1 src=r0 offset=0 imm=843333954
 #line 42 "sample/printk_legacy.c"
     r1 = (uint64_t)7812660273793483074;
@@ -360,13 +360,13 @@ func(void* context)
     r2 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=84 dst=r0 src=r0 offset=0 imm=12
 #line 43 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 43 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 43 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 43 "sample/printk_legacy.c"
         return 0;
+#line 43 "sample/printk_legacy.c"
+    }
     // EBPF_OP_LDDW pc=85 dst=r1 src=r0 offset=0 imm=860111170
 #line 43 "sample/printk_legacy.c"
     r1 = (uint64_t)7220718397787750722;
@@ -393,13 +393,13 @@ func(void* context)
     r2 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=94 dst=r0 src=r0 offset=0 imm=13
 #line 44 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
 #line 44 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 44 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0))
+    if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 44 "sample/printk_legacy.c"
         return 0;
+#line 44 "sample/printk_legacy.c"
+    }
     // EBPF_OP_LDDW pc=95 dst=r1 src=r0 offset=0 imm=876888386
 #line 44 "sample/printk_legacy.c"
     r1 = (uint64_t)31566017637663042;
@@ -423,13 +423,13 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=103 dst=r0 src=r0 offset=0 imm=13
 #line 45 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
 #line 45 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 45 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0))
+    if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/printk_legacy.c"
         return 0;
+#line 45 "sample/printk_legacy.c"
+    }
     // EBPF_OP_MOV64_IMM pc=104 dst=r1 src=r0 offset=0 imm=893665602
 #line 45 "sample/printk_legacy.c"
     r1 = IMMEDIATE(893665602);
@@ -456,13 +456,13 @@ func(void* context)
     r2 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=112 dst=r0 src=r0 offset=0 imm=13
 #line 49 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
 #line 49 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 49 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0))
+    if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 49 "sample/printk_legacy.c"
         return 0;
+#line 49 "sample/printk_legacy.c"
+    }
     // EBPF_OP_LDDW pc=113 dst=r1 src=r0 offset=0 imm=910442818
 #line 49 "sample/printk_legacy.c"
     r1 = (uint64_t)32973392554770754;
@@ -483,13 +483,13 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=120 dst=r0 src=r0 offset=0 imm=12
 #line 50 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 50 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 50 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 50 "sample/printk_legacy.c"
         return 0;
+#line 50 "sample/printk_legacy.c"
+    }
     // EBPF_OP_STXB pc=121 dst=r10 src=r8 offset=-22 imm=0
 #line 53 "sample/printk_legacy.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-22)) = (uint8_t)r8;
@@ -519,13 +519,13 @@ func(void* context)
     r2 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=131 dst=r0 src=r0 offset=0 imm=12
 #line 53 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
 #line 53 "sample/printk_legacy.c"
-         (r1, r2, r3, r4, r5);
-#line 53 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0))
+    if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 53 "sample/printk_legacy.c"
         return 0;
+#line 53 "sample/printk_legacy.c"
+    }
     // EBPF_OP_ADD64_REG pc=132 dst=r6 src=r0 offset=0 imm=0
 #line 53 "sample/printk_legacy.c"
     r6 += r0;
@@ -570,7 +570,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 

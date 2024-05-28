@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #define EBPF_DEVICE_NAME L"\\Device\\EbpfIoDevice"

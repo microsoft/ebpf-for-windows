@@ -1,4 +1,4 @@
-# Copyright (c) Microsoft Corporation
+# Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 #
 # This script executes the provided test command, waits for <TestHangTimeout> (in seconds) and then triggers user and

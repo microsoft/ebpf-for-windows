@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #define EBPF_FILE_ID EBPF_FILE_ID_MAPS
@@ -50,7 +50,7 @@ typedef struct _ebpf_core_object_map
 /**
  * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
  * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
- * of double-linked lists per partition. The hot list contains entries that have been accessed in the current
+ * of doubly-linked lists per partition. The hot list contains entries that have been accessed in the current
  * generation (where a generation is defined as a period of time during which max_entries /
  * (EBPF_LRU_GENERATION_COUNT*partition_count) elements have been accessed in the map), and the cold list contains
  * entries that have not been accessed in the current generation. When entries in the cold list are accessed, they are
@@ -1259,9 +1259,9 @@ _lru_hash_table_notification(
     case EBPF_HASH_TABLE_NOTIFICATION_TYPE_FREE:
         _uninitialize_lru_entry(lru_map, entry);
         break;
-    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE: {
+    case EBPF_HASH_TABLE_NOTIFICATION_TYPE_USE:
         _insert_into_hot_list(lru_map, partition, entry);
-    } break;
+        break;
     default:
         ebpf_assert(!"Invalid notification type");
     }
@@ -1335,7 +1335,7 @@ _create_lru_hash_map(
 
         lru_map->partitions[partition].current_generation = EBPF_LRU_INITIAL_GENERATION;
         lru_map->partitions[partition].hot_list_size = 0;
-        // Assuming that access is randomly distributed, each partition should have the same number of entries in it's
+        // Assuming that access is randomly distributed, each partition should have the same number of entries in its
         // cold and hot lists. Assume random distribution and divide the entries evenly among the partitions.
         uint32_t average_entries_per_partition = map_definition->max_entries / partition_count;
 

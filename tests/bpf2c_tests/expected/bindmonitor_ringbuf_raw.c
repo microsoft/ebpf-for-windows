@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -82,9 +82,11 @@ bind_monitor(void* context)
     r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
     // EBPF_OP_JNE_IMM pc=1 dst=r2 src=r0 offset=8 imm=0
 #line 26 "sample/bindmonitor_ringbuf.c"
-    if (r2 != IMMEDIATE(0))
+    if (r2 != IMMEDIATE(0)) {
 #line 26 "sample/bindmonitor_ringbuf.c"
         goto label_1;
+#line 26 "sample/bindmonitor_ringbuf.c"
+    }
     // EBPF_OP_LDXDW pc=2 dst=r2 src=r1 offset=0 imm=0
 #line 28 "sample/bindmonitor_ringbuf.c"
     r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
@@ -93,9 +95,11 @@ bind_monitor(void* context)
     r3 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
     // EBPF_OP_JGE_REG pc=4 dst=r2 src=r3 offset=5 imm=0
 #line 28 "sample/bindmonitor_ringbuf.c"
-    if (r2 >= r3)
+    if (r2 >= r3) {
 #line 28 "sample/bindmonitor_ringbuf.c"
         goto label_1;
+#line 28 "sample/bindmonitor_ringbuf.c"
+    }
     // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
 #line 29 "sample/bindmonitor_ringbuf.c"
     r3 -= r2;
@@ -107,13 +111,13 @@ bind_monitor(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=9 dst=r0 src=r0 offset=0 imm=11
 #line 29 "sample/bindmonitor_ringbuf.c"
-    r0 = bind_monitor_helpers[0].address
+    r0 = bind_monitor_helpers[0].address(r1, r2, r3, r4, r5);
 #line 29 "sample/bindmonitor_ringbuf.c"
-         (r1, r2, r3, r4, r5);
-#line 29 "sample/bindmonitor_ringbuf.c"
-    if ((bind_monitor_helpers[0].tail_call) && (r0 == 0))
+    if ((bind_monitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 29 "sample/bindmonitor_ringbuf.c"
         return 0;
+#line 29 "sample/bindmonitor_ringbuf.c"
+    }
 label_1:
     // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
 #line 36 "sample/bindmonitor_ringbuf.c"
@@ -156,7 +160,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 

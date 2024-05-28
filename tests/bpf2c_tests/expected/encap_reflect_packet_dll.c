@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -109,22 +109,28 @@ encap_reflect_packet(void* context)
     r3 += IMMEDIATE(14);
     // EBPF_OP_JGT_REG pc=6 dst=r3 src=r1 offset=315 imm=0
 #line 173 "sample/encap_reflect_packet.c"
-    if (r3 > r1)
+    if (r3 > r1) {
 #line 173 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 173 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=7 dst=r4 src=r2 offset=12 imm=0
 #line 178 "sample/encap_reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(12));
     // EBPF_OP_JEQ_IMM pc=8 dst=r4 src=r0 offset=120 imm=56710
 #line 178 "sample/encap_reflect_packet.c"
-    if (r4 == IMMEDIATE(56710))
+    if (r4 == IMMEDIATE(56710)) {
 #line 178 "sample/encap_reflect_packet.c"
         goto label_2;
+#line 178 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_JNE_IMM pc=9 dst=r4 src=r0 offset=312 imm=8
 #line 178 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(8))
+    if (r4 != IMMEDIATE(8)) {
 #line 178 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 178 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=10 dst=r4 src=r2 offset=0 imm=0
 #line 179 "sample/encap_reflect_packet.c"
     r4 = r2;
@@ -133,17 +139,21 @@ encap_reflect_packet(void* context)
     r4 += IMMEDIATE(34);
     // EBPF_OP_JGT_REG pc=12 dst=r4 src=r1 offset=309 imm=0
 #line 179 "sample/encap_reflect_packet.c"
-    if (r4 > r1)
+    if (r4 > r1) {
 #line 179 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 179 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXB pc=13 dst=r4 src=r2 offset=23 imm=0
 #line 185 "sample/encap_reflect_packet.c"
     r4 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(23));
     // EBPF_OP_JNE_IMM pc=14 dst=r4 src=r0 offset=307 imm=17
 #line 185 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(17))
+    if (r4 != IMMEDIATE(17)) {
 #line 185 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 185 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXB pc=15 dst=r2 src=r2 offset=14 imm=0
 #line 185 "sample/encap_reflect_packet.c"
     r2 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(14));
@@ -164,17 +174,21 @@ encap_reflect_packet(void* context)
     r2 += IMMEDIATE(8);
     // EBPF_OP_JGT_REG pc=21 dst=r2 src=r1 offset=300 imm=0
 #line 185 "sample/encap_reflect_packet.c"
-    if (r2 > r1)
+    if (r2 > r1) {
 #line 185 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 185 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=22 dst=r1 src=r3 offset=2 imm=0
 #line 191 "sample/encap_reflect_packet.c"
     r1 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(2));
     // EBPF_OP_JNE_IMM pc=23 dst=r1 src=r0 offset=298 imm=7459
 #line 191 "sample/encap_reflect_packet.c"
-    if (r1 != IMMEDIATE(7459))
+    if (r1 != IMMEDIATE(7459)) {
 #line 191 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 191 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=24 dst=r1 src=r6 offset=0 imm=0
 #line 22 "sample/encap_reflect_packet.c"
     r1 = r6;
@@ -183,13 +197,13 @@ encap_reflect_packet(void* context)
     r2 = (uint64_t)4294967276;
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=65536
 #line 22 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[0].address
+    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5);
 #line 22 "sample/encap_reflect_packet.c"
-         (r1, r2, r3, r4, r5);
-#line 22 "sample/encap_reflect_packet.c"
-    if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0))
+    if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0)) {
 #line 22 "sample/encap_reflect_packet.c"
         return 0;
+#line 22 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=28 dst=r1 src=r0 offset=0 imm=0
 #line 22 "sample/encap_reflect_packet.c"
     r1 = r0;
@@ -207,9 +221,11 @@ encap_reflect_packet(void* context)
     r2 = IMMEDIATE(0);
     // EBPF_OP_JSGT_REG pc=33 dst=r2 src=r1 offset=288 imm=0
 #line 22 "sample/encap_reflect_packet.c"
-    if ((int64_t)r2 > (int64_t)r1)
+    if ((int64_t)r2 > (int64_t)r1) {
 #line 22 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 22 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXDW pc=34 dst=r4 src=r6 offset=8 imm=0
 #line 28 "sample/encap_reflect_packet.c"
     r4 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
@@ -224,9 +240,11 @@ encap_reflect_packet(void* context)
     r3 += IMMEDIATE(14);
     // EBPF_OP_JGT_REG pc=38 dst=r3 src=r4 offset=283 imm=0
 #line 28 "sample/encap_reflect_packet.c"
-    if (r3 > r4)
+    if (r3 > r4) {
 #line 28 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 28 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=39 dst=r2 src=r7 offset=0 imm=0
 #line 35 "sample/encap_reflect_packet.c"
     r2 = r7;
@@ -235,9 +253,11 @@ encap_reflect_packet(void* context)
     r2 += IMMEDIATE(20);
     // EBPF_OP_JGT_REG pc=41 dst=r2 src=r4 offset=280 imm=0
 #line 35 "sample/encap_reflect_packet.c"
-    if (r2 > r4)
+    if (r2 > r4) {
 #line 35 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 35 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r7 offset=0 imm=0
 #line 43 "sample/encap_reflect_packet.c"
     r1 = r7;
@@ -246,9 +266,11 @@ encap_reflect_packet(void* context)
     r1 += IMMEDIATE(34);
     // EBPF_OP_JGT_REG pc=44 dst=r1 src=r4 offset=277 imm=0
 #line 43 "sample/encap_reflect_packet.c"
-    if (r1 > r4)
+    if (r1 > r4) {
 #line 43 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 43 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=45 dst=r5 src=r7 offset=0 imm=0
 #line 43 "sample/encap_reflect_packet.c"
     r5 = r7;
@@ -257,9 +279,11 @@ encap_reflect_packet(void* context)
     r5 += IMMEDIATE(54);
     // EBPF_OP_JGT_REG pc=47 dst=r5 src=r4 offset=274 imm=0
 #line 43 "sample/encap_reflect_packet.c"
-    if (r5 > r4)
+    if (r5 > r4) {
 #line 43 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 43 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=48 dst=r4 src=r2 offset=4 imm=0
 #line 56 "sample/encap_reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(4));
@@ -367,17 +391,21 @@ encap_reflect_packet(void* context)
     r5 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JGT_REG pc=83 dst=r4 src=r5 offset=238 imm=0
 #line 64 "sample/encap_reflect_packet.c"
-    if (r4 > r5)
+    if (r4 > r5) {
 #line 64 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 64 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=84 dst=r4 src=r2 offset=2 imm=0
 #line 68 "sample/encap_reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(2));
     // EBPF_OP_JNE_IMM pc=85 dst=r4 src=r0 offset=4 imm=7459
 #line 68 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(7459))
+    if (r4 != IMMEDIATE(7459)) {
 #line 68 "sample/encap_reflect_packet.c"
         goto label_1;
+#line 68 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=86 dst=r4 src=r2 offset=0 imm=0
 #line 40 "sample/./xdp_common.h"
     r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(0));
@@ -478,13 +506,13 @@ label_1:
     r5 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=117 dst=r0 src=r0 offset=0 imm=10
 #line 82 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[1].address
+    r0 = encap_reflect_packet_helpers[1].address(r1, r2, r3, r4, r5);
 #line 82 "sample/encap_reflect_packet.c"
-         (r1, r2, r3, r4, r5);
-#line 82 "sample/encap_reflect_packet.c"
-    if ((encap_reflect_packet_helpers[1].tail_call) && (r0 == 0))
+    if ((encap_reflect_packet_helpers[1].tail_call) && (r0 == 0)) {
 #line 82 "sample/encap_reflect_packet.c"
         return 0;
+#line 82 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=118 dst=r1 src=r0 offset=0 imm=0
 #line 49 "sample/./xdp_common.h"
     r1 = r0;
@@ -527,9 +555,11 @@ label_2:
     r3 += IMMEDIATE(54);
     // EBPF_OP_JGT_REG pc=131 dst=r3 src=r1 offset=190 imm=0
 #line 196 "sample/encap_reflect_packet.c"
-    if (r3 > r1)
+    if (r3 > r1) {
 #line 196 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 196 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=132 dst=r3 src=r2 offset=0 imm=0
 #line 196 "sample/encap_reflect_packet.c"
     r3 = r2;
@@ -538,25 +568,31 @@ label_2:
     r3 += IMMEDIATE(62);
     // EBPF_OP_JGT_REG pc=134 dst=r3 src=r1 offset=187 imm=0
 #line 202 "sample/encap_reflect_packet.c"
-    if (r3 > r1)
+    if (r3 > r1) {
 #line 202 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 202 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXB pc=135 dst=r1 src=r2 offset=20 imm=0
 #line 202 "sample/encap_reflect_packet.c"
     r1 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(20));
     // EBPF_OP_JNE_IMM pc=136 dst=r1 src=r0 offset=185 imm=17
 #line 202 "sample/encap_reflect_packet.c"
-    if (r1 != IMMEDIATE(17))
+    if (r1 != IMMEDIATE(17)) {
 #line 202 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 202 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=137 dst=r1 src=r2 offset=56 imm=0
 #line 208 "sample/encap_reflect_packet.c"
     r1 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(56));
     // EBPF_OP_JNE_IMM pc=138 dst=r1 src=r0 offset=183 imm=7459
 #line 208 "sample/encap_reflect_packet.c"
-    if (r1 != IMMEDIATE(7459))
+    if (r1 != IMMEDIATE(7459)) {
 #line 208 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 208 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=139 dst=r1 src=r6 offset=0 imm=0
 #line 96 "sample/encap_reflect_packet.c"
     r1 = r6;
@@ -565,13 +601,13 @@ label_2:
     r2 = (uint64_t)4294967256;
     // EBPF_OP_CALL pc=142 dst=r0 src=r0 offset=0 imm=65536
 #line 96 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[0].address
+    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5);
 #line 96 "sample/encap_reflect_packet.c"
-         (r1, r2, r3, r4, r5);
-#line 96 "sample/encap_reflect_packet.c"
-    if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0))
+    if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0)) {
 #line 96 "sample/encap_reflect_packet.c"
         return 0;
+#line 96 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=143 dst=r1 src=r0 offset=0 imm=0
 #line 96 "sample/encap_reflect_packet.c"
     r1 = r0;
@@ -589,9 +625,11 @@ label_2:
     r2 = IMMEDIATE(0);
     // EBPF_OP_JSGT_REG pc=148 dst=r2 src=r1 offset=173 imm=0
 #line 96 "sample/encap_reflect_packet.c"
-    if ((int64_t)r2 > (int64_t)r1)
+    if ((int64_t)r2 > (int64_t)r1) {
 #line 96 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 96 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXDW pc=149 dst=r5 src=r6 offset=8 imm=0
 #line 102 "sample/encap_reflect_packet.c"
     r5 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
@@ -606,9 +644,11 @@ label_2:
     r2 += IMMEDIATE(14);
     // EBPF_OP_JGT_REG pc=153 dst=r2 src=r5 offset=168 imm=0
 #line 102 "sample/encap_reflect_packet.c"
-    if (r2 > r5)
+    if (r2 > r5) {
 #line 102 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 102 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=154 dst=r4 src=r1 offset=0 imm=0
 #line 109 "sample/encap_reflect_packet.c"
     r4 = r1;
@@ -617,9 +657,11 @@ label_2:
     r4 += IMMEDIATE(40);
     // EBPF_OP_JGT_REG pc=156 dst=r4 src=r5 offset=165 imm=0
 #line 109 "sample/encap_reflect_packet.c"
-    if (r4 > r5)
+    if (r4 > r5) {
 #line 109 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 109 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=157 dst=r3 src=r1 offset=0 imm=0
 #line 117 "sample/encap_reflect_packet.c"
     r3 = r1;
@@ -628,9 +670,11 @@ label_2:
     r3 += IMMEDIATE(54);
     // EBPF_OP_JGT_REG pc=159 dst=r3 src=r5 offset=162 imm=0
 #line 117 "sample/encap_reflect_packet.c"
-    if (r3 > r5)
+    if (r3 > r5) {
 #line 117 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 117 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_MOV64_REG pc=160 dst=r7 src=r1 offset=0 imm=0
 #line 124 "sample/encap_reflect_packet.c"
     r7 = r1;
@@ -639,9 +683,11 @@ label_2:
     r7 += IMMEDIATE(94);
     // EBPF_OP_JGT_REG pc=162 dst=r7 src=r5 offset=159 imm=0
 #line 124 "sample/encap_reflect_packet.c"
-    if (r7 > r5)
+    if (r7 > r5) {
 #line 124 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 124 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=163 dst=r5 src=r4 offset=4 imm=0
 #line 130 "sample/encap_reflect_packet.c"
     r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
@@ -1016,17 +1062,21 @@ label_2:
     r5 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JGT_REG pc=287 dst=r4 src=r5 offset=34 imm=0
 #line 138 "sample/encap_reflect_packet.c"
-    if (r4 > r5)
+    if (r4 > r5) {
 #line 138 "sample/encap_reflect_packet.c"
         goto label_5;
+#line 138 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=288 dst=r4 src=r1 offset=96 imm=0
 #line 142 "sample/encap_reflect_packet.c"
     r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(96));
     // EBPF_OP_JNE_IMM pc=289 dst=r4 src=r0 offset=4 imm=7459
 #line 142 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(7459))
+    if (r4 != IMMEDIATE(7459)) {
 #line 142 "sample/encap_reflect_packet.c"
         goto label_3;
+#line 142 "sample/encap_reflect_packet.c"
+    }
     // EBPF_OP_LDXH pc=290 dst=r4 src=r1 offset=94 imm=0
 #line 40 "sample/./xdp_common.h"
     r4 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(94));
@@ -1168,7 +1218,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 

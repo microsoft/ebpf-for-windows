@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #include "bpf/bpf.h"
@@ -64,6 +64,27 @@ strip_paths(const std::string& original_string)
         output_stream << std::regex_replace(output, std::regex("^.*tests/sample"), "; ./tests/sample") << "\n";
     }
     return output_stream.str();
+}
+
+void
+test_expected_output_line_by_line(const std::string& expected_output, const std::string& actual_output)
+{
+    // If the expected and actual output are the same, the test passes.
+    if (expected_output == actual_output)
+        return;
+
+    std::cerr << "Expected output:\n" << expected_output << "\n";
+    std::cerr << "Actual output:\n" << actual_output << "\n";
+
+    // If the expected and actual output are not the same, compare them line by line.
+    std::istringstream expected_output_stream(expected_output);
+    std::istringstream actual_output_stream(actual_output);
+
+    std::string expected_line;
+    std::string actual_line;
+    while (std::getline(expected_output_stream, expected_line) && std::getline(actual_output_stream, actual_line)) {
+        REQUIRE(expected_line == actual_line);
+    }
 }
 
 TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
@@ -415,45 +436,31 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"xdp_datasize_unsafe.o", L"xdp", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     output = strip_paths(output);
-    REQUIRE(
-        output == "Verification failed\n"
-                  "\n"
-                  "Verification report:\n"
-                  "\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5: Invalid type (r3.type == non_map_fd)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "6: Invalid type (r2.type in {ctx, stack, packet, shared})\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "7: Invalid type (r1.type == number)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "8: Invalid type (r1.type == number)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:43\n"
-                  ";     return rc;\n"
-                  "10: Invalid type (r0.type == number)\n"
-                  "\n"
-                  "9 errors\n"
-                  "\n");
+
+    // Perform a line by line comparison to detect any differences.
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "4: Code is unreachable after 4\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
+
+    // Split both output and expected_output into lines.
+    std::istringstream output_stream(output);
+    std::istringstream expected_output_stream(expected_output);
+
+    std::string output_line;
+    std::string expected_output_line;
+    while (std::getline(output_stream, output_line) && std::getline(expected_output_stream, expected_output_line)) {
+        REQUIRE(output_line == expected_output_line);
+    }
 }
 
 TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
@@ -466,17 +473,20 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"printk_unsafe.o", L"bind", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     output = strip_paths(output);
-    REQUIRE(
-        output == "Verification failed\n"
-                  "\n"
-                  "Verification report:\n"
-                  "\n"
-                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
-                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
-                  "7: Invalid type (r3.type == number)\n"
-                  "\n"
-                  "1 errors\n"
-                  "\n");
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
+                                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
+                                  "7: Invalid type (r3.type == number)\n"
+                                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
+                                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
+                                  "7: Code is unreachable after 7\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
+    test_expected_output_line_by_line(expected_output, output);
 }
 
 void

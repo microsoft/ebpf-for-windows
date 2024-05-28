@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
@@ -267,18 +267,20 @@ lookup(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 39 "sample/undocked/hash_of_map.c"
-    r0 = lookup_helpers[0].address
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
 #line 39 "sample/undocked/hash_of_map.c"
-         (r1, r2, r3, r4, r5);
-#line 39 "sample/undocked/hash_of_map.c"
-    if ((lookup_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 39 "sample/undocked/hash_of_map.c"
         return 0;
+#line 39 "sample/undocked/hash_of_map.c"
+    }
     // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=9 imm=0
 #line 40 "sample/undocked/hash_of_map.c"
-    if (r0 == IMMEDIATE(0))
+    if (r0 == IMMEDIATE(0)) {
 #line 40 "sample/undocked/hash_of_map.c"
         goto label_2;
+#line 40 "sample/undocked/hash_of_map.c"
+    }
     // EBPF_OP_MOV64_IMM pc=8 dst=r6 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/hash_of_map.c"
     r6 = IMMEDIATE(0);
@@ -296,18 +298,20 @@ lookup(void* context)
     r1 = r0;
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 42 "sample/undocked/hash_of_map.c"
-    r0 = lookup_helpers[0].address
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
 #line 42 "sample/undocked/hash_of_map.c"
-         (r1, r2, r3, r4, r5);
-#line 42 "sample/undocked/hash_of_map.c"
-    if ((lookup_helpers[0].tail_call) && (r0 == 0))
+    if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 42 "sample/undocked/hash_of_map.c"
         return 0;
+#line 42 "sample/undocked/hash_of_map.c"
+    }
     // EBPF_OP_JNE_IMM pc=14 dst=r0 src=r0 offset=1 imm=0
 #line 43 "sample/undocked/hash_of_map.c"
-    if (r0 != IMMEDIATE(0))
+    if (r0 != IMMEDIATE(0)) {
 #line 43 "sample/undocked/hash_of_map.c"
         goto label_1;
+#line 43 "sample/undocked/hash_of_map.c"
+    }
     // EBPF_OP_JA pc=15 dst=r0 src=r0 offset=1 imm=0
 #line 43 "sample/undocked/hash_of_map.c"
     goto label_2;
@@ -357,14 +361,16 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 16;
+    version->minor = 17;
     version->revision = 0;
 }
 
 #pragma data_seg(push, "map_initial_values")
+// clang-format off
 static const char* _outer_map_initial_string_table[] = {
     "inner_map",
 };
+// clang-format on
 
 static map_initial_values_t _map_initial_values_array[] = {
     {

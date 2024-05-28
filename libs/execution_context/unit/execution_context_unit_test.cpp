@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #define EBPF_FILE_ID EBPF_FILE_ID_EXECUTION_CONTEXT_UNIT_TESTS
@@ -807,9 +807,7 @@ TEST_CASE("program", "[execution_context]")
     uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     const void* helper_functions[] = {(void*)function_pointer1};
     ebpf_helper_function_addresses_t helper_function_addresses = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
-        EBPF_COUNT_OF(helper_functions),
-        (uint64_t*)helper_functions};
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
 
     {
         ebpf_trampoline_table_t* local_table = nullptr;
@@ -834,7 +832,8 @@ TEST_CASE("program", "[execution_context]")
     sample_program_context_t ctx{0};
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
-    ebpf_program_invoke(program.get(), &ctx, &result, &state);
+    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), &ctx, &result, &state);
+    REQUIRE(ebpf_result == EBPF_SUCCESS);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
     ebpf_program_test_run_options_t options = {0};

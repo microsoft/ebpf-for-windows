@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #define EBPF_FILE_ID EBPF_FILE_ID_CORE_HELPER_FUZZER

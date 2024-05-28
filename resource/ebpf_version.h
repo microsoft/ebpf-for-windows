@@ -1,8 +1,8 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #define EBPF_VERSION_MAJOR 0
-#define EBPF_VERSION_MINOR 16
+#define EBPF_VERSION_MINOR 17
 #define EBPF_VERSION_REVISION 0
 
 #define QUOTE(str) #str

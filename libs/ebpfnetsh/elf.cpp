@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #include "bpf/libbpf.h"
@@ -6,11 +6,13 @@
 #include "tokens.h"
 #include "utilities.h"
 
+#include <cassert>
 #include <iomanip>
 #include <locale>
 
-TOKEN_VALUE g_LevelEnum[2] = {
+TOKEN_VALUE g_LevelEnum[3] = {
     {L"normal", VL_NORMAL},
+    {L"informational", VL_INFORMATIONAL},
     {L"verbose", VL_VERBOSE},
 };
 
@@ -325,8 +327,25 @@ handle_ebpf_show_verification(
         }
     }
 
+    ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
+    switch (level) {
+    case VL_NORMAL:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
+        break;
+    case VL_INFORMATIONAL:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
+        break;
+    case VL_VERBOSE:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_VERBOSE;
+        break;
+    default:
+        // Assert this never happens.
+        assert(!"Invalid verbosity level");
+        break;
+    }
+
     status = ebpf_api_elf_verify_section_from_file(
-        filename.c_str(), section.c_str(), &program_type, level == VL_VERBOSE, &report, &error_message, &stats);
+        filename.c_str(), section.c_str(), &program_type, verbosity, &report, &error_message, &stats);
     if (status == ERROR_SUCCESS) {
         std::cout << report;
         std::cout << "\nProgram terminates within " << stats.max_loop_count << " loop iterations\n";

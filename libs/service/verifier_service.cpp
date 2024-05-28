@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 #include "Verifier.h"
@@ -34,6 +34,7 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
         std::ostringstream oss;
         options.no_simplify = true;
         options.print_failures = true;
+        // Until https://github.com/vbpf/ebpf-verifier/issues/643 is fixed, don't set options.assume_assertions to true.
         (void)ebpf_verify_program(oss, prog, raw_prog.info, &options, &stats);
 
         *error_message = allocate_string(oss.str(), error_message_size);

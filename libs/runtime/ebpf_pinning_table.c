@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 // The pinning table stores ebpf_pinning_entry_t objects in an ebpf_hash_table_t, which is designed to store fixed

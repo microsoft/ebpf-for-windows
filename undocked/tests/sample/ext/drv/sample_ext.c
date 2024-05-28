@@ -1,4 +1,4 @@
-// Copyright (c) Microsoft Corporation
+// Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
 /**
@@ -46,16 +46,14 @@ static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_replace};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
     EBPF_COUNT_OF(_sample_ebpf_extension_helpers),
     (uint64_t*)_sample_ebpf_extension_helpers};
 
 static const void* _sample_global_helpers[] = {(void*)&_sample_get_pid_tgid};
 
 static const ebpf_helper_function_addresses_t _sample_global_helper_function_address_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
-    EBPF_COUNT_OF(_sample_global_helpers),
-    (uint64_t*)_sample_global_helpers};
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_sample_global_helpers), (uint64_t*)_sample_global_helpers};
 
 static ebpf_result_t
 _sample_context_create(
@@ -74,7 +72,7 @@ _sample_context_destroy(
     _Inout_ size_t* context_size_out);
 
 static ebpf_program_data_t _sample_ebpf_extension_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_sample_ebpf_extension_program_info,
     .program_type_specific_helper_function_addresses = &_sample_ebpf_extension_helper_function_address_table,
     .global_helper_function_addresses = &_sample_global_helper_function_address_table,
@@ -212,10 +210,7 @@ _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* p
 
 // Sample eBPF extension Hook NPI provider characteristics
 ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data = {
-    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE},
-    EBPF_PROGRAM_TYPE_SAMPLE_GUID,
-    BPF_ATTACH_TYPE_SAMPLE,
-    BPF_LINK_TYPE_UNSPEC};
+    EBPF_ATTACH_PROVIDER_DATA_HEADER, EBPF_PROGRAM_TYPE_SAMPLE_GUID, BPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC};
 
 const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characteristics = {
     0,
