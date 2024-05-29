@@ -65,7 +65,7 @@ verify_byte_code(
         return EBPF_VERIFICATION_FAILED;
     }
 
-    raw_program raw_prog{file, section, instructions, info};
+    raw_program raw_prog{file, section, 0, {}, instructions, info};
 
     return _analyze(raw_prog, error_message, error_message_size);
 }

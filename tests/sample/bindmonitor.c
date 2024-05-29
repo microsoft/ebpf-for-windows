@@ -67,7 +67,7 @@ update_audit_entry(bind_md_t* ctx)
     bpf_map_update_elem(&audit_map, &process_id, &audit_entry, 0);
 }
 
-__attribute__((always_inline)) process_entry_t*
+inline __attribute__((always_inline)) process_entry_t*
 find_or_create_process_entry(bind_md_t* ctx)
 {
     uint64_t key = ctx->process_id;

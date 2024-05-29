@@ -388,7 +388,7 @@ label_2:
     // EBPF_OP_ADD64_IMM pc=38 dst=r2 src=r0 offset=0 imm=-64
 #line 43 "sample/sockops.c"
     r2 += IMMEDIATE(-64);
-    // EBPF_OP_LDDW pc=39 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=39 dst=r1 src=r1 offset=0 imm=1
 #line 26 "sample/sockops.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=1
@@ -744,7 +744,7 @@ label_3:
     // EBPF_OP_ADD64_IMM pc=155 dst=r2 src=r0 offset=0 imm=-64
 #line 63 "sample/sockops.c"
     r2 += IMMEDIATE(-64);
-    // EBPF_OP_LDDW pc=156 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=156 dst=r1 src=r1 offset=0 imm=1
 #line 26 "sample/sockops.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=1
@@ -776,7 +776,7 @@ label_4:
     // EBPF_OP_ADD64_IMM pc=164 dst=r2 src=r0 offset=0 imm=-64
 #line 26 "sample/sockops.c"
     r2 += IMMEDIATE(-64);
-    // EBPF_OP_LDDW pc=165 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=165 dst=r1 src=r1 offset=0 imm=2
 #line 26 "sample/sockops.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=167 dst=r3 src=r0 offset=0 imm=64

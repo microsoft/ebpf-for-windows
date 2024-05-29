@@ -490,6 +490,7 @@ bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
     }
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(type);
     program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
+    program->autoload = true; // TODO(issue #3555): remove this once bpf_program__set_autoload is supported.
     return 0;
 }
 

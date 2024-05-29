@@ -26,6 +26,7 @@ typedef struct bpf_program
     ebpf_attach_type_t attach_type;
     ebpf_handle_t handle;
     fd_t fd;
+    bool autoload;
     bool pinned;
     const char* log_buffer;
     uint32_t log_buffer_size;
@@ -665,11 +666,11 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
  *  the error.
  */
 uint32_t
-ebpf_api_elf_enumerate_sections(
+ebpf_api_elf_enumerate_programs(
     _In_z_ const char* file,
     _In_opt_z_ const char* section,
     bool verbose,
-    _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+    _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept;
 
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
