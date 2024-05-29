@@ -1304,17 +1304,15 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             } else if (inst.opcode == INST_OP_CALL) {
                 std::string function_name;
                 if (output.relocation.empty()) {
-                    function_name = std::vformat(
-                        helper_array_prefix,
-                        make_format_args(std::to_string(
-                            current_section->helper_functions["helper_id_" + std::to_string(output.instruction.imm)]
-                                .index)));
+                    auto str = std::to_string(
+                        current_section->helper_functions["helper_id_" + std::to_string(output.instruction.imm)].index);
+
+                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 } else {
                     auto helper_function = current_section->helper_functions.find(output.relocation);
                     assert(helper_function != current_section->helper_functions.end());
-                    function_name = std::vformat(
-                        helper_array_prefix,
-                        make_format_args(std::to_string(current_section->helper_functions[output.relocation].index)));
+                    auto str = std::to_string(current_section->helper_functions[output.relocation].index);
+                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 }
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
