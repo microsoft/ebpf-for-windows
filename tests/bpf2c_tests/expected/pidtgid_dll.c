@@ -172,7 +172,7 @@ func(void* context)
     // EBPF_OP_ADD64_IMM pc=17 dst=r3 src=r0 offset=0 imm=-16
 #line 47 "sample/pidtgid.c"
     r3 += IMMEDIATE(-16);
-    // EBPF_OP_LDDW pc=18 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=18 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/pidtgid.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=20 dst=r4 src=r0 offset=0 imm=0

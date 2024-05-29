@@ -210,7 +210,7 @@ run_bpf_code_generator_test(const std::string& data_file)
     try {
 
         bpf_code_generator code("test", instructions);
-        code.generate("test");
+        code.generate("test", "test");
         code.emit_c_code(c_file);
     } catch (std::runtime_error& err) {
         REQUIRE(err.what() == NULL);
@@ -415,7 +415,7 @@ verify_invalid_opcode_sequence(const std::vector<ebpf_inst>& instructions, const
 {
     bpf_code_generator code("test", instructions);
     try {
-        code.generate("test");
+        code.generate("test", "test");
         FAIL("bpf_code_generator permitted invalid sequence");
     } catch (const std::runtime_error& ex) {
         REQUIRE(ex.what() == error);

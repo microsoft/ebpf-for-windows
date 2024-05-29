@@ -111,7 +111,7 @@ recurse(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 47 "sample/undocked/tail_call_recursive.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 51 "sample/undocked/tail_call_recursive.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -184,7 +184,7 @@ recurse(void* context)
     // EBPF_OP_MOV64_REG pc=26 dst=r1 src=r6 offset=0 imm=0
 #line 62 "sample/undocked/tail_call_recursive.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=27 dst=r2 src=r1 offset=0 imm=1
 #line 62 "sample/undocked/tail_call_recursive.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=1
