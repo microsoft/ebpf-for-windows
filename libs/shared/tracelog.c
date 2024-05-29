@@ -506,6 +506,86 @@ __declspec(noinline) void ebpf_log_message_wstring(
     }
 }
 
+#define _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, keyword, message, wstring1, wstring2) \
+    TraceLoggingWrite(                                                                       \
+        ebpf_tracelog_provider,                                                              \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                                 \
+        TraceLoggingLevel(trace_level),                                                      \
+        TraceLoggingKeyword((keyword)),                                                      \
+        TraceLoggingString(message, "Message"),                                              \
+        TraceLoggingWideString(wstring1, #wstring1),                                         \
+        TraceLoggingWideString(wstring2, #wstring2));
+#define EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(trace_level, message, wstring1, wstring2)                 \
+    switch (keyword) {                                                                                            \
+    CASE_FUNCTION_ENTRY_EXIT:                                                                                     \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_FUNCTION_ENTRY_EXIT, message, wstring1, wstring2); \
+        break;                                                                                                    \
+    CASE_BASE:                                                                                                    \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_BASE, message, wstring1, wstring2);                \
+        break;                                                                                                    \
+    CASE_ERROR:                                                                                                   \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_ERROR, message, wstring1, wstring2);               \
+        break;                                                                                                    \
+    CASE_EPOCH:                                                                                                   \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_EPOCH, message, wstring1, wstring2);               \
+        break;                                                                                                    \
+    CASE_CORE:                                                                                                    \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_CORE, message, wstring1, wstring2);                \
+        break;                                                                                                    \
+    CASE_LINK:                                                                                                    \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_LINK, message, wstring1, wstring2);                \
+        break;                                                                                                    \
+    CASE_MAP:                                                                                                     \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_MAP, message, wstring1, wstring2);                 \
+        break;                                                                                                    \
+    CASE_PROGRAM:                                                                                                 \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_PROGRAM, message, wstring1, wstring2);             \
+        break;                                                                                                    \
+    CASE_API:                                                                                                     \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_API, message, wstring1, wstring2);                 \
+        break;                                                                                                    \
+    CASE_PRINTK:                                                                                                  \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_PRINTK, message, wstring1, wstring2);              \
+        break;                                                                                                    \
+    CASE_NATIVE:                                                                                                  \
+        _EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, KEYWORD_NATIVE, message, wstring1, wstring2);              \
+        break;                                                                                                    \
+    default:                                                                                                      \
+        ebpf_assert(!"Invalid keyword");                                                                          \
+        break;                                                                                                    \
+    }
+__declspec(noinline) void ebpf_log_message_wstring_wstring(
+    ebpf_tracelog_level_t trace_level,
+    ebpf_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    _In_z_ const wchar_t* wstring1,
+    _In_z_ const wchar_t* wstring2)
+{
+    switch (trace_level) {
+    CASE_LOG_ALWAYS:
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, message, wstring1, wstring2);
+        break;
+    CASE_CRITICAL:
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(LEVEL_CRITICAL, message, wstring1, wstring2);
+        break;
+    CASE_LEVEL_ERROR:
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(LEVEL_ERROR, message, wstring1, wstring2);
+        break;
+    CASE_WARNING:
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(LEVEL_WARNING, message, wstring1, wstring2);
+        break;
+    CASE_INFO:
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(LEVEL_INFO, message, wstring1, wstring2);
+        break;
+    CASE_VERBOSE:
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING_KEYWORD_SWITCH(LEVEL_VERBOSE, message, wstring1, wstring2);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
+    }
+}
+
 #define _EBPF_LOG_MESSAGE_GUID_GUID_STRING(trace_level, keyword, message, string, guid1, guid2) \
     TraceLoggingWrite(                                                                          \
         ebpf_tracelog_provider,                                                                 \
@@ -581,6 +661,88 @@ __declspec(noinline) void ebpf_log_message_guid_guid_string(
         break;
     CASE_VERBOSE:
         EBPF_LOG_MESSAGE_GUID_GUID_STRING_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, string, *guid1, *guid2);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
+    }
+}
+
+#define _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, keyword, message, string, guid1, guid2) \
+    TraceLoggingWrite(                                                                           \
+        ebpf_tracelog_provider,                                                                  \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                                     \
+        TraceLoggingLevel((trace_level)),                                                        \
+        TraceLoggingKeyword((keyword)),                                                          \
+        TraceLoggingString((message), "Message"),                                                \
+        TraceLoggingWideString(string, #string),                                                 \
+        TraceLoggingGuid((guid1), (#guid1)),                                                     \
+        TraceLoggingGuid((guid2), (#guid2)));
+#define EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(trace_level, keyword, message, string, guid1, guid2)        \
+    switch (keyword) {                                                                                                \
+    CASE_FUNCTION_ENTRY_EXIT:                                                                                         \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_FUNCTION_ENTRY_EXIT, message, string, guid1, guid2); \
+        break;                                                                                                        \
+    CASE_BASE:                                                                                                        \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_BASE, message, string, guid1, guid2);                \
+        break;                                                                                                        \
+    CASE_ERROR:                                                                                                       \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_ERROR, message, string, guid1, guid2);               \
+        break;                                                                                                        \
+    CASE_EPOCH:                                                                                                       \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_EPOCH, message, string, guid1, guid2);               \
+        break;                                                                                                        \
+    CASE_CORE:                                                                                                        \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_CORE, message, string, guid1, guid2);                \
+        break;                                                                                                        \
+    CASE_LINK:                                                                                                        \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_LINK, message, string, guid1, guid2);                \
+        break;                                                                                                        \
+    CASE_MAP:                                                                                                         \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_MAP, message, string, guid1, guid2);                 \
+        break;                                                                                                        \
+    CASE_PROGRAM:                                                                                                     \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_PROGRAM, message, string, guid1, guid2);             \
+        break;                                                                                                        \
+    CASE_API:                                                                                                         \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_API, message, string, guid1, guid2);                 \
+        break;                                                                                                        \
+    CASE_PRINTK:                                                                                                      \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_PRINTK, message, string, guid1, guid2);              \
+        break;                                                                                                        \
+    CASE_NATIVE:                                                                                                      \
+        _EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, KEYWORD_NATIVE, message, string, guid1, guid2);              \
+        break;                                                                                                        \
+    default:                                                                                                          \
+        ebpf_assert(!"Invalid keyword");                                                                              \
+        break;                                                                                                        \
+    }
+__declspec(noinline) void ebpf_log_message_guid_guid_wstring(
+    ebpf_tracelog_level_t trace_level,
+    ebpf_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    _In_z_ const wchar_t* string,
+    _In_ const GUID* guid1,
+    _In_ const GUID* guid2)
+{
+    switch (trace_level) {
+    CASE_LOG_ALWAYS:
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, keyword, message, string, *guid1, *guid2);
+        break;
+    CASE_CRITICAL:
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(LEVEL_CRITICAL, keyword, message, string, *guid1, *guid2);
+        break;
+    CASE_LEVEL_ERROR:
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(LEVEL_ERROR, keyword, message, string, *guid1, *guid2);
+        break;
+    CASE_WARNING:
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(LEVEL_WARNING, keyword, message, string, *guid1, *guid2);
+        break;
+    CASE_INFO:
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(LEVEL_INFO, keyword, message, string, *guid1, *guid2);
+        break;
+    CASE_VERBOSE:
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING_KEYWORD_SWITCH(LEVEL_VERBOSE, keyword, message, string, *guid1, *guid2);
         break;
     default:
         ebpf_assert(!"Invalid trace level");

@@ -163,6 +163,10 @@ ebpf_result_to_errno(ebpf_result_t result)
         error = ENOSPC;
         break;
 
+    case EBPF_TRY_AGAIN:
+        error = EAGAIN;
+        break;
+
     default:
         error = EOTHER;
         break;

@@ -158,6 +158,10 @@ _When_(error != ERROR_SUCCESS, _Ret_range_(1, 65535)) __forceinline ebpf_result_
         result = EBPF_INVALID_STATE;
         break;
 
+    case ERROR_RETRY:
+        result = EBPF_TRY_AGAIN;
+        break;
+
     default:
         result = EBPF_FAILED;
         break;

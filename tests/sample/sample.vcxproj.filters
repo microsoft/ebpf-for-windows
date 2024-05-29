@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   Copyright (c) eBPF for Windows contributors
   SPDX-License-Identifier: MIT
@@ -64,6 +64,9 @@
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="test_sample_ebpf.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="test_sample_ebpf_2.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
     <CustomBuild Include="reflect_packet.c">

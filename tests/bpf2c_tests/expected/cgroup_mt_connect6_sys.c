@@ -186,7 +186,7 @@ static GUID tcp_mt_connect6_attach_type_guid = {
     0xa82e37b2, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
-tcp_mt_connect6(void* context)
+tcp_mt_connect6(void* context, const program_runtime_context_t* runtime_context)
 #line 27 "sample/cgroup_mt_connect6.c"
 {
 #line 27 "sample/cgroup_mt_connect6.c"
@@ -212,6 +212,8 @@ tcp_mt_connect6(void* context)
     r1 = (uintptr_t)context;
 #line 27 "sample/cgroup_mt_connect6.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 27 "sample/cgroup_mt_connect6.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_LDXW pc=0 dst=r2 src=r1 offset=44 imm=0
 #line 27 "sample/cgroup_mt_connect6.c"

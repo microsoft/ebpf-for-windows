@@ -14,7 +14,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -26,7 +26,7 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -49,9 +49,9 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t recurse_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID recurse_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -63,7 +63,7 @@ static uint16_t recurse_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-recurse(void* context)
+recurse(void* context, const program_runtime_context_t* runtime_context)
 #line 45 "sample/undocked/tail_call_recursive.c"
 {
 #line 45 "sample/undocked/tail_call_recursive.c"
@@ -113,12 +113,12 @@ recurse(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
 #line 51 "sample/undocked/tail_call_recursive.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 51 "sample/undocked/tail_call_recursive.c"
-    r0 = recurse_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 51 "sample/undocked/tail_call_recursive.c"
-    if ((recurse_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 51 "sample/undocked/tail_call_recursive.c"
         return 0;
 #line 51 "sample/undocked/tail_call_recursive.c"
@@ -165,9 +165,9 @@ recurse(void* context)
     r2 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=13
 #line 56 "sample/undocked/tail_call_recursive.c"
-    r0 = recurse_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 56 "sample/undocked/tail_call_recursive.c"
-    if ((recurse_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 56 "sample/undocked/tail_call_recursive.c"
         return 0;
 #line 56 "sample/undocked/tail_call_recursive.c"
@@ -186,15 +186,15 @@ recurse(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=27 dst=r2 src=r0 offset=0 imm=0
 #line 62 "sample/undocked/tail_call_recursive.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=29 dst=r3 src=r0 offset=0 imm=1
 #line 62 "sample/undocked/tail_call_recursive.c"
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=5
 #line 62 "sample/undocked/tail_call_recursive.c"
-    r0 = recurse_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 62 "sample/undocked/tail_call_recursive.c"
-    if ((recurse_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 62 "sample/undocked/tail_call_recursive.c"
         return 0;
 #line 62 "sample/undocked/tail_call_recursive.c"

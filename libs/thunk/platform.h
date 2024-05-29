@@ -70,6 +70,15 @@ _update_registry_value(
     uint32_t value_size);
 
 uint32_t
+_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size);
+
+uint32_t
 _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle);
 
 uint32_t
@@ -78,7 +87,16 @@ _delete_service(SC_HANDLE service_handle);
 uint32_t
 _stop_service(SC_HANDLE service_handle);
 
-bool
+// uint32_t
+// _open_service(_In_z_ const wchar_t* service_name, uint32_t access_flags, _Out_ SC_HANDLE* service_handle);
+
+uint32_t
 _query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status);
+
+uint32_t
+_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle);
+
+bool
+_close_service_handle(SC_HANDLE service_handle);
 
 } // namespace Platform

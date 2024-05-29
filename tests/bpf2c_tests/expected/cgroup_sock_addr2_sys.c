@@ -175,7 +175,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          24,                // Size in bytes of a map key.
@@ -187,7 +187,7 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "policy_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          8,                 // Size in bytes of a map key.
@@ -210,14 +210,14 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t connect_redirect4_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 14, "helper_id_14"},
-    {NULL, 65537, "helper_id_65537"},
-    {NULL, 65536, "helper_id_65536"},
-    {NULL, 20, "helper_id_20"},
-    {NULL, 21, "helper_id_21"},
-    {NULL, 26, "helper_id_26"},
-    {NULL, 2, "helper_id_2"},
+    {1, "helper_id_1"},
+    {14, "helper_id_14"},
+    {65537, "helper_id_65537"},
+    {65536, "helper_id_65536"},
+    {20, "helper_id_20"},
+    {21, "helper_id_21"},
+    {26, "helper_id_26"},
+    {2, "helper_id_2"},
 };
 
 static GUID connect_redirect4_program_type_guid = {
@@ -231,7 +231,7 @@ static uint16_t connect_redirect4_maps[] = {
 
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
-connect_redirect4(void* context)
+connect_redirect4(void* context, const program_runtime_context_t* runtime_context)
 #line 140 "sample/cgroup_sock_addr2.c"
 {
 #line 140 "sample/cgroup_sock_addr2.c"
@@ -359,12 +359,12 @@ label_1:
     r2 += IMMEDIATE(-32);
     // EBPF_OP_LDDW pc=29 dst=r1 src=r0 offset=0 imm=0
 #line 70 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=1
 #line 70 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 70 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 70 "sample/cgroup_sock_addr2.c"
@@ -438,9 +438,9 @@ label_1:
     r2 = IMMEDIATE(35);
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=14
 #line 72 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 72 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 72 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 72 "sample/cgroup_sock_addr2.c"
@@ -469,9 +469,9 @@ label_1:
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=64 dst=r0 src=r0 offset=0 imm=65537
 #line 79 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 79 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 79 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 79 "sample/cgroup_sock_addr2.c"
@@ -520,9 +520,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=77 dst=r0 src=r0 offset=0 imm=65536
 #line 44 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 44 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 44 "sample/cgroup_sock_addr2.c"
@@ -538,9 +538,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=81 dst=r0 src=r0 offset=0 imm=20
 #line 45 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 45 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 45 "sample/cgroup_sock_addr2.c"
@@ -553,9 +553,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=84 dst=r0 src=r0 offset=0 imm=21
 #line 46 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5);
 #line 46 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 46 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 46 "sample/cgroup_sock_addr2.c"
@@ -574,9 +574,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=89 dst=r0 src=r0 offset=0 imm=26
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 48 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 48 "sample/cgroup_sock_addr2.c"
@@ -601,15 +601,15 @@ label_3:
     r3 += IMMEDIATE(-104);
     // EBPF_OP_LDDW pc=96 dst=r1 src=r0 offset=0 imm=0
 #line 51 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=98 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/cgroup_sock_addr2.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=99 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 51 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect4_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 51 "sample/cgroup_sock_addr2.c"
@@ -627,14 +627,14 @@ label_4:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t connect_redirect6_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 12, "helper_id_12"},
-    {NULL, 65537, "helper_id_65537"},
-    {NULL, 65536, "helper_id_65536"},
-    {NULL, 20, "helper_id_20"},
-    {NULL, 21, "helper_id_21"},
-    {NULL, 26, "helper_id_26"},
-    {NULL, 2, "helper_id_2"},
+    {1, "helper_id_1"},
+    {12, "helper_id_12"},
+    {65537, "helper_id_65537"},
+    {65536, "helper_id_65536"},
+    {20, "helper_id_20"},
+    {21, "helper_id_21"},
+    {26, "helper_id_26"},
+    {2, "helper_id_2"},
 };
 
 static GUID connect_redirect6_program_type_guid = {
@@ -648,7 +648,7 @@ static uint16_t connect_redirect6_maps[] = {
 
 #pragma code_seg(push, "cgroup~2")
 static uint64_t
-connect_redirect6(void* context)
+connect_redirect6(void* context, const program_runtime_context_t* runtime_context)
 #line 147 "sample/cgroup_sock_addr2.c"
 {
 #line 147 "sample/cgroup_sock_addr2.c"
@@ -800,12 +800,12 @@ label_1:
     r2 += IMMEDIATE(-64);
     // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=0
 #line 114 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 114 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 114 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 114 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 114 "sample/cgroup_sock_addr2.c"
@@ -867,9 +867,9 @@ label_1:
     r2 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=60 dst=r0 src=r0 offset=0 imm=12
 #line 116 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 116 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 116 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 116 "sample/cgroup_sock_addr2.c"
@@ -898,9 +898,9 @@ label_1:
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=67 dst=r0 src=r0 offset=0 imm=65537
 #line 123 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5);
 #line 123 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 123 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 123 "sample/cgroup_sock_addr2.c"
@@ -973,9 +973,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=88 dst=r0 src=r0 offset=0 imm=65536
 #line 44 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5);
 #line 44 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 44 "sample/cgroup_sock_addr2.c"
@@ -991,9 +991,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=92 dst=r0 src=r0 offset=0 imm=20
 #line 45 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5);
 #line 45 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 45 "sample/cgroup_sock_addr2.c"
@@ -1006,9 +1006,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=95 dst=r0 src=r0 offset=0 imm=21
 #line 46 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5);
 #line 46 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 46 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 46 "sample/cgroup_sock_addr2.c"
@@ -1027,9 +1027,9 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=100 dst=r0 src=r0 offset=0 imm=26
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5);
 #line 48 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 48 "sample/cgroup_sock_addr2.c"
@@ -1054,15 +1054,15 @@ label_3:
     r3 += IMMEDIATE(-40);
     // EBPF_OP_LDDW pc=107 dst=r1 src=r0 offset=0 imm=0
 #line 51 "sample/cgroup_sock_addr2.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=109 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/cgroup_sock_addr2.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=110 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[7].address(r1, r2, r3, r4, r5);
 #line 51 "sample/cgroup_sock_addr2.c"
-    if ((connect_redirect6_helpers[7].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[7].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_sock_addr2.c"
         return 0;
 #line 51 "sample/cgroup_sock_addr2.c"

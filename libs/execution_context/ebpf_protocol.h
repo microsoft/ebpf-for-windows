@@ -394,6 +394,7 @@ typedef struct _ebpf_operation_load_native_module_request
 {
     struct _ebpf_operation_header header;
     GUID module_id;
+    bool unload_driver_on_cleanup;
     // Service name (UTF16)
     uint8_t data[1];
 } ebpf_operation_load_native_module_request_t;
@@ -411,6 +412,7 @@ typedef struct _ebpf_operation_load_native_programs_request
     struct _ebpf_operation_header header;
     ebpf_program_type_t program_type;
     GUID module_id;
+    GUID instance_id;
 } ebpf_operation_load_native_programs_request_t;
 
 typedef struct _ebpf_program_information

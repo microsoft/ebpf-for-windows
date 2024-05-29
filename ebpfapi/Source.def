@@ -110,6 +110,7 @@ EXPORTS
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
     ebpf_get_program_type_name
+    ebpf_initialize_native_program_state
     ebpf_link_close
     ebpf_object_get
     ebpf_object_get_execution_type
@@ -122,6 +123,7 @@ EXPORTS
     ebpf_store_delete_section_information
     ebpf_store_update_program_information_array
     ebpf_store_update_section_information
+    ebpf_uninitialize_native_program_state
     libbpf_attach_type_by_name
     libbpf_bpf_attach_type_str
     libbpf_bpf_link_type_str

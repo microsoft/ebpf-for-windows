@@ -181,14 +181,14 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t func_helpers[] = {
-    {NULL, 13, "helper_id_13"},
+    {13, "helper_id_13"},
 };
 
 static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 static GUID func_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-func(void* context)
+func(void* context, const program_runtime_context_t* runtime_context)
 #line 18 "sample/unsafe/printk_unsafe.c"
 {
 #line 18 "sample/unsafe/printk_unsafe.c"
@@ -235,9 +235,9 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=13
 #line 22 "sample/unsafe/printk_unsafe.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 22 "sample/unsafe/printk_unsafe.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 22 "sample/unsafe/printk_unsafe.c"
         return 0;
 #line 22 "sample/unsafe/printk_unsafe.c"

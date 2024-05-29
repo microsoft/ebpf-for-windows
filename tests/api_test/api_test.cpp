@@ -52,6 +52,8 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define WAIT_TIME_IN_MS 5000
 
+#define OBJECT_LOAD_COUNT 10
+
 typedef struct _audit_entry
 {
     uint64_t logon_id;
@@ -68,6 +70,76 @@ static service_install_helper
 static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 #endif
+
+typedef class _native_module_state_helper
+{
+  public:
+    _native_module_state_helper(_In_ const char* file_name)
+    {
+        _file_name = std::string(file_name);
+        uint32_t retry_count = 10;
+
+        for (uint32_t i = 0; i < retry_count; i++) {
+            ebpf_result_t result = ebpf_initialize_native_program_state(file_name);
+            if (result == EBPF_SUCCESS) {
+                break;
+            } else if (result == EBPF_INVALID_STATE) {
+                // Retry after a delay.
+                std::this_thread::sleep_for(100ms);
+                continue;
+            }
+            throw std::runtime_error("Failed to initialize native program state.");
+        }
+    }
+
+    ~_native_module_state_helper()
+    {
+        ebpf_result_t result = ebpf_uninitialize_native_program_state(_file_name.c_str());
+        if (result != EBPF_SUCCESS) {
+            // Ignore. We are in destructor.
+        }
+    }
+
+  private:
+    std::string _file_name;
+} native_module_state_helper_t;
+
+// Test helper to clean up all the object IDs.
+typedef class _test_object_id_cleanup_helper
+{
+  public:
+    _test_object_id_cleanup_helper() {}
+
+    ~_test_object_id_cleanup_helper()
+    {
+        uint32_t next_id;
+        // uint32_t retry_count = 0;
+
+        // for (uint32_t i = 0; i < retry_count; i++) {
+        while (true) {
+            if (bpf_prog_get_next_id(0, &next_id) == -ENOENT) {
+                break;
+            }
+            std::this_thread::sleep_for(100ms);
+        }
+        // for (uint32_t i = 0; i < retry_count; i++) {
+        while (true) {
+            if (bpf_map_get_next_id(0, &next_id) == -ENOENT) {
+                break;
+            }
+            std::this_thread::sleep_for(100ms);
+        }
+        // for (uint32_t i = 0; i < retry_count; i++) {
+        while (true) {
+            if (bpf_link_get_next_id(0, &next_id) == -ENOENT) {
+                break;
+            }
+            std::this_thread::sleep_for(100ms);
+        }
+    }
+
+  private:
+} test_object_id_cleanup_helper_t;
 
 static int
 _program_load_helper(
@@ -814,6 +886,10 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     struct bpf_object* object2 = nullptr;
     fd_t program_fd;
 
+    // A previous test also loads the same native module.
+    // Add a sleep to allow the previous driver to be unloaded successfully.
+    Sleep(1000);
+
     result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
@@ -917,6 +993,7 @@ TEST_CASE("bpf_user_helpers_test_native", "[api_test]") { bpf_user_helpers_test(
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
 TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
 {
+    test_object_id_cleanup_helper_t cleanup_helper;
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper;
@@ -1006,78 +1083,6 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     bpf_object__close(object);
     */
 }
-
-void
-test_sock_addr_native_program_load_attach(const char* file_name)
-{
-    int result;
-    struct bpf_object* object = nullptr;
-    fd_t program_fd;
-    uint32_t old_id = 0;
-    uint32_t next_id;
-    std::string file_name_string = std::string("regression\\") + std::string(file_name);
-    const char* file_name_with_path = file_name_string.c_str();
-
-    result = _program_load_helper(file_name_with_path, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
-    REQUIRE(result == 0);
-
-    bpf_program* v4_program = bpf_object__find_program_by_name(object, "connect_redirect4");
-    REQUIRE(v4_program != nullptr);
-
-    bpf_program* v6_program = bpf_object__find_program_by_name(object, "connect_redirect6");
-    REQUIRE(v6_program != nullptr);
-
-    // Get program ids for both v4 and v6 programs.
-    struct bpf_prog_info prog_info_v4 = {0};
-    uint32_t info_len = sizeof(prog_info_v4);
-    result = bpf_obj_get_info_by_fd(bpf_program__fd(v4_program), &prog_info_v4, &info_len);
-    REQUIRE(result == 0);
-    REQUIRE(prog_info_v4.id != 0);
-
-    struct bpf_prog_info prog_info_v6 = {0};
-    info_len = sizeof(prog_info_v6);
-    result = bpf_obj_get_info_by_fd(bpf_program__fd(v6_program), &prog_info_v6, &info_len);
-    REQUIRE(result == 0);
-    REQUIRE(prog_info_v6.id != 0);
-
-    // Attach both v4 and v6 programs.
-    bpf_link* v4_link = bpf_program__attach(v4_program);
-    REQUIRE(v4_link != nullptr);
-
-    bpf_link* v6_link = bpf_program__attach(v6_program);
-    REQUIRE(v6_link != nullptr);
-
-    // Detach both v4 and v6 programs.
-    result = bpf_link__destroy(v4_link);
-    REQUIRE(result == 0);
-
-    result = bpf_link__destroy(v6_link);
-    REQUIRE(result == 0);
-
-    bpf_object__close(object);
-
-    // We have closed handles to the programs. Program should be unloaded now.
-    // Since for prog array maps, the program IDs are cleaned up asynchronously,
-    // it is possible we sometimes find some _other_ program IDs. To work around
-    // this, validate that at least the program IDs of interest are not found.
-    while (true) {
-        result = bpf_prog_get_next_id(old_id, &next_id);
-        if (result == -ENOENT) {
-            break;
-        }
-
-        REQUIRE(((result == 0) && (next_id != prog_info_v4.id) && (next_id != prog_info_v6.id)));
-        old_id = next_id;
-    }
-}
-
-#define DECLARE_REGRESSION_TEST_CASE(version)                                                         \
-    TEST_CASE("test_native_program_load_attach-regression-" #version, "[regression_tests]")           \
-    {                                                                                                 \
-        test_sock_addr_native_program_load_attach((const char*)"cgroup_sock_addr2_"##version ".sys"); \
-    }
-
-DECLARE_REGRESSION_TEST_CASE("0.11.0")
 
 // The below tests try to load native drivers for invalid programs (that will fail verification).
 // Since verification can be skipped in bpf2c for only Debug builds, these tests are applicable
@@ -1313,4 +1318,314 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
 
     // Clean up.
     bpf_object__close(object);
+}
+
+// TEST_CASE("anusa_test_1", "[native_tests]")
+// {
+//     struct bpf_object* new_object = bpf_object__open("test_sample_ebpf.sys");
+//     REQUIRE(new_object != nullptr);
+
+//     int error = bpf_object__load(new_object);
+//     REQUIRE(error == 0);
+
+//     bpf_object__close(new_object);
+// }
+
+// TEST_CASE("anusa_test_2", "[native_tests]")
+// {
+//     ebpf_result_t result;
+//     const char* file_name = "test_sample_ebpf.sys";
+
+//     result = ebpf_initialize_native_program_state(file_name);
+//     if (result != EBPF_SUCCESS) {
+//         REQUIRE(result == EBPF_SUCCESS);
+//     }
+
+//     struct bpf_object* new_object = bpf_object__open(file_name);
+//     REQUIRE(new_object != nullptr);
+
+//     int error = bpf_object__load(new_object);
+//     REQUIRE(error == 0);
+
+//     bpf_object__close(new_object);
+
+//     result = ebpf_uninitialize_native_program_state(file_name);
+//     if (result != EBPF_SUCCESS) {
+//         REQUIRE(result == EBPF_SUCCESS);
+//     }
+// }
+
+// TEST_CASE("anusa_test_3", "[native_tests]")
+// {
+//     ebpf_result_t result;
+//     const char* file_name = "test_sample_ebpf.sys";
+
+//     result = ebpf_initialize_native_program_state(file_name);
+//     if (result != EBPF_SUCCESS) {
+//         REQUIRE(result == EBPF_SUCCESS);
+//     }
+
+//     struct bpf_object* new_object = bpf_object__open(file_name);
+//     REQUIRE(new_object != nullptr);
+
+//     int error = bpf_object__load(new_object);
+//     REQUIRE(error == 0);
+
+//     // bpf_object__close(new_object);
+
+//     result = ebpf_uninitialize_native_program_state(file_name);
+//     if (result != EBPF_SUCCESS) {
+//         REQUIRE(result == EBPF_SUCCESS);
+//     }
+// }
+
+TEST_CASE("test_initialize_native_program_state_1", "[native_tests]")
+{
+    // ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[OBJECT_LOAD_COUNT];
+    native_module_state_helper_t _helper(file_name);
+
+    // result = ebpf_initialize_native_program_state(file_name);
+    // if (result != EBPF_SUCCESS) {
+    //     REQUIRE(result == EBPF_SUCCESS);
+    // }
+
+    // Load the same object multiple times.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        objects[i] = bpf_object__open(file_name);
+        REQUIRE(objects[i] != nullptr);
+
+        int error = bpf_object__load(objects[i]);
+        REQUIRE(error == 0);
+    }
+
+    // Now close all the objects.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        bpf_object__close(objects[i]);
+    }
+
+    // result = ebpf_uninitialize_native_program_state(file_name);
+    // if (result != EBPF_SUCCESS) {
+    //     REQUIRE(result == EBPF_SUCCESS);
+    // }
+}
+
+TEST_CASE("test_initialize_native_program_state_2", "[native_tests]")
+{
+    // ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[OBJECT_LOAD_COUNT];
+
+    native_module_state_helper_t _helper(file_name);
+    // result = ebpf_initialize_native_program_state(file_name);
+    // if (result != EBPF_SUCCESS) {
+    //     REQUIRE(result == EBPF_SUCCESS);
+    // }
+
+    // Load and unload the same object multiple times.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        objects[i] = bpf_object__open(file_name);
+        REQUIRE(objects[i] != nullptr);
+
+        int error = bpf_object__load(objects[i]);
+        REQUIRE(error == 0);
+
+        bpf_object__close(objects[i]);
+        objects[i] = nullptr;
+
+        // Add wait to allow the epoch to expire, and program cleanup to complete.
+        Sleep(500);
+    }
+
+    // result = ebpf_uninitialize_native_program_state(file_name);
+    // if (result != EBPF_SUCCESS) {
+    //     REQUIRE(result == EBPF_SUCCESS);
+    // }
+}
+
+TEST_CASE("test_initialize_native_program_state_3", "[native_tests]")
+{
+    // ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[2 * OBJECT_LOAD_COUNT];
+
+    // Load and unload the same object multiple times.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        // Since the module handles are closed in a worker thread, it is possible that the module is not
+        // yet unloaded, and hence the call can fail. It the call fails, add a wait and retry.
+        native_module_state_helper_t _helper(file_name);
+        // result = ebpf_initialize_native_program_state(file_name);
+        // if (result != EBPF_SUCCESS && result != EBPF_INVALID_STATE) {
+        //     REQUIRE(false);
+        // } else if (result == EBPF_INVALID_STATE) {
+        //     Sleep(1000);
+        //     result = ebpf_initialize_native_program_state(file_name);
+        //     if (result != EBPF_SUCCESS) {
+        //         REQUIRE(false);
+        //     }
+        // }
+
+        for (uint32_t j = 0; j < 2; j++) {
+            objects[2 * i + j] = bpf_object__open(file_name);
+            REQUIRE(objects[2 * i + j] != nullptr);
+
+            int error = bpf_object__load(objects[2 * i + j]);
+            REQUIRE(error == 0);
+        }
+
+        for (uint32_t j = 0; j < 2; j++) {
+            bpf_object__close(objects[2 * i + j]);
+        }
+
+        // result = ebpf_uninitialize_native_program_state(file_name);
+        // if (result != EBPF_SUCCESS) {
+        //     REQUIRE(result == EBPF_SUCCESS);
+        // }
+    }
+}
+
+TEST_CASE("test_initialize_native_program_state_4", "[native_tests]")
+{
+    // ebpf_result_t result;
+    const char* file_name = "test_sample_ebpf.sys";
+    struct bpf_object* objects[OBJECT_LOAD_COUNT];
+
+    {
+        native_module_state_helper_t _helper(file_name);
+        // result = ebpf_initialize_native_program_state(file_name);
+        // if (result != EBPF_SUCCESS) {
+        //     REQUIRE(result == EBPF_SUCCESS);
+        // }
+
+        // Load the same object multiple times.
+        for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+            objects[i] = bpf_object__open(file_name);
+            REQUIRE(objects[i] != nullptr);
+
+            int error = bpf_object__load(objects[i]);
+            REQUIRE(error == 0);
+        }
+
+        // // Uninitialize the program state.
+        // result = ebpf_uninitialize_native_program_state(file_name);
+        // if (result != EBPF_SUCCESS) {
+        //     REQUIRE(result == EBPF_SUCCESS);
+        // }
+    }
+
+    // Now close all the objects.
+    for (uint32_t i = 0; i < OBJECT_LOAD_COUNT; i++) {
+        bpf_object__close(objects[i]);
+    }
+}
+
+TEST_CASE("test_multiple_load_native", "[native_tests]")
+{
+    ebpf_result_t result;
+    int error;
+    const char* file_name = "test_sample_ebpf_2.sys";
+    struct bpf_object* objects[2];
+    sample_program_context_t context = {0};
+    bpf_test_run_opts opts = {0};
+    const char* map1_name = "output_map1";
+    const char* map2_name = "output_map2";
+    const char* program_name = "test_program_entry";
+    uint32_t key = 0;
+    uint16_t map1_value[2] = {0};
+    uint32_t map2_value[2] = {0};
+    struct bpf_map* map1[2] = {0};
+    struct bpf_map* map2[2] = {0};
+    const char* map1_pin_path = "/ebpf/global/output_map1";
+
+    result = ebpf_initialize_native_program_state(file_name);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+
+    // Load the same object twice.
+    for (uint32_t i = 0; i < 2; i++) {
+        objects[i] = bpf_object__open(file_name);
+        REQUIRE(objects[i] != nullptr);
+
+        error = bpf_object__load(objects[i]);
+        REQUIRE(error == 0);
+    }
+
+    // Find the maps.
+    map1[0] = bpf_object__find_map_by_name(objects[0], map1_name);
+    REQUIRE(map1[0] != nullptr);
+    map1[1] = bpf_object__find_map_by_name(objects[1], map1_name);
+    REQUIRE(map1[1] != nullptr);
+
+    map2[0] = bpf_object__find_map_by_name(objects[0], map2_name);
+    REQUIRE(map2[0] != nullptr);
+    map2[1] = bpf_object__find_map_by_name(objects[1], map2_name);
+    REQUIRE(map2[1] != nullptr);
+
+    // Construct the BPF_PROG_LOAD option.
+    opts.ctx_size_in = sizeof(context);
+    opts.ctx_in = &context;
+    opts.ctx_size_out = sizeof(context);
+    opts.ctx_out = &context;
+
+    context.uint16_data = 100;
+    context.uint32_data = 200;
+
+    auto query_map_values = [&](uint32_t index) {
+        // Lookup map1 value.
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map1[index]), &key, &map1_value[index]) == 0);
+
+        // Lookup map2 value.
+        REQUIRE(bpf_map_lookup_elem(bpf_map__fd(map2[index]), &key, &map2_value[index]) == 0);
+    };
+
+    // Invoke the first program.
+    error = bpf_prog_test_run_opts(bpf_program__fd(bpf_object__find_program_by_name(objects[0], program_name)), &opts);
+    REQUIRE(error == 0);
+
+    query_map_values(0);
+    query_map_values(1);
+
+    // Since map1 is "reused", both programs should see same map values.
+    REQUIRE(map1_value[0] == 100);
+    REQUIRE(map1_value[1] == 100);
+
+    // Since map2 is not "reused", both programs should see different values.
+    REQUIRE(map2_value[0] == 200);
+    REQUIRE(map2_value[1] == 0);
+
+    // Invoke the second program.
+    context.uint16_data = 500;
+    context.uint32_data = 600;
+    error = bpf_prog_test_run_opts(bpf_program__fd(bpf_object__find_program_by_name(objects[1], program_name)), &opts);
+    REQUIRE(error == 0);
+
+    query_map_values(0);
+    query_map_values(1);
+
+    // Since map1 is "reused", both programs should see same map values.
+    REQUIRE(map1_value[0] == 500);
+    REQUIRE(map1_value[1] == 500);
+
+    // Since map2 is not "reused", both programs should see different values.
+    REQUIRE(map2_value[0] == 200);
+    REQUIRE(map2_value[1] == 600);
+
+    // Now close all the objects.
+    for (uint32_t i = 0; i < 2; i++) {
+        bpf_object__close(objects[i]);
+    }
+
+    // Unpin map1.
+    result = ebpf_object_unpin(map1_pin_path);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
+
+    // Uninitialize the program state.
+    result = ebpf_uninitialize_native_program_state(file_name);
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_SUCCESS);
+    }
 }

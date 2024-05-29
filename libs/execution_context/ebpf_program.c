@@ -50,8 +50,10 @@ typedef struct _ebpf_program
         // EBPF_CODE_NATIVE
         struct
         {
-            const ebpf_native_module_binding_context_t* module;
+            ebpf_native_code_context_t code_context;
+            // const ebpf_native_module_binding_context_t* module;
             const uint8_t* code_pointer;
+            // const uintptr_t* map_context;
         } native;
     } code_or_vm;
 
@@ -669,7 +671,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
         break;
 #endif
     case EBPF_CODE_NATIVE:
-        ebpf_native_release_reference((ebpf_native_module_binding_context_t*)program->code_or_vm.native.module);
+        ebpf_native_release_reference(
+            (ebpf_native_module_binding_context_t*)program->code_or_vm.native.code_context.native_module_context);
+        program->code_or_vm.native.code_context.native_module_context = NULL;
+        program->code_or_vm.native.code_context.runtime_context = NULL;
+        // ebpf_free((void*)program->code_or_vm.native.map_context);
         break;
     case EBPF_CODE_NONE:
         break;
@@ -992,7 +998,7 @@ Done:
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_machine_code(
     _Inout_ ebpf_program_t* program,
-    _In_opt_ const void* code_context,
+    _In_opt_ const ebpf_core_code_context_t* code_context,
     _In_reads_(machine_code_size) const uint8_t* machine_code,
     size_t machine_code_size)
 {
@@ -1037,11 +1043,12 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_mach
             goto Done;
         }
 
-        program->code_or_vm.native.module = code_context;
+        program->code_or_vm.native.code_context = code_context->native_code_context;
         program->code_or_vm.native.code_pointer = machine_code;
         // Acquire reference on the native module. This reference
         // will be released when the ebpf_program is freed.
-        ebpf_native_acquire_reference((ebpf_native_module_binding_context_t*)code_context);
+        ebpf_native_acquire_reference(
+            (ebpf_native_module_binding_context_t*)code_context->native_code_context.native_module_context);
     }
 
     return_value = EBPF_SUCCESS;
@@ -1380,7 +1387,8 @@ ebpf_program_load_code(
 
     case EBPF_CODE_JIT:
     case EBPF_CODE_NATIVE:
-        result = _ebpf_program_load_machine_code(program, code_context, code, code_size);
+        result =
+            _ebpf_program_load_machine_code(program, (const ebpf_core_code_context_t*)code_context, code, code_size);
         break;
 
     case EBPF_CODE_EBPF:
@@ -1484,11 +1492,20 @@ ebpf_program_invoke(
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
          execution_state->tail_call_state.count++) {
 
-        if (current_program->parameters.code_type == EBPF_CODE_JIT ||
-            current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+        if (current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+            const program_runtime_context_t* runtime_context =
+                current_program->code_or_vm.native.code_context.runtime_context;
+            ebpf_program_native_entry_point_t function_pointer;
+            function_pointer = (ebpf_program_native_entry_point_t)(current_program->code_or_vm.native.code_pointer);
+            *result = (function_pointer)(context, runtime_context);
+        } else if (current_program->parameters.code_type == EBPF_CODE_JIT) {
+#if !defined(CONFIG_BPF_JIT_DISABLED)
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
+#else
+            *result = 0;
+#endif
         } else {
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t out_value;

@@ -39,6 +39,7 @@ get_metadata_table();
 static bool _expect_native_module_load_failures = false;
 
 #define SERVICE_PATH_PREFIX L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\"
+#define REGISTRY_SERVICE_PATH_PREFIX L"System\\CurrentControlSet\\Services\\"
 #define CREATE_FILE_HANDLE 0x12345678
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -103,6 +104,124 @@ typedef struct _overlapped_completion
     size_t output_buffer_length = 0;
 } overlapped_completion_t;
 std::map<OVERLAPPED*, overlapped_completion_t> _overlapped_buffers;
+
+typedef enum _registry_value_type
+{
+    REG_VALUE_STRING,
+    REG_VALUE_DWORD,
+    REG_VALUE_BINARY,
+} registry_value_type;
+
+typedef struct _registry_value
+{
+    registry_value_type type{};
+    std::vector<uint8_t> data;
+} registry_value_t;
+
+class registry_manager_t
+{
+  public:
+    registry_manager_t() = default;
+    ~registry_manager_t() noexcept = default;
+    // static registry_manager_t&
+    // instance()
+    // {
+    //     // This is a Meyers' Singleton pattern, which ensures thread safety
+    //     static registry_manager_t instance;
+    //     return instance;
+    // }
+
+    uint32_t
+    create_registry_key(HKEY root_key, const std::wstring& path)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        std::unique_lock lock(_registry_mutex);
+        if (_registry.find(path) == _registry.end()) {
+            // _registry[path] = std::vector<std::tuple<std::string, registry_value_t>>();
+            // _registry[path] = std::map<std::wstring, registry_value_t>();
+            std::map<std::wstring, registry_value_t> registry_value_map;
+            _registry[path] = registry_value_map;
+        }
+        // _registry[path] = {};
+        return ERROR_SUCCESS;
+    }
+
+    uint32_t
+    delete_registry_key(HKEY root_key, const std::wstring& path)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        std::unique_lock lock(_registry_mutex);
+        auto it = _registry.find(path);
+        if (it == _registry.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+        _registry.erase(it);
+        return ERROR_SUCCESS;
+    }
+
+    uint32_t
+    get_registry_value(
+        HKEY root_key,
+        const std::wstring& sub_key,
+        unsigned long type,
+        const std::wstring& value_name,
+        std::vector<uint8_t>& value,
+        uint32_t& value_size)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        UNREFERENCED_PARAMETER(type);
+        std::unique_lock lock(_registry_mutex);
+        auto it = _registry.find(sub_key);
+        if (it == _registry.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+
+        auto value_it = it->second.find(value_name);
+        if (value_it == it->second.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+
+        if (value_size < value_it->second.data.size()) {
+            value_size = static_cast<uint32_t>(value_it->second.data.size());
+            return ERROR_MORE_DATA;
+        }
+
+        value_size = static_cast<uint32_t>(value_it->second.data.size());
+        value = value_it->second.data;
+        return ERROR_SUCCESS;
+    }
+
+    uint32_t
+    update_registry_value(
+        HKEY root_key,
+        const std::wstring& sub_key,
+        registry_value_type type,
+        const std::wstring& value_name,
+        const void* value,
+        uint32_t value_size)
+    {
+        UNREFERENCED_PARAMETER(root_key);
+        std::unique_lock lock(_registry_mutex);
+        auto it = _registry.find(sub_key);
+        if (it == _registry.end()) {
+            return ERROR_FILE_NOT_FOUND;
+        }
+
+        registry_value_t registry_value;
+        registry_value.type = type;
+        registry_value.data.resize(value_size);
+        memcpy(registry_value.data.data(), value, value_size);
+        it->second[value_name] = registry_value;
+        return ERROR_SUCCESS;
+    }
+
+  private:
+    // Private constructor to prevent external instantiation.
+
+    std::mutex _registry_mutex;
+    // key --> map of values.
+    std::map<std::wstring, std::map<std::wstring, registry_value_t>> _registry;
+};
 
 class duplicate_handles_table_t
 {
@@ -189,6 +308,7 @@ class duplicate_handles_table_t
 };
 
 static duplicate_handles_table_t _duplicate_handles;
+static registry_manager_t _registry_manager;
 
 static std::string
 _get_environment_variable_as_string(const std::string& name)
@@ -329,6 +449,45 @@ GlueCancelIoEx(_In_ HANDLE file_handle, _In_opt_ OVERLAPPED* overlapped)
     return return_value;
 }
 
+extern "C"
+{
+    void
+    ZwUnloadDriver(_In_z_ const wchar_t* service_name) noexcept
+    {
+        try {
+            std::wstring service_name_string(service_name);
+            std::unique_lock lock(_service_path_to_context_mutex);
+            if (_service_path_to_context_map.find(service_name_string) != _service_path_to_context_map.end()) {
+                auto context = _service_path_to_context_map[service_name_string];
+                if (context->loaded) {
+                    if (context->nmr_client_handle) {
+                        NTSTATUS status = NmrDeregisterClient(context->nmr_client_handle);
+                        if (status == STATUS_PENDING) {
+                            // Wait for the deregistration to complete.
+                            NmrWaitForClientDeregisterComplete(context->nmr_client_handle);
+                        } else {
+                            REQUIRE(NT_SUCCESS(status));
+                        }
+                        context->nmr_client_handle = nullptr;
+                    }
+                    context->loaded = false;
+                }
+                if (context->dll != nullptr) {
+                    FreeLibrary(context->dll);
+                }
+                if (context->delete_pending) {
+                    // Service has been stopped and also marked for deletion.
+                    // Delete it from the map.
+                    delete context;
+                    _service_path_to_context_map.erase(service_name_string);
+                }
+            }
+        } catch (...) {
+            // Ignore.
+        }
+    }
+}
+
 #pragma warning(push)
 #pragma warning(disable : 6001) // Using uninitialized memory 'context'
 _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all_native_modules()
@@ -432,9 +591,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _preprocess
             if (context != _service_path_to_context_map.end()) {
                 context->second->module_id.Guid = request->module_id;
 
-                if (context->second->loaded) {
-                    REQUIRE(get_native_module_failures());
-                } else {
+                if (!context->second->loaded) {
                     _preprocess_load_native_module(context->second);
                 }
             }
@@ -605,15 +762,75 @@ _Requires_lock_not_held_(_fd_to_handle_mutex) int Glue_close(int file_descriptor
     }
 }
 
+uint32_t
+Glue_create_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
+{
+    return _registry_manager.create_registry_key(root_key, path);
+}
+
+static uint32_t
+_delete_registry_key(HKEY root_key, _In_z_ const wchar_t* path)
+{
+    return _registry_manager.delete_registry_key(root_key, path);
+}
+
+uint32_t
+Glue_update_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _In_reads_bytes_(value_size) const void* value,
+    uint32_t value_size)
+{
+    return _registry_manager.update_registry_value(
+        root_key, sub_key, (registry_value_type)type, value_name, value, value_size);
+}
+
+uint32_t
+Glue_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size)
+{
+    std::vector<uint8_t> value_buffer;
+    uint32_t value_buffer_size = 0;
+    if (value_size) {
+        value_buffer_size = *value_size;
+    }
+    uint32_t result =
+        _registry_manager.get_registry_value(root_key, sub_key, type, value_name, value_buffer, value_buffer_size);
+    if (result == ERROR_SUCCESS) {
+        if (!value || !value_size || value_buffer.size() > *value_size) {
+            if (value_size) {
+                *value_size = static_cast<uint32_t>(value_buffer.size());
+            }
+            return ERROR_MORE_DATA;
+        }
+        *value_size = static_cast<uint32_t>(value_buffer.size());
+        memcpy(value, value_buffer.data(), value_buffer.size());
+    }
+    return result;
+}
+
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_service(
     _In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_path, _Out_ SC_HANDLE* service_handle)
 {
+    uint32_t error = ERROR_SUCCESS;
+    bool registry_created = false;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    std::wstring service_path_registry(REGISTRY_SERVICE_PATH_PREFIX);
+    service_context_t* context = nullptr;
+
     *service_handle = (SC_HANDLE)0;
     try {
-        std::wstring service_path(SERVICE_PATH_PREFIX);
         service_path = service_path + service_name;
+        service_path_registry = service_path_registry + service_name;
 
-        service_context_t* context = new (std::nothrow) service_context_t();
+        context = new (std::nothrow) service_context_t();
         if (context == nullptr) {
             return ERROR_NOT_ENOUGH_MEMORY;
         }
@@ -621,16 +838,30 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_se
         context->name.assign(service_name);
         context->file_path.assign(file_path);
 
+        error = Glue_create_registry_key(HKEY_LOCAL_MACHINE, service_path_registry.c_str());
+        if (error != ERROR_SUCCESS) {
+            goto Exit;
+        }
+        registry_created = true;
+
         std::unique_lock lock(_service_path_to_context_mutex);
         _service_path_to_context_map.insert(std::pair<std::wstring, service_context_t*>(service_path, context));
         context->handle = InterlockedIncrement64((int64_t*)&_ebpf_service_handle_counter);
 
         *service_handle = (SC_HANDLE)context->handle;
     } catch (...) {
-        return ERROR_NOT_ENOUGH_MEMORY;
+        error = ERROR_NOT_ENOUGH_MEMORY;
     }
 
-    return ERROR_SUCCESS;
+Exit:
+    if (error != ERROR_SUCCESS) {
+        delete context;
+        if (registry_created) {
+            // Delete the registry key.
+            _delete_registry_key(HKEY_LOCAL_MACHINE, service_path.c_str());
+        }
+    }
+    return error;
 }
 
 _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_service(SC_HANDLE handle)
@@ -651,6 +882,24 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_delete_se
     }
 
     return ERROR_SUCCESS;
+}
+
+_Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t
+    Glue_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
+{
+    *service_handle = (SC_HANDLE)0;
+    std::wstring service_path(SERVICE_PATH_PREFIX);
+    service_path = service_path + service_name;
+
+    std::unique_lock lock(_service_path_to_context_mutex);
+    for (auto& [path, context] : _service_path_to_context_map) {
+        if (path == service_path) {
+            *service_handle = (SC_HANDLE)context->handle;
+            return ERROR_SUCCESS;
+        }
+    }
+
+    return ERROR_SERVICE_DOES_NOT_EXIST;
 }
 
 _test_helper_end_to_end::_test_helper_end_to_end()
@@ -713,6 +962,10 @@ _test_helper_end_to_end::_test_helper_end_to_end()
     close_handler = Glue_close;
     create_service_handler = Glue_create_service;
     delete_service_handler = Glue_delete_service;
+    get_service_handler = Glue_get_service;
+    create_registry_key_handler = Glue_create_registry_key;
+    get_registry_value_handler = Glue_get_registry_value;
+    update_registry_value_handler = Glue_update_registry_value;
 }
 
 void

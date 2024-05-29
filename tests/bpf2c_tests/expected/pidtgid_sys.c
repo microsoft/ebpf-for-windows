@@ -175,7 +175,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 }
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -198,8 +198,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t func_helpers[] = {
-    {NULL, 19, "helper_id_19"},
-    {NULL, 2, "helper_id_2"},
+    {19, "helper_id_19"},
+    {2, "helper_id_2"},
 };
 
 static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
@@ -210,7 +210,7 @@ static uint16_t func_maps[] = {
 
 #pragma code_seg(push, "bind")
 static uint64_t
-func(void* context)
+func(void* context, const program_runtime_context_t* runtime_context)
 #line 34 "sample/pidtgid.c"
 {
 #line 34 "sample/pidtgid.c"
@@ -267,9 +267,9 @@ func(void* context)
     }
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
 #line 47 "sample/pidtgid.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5);
 #line 47 "sample/pidtgid.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 47 "sample/pidtgid.c"
         return 0;
 #line 47 "sample/pidtgid.c"
@@ -309,15 +309,15 @@ func(void* context)
     r3 += IMMEDIATE(-16);
     // EBPF_OP_LDDW pc=18 dst=r1 src=r0 offset=0 imm=0
 #line 51 "sample/pidtgid.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=20 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/pidtgid.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/pidtgid.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5);
 #line 51 "sample/pidtgid.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/pidtgid.c"
         return 0;
 #line 51 "sample/pidtgid.c"

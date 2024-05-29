@@ -177,6 +177,27 @@ _update_registry_value(
     return error;
 }
 
+uint32_t
+_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size)
+{
+    HKEY key = nullptr;
+    uint32_t error = RegOpenKeyEx(root_key, sub_key, 0, KEY_QUERY_VALUE, &key);
+    if (error != ERROR_SUCCESS) {
+        return error;
+    }
+
+    error = RegQueryValueEx(key, value_name, 0, &type, (PBYTE)value, (LPDWORD)value_size);
+    RegCloseKey(key);
+
+    return error;
+}
+
 static bool
 _check_service_state(SC_HANDLE service_handle, unsigned long expected_state, _Out_ unsigned long* final_state)
 {
@@ -185,7 +206,7 @@ _check_service_state(SC_HANDLE service_handle, unsigned long expected_state, _Ou
 
     int retry_count = 0;
     bool status = false;
-    int error;
+    uint32_t error;
     SERVICE_STATUS service_status = {0};
 
     // Query service state.
@@ -211,7 +232,7 @@ _create_service(_In_z_ const wchar_t* service_name, _In_z_ const wchar_t* file_p
 {
     SC_HANDLE local_service_handle = nullptr;
     SC_HANDLE scm_handle = nullptr;
-    int error = ERROR_SUCCESS;
+    uint32_t error = ERROR_SUCCESS;
     int count;
     *service_handle = nullptr;
     unsigned long service_type = SERVICE_KERNEL_DRIVER;
@@ -257,10 +278,59 @@ Done:
     return error;
 }
 
-bool
+// uint32_t
+// _open_service(_In_z_ const wchar_t* service_name, uint32_t access_flags, _Out_ SC_HANDLE* service_handle)
+// {
+//     SC_HANDLE local_service_handle = nullptr;
+//     SC_HANDLE scm_handle = nullptr;
+//     uint32_t error = ERROR_SUCCESS;
+//     *service_handle = nullptr;
+
+//     scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+//     if (scm_handle == nullptr) {
+//         return GetLastError();
+//     }
+
+//     // Open service to get the handle.
+//     local_service_handle = OpenService(scm_handle, service_name, access_flags);
+//     if (local_service_handle == nullptr) {
+//         error = GetLastError();
+//         goto Done;
+//     }
+//     *service_handle = local_service_handle;
+//     local_service_handle = nullptr;
+
+// Done:
+//     if (scm_handle != nullptr) {
+//         CloseServiceHandle(scm_handle);
+//     }
+//     if (local_service_handle != nullptr) {
+//         CloseServiceHandle(local_service_handle);
+//     }
+//     return error;
+// }
+
+uint32_t
 _query_service_status(SC_HANDLE service_handle, _Inout_ SERVICE_STATUS* status)
 {
-    return QueryServiceStatus(service_handle, status);
+    SC_HANDLE scm_handle = nullptr;
+    uint32_t error = ERROR_SUCCESS;
+
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    if (scm_handle == nullptr) {
+        return GetLastError();
+    }
+
+    if (!QueryServiceStatus(service_handle, status)) {
+        error = GetLastError();
+        goto Done;
+    }
+
+Done:
+    if (scm_handle != nullptr) {
+        CloseServiceHandle(scm_handle);
+    }
+    return error;
 }
 
 uint32_t
@@ -270,7 +340,7 @@ _delete_service(SC_HANDLE service_handle)
         return EBPF_SUCCESS;
     }
 
-    int error = ERROR_SUCCESS;
+    uint32_t error = ERROR_SUCCESS;
     if (!DeleteService(service_handle)) {
         error = GetLastError();
     }
@@ -285,7 +355,7 @@ _stop_service(SC_HANDLE service_handle)
     SERVICE_STATUS status;
     bool service_stopped = false;
     unsigned long service_state;
-    int error = ERROR_SUCCESS;
+    uint32_t error = ERROR_SUCCESS;
 
     if (service_handle == nullptr) {
         return EBPF_INVALID_ARGUMENT;
@@ -303,4 +373,39 @@ _stop_service(SC_HANDLE service_handle)
     return error;
 }
 
+uint32_t
+_get_service(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
+{
+    SC_HANDLE local_service_handle = nullptr;
+    SC_HANDLE scm_handle = nullptr;
+    uint32_t error = ERROR_SUCCESS;
+    *service_handle = nullptr;
+
+    scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
+    if (scm_handle == nullptr) {
+        return GetLastError();
+    }
+
+    // Open service to get the handle.
+    local_service_handle = OpenService(scm_handle, service_name, SERVICE_ALL_ACCESS);
+    if (local_service_handle == nullptr) {
+        error = GetLastError();
+        goto Done;
+    }
+    *service_handle = local_service_handle;
+
+Done:
+    if (scm_handle != nullptr) {
+        CloseServiceHandle(scm_handle);
+    }
+    return error;
+}
+
+bool
+_close_service_handle(SC_HANDLE service_handle)
+{
+    return CloseServiceHandle(service_handle);
+}
+
 } // namespace Platform
+// namespace Platform

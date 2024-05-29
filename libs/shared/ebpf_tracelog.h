@@ -326,6 +326,18 @@ extern "C"
     }
 
     void
+    ebpf_log_message_wstring_wstring(
+        ebpf_tracelog_level_t trace_level,
+        ebpf_tracelog_keyword_t keyword,
+        _In_z_ const char* message,
+        _In_z_ const wchar_t* wstring1,
+        _In_z_ const wchar_t* wstring2);
+#define EBPF_LOG_MESSAGE_WSTRING_WSTRING(trace_level, keyword, message, wstring1, wstring2)            \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                   \
+        ebpf_log_message_wstring_wstring(_##trace_level##, _##keyword##, message, wstring1, wstring2); \
+    }
+
+    void
     ebpf_log_message_guid_guid_string(
         ebpf_tracelog_level_t trace_level,
         ebpf_tracelog_keyword_t keyword,
@@ -336,6 +348,19 @@ extern "C"
 #define EBPF_LOG_MESSAGE_GUID_GUID_STRING(trace_level, keyword, message, string, guid1, guid2)            \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                      \
         ebpf_log_message_guid_guid_string(_##trace_level##, _##keyword##, message, string, guid1, guid2); \
+    }
+
+    void
+    ebpf_log_message_guid_guid_wstring(
+        ebpf_tracelog_level_t trace_level,
+        ebpf_tracelog_keyword_t keyword,
+        _In_z_ const char* message,
+        _In_z_ const wchar_t* string,
+        _In_ const GUID* guid1,
+        _In_ const GUID* guid2);
+#define EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(trace_level, keyword, message, string, guid1, guid2)            \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                       \
+        ebpf_log_message_guid_guid_wstring(_##trace_level##, _##keyword##, message, string, guid1, guid2); \
     }
 
     void

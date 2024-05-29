@@ -878,7 +878,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
 {
     std::vector<output_instruction_t>& program_output = current_section->output;
     auto program_name = !current_section->program_name.empty() ? current_section->program_name : section_name;
-    auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
+    // auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
+    auto helper_array_prefix = "runtime_context->helper_data[{}]";
 
     // Encode instructions
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -1124,7 +1125,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     throw bpf_code_generator_exception(
                         "Map " + output.relocation + " doesn't exist", output.instruction_offset);
                 }
-                source = std::format("_maps[{}].address", std::to_string(map_definition->second.index));
+                source =
+                    std::format("runtime_context->map_data[{}].address", std::to_string(map_definition->second.index));
                 output.lines.push_back(std::format("{} = POINTER({});", destination, source));
                 current_section->referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
@@ -1414,7 +1416,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
-            output_stream << INDENT "{NULL," << std::endl;
+            output_stream << INDENT "{0," << std::endl;
             output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
@@ -1483,7 +1485,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << INDENT "{NULL, " << id << ", " << helper_name.quoted() << "}," << std::endl;
+                output_stream << INDENT "{" << id << ", " << helper_name.quoted() << "}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
@@ -1556,7 +1558,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         // Emit entry point
         output_stream << "#pragma code_seg(push, " << section.pe_section_name.quoted() << ")" << std::endl;
-        output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
+        output_stream << std::format(
+                             "static uint64_t\n{}(void* context, const program_runtime_context_t* runtime_context)",
+                             program_name.c_identifier())
+                      << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue
@@ -1573,6 +1578,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
         output_stream << prolog_line_info << INDENT "" << get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
+        if (section.referenced_map_indices.size() == 0 && section.helper_functions.size() == 0) {
+            output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
+        }
         output_stream << std::endl;
 
         // Emit encoded instructions.

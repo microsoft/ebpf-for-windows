@@ -62,6 +62,8 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 #define PARAMETERS_PATH_PREFIX L"System\\CurrentControlSet\\Services\\"
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
+#define CLEANUP_STATE L"CleanupState"
+#define CLEANUP_STARTED 1
 
 #define NO_EXCEPT_TRY noexcept try
 
@@ -82,6 +84,84 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 
 #define CATCH_NO_MEMORY_INT(X) \
     catch (const std::bad_alloc&) { EBPF_RETURN_ERROR(X); }
+
+int32_t
+_to_lower_string(_Inout_z_ wchar_t* text) noexcept
+{
+    size_t size = wcslen(text);
+    return _wcslwr_s(text, size + 1);
+}
+
+/**
+ * @brief Perform a rotate left on a value.
+ *
+ * @param[in] value Value to be rotated.
+ * @param[in] count Count of bits to rotate.
+ * @return Rotated value.
+ */
+static inline unsigned long
+_ebpf_rol(uint32_t value, size_t count)
+{
+    return (value << count) | (value >> (32 - count));
+}
+
+/**
+ * @brief An implementation of the murmur3_32 hash function. This is a high
+ * performance non-cryptographic hash function.
+ *
+ * @param[in] key Pointer to key to hash.
+ * @param[in] length Length of key to hash.
+ * @param[in] seed Seed to randomize hash.
+ * @return Hash of key.
+ */
+static unsigned long
+_ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t length_in_bits, uint32_t seed)
+{
+    uint32_t c1 = 0xcc9e2d51;
+    uint32_t c2 = 0x1b873593;
+    uint32_t r1 = 15;
+    uint32_t r2 = 13;
+    uint32_t m = 5;
+    uint32_t n = 0xe6546b64;
+    uint32_t hash = seed;
+    uint32_t length_in_bytes = ((uint32_t)length_in_bits / 8);
+    uint32_t remaining_bits = length_in_bits % 8;
+
+    for (size_t index = 0; (length_in_bytes - index) > 3; index += 4) {
+        uint32_t k = *(uint32_t*)(key + index);
+        k *= c1;
+        k = _ebpf_rol(k, r1);
+        k *= c2;
+
+        hash ^= k;
+        hash = _ebpf_rol(hash, r2);
+        hash *= m;
+        hash += n;
+    }
+    unsigned long remainder = 0;
+    for (size_t index = length_in_bytes & (~3); index < length_in_bytes; index++) {
+        remainder <<= 8;
+        remainder |= key[index];
+    }
+    if (remaining_bits) {
+        uint8_t bits = key[length_in_bytes];
+        bits >>= (8 - remaining_bits);
+        remainder <<= 8;
+        remainder |= bits;
+    }
+
+    remainder *= c1;
+    remainder = _ebpf_rol(remainder, r1);
+    remainder *= c2;
+
+    hash ^= remainder;
+    hash ^= (uint32_t)length_in_bytes;
+    hash *= 0x85ebca6b;
+    hash ^= (hash >> r2);
+    hash *= 0xc2b2ae35;
+    hash ^= (hash >> 16);
+    return hash;
+}
 
 typedef class _ebpf_signal
 {
@@ -176,11 +256,34 @@ _ebpf_update_registry_value(
 }
 CATCH_NO_MEMORY_WIN32
 
-static std::wstring
-_get_wstring_from_string(std::string& text) noexcept(false)
+inline static int
+_ebpf_get_registry_value(
+    HKEY root_key,
+    _In_z_ const wchar_t* sub_key,
+    unsigned long type,
+    _In_z_ const wchar_t* value_name,
+    _Out_writes_bytes_opt_(*value_size) uint8_t* value,
+    _Inout_opt_ uint32_t* value_size) NO_EXCEPT_TRY
 {
+    return Platform::_get_registry_value(root_key, sub_key, type, value_name, value, value_size);
+}
+CATCH_NO_MEMORY_WIN32
+
+// static std::wstring
+// _get_wstring_from_string(std::string& text) noexcept(false)
+// {
+//     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+//     std::wstring wide = converter.from_bytes(text);
+
+//     return wide;
+// }
+
+static std::wstring
+_get_wstring_from_string(_In_z_ const char* text) noexcept(false)
+{
+    std::string text_string(text);
     std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-    std::wstring wide = converter.from_bytes(text);
+    std::wstring wide = converter.from_bytes(text_string);
 
     return wide;
 }
@@ -2501,7 +2604,7 @@ _ebpf_pe_get_map_definitions(
             for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
                  map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
-                if (entry->address != nullptr) {
+                if (entry->zero_marker != 0) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
                     // at the end of the section.  This entry seems to be a map name string, so we've
                     // reached the end of the maps.
@@ -3330,13 +3433,15 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
         fd_t program_fd;
-        return _ebpf_program_load_native(
+        result = _ebpf_program_load_native(
             object->file_name,
             &program->program_type,
             &program->attach_type,
             object->execution_type,
             object,
             &program_fd);
+
+        EBPF_RETURN_RESULT(result);
     }
 
     try {
@@ -3434,6 +3539,7 @@ static ebpf_result_t
 _load_native_module(
     _In_ const std::wstring& service_path,
     _In_ const GUID* module_id,
+    bool unload_driver_on_cleanup,
     _Out_ ebpf_handle_t* module_handle,
     _Out_ size_t* count_of_maps,
     _Out_ size_t* count_of_programs) noexcept(false)
@@ -3461,6 +3567,7 @@ _load_native_module(
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_MODULE;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->module_id = *module_id;
+    request->unload_driver_on_cleanup = unload_driver_on_cleanup;
     memcpy(
         request_buffer.data() + offsetof(ebpf_operation_load_native_module_request_t, data),
         (char*)service_path.c_str(),
@@ -3486,6 +3593,7 @@ Done:
  * @brief Create maps and load programs from a loaded native module.
  *
  * @param[in] module_id Module ID corresponding to the native module.
+ * @param[in] instance_id ID corresponding to this specific load instance.
  * @param[in] program_type Optionally, the program type to use when loading
  *  the eBPF program. If program type is not supplied, it is derived from
  *  the section prefix in the ELF file.
@@ -3505,6 +3613,7 @@ Done:
 static ebpf_result_t
 _load_native_programs(
     _In_ const GUID* module_id,
+    _In_ const GUID* instance_id,
     _In_opt_ const ebpf_program_type_t* program_type,
     size_t count_of_maps,
     _Out_writes_(count_of_maps) ebpf_handle_t* map_handles,
@@ -3513,6 +3622,7 @@ _load_native_programs(
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(module_id);
+    ebpf_assert(instance_id);
 
     // Map count can be 0 (a program without any maps is a valid use case).
     ebpf_assert(count_of_maps == 0 || map_handles);
@@ -3542,6 +3652,7 @@ _load_native_programs(
     request.header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
     request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
     request.module_id = *module_id;
+    request.instance_id = *instance_id;
     request.program_type = program_type ? *program_type : GUID_NULL;
 
     error = invoke_ioctl(request, reply_buffer);
@@ -3570,6 +3681,127 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
+// static ebpf_result_t
+// _generate_native_program_service_name(_In_ const char* file_name, _Out_ std::wstring& service_name)
+// {
+//     // 1. Get FullPathName
+//     // 2. Extract the file path (excluding the file name)
+//     // 3. Generate unique service name based on the file path. It should look as follows:
+//     //          file_name_without_file_extension + "_" + file_path.
+//     //   e.g.   droppacket_c:\users\user\desktop
+//     // 4. If file path is more than 255 characters, truncate it to 253 characters and add ~1 to the end.
+
+//     // ANUSA TODO: Fix this function by generating a unique name.
+
+//     service_name = _get_wstring_from_string(std::string(file_name));
+
+//     return EBPF_SUCCESS;
+
+//     // ebpf_result_t result = EBPF_SUCCESS;
+//     // char full_path_name[MAX_PATH];
+//     // char* file_path = nullptr;
+//     // char* service_name = nullptr;
+//     // size_t file_path_length = 0;
+//     // size_t service_name_length = 0;
+
+//     // if (GetFullPathName(file_name, MAX_PATH, full_path_name, nullptr) == 0) {
+//     //     result = win32_error_to_ebpf_result(GetLastError());
+//     //     goto Done;
+//     // }
+
+//     // file_path = full_path_name;
+//     // file_path_length = strlen(file_path);
+//     // if (file_path_length > 255) {
+//     //     file_path_length = 253;
+//     //     file_path[file_path_length] = '~';
+//     //     file_path[file_path_length + 1] = '1';
+//     //     file_path[file_path_length + 2] = '\0';
+//     // }
+// }
+
+static std::wstring
+_ebpf_get_file_name_without_extension(_In_z_ const wchar_t* full_file_path)
+{
+    // std::wstring file_name_wstring(full_file_path);
+
+    // std::wstring file_name_without_extension;
+    // size_t last_index = file_name_wstring.find_last_of(L".");
+    // if (last_index == std::wstring::npos) {
+    //     file_name_without_extension = file_name_wstring;
+    // } else {
+    //     file_name_without_extension = file_name_wstring.substr(0, last_index);
+    // }
+    // return file_name_without_extension;
+
+    std::wstring file_path_string(full_file_path);
+    std::wstring file_name = file_path_string.substr(file_path_string.find_last_of(L"/\\") + 1);
+    std::wstring file_name_without_extension = file_name.substr(0, file_name.find_last_of(L"."));
+
+    return file_name_without_extension;
+}
+
+static std::wstring
+_ebpf_get_unique_service_name(_In_z_ const wchar_t* full_file_path)
+{
+    // Compute hash of the absolute path of the file.
+    // std::size_t hash = std::hash<std::wstring>{}(std::wstring(full_file_path));
+    uint32_t hash_value = _ebpf_murmur3_32((const uint8_t*)full_file_path, wcslen(full_file_path) * 8 * 2, 0);
+
+    return _ebpf_get_file_name_without_extension(full_file_path) + L"_" + std::to_wstring(hash_value);
+}
+
+// static ebpf_result_t
+// _ebpf_get_full_file_path(_In_z_ const char* file_name)
+// {
+
+// }
+
+// static std::wstring
+// _ebpf_get_unique_service_name(_In_z_ const char* file_name)
+// {
+//     std::string file_name_lowercase = _to_lower_string(std::string(file_name));
+//     file_name_string = _get_wstring_from_string(file_name_lowercase);
+//     uint32_t count = GetFullPathName(file_name_string.c_str(), MAX_PATH, full_file_path, nullptr);
+//     if (count == 0) {
+//         EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file, GetFullPathName);
+//         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+//     }
+//     service_name = _ebpf_get_unique_service_name(full_file_path);
+//     // Compute hash of the absolute path of the file.
+//     uint32_t hash_value = _ebpf_murmur3_32((const uint8_t*)full_file_path, wcslen(full_file_path) * 8 * 2, 0);
+
+//     return _ebpf_get_file_name_without_extension(full_file_path) + L"_" + std::to_wstring(hash_value);
+// }
+
+static uint32_t
+_ebpf_get_service_native(_In_z_ const wchar_t* service_name, _Out_ SC_HANDLE* service_handle)
+{
+    // ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t error = ERROR_SUCCESS;
+    SC_HANDLE local_service_handle = nullptr;
+    // SC_STATUS service_status = {0};
+    // uint32_t retry_count = 0;
+
+    *service_handle = nullptr;
+
+    // Check if the service exists.
+    error = Platform::_get_service(service_name, &local_service_handle);
+    if (error != ERROR_SUCCESS) {
+        // Service does not exist, or we failed to query it.
+        goto Done;
+    }
+
+    *service_handle = local_service_handle;
+    local_service_handle = nullptr;
+
+Done:
+    if (local_service_handle) {
+        Platform::_close_service_handle(local_service_handle);
+    }
+    return error;
+}
+
+// ANUSA TODO: Have multiple retries in case EC returns EBPF_TRY_AGAIN.
 static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
@@ -3588,15 +3820,20 @@ _ebpf_program_load_native(
     ebpf_assert(program_fd);
 
     ebpf_result_t result = EBPF_SUCCESS;
-    uint32_t error;
+    int32_t error;
     GUID service_name_guid;
+    GUID instance_id;
     GUID provider_module_id;
+    uint32_t provider_module_id_size = static_cast<uint32_t>(sizeof(provider_module_id));
     std::wstring service_name;
-    std::string file_name_string(file_name);
+    // std::string file_name_string(file_name);
+    std::wstring file_name_wstring; //(file_name);
     SC_HANDLE service_handle = nullptr;
     SERVICE_STATUS status = {0};
-    std::wstring service_path(SERVICE_PATH_PREFIX);
-    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
+    std::wstring service_path_prefix(SERVICE_PATH_PREFIX);
+    std::wstring service_path;
+    std::wstring parameters_path_prefix(PARAMETERS_PATH_PREFIX);
+    std::wstring parameters_path;
     ebpf_protocol_buffer_t request_buffer;
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
@@ -3604,64 +3841,154 @@ _ebpf_program_load_native(
     fd_t native_module_fd = ebpf_fd_invalid;
     ebpf_handle_t* map_handles = nullptr;
     ebpf_handle_t* program_handles = nullptr;
+    wchar_t full_file_path[MAX_PATH] = {0};
+    bool service_created = false;
 
-    if (UuidCreate(&service_name_guid) != RPC_S_OK) {
+    // std::string file_name_lowercase = _to_lower_string(std::string(file_name));
+    file_name_wstring = _get_wstring_from_string(file_name);
+
+    // Check if the service already exists.
+    uint32_t count = GetFullPathName(file_name_wstring.c_str(), MAX_PATH, full_file_path, nullptr);
+    if (count == 0) {
+        EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, GetFullPathName);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    error = _to_lower_string(full_file_path);
+    if (error != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native: _to_lower_string() failed",
+            error);
+        EBPF_RETURN_RESULT(EBPF_FAILED);
+    }
+
+    if (UuidCreate(&instance_id) != RPC_S_OK) {
         EBPF_LOG_MESSAGE_STRING(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_API,
-            "_ebpf_program_load_native: Create UUID (service name) failed.",
+            "_ebpf_program_load_native: Create UUID (instance ID) failed.",
             file_name);
         EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
     }
-
-    if (UuidCreate(&provider_module_id) != RPC_S_OK) {
-        EBPF_LOG_MESSAGE_STRING(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_API,
-            "_ebpf_program_load_native: Create UUID (provider module) failed.",
-            file_name);
-        EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
-    }
-
-    EBPF_LOG_MESSAGE_GUID_GUID_STRING(
-        EBPF_TRACELOG_LEVEL_INFO,
-        EBPF_TRACELOG_KEYWORD_API,
-        "_ebpf_program_load_native",
-        file_name,
-        &service_name_guid,
-        &provider_module_id);
 
     try {
-        // Create a driver service with a random name.
-        service_name = guid_to_wide_string(&service_name_guid);
+        service_name = _ebpf_get_unique_service_name(full_file_path);
 
-        error = Platform::_create_service(
-            service_name.c_str(), _get_wstring_from_string(file_name_string).c_str(), &service_handle);
-        if (error != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(error);
-            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _create_service);
-            goto Done;
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native",
+            full_file_path,
+            service_name.c_str());
+
+        parameters_path = parameters_path_prefix + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+        error = _ebpf_get_service_native(service_name.c_str(), &service_handle);
+        if (error != ERROR_SUCCESS && error != ERROR_SERVICE_DOES_NOT_EXIST) {
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: Failed to query service status.",
+                service_name.c_str());
+
+            EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+        } else if (error == ERROR_SUCCESS) {
+            // error = _ebpf_get_registry_value(
+            //     HKEY_LOCAL_MACHINE, parameters_path.c_str(), NPI_MODULE_ID, &provider_module_id,
+            //     &provider_module_id_size);
+
+            // A matching service entry was found. Read the module ID from the registry.
+            error = _ebpf_get_registry_value(
+                HKEY_LOCAL_MACHINE,
+                parameters_path.c_str(),
+                REG_BINARY,
+                NPI_MODULE_ID,
+                (uint8_t*)&provider_module_id,
+                &provider_module_id_size);
+            if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                goto Done;
+            }
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_INFO,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: Found a matching service entry",
+                service_name.c_str());
+        } else {
+            // Service with the specified name does not exist.
+            // Fall back to creating a service dynamically.
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_INFO,
+                EBPF_TRACELOG_KEYWORD_API,
+                "_ebpf_program_load_native: No matching service found for name, creating new service",
+                service_name.c_str());
+
+            if (UuidCreate(&service_name_guid) != RPC_S_OK) {
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "_ebpf_program_load_native: Create UUID (service name) failed.",
+                    file_name);
+                EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+            }
+            if (UuidCreate(&provider_module_id) != RPC_S_OK) {
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "_ebpf_program_load_native: Create UUID (provider module) failed.",
+                    file_name);
+                EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+            }
+
+            service_name = guid_to_wide_string(&service_name_guid);
+
+            error = Platform::_create_service(service_name.c_str(), file_name_wstring.c_str(), &service_handle);
+            if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _create_service);
+                goto Done;
+            }
+            service_created = true;
+
+            // Create registry path and update module ID in the service path.
+            parameters_path = parameters_path_prefix + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+            error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
+            if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
+                goto Done;
+            }
+            error = _ebpf_update_registry_value(
+                HKEY_LOCAL_MACHINE,
+                parameters_path.c_str(),
+                REG_BINARY,
+                NPI_MODULE_ID,
+                &provider_module_id,
+                sizeof(GUID));
+            if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_update_registry_value);
+                goto Done;
+            }
         }
 
-        // Create registry path and update module ID in the service path.
-        parameters_path = parameters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
-        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
-        if (error != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(error);
-            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
-            goto Done;
-        }
-        error = _ebpf_update_registry_value(
-            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &provider_module_id, sizeof(GUID));
-        if (error != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(error);
-            EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_update_registry_value);
-            goto Done;
-        }
+        // We have by now either created a new service or found an existing service.
+        EBPF_LOG_MESSAGE_GUID_GUID_WSTRING(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native",
+            service_name.c_str(),
+            &provider_module_id,
+            &instance_id);
 
-        service_path = service_path + service_name.c_str();
+        service_path = service_path_prefix + service_name.c_str();
         result = _load_native_module(
-            service_path, &provider_module_id, &native_module_handle, &count_of_maps, &count_of_programs);
+            service_path,
+            &provider_module_id,
+            service_created,
+            &native_module_handle,
+            &count_of_maps,
+            &count_of_programs);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_WSTRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3670,16 +3997,13 @@ _ebpf_program_load_native(
                 service_path.c_str());
             goto Done;
         }
-
         // Create a file descriptor for the native module.
         native_module_fd = _create_file_descriptor_for_handle(native_module_handle);
         if (native_module_fd == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
             goto Done;
         }
-
         native_module_handle = ebpf_handle_invalid;
-
         if (count_of_programs == 0) {
             result = EBPF_INVALID_OBJECT;
             EBPF_LOG_MESSAGE_STRING(
@@ -3689,7 +4013,6 @@ _ebpf_program_load_native(
                 file_name);
             goto Done;
         }
-
         // Allocate buffer for program and map handles.
         program_handles = (ebpf_handle_t*)ebpf_allocate(count_of_programs * sizeof(ebpf_handle_t));
         if (program_handles == nullptr) {
@@ -3701,7 +4024,6 @@ _ebpf_program_load_native(
                 file_name);
             goto Done;
         }
-
         if (count_of_maps > 0) {
             map_handles = (ebpf_handle_t*)ebpf_allocate(count_of_maps * sizeof(ebpf_handle_t));
             if (map_handles == nullptr) {
@@ -3714,9 +4036,14 @@ _ebpf_program_load_native(
                 goto Done;
             }
         }
-
         result = _load_native_programs(
-            &provider_module_id, program_type, count_of_maps, map_handles, count_of_programs, program_handles);
+            &provider_module_id,
+            &instance_id,
+            program_type,
+            count_of_maps,
+            map_handles,
+            count_of_programs,
+            program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -3725,19 +4052,17 @@ _ebpf_program_load_native(
                 file_name);
             goto Done;
         }
-
         result = _initialize_ebpf_object_native(
             native_module_fd, count_of_maps, map_handles, count_of_programs, program_handles, *object);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_API,
-                "_ebpf_program_load_native: inititialize native ebpf object failed",
+                "_ebpf_program_load_native: initialize native ebpf object failed",
                 file_name);
             goto Done;
         }
         native_module_fd = ebpf_fd_invalid;
-
         *program_fd = object->programs[0]->fd;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -3778,18 +4103,25 @@ Done:
     ebpf_free(map_handles);
     ebpf_free(program_handles);
 
-    // Workaround: Querying service status hydrates service reference count in SCM.
-    // This ensures that when _delete_service() is called, the service is marked
-    // pending for delete, and a later call to ZwUnloadDriver() by ebpfcore does not
-    // fail. One side effect of this approach still is that the stale service entries
-    // in the registry will not be cleaned up till the next reboot.
-    Platform::_query_service_status(service_handle, &status);
-    EBPF_LOG_MESSAGE_WSTRING(
-        EBPF_TRACELOG_LEVEL_INFO,
-        EBPF_TRACELOG_KEYWORD_API,
-        "_ebpf_program_load_native: Deleting service",
-        service_name.c_str());
-    Platform::_delete_service(service_handle);
+    if (service_created) {
+        // Workaround: Querying service status hydrates service reference count in SCM.
+        // This ensures that when _delete_service() is called, the service is marked
+        // pending for delete, and a later call to ZwUnloadDriver() by ebpfcore does not
+        // fail. One side effect of this approach still is that the stale service entries
+        // in the registry will not be cleaned up till the next reboot.
+        Platform::_query_service_status(service_handle, &status);
+        EBPF_LOG_MESSAGE_WSTRING(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_API,
+            "_ebpf_program_load_native: Deleting service",
+            service_name.c_str());
+        Platform::_delete_service(service_handle);
+        service_handle = nullptr;
+    }
+    if (service_handle) {
+        Platform::_close_service_handle(service_handle);
+    }
+
     EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -4601,3 +4933,394 @@ ebpf_api_thread_local_initialize() noexcept
     // Nothing to do.
     // Added for symmetry with ebpf_api_thread_local_cleanup.
 }
+
+static ebpf_result_t
+_ebpf_uninitialize_native_program_state(std::wstring& service_name) noexcept
+{
+    EBPF_LOG_ENTRY();
+    uint32_t error;
+    ebpf_result_t result = EBPF_SUCCESS;
+    std::wstring service_path_prefix(SERVICE_PATH_PREFIX);
+    std::wstring service_path;
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
+    size_t count_of_programs = 0;
+    size_t count_of_maps = 0;
+    ebpf_handle_t native_module_handle = ebpf_handle_invalid;
+    GUID provider_module_id = {0};
+    uint32_t provider_module_id_size = static_cast<uint32_t>(sizeof(provider_module_id));
+    bool stop_service = false;
+    bool provider_module_id_present = true;
+    SC_HANDLE service_handle = nullptr;
+    SERVICE_STATUS status = {0};
+    uint32_t cleanup_state = CLEANUP_STARTED;
+
+    try {
+        // Check if the service exists.
+        error = Platform::_get_service(service_name.c_str(), &service_handle);
+        if (error != ERROR_SUCCESS) {
+            // Service does not exist.
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        }
+
+        // Query service status to hydrate SCM status.
+        Platform::_query_service_status(service_handle, &status);
+
+        parameters_path = parameters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
+        if (error != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(error);
+            EBPF_LOG_WIN32_WSTRING_API_FAILURE(
+                EBPF_TRACELOG_KEYWORD_API, service_name.c_str(), _ebpf_create_registry_key);
+            goto Done;
+        }
+
+        // Read module ID from the registry.
+        error = _ebpf_get_registry_value(
+            HKEY_LOCAL_MACHINE,
+            parameters_path.c_str(),
+            REG_BINARY,
+            NPI_MODULE_ID,
+            (uint8_t*)&provider_module_id,
+            &provider_module_id_size);
+        if (error != ERROR_SUCCESS && error != ERROR_FILE_NOT_FOUND) {
+            // Failed to read provider module ID, fail the API call.
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        } else if (error == ERROR_FILE_NOT_FOUND) {
+            // Module ID is not present. Stop and delete the service entry.
+            provider_module_id_present = false;
+            stop_service = true;
+        }
+
+        // Add registry value to mark the service as delete pending.
+        error = _ebpf_update_registry_value(
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_DWORD, CLEANUP_STATE, &cleanup_state, sizeof(uint32_t));
+        if (error != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        }
+
+        if (provider_module_id_present) {
+            // Call LOAD_NATIVE_MODULE to get a handle on the native module, and to set the flag to
+            // unload the driver. If this call fails, it means the driver is already unloading / unloaded.
+            service_path = service_path_prefix + service_name.c_str();
+            result = _load_native_module(
+                service_path, &provider_module_id, true, &native_module_handle, &count_of_maps, &count_of_programs);
+            if (result != EBPF_SUCCESS && result != EBPF_OBJECT_NOT_FOUND) {
+                EBPF_LOG_MESSAGE_WSTRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "_ebpf_uninitialize_native_program_state: load native module failed",
+                    service_path.c_str());
+                goto Done;
+            } else if (result == EBPF_OBJECT_NOT_FOUND) {
+                // The driver is already unloading / unloaded.
+                stop_service = true;
+            } else {
+                CloseHandle(native_module_handle);
+            }
+        }
+
+        if (stop_service) {
+            // Stop the service.
+            error = Platform::_stop_service(service_handle);
+            if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                goto Done;
+            }
+        }
+
+        Platform::_delete_service(service_handle);
+        service_handle = nullptr;
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+    }
+
+Done:
+    if (service_handle != nullptr) {
+        Platform::_close_service_handle(service_handle);
+    }
+    EBPF_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_initialize_native_program_state(_In_z_ const char* file_name) noexcept
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t error = ERROR_SUCCESS;
+    std::wstring service_name;
+    wchar_t full_file_path[MAX_PATH] = {0};
+    std::wstring parameters_path(PARAMETERS_PATH_PREFIX);
+    uint32_t cleanup_state;
+    uint32_t cleanup_state_size = static_cast<uint32_t>(sizeof(cleanup_state));
+    GUID client_module_id = {0};
+    GUID local_client_module_id = {0};
+    uint32_t local_client_module_id_size = static_cast<uint32_t>(sizeof(local_client_module_id));
+    SERVICE_STATUS status = {0};
+    bool service_created = false;
+    std::wstring file_name_string;
+    SC_HANDLE service_handle = nullptr;
+
+    if (!Platform::_is_native_program(file_name)) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_initialize_native_program_state: Program not a native module",
+            file_name);
+
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    if (UuidCreate(&client_module_id) != RPC_S_OK) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_initialize_native_program_state: Create UUID (provider module) failed.",
+            file_name);
+        EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+    }
+
+    try {
+        // std::string file_name_lowercase = _to_lower_string(std::string(file));
+        file_name_string = _get_wstring_from_string(file_name);
+        uint32_t count = GetFullPathName(file_name_string.c_str(), MAX_PATH, full_file_path, nullptr);
+        if (count == 0) {
+            EBPF_LOG_WIN32_WSTRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name_string.c_str(), GetFullPathName);
+            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        }
+        error = _to_lower_string(full_file_path);
+        if (error != 0) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: _to_lower_string() failed",
+                error);
+            EBPF_RETURN_RESULT(EBPF_FAILED);
+        }
+
+        service_name = _ebpf_get_unique_service_name(full_file_path);
+
+        EBPF_LOG_MESSAGE_WSTRING_WSTRING(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_initialize_native_program_state",
+            full_file_path,
+            service_name.c_str());
+
+        parameters_path = parameters_path + service_name.c_str() + L"\\" + SERVICE_PARAMETERS;
+
+        // ANUSA TODO: Acquire named mutex to protect the service creation.
+
+        uint32_t iteration = 0;
+        while (iteration < 2) {
+            iteration++;
+
+            // Check if the service exists.
+            error = Platform::_get_service(service_name.c_str(), &service_handle);
+            if (error == ERROR_SERVICE_DOES_NOT_EXIST) {
+                // Service does not exist.
+                goto create_service;
+            } else if (error != ERROR_SUCCESS) {
+                result = win32_error_code_to_ebpf_result(error);
+                goto Done;
+            }
+
+            // Query service status to hydrate SCM status.
+            // Platform::_query_service_status(service_handle, &status);
+
+            // Service entry exists. Query cleanup state from the registry path.
+            error = _ebpf_get_registry_value(
+                HKEY_LOCAL_MACHINE,
+                parameters_path.c_str(),
+                REG_DWORD,
+                CLEANUP_STATE,
+                (uint8_t*)&cleanup_state,
+                &cleanup_state_size);
+            if (error == ERROR_SUCCESS && cleanup_state == CLEANUP_STARTED) {
+                // Service entry is present and is marked as delete pending. This is possible in 2 cases.
+                //
+                // Case 1: A previous call to ebpf_uninitialize_native_program_state() marked the service
+                // as delete pending, and then later the service was stopped. In this case, the service
+                // entry will exist until its state is hydrated again.
+                //
+                // Case 2: A previous call to ebpf_uninitialize_native_program_state() added the CLEANUP_STATE
+                // registry entry, but never deleted the service.
+                if (iteration == 1) {
+                    // Opportunistically uninitialize the state and then close the service handle.
+                    _ebpf_uninitialize_native_program_state(service_name);
+
+                    // Query service status to hydrate SCM status.
+                    Platform::_query_service_status(service_handle, &status);
+                    Platform::_close_service_handle(service_handle);
+                    service_handle = nullptr;
+                    continue;
+                } else {
+                    // If the service is still present in second iteration, it means the service cannot be deleted
+                    // right now. Return error.
+                    result = EBPF_INVALID_STATE;
+                    goto Done;
+                }
+            } else if (error != ERROR_SUCCESS && error != ERROR_FILE_NOT_FOUND) {
+                result = win32_error_code_to_ebpf_result(error);
+                goto Done;
+            }
+        }
+
+        // Service is not marked as delete pending. Next check if the service already has a module ID.
+        error = _ebpf_get_registry_value(
+            HKEY_LOCAL_MACHINE,
+            parameters_path.c_str(),
+            REG_BINARY,
+            NPI_MODULE_ID,
+            (uint8_t*)&local_client_module_id,
+            &local_client_module_id_size);
+        if (error != ERROR_SUCCESS && error != ERROR_FILE_NOT_FOUND) {
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: Failed to get NPI client module ID",
+                service_name.c_str());
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        } else if (error == ERROR_SUCCESS) {
+            // Module ID is already present. Nothing to do.
+            EBPF_LOG_MESSAGE_WSTRING_WSTRING(
+                EBPF_TRACELOG_LEVEL_INFO,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: Service already exists, returning",
+                full_file_path,
+                service_name.c_str());
+            goto Done;
+        } else {
+            // Module ID is not present. Delete this service entry, so that a new one can be
+            // generated. We are most likely here because a previous attempt to create the
+            // service failed and could not do a cleanup.
+            Platform::_delete_service(service_handle);
+            service_handle = nullptr;
+            goto create_service;
+        }
+
+    create_service:
+        // Create service entry.
+        EBPF_LOG_MESSAGE_WSTRING(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_initialize_native_program_state: Creating service",
+            service_name.c_str());
+
+        error = Platform::_create_service(service_name.c_str(), file_name_string.c_str(), &service_handle);
+        if (error != ERROR_SUCCESS) {
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: Platform::_create_service failed",
+                service_name.c_str());
+            result = win32_error_code_to_ebpf_result(error);
+            goto Done;
+        }
+        service_created = true;
+
+        // // Get the service handle.
+        // error = Platform::_get_service(service_name.c_str(), &service_handle);
+        // if (error != ERROR_SUCCESS) {
+        //     result = win32_error_code_to_ebpf_result(error);
+        //     goto Done;
+        // }
+
+        // Query the service status.
+        Platform::_query_service_status(service_handle, &status);
+
+        // Write the module ID to the registry.
+        error = _ebpf_create_registry_key(HKEY_LOCAL_MACHINE, parameters_path.c_str());
+        if (error != ERROR_SUCCESS) {
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: _ebpf_create_registry_key failed",
+                service_name.c_str());
+            result = win32_error_code_to_ebpf_result(error);
+            // EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, _ebpf_create_registry_key);
+            goto Done;
+        }
+        error = _ebpf_update_registry_value(
+            HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, &client_module_id, sizeof(GUID));
+        if (error != ERROR_SUCCESS) {
+            EBPF_LOG_MESSAGE_WSTRING(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_initialize_native_program_state: _ebpf_update_registry_value failed",
+                service_name.c_str());
+            result = win32_error_code_to_ebpf_result(error);
+            // EBPF_LOG_WIN32_WSTRING_API_FAILURE(
+            //     EBPF_TRACELOG_KEYWORD_API, file_name_string.c_str(), _ebpf_update_registry_value);
+            goto Done;
+        }
+    } catch (...) {
+        result = EBPF_FAILED;
+    }
+
+Done:
+    if (result != EBPF_SUCCESS && service_created) {
+        // Cleanup the service entry.
+        Platform::_delete_service(service_handle);
+        service_handle = nullptr;
+    }
+    if (service_handle != nullptr) {
+        Platform::_close_service_handle(service_handle);
+    }
+    EBPF_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_uninitialize_native_program_state(_In_z_ const char* file_name) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    std::wstring service_name;
+    wchar_t full_file_path[MAX_PATH] = {0};
+    std::wstring file_name_string;
+    int32_t error;
+
+    if (!Platform::_is_native_program(file_name)) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_uninitialize_native_program_state: Program not a native module",
+            file_name);
+
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    // std::string file_name_lowercase = _to_lower_string(std::string(file));
+    file_name_string = _get_wstring_from_string(file_name);
+    uint32_t count = GetFullPathName(file_name_string.c_str(), MAX_PATH, full_file_path, nullptr);
+    if (count == 0) {
+        EBPF_LOG_WIN32_STRING_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, file_name, GetFullPathName);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+    error = _to_lower_string(full_file_path);
+    if (error != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_uninitialize_native_program_state: _to_lower_string() failed",
+            error);
+        EBPF_RETURN_RESULT(EBPF_FAILED);
+    }
+    service_name = _ebpf_get_unique_service_name(full_file_path);
+
+    EBPF_LOG_MESSAGE_WSTRING_WSTRING(
+        EBPF_TRACELOG_LEVEL_INFO,
+        EBPF_TRACELOG_KEYWORD_API,
+        "ebpf_uninitialize_native_program_state:",
+        full_file_path,
+        service_name.c_str());
+
+    result = _ebpf_uninitialize_native_program_state(service_name);
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
