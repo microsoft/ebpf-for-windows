@@ -33,8 +33,6 @@ typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
 /**
  * @brief Prepare the eBPF program for batch invocation.
  *
- * @param[in] extension_client_binding_context The context provided by the extension client when the binding was
- * created.
  * @param[in] state_size The size of the state to be allocated, which should be greater than or equal to
  * sizeof(ebpf_execution_context_state_t).
  * @param[out] state The state to be used for batch invocation.
@@ -44,7 +42,7 @@ typedef ebpf_result_t (*ebpf_program_invoke_function_t)(
  * @retval EBPF_EXTENSION_FAILED_TO_LOAD The required extension is not loaded.
  */
 typedef ebpf_result_t (*ebpf_program_batch_begin_invoke_function_t)(
-    _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state);
+    size_t state_size, _Out_writes_(state_size) void* state);
 
 /**
  * @brief Invoke the eBPF program in batch mode.
@@ -66,14 +64,11 @@ typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
 /**
  * @brief Clean up the eBPF program after batch invocation.
  *
- * @param[in] extension_client_binding_context The context provided by the extension client when the binding was
- * created.
  * @param[in,out] state The state to be used for batch invocation.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  */
-typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(
-    _In_ const void* extension_client_binding_context, _Inout_ void* state);
+typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(_Inout_ void* state);
 
 typedef struct _ebpf_extension_program_dispatch_table
 {

@@ -76,8 +76,7 @@ _ebpf_link_instance_invoke(
     _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_begin(
-    _In_ const void* extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void* state);
+_ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_size) void* state);
 
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch(
@@ -87,7 +86,7 @@ _ebpf_link_instance_invoke_batch(
     _In_ const void* state);
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context, _Inout_ void* state);
+_ebpf_link_instance_invoke_batch_end(_Inout_ void* state);
 
 typedef enum _ebpf_link_dispatch_table_version
 {
@@ -467,25 +466,22 @@ _ebpf_link_instance_invoke(
 {
     ebpf_execution_context_state_t state = {0};
     ebpf_result_t return_value;
-    return_value = _ebpf_link_instance_invoke_batch_begin(
-        extension_client_binding_context, sizeof(ebpf_execution_context_state_t), &state);
+    return_value = _ebpf_link_instance_invoke_batch_begin(sizeof(ebpf_execution_context_state_t), &state);
 
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
 
     return_value = _ebpf_link_instance_invoke_batch(extension_client_binding_context, program_context, result, &state);
-    (void)_ebpf_link_instance_invoke_batch_end(extension_client_binding_context, &state);
+    (void)_ebpf_link_instance_invoke_batch_end(&state);
 
 Done:
     return return_value;
 }
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_begin(
-    _In_ const void* client_binding_context, size_t state_size, _Out_writes_(state_size) void* state)
+_ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_size) void* state)
 {
-    UNREFERENCED_PARAMETER(client_binding_context);
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
     ebpf_result_t return_value;
@@ -514,9 +510,8 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_In_ const void* extension_client_binding_context, _Inout_ void* state)
+_ebpf_link_instance_invoke_batch_end(_Inout_ void* state)
 {
-    UNREFERENCED_PARAMETER(extension_client_binding_context);
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, execution_context_state));
     ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
