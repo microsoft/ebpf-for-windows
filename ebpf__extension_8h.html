@@ -100,15 +100,15 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ae80fa727147e54667fe9876c9caa45ef"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ae80fa727147e54667fe9876c9caa45ef">ebpf_program_invoke_function_t</a>) (const void *extension_client_binding_context, _Inout_ void *program_context, uint32_t *result)</td></tr>
 <tr class="memdesc:ae80fa727147e54667fe9876c9caa45ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoke the eBPF program.  <a href="ebpf__extension_8h.html#ae80fa727147e54667fe9876c9caa45ef">More...</a><br /></td></tr>
 <tr class="separator:ae80fa727147e54667fe9876c9caa45ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a90a1e53ea499494503dbb9a957bc3232"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a90a1e53ea499494503dbb9a957bc3232">ebpf_program_batch_begin_invoke_function_t</a>) (const void *extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void *state)</td></tr>
-<tr class="memdesc:a90a1e53ea499494503dbb9a957bc3232"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prepare the eBPF program for batch invocation.  <a href="ebpf__extension_8h.html#a90a1e53ea499494503dbb9a957bc3232">More...</a><br /></td></tr>
-<tr class="separator:a90a1e53ea499494503dbb9a957bc3232"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0fea5ad71ab127bb77c7b2cd49622303"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a0fea5ad71ab127bb77c7b2cd49622303">ebpf_program_batch_begin_invoke_function_t</a>) (size_t state_size, _Out_writes_(state_size) void *state)</td></tr>
+<tr class="memdesc:a0fea5ad71ab127bb77c7b2cd49622303"><td class="mdescLeft">&#160;</td><td class="mdescRight">Prepare the eBPF program for batch invocation.  <a href="ebpf__extension_8h.html#a0fea5ad71ab127bb77c7b2cd49622303">More...</a><br /></td></tr>
+<tr class="separator:a0fea5ad71ab127bb77c7b2cd49622303"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ec831c09562821de93907fe639a3647"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a9ec831c09562821de93907fe639a3647">ebpf_program_batch_invoke_function_t</a>) (const void *extension_client_binding_context, _Inout_ void *program_context, uint32_t *result, const void *state)</td></tr>
 <tr class="memdesc:a9ec831c09562821de93907fe639a3647"><td class="mdescLeft">&#160;</td><td class="mdescRight">Invoke the eBPF program in batch mode.  <a href="ebpf__extension_8h.html#a9ec831c09562821de93907fe639a3647">More...</a><br /></td></tr>
 <tr class="separator:a9ec831c09562821de93907fe639a3647"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7db1d33fbe10c5a5f038513232aa0f5"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ad7db1d33fbe10c5a5f038513232aa0f5">ebpf_program_batch_end_invoke_function_t</a>) (const void *extension_client_binding_context, _Inout_ void *state)</td></tr>
-<tr class="memdesc:ad7db1d33fbe10c5a5f038513232aa0f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean up the eBPF program after batch invocation.  <a href="ebpf__extension_8h.html#ad7db1d33fbe10c5a5f038513232aa0f5">More...</a><br /></td></tr>
-<tr class="separator:ad7db1d33fbe10c5a5f038513232aa0f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad95472acba23f800b593b79c9be2fdfd"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ad95472acba23f800b593b79c9be2fdfd">ebpf_program_batch_end_invoke_function_t</a>) (_Inout_ void *state)</td></tr>
+<tr class="memdesc:ad95472acba23f800b593b79c9be2fdfd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean up the eBPF program after batch invocation.  <a href="ebpf__extension_8h.html#ad95472acba23f800b593b79c9be2fdfd">More...</a><br /></td></tr>
+<tr class="separator:ad95472acba23f800b593b79c9be2fdfd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7de51587fef3981f43338faa5cef5023"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__extension__program__dispatch__table.html">_ebpf_extension_program_dispatch_table</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7de51587fef3981f43338faa5cef5023">ebpf_extension_program_dispatch_table_t</a></td></tr>
 <tr class="separator:a7de51587fef3981f43338faa5cef5023"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cc74524e8ef4e71118e6bb9d2f5d1a9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__extension__data.html">_ebpf_extension_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7cc74524e8ef4e71118e6bb9d2f5d1a9">ebpf_extension_data_t</a></td></tr>
@@ -203,14 +203,14 @@ Typedefs</h2></td></tr>
 
 </div>
 </div>
-<a id="a90a1e53ea499494503dbb9a957bc3232"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a90a1e53ea499494503dbb9a957bc3232">&#9670;&nbsp;</a></span>ebpf_program_batch_begin_invoke_function_t</h2>
+<a id="a0fea5ad71ab127bb77c7b2cd49622303"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0fea5ad71ab127bb77c7b2cd49622303">&#9670;&nbsp;</a></span>ebpf_program_batch_begin_invoke_function_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_program_batch_begin_invoke_function_t) (const void *extension_client_binding_context, size_t state_size, _Out_writes_(state_size) void *state)</td>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_program_batch_begin_invoke_function_t) (size_t state_size, _Out_writes_(state_size) void *state)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -218,7 +218,6 @@ Typedefs</h2></td></tr>
 <p>Prepare the eBPF program for batch invocation. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">extension_client_binding_context</td><td>The context provided by the extension client when the binding was created. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">state_size</td><td>The size of the state to be allocated, which should be greater than or equal to sizeof(ebpf_execution_context_state_t). </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">state</td><td>The state to be used for batch invocation.</td></tr>
   </table>
@@ -235,14 +234,14 @@ Typedefs</h2></td></tr>
 
 </div>
 </div>
-<a id="ad7db1d33fbe10c5a5f038513232aa0f5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad7db1d33fbe10c5a5f038513232aa0f5">&#9670;&nbsp;</a></span>ebpf_program_batch_end_invoke_function_t</h2>
+<a id="ad95472acba23f800b593b79c9be2fdfd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad95472acba23f800b593b79c9be2fdfd">&#9670;&nbsp;</a></span>ebpf_program_batch_end_invoke_function_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_program_batch_end_invoke_function_t) (const void *extension_client_binding_context, _Inout_ void *state)</td>
+          <td class="memname">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(* ebpf_program_batch_end_invoke_function_t) (_Inout_ void *state)</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -250,7 +249,6 @@ Typedefs</h2></td></tr>
 <p>Clean up the eBPF program after batch invocation. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">extension_client_binding_context</td><td>The context provided by the extension client when the binding was created. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">state</td><td>The state to be used for batch invocation.</td></tr>
   </table>
   </dd>
