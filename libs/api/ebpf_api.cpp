@@ -2106,6 +2106,7 @@ _initialize_ebpf_programs_native(
     for (int i = 0; i < count_of_programs; i++) {
         ebpf_program_t* program = programs[i];
         if (!program->autoload) {
+#pragma warning(suppress : 6001) // The SAL annotation checks that program_handles[i] is ok.
             if (program_handles[i] != ebpf_handle_invalid) {
                 Platform::CloseHandle(program_handles[i]);
             }
