@@ -161,6 +161,23 @@ bpf_program__section_name(const struct bpf_program* program)
     return program->section_name;
 }
 
+bool
+bpf_program__autoload(const struct bpf_program* program)
+{
+    return program->autoload;
+}
+
+int
+bpf_program__set_autoload(struct bpf_program* program, bool autoload)
+{
+    if (program->object->loaded) {
+        return libbpf_err(-EINVAL);
+    }
+
+    program->autoload = autoload;
+    return 0;
+}
+
 size_t
 bpf_program__size(const struct bpf_program* program)
 {

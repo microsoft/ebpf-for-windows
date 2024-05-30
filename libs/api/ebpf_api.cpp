@@ -132,8 +132,7 @@ _ebpf_program_load_native(
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     ebpf_execution_type_t execution_type,
-    _Inout_ struct bpf_object* object,
-    _Out_ fd_t* program_fd) noexcept;
+    _Inout_ struct bpf_object* object) noexcept;
 
 static _Ret_z_ const char*
 _ebpf_get_section_string(
@@ -2105,6 +2104,13 @@ _initialize_ebpf_programs_native(
     ebpf_result_t result = EBPF_SUCCESS;
 
     for (int i = 0; i < count_of_programs; i++) {
+        ebpf_program_t* program = programs[i];
+        if (!program->autoload) {
+            if (program_handles[i] != ebpf_handle_invalid) {
+                Platform::CloseHandle(program_handles[i]);
+            }
+            continue;
+        }
         if (program_handles[i] == ebpf_handle_invalid) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
@@ -2116,7 +2122,6 @@ _initialize_ebpf_programs_native(
             goto Exit;
         }
 
-        ebpf_program_t* program = programs[i];
         program->fd = _create_file_descriptor_for_handle(program_handles[i]);
         if (program->fd == ebpf_fd_invalid) {
             result = EBPF_NO_MEMORY;
@@ -2199,6 +2204,7 @@ _initialize_ebpf_object_from_native_file(
     _Outptr_result_maybenull_z_ const char** error_message) NO_EXCEPT_TRY
 {
     ebpf_program_t* program = nullptr;
+    ebpf_program_type_t empty_program_type{};
 
     EBPF_LOG_ENTRY();
     ebpf_assert(file_name);
@@ -2223,6 +2229,9 @@ _initialize_ebpf_object_from_native_file(
         program->program_type = info->program_type;
         program->attach_type = info->expected_attach_type;
         program->fd = ebpf_fd_invalid;
+
+        // Only autoload programs with a defined program type.
+        program->autoload = memcmp(&program->program_type, &empty_program_type, sizeof(empty_program_type)) != 0;
 
         program->section_name = cxplat_duplicate_string(info->section_name);
         if (program->section_name == nullptr) {
@@ -3324,18 +3333,16 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     }
 
     if (Platform::_is_native_program(object->file_name)) {
-        struct bpf_program* program = bpf_object__next_program(object, nullptr);
-        if (program == nullptr) {
-            EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+        for (auto& program : object->programs) {
+            if (!program->autoload) {
+                continue;
+            }
+            return _ebpf_program_load_native(
+                object->file_name, &program->program_type, &program->attach_type, object->execution_type, object);
         }
-        fd_t program_fd;
-        return _ebpf_program_load_native(
-            object->file_name,
-            &program->program_type,
-            &program->attach_type,
-            object->execution_type,
-            object,
-            &program_fd);
+
+        // No programs to load, so just succeed.
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
     try {
@@ -3575,8 +3582,7 @@ _ebpf_program_load_native(
     _In_opt_ const ebpf_program_type_t* program_type,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     ebpf_execution_type_t execution_type,
-    _Inout_ struct bpf_object* object,
-    _Out_ fd_t* program_fd) NO_EXCEPT_TRY
+    _Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(attach_type);
@@ -3584,7 +3590,6 @@ _ebpf_program_load_native(
 
     ebpf_assert(file_name);
     ebpf_assert(object);
-    ebpf_assert(program_fd);
 
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error;
@@ -3736,8 +3741,6 @@ _ebpf_program_load_native(
             goto Done;
         }
         native_module_fd = ebpf_fd_invalid;
-
-        *program_fd = object->programs[0]->fd;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Done;

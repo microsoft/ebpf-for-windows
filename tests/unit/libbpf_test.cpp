@@ -507,6 +507,64 @@ TEST_CASE("libbpf program", "[libbpf]")
     bpf_object__close(object);
 }
 
+static void
+_test_program_autoload(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_same_section_um.dll" : "tail_call_same_section.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
+    REQUIRE(caller != nullptr);
+    int caller_fd = bpf_program__fd(const_cast<const bpf_program*>(caller));
+    REQUIRE(caller_fd == ebpf_fd_invalid);
+    struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
+    REQUIRE(callee != nullptr);
+    int callee_fd = bpf_program__fd(const_cast<const bpf_program*>(callee));
+    REQUIRE(callee_fd == ebpf_fd_invalid);
+
+    // Check initial autoload values.
+    REQUIRE(bpf_program__autoload(caller) == true);
+    REQUIRE(bpf_program__autoload(callee) == true);
+
+    // Update an autoload value.
+    REQUIRE(bpf_program__set_autoload(caller, false) == 0);
+    REQUIRE(bpf_program__autoload(caller) == false);
+    REQUIRE(bpf_program__autoload(callee) == true);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Verify what programs were loaded.
+    caller_fd = bpf_program__fd(const_cast<const bpf_program*>(caller));
+    REQUIRE(caller_fd == ebpf_fd_invalid);
+    callee_fd = bpf_program__fd(const_cast<const bpf_program*>(callee));
+    REQUIRE(callee_fd > 0);
+
+    // Verify we cannot change autoload values after loading.
+    int error = bpf_program__set_autoload(caller, false);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(caller, true);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(callee, false);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(callee, true);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf program autoload", "[libbpf]", _test_program_autoload);
+
 TEST_CASE("libbpf program pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
