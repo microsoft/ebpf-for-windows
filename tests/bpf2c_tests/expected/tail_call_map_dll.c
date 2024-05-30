@@ -74,6 +74,40 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 2;
 }
 
+static GUID callee_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID callee_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+#pragma code_seg(push, "sample~2")
+static uint64_t
+callee(void* context)
+#line 17 "sample/undocked/tail_call_map.c"
+{
+#line 17 "sample/undocked/tail_call_map.c"
+    // Prologue
+#line 17 "sample/undocked/tail_call_map.c"
+    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
+#line 17 "sample/undocked/tail_call_map.c"
+    register uint64_t r0 = 0;
+#line 17 "sample/undocked/tail_call_map.c"
+    register uint64_t r1 = 0;
+#line 17 "sample/undocked/tail_call_map.c"
+    register uint64_t r10 = 0;
+
+#line 17 "sample/undocked/tail_call_map.c"
+    r1 = (uintptr_t)context;
+#line 17 "sample/undocked/tail_call_map.c"
+    r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+
+    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
+#line 17 "sample/undocked/tail_call_map.c"
+    r0 = IMMEDIATE(42);
+    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
+#line 17 "sample/undocked/tail_call_map.c"
+    return r0;
+#line 17 "sample/undocked/tail_call_map.c"
+}
+#pragma code_seg(pop)
+#line __LINE__ __FILE__
+
 static helper_function_entry_t caller_helpers[] = {
     {NULL, 1, "helper_id_1"},
     {NULL, 5, "helper_id_5"},
@@ -85,7 +119,7 @@ static uint16_t caller_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~2")
+#pragma code_seg(push, "sample~1")
 static uint64_t
 caller(void* context)
 #line 40 "sample/undocked/tail_call_map.c"
@@ -131,7 +165,7 @@ caller(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 42 "sample/undocked/tail_call_map.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 43 "sample/undocked/tail_call_map.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -172,60 +206,12 @@ caller(void* context)
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
 
-static GUID callee_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-static GUID callee_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-#pragma code_seg(push, "sample~1")
-static uint64_t
-callee(void* context)
-#line 17 "sample/undocked/tail_call_map.c"
-{
-#line 17 "sample/undocked/tail_call_map.c"
-    // Prologue
-#line 17 "sample/undocked/tail_call_map.c"
-    uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 17 "sample/undocked/tail_call_map.c"
-    register uint64_t r0 = 0;
-#line 17 "sample/undocked/tail_call_map.c"
-    register uint64_t r1 = 0;
-#line 17 "sample/undocked/tail_call_map.c"
-    register uint64_t r10 = 0;
-
-#line 17 "sample/undocked/tail_call_map.c"
-    r1 = (uintptr_t)context;
-#line 17 "sample/undocked/tail_call_map.c"
-    r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
-
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
-#line 17 "sample/undocked/tail_call_map.c"
-    r0 = IMMEDIATE(42);
-    // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
-#line 17 "sample/undocked/tail_call_map.c"
-    return r0;
-#line 17 "sample/undocked/tail_call_map.c"
-}
-#pragma code_seg(pop)
-#line __LINE__ __FILE__
-
 #pragma data_seg(push, "programs")
 static program_entry_t _programs[] = {
     {
         0,
-        caller,
-        "sample~2",
-        "sample_ext",
-        "caller",
-        caller_maps,
-        1,
-        caller_helpers,
-        2,
-        14,
-        &caller_program_type_guid,
-        &caller_attach_type_guid,
-    },
-    {
-        0,
         callee,
-        "sample~1",
+        "sample~2",
         "sample_ext/0",
         "callee",
         NULL,
@@ -235,6 +221,20 @@ static program_entry_t _programs[] = {
         2,
         &callee_program_type_guid,
         &callee_attach_type_guid,
+    },
+    {
+        0,
+        caller,
+        "sample~1",
+        "sample_ext",
+        "caller",
+        caller_maps,
+        1,
+        caller_helpers,
+        2,
+        14,
+        &caller_program_type_guid,
+        &caller_attach_type_guid,
     },
 };
 #pragma data_seg(pop)

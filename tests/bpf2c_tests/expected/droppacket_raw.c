@@ -107,7 +107,7 @@ DropPacket(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-8
 #line 47 "sample/droppacket.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=1
 #line 56 "sample/droppacket.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -237,7 +237,7 @@ label_1:
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-8
 #line 79 "sample/droppacket.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=37 dst=r1 src=r1 offset=0 imm=2
 #line 80 "sample/droppacket.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1

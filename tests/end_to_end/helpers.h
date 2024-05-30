@@ -229,14 +229,10 @@ typedef class _single_instance_hook : public _hook_helper
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
 
-        ebpf_result (*batch_begin_function)(
-            _In_ const void* extension_client_binding_context,
-            size_t state_size,
-            _In_reads_bytes_(state_size) void* state);
-
+        ebpf_program_batch_begin_invoke_function_t batch_begin_function;
         batch_begin_function = reinterpret_cast<decltype(batch_begin_function)>(client_dispatch_table->function[1]);
 
-        return batch_begin_function(client_binding_context, state_size, state);
+        return batch_begin_function(state_size, state);
     }
 
     _Must_inspect_result_ ebpf_result_t
@@ -246,25 +242,21 @@ typedef class _single_instance_hook : public _hook_helper
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
 
-        ebpf_result_t (*batch_invoke_function)(
-            _In_ const void* extension_client_binding_context,
-            _Inout_ void* program_context,
-            _Out_ uint32_t* result,
-            _In_ const void* state);
+        ebpf_program_batch_invoke_function_t batch_invoke_function;
         batch_invoke_function = reinterpret_cast<decltype(batch_invoke_function)>(client_dispatch_table->function[2]);
         return batch_invoke_function(client_binding_context, program_context, result, state);
     }
 
     _Must_inspect_result_ ebpf_result_t
-    batch_end(_In_ const void* state)
+    batch_end(_In_ void* state)
     {
         if (client_binding_context == nullptr) {
             return EBPF_EXTENSION_FAILED_TO_LOAD;
         }
 
-        ebpf_result_t (*batch_end_function)(_In_ const void* extension_client_binding_context, _In_ const void* state);
+        ebpf_program_batch_end_invoke_function_t batch_end_function;
         batch_end_function = reinterpret_cast<decltype(batch_end_function)>(client_dispatch_table->function[3]);
-        return batch_end_function(client_binding_context, state);
+        return batch_end_function(state);
     }
 
   private:

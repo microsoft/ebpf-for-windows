@@ -159,7 +159,7 @@ lookup_update(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 55 "sample/undocked/inner_map.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 60 "sample/undocked/inner_map.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -233,7 +233,7 @@ label_3:
     // EBPF_OP_ADD64_IMM pc=22 dst=r2 src=r0 offset=0 imm=-6
 #line 84 "sample/undocked/inner_map.c"
     r2 += IMMEDIATE(-6);
-    // EBPF_OP_LDDW pc=23 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=23 dst=r1 src=r1 offset=0 imm=4
 #line 72 "sample/undocked/inner_map.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=1

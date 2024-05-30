@@ -281,7 +281,7 @@ DropPacket(void* context)
     // EBPF_OP_ADD64_IMM pc=10 dst=r2 src=r0 offset=0 imm=-8
 #line 43 "sample/unsafe/droppacket_unsafe.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=11 dst=r1 src=r1 offset=0 imm=1
 #line 44 "sample/unsafe/droppacket_unsafe.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1

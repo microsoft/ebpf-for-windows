@@ -174,7 +174,7 @@ BEGIN
 
     HLP_EBPF_SHOW_DISASSEMBLY "Shows disassembly of an eBPF program.\n"
     HLP_EBPF_SHOW_DISASSEMBLY_EX "\
-\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>] [[program=]<string>]\
 \n\
 \nParameters:\
 \n\
@@ -183,6 +183,8 @@ BEGIN
 \n      section   - Optionally the name of the section containing the\
 \n                  program.  If not specified, the default is to use the\
 \n                  first code section.\
+\n      program   - Optionally the name of the program.  If not specified,\
+\n                  the default is to use the first program.\
 \n\
 \nRemarks: Shows the disassembly of the specified eBPF program.\
 \n"
@@ -210,7 +212,7 @@ BEGIN
     HLP_EBPF_SHOW_VERIFICATION
                             "Shows results of trying to verify an eBPF program.\n"
     HLP_EBPF_SHOW_VERIFICATION_EX "\
-\nUsage: %1!s! [filename=]<string> [[section=]<string>]\
+\nUsage: %1!s! [filename=]<string> [[section=]<string>] [[program=]<string>]\
 \n                     [[type=]<string>] [[level=]normal|verbose]\
 \n\
 \nParameters:\
@@ -220,6 +222,8 @@ BEGIN
 \n      section   - Optionally the name of the section containing the\
 \n                  program.  If not specified, the default is to use the\
 \n                  first code section.\
+\n      program   - Optionally the name of a program.  If not specified,\
+\n                  the default is to use the first program.\
 \n      type      - A string used as if it were a section name, to\
 \n                  determine the program type and expected attach\
 \n                  type.\

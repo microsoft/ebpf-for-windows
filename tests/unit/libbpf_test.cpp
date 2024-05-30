@@ -732,6 +732,9 @@ TEST_CASE("libbpf map", "[libbpf]")
     struct bpf_object* object = bpf_object__open("map.o");
     REQUIRE(object != nullptr);
 
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_maps");
+    REQUIRE(program != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -782,7 +785,6 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Wrong fd type.
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_maps");
     int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
     result = bpf_map_lookup_elem(program_fd, &index, &value);
     REQUIRE(result < 0);
@@ -1339,6 +1341,12 @@ TEST_CASE("good_tail_call-native", "[libbpf]")
 {
     // Verify that 42 is returned, which is done by the callee.
     _ebpf_test_tail_call("tail_call_um.dll", 42);
+}
+
+TEST_CASE("good_tail_call_same_section-native", "[libbpf]")
+{
+    // Verify that 42 is returned, which is done by the callee.
+    _ebpf_test_tail_call("tail_call_same_section_um.dll", 42);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
