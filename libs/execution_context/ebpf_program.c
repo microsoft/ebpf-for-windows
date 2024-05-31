@@ -573,8 +573,18 @@ _ebpf_program_type_specific_program_information_detach_provider(void* client_bin
     // to the program information.
     ebpf_lock_unlock(&program->lock, state);
 
-    // Wait for any threads executing in the current epoch to complete.
-    ebpf_epoch_synchronize();
+    // Note: NmrRegisterClient can synchronously call the attach and then the detach callback. This can result in the
+    // detach callback being called inside an epoch, which will result in a deadlock. To prevent this, detect when
+    // the detach is being called prior to the object being fully initialized, where it is safe to assume that no other
+    // threads are using the object.
+
+    // Check if the program is visible to any other threads.
+    // Until an object id is assigned, this program can not be used by any other thread and therefore can not have
+    // any links or be invoked.
+    if (program->object.id != 0) {
+        // Wait for any threads executing in the current epoch to complete.
+        ebpf_epoch_synchronize();
+    }
     return STATUS_SUCCESS;
 }
 
