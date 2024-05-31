@@ -351,7 +351,7 @@ ebpf_program_load(
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
     _Out_ bpf_object_ptr* unique_object,
-    _Out_ fd_t* program_fd,
+    _Out_ fd_t* program_fd, // File descriptor of first program in the object.
     _Outptr_opt_result_maybenull_z_ const char** log_buffer)
 {
     *program_fd = ebpf_fd_invalid;
@@ -385,7 +385,9 @@ ebpf_program_load(
         return error;
     }
 
-    *program_fd = bpf_program__fd(program);
+    if (program) {
+        *program_fd = bpf_program__fd(program);
+    }
     unique_object->reset(new_object);
     return 0;
 }
