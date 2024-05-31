@@ -130,7 +130,6 @@ static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
     _In_opt_ const ebpf_program_type_t* program_type,
-    _In_opt_ const ebpf_attach_type_t* attach_type,
     ebpf_execution_type_t execution_type,
     _Inout_ struct bpf_object* object) noexcept;
 
@@ -3335,11 +3334,10 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     }
 
     if (Platform::_is_native_program(object->file_name)) {
-        // Currently _ebpf_program_load_native only supports one program type and attach type
-        // even if there are multiple programs in the file.  So look up the types and fail for
-        // now if there's more than one type to load.
+        // Currently _ebpf_program_load_native only supports one program type
+        // even if there are multiple programs in the file.  So look up the type
+        // and fail for now if there's more than one type to load.
         ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
-        ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
         for (auto& program : object->programs) {
             if (!program->autoload) {
                 continue;
@@ -3349,18 +3347,12 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
             } else if (program->program_type != program_type) {
                 EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
             }
-            if (attach_type == EBPF_ATTACH_TYPE_UNSPECIFIED) {
-                attach_type = program->attach_type;
-            } else if (program->attach_type != attach_type) {
-                EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-            }
         }
 
         // Now that we know that all programs to load have the same program type and
         // attach type, we can call the existing load API.  This will also load maps
         // even if there are no programs to load.
-        result =
-            _ebpf_program_load_native(object->file_name, &program_type, &attach_type, object->execution_type, object);
+        result = _ebpf_program_load_native(object->file_name, &program_type, object->execution_type, object);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
@@ -3615,12 +3607,10 @@ static ebpf_result_t
 _ebpf_program_load_native(
     _In_z_ const char* file_name,
     _In_opt_ const ebpf_program_type_t* program_type,
-    _In_opt_ const ebpf_attach_type_t* attach_type,
     ebpf_execution_type_t execution_type,
     _Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(attach_type);
     UNREFERENCED_PARAMETER(execution_type);
 
     ebpf_assert(file_name);
