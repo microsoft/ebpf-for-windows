@@ -67,7 +67,9 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Data Structures</a> &#124;
-<a href="#typedef-members">Typedefs</a>  </div>
+<a href="#define-members">Macros</a> &#124;
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a>  </div>
   <div class="headertitle">
 <div class="title">ebpf_extension.h File Reference</div>  </div>
 </div><!--header-->
@@ -91,6 +93,14 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__execution__context__state.html">_ebpf_execution_context_state</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
+Macros</h2></td></tr>
+<tr class="memitem:a9561180ebcc5567fd50e39d11ea014a2"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a9561180ebcc5567fd50e39d11ea014a2">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1</a>&#160;&#160;&#160;4</td></tr>
+<tr class="separator:a9561180ebcc5567fd50e39d11ea014a2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af455b3902599832974ec3186f71008c6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#af455b3902599832974ec3186f71008c6">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT</a>&#160;&#160;&#160;    <a class="el" href="ebpf__extension_8h.html#a9561180ebcc5567fd50e39d11ea014a2">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1</a></td></tr>
+<tr class="memdesc:af455b3902599832974ec3186f71008c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Current number of functions in the dispatch table.  <a href="ebpf__extension_8h.html#af455b3902599832974ec3186f71008c6">More...</a><br /></td></tr>
+<tr class="separator:af455b3902599832974ec3186f71008c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="typedef-members"></a>
 Typedefs</h2></td></tr>
 <tr class="memitem:a7f26e762bb62243ba276ec647c4e4410"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7f26e762bb62243ba276ec647c4e4410">_ebpf_extension_dispatch_function</a>) ()</td></tr>
@@ -109,6 +119,8 @@ Typedefs</h2></td></tr>
 <tr class="memitem:ad95472acba23f800b593b79c9be2fdfd"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ad95472acba23f800b593b79c9be2fdfd">ebpf_program_batch_end_invoke_function_t</a>) (_Inout_ void *state)</td></tr>
 <tr class="memdesc:ad95472acba23f800b593b79c9be2fdfd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean up the eBPF program after batch invocation.  <a href="ebpf__extension_8h.html#ad95472acba23f800b593b79c9be2fdfd">More...</a><br /></td></tr>
 <tr class="separator:ad95472acba23f800b593b79c9be2fdfd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7e34f7de96c40e2e3f62487f10600cc3"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76ac">_ebpf_link_dispatch_table_version</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7e34f7de96c40e2e3f62487f10600cc3">ebpf_link_dispatch_table_version_t</a></td></tr>
+<tr class="separator:a7e34f7de96c40e2e3f62487f10600cc3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7de51587fef3981f43338faa5cef5023"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__extension__program__dispatch__table.html">_ebpf_extension_program_dispatch_table</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7de51587fef3981f43338faa5cef5023">ebpf_extension_program_dispatch_table_t</a></td></tr>
 <tr class="separator:a7de51587fef3981f43338faa5cef5023"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cc74524e8ef4e71118e6bb9d2f5d1a9"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__extension__data.html">_ebpf_extension_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#a7cc74524e8ef4e71118e6bb9d2f5d1a9">ebpf_extension_data_t</a></td></tr>
@@ -117,7 +129,45 @@ Typedefs</h2></td></tr>
 <tr class="separator:a18db90b374a598237681d489cf55fa1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0159112afd00bde2f43471a4ed5706a"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__execution__context__state.html">_ebpf_execution_context_state</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#ac0159112afd00bde2f43471a4ed5706a">ebpf_execution_context_state_t</a></td></tr>
 <tr class="separator:ac0159112afd00bde2f43471a4ed5706a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:af0515a6045d165623acd93ee1c5c76ac"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76ac">_ebpf_link_dispatch_table_version</a> { <a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76aca67670b85572db333ef5351c84d981086">EBPF_LINK_DISPATCH_TABLE_VERSION_1</a> = 1
+, <a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76aca90ced845e84e663c65a4a7196e767a78">EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT</a>
+ }</td></tr>
+<tr class="separator:af0515a6045d165623acd93ee1c5c76ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<h2 class="groupheader">Macro Definition Documentation</h2>
+<a id="a9561180ebcc5567fd50e39d11ea014a2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9561180ebcc5567fd50e39d11ea014a2">&#9670;&nbsp;</a></span>EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1&#160;&#160;&#160;4</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af455b3902599832974ec3186f71008c6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af455b3902599832974ec3186f71008c6">&#9670;&nbsp;</a></span>EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT&#160;&#160;&#160;    <a class="el" href="ebpf__extension_8h.html#a9561180ebcc5567fd50e39d11ea014a2">EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Current number of functions in the dispatch table. </p>
+
+</div>
+</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="a7f26e762bb62243ba276ec647c4e4410"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a7f26e762bb62243ba276ec647c4e4410">&#9670;&nbsp;</a></span>_ebpf_extension_dispatch_function</h2>
@@ -197,6 +247,20 @@ Typedefs</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef struct <a class="el" href="struct__ebpf__extension__program__dispatch__table.html">_ebpf_extension_program_dispatch_table</a> <a class="el" href="ebpf__extension_8h.html#a7de51587fef3981f43338faa5cef5023">ebpf_extension_program_dispatch_table_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a7e34f7de96c40e2e3f62487f10600cc3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7e34f7de96c40e2e3f62487f10600cc3">&#9670;&nbsp;</a></span>ebpf_link_dispatch_table_version_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef enum <a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76ac">_ebpf_link_dispatch_table_version</a> <a class="el" href="ebpf__extension_8h.html#a7e34f7de96c40e2e3f62487f10600cc3">ebpf_link_dispatch_table_version_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -322,6 +386,27 @@ Typedefs</h2></td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="af0515a6045d165623acd93ee1c5c76ac"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af0515a6045d165623acd93ee1c5c76ac">&#9670;&nbsp;</a></span>_ebpf_link_dispatch_table_version</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__extension_8h.html#af0515a6045d165623acd93ee1c5c76ac">_ebpf_link_dispatch_table_version</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="af0515a6045d165623acd93ee1c5c76aca67670b85572db333ef5351c84d981086"></a>EBPF_LINK_DISPATCH_TABLE_VERSION_1&#160;</td><td class="fielddoc"><p>Initial version of the dispatch table. </p>
+</td></tr>
+<tr><td class="fieldname"><a id="af0515a6045d165623acd93ee1c5c76aca90ced845e84e663c65a4a7196e767a78"></a>EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT&#160;</td><td class="fielddoc"><p>Current version of the dispatch table. </p>
+</td></tr>
+</table>
 
 </div>
 </div>
