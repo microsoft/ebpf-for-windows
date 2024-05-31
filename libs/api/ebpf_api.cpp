@@ -2096,7 +2096,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 static ebpf_result_t
 _initialize_ebpf_programs_native(
     size_t count_of_programs,
-    _In_reads_(count_of_programs) ebpf_handle_t* program_handles,
+    _Inout_updates_(count_of_programs) ebpf_handle_t* program_handles,
     _Inout_ std::vector<ebpf_program_t*>& programs) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -2109,6 +2109,7 @@ _initialize_ebpf_programs_native(
 #pragma warning(suppress : 6001) // The SAL annotation checks that program_handles[i] is ok.
             if (program_handles[i] != ebpf_handle_invalid) {
                 Platform::CloseHandle(program_handles[i]);
+                program_handles[i] = ebpf_handle_invalid;
             }
             continue;
         }
