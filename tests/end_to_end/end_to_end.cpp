@@ -2556,8 +2556,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 
     // Try to load the programs from the same module again. It should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
         ERROR_OBJECT_ALREADY_EXISTS);
 
     bpf_object__close(unique_object.release());
@@ -2565,8 +2564,8 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     // Now that we have closed the object, try to load programs from the same module again. This should
     // fail as the module should now be marked as "unloading".
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) != ERROR_SUCCESS);
+        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) !=
+        ERROR_SUCCESS);
 }
 
 // Load native module and then try to load programs with incorrect params.
@@ -2589,7 +2588,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // First try to load native program without loading the native module.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_PATH_NOT_FOUND);
 
     // Creating valid service with valid driver.
@@ -2608,7 +2607,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_INVALID_PARAMETER);
 
     // Delete the created service.
@@ -2724,8 +2723,7 @@ TEST_CASE("load_native_program_empty", "[end-to-end]")
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 0, &program_handles) ==
-        ERROR_SUCCESS);
+        test_ioctl_load_native_programs(&provider_module_id, 1, &map_handles, 0, &program_handles) == ERROR_SUCCESS);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);

@@ -3548,7 +3548,6 @@ _load_native_programs(
     request.header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
     request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
     request.module_id = *module_id;
-    request.program_type = GUID_NULL;
 
     error = invoke_ioctl(request, reply_buffer);
     if (error != ERROR_SUCCESS) {
