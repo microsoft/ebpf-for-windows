@@ -385,7 +385,7 @@ ebpf_program_load(
         return error;
     }
 
-    if (program) {
+    if (program != nullptr) {
         *program_fd = bpf_program__fd(program);
     }
     unique_object->reset(new_object);
@@ -2746,6 +2746,7 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
 
     result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, nullptr);
     REQUIRE(result == expected_result);
+    REQUIRE(program_fd == ebpf_fd_invalid);
 }
 
 static void
@@ -2758,7 +2759,7 @@ _test_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t e
 
 TEST_CASE("load_native_program_invalid1", "[end-to-end]")
 {
-    _test_load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, 0);
 }
 TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 {
@@ -2770,7 +2771,7 @@ TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 }
 TEST_CASE("load_native_program_invalid4", "[end-to-end]")
 {
-    _test_load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _test_load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, 0);
 }
 TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {

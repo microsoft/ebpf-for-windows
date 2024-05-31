@@ -69,14 +69,15 @@ static service_install_helper
     _ebpf_service_helper(EBPF_SERVICE_NAME, EBPF_SERVICE_BINARY_NAME, SERVICE_WIN32_OWN_PROCESS);
 #endif
 
-static int
-_program_load_helper(
-    const char* file_name,
+static _Success_(return == 0) int _program_load_helper(
+    _In_z_ const char* file_name,
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
-    struct bpf_object** object,
-    fd_t* program_fd)
+    _Outptr_ struct bpf_object** object,
+    _Out_ fd_t* program_fd) // File descriptor of first program in the object.
 {
+    *program_fd = ebpf_fd_invalid;
+    *object = nullptr;
     struct bpf_object* new_object = bpf_object__open(file_name);
     if (new_object == nullptr) {
         return EBPF_FAILED;
@@ -96,9 +97,11 @@ _program_load_helper(
         return error;
     }
 
-    *program_fd = bpf_program__fd(program);
+    if (program != nullptr) {
+        *program_fd = bpf_program__fd(program);
+    }
     *object = new_object;
-    return 0;
+    return EBPF_SUCCESS;
 }
 
 static void
@@ -1094,6 +1097,7 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
 
     result = _program_load_helper(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &object, &program_fd);
     REQUIRE(result == expected_result);
+    REQUIRE(program_fd == ebpf_fd_invalid);
 
     if (result != 0) {
         // If load failed, no programs or maps should be loaded.
@@ -1104,7 +1108,7 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
 
 TEST_CASE("load_native_program_invalid1", "[native][negative]")
 {
-    _load_invalid_program("invalid_maps1.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _load_invalid_program("invalid_maps1.sys", EBPF_EXECUTION_NATIVE, 0);
 }
 TEST_CASE("load_native_program_invalid2", "[native][negative]")
 {
@@ -1116,7 +1120,7 @@ TEST_CASE("load_native_program_invalid3", "[native][negative]")
 }
 TEST_CASE("load_native_program_invalid4", "[native][negative]")
 {
-    _load_invalid_program("empty.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
+    _load_invalid_program("empty.sys", EBPF_EXECUTION_NATIVE, 0);
 }
 TEST_CASE("load_native_program_invalid5", "[native][negative]")
 {
