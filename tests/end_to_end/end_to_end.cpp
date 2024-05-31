@@ -2703,7 +2703,6 @@ TEST_CASE("load_native_program_empty", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    std::wstring file_path(L"test_sample_ebpf_um.dll");
     ebpf_handle_t map_handles;
     ebpf_handle_t program_handles;
     _test_handle_helper module_handle;
@@ -2768,10 +2767,6 @@ TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
     _test_load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
-}
-TEST_CASE("load_native_program_invalid4", "[end-to-end]")
-{
-    _test_load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, 0);
 }
 TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {

@@ -128,10 +128,7 @@ static std::mutex _pe_parse_mutex;
 
 static ebpf_result_t
 _ebpf_program_load_native(
-    _In_z_ const char* file_name,
-    _In_opt_ const ebpf_program_type_t* program_type,
-    ebpf_execution_type_t execution_type,
-    _Inout_ struct bpf_object* object) noexcept;
+    _In_z_ const char* file_name, ebpf_execution_type_t execution_type, _Inout_ struct bpf_object* object) noexcept;
 
 static _Ret_z_ const char*
 _ebpf_get_section_string(
@@ -3334,25 +3331,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     }
 
     if (Platform::_is_native_program(object->file_name)) {
-        // Currently _ebpf_program_load_native only supports one program type
-        // even if there are multiple programs in the file.  So look up the type
-        // and fail for now if there's more than one type to load.
-        ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
-        for (auto& program : object->programs) {
-            if (!program->autoload) {
-                continue;
-            }
-            if (program_type == EBPF_PROGRAM_TYPE_UNSPECIFIED) {
-                program_type = program->program_type;
-            } else if (program->program_type != program_type) {
-                EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-            }
-        }
-
-        // Now that we know that all programs to load have the same program type and
-        // attach type, we can call the existing load API.  This will also load maps
-        // even if there are no programs to load.
-        result = _ebpf_program_load_native(object->file_name, &program_type, object->execution_type, object);
+        result = _ebpf_program_load_native(object->file_name, object->execution_type, object);
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
@@ -3516,9 +3495,6 @@ Done:
  * @brief Create maps and load programs from a loaded native module.
  *
  * @param[in] module_id Module ID corresponding to the native module.
- * @param[in] program_type Optionally, the program type to use when loading
- *  the eBPF program. If program type is not supplied, it is derived from
- *  the section prefix in the ELF file.
  * @param[in] count_of_maps Count of maps present in the native module.
  * @param[out] map_handles Array of size count_of_maps which contains the map handles.
  * @param[in] count_of_programs Count of programs present in the native module.
@@ -3535,7 +3511,6 @@ Done:
 static ebpf_result_t
 _load_native_programs(
     _In_ const GUID* module_id,
-    _In_opt_ const ebpf_program_type_t* program_type,
     size_t count_of_maps,
     _Out_writes_(count_of_maps) ebpf_handle_t* map_handles,
     size_t count_of_programs,
@@ -3573,7 +3548,7 @@ _load_native_programs(
     request.header.id = ebpf_operation_id_t::EBPF_OPERATION_LOAD_NATIVE_PROGRAMS;
     request.header.length = sizeof(ebpf_operation_load_native_programs_request_t);
     request.module_id = *module_id;
-    request.program_type = program_type ? *program_type : GUID_NULL;
+    request.program_type = GUID_NULL;
 
     error = invoke_ioctl(request, reply_buffer);
     if (error != ERROR_SUCCESS) {
@@ -3605,10 +3580,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_program_load_native(
-    _In_z_ const char* file_name,
-    _In_opt_ const ebpf_program_type_t* program_type,
-    ebpf_execution_type_t execution_type,
-    _Inout_ struct bpf_object* object) NO_EXCEPT_TRY
+    _In_z_ const char* file_name, ebpf_execution_type_t execution_type, _Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(execution_type);
@@ -3736,8 +3708,8 @@ _ebpf_program_load_native(
             }
         }
 
-        result = _load_native_programs(
-            &provider_module_id, program_type, count_of_maps, map_handles, count_of_programs, program_handles);
+        result =
+            _load_native_programs(&provider_module_id, count_of_maps, map_handles, count_of_programs, program_handles);
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
