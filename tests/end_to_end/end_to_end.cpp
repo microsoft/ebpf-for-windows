@@ -2693,7 +2693,7 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
 #ifdef _DEBUG
 
 // Load programs from a native module which has 0 programs.
-TEST_CASE("load_native_program_negative8", "[end-to-end]")
+TEST_CASE("load_native_program_empty", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2725,8 +2725,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
-        ERROR_INVALID_PARAMETER);
+        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 0, &program_handles) ==
+        ERROR_SUCCESS);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
@@ -2759,7 +2759,7 @@ _test_load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t e
 
 TEST_CASE("load_native_program_invalid1", "[end-to-end]")
 {
-    _test_load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, 0);
+    _test_load_invalid_program("invalid_maps1_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 {

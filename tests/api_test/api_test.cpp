@@ -80,7 +80,7 @@ static _Success_(return == 0) int _program_load_helper(
     *object = nullptr;
     struct bpf_object* new_object = bpf_object__open(file_name);
     if (new_object == nullptr) {
-        return EBPF_FAILED;
+        return -EINVAL;
     }
 
     REQUIRE(ebpf_object_set_execution_type(new_object, execution_type) == EBPF_SUCCESS);
@@ -101,7 +101,7 @@ static _Success_(return == 0) int _program_load_helper(
         *program_fd = bpf_program__fd(program);
     }
     *object = new_object;
-    return EBPF_SUCCESS;
+    return 0;
 }
 
 static void

@@ -2100,7 +2100,7 @@ _initialize_ebpf_programs_native(
     _Inout_ std::vector<ebpf_program_t*>& programs) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(program_handles);
+    ebpf_assert(count_of_programs == 0 || program_handles);
     ebpf_result_t result = EBPF_SUCCESS;
 
     for (int i = 0; i < count_of_programs; i++) {
@@ -2156,7 +2156,7 @@ _initialize_ebpf_object_native(
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_assert(count_of_maps == 0 || map_handles);
-    ebpf_assert(program_handles);
+    ebpf_assert(count_of_programs == 0 || program_handles);
 
     object.native_module_fd = native_module_fd;
 
@@ -3335,15 +3335,45 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
     }
 
     if (Platform::_is_native_program(object->file_name)) {
+        // Currently _ebpf_program_load_native only supports one program type and attach type
+        // even if there are multiple programs in the file.  So look up the types and fail for
+        // now if there's more than one type to load.
+        ebpf_program_type_t program_type = EBPF_PROGRAM_TYPE_UNSPECIFIED;
+        ebpf_attach_type_t attach_type = EBPF_ATTACH_TYPE_UNSPECIFIED;
         for (auto& program : object->programs) {
             if (!program->autoload) {
                 continue;
             }
-            return _ebpf_program_load_native(
-                object->file_name, &program->program_type, &program->attach_type, object->execution_type, object);
+            if (program_type == EBPF_PROGRAM_TYPE_UNSPECIFIED) {
+                program_type = program->program_type;
+            } else if (program->program_type != program_type) {
+                EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+            }
+            if (attach_type == EBPF_ATTACH_TYPE_UNSPECIFIED) {
+                attach_type = program->attach_type;
+            } else if (program->attach_type != attach_type) {
+                EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+            }
         }
 
-        // No programs to load, so just succeed.
+        // Now that we know that all programs to load have the same program type and
+        // attach type, we can call the existing load API.  This will also load maps
+        // even if there are no programs to load.
+        result =
+            _ebpf_program_load_native(object->file_name, &program_type, &attach_type, object->execution_type, object);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+        for (auto& program : object->programs) {
+            if (program->autoload) {
+                continue;
+            }
+            if (program->fd > 0) {
+                Platform::_close(program->fd);
+                program->fd = ebpf_fd_invalid;
+                program->handle = ebpf_handle_invalid;
+            }
+        }
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
 
@@ -3525,9 +3555,8 @@ _load_native_programs(
     // Map count can be 0 (a program without any maps is a valid use case).
     ebpf_assert(count_of_maps == 0 || map_handles);
 
-    // Program count *must* be non-zero.
-    ebpf_assert(count_of_programs);
-    ebpf_assert(program_handles);
+    // Program count can be 0 (a map without any prorams is a valid use case).
+    ebpf_assert(count_of_programs == 0 || program_handles);
 
     ebpf_result_t result = EBPF_SUCCESS;
     uint32_t error = ERROR_SUCCESS;
@@ -3541,7 +3570,9 @@ _load_native_programs(
     if (map_handles) {
         memset(map_handles, 0, map_handles_size);
     }
-    memset(program_handles, 0, program_handles_size);
+    if (program_handles) {
+        memset(program_handles, 0, program_handles_size);
+    }
 
     size_t buffer_size = offsetof(ebpf_operation_load_native_programs_reply_t, data) + handles_size;
     reply_buffer.resize(buffer_size);
@@ -3572,7 +3603,9 @@ _load_native_programs(
     if (count_of_maps) {
         memcpy(map_handles, reply->data, map_handles_size);
     }
-    memcpy(program_handles, reply->data + map_handles_size, program_handles_size);
+    if (count_of_programs) {
+        memcpy(program_handles, reply->data + map_handles_size, program_handles_size);
+    }
 
 Done:
     EBPF_RETURN_RESULT(result);
@@ -3686,26 +3719,18 @@ _ebpf_program_load_native(
 
         native_module_handle = ebpf_handle_invalid;
 
-        if (count_of_programs == 0) {
-            result = EBPF_INVALID_OBJECT;
-            EBPF_LOG_MESSAGE_STRING(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_API,
-                "_ebpf_program_load_native: O programs found",
-                file_name);
-            goto Done;
-        }
-
-        // Allocate buffer for program and map handles.
-        program_handles = (ebpf_handle_t*)ebpf_allocate(count_of_programs * sizeof(ebpf_handle_t));
-        if (program_handles == nullptr) {
-            result = EBPF_NO_MEMORY;
-            EBPF_LOG_MESSAGE_STRING(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_API,
-                "_ebpf_program_load_native: program handle buffer allocation failed.",
-                file_name);
-            goto Done;
+        // Allocate buffers for program and map handles.
+        if (count_of_programs > 0) {
+            program_handles = (ebpf_handle_t*)ebpf_allocate(count_of_programs * sizeof(ebpf_handle_t));
+            if (program_handles == nullptr) {
+                result = EBPF_NO_MEMORY;
+                EBPF_LOG_MESSAGE_STRING(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_API,
+                    "_ebpf_program_load_native: program handle buffer allocation failed.",
+                    file_name);
+                goto Done;
+            }
         }
 
         if (count_of_maps > 0) {
