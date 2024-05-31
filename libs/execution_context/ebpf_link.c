@@ -88,16 +88,10 @@ _ebpf_link_instance_invoke_batch(
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end(_Inout_ void* state);
 
-typedef enum _ebpf_link_dispatch_table_version
-{
-    EBPF_LINK_DISPATCH_TABLE_CURRENT_VERSION = 1, ///< Initial version of the dispatch table.
-    EBPF_LINK_DISPATCH_TABLE_VERSION =
-        EBPF_LINK_DISPATCH_TABLE_CURRENT_VERSION, ///< Current version of the dispatch table.
-} ebpf_link_dispatch_table_version_t;
-
 static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
-    EBPF_LINK_DISPATCH_TABLE_VERSION,
-    4, // Count of functions. This should be updated when new functions are added.
+    EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT,
+    EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT, // Count of functions. This should be updated when new functions
+                                                     // are added.
     _ebpf_link_instance_invoke,
     _ebpf_link_instance_invoke_batch_begin,
     _ebpf_link_instance_invoke_batch,

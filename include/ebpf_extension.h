@@ -70,6 +70,17 @@ typedef ebpf_result_t (*ebpf_program_batch_invoke_function_t)(
  */
 typedef ebpf_result_t (*ebpf_program_batch_end_invoke_function_t)(_Inout_ void* state);
 
+typedef enum _ebpf_link_dispatch_table_version
+{
+    EBPF_LINK_DISPATCH_TABLE_VERSION_1 = 1, ///< Initial version of the dispatch table.
+    EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT =
+        EBPF_LINK_DISPATCH_TABLE_VERSION_1, ///< Current version of the dispatch table.
+} ebpf_link_dispatch_table_version_t;
+
+#define EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1 4
+#define EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT \
+    EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_1 ///< Current number of functions in the dispatch table.
+
 typedef struct _ebpf_extension_program_dispatch_table
 {
     uint16_t version; ///< Version of the dispatch table.
