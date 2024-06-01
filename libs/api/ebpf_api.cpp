@@ -3330,20 +3330,7 @@ ebpf_object_load(_Inout_ struct bpf_object* object) NO_EXCEPT_TRY
 
     if (Platform::_is_native_program(object->file_name)) {
         result = _ebpf_program_load_native(object->file_name, object->execution_type, object);
-        if (result != EBPF_SUCCESS) {
-            EBPF_RETURN_RESULT(result);
-        }
-        for (auto& program : object->programs) {
-            if (program->autoload) {
-                continue;
-            }
-            if (program->fd > 0) {
-                Platform::_close(program->fd);
-                program->fd = ebpf_fd_invalid;
-                program->handle = ebpf_handle_invalid;
-            }
-        }
-        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+        EBPF_RETURN_RESULT(result);
     }
 
     try {
@@ -3520,7 +3507,7 @@ _load_native_programs(
     // Map count can be 0 (a program without any maps is a valid use case).
     ebpf_assert(count_of_maps == 0 || map_handles);
 
-    // Program count can be 0 (a map without any prorams is a valid use case).
+    // Program count can be 0 (a map without any programs is a valid use case).
     ebpf_assert(count_of_programs == 0 || program_handles);
 
     ebpf_result_t result = EBPF_SUCCESS;

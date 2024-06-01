@@ -1118,7 +1118,7 @@ TEST_CASE("load_native_program_invalid3", "[native][negative]")
 {
     _load_invalid_program("invalid_helpers.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
-TEST_CASE("load_native_program_invalid4", "[native][negative]")
+TEST_CASE("load_native_program_empty", "[native][negative]")
 {
     _load_invalid_program("empty.sys", EBPF_EXECUTION_NATIVE, 0);
 }

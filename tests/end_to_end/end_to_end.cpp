@@ -2702,8 +2702,8 @@ TEST_CASE("load_native_program_empty", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    ebpf_handle_t map_handles;
-    ebpf_handle_t program_handles;
+    ebpf_handle_t map_handles = ebpf_handle_invalid;
+    ebpf_handle_t program_handles = ebpf_handle_invalid;
     _test_handle_helper module_handle;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
@@ -2724,6 +2724,7 @@ TEST_CASE("load_native_program_empty", "[end-to-end]")
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
         test_ioctl_load_native_programs(&provider_module_id, 1, &map_handles, 0, &program_handles) == ERROR_SUCCESS);
+    REQUIRE(map_handles != ebpf_handle_invalid);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
