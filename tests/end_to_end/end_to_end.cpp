@@ -2738,6 +2738,7 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     int result;
     bpf_object_ptr unique_object;
     fd_t program_fd;
+    uint32_t next_id;
 
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
@@ -2745,6 +2746,12 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, nullptr);
     REQUIRE(result == expected_result);
     REQUIRE(program_fd == ebpf_fd_invalid);
+
+    if (result != 0) {
+        // If load failed, no programs or maps should be loaded.
+        REQUIRE(bpf_map_get_next_id(0, &next_id) == -ENOENT);
+        REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+    }
 }
 
 static void
