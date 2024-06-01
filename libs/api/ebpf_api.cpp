@@ -2227,9 +2227,7 @@ _initialize_ebpf_object_from_native_file(
         program->program_type = info->program_type;
         program->attach_type = info->expected_attach_type;
         program->fd = ebpf_fd_invalid;
-
-        // Only autoload programs with a defined program type.
-        program->autoload = memcmp(&program->program_type, &empty_program_type, sizeof(empty_program_type)) != 0;
+        program->autoload = true;
 
         program->section_name = cxplat_duplicate_string(info->section_name);
         if (program->section_name == nullptr) {
