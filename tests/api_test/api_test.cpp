@@ -1108,7 +1108,7 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
 
 TEST_CASE("load_native_program_invalid1", "[native][negative]")
 {
-    _load_invalid_program("invalid_maps1.sys", EBPF_EXECUTION_NATIVE, 0);
+    _load_invalid_program("invalid_maps1.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid2", "[native][negative]")
 {
