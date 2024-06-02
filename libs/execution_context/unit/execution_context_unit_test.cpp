@@ -345,7 +345,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
                 reinterpret_cast<const uint8_t*>(&key),
                 value.size(),
                 value.data(),
-                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
+                EBPF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
 
         REQUIRE(
             ebpf_map_find_entry(
@@ -360,7 +360,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
                 reinterpret_cast<const uint8_t*>(&key),
                 value.size(),
                 value.data(),
-                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_INVALID_ARGUMENT);
+                EBPF_MAP_FIND_FLAG_DELETE) == EBPF_INVALID_ARGUMENT);
     }
 
     auto retrieved_map_definition = *ebpf_map_get_definition(map.get());

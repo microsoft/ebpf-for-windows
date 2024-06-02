@@ -816,7 +816,7 @@ _ebpf_core_protocol_map_find_element(
         request->key,
         value_length,
         reply->value,
-        request->find_and_delete ? EPBF_MAP_FIND_FLAG_DELETE : 0);
+        request->find_and_delete ? EBPF_MAP_FIND_FLAG_DELETE : 0);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1132,7 +1132,7 @@ _ebpf_core_protocol_map_get_next_key_value_batch(
         previous_key_length == 0 ? NULL : request->previous_key,
         &reply_data_length,
         reply->data,
-        request->find_and_delete ? EPBF_MAP_FIND_FLAG_DELETE : 0);
+        request->find_and_delete ? EBPF_MAP_FIND_FLAG_DELETE : 0);
 
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -2105,7 +2105,7 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
     ebpf_result_t retval;
     uint8_t* value;
     retval = ebpf_map_find_entry(
-        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EPBF_MAP_FIND_FLAG_DELETE);
+        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
     if (retval != EBPF_SUCCESS) {
         return NULL;
     } else {
