@@ -2691,7 +2691,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
 // only for Debug build.
 #ifdef _DEBUG
 
-// Load programs from a native module which has 0 programs.
+// Load a native module that has 0 programs.
+// TODO(#3597): The empty file should pass bpf2c so should be enabled for Release as well.
 TEST_CASE("load_native_program_empty", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;

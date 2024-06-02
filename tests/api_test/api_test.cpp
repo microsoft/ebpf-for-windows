@@ -1087,6 +1087,26 @@ DECLARE_REGRESSION_TEST_CASE("0.11.0")
 // only for Debug build.
 #ifdef _DEBUG
 
+// Load a native module that has 0 programs.
+// TODO(#3597): The empty file should pass bpf2c so should be enabled for Release as well.
+TEST_CASE("load_native_program_empty", "[native_tests]")
+{
+    bpf_object* object = bpf_object__open("empty.sys");
+    REQUIRE(object != nullptr);
+
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Verify that no programs exist but at least one map exists.
+    uint32_t next_id;
+    REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+    REQUIRE(bpf_map_get_next_id(0, &next_id) == 0);
+
+    bpf_object__close(object);
+
+    // Verify no maps exist.
+    REQUIRE(bpf_map_get_next_id(0, &next_id) == -ENOENT);
+}
+
 static void
 _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execution_type, int expected_result)
 {
@@ -1117,10 +1137,6 @@ TEST_CASE("load_native_program_invalid2", "[native][negative]")
 TEST_CASE("load_native_program_invalid3", "[native][negative]")
 {
     _load_invalid_program("invalid_helpers.sys", EBPF_EXECUTION_NATIVE, -EINVAL);
-}
-TEST_CASE("load_native_program_empty", "[native][negative]")
-{
-    _load_invalid_program("empty.sys", EBPF_EXECUTION_NATIVE, 0);
 }
 TEST_CASE("load_native_program_invalid5", "[native][negative]")
 {
