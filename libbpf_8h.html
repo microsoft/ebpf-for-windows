@@ -184,6 +184,12 @@ Functions</h2></td></tr>
 <tr class="memitem:add95958a8ad1c31b3f42a614625d20d1"><td class="memItemLeft" align="right" valign="top">struct bpf_link *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1">bpf_program__attach_xdp</a> (struct bpf_program *prog, int ifindex)</td></tr>
 <tr class="memdesc:add95958a8ad1c31b3f42a614625d20d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to an XDP hook.  <a href="libbpf_8h.html#add95958a8ad1c31b3f42a614625d20d1">More...</a><br /></td></tr>
 <tr class="separator:add95958a8ad1c31b3f42a614625d20d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba7550bb20d5957e906fd6395f64b5b3"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#aba7550bb20d5957e906fd6395f64b5b3">bpf_program__autoload</a> (const struct bpf_program *prog)</td></tr>
+<tr class="memdesc:aba7550bb20d5957e906fd6395f64b5b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get whether an eBPF program will be loaded when the object is loaded.  <a href="libbpf_8h.html#aba7550bb20d5957e906fd6395f64b5b3">More...</a><br /></td></tr>
+<tr class="separator:aba7550bb20d5957e906fd6395f64b5b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1ac0812e7b00ef16c2bae087df2b5607"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a1ac0812e7b00ef16c2bae087df2b5607">bpf_program__set_autoload</a> (struct bpf_program *prog, bool autoload)</td></tr>
+<tr class="memdesc:a1ac0812e7b00ef16c2bae087df2b5607"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set whether an eBPF program will be loaded when the object is loaded.  <a href="libbpf_8h.html#a1ac0812e7b00ef16c2bae087df2b5607">More...</a><br /></td></tr>
+<tr class="separator:a1ac0812e7b00ef16c2bae087df2b5607"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a537fad2441f3f63e2cda6f88bc12ce80"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a537fad2441f3f63e2cda6f88bc12ce80">bpf_prog_attach</a> (int prog_fd, int attachable_fd, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type, unsigned int flags)</td></tr>
 <tr class="memdesc:a537fad2441f3f63e2cda6f88bc12ce80"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to an attach point.  <a href="libbpf_8h.html#a537fad2441f3f63e2cda6f88bc12ce80">More...</a><br /></td></tr>
 <tr class="separator:a537fad2441f3f63e2cda6f88bc12ce80"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1708,6 +1714,38 @@ bpf_object__unpin </dd></dl>
 
 </div>
 </div>
+<a id="aba7550bb20d5957e906fd6395f64b5b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aba7550bb20d5957e906fd6395f64b5b3">&#9670;&nbsp;</a></span>bpf_program__autoload()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">bool bpf_program__autoload </td>
+          <td>(</td>
+          <td class="paramtype">const struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Get whether an eBPF program will be loaded when the object is loaded. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>The program to check.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>True if the program will be loaded, false if not.</dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load</a> </dd>
+<dd>
+<a class="el" href="libbpf__legacy_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#a1ac0812e7b00ef16c2bae087df2b5607" title="Set whether an eBPF program will be loaded when the object is loaded.">bpf_program__set_autoload</a> </dd></dl>
+
+</div>
+</div>
 <a id="a8ee480e1b45d468710fd35a2f43aeed3"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a8ee480e1b45d468710fd35a2f43aeed3">&#9670;&nbsp;</a></span>bpf_program__fd()</h2>
 
@@ -1933,6 +1971,54 @@ bpf_object__unpin </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The ELF section name of an eBPF program, or NULL if none. </dd></dl>
+
+</div>
+</div>
+<a id="a1ac0812e7b00ef16c2bae087df2b5607"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1ac0812e7b00ef16c2bae087df2b5607">&#9670;&nbsp;</a></span>bpf_program__set_autoload()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_program__set_autoload </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>autoload</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set whether an eBPF program will be loaded when the object is loaded. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>The program to update.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a101742f5d81ad187cd879e22d6385031" title="Load all the programs in a given object.">bpf_object__load</a> </dd>
+<dd>
+<a class="el" href="libbpf__legacy_8h.html#afac9e0bb7320698059d043359a363db8" title="Load all the programs in a given object.">bpf_object__load_xattr</a> </dd>
+<dd>
+<a class="el" href="libbpf_8h.html#aba7550bb20d5957e906fd6395f64b5b3" title="Get whether an eBPF program will be loaded when the object is loaded.">bpf_program__autoload</a> </dd></dl>
 
 </div>
 </div>
