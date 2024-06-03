@@ -16,7 +16,7 @@ static const uint32_t _ebpf_object_marker = 'eobj';
 static ebpf_lock_t _ebpf_object_tracking_list_lock = {0};
 
 /**
- * @brief Objects are allocated an entry in the the ID
+ * @brief Objects are allocated an entry in the ID
  * table when they are initialized.  Along with a pointer to the
  * object, each id table entry maintains its own ref-count that
  * starts off at 1 when it is assigned to a new object. The
