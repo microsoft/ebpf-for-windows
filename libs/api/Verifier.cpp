@@ -683,7 +683,7 @@ _ebpf_api_elf_verify_program_from_stream(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        verifier_options.no_simplify = true;
+        verifier_options.simplify = false;
         bool res =
             ebpf_verify_program(output, program, raw_program.info, &verifier_options, (ebpf_verifier_stats_t*)stats);
         if (!res) {
