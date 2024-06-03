@@ -14,7 +14,7 @@ extern "C"
 #endif
 
 #define EBPF_MAP_FLAG_HELPER 0x01      /* Called by an eBPF program. */
-#define EPBF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
+#define EBPF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
 
     typedef struct _ebpf_core_map ebpf_map_t;
 
@@ -194,7 +194,7 @@ extern "C"
      * @param[in] map Ring buffer map to query.
      * @param[out] buffer Pointer to ring buffer data.
      * @param[out] consumer_offset Offset of consumer in ring buffer data.
-     * @retval EPBF_SUCCESS Successfully mapped the ring buffer.
+     * @retval EBPF_SUCCESS Successfully mapped the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
      */
     _Must_inspect_result_ ebpf_result_t
@@ -206,7 +206,7 @@ extern "C"
      *
      * @param[in] map Ring buffer map.
      * @param[in] length Length of bytes to return to the ring buffer.
-     * @retval EPBF_SUCCESS Successfully returned records to the ring buffer.
+     * @retval EBPF_SUCCESS Successfully returned records to the ring buffer.
      * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
      */
     _Must_inspect_result_ ebpf_result_t
@@ -233,7 +233,7 @@ extern "C"
      * @param[in, out] map Pointer to map of type EBPF_MAP_TYPE_RINGBUF.
      * @param[in] data Data of record to write into ring buffer map.
      * @param[in] length Length of data.
-     * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
+     * @retval EBPF_SUCCESS Successfully wrote record into ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
     _Must_inspect_result_ ebpf_result_t

@@ -280,7 +280,7 @@ struct object_table_entry
 // do not care about user mode failures in, or errors returned from, ebpfapi and focus only on exercing the in-kernel
 // eBPF components' ability to deal with such situations w/o causing a kernel hang or crash. The primary test goal here
 // is to ensure that such races do not cause hangs or crashes in the in-kernel eBPF sub-system components
-// (epbfcore, netebpfext drivers).
+// (ebpfcore, netebpfext drivers).
 
 enum class thread_role_type : uint32_t
 {
