@@ -32,7 +32,7 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
     if (!res) {
         // On failure, retry to get the more detailed error message.
         std::ostringstream oss;
-        options.no_simplify = true;
+        options.simplify = false;
         options.print_failures = true;
         // Until https://github.com/vbpf/ebpf-verifier/issues/643 is fixed, don't set options.assume_assertions to true.
         (void)ebpf_verify_program(oss, prog, raw_prog.info, &options, &stats);
