@@ -351,7 +351,7 @@ ebpf_program_load(
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
     _Out_ bpf_object_ptr* unique_object,
-    _Out_ fd_t* program_fd,
+    _Out_ fd_t* program_fd, // File descriptor of first program in the object.
     _Outptr_opt_result_maybenull_z_ const char** log_buffer)
 {
     *program_fd = ebpf_fd_invalid;
@@ -385,7 +385,9 @@ ebpf_program_load(
         return error;
     }
 
-    *program_fd = bpf_program__fd(program);
+    if (program != nullptr) {
+        *program_fd = bpf_program__fd(program);
+    }
     unique_object->reset(new_object);
     return 0;
 }
@@ -2554,8 +2556,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 
     // Try to load the programs from the same module again. It should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
         ERROR_OBJECT_ALREADY_EXISTS);
 
     bpf_object__close(unique_object.release());
@@ -2563,8 +2564,8 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     // Now that we have closed the object, try to load programs from the same module again. This should
     // fail as the module should now be marked as "unloading".
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) != ERROR_SUCCESS);
+        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) !=
+        ERROR_SUCCESS);
 }
 
 // Load native module and then try to load programs with incorrect params.
@@ -2587,7 +2588,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // First try to load native program without loading the native module.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_PATH_NOT_FOUND);
 
     // Creating valid service with valid driver.
@@ -2606,7 +2607,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_INVALID_PARAMETER);
 
     // Delete the created service.
@@ -2690,8 +2691,9 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
 // only for Debug build.
 #ifdef _DEBUG
 
-// Load programs from a native module which has 0 programs.
-TEST_CASE("load_native_program_negative8", "[end-to-end]")
+// Load a native module that has 0 programs.
+// TODO(#3597): The empty file should pass bpf2c so should be enabled for Release as well.
+TEST_CASE("load_native_program_empty", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2701,9 +2703,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    std::wstring file_path(L"test_sample_ebpf_um.dll");
-    ebpf_handle_t map_handles;
-    ebpf_handle_t program_handles;
+    ebpf_handle_t map_handles = ebpf_handle_invalid;
+    ebpf_handle_t program_handles = ebpf_handle_invalid;
     _test_handle_helper module_handle;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
@@ -2723,8 +2724,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
-        ERROR_INVALID_PARAMETER);
+        test_ioctl_load_native_programs(&provider_module_id, 1, &map_handles, 0, &program_handles) == ERROR_SUCCESS);
+    REQUIRE(map_handles != ebpf_handle_invalid);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
@@ -2738,12 +2739,20 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     int result;
     bpf_object_ptr unique_object;
     fd_t program_fd;
+    uint32_t next_id;
 
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
     result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, nullptr);
     REQUIRE(result == expected_result);
+    REQUIRE(program_fd == ebpf_fd_invalid);
+
+    if (result != 0) {
+        // If load failed, no programs or maps should be loaded.
+        REQUIRE(bpf_map_get_next_id(0, &next_id) == -ENOENT);
+        REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+    }
 }
 
 static void
@@ -2765,10 +2774,6 @@ TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
     _test_load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
-}
-TEST_CASE("load_native_program_invalid4", "[end-to-end]")
-{
-    _test_load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {

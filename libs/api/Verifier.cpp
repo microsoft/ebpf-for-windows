@@ -330,9 +330,7 @@ load_byte_code(
 
             program->handle = ebpf_handle_invalid;
             program->program_type = *(const GUID*)raw_program.info.type.platform_specific_data;
-
-            // Only autoload programs with a defined program type.
-            program->autoload = memcmp(&program->program_type, &empty_program_type, sizeof(empty_program_type)) != 0;
+            program->autoload = true;
 
             program->section_name = cxplat_duplicate_string(raw_program.section_name.c_str());
             program->program_name = cxplat_duplicate_string(raw_program.function_name.c_str());
@@ -685,7 +683,7 @@ _ebpf_api_elf_verify_program_from_stream(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        verifier_options.no_simplify = true;
+        verifier_options.simplify = false;
         bool res =
             ebpf_verify_program(output, program, raw_program.info, &verifier_options, (ebpf_verifier_stats_t*)stats);
         if (!res) {
