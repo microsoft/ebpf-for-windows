@@ -17,13 +17,13 @@
 
 // Export XDP program information to allow for our unit tests to mock the XDP API surface.
 static const ebpf_program_type_descriptor_t _mock_xdp_program_type_descriptor = {
-    {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
     "xdp",
     &_ebpf_xdp_test_context_descriptor,
     EBPF_PROGRAM_TYPE_XDP_GUID,
     BPF_PROG_TYPE_XDP};
 static const ebpf_program_info_t _mock_xdp_program_info = {
-    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
+    EBPF_PROGRAM_INFORMATION_HEADER,
     &_mock_xdp_program_type_descriptor,
     EBPF_COUNT_OF(_xdp_test_ebpf_extension_helper_function_prototype),
     _xdp_test_ebpf_extension_helper_function_prototype};

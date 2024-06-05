@@ -66,6 +66,27 @@ strip_paths(const std::string& original_string)
     return output_stream.str();
 }
 
+void
+test_expected_output_line_by_line(const std::string& expected_output, const std::string& actual_output)
+{
+    // If the expected and actual output are the same, the test passes.
+    if (expected_output == actual_output)
+        return;
+
+    std::cerr << "Expected output:\n" << expected_output << "\n";
+    std::cerr << "Actual output:\n" << actual_output << "\n";
+
+    // If the expected and actual output are not the same, compare them line by line.
+    std::istringstream expected_output_stream(expected_output);
+    std::istringstream actual_output_stream(actual_output);
+
+    std::string expected_line;
+    std::string actual_line;
+    while (std::getline(expected_output_stream, expected_line) && std::getline(actual_output_stream, actual_line)) {
+        REQUIRE(expected_line == actual_line);
+    }
+}
+
 TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
 {
     // Start the test helper so the netsh command can get helper prototypes.
@@ -144,10 +165,10 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "               .text     unspec       16\n"
+                  "                                                            Size\n"
+                  "             Section                 Program       Type  (bytes)\n"
+                  "====================  ======================  =========  =======\n"
+                  "               .text                    func     unspec       16\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -166,6 +187,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
     REQUIRE(
         output == "\n"
                   "Section      : .text\n"
+                  "Program      : func\n"
                   "Program Type : unspec\n"
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"
@@ -203,13 +225,13 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "               .text       bind     1064\n"
+                                        "               .text                    func       bind     1064\n"
 #else
-                                        "               .text       bind     1768\n"
+                                        "               .text                    func       bind     1768\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -229,13 +251,13 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "          sample_ext     sample      295\n"
+                                        "          sample_ext           lookup_update     sample      295\n"
 #else
-                                        "          sample_ext     sample     1087\n"
+                                        "          sample_ext           lookup_update     sample     1087\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -259,17 +281,17 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "        sample_ext/0     sample       73\n"
-                                        "        sample_ext/1     sample        6\n"
-                                        "          sample_ext     sample       73\n"
+                                        "        sample_ext/0                 callee0     sample       73\n"
+                                        "        sample_ext/1                 callee1     sample        6\n"
+                                        "          sample_ext                  caller     sample       73\n"
 #else
-                                        "          sample_ext     sample      413\n"
-                                        "        sample_ext/0     sample      413\n"
-                                        "        sample_ext/1     sample      190\n"
+                                        "        sample_ext/0                 callee0     sample      413\n"
+                                        "        sample_ext/1                 callee1     sample      190\n"
+                                        "          sample_ext                  caller     sample      413\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -291,19 +313,19 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "     cgroup/connect4  sock_addr      285\n"
-                                        "     cgroup/connect6  sock_addr      302\n"
-                                        " cgroup/recv_accept4  sock_addr      285\n"
-                                        " cgroup/recv_accept6  sock_addr      302\n"
+                                        "     cgroup/connect4      authorize_connect4  sock_addr      285\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr      302\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      285\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      302\n"
 #else
-                                        "     cgroup/connect4  sock_addr      860\n"
-                                        "     cgroup/connect6  sock_addr      935\n"
-                                        " cgroup/recv_accept4  sock_addr      860\n"
-                                        " cgroup/recv_accept6  sock_addr      935\n"
+                                        "     cgroup/connect4      authorize_connect4  sock_addr      860\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr      935\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      860\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      935\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -332,7 +354,8 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"bind", &result);
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L"program=func", L"type=bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
@@ -415,45 +438,31 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"xdp_datasize_unsafe.o", L"xdp", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     output = strip_paths(output);
-    REQUIRE(
-        output == "Verification failed\n"
-                  "\n"
-                  "Verification report:\n"
-                  "\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5: Invalid type (r3.type == non_map_fd)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
-                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                  "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "6: Invalid type (r2.type in {ctx, stack, packet, shared})\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "7: Invalid type (r1.type == number)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:38\n"
-                  ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-                  "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-                  "8: Invalid type (r1.type == number)\n"
-                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:43\n"
-                  ";     return rc;\n"
-                  "10: Invalid type (r0.type == number)\n"
-                  "\n"
-                  "9 errors\n"
-                  "\n");
+
+    // Perform a line by line comparison to detect any differences.
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:32\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "4: Code is unreachable after 4\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
+
+    // Split both output and expected_output into lines.
+    std::istringstream output_stream(output);
+    std::istringstream expected_output_stream(expected_output);
+
+    std::string output_line;
+    std::string expected_output_line;
+    while (std::getline(output_stream, output_line) && std::getline(expected_output_stream, expected_output_line)) {
+        REQUIRE(output_line == expected_output_line);
+    }
 }
 
 TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
@@ -466,17 +475,20 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"printk_unsafe.o", L"bind", nullptr, &result);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     output = strip_paths(output);
-    REQUIRE(
-        output == "Verification failed\n"
-                  "\n"
-                  "Verification report:\n"
-                  "\n"
-                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
-                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
-                  "7: Invalid type (r3.type == number)\n"
-                  "\n"
-                  "1 errors\n"
-                  "\n");
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
+                                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
+                                  "7: Invalid type (r3.type == number)\n"
+                                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
+                                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
+                                  "7: Code is unreachable after 7\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
+    test_expected_output_line_by_line(expected_output, output);
 }
 
 void

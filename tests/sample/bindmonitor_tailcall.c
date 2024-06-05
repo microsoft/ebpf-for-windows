@@ -75,7 +75,7 @@ struct _ebpf_map_definition_in_file dummy_inner_map = {
     .max_entries = 1,
     .id = INNER_MAP_ID};
 
-__attribute__((always_inline)) process_entry_t*
+inline __attribute__((always_inline)) process_entry_t*
 find_or_create_process_entry(bind_md_t* ctx)
 {
     uint64_t key = ctx->process_id;

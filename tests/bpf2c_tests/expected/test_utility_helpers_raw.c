@@ -177,7 +177,7 @@ test_utility_helpers(void* context)
     // EBPF_OP_ADD64_IMM pc=21 dst=r6 src=r0 offset=0 imm=-48
 #line 33 "sample/./sample_common_routines.h"
     r6 += IMMEDIATE(-48);
-    // EBPF_OP_LDDW pc=22 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=22 dst=r1 src=r1 offset=0 imm=1
 #line 36 "sample/./sample_common_routines.h"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=24 dst=r3 src=r6 offset=0 imm=0
@@ -249,7 +249,7 @@ test_utility_helpers(void* context)
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-4
 #line 51 "sample/./sample_common_routines.h"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=37 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/./sample_common_routines.h"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_REG pc=39 dst=r3 src=r6 offset=0 imm=0

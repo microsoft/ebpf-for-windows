@@ -1014,30 +1014,59 @@ DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functi
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
 
-TEST_CASE("enum section", "[end_to_end]")
+TEST_CASE("enum programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     const char* error_message = nullptr;
-    ebpf_section_info_t* section_data = nullptr;
+    ebpf_api_program_info_t* program_data = nullptr;
     uint32_t result;
 
     REQUIRE(
-        (result = ebpf_enumerate_sections(SAMPLE_PATH "test_sample_ebpf.o", true, &section_data, &error_message),
+        (result = ebpf_enumerate_programs(SAMPLE_PATH "test_sample_ebpf.o", true, &program_data, &error_message),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
-    for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
-        ebpf_stat_t* stat = current_section->stats;
+    for (auto current_program = program_data; current_program != nullptr; current_program = current_program->next) {
+        ebpf_stat_t* stat = current_program->stats;
         REQUIRE(strcmp(stat->key, "Instructions") == 0);
         REQUIRE(stat->value == 40);
     }
-    ebpf_free_sections(section_data);
+    ebpf_free_programs(program_data);
     ebpf_free_string(error_message);
 }
 
-TEST_CASE("verify section", "[end_to_end]")
+TEST_CASE("verify section", "[end_to_end][deprecated]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+    program_info_provider_t sample_test_program_info;
+    REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    ebpf_api_verifier_stats_t stats;
+#pragma warning(suppress : 4996) // deprecated
+    REQUIRE(
+        (result = ebpf_api_elf_verify_section_from_file(
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
+    REQUIRE(report != nullptr);
+    ebpf_free_string(report);
+}
+
+TEST_CASE("verify program", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1050,8 +1079,15 @@ TEST_CASE("verify section", "[end_to_end]")
 
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
-        (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
+        (result = ebpf_api_elf_verify_program_from_file(
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             "test_program_entry",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1059,7 +1095,7 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_free_string(report);
 }
 
-TEST_CASE("verify section with invalid program type", "[end_to_end]")
+TEST_CASE("verify program with invalid program type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1071,11 +1107,12 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
     ebpf_api_verifier_stats_t stats;
-    result = ebpf_api_elf_verify_section_from_file(
+    result = ebpf_api_elf_verify_program_from_file(
         SAMPLE_PATH "test_sample_ebpf.o",
         "sample_ext",
+        "test_program_entry",
         &EBPF_PROGRAM_TYPE_UNSPECIFIED,
-        false,
+        EBPF_VERIFICATION_VERBOSITY_NORMAL,
         &report,
         &error_message,
         &stats);
@@ -1191,8 +1228,15 @@ TEST_CASE("verify_test0", "[sample_extension]")
 
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
-        (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
+        (result = ebpf_api_elf_verify_program_from_file(
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             "test_program_entry",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -1214,8 +1258,15 @@ TEST_CASE("verify_test1", "[sample_extension]")
     ebpf_api_verifier_stats_t stats;
 
     REQUIRE(
-        (result = ebpf_api_elf_verify_section_from_file(
-             SAMPLE_PATH "test_sample_ebpf.o", "sample_ext", nullptr, false, &report, &error_message, &stats),
+        (result = ebpf_api_elf_verify_program_from_file(
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             nullptr,
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
@@ -3013,8 +3064,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Reload the extension provider with missing helper function.
     {
         ebpf_helper_function_addresses_t changed_helper_function_address_table = {
-            .header =
-                {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
+            .header = EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
             .helper_function_count = 0,
             .helper_function_address = nullptr};
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;

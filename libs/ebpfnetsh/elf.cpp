@@ -6,11 +6,13 @@
 #include "tokens.h"
 #include "utilities.h"
 
+#include <cassert>
 #include <iomanip>
 #include <locale>
 
-TOKEN_VALUE g_LevelEnum[2] = {
+TOKEN_VALUE g_LevelEnum[3] = {
     {L"normal", VL_NORMAL},
+    {L"informational", VL_INFORMATIONAL},
     {L"verbose", VL_VERBOSE},
 };
 
@@ -34,6 +36,7 @@ handle_ebpf_show_disassembly(
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_PROGRAM, NS_REQ_ZERO, FALSE},
     };
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -41,7 +44,8 @@ handle_ebpf_show_disassembly(
         PreprocessCommand(nullptr, argv, current_index, argc, tags, _countof(tags), 0, _countof(tags), tag_type);
 
     std::string filename;
-    std::string section = ""; // Use the first code section by default.
+    std::string section{}; // Use the first code section by default.
+    std::string program{}; // Use the first program by default.
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
         case 0: // FILENAME
@@ -52,6 +56,11 @@ handle_ebpf_show_disassembly(
         case 1: // SECTION
         {
             section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+            break;
+        }
+        case 2: // PROGRAM
+        {
+            program = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         default:
@@ -65,7 +74,12 @@ handle_ebpf_show_disassembly(
 
     const char* disassembly = nullptr;
     const char* error_message = nullptr;
-    if (ebpf_api_elf_disassemble_section(filename.c_str(), section.c_str(), &disassembly, &error_message) != 0) {
+    if (ebpf_api_elf_disassemble_program(
+            filename.c_str(),
+            !section.empty() ? section.c_str() : nullptr,
+            !program.empty() ? program.c_str() : nullptr,
+            &disassembly,
+            &error_message) != 0) {
         if (error_message != nullptr) {
             std::cerr << error_message << std::endl;
         }
@@ -150,45 +164,47 @@ handle_ebpf_show_sections(
         level = VL_VERBOSE;
     }
 
-    ebpf_section_info_t* section_data = nullptr;
+    ebpf_api_program_info_t* program_data = nullptr;
     const char* error_message = nullptr;
-    if (ebpf_enumerate_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message) != 0) {
+    if (ebpf_enumerate_programs(filename.c_str(), level == VL_VERBOSE, &program_data, &error_message) != 0) {
         if (error_message != nullptr) {
             std::cerr << error_message << std::endl;
         }
         ebpf_free_string(error_message);
-        ebpf_free_sections(section_data);
+        ebpf_free_programs(program_data);
         return ERROR_SUPPRESS_OUTPUT;
     }
 
     if (level == VL_NORMAL) {
         std::cout << "\n";
-        std::cout << "                                    Size\n";
-        std::cout << "             Section       Type  (bytes)\n";
-        std::cout << "====================  =========  =======\n";
+        std::cout << "                                                            Size\n";
+        std::cout << "             Section                 Program       Type  (bytes)\n";
+        std::cout << "====================  ======================  =========  =======\n";
     }
-    for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
-        if (!section.empty() && strcmp(current_section->section_name, section.c_str()) != 0) {
+    for (auto current_program = program_data; current_program != nullptr; current_program = current_program->next) {
+        if (!section.empty() && strcmp(current_program->section_name, section.c_str()) != 0) {
             continue;
         }
-        auto program_type_name = ebpf_get_program_type_name(&current_section->program_type);
+        auto program_type_name = ebpf_get_program_type_name(&current_program->program_type);
         if (program_type_name == nullptr) {
             program_type_name = "unspec";
         }
         if (level == VL_NORMAL) {
-            std::cout << std::setw(20) << std::right << current_section->section_name << "  " << std::setw(9)
-                      << program_type_name << "  " << std::setw(7) << current_section->raw_data_size << "\n";
+            std::cout << std::setw(20) << std::right << current_program->section_name << "  " << std::setw(22)
+                      << std::right << current_program->program_name << "  " << std::setw(9) << program_type_name
+                      << "  " << std::setw(7) << current_program->raw_data_size << "\n";
         } else {
             std::cout << "\n";
-            std::cout << "Section      : " << current_section->section_name << "\n";
+            std::cout << "Section      : " << current_program->section_name << "\n";
+            std::cout << "Program      : " << current_program->program_name << "\n";
             std::cout << "Program Type : " << program_type_name << "\n";
-            std::cout << "Size         : " << current_section->raw_data_size << " bytes\n";
-            for (auto stat = current_section->stats; stat != nullptr; stat = stat->next) {
+            std::cout << "Size         : " << current_program->raw_data_size << " bytes\n";
+            for (auto stat = current_program->stats; stat != nullptr; stat = stat->next) {
                 std::cout << std::setw(13) << std::left << stat->key << ": " << stat->value << "\n";
             }
         }
     }
-    ebpf_free_sections(section_data);
+    ebpf_free_programs(program_data);
     ebpf_free_string(error_message);
 
     // Show maps.
@@ -236,13 +252,15 @@ handle_ebpf_show_verification(
     TAG_TYPE tags[] = {
         {TOKEN_FILENAME, NS_REQ_PRESENT, FALSE},
         {TOKEN_SECTION, NS_REQ_ZERO, FALSE},
+        {TOKEN_PROGRAM, NS_REQ_ZERO, FALSE},
         {TOKEN_TYPE, NS_REQ_ZERO, FALSE},
         {TOKEN_LEVEL, NS_REQ_ZERO, FALSE},
     };
     const int FILENAME_INDEX = 0;
     const int SECTION_INDEX = 1;
-    const int TYPE_INDEX = 2;
-    const int LEVEL_INDEX = 3;
+    const int PROGRAM_INDEX = 2;
+    const int TYPE_INDEX = 3;
+    const int LEVEL_INDEX = 4;
 
     unsigned long tag_type[_countof(tags)] = {0};
 
@@ -251,7 +269,8 @@ handle_ebpf_show_verification(
 
     VERBOSITY_LEVEL level = VL_NORMAL;
     std::string filename;
-    std::string section = ""; // Use the first code section by default.
+    std::string section = "";      // Use the first code section by default.
+    std::string program_name = ""; // Use the first program name by default.
     std::string type_name = "";
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
@@ -265,6 +284,10 @@ handle_ebpf_show_verification(
         }
         case SECTION_INDEX: {
             section = down_cast_from_wstring(std::wstring(argv[current_index + i]));
+            break;
+        }
+        case PROGRAM_INDEX: {
+            program_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
             break;
         }
         case TYPE_INDEX: {
@@ -299,23 +322,24 @@ handle_ebpf_show_verification(
 
     if (section == "") {
         // If no section name was provided, fetch the first section name.
-        ebpf_section_info_t* section_data = nullptr;
+        ebpf_api_program_info_t* program_data = nullptr;
         ebpf_result_t result =
-            ebpf_enumerate_sections(filename.c_str(), level == VL_VERBOSE, &section_data, &error_message);
-        if (result != ERROR_SUCCESS || section_data == nullptr) {
+            ebpf_enumerate_programs(filename.c_str(), level == VL_VERBOSE, &program_data, &error_message);
+        if (result != ERROR_SUCCESS || program_data == nullptr) {
             if (error_message) {
                 std::cerr << error_message << std::endl;
             } else {
                 std::cerr << "\nNo section(s) found" << std::endl;
             }
             ebpf_free_string(error_message);
-            ebpf_free_sections(section_data);
+            ebpf_free_programs(program_data);
             return ERROR_SUPPRESS_OUTPUT;
         }
 
-        section = section_data->section_name;
+        section = program_data->section_name;
+        program_name = program_data->program_name;
         ebpf_free_string(error_message);
-        ebpf_free_sections(section_data);
+        ebpf_free_programs(program_data);
     }
 
     if (!program_type_found) {
@@ -325,8 +349,32 @@ handle_ebpf_show_verification(
         }
     }
 
-    status = ebpf_api_elf_verify_section_from_file(
-        filename.c_str(), section.c_str(), &program_type, level == VL_VERBOSE, &report, &error_message, &stats);
+    ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
+    switch (level) {
+    case VL_NORMAL:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
+        break;
+    case VL_INFORMATIONAL:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
+        break;
+    case VL_VERBOSE:
+        verbosity = EBPF_VERIFICATION_VERBOSITY_VERBOSE;
+        break;
+    default:
+        // Assert this never happens.
+        assert(!"Invalid verbosity level");
+        break;
+    }
+
+    status = ebpf_api_elf_verify_program_from_file(
+        filename.c_str(),
+        !section.empty() ? section.c_str() : nullptr,
+        !program_name.empty() ? program_name.c_str() : nullptr,
+        &program_type,
+        verbosity,
+        &report,
+        &error_message,
+        &stats);
     if (status == ERROR_SUCCESS) {
         std::cout << report;
         std::cout << "\nProgram terminates within " << stats.max_loop_count << " loop iterations\n";
