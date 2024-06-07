@@ -80,7 +80,7 @@ jobs:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes] ~["show sections tail_call_multiple_um.dll"]
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: true
@@ -98,7 +98,7 @@ jobs:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes] ~["show sections tail_call_multiple_um.dll"]
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
       environment: windows-2022
       code_coverage: true
@@ -115,7 +115,7 @@ jobs:
       name: unit_tests
       pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       # Exclude [processes] test that CodeCoverage can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes] ~["show sections tail_call_multiple_um.dll"]
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64-native-only
       environment: windows-2022
       code_coverage: true
@@ -438,7 +438,7 @@ jobs:
     with:
       name: unit_tests
       # Exclude [processes] test that ASAN can't work with.
-      test_command: .\unit_tests.exe -d yes ~[processes] ~["show sections tail_call_multiple_um.dll"]
+      test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64-Sanitize
       environment: windows-2022
       code_coverage: false

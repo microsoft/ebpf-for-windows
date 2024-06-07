@@ -285,7 +285,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "        sample_ext/0                 callee0     sample       73\n"
+                                        "        sample_ext/0                 callee0     sample       75\n"
                                         "        sample_ext/1                 callee1     sample        6\n"
                                         "          sample_ext                  caller     sample       73\n"
 #else
