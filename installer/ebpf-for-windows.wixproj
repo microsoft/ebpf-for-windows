@@ -20,13 +20,13 @@ SPDX-License-Identifier: MIT
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;IncludeJIT=True</DefineConstants>
+    <DefineConstants>Debug;IncludeJIT=True;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;IncludeJIT=False</DefineConstants>
+    <DefineConstants>Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
@@ -35,6 +35,7 @@ SPDX-License-Identifier: MIT
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">IncludeJIT=True</DefineConstants>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
@@ -42,6 +43,7 @@ SPDX-License-Identifier: MIT
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">IncludeJIT=True</DefineConstants>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
   <ItemGroup Condition="'$(Analysis)'==''">
