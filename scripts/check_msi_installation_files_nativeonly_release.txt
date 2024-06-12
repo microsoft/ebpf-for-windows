@@ -18,3 +18,12 @@ C:\Program Files\ebpf-for-windows\drivers\eBPFCore.sys
 C:\Program Files\ebpf-for-windows\drivers\NetEbpfExt.inf
 C:\Program Files\ebpf-for-windows\drivers\NetEbpfExt.pdb
 C:\Program Files\ebpf-for-windows\drivers\NetEbpfExt.sys
+C:\Program Files\ebpf-for-windows\concrt140.dll
+C:\Program Files\ebpf-for-windows\msvcp140.dll
+C:\Program Files\ebpf-for-windows\msvcp140_1.dll
+C:\Program Files\ebpf-for-windows\msvcp140_2.dll
+C:\Program Files\ebpf-for-windows\msvcp140_atomic_wait.dll
+C:\Program Files\ebpf-for-windows\msvcp140_codecvt_ids.dll
+C:\Program Files\ebpf-for-windows\vccorlib140.dll
+C:\Program Files\ebpf-for-windows\vcruntime140.dll
+C:\Program Files\ebpf-for-windows\vcruntime140_1.dll
