@@ -280,26 +280,48 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    const std::string expected_output = "\n"
-                                        "                                                            Size\n"
-                                        "             Section                 Program       Type  (bytes)\n"
-                                        "====================  ======================  =========  =======\n"
-#if defined(NDEBUG)
-                                        "        sample_ext/0                 callee0     sample       73\n"
-                                        "        sample_ext/1                 callee1     sample        6\n"
-                                        "          sample_ext                  caller     sample       73\n"
-#else
-                                        "        sample_ext/0                 callee0     sample      413\n"
-                                        "        sample_ext/1                 callee1     sample      190\n"
-                                        "          sample_ext                  caller     sample      413\n"
-#endif
-                                        "\n"
-                                        "                     Key  Value      Max\n"
-                                        "          Map Type  Size   Size  Entries  Name\n"
-                                        "==================  ====  =====  =======  ========\n"
-                                        "        prog_array     4      4       10  map\n";
 
-    REQUIRE(output == expected_output);
+    // Issue #3610: Different MSVC versions expect different numbers of bytes for the same program.
+    // As a workaround, check for both the expected outputs.
+    const std::string expected_output_old = "\n"
+                                            "                                                            Size\n"
+                                            "             Section                 Program       Type  (bytes)\n"
+                                            "====================  ======================  =========  =======\n"
+#if defined(NDEBUG)
+                                            "        sample_ext/0                 callee0     sample       73\n"
+                                            "        sample_ext/1                 callee1     sample        6\n"
+                                            "          sample_ext                  caller     sample       73\n"
+#else
+                                            "        sample_ext/0                 callee0     sample      413\n"
+                                            "        sample_ext/1                 callee1     sample      190\n"
+                                            "          sample_ext                  caller     sample      413\n"
+#endif
+                                            "\n"
+                                            "                     Key  Value      Max\n"
+                                            "          Map Type  Size   Size  Entries  Name\n"
+                                            "==================  ====  =====  =======  ========\n"
+                                            "        prog_array     4      4       10  map\n";
+
+    const std::string expected_output_new = "\n"
+                                            "                                                            Size\n"
+                                            "             Section                 Program       Type  (bytes)\n"
+                                            "====================  ======================  =========  =======\n"
+#if defined(NDEBUG)
+                                            "        sample_ext/0                 callee0     sample       75\n"
+                                            "        sample_ext/1                 callee1     sample        6\n"
+                                            "          sample_ext                  caller     sample       73\n"
+#else
+                                            "        sample_ext/0                 callee0     sample      413\n"
+                                            "        sample_ext/1                 callee1     sample      190\n"
+                                            "          sample_ext                  caller     sample      413\n"
+#endif
+                                            "\n"
+                                            "                     Key  Value      Max\n"
+                                            "          Map Type  Size   Size  Entries  Name\n"
+                                            "==================  ====  =====  =======  ========\n"
+                                            "        prog_array     4      4       10  map\n";
+
+    REQUIRE((output == expected_output_old || output == expected_output_new));
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
