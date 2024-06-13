@@ -109,11 +109,11 @@ solutions that are using the shared eBPF program and is outside the scope of eBP
 
 
 **Note**:
-One limitation with this options (option 2) is that all existing applications that are using native eBPF programs need
+One limitation with this option (option 2) is that all existing applications that are using native eBPF programs need
 to now also have an explicit installer / un-installer for the native programs that are they are using. This installer
 can either be a separate entity (for example, in the cases where the native eBPF program is a common program shared
 between multiple applications / products), or it can be integrated with the application that loads the program (in the
-cases where the native eBPF program is exclusively owned by that application / product).
+cases where the native eBPF program is exclusively owned by that application / product, and the application / product runs as admin).
 
 One way to mitigate this new mandatory requirement is to also support the current behavior where there is no need to
 explicitly create a service entry. With this approach, at the load step, when ebpfapi does not find any matching service
