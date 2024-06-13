@@ -87,27 +87,39 @@ In this new design the native module should be deleted from the hash table only 
 completed. Also, we need to ensure that driver unload happens inline.
 
 ### Option 2
-Another approach is to completely skip all the above synchronization logic in ebpfcore and ebpfapi.dll, and separate
-out service install / uninstall completely from the scope of the application. Native modules will be installed by some
-installer that installs the native module on the system. Once that is done, programs can be loaded / unloaded multiple
-times, without the need of install / uninstall of service entries.
+Another approach is to eliminate all of the above mentioned synchronization logic from ebpfcore and ebpfapi.dll, and
+separate out service install / uninstall completely from the scope of the application. Native modules will be installed
+by some installer that installs the native module on the system. Once that is done, programs can be loaded / unloaded
+multiple times, without the need of install / uninstall of service entries.
 
-Changes needed to implement this:
-1. Installer installs the service entry. We need to ensure the service name is unique. Two native modules with same
-name but in different locations should be installed as 2 different services. Installer also populates the client module
-ID registry key with a random GUID.
-2. The app that loads the program will pass the service name to ebpfapi (TBD: How does app know the service name for its
-service). We can still use the existing `bpf_object__open` API, and the API can take the service name instead of file
-name as input.
+A typical workflow in this option will be like the below:
+
+1. ebpfapi.dll provides two new APIs to install and uninstall service for a provided native module. These APIs take the
+file name with optional path as input. Internally, ebpfapi generates a unique service name for provided file with path.
+2. An installer installs the eBPF program on the machine by using the new eBPF service install APIs.
+3. Once the service has been installed, an app can load the native module by passing the file name (with absolute or
+relative path) to `bpf_object__open()`. ebpfapi.dll will use the logic as in step 1 above to internally regenerate the
+same service name.
+4. In the load step, ebpfapi.dll checks if the corresponding service is present. If it is present, it will proceed with
+the load of program, else it will fail the load call.
+5. In the case a program is shared between multiple apps / products, common installation will need to be managed by the
+solutions that are using the shared eBPF program and is outside the scope of eBPF framework.
+6. eBPF programs can be loaded multiple times from the same native module.
+7. The native module will remain loaded until the service is uninstalled.
+
 
 **Note**:
-1. One limitation with option 2 is that all existing applications that are using native eBPF programs need to now
-also have an explicit installer / un-installer for the native programs that are they are using. This installer can
-either be a separate entity (in the cases where the native eBPF program is a common program shared between multiple
-applications / products), or it can be integrated with the application that loads the program (in the cases where the
-native eBPF program is exclusively owned by that application / product).
-2. Since this approach requires multiple components to generate the service name for the sys file, one option can be to
-export an API from ebpfapi.dll that takes file name as input and generates and returns a service name for that file.
+One limitation with this options (option 2) is that all existing applications that are using native eBPF programs need
+to now also have an explicit installer / un-installer for the native programs that are they are using. This installer
+can either be a separate entity (for example, in the cases where the native eBPF program is a common program shared
+between multiple applications / products), or it can be integrated with the application that loads the program (in the
+cases where the native eBPF program is exclusively owned by that application / product).
+
+One way to mitigate this new mandatory requirement is to also support the current behavior where there is no need to
+explicitly create a service entry. With this approach, at the load step, when ebpfapi does not find any matching service
+entry, it can fall back to the current behavior where it will dynamically create a service entry. In this flow, since the
+service was dynamically created, the native module will also be automatically unloaded once all the programs have been
+unloaded.
 
 ## Native Module Changes
 This section captures the changes needed to support multiple instances of program in native module driver.
