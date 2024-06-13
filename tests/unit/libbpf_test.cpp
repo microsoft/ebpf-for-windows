@@ -507,6 +507,64 @@ TEST_CASE("libbpf program", "[libbpf]")
     bpf_object__close(object);
 }
 
+static void
+_test_program_autoload(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "tail_call_same_section_um.dll" : "tail_call_same_section.o");
+    struct bpf_object* object = bpf_object__open(file_name);
+    REQUIRE(object != nullptr);
+    struct bpf_program* caller = bpf_object__find_program_by_name(object, "caller");
+    REQUIRE(caller != nullptr);
+    int caller_fd = bpf_program__fd(const_cast<const bpf_program*>(caller));
+    REQUIRE(caller_fd == ebpf_fd_invalid);
+    struct bpf_program* callee = bpf_object__find_program_by_name(object, "callee");
+    REQUIRE(callee != nullptr);
+    int callee_fd = bpf_program__fd(const_cast<const bpf_program*>(callee));
+    REQUIRE(callee_fd == ebpf_fd_invalid);
+
+    // Check initial autoload values.
+    REQUIRE(bpf_program__autoload(caller) == true);
+    REQUIRE(bpf_program__autoload(callee) == true);
+
+    // Update an autoload value.
+    REQUIRE(bpf_program__set_autoload(caller, false) == 0);
+    REQUIRE(bpf_program__autoload(caller) == false);
+    REQUIRE(bpf_program__autoload(callee) == true);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Verify what programs were loaded.
+    caller_fd = bpf_program__fd(const_cast<const bpf_program*>(caller));
+    REQUIRE(caller_fd == ebpf_fd_invalid);
+    callee_fd = bpf_program__fd(const_cast<const bpf_program*>(callee));
+    REQUIRE(callee_fd > 0);
+
+    // Verify we cannot change autoload values after loading.
+    int error = bpf_program__set_autoload(caller, false);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(caller, true);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(callee, false);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+    error = bpf_program__set_autoload(callee, true);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EINVAL);
+
+    bpf_object__close(object);
+}
+
+DECLARE_ALL_TEST_CASES("libbpf program autoload", "[libbpf]", _test_program_autoload);
+
 TEST_CASE("libbpf program pinning", "[libbpf]")
 {
     _test_helper_libbpf test_helper;
@@ -732,6 +790,9 @@ TEST_CASE("libbpf map", "[libbpf]")
     struct bpf_object* object = bpf_object__open("map.o");
     REQUIRE(object != nullptr);
 
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_maps");
+    REQUIRE(program != nullptr);
+
     // Load the program(s).
     REQUIRE(bpf_object__load(object) == 0);
 
@@ -782,7 +843,6 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(errno == EINVAL);
 
     // Wrong fd type.
-    struct bpf_program* program = bpf_object__find_program_by_name(object, "test_maps");
     int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
     result = bpf_map_lookup_elem(program_fd, &index, &value);
     REQUIRE(result < 0);
@@ -1339,6 +1399,12 @@ TEST_CASE("good_tail_call-native", "[libbpf]")
 {
     // Verify that 42 is returned, which is done by the callee.
     _ebpf_test_tail_call("tail_call_um.dll", 42);
+}
+
+TEST_CASE("good_tail_call_same_section-native", "[libbpf]")
+{
+    // Verify that 42 is returned, which is done by the callee.
+    _ebpf_test_tail_call("tail_call_same_section_um.dll", 42);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -2512,6 +2578,67 @@ TEST_CASE("bpf_object__open_file with .dll", "[libbpf]")
     bpf_object__close(object);
 }
 
+TEST_CASE("bpf_object__load with .dll", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    const char* my_object_name = "my_object_name";
+    struct bpf_object_open_opts opts = {0};
+    opts.object_name = my_object_name;
+    struct bpf_object* object = bpf_object__open_file("droppacket_um.dll", &opts);
+    REQUIRE(object != nullptr);
+
+    REQUIRE(strcmp(bpf_object__name(object), my_object_name) == 0);
+
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "DropPacket");
+    REQUIRE(program != nullptr);
+
+    REQUIRE(bpf_program__fd(program) == ebpf_fd_invalid);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+
+    // Make sure we cannot override the program type, since this is a native program.
+    REQUIRE(bpf_program__set_type(program, BPF_PROG_TYPE_BIND) < 0);
+    REQUIRE(errno == EINVAL);
+    REQUIRE(bpf_program__type(program) == BPF_PROG_TYPE_XDP);
+
+    struct bpf_map* map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
+
+    // Trying to attach the program should fail since it's not loaded yet.
+    bpf_link_ptr link(bpf_program__attach(program));
+    REQUIRE(link == nullptr);
+    REQUIRE(libbpf_get_error(link.get()) == -EINVAL);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    // Attach should now succeed.
+    link.reset(bpf_program__attach(program));
+    REQUIRE(link != nullptr);
+
+    // The maps should now have FDs.
+    map = bpf_object__next_map(object, nullptr);
+    REQUIRE(map != nullptr);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
+    map = bpf_object__next_map(object, map);
+    REQUIRE(map == nullptr);
+
+    REQUIRE(bpf_link__destroy(link.release()) == 0);
+    bpf_object__close(object);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("bpf_object__load with .o", "[libbpf]")
 {
@@ -3233,14 +3360,66 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     usersim_trace_logging_set_enabled(false, 0, 0);
 }
 
-TEST_CASE("libbpf map batch", "[libbpf]")
+void
+_test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts)
+{
+    // Retrieve in batches.
+    const uint8_t batch_size_divisor = 10;
+    uint32_t* in_batch = nullptr;
+    uint32_t out_batch = 0;
+    std::vector<uint32_t> returned_keys(0);
+    std::vector<uint64_t> returned_values(0);
+    uint32_t requested_batch_size = (batch_size / batch_size_divisor) - 2;
+    uint32_t batch_size_count = 0;
+    int result = 0;
+
+    for (;;) {
+        std::vector<uint32_t> batch_keys(requested_batch_size);
+        std::vector<uint64_t> batch_values(requested_batch_size);
+
+        batch_size_count = static_cast<uint32_t>(batch_keys.size());
+        result = bpf_map_lookup_batch(
+            map_fd, in_batch, &out_batch, batch_keys.data(), batch_values.data(), &batch_size_count, opts);
+        if (result == -ENOENT) {
+            printf("No more entries. End of map reached.\n");
+            break;
+        }
+
+        REQUIRE(result == 0);
+        // Number of entries retrieved (batch_size_count) should be less than or equal to requested_batch_size.
+        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_keys.size()));
+        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_values.size()));
+
+        batch_keys.resize(batch_size_count);
+        batch_values.resize(batch_size_count);
+        returned_keys.insert(returned_keys.end(), batch_keys.begin(), batch_keys.end());
+        returned_values.insert(returned_values.end(), batch_values.begin(), batch_values.end());
+
+        in_batch = &out_batch;
+    }
+
+    REQUIRE(returned_keys.size() == batch_size);
+    REQUIRE(returned_values.size() == batch_size);
+
+    std::sort(returned_keys.begin(), returned_keys.end());
+    std::sort(returned_values.begin(), returned_values.end());
+
+    // Verify the returned keys and values.
+    for (uint32_t i = 0; i < batch_size; i++) {
+        REQUIRE(returned_keys[i] == i);
+        REQUIRE(returned_values[i] == static_cast<uint64_t>(i) * 2ul);
+    }
+}
+
+void
+_test_maps_batch(bpf_map_type map_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // Create a hash map.
     union bpf_attr attr = {};
-    attr.map_type = BPF_MAP_TYPE_HASH;
+    attr.map_type = map_type;
     attr.key_size = sizeof(uint32_t);
     attr.value_size = sizeof(uint64_t);
     attr.max_entries = 1024 * 1024;
@@ -3296,6 +3475,9 @@ TEST_CASE("libbpf map batch", "[libbpf]")
             fetched_values.data(),
             &large_fetched_batch_size,
             &opts) == -ENOENT);
+
+    // Fetch all keys in batches.
+    _test_batch_iteration_maps(map_fd, batch_size, &opts);
 
     // Delete the batch.
     uint32_t delete_batch_size = batch_size;
@@ -3378,6 +3560,10 @@ TEST_CASE("libbpf map batch", "[libbpf]")
     delete_batch_size = batch_size;
     REQUIRE(bpf_map_delete_batch(invalid_map_fd, keys.data(), &delete_batch_size, &opts) == -EBADF);
 }
+
+TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_HASH); }
+
+TEST_CASE("libbpf lru hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_HASH); }
 
 void
 _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)

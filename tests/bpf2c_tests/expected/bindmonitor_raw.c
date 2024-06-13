@@ -16,28 +16,28 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 static map_entry_t _maps[] = {
     {NULL,
      {
-         BPF_MAP_TYPE_HASH, // Type of map.
-         8,                 // Size in bytes of a map key.
-         68,                // Size in bytes of a map value.
-         1024,              // Maximum number of entries allowed in the map.
-         0,                 // Inner map index.
-         LIBBPF_PIN_NONE,   // Pinning type for the map.
-         18,                // Identifier for a map template.
-         0,                 // The id of the inner map template.
-     },
-     "process_map"},
-    {NULL,
-     {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
          4,                  // Size in bytes of a map value.
          1,                  // Maximum number of entries allowed in the map.
          0,                  // Inner map index.
          LIBBPF_PIN_NONE,    // Pinning type for the map.
-         23,                 // Identifier for a map template.
+         10,                 // Identifier for a map template.
          0,                  // The id of the inner map template.
      },
      "limits_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_HASH, // Type of map.
+         8,                 // Size in bytes of a map key.
+         68,                // Size in bytes of a map value.
+         1024,              // Maximum number of entries allowed in the map.
+         0,                 // Inner map index.
+         LIBBPF_PIN_NONE,   // Pinning type for the map.
+         23,                // Identifier for a map template.
+         0,                 // The id of the inner map template.
+     },
+     "process_map"},
     {NULL,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
@@ -186,7 +186,7 @@ BindMonitor(void* context)
     // EBPF_OP_ADD64_IMM pc=16 dst=r3 src=r0 offset=0 imm=-80
 #line 65 "sample/bindmonitor.c"
     r3 += IMMEDIATE(-80);
-    // EBPF_OP_LDDW pc=17 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=17 dst=r1 src=r1 offset=0 imm=3
 #line 67 "sample/bindmonitor.c"
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_MOV64_IMM pc=19 dst=r4 src=r0 offset=0 imm=0
@@ -207,9 +207,9 @@ BindMonitor(void* context)
     // EBPF_OP_ADD64_IMM pc=22 dst=r2 src=r0 offset=0 imm=-84
 #line 67 "sample/bindmonitor.c"
     r2 += IMMEDIATE(-84);
-    // EBPF_OP_LDDW pc=23 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=23 dst=r1 src=r1 offset=0 imm=1
 #line 119 "sample/bindmonitor.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=1
 #line 119 "sample/bindmonitor.c"
     r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5);
@@ -281,9 +281,9 @@ BindMonitor(void* context)
     // EBPF_OP_ADD64_IMM pc=43 dst=r2 src=r0 offset=0 imm=-8
 #line 75 "sample/bindmonitor.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=44 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=44 dst=r1 src=r1 offset=0 imm=2
 #line 78 "sample/bindmonitor.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=46 dst=r0 src=r0 offset=0 imm=1
 #line 78 "sample/bindmonitor.c"
     r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5);
@@ -345,9 +345,9 @@ BindMonitor(void* context)
     // EBPF_OP_ADD64_IMM pc=58 dst=r3 src=r0 offset=0 imm=-80
 #line 87 "sample/bindmonitor.c"
     r3 += IMMEDIATE(-80);
-    // EBPF_OP_LDDW pc=59 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=59 dst=r1 src=r1 offset=0 imm=2
 #line 91 "sample/bindmonitor.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_REG pc=61 dst=r2 src=r8 offset=0 imm=0
 #line 91 "sample/bindmonitor.c"
     r2 = r8;
@@ -363,9 +363,9 @@ BindMonitor(void* context)
         return 0;
 #line 91 "sample/bindmonitor.c"
     }
-    // EBPF_OP_LDDW pc=64 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=64 dst=r1 src=r1 offset=0 imm=2
 #line 92 "sample/bindmonitor.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_REG pc=66 dst=r2 src=r8 offset=0 imm=0
 #line 92 "sample/bindmonitor.c"
     r2 = r8;
@@ -512,9 +512,9 @@ label_5:
     // EBPF_OP_ADD64_IMM pc=100 dst=r2 src=r0 offset=0 imm=-80
 #line 148 "sample/bindmonitor.c"
     r2 += IMMEDIATE(-80);
-    // EBPF_OP_LDDW pc=101 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=101 dst=r1 src=r1 offset=0 imm=2
 #line 149 "sample/bindmonitor.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=103 dst=r0 src=r0 offset=0 imm=3
 #line 149 "sample/bindmonitor.c"
     r0 = BindMonitor_helpers[6].address(r1, r2, r3, r4, r5);

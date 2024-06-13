@@ -529,9 +529,7 @@ sample_ebpf_extension_invoke_batch_begin_program(_Inout_ ebpf_execution_context_
         goto Exit;
     }
     ebpf_program_batch_begin_invoke_function_t batch_begin_function = hook_client->begin_batch_program_invoke;
-    const void* client_binding_context = hook_client->client_binding_context;
-
-    return_value = batch_begin_function(client_binding_context, sizeof(ebpf_execution_context_state_t), state);
+    return_value = batch_begin_function(sizeof(ebpf_execution_context_state_t), state);
 
 Exit:
     return return_value;
@@ -574,9 +572,7 @@ sample_ebpf_extension_invoke_batch_end_program(_Inout_ ebpf_execution_context_st
         goto Exit;
     }
     ebpf_program_batch_end_invoke_function_t batch_end_function = hook_client->end_batch_program_invoke;
-    const void* client_binding_context = hook_client->client_binding_context;
-
-    return_value = batch_end_function(client_binding_context, state);
+    return_value = batch_end_function(state);
 
 Exit:
     return return_value;

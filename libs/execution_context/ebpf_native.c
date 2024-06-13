@@ -1233,7 +1233,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
     // Get the programs.
     module->table.programs(&programs, &program_count);
-    if (program_count == 0 || programs == NULL) {
+    if (program_count == 0) {
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    }
+    if (programs == NULL) {
         return EBPF_INVALID_OBJECT;
     }
 
@@ -1491,11 +1494,13 @@ _ebpf_native_initialize_handle_cleanup_context(
     }
     cleanup_context->handle_information->count_of_map_handles = map_handle_count;
 
-    cleanup_context->handle_information->program_handles =
-        (ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t) * program_handle_count);
-    if (cleanup_context->handle_information->program_handles == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
+    if (program_handle_count > 0) {
+        cleanup_context->handle_information->program_handles =
+            (ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t) * program_handle_count);
+        if (cleanup_context->handle_information->program_handles == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
     }
     cleanup_context->handle_information->count_of_program_handles = program_handle_count;
 
