@@ -8,7 +8,6 @@ install or update the eBPF installation in the VM.
 
 Do the following from within the VM:
 
-1. Download and install the *VC++ Redist* package from [this location](https://aka.ms/vs/17/release/vc_redist.x64.exe).
 1. Download the `eBPF-for-Windows.x.x.x.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
 1. Execute the MSI file you downloaded.
 1. After accepting the License and selecting the desired installation folder (default will be "`C:\Program Files\ebpf-for-windows`"), the following components will be selectable from the *Installation Wizard*:
