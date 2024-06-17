@@ -611,12 +611,12 @@ function Get-RegressionTestArtifacts
         Remove-Item -Path $DownloadPath\Build-x64.$Configuration -Recurse -Force
     }
 
-    Write-Log "Extracting $Build-x64.$Configuration.zip"
+    Write-Log "Extracting Build-x64.$Configuration.zip"
     Expand-Archive -Path "$DownloadPath\Build-x64.$Configuration.zip" -DestinationPath $DownloadPath -Force
 
-    $DownloadedArtifactPath = "$DownloadPath\Build-x64.$Configuration\Build-x64 $Configuration"
+    $DownloadedArtifactPath = "$DownloadPath\Build-x64 $Configuration"
 
-    if (Test-Path -Path $DownloadedArtifactPath) {
+    if (!(Test-Path -Path $DownloadedArtifactPath)) {
         throw ("Path ""$DownloadedArtifactPath"" not found.")
     }
 
