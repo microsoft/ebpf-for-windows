@@ -605,18 +605,24 @@ function Get-RegressionTestArtifacts
 
     Write-Log "Downloading regression test artifacts for version $ArtifactVersion" -ForegroundColor Green
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\artifact.zip"
+    Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\Build-x64.$Configuration.zip"
 
-    Write-Log "Extracting $ArtifactName"
-    Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
-    Write-Log "Extracting $DownloadPath\build-$Configuration.zip"
-    Expand-Archive -Path "$DownloadPath\build-$Configuration.zip" -DestinationPath $DownloadPath -Force
+    if (Test-Path -Path $DownloadPath\Build-x64.$Configuration) {
+        Remove-Item -Path $DownloadPath\Build-x64.$Configuration -Recurse -Force
+    }
 
+    Write-Log "Extracting $Build-x64.$Configuration.zip"
+    Expand-Archive -Path "$DownloadPath\Build-x64.$Configuration.zip" -DestinationPath $DownloadPath -Force
+
+    $DownloadedArtifactPath = "$DownloadPath\Build-x64.$Configuration\Build-x64 $Configuration"
+
+    if (Test-Path -Path $DownloadedArtifactPath) {
+        throw ("Path ""$DownloadedArtifactPath"" not found.")
+    }
 
     # Copy all the drivers, DLLs, exe and .o files to pwd.
     Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
-    $ArtifactPath = "$DownloadPath\$Configuration"
-    Push-Location $ArtifactPath
+    Push-Location $DownloadedArtifactPath
     Get-ChildItem -Path .\* -Include *.sys | Move-Item -Destination $OriginalPath -Force
     Get-ChildItem -Path .\* -Include *.dll | Move-Item -Destination $OriginalPath -Force
     Get-ChildItem -Path .\* -Include *.exe | Move-Item -Destination $OriginalPath -Force
