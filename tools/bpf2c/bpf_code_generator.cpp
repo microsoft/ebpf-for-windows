@@ -840,7 +840,7 @@ bpf_code_generator::generate_labels()
 bool
 bpf_code_generator::get_helper_information(uint32_t helper_id)
 {
-    const ebpf_program_info_t* program_info = current_section->program_info;
+    const ebpf_program_info_t* program_info = current_program->program_info;
     // Iterate through the global helpers first to find the helper id.
     for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
         const ebpf_helper_function_prototype_t* helper = &program_info->global_helper_prototype[i];
@@ -879,11 +879,11 @@ bpf_code_generator::build_function_table()
             name += std::to_string(output.instruction.imm);
         }
 
-        if (current_section->helper_functions.find(name) == current_section->helper_functions.end()) {
+        if (current_program->helper_functions.find(name) == current_program->helper_functions.end()) {
             int32_t helper_id = output.instruction.imm;
             bool implicit_context = get_helper_information((uint32_t)helper_id);
             // First check the global.
-            current_section->helper_functions[name] = {helper_id, index++, implicit_context};
+            current_program->helper_functions[name] = {helper_id, index++, implicit_context};
         }
     }
 }
@@ -1321,16 +1321,16 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 bool implicit_context;
                 if (output.relocation.empty()) {
                     auto helper_function =
-                        current_section->helper_functions["helper_id_" + std::to_string(output.instruction.imm)];
+                        current_program->helper_functions["helper_id_" + std::to_string(output.instruction.imm)];
                     implicit_context = helper_function.implicit_context;
-                    function_name =
-                        std::vformat(helper_array_prefix, make_format_args(std::to_string(helper_function.index)));
+                    auto str = std::to_string(helper_function.index);
+                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 } else {
-                    auto helper_function = current_section->helper_functions.find(output.relocation);
-                    assert(helper_function != current_section->helper_functions.end());
+                    auto helper_function = current_program->helper_functions.find(output.relocation);
+                    assert(helper_function != current_program->helper_functions.end());
                     implicit_context = helper_function->second.implicit_context;
-                    function_name = std::vformat(
-                        helper_array_prefix, make_format_args(std::to_string(helper_function->second.index)));
+                    auto str = std::to_string(helper_function->second.index);
+                    function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 }
                 output.lines.push_back(get_register_name(0) + " = " + function_name + ".address");
                 if (!implicit_context) {
