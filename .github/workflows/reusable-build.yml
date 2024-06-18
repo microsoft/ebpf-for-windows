@@ -49,6 +49,10 @@ on:
         required: false
         type: boolean
         default: true
+      solution_file:
+        required: false
+        type: string
+        default: 'ebpf-for-windows.sln'
     outputs:
       should_skip:
         description: 'Whether build was skipped due to duplicate action.'
@@ -75,7 +79,7 @@ jobs:
     runs-on: windows-2022
     env:
       # Path to the solution file relative to the root of the project.
-      SOLUTION_FILE_PATH: ebpf-for-windows.sln
+      SOLUTION_FILE_PATH: ${{inputs.solution_file}}
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
