@@ -231,8 +231,8 @@ bpf_map_lookup_batch(
  * @param[in] in_batch Address of the first element in the batch to lookup in the map. If set to NULL, the lookup will
  * start from the beginning of the map.
  * @param[out] out_batch Pointer to buffer in which to write the values in the batch.
- * @param[out] keys Pointer to an array of keys.
- * @param[out] values Pointer to an array of values.
+ * @param[out] keys Pointer to buffer that contains keys on success.
+ * @param[out] values Pointer to buffer that contains values on success.
  * @param[in, out] count The number of elements in the map to look up and delete.
  *  On input, it is the number of elements in the map to read and delete in batch.
  *  On output, it contains the actual number of elements that were successfully read and deleted.
