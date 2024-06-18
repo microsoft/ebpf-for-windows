@@ -225,7 +225,7 @@ bpf_map_lookup_batch(
  *
  * This function performs a batch lookup and delete operation on a BPF map.
  * It takes an input batch of keys and performs a lookup operation for each key in the map.
- * If a key is found, the corresponding value is deleted from the map..
+ * If a key is found, the corresponding value is deleted from the map.
  *
  * @param[in] fd File descriptor of the BPF map
  * @param[in] in_batch Address of the first element in the batch to lookup in the map. If set to NULL, the lookup will
