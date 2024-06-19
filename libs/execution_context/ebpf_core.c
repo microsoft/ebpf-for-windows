@@ -102,20 +102,9 @@ _ebpf_core_memmove(
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_program_type_descriptor_t _ebpf_global_helper_program_descriptor = {
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
-    EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE,
-    "global_helper",
-    NULL,
-    {0},
-    0,
-    0};
+    EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER, "global_helper", NULL, {0}, 0, 0};
 static ebpf_program_info_t _ebpf_global_helper_program_info = {
-    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE},
-    &_ebpf_global_helper_program_descriptor,
-    0,
-    NULL,
-    0,
-    NULL};
+    EBPF_PROGRAM_INFORMATION_HEADER, &_ebpf_global_helper_program_descriptor, 0, NULL, 0, NULL};
 
 // Order of elements in this table must match the order of the elements in ebpf_core_helper_function_prototype.
 static const void* _ebpf_general_helpers[] = {
@@ -153,13 +142,9 @@ static const void* _ebpf_general_helpers[] = {
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
-    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
-    EBPF_COUNT_OF(_ebpf_general_helpers),
-    (uint64_t*)_ebpf_general_helpers};
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
 static const ebpf_program_data_t _ebpf_global_helper_function_program_data = {
-    {EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE},
-    &_ebpf_global_helper_program_info,
-    &_ebpf_global_helper_function_dispatch_table};
+    EBPF_PROGRAM_DATA_HEADER, &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
 
 static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_general_helper_function_provider_attach_client;
 static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_general_helper_function_provider_detach_client;
@@ -730,11 +715,6 @@ _ebpf_core_protocol_load_native_programs(
         goto Done;
     }
 
-    if (count_of_program_handles == 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
     result = ebpf_safe_size_t_multiply(count_of_map_handles, sizeof(ebpf_handle_t), &map_handles_size);
     if (result != EBPF_SUCCESS) {
         goto Done;
@@ -769,10 +749,12 @@ _ebpf_core_protocol_load_native_programs(
         }
     }
 
-    program_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_program_handles, EBPF_POOL_TAG_CORE);
-    if (program_handles == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
+    if (count_of_program_handles) {
+        program_handles = ebpf_allocate_with_tag(sizeof(ebpf_handle_t) * count_of_program_handles, EBPF_POOL_TAG_CORE);
+        if (program_handles == NULL) {
+            result = EBPF_NO_MEMORY;
+            goto Done;
+        }
     }
 
     result = ebpf_native_load_programs(
@@ -787,7 +769,9 @@ _ebpf_core_protocol_load_native_programs(
     if (map_handles) {
         memcpy(reply->data, map_handles, map_handles_size);
     }
-    memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
+    if (program_handles) {
+        memcpy(reply->data + map_handles_size, program_handles, program_handles_size);
+    }
 
 Done:
     ebpf_free(map_handles);
@@ -831,7 +815,7 @@ _ebpf_core_protocol_map_find_element(
         request->key,
         value_length,
         reply->value,
-        request->find_and_delete ? EPBF_MAP_FIND_FLAG_DELETE : 0);
+        request->find_and_delete ? EBPF_MAP_FIND_FLAG_DELETE : 0);
     if (retval != EBPF_SUCCESS) {
         goto Done;
     }
@@ -1147,7 +1131,7 @@ _ebpf_core_protocol_map_get_next_key_value_batch(
         previous_key_length == 0 ? NULL : request->previous_key,
         &reply_data_length,
         reply->data,
-        request->find_and_delete ? EPBF_MAP_FIND_FLAG_DELETE : 0);
+        request->find_and_delete ? EBPF_MAP_FIND_FLAG_DELETE : 0);
 
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -2120,7 +2104,7 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
     ebpf_result_t retval;
     uint8_t* value;
     retval = ebpf_map_find_entry(
-        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EPBF_MAP_FIND_FLAG_DELETE);
+        map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
     if (retval != EBPF_SUCCESS) {
         return NULL;
     } else {

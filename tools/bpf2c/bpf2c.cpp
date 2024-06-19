@@ -269,15 +269,17 @@ main(int argc, char** argv)
             return 1;
         }
 
-        bpf_code_generator generator(stream, c_name, {hash_value});
-
-        // Capture list of sections.
-        std::vector<bpf_code_generator::unsafe_string> sections = generator.program_sections();
-
-        if (verify_programs && sections.size() == 0) {
-            std::cerr << "ELF " << file << " file contains no program sections" << std::endl;
+        // Capture list of programs.
+        ebpf_api_program_info_t* infos = nullptr;
+        const char* error_message = nullptr;
+        ebpf_result_t result = ebpf_enumerate_programs(file.c_str(), false, &infos, &error_message);
+        if ((result != EBPF_SUCCESS) && verify_programs) {
+            std::cerr << error_message << std::endl;
+            ebpf_free_string(error_message);
             return 1;
         }
+
+        bpf_code_generator generator(stream, c_name, {hash_value});
 
         // Parse global data.
         generator.parse();
@@ -289,40 +291,43 @@ main(int argc, char** argv)
         if (type_string != "") {
             if (ebpf_get_program_type_by_name(type_string.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
                 std::cerr << "Program type not found for type string " << type_string << std::endl;
+                ebpf_free_programs(infos);
+                ebpf_free_string(error_message);
                 return 1;
             }
             global_program_type_set = true;
         }
 
-        // Parse per-section data.
-        for (const auto& section : sections) {
-            if (!global_program_type_set) {
-                if (ebpf_get_program_type_by_name(section.raw().c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
-                    std::cerr << "Program type not found for section name " << section.raw() << std::endl;
-                    return 1;
-                }
-            }
-
+        // Parse per-program data.
+        for (const ebpf_api_program_info_t* program = infos; program; program = program->next) {
             const char* report = nullptr;
-            const char* error_message = nullptr;
             ebpf_api_verifier_stats_t stats;
             std::optional<std::vector<uint8_t>> program_info_hash;
-            if (verify_programs && ebpf_api_elf_verify_section_from_memory(
+            if (verify_programs && ebpf_api_elf_verify_program_from_memory(
                                        data.c_str(),
                                        data.size(),
-                                       section.raw().c_str(),
-                                       &program_type,
+                                       program->section_name,
+                                       program->program_name,
+                                       (global_program_type_set) ? &program_type : &program->program_type,
                                        EBPF_VERIFICATION_VERBOSITY_NORMAL,
                                        &report,
                                        &error_message,
                                        &stats) != 0) {
                 report = ((report == nullptr) ? "" : report);
                 throw std::runtime_error(
-                    std::string("Verification failed for ") + section.raw() + std::string(" with error ") +
-                    std::string(error_message) + std::string("\n Report:\n") + std::string(report));
+                    std::string("Verification failed for ") + std::string(program->program_name) +
+                    std::string(" with error ") + std::string(error_message) + std::string("\n Report:\n") +
+                    std::string(report));
             }
-            generator.parse(section, program_type, attach_type, hash_algorithm);
-            generator.generate(section);
+            ebpf_free_string(report);
+            ebpf_free_string(error_message);
+            error_message = nullptr;
+            generator.parse(
+                program,
+                (global_program_type_set) ? program_type : program->program_type,
+                (global_program_type_set) ? attach_type : program->expected_attach_type,
+                hash_algorithm);
+            generator.generate(program->section_name, program->program_name);
 
             if (verify_programs && (hash_algorithm != "none")) {
                 std::vector<int32_t> helper_ids = generator.get_helper_ids();
@@ -330,6 +335,9 @@ main(int argc, char** argv)
                 generator.set_program_hash_info(program_info_hash);
             }
         }
+
+        ebpf_free_programs(infos);
+        ebpf_free_string(error_message);
 
         std::ofstream output_file;
         if (!output_file_name.empty()) {

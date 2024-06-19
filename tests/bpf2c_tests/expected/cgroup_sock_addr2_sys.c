@@ -229,7 +229,7 @@ static uint16_t connect_redirect4_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "cgroup~1")
+#pragma code_seg(push, "cgroup~2")
 static uint64_t
 connect_redirect4(void* context)
 #line 140 "sample/cgroup_sock_addr2.c"
@@ -357,7 +357,7 @@ label_1:
     // EBPF_OP_ADD64_IMM pc=28 dst=r2 src=r0 offset=0 imm=-32
 #line 65 "sample/cgroup_sock_addr2.c"
     r2 += IMMEDIATE(-32);
-    // EBPF_OP_LDDW pc=29 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=29 dst=r1 src=r1 offset=0 imm=1
 #line 70 "sample/cgroup_sock_addr2.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=1
@@ -599,7 +599,7 @@ label_3:
     // EBPF_OP_ADD64_IMM pc=95 dst=r3 src=r0 offset=0 imm=-104
 #line 50 "sample/cgroup_sock_addr2.c"
     r3 += IMMEDIATE(-104);
-    // EBPF_OP_LDDW pc=96 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=96 dst=r1 src=r1 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=98 dst=r4 src=r0 offset=0 imm=0
@@ -646,7 +646,7 @@ static uint16_t connect_redirect6_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "cgroup~2")
+#pragma code_seg(push, "cgroup~1")
 static uint64_t
 connect_redirect6(void* context)
 #line 147 "sample/cgroup_sock_addr2.c"
@@ -798,7 +798,7 @@ label_1:
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-64
 #line 109 "sample/cgroup_sock_addr2.c"
     r2 += IMMEDIATE(-64);
-    // EBPF_OP_LDDW pc=37 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=37 dst=r1 src=r1 offset=0 imm=1
 #line 114 "sample/cgroup_sock_addr2.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
@@ -1052,7 +1052,7 @@ label_3:
     // EBPF_OP_ADD64_IMM pc=106 dst=r3 src=r0 offset=0 imm=-40
 #line 50 "sample/cgroup_sock_addr2.c"
     r3 += IMMEDIATE(-40);
-    // EBPF_OP_LDDW pc=107 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=107 dst=r1 src=r1 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=109 dst=r4 src=r0 offset=0 imm=0
@@ -1084,7 +1084,7 @@ static program_entry_t _programs[] = {
     {
         0,
         connect_redirect4,
-        "cgroup~1",
+        "cgroup~2",
         "cgroup/connect4",
         "connect_redirect4",
         connect_redirect4_maps,
@@ -1098,7 +1098,7 @@ static program_entry_t _programs[] = {
     {
         0,
         connect_redirect6,
-        "cgroup~2",
+        "cgroup~1",
         "cgroup/connect6",
         "connect_redirect6",
         connect_redirect6_maps,

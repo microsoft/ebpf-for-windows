@@ -345,7 +345,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
                 reinterpret_cast<const uint8_t*>(&key),
                 value.size(),
                 value.data(),
-                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
+                EBPF_MAP_FIND_FLAG_DELETE) == EBPF_SUCCESS);
 
         REQUIRE(
             ebpf_map_find_entry(
@@ -360,7 +360,7 @@ _test_crud_operations(ebpf_map_type_t map_type)
                 reinterpret_cast<const uint8_t*>(&key),
                 value.size(),
                 value.data(),
-                EPBF_MAP_FIND_FLAG_DELETE) == EBPF_INVALID_ARGUMENT);
+                EBPF_MAP_FIND_FLAG_DELETE) == EBPF_INVALID_ARGUMENT);
     }
 
     auto retrieved_map_definition = *ebpf_map_get_definition(map.get());
@@ -807,9 +807,7 @@ TEST_CASE("program", "[execution_context]")
     uint32_t test_function_ids[] = {(EBPF_MAX_GENERAL_HELPER_FUNCTION + 1)};
     const void* helper_functions[] = {(void*)function_pointer1};
     ebpf_helper_function_addresses_t helper_function_addresses = {
-        {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE},
-        EBPF_COUNT_OF(helper_functions),
-        (uint64_t*)helper_functions};
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
 
     {
         ebpf_trampoline_table_t* local_table = nullptr;
