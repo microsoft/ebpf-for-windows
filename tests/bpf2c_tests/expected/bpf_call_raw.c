@@ -99,7 +99,7 @@ func(void* context)
     // EBPF_OP_ADD64_IMM pc=7 dst=r3 src=r0 offset=0 imm=-8
 #line 28 "sample/undocked/bpf_call.c"
     r3 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=8 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=8 dst=r1 src=r1 offset=0 imm=1
 #line 29 "sample/undocked/bpf_call.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=10 dst=r4 src=r0 offset=0 imm=0

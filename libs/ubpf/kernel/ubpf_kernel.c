@@ -61,7 +61,7 @@ map_register(int r)
 // Thunk out JIT related calls.
 // Workaround until https://github.com/iovisor/ubpf/issues/185 is fixed.
 struct ubpf_jit_result
-ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size)
+ubpf_translate_x86_64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size, enum JitMode jit_mode)
 {
     __fastfail(0);
     struct ubpf_jit_result result = {0};

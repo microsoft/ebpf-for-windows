@@ -280,7 +280,7 @@ struct object_table_entry
 // do not care about user mode failures in, or errors returned from, ebpfapi and focus only on exercing the in-kernel
 // eBPF components' ability to deal with such situations w/o causing a kernel hang or crash. The primary test goal here
 // is to ensure that such races do not cause hangs or crashes in the in-kernel eBPF sub-system components
-// (epbfcore, netebpfext drivers).
+// (ebpfcore, netebpfext drivers).
 
 enum class thread_role_type : uint32_t
 {
@@ -618,7 +618,7 @@ _test_thread_function(thread_context& context)
         context.thread_index);
 }
 
-static std::string
+static _Must_inspect_result_ std::string
 _make_unique_file_copy(const std::string& file_name, uint32_t token)
 {
     // Generate the new (unique) file name.
@@ -681,18 +681,19 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
             }
 
             if (program_type == EBPF_EXECUTION_NATIVE) {
+                context_entry.is_native_program = true;
                 if (test_control_info.use_unique_native_programs && context_entry.role == thread_role_type::CREATOR) {
 
                     // Create unique native programs for 'creator' threads only.
-                    _make_unique_file_copy(program_attribs.native_file_name, (compartment_id - 1));
-                    context_entry.is_native_program = true;
+                    context_entry.file_name =
+                        _make_unique_file_copy(program_attribs.native_file_name, (compartment_id - 1));
                 } else {
 
                     // Use the same file name for all 'creator' threads
                     context_entry.file_name = program_attribs.native_file_name;
-                    context_entry.is_native_program = false;
                 }
             } else {
+                context_entry.is_native_program = false;
                 context_entry.file_name = program_attribs.jit_file_name;
             }
             context_entry.thread_index = (compartment_id - 1);
@@ -1433,15 +1434,12 @@ TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_
     // - Load, attach, detach and unload the native ebpf program with each event happening in a different thread with
     //   all threads executing in parallel with the bare minimum synchronization between them.
     //
-    // - Addition of a dedicated thread continuously unloading/reloading the provider extension.
+    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
+    //   (if specified on the command line).
 
     _km_test_init();
     LOG_INFO("\nStarting test *** native_load_attach_detach_unload_random_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
-
-    // Enforce enabling of the 'extension restart' thread for this test for increased stress.
-    // (The restart delay is set to the default value or the value specified (if any) on the command line.)
-    local_test_control_info.extension_restart_enabled = true;
 
     _print_test_control_info(local_test_control_info);
     _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
@@ -1454,15 +1452,12 @@ TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_
     // - Load, attach, detach and unload each native ebpf program with each event happening in a different thread with
     //   all threads executing in parallel with the bare minimum synchronization between them.
     //
-    // - Addition of a dedicated thread continuously unloading/reloading the provider extension.
+    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
+    //   (if specified on the command line).
 
     _km_test_init();
     LOG_INFO("\nStarting test *** native_unique_load_attach_detach_unload_random_v4_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
-
-    // Enforce enabling of the 'extension restart' thread for this test for increased stress.
-    // (The restart delay is set to the default value or the value specified (if any) on the command line.)
-    local_test_control_info.extension_restart_enabled = true;
 
     // Use a unique native driver for each 'creator' thread.
     local_test_control_info.use_unique_native_programs = true;
@@ -1490,16 +1485,14 @@ TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_str
     //    - Ensure that the counter keeps incrementing, irrespective of the netebpfext extension being restarted any
     //      number of times.  A stalled counter is a fatal bug and the test should return failure.
     //
-    // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension.
+    // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension
+    //    (if specified on the command line).
     //
     // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
 
     _km_test_init();
     LOG_INFO("\nStarting test *** native_invoke_v4_v6_programs_restart_extension_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
-
-    // Enforce enabling of the 'extension restart' thread for this test for increased stress.
-    // (The restart delay is set to the default value or the value specified (if any) on the command line.)
 
     // TODO: Bring this test in compliance with GH Issue #3223. Until then, disable extension restart for this test.
     local_test_control_info.extension_restart_enabled = false;
