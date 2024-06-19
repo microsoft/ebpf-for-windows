@@ -282,8 +282,15 @@ bpf_code_generator::program_sections()
 }
 
 void
+bpf_code_generator::set_program_information(_In_opt_ const ebpf_program_info_t* program_info)
+{
+    current_program->program_info = program_info;
+}
+
+void
 bpf_code_generator::parse(
     const ebpf_api_program_info_t* program,
+    _In_opt_ const ebpf_program_info_t* program_info,
     const GUID& program_type,
     const GUID& attach_type,
     const std::string& program_info_hash_type)
@@ -292,6 +299,8 @@ bpf_code_generator::parse(
     get_register_name(0);
     get_register_name(1);
     get_register_name(10);
+
+    set_program_information(program_info);
 
     current_program->elf_section_name = program->section_name;
     current_program->program_name = program->program_name;
@@ -841,6 +850,12 @@ bool
 bpf_code_generator::get_helper_information(uint32_t helper_id)
 {
     const ebpf_program_info_t* program_info = current_program->program_info;
+
+    // To allow the case for --no-verify, where the program info is not available.
+    if (!program_info) {
+        return false;
+    }
+
     // Iterate through the global helpers first to find the helper id.
     for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
         const ebpf_helper_function_prototype_t* helper = &program_info->global_helper_prototype[i];

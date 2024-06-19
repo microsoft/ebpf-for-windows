@@ -325,8 +325,17 @@ main(int argc, char** argv)
             ebpf_free_string(report);
             ebpf_free_string(error_message);
             error_message = nullptr;
+
+            const ebpf_program_info_t* program_info = nullptr;
+            if (verify_programs) {
+                result = ebpf_get_program_info_from_verifier(&program_info);
+                if (result != EBPF_SUCCESS) {
+                    throw std::runtime_error(std::string("Failed to get program information"));
+                }
+            }
             generator.parse(
                 program,
+                program_info,
                 (global_program_type_set) ? program_type : program->program_type,
                 (global_program_type_set) ? attach_type : program->expected_attach_type,
                 hash_algorithm);
