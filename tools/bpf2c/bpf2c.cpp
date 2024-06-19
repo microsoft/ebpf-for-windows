@@ -1,10 +1,10 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include "../../libs/shared/hash.h"
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 #include "ebpf_program_types.h"
+#include "hash.h"
 
 #include <Windows.h>
 #include <ElfWrapper.h>

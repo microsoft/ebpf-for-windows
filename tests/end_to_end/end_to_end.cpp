@@ -2494,7 +2494,7 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
     REQUIRE(program_info.nr_map_ids == 0);
     REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.name != NULL);
-    // Name should contain SHA256 hash in hex (minus last char to stay under BPF_OBJ_NAME_LEN)
+    // Name should contain SHA256 hash in hex (minus last char to stay under BPF_OBJ_NAME_LEN).
     REQUIRE(strlen(program_info.name) == 63);
 
     REQUIRE(program_info.type == prog_type);
