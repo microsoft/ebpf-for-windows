@@ -70,12 +70,34 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
+// Warning: Version 1 of the eBPF extension data structures will be deprecated in a future release.
+// All extension data structures should be updated to version 2.
+// Leaving version 1 for backward compatibility for now.
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_0 0
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_1 1
 #define EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION 1
-#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION 1
 
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_0_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_extension_data_v0_t, data)
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_0_TOTAL_SIZE sizeof(ebpf_extension_data_v0_t)
+#define EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION_0                                   \
+    {                                                                              \
+        EBPF_ATTACH_CLIENT_DATA_VERSION_0, EBPF_ATTACH_CLIENT_DATA_VERSION_0_SIZE, \
+            EBPF_ATTACH_CLIENT_DATA_VERSION_0_TOTAL_SIZE                           \
+    }
+
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_1_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_extension_data_v1_t, prog_attach_flags)
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_1_TOTAL_SIZE sizeof(ebpf_extension_data_v1_t)
+#define EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION_1                                   \
+    {                                                                              \
+        EBPF_ATTACH_CLIENT_DATA_VERSION_1, EBPF_ATTACH_CLIENT_DATA_VERSION_1_SIZE, \
+            EBPF_ATTACH_CLIENT_DATA_VERSION_1_TOTAL_SIZE                           \
+    }
+
+#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION 1
 // Version 1 of the eBPF extension data structures and their lengths.
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1
-#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)
+#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, capabilities)
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_attach_provider_data_t)
 #define EBPF_ATTACH_PROVIDER_DATA_HEADER                                                           \
     {                                                                                              \

@@ -45,6 +45,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_MAP_UPDATE_ELEMENT_BATCH,
     EBPF_OPERATION_MAP_DELETE_ELEMENT_BATCH,
     EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH,
+    EBPF_OPERATION_PROGRAM_SET_FLAGS,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -510,3 +511,10 @@ typedef struct _ebpf_operation_map_get_next_key_value_batch_reply
     // Data is a concatenation of key+value.
     uint8_t data[1];
 } ebpf_operation_map_get_next_key_value_batch_reply_t;
+
+typedef struct _ebpf_operation_program_set_flags_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t program_handle;
+    uint64_t flags;
+} ebpf_operation_program_set_flags_request_t;

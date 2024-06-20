@@ -30,6 +30,7 @@ typedef struct bpf_program
     bool pinned;
     const char* log_buffer;
     uint32_t log_buffer_size;
+    uint64_t flags;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -759,3 +760,15 @@ ebpf_api_thread_local_cleanup() noexcept;
  */
 void
 ebpf_api_thread_local_initialize() noexcept;
+
+/**
+ * @brief Set the flags on a program
+ *
+ * @param[in] program_fd File descriptor for the program.
+ * @param[in] flags Flags to set on the program.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;

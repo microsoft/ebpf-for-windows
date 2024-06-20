@@ -74,7 +74,12 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_bind_program_info_provi
 // Bind Hook NPI Provider.
 //
 ebpf_attach_provider_data_t _net_ebpf_bind_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_HEADER, EBPF_PROGRAM_TYPE_BIND_GUID, BPF_ATTACH_TYPE_BIND, BPF_LINK_TYPE_PLAIN};
+    .header = EBPF_ATTACH_PROVIDER_DATA_HEADER,
+    .supported_program_type = EBPF_PROGRAM_TYPE_BIND_GUID,
+    .bpf_attach_type = BPF_ATTACH_TYPE_BIND,
+    .link_type = BPF_LINK_TYPE_PLAIN,
+    .capabilities = {.support_extension_data_v1 = true},
+};
 
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_bind_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_ATTACH_TYPE_BIND_GUID};

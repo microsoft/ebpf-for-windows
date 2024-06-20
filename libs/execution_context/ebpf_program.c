@@ -80,6 +80,7 @@ typedef struct _ebpf_program
     size_t helper_function_count;
     uint32_t* helper_function_ids;
     bool helper_ids_set;
+    uint64_t flags;
 
     // Lock protecting the fields below.
     ebpf_lock_t lock;
@@ -2541,4 +2542,16 @@ size_t
 ebpf_program_get_state_index()
 {
     return _ebpf_program_state_index;
+}
+
+uint64_t
+ebpf_program_get_flags(_In_ const ebpf_program_t* program)
+{
+    return program->flags;
+}
+
+void
+ebpf_program_set_flags(_Inout_ ebpf_program_t* program, uint64_t flags)
+{
+    program->flags = flags;
 }

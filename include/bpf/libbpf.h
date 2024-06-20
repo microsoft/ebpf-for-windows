@@ -915,6 +915,28 @@ void
 ring_buffer__free(struct ring_buffer* rb);
 /** @} */
 
+/**
+ * @brief Query the BPF program flags.
+ *
+ * @param[in] prog A pointer to the BPF program.
+ * @return The flags of the BPF program.
+ */
+uint32_t
+bpf_program__flags(const struct bpf_program* prog);
+
+/**
+ * @brief Set the BPF program flags.
+ *
+ * @param[in] prog A pointer to the BPF program.
+ * @param[in] flags The flags to set.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ */
+int
+bpf_program__set_flags(struct bpf_program* prog, uint32_t flags);
+
 #else
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
