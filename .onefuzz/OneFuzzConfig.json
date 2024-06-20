@@ -6,7 +6,7 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
-        "main"
+        "feature/security_fix"
       ],
       "Fuzzer": {
         "$type": "libfuzzer",
@@ -83,7 +83,7 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
-        "main"
+        "feature/security_fix"
       ],
       "Fuzzer": {
         "$type": "libfuzzer",
@@ -160,7 +160,7 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
-        "main"
+        "feature/security_fix"
       ],
       "Fuzzer": {
         "$type": "libfuzzer",
@@ -237,7 +237,7 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
-        "main"
+        "feature/security_fix"
       ],
       "Fuzzer": {
         "$type": "libfuzzer",
@@ -314,7 +314,7 @@
       "JobNotificationEmail": "edgeosebpf@microsoft.com",
       "Skip": false,
       "TargetBuildBranches": [
-        "main"
+        "feature/security_fix"
       ],
       "Fuzzer": {
         "$type": "libfuzzer",
