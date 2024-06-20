@@ -49,6 +49,10 @@ on:
         required: false
         type: boolean
         default: true
+      solution_file:
+        required: false
+        type: string
+        default: 'ebpf-for-windows.sln'
     outputs:
       should_skip:
         description: 'Whether build was skipped due to duplicate action.'
@@ -75,7 +79,7 @@ jobs:
     runs-on: windows-2022
     env:
       # Path to the solution file relative to the root of the project.
-      SOLUTION_FILE_PATH: ebpf-for-windows.sln
+      SOLUTION_FILE_PATH: ${{inputs.solution_file}}
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
       BUILD_PLATFORM: x64
@@ -104,7 +108,7 @@ jobs:
         powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
         powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
-    - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       if: steps.skip_check.outputs.should_skip != 'true'
       with:
         repository: ${{inputs.repository}}
@@ -122,7 +126,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@2e230e8fe0ad3a14a340ad0815ddb96d599d2aff
+      uses: github/codeql-action/init@23acc5c183826b7a8a97bce3cecc52db901f8251
       with:
         languages: 'cpp'
 
@@ -298,4 +302,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@2e230e8fe0ad3a14a340ad0815ddb96d599d2aff
+      uses: github/codeql-action/analyze@23acc5c183826b7a8a97bce3cecc52db901f8251
