@@ -673,7 +673,8 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
             detaching_client);
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
+    net_ebpf_extension_delete_wfp_filters(
+        filter_context->base.wfp_engine_handle, filter_context->base.filter_ids_count, filter_context->base.filter_ids);
     if (filter_context->redirect_handle != NULL) {
         FwpsRedirectHandleDestroy(filter_context->redirect_handle);
     }

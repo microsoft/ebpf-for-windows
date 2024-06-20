@@ -93,6 +93,7 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
     volatile long reference_count;                                ///< Reference count.
+    HANDLE wfp_engine_handle;                                     /// per-filter context WFP handle
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
 
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
@@ -106,16 +107,24 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
-#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                    \
-    if ((filter_context) != NULL) {                                                   \
-        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {          \
-            net_ebpf_extension_hook_client_leave_rundown(                             \
-                (net_ebpf_extension_hook_client_t*)(filter_context)->client_context); \
-            if ((filter_context)->filter_ids != NULL) {                               \
-                ExFreePool((filter_context)->filter_ids);                             \
-            }                                                                         \
-            ExFreePool((filter_context));                                             \
-        }                                                                             \
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
+    if ((filter_context) != NULL) {                                                       \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
+            net_ebpf_extension_hook_client_leave_rundown(                                 \
+                (net_ebpf_extension_hook_client_t*)(filter_context)->client_context);     \
+            if ((filter_context)->filter_ids != NULL) {                                   \
+                ExFreePool((filter_context)->filter_ids);                                 \
+            }                                                                             \
+            NTSTATUS local_status = FwpmEngineClose((filter_context)->wfp_engine_handle); \
+            if (!NT_SUCCESS(local_status)) {                                              \
+                NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(                                        \
+                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,                                    \
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,                              \
+                    "DEREFERENCE_FILTER_CONTEXT() - FwpmEngineClose() failed",            \
+                    local_status);                                                        \
+            }                                                                             \
+            ExFreePool((filter_context));                                                 \
+        }                                                                                 \
     }
 
 /**
@@ -223,7 +232,9 @@ net_ebpf_extension_add_wfp_filters(
  */
 void
 net_ebpf_extension_delete_wfp_filters(
-    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
+    HANDLE wfp_engine_handle,
+    uint32_t filter_count,
+    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162

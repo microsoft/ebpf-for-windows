@@ -238,7 +238,8 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
     NET_EBPF_EXT_LOG_ENTRY();
 
     ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
+    net_ebpf_extension_delete_wfp_filters(
+        filter_context->base.wfp_engine_handle, filter_context->base.filter_ids_count, filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
     NET_EBPF_EXT_LOG_EXIT();

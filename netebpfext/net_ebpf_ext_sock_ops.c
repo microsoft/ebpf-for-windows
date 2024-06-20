@@ -211,7 +211,8 @@ _net_ebpf_extension_sock_ops_on_client_detach(_In_ const net_ebpf_extension_hook
 
     ASSERT(filter_context != NULL);
     InitializeListHead(&local_list_head);
-    net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
+    net_ebpf_extension_delete_wfp_filters(
+        filter_context->base.wfp_engine_handle, filter_context->base.filter_ids_count, filter_context->base.filter_ids);
 
     KeAcquireSpinLock(&filter_context->lock, &irql);
     if (filter_context->flow_context_list.count > 0) {
