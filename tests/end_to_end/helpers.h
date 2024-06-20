@@ -534,6 +534,20 @@ typedef class _test_sample_helper
     Exit:
         return result;
     }
+
+    static int64_t
+    _sample_ebpf_extension_helper_implicit_1(_In_ const sample_program_context_t* context)
+    {
+        sample_program_context_t* sample_context = (sample_program_context_t*)context;
+        return sample_context->helper_data_1;
+    }
+
+    static int64_t
+    _sample_ebpf_extension_helper_implicit_2(_In_ const sample_program_context_t* context, uint32_t arg)
+    {
+        sample_program_context_t* sample_context = (sample_program_context_t*)context;
+        return ((uint64_t)sample_context->helper_data_2 + arg);
+    }
 } test_sample_helper_t;
 
 // These are test sample context creation functions.
@@ -856,7 +870,9 @@ static ebpf_program_data_t _ebpf_sock_ops_program_data = {
 static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_helper_function1,
     test_sample_helper_t::_sample_ebpf_extension_find,
-    test_sample_helper_t::_sample_ebpf_extension_replace};
+    test_sample_helper_t::_sample_ebpf_extension_replace,
+    test_sample_helper_t::_sample_ebpf_extension_helper_implicit_1,
+    test_sample_helper_t::_sample_ebpf_extension_helper_implicit_2};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,

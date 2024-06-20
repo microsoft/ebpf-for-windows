@@ -282,7 +282,7 @@ bpf_code_generator::program_sections()
 }
 
 void
-bpf_code_generator::set_program_information(_In_opt_ const ebpf_program_info_t* program_info)
+bpf_code_generator::set_program_information(_In_ const ebpf_program_info_t* program_info)
 {
     current_program->program_info = program_info;
 }
@@ -300,7 +300,9 @@ bpf_code_generator::parse(
     get_register_name(1);
     get_register_name(10);
 
-    set_program_information(program_info);
+    if (program_info != nullptr) {
+        set_program_information(program_info);
+    }
 
     current_program->elf_section_name = program->section_name;
     current_program->program_name = program->program_name;

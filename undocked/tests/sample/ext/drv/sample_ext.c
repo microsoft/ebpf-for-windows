@@ -696,7 +696,7 @@ static int64_t
 _sample_ebpf_extension_helper_implicit_2(_In_ const sample_program_context_t* context, uint32_t arg)
 {
     sample_program_context_t* sample_context = (sample_program_context_t*)context;
-    return sample_context->helper_data_2 + arg;
+    return ((uint64_t)sample_context->helper_data_2 + arg);
 }
 
 static ebpf_result_t
