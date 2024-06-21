@@ -8,7 +8,8 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
        [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
        [Parameter(Mandatory = $True)] [string] $LogFileName,
        [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
+       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+       [parameter(Mandatory = $false)][int] $TestDuration = 5)
 
 Push-Location $WorkingDirectory
 
@@ -25,7 +26,8 @@ function Invoke-CICDTestsOnVM
           [parameter(Mandatory = $False)][string] $TestMode = "CI/CD",
           [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
           [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps",
-          [parameter(Mandatory = $False)][string[]] $Options = @())
+          [parameter(Mandatory = $False)][string[]] $Options = @(),
+          [parameter(Mandatory = $False)][int] $TestDuration = 5)
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -38,7 +40,8 @@ function Invoke-CICDTestsOnVM
               [parameter(Mandatory = $True)][string] $TestMode,
               [parameter(Mandatory = $true)][int] $TestHangTimeout,
               [parameter(Mandatory = $true)][string] $UserModeDumpFolder,
-              [parameter(Mandatory = $True)][string[]] $Options)
+              [parameter(Mandatory = $True)][string[]] $Options,
+              [parameter(Mandatory = $True)][int] $TestDuration)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
@@ -64,6 +67,7 @@ function Invoke-CICDTestsOnVM
                     -RestartExtension $RestartExtension `
                     -TestHangTimeout $TestHangTimeout `
                     -UserModeDumpFolder $UserModeDumpFolder `
+                    -TestDuration $TestDuration `
                     2>&1 | Write-Log
             }
             "performance" {
@@ -84,7 +88,8 @@ function Invoke-CICDTestsOnVM
             $TestMode,
             $TestHangTimeout,
             $UserModeDumpFolder,
-            $Options) -ErrorAction Stop
+            $Options,
+            $TestDuration) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
