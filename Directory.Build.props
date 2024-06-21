@@ -66,6 +66,8 @@
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WholeProgramOptimization Condition="'$(EnableAsan)' != 'true'">true</WholeProgramOptimization>
+      <!-- /Ob3 enable hinting to link time code generation that a function should be inlined -->
+      <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo %(AdditionalOptions)</AdditionalOptions>
