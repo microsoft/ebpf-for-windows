@@ -192,10 +192,10 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->
-		<CustomAction Id="Clear_eBPF_store" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="yes"/>
-		<CustomAction Id="Clear_eBPF_store_uninstall" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="yes"/>
+		<CustomAction Id="Clear_eBPF_store" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="no"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
+		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
