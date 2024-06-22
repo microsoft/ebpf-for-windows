@@ -64,6 +64,7 @@ extern "C"
      * @param[in] flags Zero or more EBPF_MAP_FIND_ENTRY_FLAG_* flags.
      * @return Pointer to the value if found or NULL.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_find_entry(
         _Inout_ ebpf_map_t* map,
@@ -84,6 +85,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this entry.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_update_entry(
         _Inout_ ebpf_map_t* map,
@@ -122,6 +124,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT One or more parameters are
      *  invalid.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags);
 
@@ -155,6 +158,7 @@ extern "C"
      * @param[in] key_size Size of value to search for.
      * @returns Program pointer, or NULL if none.
      */
+    EBPF_INLINE_HINT
     _Ret_maybenull_ struct _ebpf_program*
     ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key);
 
@@ -236,6 +240,7 @@ extern "C"
      * @retval EBPF_SUCCESS Successfully wrote record into ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
@@ -251,6 +256,7 @@ extern "C"
      *  entry.
      * @retval EBPF_OUT_OF_SPACE Map is full and BPF_EXIST was not supplied.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_push_entry(
         _Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value_size) const uint8_t* value, int flags);
@@ -266,6 +272,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
@@ -280,6 +287,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_OBJECT_NOT_FOUND The map is empty.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags);
 
