@@ -57,15 +57,17 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_uninstall_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
 
 			<!--Install sequence-->
-			<Custom Action="Clear_eBPF_store" After="InstallFiles">NOT Installed</Custom>
-			<Custom Action="Setup_eBPF_store" After="Clear_eBPF_store">NOT Installed</Custom>
+			<Custom Action="Clear_eBPF_store_HKLM" After="InstallFiles">NOT Installed</Custom>
+			<Custom Action="Setup_eBPF_store_HKLM" After="Clear_eBPF_store_HKLM">NOT Installed</Custom>
+			<Custom Action="Clear_eBPF_store_HKCU" After="Setup_eBPF_store_HKLM">NOT Installed</Custom>
+			<Custom Action="Setup_eBPF_store_HKCU" After="Clear_eBPF_store_HKCU">NOT Installed</Custom>
 
-			<Custom Action="eBPF_netsh_helper_install" After="Setup_eBPF_store">NOT Installed</Custom>
+			<Custom Action="eBPF_netsh_helper_install" After="Setup_eBPF_store_HKCU">NOT Installed</Custom>
 
-			<Custom Action="eBPFCore_Driver_install" After="Setup_eBPF_store">NOT Installed</Custom>
+			<Custom Action="eBPFCore_Driver_install" After="Setup_eBPF_store_HKCU">NOT Installed</Custom>
 			<Custom Action="eBPFCore_Driver_start" After="eBPFCore_Driver_install">NOT Installed</Custom>
 
-			<Custom Action="NetEbpfExt_Driver_install" After="Setup_eBPF_store">NOT Installed</Custom>
+			<Custom Action="NetEbpfExt_Driver_install" After="Setup_eBPF_store_HKCU">NOT Installed</Custom>
 			<Custom Action="NetEbpfExt_Driver_start" After="NetEbpfExt_Driver_install">NOT Installed</Custom>
 
 			<!--Uninstall sequence-->
@@ -77,7 +79,8 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE="ALL"</Custom>
 
-			<Custom Action="Clear_eBPF_store_uninstall" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
+			<Custom Action="Clear_eBPF_store_uninstall_HKLM" After="NetEbpfExt_Driver_uninstall">REMOVE="ALL"</Custom>
+			<Custom Action="Clear_eBPF_store_uninstall_HKCU" After="Clear_eBPF_store_uninstall_HKLM">REMOVE="ALL"</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_flush" After="InstallFinalize">REMOVE="ALL"</Custom>
 		</InstallExecuteSequence>
 
@@ -192,10 +195,14 @@ SPDX-License-Identifier: MIT
 		</ComponentGroup>
 
 		<!--Clear/Setup the eBPF store-->
-		<CustomAction Id="Clear_eBPF_store" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="no"/>
-		<CustomAction Id="Clear_eBPF_store_uninstall" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<SetProperty Id="Setup_eBPF_store" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store" Sequence="execute"/>
-		<CustomAction Id="Setup_eBPF_store" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<CustomAction Id="Clear_eBPF_store_HKLM" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="no"/>
+		<CustomAction Id="Clear_eBPF_store_HKCU" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="check" Impersonate="yes"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall_HKLM" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="Clear_eBPF_store_uninstall_HKCU" ExeCommand='"[#EXPORT_PROGRAM_INFO.EXE]" --clear' Directory="INSTALLFOLDER" Execute="deferred" Return="ignore" Impersonate="yes"/>
+		<SetProperty Id="Setup_eBPF_store_HKLM" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store_HKLM" Sequence="execute"/>
+		<CustomAction Id="Setup_eBPF_store_HKLM" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
+		<SetProperty Id="Setup_eBPF_store_HKCU" Value='"[#EXPORT_PROGRAM_INFO.EXE]"' Before="Setup_eBPF_store_HKCU" Sequence="execute"/>
+		<CustomAction Id="Setup_eBPF_store_HKCU" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="yes"/>
 
 		<!--Install/Uninstall the netsh helper-->
 		<!--qtexec does not currently support a working directory (ref. https://github.com/wixtoolset/issues/issues/1265)-->
