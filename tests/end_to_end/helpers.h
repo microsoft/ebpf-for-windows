@@ -536,15 +536,36 @@ typedef class _test_sample_helper
     }
 
     static int64_t
-    _sample_ebpf_extension_helper_implicit_1(_In_ const sample_program_context_t* context)
+    _sample_ebpf_extension_helper_implicit_1(
+        uint64_t dummy_param1,
+        uint64_t dummy_param2,
+        uint64_t dummy_param3,
+        uint64_t dummy_param4,
+        uint64_t dummy_param5,
+        _In_ const sample_program_context_t* context)
     {
+        UNREFERENCED_PARAMETER(dummy_param1);
+        UNREFERENCED_PARAMETER(dummy_param2);
+        UNREFERENCED_PARAMETER(dummy_param3);
+        UNREFERENCED_PARAMETER(dummy_param4);
+        UNREFERENCED_PARAMETER(dummy_param5);
         sample_program_context_t* sample_context = (sample_program_context_t*)context;
         return sample_context->helper_data_1;
     }
 
     static int64_t
-    _sample_ebpf_extension_helper_implicit_2(_In_ const sample_program_context_t* context, uint32_t arg)
+    _sample_ebpf_extension_helper_implicit_2(
+        uint32_t arg,
+        uint64_t dummy_param1,
+        uint64_t dummy_param2,
+        uint64_t dummy_param3,
+        uint64_t dummy_param4,
+        _In_ const sample_program_context_t* context)
     {
+        UNREFERENCED_PARAMETER(dummy_param1);
+        UNREFERENCED_PARAMETER(dummy_param2);
+        UNREFERENCED_PARAMETER(dummy_param3);
+        UNREFERENCED_PARAMETER(dummy_param4);
         sample_program_context_t* sample_context = (sample_program_context_t*)context;
         return ((uint64_t)sample_context->helper_data_2 + arg);
     }

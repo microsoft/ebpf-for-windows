@@ -40,9 +40,21 @@ static int64_t
 _sample_ebpf_extension_replace(
     _In_ const void* buffer, uint32_t size, int64_t position, _In_ const void* replace, uint32_t arg_size);
 static int64_t
-_sample_ebpf_extension_helper_implicit_1(_In_ const sample_program_context_t* context);
+_sample_ebpf_extension_helper_implicit_1(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const sample_program_context_t* context);
 static int64_t
-_sample_ebpf_extension_helper_implicit_2(_In_ const sample_program_context_t* context, uint32_t arg);
+_sample_ebpf_extension_helper_implicit_2(
+    uint32_t arg,
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    _In_ const sample_program_context_t* context);
 
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,

@@ -26,7 +26,8 @@ static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
-typedef uint64_t (*helper_function_address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
+typedef uint64_t (*helper_function_address)(
+    uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, void* context);
 
 typedef struct _ebpf_native_map
 {
@@ -1167,7 +1168,7 @@ _ebpf_native_resolve_helpers_for_program(
 
     // Update the addresses in the helper entries.
     for (uint16_t i = 0; i < helper_count; i++) {
-        helpers[i].address = (uintptr_t)helper_addresses[i];
+        helpers[i].address = helper_addresses[i];
     }
 
 Done:
@@ -1185,7 +1186,7 @@ _ebpf_native_initialize_helpers_for_program(
     helper_function_entry_t* helpers = program->entry->helpers;
     // Initialize the helper entries.
     for (size_t i = 0; i < helper_count; i++) {
-        helpers[i].address = 0;
+        helpers[i].address = NULL;
         if (helpers[i].helper_id == BPF_FUNC_tail_call) {
             helpers[i].tail_call = true;
         }

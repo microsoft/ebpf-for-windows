@@ -1353,31 +1353,16 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 }
 
-                // output.lines.push_back(std::format("if (!{}.implicit_context) {", function_name));
-                output.lines.push_back("if (!" + function_name + ".implicit_context) {");
-                output.lines.push_back(INDENT + get_register_name(0) + " = " + function_name + ".address");
                 output.lines.push_back(
-                    INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
-                    ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
-                output.lines.push_back("} else {");
-                output.lines.push_back(INDENT + get_register_name(0) + " = " + function_name);
+                    get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
+                    get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
+                    get_register_name(5) + ", context);");
+
                 output.lines.push_back(
-                    INDENT " (context, " + get_register_name(1) + ", " + get_register_name(2) + ", " +
-                    get_register_name(3) + ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
-                output.lines.push_back("}");
-                // if (!implicit_context) {
-                //     output.lines.push_back(
-                //         INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " +
-                //         get_register_name(3) +
-                //         ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
-                // } else {
-                //     output.lines.push_back(
-                //         INDENT " (context, " + get_register_name(1) + ", " + get_register_name(2) + ", " +
-                //         get_register_name(3) + ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
-                // }
-                output.lines.push_back(
-                    std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
+                    std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
+                output.lines.push_back("}");
+
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {

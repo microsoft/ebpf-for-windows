@@ -2243,13 +2243,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
                 goto Exit;
             }
         }
-        if (helper_function_prototype->implicit_context == true) {
-            uint32_t value = 1;
-            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, value);
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
-        }
+        // if (helper_function_prototype->implicit_context == true) {
+        //     uint32_t value = 1;
+        //     result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, value);
+        //     if (result != EBPF_SUCCESS) {
+        //         goto Exit;
+        //     }
+        // }
     }
     *hash_length = 0;
     result = ebpf_cryptographic_hash_get_hash_length(cryptographic_hash, hash_length);
