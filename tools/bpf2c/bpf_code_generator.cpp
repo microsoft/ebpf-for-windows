@@ -862,7 +862,8 @@ bpf_code_generator::get_helper_information(uint32_t helper_id)
     for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
         const ebpf_helper_function_prototype_t* helper = &program_info->global_helper_prototype[i];
         if (helper->helper_id == helper_id) {
-            return helper->flags.implicit_context;
+            // return helper->flags.implicit_context;
+            return helper->implicit_context;
         }
     }
 
@@ -870,7 +871,8 @@ bpf_code_generator::get_helper_information(uint32_t helper_id)
     for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
         const ebpf_helper_function_prototype_t* helper = &program_info->program_type_specific_helper_prototype[i];
         if (helper->helper_id == helper_id) {
-            return helper->flags.implicit_context;
+            // return helper->flags.implicit_context;
+            return helper->implicit_context;
         }
     }
 
@@ -900,6 +902,7 @@ bpf_code_generator::build_function_table()
             int32_t helper_id = output.instruction.imm;
             bool implicit_context = get_helper_information((uint32_t)helper_id);
             // First check the global.
+            printf("helper_id: %d, implicit_context: %d\n", helper_id, implicit_context);
             current_program->helper_functions[name] = {helper_id, index++, implicit_context};
         }
     }
@@ -1335,30 +1338,43 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 output.lines.push_back("goto " + target + ";");
             } else if (inst.opcode == INST_OP_CALL) {
                 std::string function_name;
-                bool implicit_context;
+                // bool implicit_context;
                 if (output.relocation.empty()) {
                     auto helper_function =
                         current_program->helper_functions["helper_id_" + std::to_string(output.instruction.imm)];
-                    implicit_context = helper_function.implicit_context;
+                    // implicit_context = helper_function.implicit_context;
                     auto str = std::to_string(helper_function.index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 } else {
                     auto helper_function = current_program->helper_functions.find(output.relocation);
                     assert(helper_function != current_program->helper_functions.end());
-                    implicit_context = helper_function->second.implicit_context;
+                    // implicit_context = helper_function->second.implicit_context;
                     auto str = std::to_string(helper_function->second.index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 }
-                output.lines.push_back(get_register_name(0) + " = " + function_name + ".address");
-                if (!implicit_context) {
-                    output.lines.push_back(
-                        INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
-                        ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
-                } else {
-                    output.lines.push_back(
-                        INDENT " (context, " + get_register_name(1) + ", " + get_register_name(2) + ", " +
-                        get_register_name(3) + ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
-                }
+
+                // output.lines.push_back(std::format("if (!{}.implicit_context) {", function_name));
+                output.lines.push_back("if (!" + function_name + ".implicit_context) {");
+                output.lines.push_back(INDENT + get_register_name(0) + " = " + function_name + ".address");
+                output.lines.push_back(
+                    INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " + get_register_name(3) +
+                    ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                output.lines.push_back("} else {");
+                output.lines.push_back(INDENT + get_register_name(0) + " = " + function_name);
+                output.lines.push_back(
+                    INDENT " (context, " + get_register_name(1) + ", " + get_register_name(2) + ", " +
+                    get_register_name(3) + ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                output.lines.push_back("}");
+                // if (!implicit_context) {
+                //     output.lines.push_back(
+                //         INDENT " (" + get_register_name(1) + ", " + get_register_name(2) + ", " +
+                //         get_register_name(3) +
+                //         ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                // } else {
+                //     output.lines.push_back(
+                //         INDENT " (context, " + get_register_name(1) + ", " + get_register_name(2) + ", " +
+                //         get_register_name(3) + ", " + get_register_name(4) + ", " + get_register_name(5) + ");");
+                // }
                 output.lines.push_back(
                     std::format("if (({}.tail_call) && ({} == 0))", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");

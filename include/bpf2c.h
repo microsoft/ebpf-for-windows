@@ -53,10 +53,14 @@ extern "C"
      */
     typedef struct _helper_function_entry
     {
-        uint64_t (*address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
-        uint32_t helper_id;
+        union
+        {
+            uint64_t (*address)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+            uint64_t (*implicit_context_address)(void*, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
+        } uint32_t helper_id;
         const char* name;
         bool tail_call;
+        bool implicit_context;
     } helper_function_entry_t;
 
     /**

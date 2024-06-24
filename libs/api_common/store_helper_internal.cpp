@@ -64,6 +64,7 @@ _ebpf_store_load_helper_prototype(
     size_t expected_size = sizeof(helper_prototype->helper_id) + sizeof(helper_prototype->return_type) +
                            sizeof(helper_prototype->arguments);
     uint32_t reallocate_packet_value = 0;
+    uint32_t implicit_context_value = 0;
 
     EBPF_LOG_ENTRY();
 
@@ -98,6 +99,10 @@ _ebpf_store_load_helper_prototype(
 
     (void)ebpf_read_registry_value_dword(helper_info_key, EBPF_HELPER_DATA_REALLOCATE_PACKET, &reallocate_packet_value);
     helper_prototype->flags.reallocate_packet = !!reallocate_packet_value;
+
+    (void)ebpf_read_registry_value_dword(helper_info_key, EBPF_HELPER_DATA_IMPLICIT_CONTEXT, &implicit_context_value);
+    // helper_prototype->flags.implicit_context = !!implicit_context_value;
+    helper_prototype->implicit_context = !!implicit_context_value;
 
     try {
         helper_prototype->name =

@@ -2990,7 +2990,7 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 }
 
 static void
-extension_reload_test(ebpf_execution_type_t execution_type)
+extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3007,7 +3007,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Should fail.
     REQUIRE(
         ebpf_program_load(
-            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
+            file_name,
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
             &unique_test_sample_ebpf_object,
@@ -3024,7 +3024,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
         result = ebpf_program_load(
-            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
+            file_name,
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
             &unique_test_sample_ebpf_object,
@@ -3117,7 +3117,23 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     }
 }
 
+static void
+extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+    extension_reload_test_common(file_name, execution_type);
+}
+
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
+
+TEST_CASE("extension_reload_test_implicit_context_native", "[end_to_end]")
+{
+    const char* file_name = "test_sample_implicit_helpers_um.dll";
+    extension_reload_test_common(file_name, EBPF_EXECUTION_NATIVE);
+}
+
+// TODO: Add JIT test case for implicit context to check that the load fails.
+// TODO: Add native test case for implicit context to check that the load succeeds and
 
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
 TEST_CASE("close_unload_test", "[close_cleanup]")
@@ -3433,4 +3449,63 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_INTERPRET);
 #endif
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
+}
+
+TEST_CASE("implicit_context_helpers", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    uint32_t data1 = 1;
+    uint32_t data2 = 2;
+
+    const char* file_name = "test_sample_implicit_helpers_um.dll";
+
+    // Empty context (not used by the eBPF program).
+    sample_program_context_t ctx{0};
+    ctx.helper_data_1 = data1;
+    ctx.helper_data_2 = data2;
+
+    // Try loading without the extension loaded.
+    bpf_object_ptr unique_test_sample_ebpf_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+    int result;
+
+    result = ebpf_program_load(
+        file_name,
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_test_sample_ebpf_object,
+        &program_fd,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_link* link = nullptr;
+    // Attach only to the single interface being tested.
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+    bpf_link__disconnect(link);
+    bpf_link__destroy(link);
+
+    // Program should run.
+    uint32_t hook_result = MAXUINT32;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 42);
+
+    // Read the output_map and check the values.
+    fd_t output_map_fd = bpf_object__find_map_fd_by_name(unique_test_sample_ebpf_object.get(), "output_map");
+    REQUIRE(output_map_fd > 0);
+    helper_values_t data = {0};
+    uint32_t key = 0;
+    REQUIRE(bpf_map_lookup_elem(output_map_fd, &key, &data) == 0);
+    REQUIRE(data.value_1 == data1);
+    REQUIRE(data.value_2 == data2 + 10);
 }

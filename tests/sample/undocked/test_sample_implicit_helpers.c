@@ -28,12 +28,6 @@ struct
     __uint(max_entries, 2);
 } test_map SEC(".maps");
 
-typedef struct _helper_values
-{
-    uint64_t value_1;
-    uint64_t value_2;
-} helper_values_t;
-
 struct
 {
     __uint(type, BPF_MAP_TYPE_ARRAY);

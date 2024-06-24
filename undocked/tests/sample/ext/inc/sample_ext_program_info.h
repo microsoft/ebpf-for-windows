@@ -50,13 +50,15 @@ static const ebpf_helper_function_prototype_t _sample_ebpf_extension_helper_func
      "sample_ebpf_extension_helper_implicit_1",
      EBPF_RETURN_TYPE_INTEGER,
      {},
-     HELPER_FUNCTION_IMPLICIT_CONTEXT},
+     {0},
+     true},
     {{EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE},
      SAMPLE_EXT_HELPER_FUNCTION_START + 5,
      "sample_ebpf_extension_helper_implicit_2",
      EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_ANYTHING},
-     HELPER_FUNCTION_IMPLICIT_CONTEXT},
+     {},
+     {0},
+     true},
 };
 
 // Global helper function prototype descriptors.

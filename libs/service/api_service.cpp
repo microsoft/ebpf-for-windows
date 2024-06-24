@@ -305,6 +305,14 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
+        // // Check if any of the helper functions requires implicit context.
+        // for (auto& [helper_id, address] : helper_id_to_address) {
+        //     if (get_helper_prototype_windows(helper_id).context_descriptor != nullptr) {
+        //         result = EBPF_OPERATION_NOT_SUPPORTED;
+        //         goto Exit;
+        //     }
+        // }
+
         // Verify the program.
         {
             _verification_in_progress_helper helper;
