@@ -229,7 +229,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "               .text                    func       bind     1064\n"
+                                        "               .text                    func       bind     1080\n"
 #else
                                         "               .text                    func       bind     1768\n"
 #endif
