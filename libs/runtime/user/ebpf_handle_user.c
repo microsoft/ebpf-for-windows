@@ -34,10 +34,15 @@ ebpf_handle_table_terminate()
         EBPF_RETURN_VOID();
     }
 
+    ebpf_lock_state_t state;
+    state = ebpf_lock_lock(&_ebpf_handle_table_lock);
     for (handle = 0; handle < EBPF_COUNT_OF(_ebpf_handle_table); handle++) {
-        // Ignore invalid handle close.
-        (void)ebpf_handle_close(handle);
+        if (_ebpf_handle_table[handle] != NULL) {
+            EBPF_OBJECT_RELEASE_REFERENCE_INDIRECT(_ebpf_handle_table[handle]);
+            _ebpf_handle_table[handle] = NULL;
+        }
     }
+    ebpf_lock_unlock(&_ebpf_handle_table_lock, state);
     _ebpf_handle_table_initiated = false;
     EBPF_RETURN_VOID();
 }
