@@ -2237,8 +2237,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
 
         if (helper_function_prototype->flags.reallocate_packet != 0) {
-            bool value = 1;
-            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, value);
+            // bool value = 1;
+            // result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, value);
+            result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->flags);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }

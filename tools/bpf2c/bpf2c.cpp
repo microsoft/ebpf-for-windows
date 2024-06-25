@@ -119,8 +119,10 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
             // If an existing helper function is modified to toggle implicit_context flag, that would be a breaking
             // change, and any eBPF program using that helper function will need to be recompiled.
             if (program_info->program_type_specific_helper_prototype[index].flags.reallocate_packet != 0) {
-                bool reallocate_packet = true;
-                hash_t::append_byte_range(byte_range, reallocate_packet);
+                // bool reallocate_packet = true;
+                // hash_t::append_byte_range(byte_range, reallocate_packet);
+                hash_t::append_byte_range(
+                    byte_range, program_info->program_type_specific_helper_prototype[index].flags);
             }
             // // If an existing helper function is modified to toggle implicit_context flag, that would be a breaking
             // // change, and any eBPF program using that helper function will need to be recompiled.

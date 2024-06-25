@@ -3451,7 +3451,8 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }
 
-TEST_CASE("implicit_context_helpers", "[end_to_end]")
+void
+implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3462,7 +3463,8 @@ TEST_CASE("implicit_context_helpers", "[end_to_end]")
     uint32_t data1 = 1;
     uint32_t data2 = 2;
 
-    const char* file_name = "test_sample_implicit_helpers_um.dll";
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "test_sample_implicit_helpers_um.dll"
+                                                                      : "test_sample_implicit_helpers.o";
 
     // Empty context (not used by the eBPF program).
     sample_program_context_t ctx{0};
@@ -3476,12 +3478,7 @@ TEST_CASE("implicit_context_helpers", "[end_to_end]")
     int result;
 
     result = ebpf_program_load(
-        file_name,
-        BPF_PROG_TYPE_UNSPEC,
-        EBPF_EXECUTION_NATIVE,
-        &unique_test_sample_ebpf_object,
-        &program_fd,
-        &error_message);
+        file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_test_sample_ebpf_object, &program_fd, &error_message);
 
     if (error_message) {
         printf("ebpf_program_load failed with %s\n", error_message);
@@ -3509,3 +3506,5 @@ TEST_CASE("implicit_context_helpers", "[end_to_end]")
     REQUIRE(data.value_1 == data1);
     REQUIRE(data.value_2 == data2 + 10);
 }
+
+DECLARE_ALL_TEST_CASES("implicit_context_helpers_test", "[end_to_end]", implicit_context_helpers_test);
