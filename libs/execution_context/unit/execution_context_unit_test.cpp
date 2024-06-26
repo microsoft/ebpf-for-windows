@@ -1319,7 +1319,8 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
     NEGATIVE_TEST_PROLOG();
 
     std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
-    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    std::vector<uint8_t> reply(
+        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(helper_function_address_info_t));
     auto resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
 
     // Invalid handle.

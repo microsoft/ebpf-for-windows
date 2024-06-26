@@ -1743,11 +1743,11 @@ _ebpf_native_helper_address_changed(
     bpf2c_version_t client_version = {0, 0, 0};
     bool implicit_context_supported = false;
 
-    helper_address_changed_context->module->table.version(&client_version);
-
     uint64_t* helper_function_addresses = NULL;
     _Analysis_assume_(context != NULL);
     size_t helper_count = helper_address_changed_context->native_program->entry->helper_count;
+
+    helper_address_changed_context->module->table.version(&client_version);
 
     if (helper_count == 0) {
         return_value = EBPF_SUCCESS;

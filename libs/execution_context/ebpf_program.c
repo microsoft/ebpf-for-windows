@@ -1155,6 +1155,17 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+static bool
+_ebpf_program_uses_helper_function(_In_ const ebpf_program_t* program, uint32_t helper_function_id)
+{
+    for (uint32_t index = 0; index < program->helper_function_count; index++) {
+        if (program->helper_function_ids[index] == helper_function_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
     size_t address_count,
@@ -1260,7 +1271,8 @@ _ebpf_program_update_jit_helpers(
             for (uint32_t program_helper_index = 0;
                  program_helper_index < helper_function_addresses->helper_function_count;
                  program_helper_index++) {
-                if (helper_prototypes[program_helper_index].implicit_context) {
+                if (_ebpf_program_uses_helper_function(program, helper_prototypes[program_helper_index].helper_id) &&
+                    helper_prototypes[program_helper_index].implicit_context) {
                     // ANUSA TODO: Add a trace.
                     return_value = EBPF_INVALID_ARGUMENT;
                     goto Exit;
@@ -1287,7 +1299,8 @@ _ebpf_program_update_jit_helpers(
             for (uint32_t global_helper_index = 0;
                  global_helper_index < global_helper_function_addresses->helper_function_count;
                  global_helper_index++) {
-                if (helper_prototypes[global_helper_index].implicit_context) {
+                if (_ebpf_program_uses_helper_function(program, helper_prototypes[global_helper_index].helper_id) &&
+                    helper_prototypes[global_helper_index].implicit_context) {
                     // ANUSA TODO: Add a trace.
                     return_value = EBPF_INVALID_ARGUMENT;
                     goto Exit;
@@ -1550,12 +1563,12 @@ ebpf_program_invoke(
     return EBPF_SUCCESS;
 }
 
-_Requires_lock_held_(program->lock) static bool _ebpf_program_get_helper_address_info_from_program_data(
-    _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_info_t* address)
+_Success_(return == true)
+    _Requires_lock_held_(program->lock) static bool _ebpf_program_get_helper_address_info_from_program_data(
+        _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_info_t* address)
 {
     bool found = false;
     const ebpf_program_data_t* program_data = program->extension_program_data;
-    ;
     const ebpf_program_data_t* general_program_data = program->general_helper_program_data;
 
     if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
