@@ -1270,7 +1270,8 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 case EBPF_ATOMIC_XCHG:
                     is_complex = true;
                     line = std::format(
-                        "InterlockedExchange{}(({}*)(uintptr_t)({} + {}), {});",
+                        "{} = InterlockedExchange{}(({}*)(uintptr_t)({} + {}), {});",
+                        raw_source,
                         size_num,
                         lock_type,
                         destination,
