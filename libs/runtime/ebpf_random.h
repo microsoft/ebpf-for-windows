@@ -29,6 +29,7 @@ extern "C"
      *
      * @return A pseudorandom number.
      */
+    EBPF_INLINE_HINT
     uint32_t
     ebpf_random_uint32();
 

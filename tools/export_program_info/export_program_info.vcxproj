@@ -125,13 +125,14 @@
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
-$(OutputPath)export_program_info.exe</Command>
+$(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
+</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
+      <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
@@ -148,13 +149,14 @@ $(OutputPath)export_program_info.exe</Command>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
-$(OutputPath)export_program_info.exe</Command>
+$(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
+</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
+      <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
@@ -171,13 +173,14 @@ $(OutputPath)export_program_info.exe</Command>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
-$(OutputPath)export_program_info.exe</Command>
+$(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
+</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
+      <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -196,13 +199,14 @@ $(OutputPath)export_program_info.exe</Command>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
-$(OutputPath)export_program_info.exe</Command>
+$(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
+</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
+      <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
@@ -221,13 +225,14 @@ $(OutputPath)export_program_info.exe</Command>
     <CustomBuildStep>
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
-$(OutputPath)export_program_info.exe</Command>
+$(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
+</Command>
     </CustomBuildStep>
     <CustomBuildStep>
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
     <CustomBuildStep>
-      <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
+      <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
   <ItemGroup>
