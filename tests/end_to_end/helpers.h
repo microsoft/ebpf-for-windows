@@ -569,6 +569,13 @@ typedef class _test_sample_helper
         sample_program_context_t* sample_context = (sample_program_context_t*)context;
         return ((uint64_t)sample_context->helper_data_2 + arg);
     }
+
+    // static int64_t
+    // _sample_ebpf_extension_helper_implicit_2(
+    //     uint32_t arg)
+    // {
+    //     return arg + 20;
+    // }
 } test_sample_helper_t;
 
 // These are test sample context creation functions.

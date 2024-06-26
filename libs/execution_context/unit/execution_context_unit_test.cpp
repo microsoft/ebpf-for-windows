@@ -873,7 +873,7 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(options.return_value == TEST_FUNCTION_RETURN);
     REQUIRE(options.duration > 0);
 
-    uint64_t addresses[TOTAL_HELPER_COUNT] = {};
+    helper_function_address_info_t addresses[TOTAL_HELPER_COUNT] = {};
     uint32_t helper_function_ids[] = {1, 3, 2};
     REQUIRE(
         ebpf_program_set_helper_function_ids(program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
@@ -881,9 +881,9 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(
         ebpf_program_get_helper_function_addresses(program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) ==
         EBPF_SUCCESS);
-    REQUIRE(addresses[0] != 0);
-    REQUIRE(addresses[1] != 0);
-    REQUIRE(addresses[2] != 0);
+    REQUIRE(addresses[0].address != 0);
+    REQUIRE(addresses[1].address != 0);
+    REQUIRE(addresses[2].address != 0);
 
     link_ptr link;
 

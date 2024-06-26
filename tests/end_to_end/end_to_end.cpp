@@ -3090,10 +3090,10 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_helper_function_prototype_t helper_function_prototypes[3];
+        ebpf_helper_function_prototype_t helper_function_prototypes[5];
         std::copy(
             _sample_ebpf_extension_helper_function_prototype,
-            _sample_ebpf_extension_helper_function_prototype + 3,
+            _sample_ebpf_extension_helper_function_prototype + 5,
             helper_function_prototypes);
         // Change the return type of the helper function from EBPF_RETURN_TYPE_INTEGER to
         // EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL.
@@ -3452,7 +3452,7 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
 }
 
 void
-implicit_context_helpers_test(ebpf_execution_type_t execution_type)
+_implicit_context_helpers_test(ebpf_execution_type_t execution_type, int expected_result)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3484,7 +3484,11 @@ implicit_context_helpers_test(ebpf_execution_type_t execution_type)
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
-    REQUIRE(result == 0);
+    REQUIRE(result == expected_result);
+
+    if (expected_result != 0) {
+        return;
+    }
 
     bpf_link* link = nullptr;
     // Attach only to the single interface being tested.
@@ -3505,6 +3509,13 @@ implicit_context_helpers_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_lookup_elem(output_map_fd, &key, &data) == 0);
     REQUIRE(data.value_1 == data1);
     REQUIRE(data.value_2 == data2 + 10);
+}
+
+void
+implicit_context_helpers_test(ebpf_execution_type_t execution_type)
+{
+    int expected_result = execution_type == EBPF_EXECUTION_NATIVE ? 0 : -ENOTSUP;
+    _implicit_context_helpers_test(execution_type, expected_result);
 }
 
 DECLARE_ALL_TEST_CASES("implicit_context_helpers_test", "[end_to_end]", implicit_context_helpers_test);
