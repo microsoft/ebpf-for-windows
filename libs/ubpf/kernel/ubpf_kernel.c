@@ -78,7 +78,12 @@ ubpf_jit_update_dispatcher_x86_64(
 
 bool
 ubpf_jit_update_helper_x86_64(
-    struct ubpf_vm* vm, ext_func new_helper, unsigned int idx, uint8_t* buffer, size_t size, uint32_t offset)
+    struct ubpf_vm* vm,
+    extended_external_helper_t new_helper,
+    unsigned int idx,
+    uint8_t* buffer,
+    size_t size,
+    uint32_t offset)
 {
     __fastfail(0);
     return false;
