@@ -31,6 +31,10 @@
 #pragma warning(disable : 6387)  // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
 #pragma warning(disable : 26451) // Arithmetic overflow: Using operator '*' on a 4 byte value and then casting the
                                  // result to a 8 byte value.
+
+// Windows headers define near and far which conflict with the ubpf headers.
+#undef near
+#undef far
 #include "ubpf_jit.c"
 #include "ubpf_jit_support.c"
 #include "ubpf_jit_x86_64.c"

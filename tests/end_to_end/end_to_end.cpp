@@ -382,6 +382,8 @@ ebpf_program_load(
             }
         }
         bpf_object__close(new_object);
+        // Add delay to permit the native module handle cleanup to complete.
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         return error;
     }
 
