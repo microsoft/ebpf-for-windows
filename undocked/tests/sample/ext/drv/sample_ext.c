@@ -95,7 +95,9 @@ static ebpf_program_data_t _sample_ebpf_extension_program_data = {
     .program_type_specific_helper_function_addresses = &_sample_ebpf_extension_helper_function_address_table,
     .global_helper_function_addresses = &_sample_global_helper_function_address_table,
     .context_create = &_sample_context_create,
-    .context_destroy = &_sample_context_destroy};
+    .context_destroy = &_sample_context_destroy,
+    DISPATCH_LEVEL,
+    true};
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_SAMPLE_GUID};
@@ -608,7 +610,7 @@ sample_ebpf_extension_profile_program(
     uint32_t result;
     KIRQL old_irql = PASSIVE_LEVEL;
     sample_program_context_t program_context = {
-        request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
+        {0}, request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
 
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
 

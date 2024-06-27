@@ -126,3 +126,9 @@ typedef struct _ebpf_execution_context_state
         uint32_t count;
     } tail_call_state;
 } ebpf_execution_context_state_t;
+
+typedef struct _ebpf_context_header
+{
+    uint64_t context_header[8];
+    uint8_t context[1];
+} ebpf_context_header_t;

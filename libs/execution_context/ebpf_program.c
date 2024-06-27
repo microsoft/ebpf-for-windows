@@ -138,6 +138,34 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
 
+// EBPF_INLINE_HINT
+// static void
+// ebpf_program_set_runtime_state(
+//     _In_ const ebpf_program_t* program,
+//     _In_ const ebpf_execution_context_state_t* state,
+//     _Inout_ void* program_context)
+// {
+//     // slot [0] contains the program information.
+//     // slot [1] contains the execution context state.
+//     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+//     header->context_header[0] = program;
+//     header->context_header[1] = state;
+// }
+
+// EBPF_INLINE_HINT
+// static void
+// _ebpf_program_get_runtime_state(
+//     _In_ const void* program_context,
+//     _Outptr_ const ebpf_program_t** program,
+//     _Outptr_ const ebpf_execution_context_state_t** state)
+// {
+//     // slot [0] contains the program information.
+//     // slot [1] contains the execution context state.
+//     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+//     *program = (ebpf_program_t*)header->context_header[0];
+//     *state = (ebpf_execution_context_state_t*)header->context_header[1];
+// }
+
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
     size_t address_count,
@@ -1459,14 +1487,20 @@ ebpf_program_load_code(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
+ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* next_program)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
     ebpf_execution_context_state_t* state = NULL;
-    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
-    if (result != EBPF_SUCCESS) {
-        return result;
+    ebpf_program_t* current_program = NULL;
+
+    if (next_program->extension_program_data->supports_context_header) {
+        ebpf_program_get_runtime_state(context, &current_program, &state);
+    } else {
+        result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
     }
 
     if (state == NULL) {
@@ -1505,6 +1539,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
+    bool context_header,
     _Inout_ void* context,
     _Out_ uint32_t* result,
     _Inout_ ebpf_execution_context_state_t* execution_state)
@@ -1529,6 +1564,11 @@ ebpf_program_invoke(
 
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
+
+    // If context header is supported, store the execution state in the context.
+    if (context_header) {
+        ebpf_program_set_runtime_state(current_program, execution_state, context);
+    }
 
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
@@ -2404,13 +2444,19 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
 
-    ebpf_get_execution_context_state(&execution_context_state);
-    return_value =
-        ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
+    if (context->program_data->supports_context_header) {
+        ebpf_program_set_runtime_state(context->program, &execution_context_state, program_context);
+        // ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+        // header->context_header[0] = &execution_context_state;
+    } else {
+        ebpf_get_execution_context_state(&execution_context_state);
+        return_value = ebpf_state_store(
+            ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+        state_stored = true;
     }
-    state_stored = true;
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2441,7 +2487,12 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        result = ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        result = ebpf_program_invoke(
+            context->program,
+            context->program_data->supports_context_header,
+            program_context,
+            &return_value,
+            &execution_context_state);
         if (result != EBPF_SUCCESS) {
             break;
         }
@@ -2618,4 +2669,34 @@ size_t
 ebpf_program_get_state_index()
 {
     return _ebpf_program_state_index;
+}
+
+bool
+ebpf_program_supports_context_header(_In_ const ebpf_program_t* program)
+{
+    return program->extension_program_data->supports_context_header;
+}
+
+void
+ebpf_program_set_runtime_state(
+    _In_ const ebpf_program_t* program, _In_ const ebpf_execution_context_state_t* state, _Inout_ void* program_context)
+{
+    // slot [0] contains the program information.
+    // slot [1] contains the execution context state.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[0] = (uint64_t)program;
+    header->context_header[1] = (uint64_t)state;
+}
+
+void
+ebpf_program_get_runtime_state(
+    _In_ const void* program_context,
+    _Outptr_ const ebpf_program_t** program,
+    _Outptr_ const ebpf_execution_context_state_t** state)
+{
+    // slot [0] contains the program information.
+    // slot [1] contains the execution context state.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    *program = (ebpf_program_t*)header->context_header[0];
+    *state = (ebpf_execution_context_state_t*)header->context_header[1];
 }

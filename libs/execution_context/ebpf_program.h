@@ -196,6 +196,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(
         _In_ const ebpf_program_t* program,
+        bool context_header,
         _Inout_ void* context,
         _Out_ uint32_t* result,
         _Inout_ ebpf_execution_context_state_t* execution_state);
@@ -277,6 +278,7 @@ extern "C"
     /**
      * @brief Store the pointer to the program to execute on tail call.
      *
+     * @param[in] context Program context.
      * @param[in] next_program Next program to execute.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INVALID_ARGUMENT Internal error.
@@ -284,7 +286,7 @@ extern "C"
      */
     EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
+    ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* next_program);
 
     /**
      * @brief Get bpf_prog_info about a program.
@@ -415,6 +417,49 @@ extern "C"
      */
     size_t
     ebpf_program_get_state_index();
+
+    /**
+     * @brief Get whether the program information provider supports the context header.
+     *
+     * @param[in] program Pointer to the program object.
+     *
+     * @return true when the program supports the context header.
+     * @return false when the program does not support the context header.
+     */
+    bool
+    ebpf_program_supports_context_header(_In_ const ebpf_program_t* program);
+
+    /**
+     * @brief Set the runtime state in the program context.
+     *  Slot [0] contains the program information.
+     *  Slot [1] contains the execution context state.
+     *
+     * @param[in] program Pointer to the program information.
+     * @param[in] state Pointer to the execution context state.
+     * @param[in,out] program_context Pointer to the program context.
+     */
+    EBPF_INLINE_HINT
+    void
+    ebpf_program_set_runtime_state(
+        _In_ const ebpf_program_t* program,
+        _In_ const ebpf_execution_context_state_t* state,
+        _Inout_ void* program_context);
+
+    /**
+     * @brief Get the runtime state from the program context.
+     *  Slot [0] contains the program information.
+     *  Slot [1] contains the execution context state.
+     *
+     * @param[in] program_context Pointer to the program context.
+     * @param[out] program Pointer to the program information.
+     * @param[out] state Pointer to the execution context state.
+     */
+    EBPF_INLINE_HINT
+    void
+    ebpf_program_get_runtime_state(
+        _In_ const void* program_context,
+        _Outptr_ const ebpf_program_t** program,
+        _Outptr_ const ebpf_execution_context_state_t** state);
 
 #ifdef __cplusplus
 }
