@@ -241,7 +241,7 @@ test(void* context)
     // EBPF_OP_LDXDW pc=21 dst=r1 src=r10 offset=-24 imm=0
     r1 = *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24));
     // EBPF_OP_ATOMIC64_XCHG pc=22 dst=r10 src=r1 offset=-16 imm=225
-    InterlockedExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1);
+    r1 = InterlockedExchange64((volatile int64_t*)(uintptr_t)(r10 + OFFSET(-16)), (uint64_t)r1);
     // EBPF_OP_STXDW pc=23 dst=r10 src=r1 offset=-32 imm=0
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
     // EBPF_OP_MOV64_IMM pc=24 dst=r1 src=r0 offset=0 imm=5
