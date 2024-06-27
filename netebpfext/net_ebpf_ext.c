@@ -374,6 +374,21 @@ net_ebpf_extension_delete_wfp_filters(
     NET_EBPF_EXT_LOG_EXIT();
 }
 
+static void
+net_ebpf_extension_busy_wait(uint64_t micro_seconds)
+{
+    uint64_t cur_time = 0;
+    uint64_t end_time = 0;
+
+    KeQueryUnbiasedInterruptTimePrecise(&end_time);
+
+    // convert required delay to 100 nano-second units and update end time.
+    end_time += ((micro_seconds * 1000) / 100);
+    while (cur_time < end_time) {
+        KeQueryUnbiasedInterruptTimePrecise(&cur_time);
+    }
+}
+
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
     uint32_t filter_count,
@@ -387,6 +402,8 @@ net_ebpf_extension_add_wfp_filters(
     ebpf_result_t result = EBPF_SUCCESS;
     bool is_in_transaction = FALSE;
     net_ebpf_ext_wfp_filter_id_t* local_filter_ids = NULL;
+    uint32_t retry_count = 0;
+
     *filter_ids = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
@@ -405,12 +422,31 @@ net_ebpf_extension_add_wfp_filters(
 
     memset(local_filter_ids, 0, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count));
 
-    status = FwpmTransactionBegin(_fwp_engine_handle, 0);
+    // WFP does not permit more than one active transaction for a given session handle. In certain timing sensitive
+    // multi-threaded scenarios, we sometimes end up attempting to initiate a second transaction before the current
+    // one completes causing FwpmTransactionBegin to return an error. We detect this condition and retry after
+    // a brief busy-wait delay.
+    retry_count = 5;
+    for (uint32_t i = 0; i < retry_count; i++) {
+        status = FwpmTransactionBegin(_fwp_engine_handle, 0);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmTransactionBegin() busy. Retrying with delay.");
+            net_ebpf_extension_busy_wait(100);
+            continue;
+        } else {
+            break;
+        }
+    }
+
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
+
     is_in_transaction = TRUE;
 
     for (uint32_t index = 0; index < filter_count; index++) {
