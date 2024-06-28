@@ -1191,12 +1191,12 @@ _ebpf_program_update_interpret_helpers(
         if (address_info.address == 0) {
             continue;
         }
-        if (address_info.implicit_context) {
-            // Implicit context is not supported for interpret mode.
-            // ANUSA TODO: Add a trace.
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
-        }
+        // if (address_info.implicit_context) {
+        //     // Implicit context is not supported for interpret mode.
+        //     // ANUSA TODO: Add a trace.
+        //     result = EBPF_INVALID_ARGUMENT;
+        //     goto Exit;
+        // }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         if (ubpf_register(
@@ -1329,12 +1329,12 @@ _ebpf_program_update_jit_helpers(
             for (uint32_t program_helper_index = 0;
                  program_helper_index < helper_function_addresses->helper_function_count;
                  program_helper_index++) {
-                if (_ebpf_program_uses_helper_function(program, helper_prototypes[program_helper_index].helper_id) &&
-                    helper_prototypes[program_helper_index].implicit_context) {
-                    // ANUSA TODO: Add a trace.
-                    return_value = EBPF_INVALID_ARGUMENT;
-                    goto Exit;
-                }
+                // if (_ebpf_program_uses_helper_function(program, helper_prototypes[program_helper_index].helper_id) &&
+                //     helper_prototypes[program_helper_index].implicit_context) {
+                //     // ANUSA TODO: Add a trace.
+                //     return_value = EBPF_INVALID_ARGUMENT;
+                //     goto Exit;
+                // }
                 total_helper_function_ids[index] = helper_prototypes[program_helper_index].helper_id;
                 total_helper_function_addresses->helper_function_address[program_helper_index] =
                     helper_function_addresses->helper_function_address[program_helper_index];
@@ -1357,12 +1357,12 @@ _ebpf_program_update_jit_helpers(
             for (uint32_t global_helper_index = 0;
                  global_helper_index < global_helper_function_addresses->helper_function_count;
                  global_helper_index++) {
-                if (_ebpf_program_uses_helper_function(program, helper_prototypes[global_helper_index].helper_id) &&
-                    helper_prototypes[global_helper_index].implicit_context) {
-                    // ANUSA TODO: Add a trace.
-                    return_value = EBPF_INVALID_ARGUMENT;
-                    goto Exit;
-                }
+                // if (_ebpf_program_uses_helper_function(program, helper_prototypes[global_helper_index].helper_id) &&
+                //     helper_prototypes[global_helper_index].implicit_context) {
+                //     // ANUSA TODO: Add a trace.
+                //     return_value = EBPF_INVALID_ARGUMENT;
+                //     goto Exit;
+                // }
                 total_helper_function_ids[index] = helper_prototypes[global_helper_index].helper_id;
                 total_helper_function_addresses->helper_function_address[index] =
                     global_helper_function_addresses->helper_function_address[global_helper_index];

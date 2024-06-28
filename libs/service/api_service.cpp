@@ -306,13 +306,13 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        // Currently implicit context is not supported for both JIT and interpret mode execution.
-        for (auto& [helper_id, address] : helper_id_to_address) {
-            if (address.implicit_context) {
-                result = EBPF_OPERATION_NOT_SUPPORTED;
-                goto Exit;
-            }
-        }
+        // // Currently implicit context is not supported for both JIT and interpret mode execution.
+        // for (auto& [helper_id, address] : helper_id_to_address) {
+        //     if (address.implicit_context) {
+        //         result = EBPF_OPERATION_NOT_SUPPORTED;
+        //         goto Exit;
+        //     }
+        // }
 
         // Verify the program.
         {

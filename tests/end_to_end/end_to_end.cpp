@@ -3516,7 +3516,8 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type, int expecte
 void
 implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 {
-    int expected_result = execution_type == EBPF_EXECUTION_NATIVE ? 0 : -ENOTSUP;
+    // int expected_result = execution_type == EBPF_EXECUTION_NATIVE ? 0 : -ENOTSUP;
+    int expected_result = 0;
     _implicit_context_helpers_test(execution_type, expected_result);
 }
 
