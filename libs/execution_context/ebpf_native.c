@@ -58,22 +58,6 @@ typedef enum _ebpf_native_module_state
     MODULE_STATE_UNLOADING,
 } ebpf_native_module_state_t;
 
-typedef struct _ebpf_native_handle_cleanup_information
-{
-    intptr_t process_handle;
-    ebpf_process_state_t* process_state;
-    size_t count_of_program_handles;
-    ebpf_handle_t* program_handles;
-    size_t count_of_map_handles;
-    ebpf_handle_t* map_handles;
-} ebpf_native_handle_cleanup_info_t;
-
-typedef struct _ebpf_native_handle_cleanup_context
-{
-    ebpf_native_handle_cleanup_info_t* handle_information;
-    cxplat_preemptible_work_item_t* handle_cleanup_work_item;
-} ebpf_native_handle_cleanup_context_t;
-
 typedef struct _ebpf_native_module
 {
     ebpf_base_object_t base;
@@ -90,7 +74,6 @@ typedef struct _ebpf_native_module
     HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
     cxplat_preemptible_work_item_t* cleanup_work_item;
-    ebpf_native_handle_cleanup_context_t handle_cleanup_context;
 } ebpf_native_module_t;
 
 static const GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -203,8 +186,7 @@ _ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
 }
 
 static void
-_ebpf_native_clean_up_maps(
-    _In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count, bool unpin, bool close_handles)
+_ebpf_native_clean_up_maps(_In_reads_(map_count) _Frees_ptr_ ebpf_native_map_t* maps, size_t map_count, bool unpin)
 {
     for (uint32_t count = 0; count < map_count; count++) {
         ebpf_native_map_t* map = &maps[count];
@@ -222,7 +204,7 @@ _ebpf_native_clean_up_maps(
             ebpf_free(map->pin_path.value);
 #pragma warning(pop)
         }
-        if (close_handles && map->handle != ebpf_handle_invalid) {
+        if (map->handle != ebpf_handle_invalid) {
             ebpf_assert_success(ebpf_handle_close(map->handle));
             map->handle = ebpf_handle_invalid;
         }
@@ -232,8 +214,7 @@ _ebpf_native_clean_up_maps(
 }
 
 static void
-_ebpf_native_clean_up_programs(
-    _In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs, bool close_handles)
+_ebpf_native_clean_up_programs(_In_reads_(count_of_programs) ebpf_native_program_t* programs, size_t count_of_programs)
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
         if (programs[i].handle != ebpf_handle_invalid) {
@@ -242,10 +223,8 @@ _ebpf_native_clean_up_programs(
                 programs[i].handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
             ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
             EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
-            if (close_handles) {
-                ebpf_assert_success(ebpf_handle_close(programs[i].handle));
-                programs[i].handle = ebpf_handle_invalid;
-            }
+            ebpf_assert_success(ebpf_handle_close(programs[i].handle));
+            programs[i].handle = ebpf_handle_invalid;
         }
         ebpf_free(programs[i].addresses_changed_callback_context);
         programs[i].addresses_changed_callback_context = NULL;
@@ -261,8 +240,8 @@ _ebpf_native_clean_up_programs(
 static void
 _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    _ebpf_native_clean_up_maps(module->maps, module->map_count, false, true);
-    _ebpf_native_clean_up_programs(module->programs, module->program_count, true);
+    _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
+    _ebpf_native_clean_up_programs(module->programs, module->program_count);
 
     module->maps = NULL;
     module->map_count = 0;
@@ -1049,11 +1028,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_t* module)
 
 Done:
     if (result != EBPF_SUCCESS) {
-        // Copy the handles in the cleanup context.
-        for (size_t i = 0; i < module->map_count; i++) {
-            module->handle_cleanup_context.handle_information->map_handles[i] = module->maps[i].handle;
-        }
-        _ebpf_native_clean_up_maps(module->maps, module->map_count, true, false);
+        _ebpf_native_clean_up_maps(module->maps, module->map_count, true);
         module->maps = NULL;
         module->map_count = 0;
     }
@@ -1233,7 +1208,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
 
     // Get the programs.
     module->table.programs(&programs, &program_count);
-    if (program_count == 0 || programs == NULL) {
+    if (program_count == 0) {
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    }
+    if (programs == NULL) {
         return EBPF_INVALID_OBJECT;
     }
 
@@ -1366,11 +1344,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_t* module)
     }
 
     if (result != EBPF_SUCCESS) {
-        // Copy the handles in the cleanup context.
-        for (size_t i = 0; i < module->program_count; i++) {
-            module->handle_cleanup_context.handle_information->program_handles[i] = module->programs[i].handle;
-        }
-        _ebpf_native_clean_up_programs(module->programs, module->program_count, false);
+        _ebpf_native_clean_up_programs(module->programs, module->program_count);
         module->programs = NULL;
         module->program_count = 0;
     }
@@ -1399,134 +1373,6 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
     module->table.programs(&programs, &count_of_programs);
 
     return count_of_programs;
-}
-
-/**
- * @brief close all handles associated with a given module.
- * @param[in] context The module to free handles on.
- */
-static void
-_ebpf_native_close_handles_work_item(
-    _In_ cxplat_preemptible_work_item_t* work_item, _In_ ebpf_native_handle_cleanup_info_t* handle_info)
-{
-    // NOTE: This work item does not need epoch protection as we end up calling into the OS to close a handle, which in
-    // turn calls back into the ebpfcore driver and that path _is_ epoch protected.
-
-    // Attach process to this worker thread.
-    ebpf_platform_attach_process(handle_info->process_handle, handle_info->process_state);
-
-    for (uint32_t i = 0; i < handle_info->count_of_program_handles; i++) {
-        if (handle_info->program_handles[i] != ebpf_handle_invalid) {
-            (void)ebpf_handle_close(handle_info->program_handles[i]);
-            handle_info->program_handles[i] = ebpf_handle_invalid;
-        }
-    }
-    for (uint32_t i = 0; i < handle_info->count_of_map_handles; i++) {
-        if (handle_info->map_handles[i] != ebpf_handle_invalid) {
-            (void)ebpf_handle_close(handle_info->map_handles[i]);
-            handle_info->map_handles[i] = ebpf_handle_invalid;
-        }
-    }
-
-    // Detach process from this worker thread.
-    ebpf_platform_detach_process(handle_info->process_state);
-
-    // Release the reference on the process object.
-    ebpf_platform_dereference_process(handle_info->process_handle);
-
-    ebpf_free(handle_info->process_state);
-    ebpf_free(handle_info->program_handles);
-    ebpf_free(handle_info->map_handles);
-    ebpf_free(handle_info);
-    cxplat_free_preemptible_work_item(work_item);
-}
-
-/**
- * @brief Clean up all handle information for a given module.
- * @param[in,out] module The module to clean up handles for.
- */
-static void
-_ebpf_native_clean_up_handle_cleanup_context(_Inout_ ebpf_native_handle_cleanup_context_t* cleanup_context)
-{
-    if (cleanup_context->handle_information != NULL) {
-        ebpf_free(cleanup_context->handle_information->map_handles);
-        ebpf_free(cleanup_context->handle_information->program_handles);
-        ebpf_free(cleanup_context->handle_information->process_state);
-
-        if (cleanup_context->handle_information->process_handle != 0) {
-            ebpf_platform_dereference_process(cleanup_context->handle_information->process_handle);
-        }
-    }
-
-    if (cleanup_context->handle_cleanup_work_item != NULL) {
-        cxplat_free_preemptible_work_item(cleanup_context->handle_cleanup_work_item);
-        cleanup_context->handle_cleanup_work_item = NULL;
-    }
-    ebpf_free(cleanup_context->handle_information);
-    cleanup_context->handle_information = NULL;
-}
-
-static ebpf_result_t
-_ebpf_native_initialize_handle_cleanup_context(
-    size_t program_handle_count, size_t map_handle_count, _Inout_ ebpf_native_handle_cleanup_context_t* cleanup_context)
-{
-    ebpf_result_t result = EBPF_SUCCESS;
-
-    memset(cleanup_context, 0, sizeof(ebpf_native_handle_cleanup_context_t));
-
-    cleanup_context->handle_information =
-        (ebpf_native_handle_cleanup_info_t*)ebpf_allocate(sizeof(ebpf_native_handle_cleanup_info_t));
-    if (cleanup_context->handle_information == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    if (map_handle_count > 0) {
-        cleanup_context->handle_information->map_handles =
-            (ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t) * map_handle_count);
-        if (cleanup_context->handle_information->map_handles == NULL) {
-            result = EBPF_NO_MEMORY;
-            goto Done;
-        }
-    }
-    cleanup_context->handle_information->count_of_map_handles = map_handle_count;
-
-    cleanup_context->handle_information->program_handles =
-        (ebpf_handle_t*)ebpf_allocate(sizeof(ebpf_handle_t) * program_handle_count);
-    if (cleanup_context->handle_information->program_handles == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    cleanup_context->handle_information->count_of_program_handles = program_handle_count;
-
-    for (size_t i = 0; i < map_handle_count; i++) {
-        cleanup_context->handle_information->map_handles[i] = ebpf_handle_invalid;
-    }
-    for (size_t i = 0; i < program_handle_count; i++) {
-        cleanup_context->handle_information->program_handles[i] = ebpf_handle_invalid;
-    }
-
-    cleanup_context->handle_information->process_state = ebpf_allocate_process_state();
-    if (cleanup_context->handle_information->process_state == NULL) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    result = ebpf_allocate_preemptible_work_item(
-        &cleanup_context->handle_cleanup_work_item,
-        (cxplat_work_item_routine_t)_ebpf_native_close_handles_work_item,
-        cleanup_context->handle_information);
-    if (result != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    cleanup_context->handle_information->process_handle = ebpf_platform_reference_process();
-
-Done:
-    if (result != EBPF_SUCCESS) {
-        _ebpf_native_clean_up_handle_cleanup_context(cleanup_context);
-    }
-    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -1645,10 +1491,10 @@ Done:
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, hash_table_state);
         table_lock_acquired = false;
     }
-    if (result != EBPF_SUCCESS) {
-        cxplat_free_preemptible_work_item(cleanup_work_item);
-        ebpf_free(local_service_name);
-    }
+
+    cxplat_free_preemptible_work_item(cleanup_work_item);
+    ebpf_free(local_service_name);
+
     if (local_module_handle != ebpf_handle_invalid) {
         ebpf_assert_success(ebpf_handle_close(local_module_handle));
     }
@@ -1676,7 +1522,6 @@ ebpf_native_load_programs(
     bool module_referenced = false;
     bool maps_created = false;
     bool programs_created = false;
-    bool cleanup_context_created = false;
 
     if ((count_of_map_handles > 0 && map_handles == NULL) ||
         (count_of_program_handles > 0 && program_handles == NULL)) {
@@ -1735,19 +1580,6 @@ ebpf_native_load_programs(
     // Release hash table lock.
     ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
     lock_acquired = false;
-
-    // Create handle cleanup context and work item. This is used to close the handles in a work item in case of failure.
-    result = _ebpf_native_initialize_handle_cleanup_context(
-        count_of_program_handles, count_of_map_handles, &module->handle_cleanup_context);
-    if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_VERBOSE,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "ebpf_native_load_programs: _ebpf_native_initialize_handle_cleanup_context failed",
-            module_id);
-        goto Done;
-    }
-    cleanup_context_created = true;
 
     // Create maps.
     result = _ebpf_native_create_maps(module);
@@ -1816,34 +1648,18 @@ Done:
     }
     if (result != EBPF_SUCCESS) {
         if (maps_created) {
-            for (uint32_t i = 0; i < module->map_count; i++) {
-                module->handle_cleanup_context.handle_information->map_handles[i] = module->maps[i].handle;
-            }
-            _ebpf_native_clean_up_maps(module->maps, module->map_count, true, false);
+            _ebpf_native_clean_up_maps(module->maps, module->map_count, true);
             module->maps = NULL;
             module->map_count = 0;
         }
 
         if (programs_created) {
-            for (uint32_t i = 0; i < module->program_count; i++) {
-                module->handle_cleanup_context.handle_information->program_handles[i] = module->programs[i].handle;
-            }
-            _ebpf_native_clean_up_programs(module->programs, module->program_count, false);
+            _ebpf_native_clean_up_programs(module->programs, module->program_count);
             module->programs = NULL;
             module->program_count = 0;
         }
 
         ebpf_free(local_service_name);
-
-        if (cleanup_context_created) {
-            // Queue work item to close map and program handles.
-            cxplat_queue_preemptible_work_item(module->handle_cleanup_context.handle_cleanup_work_item);
-            module->handle_cleanup_context.handle_cleanup_work_item = NULL;
-            module->handle_cleanup_context.handle_information = NULL;
-        }
-    } else {
-        // Success case. No need to close program and map handles. Clean up handle cleanup context.
-        _ebpf_native_clean_up_handle_cleanup_context(&module->handle_cleanup_context);
     }
 
     if (module_referenced) {

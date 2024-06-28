@@ -264,7 +264,7 @@ bind_monitor(void* context)
     // EBPF_OP_SUB64_REG pc=5 dst=r3 src=r2 offset=0 imm=0
 #line 29 "sample/bindmonitor_ringbuf.c"
     r3 -= r2;
-    // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=6 dst=r1 src=r1 offset=0 imm=1
 #line 29 "sample/bindmonitor_ringbuf.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=8 dst=r4 src=r0 offset=0 imm=0

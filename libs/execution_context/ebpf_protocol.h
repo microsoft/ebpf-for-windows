@@ -409,7 +409,6 @@ typedef struct _ebpf_operation_load_native_module_reply
 typedef struct _ebpf_operation_load_native_programs_request
 {
     struct _ebpf_operation_header header;
-    ebpf_program_type_t program_type;
     GUID module_id;
 } ebpf_operation_load_native_programs_request_t;
 

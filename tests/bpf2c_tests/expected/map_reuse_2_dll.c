@@ -145,7 +145,7 @@ lookup_update(void* context)
     // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
 #line 52 "sample/undocked/map_reuse_2.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=4 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=2
 #line 55 "sample/undocked/map_reuse_2.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
@@ -223,7 +223,7 @@ label_1:
     // EBPF_OP_ADD64_IMM pc=23 dst=r3 src=r0 offset=0 imm=-16
 #line 62 "sample/undocked/map_reuse_2.c"
     r3 += IMMEDIATE(-16);
-    // EBPF_OP_LDDW pc=24 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=24 dst=r1 src=r1 offset=0 imm=3
 #line 63 "sample/undocked/map_reuse_2.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_MOV64_IMM pc=26 dst=r4 src=r0 offset=0 imm=0

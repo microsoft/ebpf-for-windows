@@ -351,7 +351,7 @@ ebpf_program_load(
     bpf_prog_type prog_type,
     ebpf_execution_type_t execution_type,
     _Out_ bpf_object_ptr* unique_object,
-    _Out_ fd_t* program_fd,
+    _Out_ fd_t* program_fd, // File descriptor of first program in the object.
     _Outptr_opt_result_maybenull_z_ const char** log_buffer)
 {
     *program_fd = ebpf_fd_invalid;
@@ -382,10 +382,14 @@ ebpf_program_load(
             }
         }
         bpf_object__close(new_object);
+        // Add delay to permit the native module handle cleanup to complete.
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         return error;
     }
 
-    *program_fd = bpf_program__fd(program);
+    if (program != nullptr) {
+        *program_fd = bpf_program__fd(program);
+    }
     unique_object->reset(new_object);
     return 0;
 }
@@ -1014,30 +1018,30 @@ DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functi
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
 
-TEST_CASE("enum section", "[end_to_end]")
+TEST_CASE("enum programs", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     const char* error_message = nullptr;
-    ebpf_section_info_t* section_data = nullptr;
+    ebpf_api_program_info_t* program_data = nullptr;
     uint32_t result;
 
     REQUIRE(
-        (result = ebpf_enumerate_sections(SAMPLE_PATH "test_sample_ebpf.o", true, &section_data, &error_message),
+        (result = ebpf_enumerate_programs(SAMPLE_PATH "test_sample_ebpf.o", true, &program_data, &error_message),
          ebpf_free_string(error_message),
          error_message = nullptr,
          result == 0));
-    for (auto current_section = section_data; current_section != nullptr; current_section = current_section->next) {
-        ebpf_stat_t* stat = current_section->stats;
+    for (auto current_program = program_data; current_program != nullptr; current_program = current_program->next) {
+        ebpf_stat_t* stat = current_program->stats;
         REQUIRE(strcmp(stat->key, "Instructions") == 0);
         REQUIRE(stat->value == 40);
     }
-    ebpf_free_sections(section_data);
+    ebpf_free_programs(program_data);
     ebpf_free_string(error_message);
 }
 
-TEST_CASE("verify section", "[end_to_end]")
+TEST_CASE("verify section", "[end_to_end][deprecated]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1049,6 +1053,7 @@ TEST_CASE("verify section", "[end_to_end]")
     REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     ebpf_api_verifier_stats_t stats;
+#pragma warning(suppress : 4996) // deprecated
     REQUIRE(
         (result = ebpf_api_elf_verify_section_from_file(
              SAMPLE_PATH "test_sample_ebpf.o",
@@ -1065,7 +1070,36 @@ TEST_CASE("verify section", "[end_to_end]")
     ebpf_free_string(report);
 }
 
-TEST_CASE("verify section with invalid program type", "[end_to_end]")
+TEST_CASE("verify program", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    const char* report = nullptr;
+    uint32_t result;
+    program_info_provider_t sample_test_program_info;
+    REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    ebpf_api_verifier_stats_t stats;
+    REQUIRE(
+        (result = ebpf_api_elf_verify_program_from_file(
+             SAMPLE_PATH "test_sample_ebpf.o",
+             "sample_ext",
+             "test_program_entry",
+             nullptr,
+             EBPF_VERIFICATION_VERBOSITY_NORMAL,
+             &report,
+             &error_message,
+             &stats),
+         ebpf_free_string(error_message),
+         error_message = nullptr,
+         result == 0));
+    REQUIRE(report != nullptr);
+    ebpf_free_string(report);
+}
+
+TEST_CASE("verify program with invalid program type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -1077,9 +1111,10 @@ TEST_CASE("verify section with invalid program type", "[end_to_end]")
     REQUIRE(sample_test_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
     ebpf_api_verifier_stats_t stats;
-    result = ebpf_api_elf_verify_section_from_file(
+    result = ebpf_api_elf_verify_program_from_file(
         SAMPLE_PATH "test_sample_ebpf.o",
         "sample_ext",
+        "test_program_entry",
         &EBPF_PROGRAM_TYPE_UNSPECIFIED,
         EBPF_VERIFICATION_VERBOSITY_NORMAL,
         &report,
@@ -1197,9 +1232,10 @@ TEST_CASE("verify_test0", "[sample_extension]")
 
     ebpf_api_verifier_stats_t stats;
     REQUIRE(
-        (result = ebpf_api_elf_verify_section_from_file(
+        (result = ebpf_api_elf_verify_program_from_file(
              SAMPLE_PATH "test_sample_ebpf.o",
              "sample_ext",
+             "test_program_entry",
              nullptr,
              EBPF_VERIFICATION_VERBOSITY_NORMAL,
              &report,
@@ -1226,9 +1262,10 @@ TEST_CASE("verify_test1", "[sample_extension]")
     ebpf_api_verifier_stats_t stats;
 
     REQUIRE(
-        (result = ebpf_api_elf_verify_section_from_file(
+        (result = ebpf_api_elf_verify_program_from_file(
              SAMPLE_PATH "test_sample_ebpf.o",
              "sample_ext",
+             nullptr,
              nullptr,
              EBPF_VERIFICATION_VERBOSITY_NORMAL,
              &report,
@@ -2521,8 +2558,7 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
 
     // Try to load the programs from the same module again. It should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) ==
         ERROR_OBJECT_ALREADY_EXISTS);
 
     bpf_object__close(unique_object.release());
@@ -2530,8 +2566,8 @@ TEST_CASE("load_native_program_negative3", "[end-to-end]")
     // Now that we have closed the object, try to load programs from the same module again. This should
     // fail as the module should now be marked as "unloading".
     REQUIRE(
-        test_ioctl_load_native_programs(
-            &provider_module_id, nullptr, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) != ERROR_SUCCESS);
+        test_ioctl_load_native_programs(&provider_module_id, MAP_COUNT, map_handles, PROGRAM_COUNT, program_handles) !=
+        ERROR_SUCCESS);
 }
 
 // Load native module and then try to load programs with incorrect params.
@@ -2554,7 +2590,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // First try to load native program without loading the native module.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_PATH_NOT_FOUND);
 
     // Creating valid service with valid driver.
@@ -2573,7 +2609,7 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
 
     // Try to load the programs by passing wrong map and program handles size. This should fail.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 0, nullptr, PROGRAM_COUNT, program_handles) ==
+        test_ioctl_load_native_programs(&provider_module_id, 0, nullptr, PROGRAM_COUNT, program_handles) ==
         ERROR_INVALID_PARAMETER);
 
     // Delete the created service.
@@ -2657,8 +2693,9 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
 // only for Debug build.
 #ifdef _DEBUG
 
-// Load programs from a native module which has 0 programs.
-TEST_CASE("load_native_program_negative8", "[end-to-end]")
+// Load a native module that has 0 programs.
+// TODO(#3597): The empty file should pass bpf2c so should be enabled for Release as well.
+TEST_CASE("load_native_program_empty", "[end-to-end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2668,9 +2705,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
     std::wstring service_path(SERVICE_PATH_PREFIX);
     size_t count_of_maps = 0;
     size_t count_of_programs = 0;
-    std::wstring file_path(L"test_sample_ebpf_um.dll");
-    ebpf_handle_t map_handles;
-    ebpf_handle_t program_handles;
+    ebpf_handle_t map_handles = ebpf_handle_invalid;
+    ebpf_handle_t program_handles = ebpf_handle_invalid;
     _test_handle_helper module_handle;
 
     REQUIRE(UuidCreate(&provider_module_id) == RPC_S_OK);
@@ -2690,8 +2726,8 @@ TEST_CASE("load_native_program_negative8", "[end-to-end]")
 
     // Try to load the programs from the module with 0 programs.
     REQUIRE(
-        test_ioctl_load_native_programs(&provider_module_id, nullptr, 1, &map_handles, 1, &program_handles) ==
-        ERROR_INVALID_PARAMETER);
+        test_ioctl_load_native_programs(&provider_module_id, 1, &map_handles, 0, &program_handles) == ERROR_SUCCESS);
+    REQUIRE(map_handles != ebpf_handle_invalid);
 
     // Delete the created service.
     Platform::_delete_service(service_handle);
@@ -2705,12 +2741,20 @@ _load_invalid_program(_In_z_ const char* file_name, ebpf_execution_type_t execut
     int result;
     bpf_object_ptr unique_object;
     fd_t program_fd;
+    uint32_t next_id;
 
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
 
     result = ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, nullptr);
     REQUIRE(result == expected_result);
+    REQUIRE(program_fd == ebpf_fd_invalid);
+
+    if (result != 0) {
+        // If load failed, no programs or maps should be loaded.
+        REQUIRE(bpf_map_get_next_id(0, &next_id) == -ENOENT);
+        REQUIRE(bpf_prog_get_next_id(0, &next_id) == -ENOENT);
+    }
 }
 
 static void
@@ -2732,10 +2776,6 @@ TEST_CASE("load_native_program_invalid2", "[end-to-end]")
 TEST_CASE("load_native_program_invalid3", "[end-to-end]")
 {
     _test_load_invalid_program("invalid_helpers_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
-}
-TEST_CASE("load_native_program_invalid4", "[end-to-end]")
-{
-    _test_load_invalid_program("empty_um.dll", EBPF_EXECUTION_NATIVE, -EINVAL);
 }
 TEST_CASE("load_native_program_invalid5", "[end-to-end]")
 {

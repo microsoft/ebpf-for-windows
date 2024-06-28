@@ -298,8 +298,10 @@ const std::map<std::string, std::string> _malformed_elf_expected_output{
      "Failed parsing in struct _E_IDENT field SEVEN.refinement reason constraint failed"},
     {"2775DA65BC9DC1B1BD6558C1B456C7532CD1BE02",
      "Failed parsing in struct _SECTION_HEADER_TABLE_ENTRY field none reason constraint failed"},
-    {"3688AF1375D9360872B65D0E67F31E5D9AA8166B", "Can't perform relocation at offset  at offset 0"},
-    {"9A0D5CC0FB24BC6AFB0415DC648388B961FE3E38", "Can't perform relocation at offset  at offset 48"},
+    {"3688AF1375D9360872B65D0E67F31E5D9AA8166B",
+     "error: Illegal operation on symbol bind_tail_call_map at location 27"},
+    {"9A0D5CC0FB24BC6AFB0415DC648388B961FE3E38",
+     "error: Illegal operation on symbol bind_tail_call_map at location 27"},
 };
 
 TEST_CASE("bad malformed ELF", "[bpf2c_cli]")

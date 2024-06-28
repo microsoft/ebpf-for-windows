@@ -192,6 +192,7 @@ extern "C"
      * @retval EBPF_SUCCESS The program was successfully invoked.
      * @retval EBPF_EXTENSION_FAILED_TO_LOAD The program information provider is not available.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(
         _In_ const ebpf_program_t* program,
@@ -281,6 +282,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Internal error.
      * @retval EBPF_NO_MORE_TAIL_CALLS Program has executed to many tail calls.
      */
+    EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program);
 

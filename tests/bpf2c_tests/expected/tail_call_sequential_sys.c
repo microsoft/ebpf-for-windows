@@ -224,7 +224,7 @@ static uint16_t sequential0_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~1")
+#pragma code_seg(push, "sampl~35")
 static uint64_t
 sequential0(void* context)
 #line 133 "sample/undocked/tail_call_sequential.c"
@@ -274,7 +274,7 @@ sequential0(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 133 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -357,7 +357,7 @@ sequential0(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 133 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=1
@@ -402,7 +402,7 @@ static uint16_t sequential1_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~2")
+#pragma code_seg(push, "sampl~34")
 static uint64_t
 sequential1(void* context)
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -452,7 +452,7 @@ sequential1(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 134 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -535,7 +535,7 @@ sequential1(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 134 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 134 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=2
@@ -580,7 +580,7 @@ static uint16_t sequential10_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~11")
+#pragma code_seg(push, "sampl~25")
 static uint64_t
 sequential10(void* context)
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -632,7 +632,7 @@ sequential10(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 143 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 143 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -718,7 +718,7 @@ sequential10(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 143 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 143 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=11
@@ -763,7 +763,7 @@ static uint16_t sequential11_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~12")
+#pragma code_seg(push, "sampl~24")
 static uint64_t
 sequential11(void* context)
 #line 144 "sample/undocked/tail_call_sequential.c"
@@ -815,7 +815,7 @@ sequential11(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 144 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 144 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -901,7 +901,7 @@ sequential11(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 144 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 144 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=12
@@ -946,7 +946,7 @@ static uint16_t sequential12_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~13")
+#pragma code_seg(push, "sampl~23")
 static uint64_t
 sequential12(void* context)
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -998,7 +998,7 @@ sequential12(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 145 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 145 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -1084,7 +1084,7 @@ sequential12(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 145 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 145 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=13
@@ -1129,7 +1129,7 @@ static uint16_t sequential13_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~14")
+#pragma code_seg(push, "sampl~22")
 static uint64_t
 sequential13(void* context)
 #line 146 "sample/undocked/tail_call_sequential.c"
@@ -1181,7 +1181,7 @@ sequential13(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 146 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 146 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -1267,7 +1267,7 @@ sequential13(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 146 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 146 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=14
@@ -1312,7 +1312,7 @@ static uint16_t sequential14_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~15")
+#pragma code_seg(push, "sampl~21")
 static uint64_t
 sequential14(void* context)
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1364,7 +1364,7 @@ sequential14(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 147 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 147 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -1450,7 +1450,7 @@ sequential14(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 147 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 147 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=15
@@ -1495,7 +1495,7 @@ static uint16_t sequential15_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~16")
+#pragma code_seg(push, "sampl~20")
 static uint64_t
 sequential15(void* context)
 #line 148 "sample/undocked/tail_call_sequential.c"
@@ -1547,7 +1547,7 @@ sequential15(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 148 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 148 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -1633,7 +1633,7 @@ sequential15(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 148 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 148 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=16
@@ -1678,7 +1678,7 @@ static uint16_t sequential16_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~17")
+#pragma code_seg(push, "sampl~19")
 static uint64_t
 sequential16(void* context)
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -1730,7 +1730,7 @@ sequential16(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 149 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 149 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -1816,7 +1816,7 @@ sequential16(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 149 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 149 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=17
@@ -1913,7 +1913,7 @@ sequential17(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 150 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 150 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -1999,7 +1999,7 @@ sequential17(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 150 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 150 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=18
@@ -2044,7 +2044,7 @@ static uint16_t sequential18_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~19")
+#pragma code_seg(push, "sampl~17")
 static uint64_t
 sequential18(void* context)
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2096,7 +2096,7 @@ sequential18(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 151 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 151 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -2182,7 +2182,7 @@ sequential18(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 151 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 151 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=19
@@ -2227,7 +2227,7 @@ static uint16_t sequential19_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~20")
+#pragma code_seg(push, "sampl~16")
 static uint64_t
 sequential19(void* context)
 #line 152 "sample/undocked/tail_call_sequential.c"
@@ -2279,7 +2279,7 @@ sequential19(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 152 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 152 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -2365,7 +2365,7 @@ sequential19(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 152 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 152 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=20
@@ -2410,7 +2410,7 @@ static uint16_t sequential2_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~3")
+#pragma code_seg(push, "sampl~33")
 static uint64_t
 sequential2(void* context)
 #line 135 "sample/undocked/tail_call_sequential.c"
@@ -2460,7 +2460,7 @@ sequential2(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 135 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -2543,7 +2543,7 @@ sequential2(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 135 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 135 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=3
@@ -2588,7 +2588,7 @@ static uint16_t sequential20_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~21")
+#pragma code_seg(push, "sampl~15")
 static uint64_t
 sequential20(void* context)
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -2640,7 +2640,7 @@ sequential20(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 153 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 153 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -2726,7 +2726,7 @@ sequential20(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 153 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 153 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=21
@@ -2771,7 +2771,7 @@ static uint16_t sequential21_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~22")
+#pragma code_seg(push, "sampl~14")
 static uint64_t
 sequential21(void* context)
 #line 154 "sample/undocked/tail_call_sequential.c"
@@ -2823,7 +2823,7 @@ sequential21(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 154 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 154 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -2909,7 +2909,7 @@ sequential21(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 154 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 154 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=22
@@ -2954,7 +2954,7 @@ static uint16_t sequential22_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~23")
+#pragma code_seg(push, "sampl~13")
 static uint64_t
 sequential22(void* context)
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -3006,7 +3006,7 @@ sequential22(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 155 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 155 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -3092,7 +3092,7 @@ sequential22(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 155 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 155 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=23
@@ -3137,7 +3137,7 @@ static uint16_t sequential23_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~24")
+#pragma code_seg(push, "sampl~12")
 static uint64_t
 sequential23(void* context)
 #line 156 "sample/undocked/tail_call_sequential.c"
@@ -3189,7 +3189,7 @@ sequential23(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 156 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 156 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -3275,7 +3275,7 @@ sequential23(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 156 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 156 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=24
@@ -3320,7 +3320,7 @@ static uint16_t sequential24_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~25")
+#pragma code_seg(push, "sampl~11")
 static uint64_t
 sequential24(void* context)
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3372,7 +3372,7 @@ sequential24(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 157 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 157 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -3458,7 +3458,7 @@ sequential24(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 157 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 157 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=25
@@ -3503,7 +3503,7 @@ static uint16_t sequential25_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~26")
+#pragma code_seg(push, "sampl~10")
 static uint64_t
 sequential25(void* context)
 #line 158 "sample/undocked/tail_call_sequential.c"
@@ -3555,7 +3555,7 @@ sequential25(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 158 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 158 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -3641,7 +3641,7 @@ sequential25(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 158 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 158 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=26
@@ -3686,7 +3686,7 @@ static uint16_t sequential26_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~27")
+#pragma code_seg(push, "sample~9")
 static uint64_t
 sequential26(void* context)
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -3738,7 +3738,7 @@ sequential26(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 159 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 159 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -3824,7 +3824,7 @@ sequential26(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 159 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 159 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=27
@@ -3869,7 +3869,7 @@ static uint16_t sequential27_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~28")
+#pragma code_seg(push, "sample~8")
 static uint64_t
 sequential27(void* context)
 #line 160 "sample/undocked/tail_call_sequential.c"
@@ -3921,7 +3921,7 @@ sequential27(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 160 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 160 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -4007,7 +4007,7 @@ sequential27(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 160 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 160 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=28
@@ -4052,7 +4052,7 @@ static uint16_t sequential28_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~29")
+#pragma code_seg(push, "sample~7")
 static uint64_t
 sequential28(void* context)
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4104,7 +4104,7 @@ sequential28(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 161 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 161 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -4190,7 +4190,7 @@ sequential28(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 161 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 161 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=29
@@ -4235,7 +4235,7 @@ static uint16_t sequential29_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~30")
+#pragma code_seg(push, "sample~6")
 static uint64_t
 sequential29(void* context)
 #line 162 "sample/undocked/tail_call_sequential.c"
@@ -4287,7 +4287,7 @@ sequential29(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 162 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 162 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -4373,7 +4373,7 @@ sequential29(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 162 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 162 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=30
@@ -4418,7 +4418,7 @@ static uint16_t sequential3_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~4")
+#pragma code_seg(push, "sampl~32")
 static uint64_t
 sequential3(void* context)
 #line 136 "sample/undocked/tail_call_sequential.c"
@@ -4468,7 +4468,7 @@ sequential3(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 136 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -4551,7 +4551,7 @@ sequential3(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 136 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 136 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=4
@@ -4596,7 +4596,7 @@ static uint16_t sequential30_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~31")
+#pragma code_seg(push, "sample~5")
 static uint64_t
 sequential30(void* context)
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -4648,7 +4648,7 @@ sequential30(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 163 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 163 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -4734,7 +4734,7 @@ sequential30(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 163 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 163 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=31
@@ -4779,7 +4779,7 @@ static uint16_t sequential31_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~32")
+#pragma code_seg(push, "sample~4")
 static uint64_t
 sequential31(void* context)
 #line 164 "sample/undocked/tail_call_sequential.c"
@@ -4831,7 +4831,7 @@ sequential31(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 164 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 164 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -4917,7 +4917,7 @@ sequential31(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 164 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 164 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=32
@@ -4962,7 +4962,7 @@ static uint16_t sequential32_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~33")
+#pragma code_seg(push, "sample~3")
 static uint64_t
 sequential32(void* context)
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -5014,7 +5014,7 @@ sequential32(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 165 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 165 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -5100,7 +5100,7 @@ sequential32(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 165 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 165 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=33
@@ -5145,7 +5145,7 @@ static uint16_t sequential33_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~34")
+#pragma code_seg(push, "sample~2")
 static uint64_t
 sequential33(void* context)
 #line 166 "sample/undocked/tail_call_sequential.c"
@@ -5197,7 +5197,7 @@ sequential33(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 166 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 166 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -5283,7 +5283,7 @@ sequential33(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 166 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 166 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=34
@@ -5328,7 +5328,7 @@ static uint16_t sequential34_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~35")
+#pragma code_seg(push, "sample~1")
 static uint64_t
 sequential34(void* context)
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -5380,7 +5380,7 @@ sequential34(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 167 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 167 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -5466,7 +5466,7 @@ sequential34(void* context)
     // EBPF_OP_MOV64_REG pc=30 dst=r1 src=r6 offset=0 imm=0
 #line 167 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=31 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 167 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=35
@@ -5511,7 +5511,7 @@ static uint16_t sequential4_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~5")
+#pragma code_seg(push, "sampl~31")
 static uint64_t
 sequential4(void* context)
 #line 137 "sample/undocked/tail_call_sequential.c"
@@ -5561,7 +5561,7 @@ sequential4(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 137 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -5644,7 +5644,7 @@ sequential4(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 137 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 137 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=5
@@ -5689,7 +5689,7 @@ static uint16_t sequential5_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~6")
+#pragma code_seg(push, "sampl~30")
 static uint64_t
 sequential5(void* context)
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -5739,7 +5739,7 @@ sequential5(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 138 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -5822,7 +5822,7 @@ sequential5(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 138 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 138 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=6
@@ -5867,7 +5867,7 @@ static uint16_t sequential6_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~7")
+#pragma code_seg(push, "sampl~29")
 static uint64_t
 sequential6(void* context)
 #line 139 "sample/undocked/tail_call_sequential.c"
@@ -5917,7 +5917,7 @@ sequential6(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 139 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -6000,7 +6000,7 @@ sequential6(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 139 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 139 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=7
@@ -6045,7 +6045,7 @@ static uint16_t sequential7_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~8")
+#pragma code_seg(push, "sampl~28")
 static uint64_t
 sequential7(void* context)
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -6095,7 +6095,7 @@ sequential7(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 140 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -6178,7 +6178,7 @@ sequential7(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 140 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 140 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=8
@@ -6223,7 +6223,7 @@ static uint16_t sequential8_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sample~9")
+#pragma code_seg(push, "sampl~27")
 static uint64_t
 sequential8(void* context)
 #line 141 "sample/undocked/tail_call_sequential.c"
@@ -6273,7 +6273,7 @@ sequential8(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 141 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -6356,7 +6356,7 @@ sequential8(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 141 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 141 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=9
@@ -6401,7 +6401,7 @@ static uint16_t sequential9_maps[] = {
     1,
 };
 
-#pragma code_seg(push, "sampl~10")
+#pragma code_seg(push, "sampl~26")
 static uint64_t
 sequential9(void* context)
 #line 142 "sample/undocked/tail_call_sequential.c"
@@ -6451,7 +6451,7 @@ sequential9(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r2 src=r0 offset=0 imm=-4
 #line 142 "sample/undocked/tail_call_sequential.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=5 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
@@ -6534,7 +6534,7 @@ sequential9(void* context)
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r6 offset=0 imm=0
 #line 142 "sample/undocked/tail_call_sequential.c"
     r1 = r6;
-    // EBPF_OP_LDDW pc=30 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 142 "sample/undocked/tail_call_sequential.c"
     r2 = POINTER(_maps[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=10
@@ -6569,7 +6569,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential0,
-        "sample~1",
+        "sampl~35",
         "sample_ext0",
         "sequential0",
         sequential0_maps,
@@ -6583,7 +6583,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential1,
-        "sample~2",
+        "sampl~34",
         "sample_ext1",
         "sequential1",
         sequential1_maps,
@@ -6597,7 +6597,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential10,
-        "sampl~11",
+        "sampl~25",
         "sample_ext10",
         "sequential10",
         sequential10_maps,
@@ -6611,7 +6611,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential11,
-        "sampl~12",
+        "sampl~24",
         "sample_ext11",
         "sequential11",
         sequential11_maps,
@@ -6625,7 +6625,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential12,
-        "sampl~13",
+        "sampl~23",
         "sample_ext12",
         "sequential12",
         sequential12_maps,
@@ -6639,7 +6639,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential13,
-        "sampl~14",
+        "sampl~22",
         "sample_ext13",
         "sequential13",
         sequential13_maps,
@@ -6653,7 +6653,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential14,
-        "sampl~15",
+        "sampl~21",
         "sample_ext14",
         "sequential14",
         sequential14_maps,
@@ -6667,7 +6667,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential15,
-        "sampl~16",
+        "sampl~20",
         "sample_ext15",
         "sequential15",
         sequential15_maps,
@@ -6681,7 +6681,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential16,
-        "sampl~17",
+        "sampl~19",
         "sample_ext16",
         "sequential16",
         sequential16_maps,
@@ -6709,7 +6709,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential18,
-        "sampl~19",
+        "sampl~17",
         "sample_ext18",
         "sequential18",
         sequential18_maps,
@@ -6723,7 +6723,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential19,
-        "sampl~20",
+        "sampl~16",
         "sample_ext19",
         "sequential19",
         sequential19_maps,
@@ -6737,7 +6737,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential2,
-        "sample~3",
+        "sampl~33",
         "sample_ext2",
         "sequential2",
         sequential2_maps,
@@ -6751,7 +6751,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential20,
-        "sampl~21",
+        "sampl~15",
         "sample_ext20",
         "sequential20",
         sequential20_maps,
@@ -6765,7 +6765,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential21,
-        "sampl~22",
+        "sampl~14",
         "sample_ext21",
         "sequential21",
         sequential21_maps,
@@ -6779,7 +6779,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential22,
-        "sampl~23",
+        "sampl~13",
         "sample_ext22",
         "sequential22",
         sequential22_maps,
@@ -6793,7 +6793,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential23,
-        "sampl~24",
+        "sampl~12",
         "sample_ext23",
         "sequential23",
         sequential23_maps,
@@ -6807,7 +6807,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential24,
-        "sampl~25",
+        "sampl~11",
         "sample_ext24",
         "sequential24",
         sequential24_maps,
@@ -6821,7 +6821,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential25,
-        "sampl~26",
+        "sampl~10",
         "sample_ext25",
         "sequential25",
         sequential25_maps,
@@ -6835,7 +6835,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential26,
-        "sampl~27",
+        "sample~9",
         "sample_ext26",
         "sequential26",
         sequential26_maps,
@@ -6849,7 +6849,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential27,
-        "sampl~28",
+        "sample~8",
         "sample_ext27",
         "sequential27",
         sequential27_maps,
@@ -6863,7 +6863,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential28,
-        "sampl~29",
+        "sample~7",
         "sample_ext28",
         "sequential28",
         sequential28_maps,
@@ -6877,7 +6877,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential29,
-        "sampl~30",
+        "sample~6",
         "sample_ext29",
         "sequential29",
         sequential29_maps,
@@ -6891,7 +6891,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential3,
-        "sample~4",
+        "sampl~32",
         "sample_ext3",
         "sequential3",
         sequential3_maps,
@@ -6905,7 +6905,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential30,
-        "sampl~31",
+        "sample~5",
         "sample_ext30",
         "sequential30",
         sequential30_maps,
@@ -6919,7 +6919,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential31,
-        "sampl~32",
+        "sample~4",
         "sample_ext31",
         "sequential31",
         sequential31_maps,
@@ -6933,7 +6933,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential32,
-        "sampl~33",
+        "sample~3",
         "sample_ext32",
         "sequential32",
         sequential32_maps,
@@ -6947,7 +6947,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential33,
-        "sampl~34",
+        "sample~2",
         "sample_ext33",
         "sequential33",
         sequential33_maps,
@@ -6961,7 +6961,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential34,
-        "sampl~35",
+        "sample~1",
         "sample_ext34",
         "sequential34",
         sequential34_maps,
@@ -6975,7 +6975,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential4,
-        "sample~5",
+        "sampl~31",
         "sample_ext4",
         "sequential4",
         sequential4_maps,
@@ -6989,7 +6989,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential5,
-        "sample~6",
+        "sampl~30",
         "sample_ext5",
         "sequential5",
         sequential5_maps,
@@ -7003,7 +7003,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential6,
-        "sample~7",
+        "sampl~29",
         "sample_ext6",
         "sequential6",
         sequential6_maps,
@@ -7017,7 +7017,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential7,
-        "sample~8",
+        "sampl~28",
         "sample_ext7",
         "sequential7",
         sequential7_maps,
@@ -7031,7 +7031,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential8,
-        "sample~9",
+        "sampl~27",
         "sample_ext8",
         "sequential8",
         sequential8_maps,
@@ -7045,7 +7045,7 @@ static program_entry_t _programs[] = {
     {
         0,
         sequential9,
-        "sampl~10",
+        "sampl~26",
         "sample_ext9",
         "sequential9",
         sequential9_maps,

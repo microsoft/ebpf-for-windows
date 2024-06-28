@@ -52,9 +52,9 @@ extern "C"
         int value;
     } ebpf_stat_t;
 
-    typedef struct _ebpf_section_info
+    typedef struct _ebpf_api_program_info
     {
-        struct _ebpf_section_info* next;
+        struct _ebpf_api_program_info* next;
         _Field_z_ const char* section_name;
         _Field_z_ const char* program_name;
         ebpf_program_type_t program_type;
@@ -62,41 +62,89 @@ extern "C"
         size_t raw_data_size;
         _Field_size_(raw_data_size) char* raw_data;
         ebpf_stat_t* stats;
-    } ebpf_section_info_t;
+        size_t offset_in_section; // Byte offset of program in section.
+    } ebpf_api_program_info_t;
+
+// The type ebpf_section_info_t was replaced by ebpf_api_program_info_t
+// which also added the offset_in_section field at the end.
+#define ebpf_section_info_t ebpf_api_program_info_t
 
     /**
 -     * @brief Get list of programs and stats in an eBPF file.
 -     * @param[in] file Name of file containing eBPF programs.
 -     * @param[in] verbose Obtain additional info about the programs.
 -     * @param[out] infos On success points to a list of eBPF programs.
-      * The caller is responsible for freeing the list via ebpf_free_sections().
+      * The caller is responsible for freeing the list via ebpf_free_programs().
 -     * @param[out] error_message On failure points to a text description of
 -     *  the error.
       */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_enumerate_sections(
+    ebpf_enumerate_programs(
         _In_z_ const char* file,
         bool verbose,
-        _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+        _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
         _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get list of sections and stats in an eBPF file.
+     * @param[in] file Name of file containing eBPF program sections.
+     * @param[in] verbose Obtain additional info about the program sections.
+     * @param[out] infos On success points to a list of eBPF program sections.
+     * The caller is responsible for freeing the list via ebpf_free_sections().
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     * @deprecated Use ebpf_enumerate_programs() instead.
+     */
+    __declspec(deprecated("Use ebpf_enumerate_programs() instead.")) _Must_inspect_result_ ebpf_result_t
+        ebpf_enumerate_sections(
+            _In_z_ const char* file,
+            bool verbose,
+            _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+            _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Free memory returned from \ref ebpf_enumerate_programs.
+     * @param[in] data Memory to free.
+     */
+    void
+    ebpf_free_programs(_In_opt_ _Post_invalid_ ebpf_api_program_info_t* infos) EBPF_NO_EXCEPT;
 
     /**
      * @brief Free memory returned from \ref ebpf_enumerate_sections.
      * @param[in] data Memory to free.
+     * @deprecated Use ebpf_free_programs() instead.
      */
-    void
-    ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
+    __declspec(deprecated("Use ebpf_free_programs() instead.")) void ebpf_free_sections(
+        _In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
      * @param[in] file Name of ELF file containing eBPF program.
-     * @param[in] section The name of the section to query.
+     * @param[in] section_name The name of the section to disassemble.
+     *  If NULL, the first program section is used.
+     * @param[in] program_name The name of the program to disassemble.
+     *  If NULL, the first program in the section is used.
      * @param[out] disassembly On success points text version of the program.
      * @param[out] error_message On failure points to a text description of
      *  the error.
      */
     uint32_t
-    ebpf_api_elf_disassemble_section(
+    ebpf_api_elf_disassemble_program(
+        _In_z_ const char* file,
+        _In_opt_z_ const char* section_name,
+        _In_opt_z_ const char* program_name,
+        _Outptr_result_maybenull_z_ const char** disassembly,
+        _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Convert an eBPF program to human readable byte code.
+     * @param[in] file Name of ELF file containing eBPF program.
+     * @param[in] section The name of the section to disassemble.
+     * @param[out] disassembly On success points text version of the program.
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     */
+    __declspec(deprecated("Use ebpf_api_elf_disassemble_program() instead.")) uint32_t ebpf_api_elf_disassemble_section(
         _In_z_ const char* file,
         _In_z_ const char* section,
         _Outptr_result_maybenull_z_ const char** disassembly,
@@ -119,7 +167,10 @@ extern "C"
     /**
      * @brief Verify that the program is safe to execute.
      * @param[in] file Name of ELF file containing eBPF program.
-     * @param[in] section The name of the section to query.
+     * @param[in] section_name The name of the section in which the program exists.
+     *  If NULL, the first code section is used.
+     * @param[in] program_name The name of the program to verify.
+     *  If NULL, the first program in the section is used.
      * @param[in] program_type Optional program type.
      *  If NULL, the program type is derived from the section name.
      * @param[in] verbosity How much additional info about the programs to obtain.
@@ -131,9 +182,65 @@ extern "C"
      * @retval 0 Verification succeeded.
      * @retval 1 Verification failed.
      */
-    _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_file(
+    _Success_(return == 0) uint32_t ebpf_api_elf_verify_program_from_file(
         _In_z_ const char* file,
-        _In_z_ const char* section,
+        _In_opt_z_ const char* section_name,
+        _In_opt_z_ const char* program_name,
+        _In_opt_ const ebpf_program_type_t* program_type,
+        ebpf_verification_verbosity_t verbosity,
+        _Outptr_result_maybenull_z_ const char** report,
+        _Outptr_result_maybenull_z_ const char** error_message,
+        _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Verify that the program is safe to execute.
+     * @param[in] file Name of ELF file containing eBPF program.
+     * @param[in] section The name of the section to verify.
+     * @param[in] program_type Optional program type.
+     *  If NULL, the program type is derived from the section name.
+     * @param[in] verbosity How much additional info about the programs to obtain.
+     * @param[out] report Points to a text section describing why the program
+     *  failed verification.
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     * @param[out] stats If non-NULL, returns verification statistics.
+     * @retval 0 Verification succeeded.
+     * @retval 1 Verification failed.
+     */
+    __declspec(deprecated("Use ebpf_api_elf_verify_program_from_file() instead.")) _Success_(return == 0) uint32_t
+        ebpf_api_elf_verify_section_from_file(
+            _In_z_ const char* file,
+            _In_z_ const char* section,
+            _In_opt_ const ebpf_program_type_t* program_type,
+            ebpf_verification_verbosity_t verbosity,
+            _Outptr_result_maybenull_z_ const char** report,
+            _Outptr_result_maybenull_z_ const char** error_message,
+            _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Verify that the program is safe to execute.
+     * @param[in] data Memory containing the ELF file containing eBPF program.
+     * @param[in] data_length Length of data.
+     * @param[in] section_name The name of the section in which the program exists.
+     *  If NULL, the first code section is used.
+     * @param[in] program_name The name of the program to verify.
+     *  If NULL, the first program in the section is used.
+     * @param[in] program_type Optional program type.
+     *  If NULL, the program type is derived from the section name.
+     * @param[in] verbosity How much additional info about the programs to obtain.
+     * @param[out] report Points to a text section describing why the program
+     *  failed verification.
+     * @param[out] error_message On failure points to a text description of
+     *  the error.
+     * @param[out] stats If non-NULL, returns verification statistics.
+     * @retval 0 Verification succeeded.
+     * @retval 1 Verification failed.
+     */
+    _Success_(return == 0) uint32_t ebpf_api_elf_verify_program_from_memory(
+        _In_reads_(data_length) const char* data,
+        size_t data_length,
+        _In_opt_z_ const char* section_name,
+        _In_opt_z_ const char* program_name,
         _In_opt_ const ebpf_program_type_t* program_type,
         ebpf_verification_verbosity_t verbosity,
         _Outptr_result_maybenull_z_ const char** report,
@@ -144,7 +251,7 @@ extern "C"
      * @brief Verify that the program is safe to execute.
      * @param[in] data Memory containing the ELF file containing eBPF program.
      * @param[in] data_length Length of data.
-     * @param[in] section The name of the section to query.
+     * @param[in] section_name The name of the section to verify.
      * @param[in] program_type Optional program type.
      *  If NULL, the program type is derived from the section name.
      * @param[in] verbosity How much additional info about the programs to obtain.
@@ -156,15 +263,16 @@ extern "C"
      * @retval 0 Verification succeeded.
      * @retval 1 Verification failed.
      */
-    _Success_(return == 0) uint32_t ebpf_api_elf_verify_section_from_memory(
-        _In_reads_(data_length) const char* data,
-        size_t data_length,
-        _In_z_ const char* section,
-        _In_opt_ const ebpf_program_type_t* program_type,
-        ebpf_verification_verbosity_t verbosity,
-        _Outptr_result_maybenull_z_ const char** report,
-        _Outptr_result_maybenull_z_ const char** error_message,
-        _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
+    __declspec(deprecated("Use ebpf_api_elf_verify_program_from_memory() instead.")) _Success_(return == 0) uint32_t
+        ebpf_api_elf_verify_section_from_memory(
+            _In_reads_(data_length) const char* data,
+            size_t data_length,
+            _In_z_ const char* section_name,
+            _In_opt_ const ebpf_program_type_t* program_type,
+            ebpf_verification_verbosity_t verbosity,
+            _Outptr_result_maybenull_z_ const char** report,
+            _Outptr_result_maybenull_z_ const char** error_message,
+            _Out_opt_ ebpf_api_verifier_stats_t* stats) EBPF_NO_EXCEPT;
 
     /**
      * @brief Free memory for a string returned from an eBPF API.

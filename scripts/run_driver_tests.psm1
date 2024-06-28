@@ -95,8 +95,10 @@ function Invoke-CICDTests
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
+    # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
+    # That causes the regression test to fail. So, we are skipping this test for now.
     $TestList = @(
-        "api_test.exe",
+        "api_test.exe ~`"load_native_program_invalid4`"",
         "bpftool_tests.exe",
         "sample_ext_app.exe",
         "socket_tests.exe")
