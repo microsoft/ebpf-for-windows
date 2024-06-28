@@ -515,6 +515,35 @@ struct bpf_link*
 bpf_program__attach_xdp(struct bpf_program* prog, int ifindex);
 
 /**
+ * @brief Get whether an eBPF program will be loaded when the object is loaded.
+ *
+ * @param[in] prog The program to check.
+ *
+ * @returns True if the program will be loaded, false if not.
+ *
+ * @sa bpf_object__load
+ * @sa bpf_object__load_xattr
+ * @sa bpf_program__set_autoload
+ */
+bool
+bpf_program__autoload(const struct bpf_program* prog);
+
+/**
+ * @brief Set whether an eBPF program will be loaded when the object is loaded.
+ *
+ * @param[in] prog The program to update.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
+ *
+ * @sa bpf_object__load
+ * @sa bpf_object__load_xattr
+ * @sa bpf_program__autoload
+ */
+int
+bpf_program__set_autoload(struct bpf_program* prog, bool autoload);
+
+/**
  * @brief Attach an eBPF program to an attach point.
  *
  * @param[in] prog_fd File descriptor of the program to attach.

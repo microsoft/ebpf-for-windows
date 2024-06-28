@@ -45,7 +45,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         code_gen.parse();
         auto sections = code_gen.program_sections();
         for (auto& section : sections) {
-            code_gen.generate(section);
+            code_gen.generate(section, "c_name");
         }
 
         code_gen.emit_c_code(output);

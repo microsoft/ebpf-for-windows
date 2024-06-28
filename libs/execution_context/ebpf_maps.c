@@ -2496,7 +2496,7 @@ ebpf_map_find_entry(
         }
     } else {
         ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(
-            map, key, flags & EPBF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+            map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -2882,7 +2882,7 @@ ebpf_map_get_next_key_and_value_batch(
 
         memcpy(key_and_value + output_length + key_size, next_value, value_size);
 
-        if (flags & EPBF_MAP_FIND_FLAG_DELETE) {
+        if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
             // If the caller requested deletion, delete the entry.
             result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {

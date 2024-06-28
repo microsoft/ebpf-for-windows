@@ -60,6 +60,10 @@ parse_test_file(const std::string& data_file)
     std::string mem;
     std::string line;
     while (std::getline(data_in, line)) {
+        if (line.find("#") != std::string::npos) {
+            line = line.substr(0, line.find("#"));
+        }
+
         if (line.find("--") != std::string::npos) {
             if (line.find("asm") != std::string::npos) {
                 state = _state::state_assembly;
@@ -94,9 +98,6 @@ parse_test_file(const std::string& data_file)
 
         switch (state) {
         case _state::state_assembly:
-            if (line.find("#") != std::string::npos) {
-                line = line.substr(0, line.find("#"));
-            }
             data_out << line << std::endl;
             break;
         case _state::state_result:
@@ -210,7 +211,7 @@ run_bpf_code_generator_test(const std::string& data_file)
     try {
 
         bpf_code_generator code("test", instructions);
-        code.generate("test");
+        code.generate("test", "test");
         code.emit_c_code(c_file);
     } catch (std::runtime_error& err) {
         REQUIRE(err.what() == NULL);
@@ -415,7 +416,7 @@ verify_invalid_opcode_sequence(const std::vector<ebpf_inst>& instructions, const
 {
     bpf_code_generator code("test", instructions);
     try {
-        code.generate("test");
+        code.generate("test", "test");
         FAIL("bpf_code_generator permitted invalid sequence");
     } catch (const std::runtime_error& ex) {
         REQUIRE(ex.what() == error);

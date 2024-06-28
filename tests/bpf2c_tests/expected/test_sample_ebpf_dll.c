@@ -127,7 +127,7 @@ test_program_entry(void* context)
     // EBPF_OP_ADD64_IMM pc=5 dst=r2 src=r0 offset=0 imm=-8
 #line 36 "sample/undocked/test_sample_ebpf.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=6 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=6 dst=r1 src=r1 offset=0 imm=1
 #line 39 "sample/undocked/test_sample_ebpf.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=1
@@ -148,7 +148,7 @@ test_program_entry(void* context)
     // EBPF_OP_ADD64_IMM pc=11 dst=r2 src=r0 offset=0 imm=-4
 #line 40 "sample/undocked/test_sample_ebpf.c"
     r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDDW pc=12 dst=r1 src=r1 offset=0 imm=1
 #line 40 "sample/undocked/test_sample_ebpf.c"
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1

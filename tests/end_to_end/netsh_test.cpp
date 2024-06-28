@@ -165,10 +165,10 @@ TEST_CASE("show sections bpf.o", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "                                    Size\n"
-                  "             Section       Type  (bytes)\n"
-                  "====================  =========  =======\n"
-                  "               .text     unspec       16\n"
+                  "                                                            Size\n"
+                  "             Section                 Program       Type  (bytes)\n"
+                  "====================  ======================  =========  =======\n"
+                  "               .text                    func     unspec       16\n"
                   "\n"
                   "                     Key  Value      Max\n"
                   "          Map Type  Size   Size  Entries  Name\n"
@@ -187,6 +187,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
     REQUIRE(
         output == "\n"
                   "Section      : .text\n"
+                  "Program      : func\n"
                   "Program Type : unspec\n"
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"
@@ -224,13 +225,13 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "               .text       bind     1064\n"
+                                        "               .text                    func       bind     1064\n"
 #else
-                                        "               .text       bind     1768\n"
+                                        "               .text                    func       bind     1768\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -250,13 +251,13 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "          sample_ext     sample      295\n"
+                                        "          sample_ext           lookup_update     sample      295\n"
 #else
-                                        "          sample_ext     sample     1087\n"
+                                        "          sample_ext           lookup_update     sample     1087\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -279,26 +280,48 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
-#if defined(NDEBUG)
-                                        "        sample_ext/0     sample       73\n"
-                                        "        sample_ext/1     sample        6\n"
-                                        "          sample_ext     sample       73\n"
-#else
-                                        "          sample_ext     sample      413\n"
-                                        "        sample_ext/0     sample      413\n"
-                                        "        sample_ext/1     sample      190\n"
-#endif
-                                        "\n"
-                                        "                     Key  Value      Max\n"
-                                        "          Map Type  Size   Size  Entries  Name\n"
-                                        "==================  ====  =====  =======  ========\n"
-                                        "        prog_array     4      4       10  map\n";
 
-    REQUIRE(output == expected_output);
+    // Issue #3610: Different MSVC versions expect different numbers of bytes for the same program.
+    // As a workaround, check for both the expected outputs.
+    const std::string expected_output_old = "\n"
+                                            "                                                            Size\n"
+                                            "             Section                 Program       Type  (bytes)\n"
+                                            "====================  ======================  =========  =======\n"
+#if defined(NDEBUG)
+                                            "        sample_ext/0                 callee0     sample       73\n"
+                                            "        sample_ext/1                 callee1     sample        6\n"
+                                            "          sample_ext                  caller     sample       73\n"
+#else
+                                            "        sample_ext/0                 callee0     sample      413\n"
+                                            "        sample_ext/1                 callee1     sample      190\n"
+                                            "          sample_ext                  caller     sample      413\n"
+#endif
+                                            "\n"
+                                            "                     Key  Value      Max\n"
+                                            "          Map Type  Size   Size  Entries  Name\n"
+                                            "==================  ====  =====  =======  ========\n"
+                                            "        prog_array     4      4       10  map\n";
+
+    const std::string expected_output_new = "\n"
+                                            "                                                            Size\n"
+                                            "             Section                 Program       Type  (bytes)\n"
+                                            "====================  ======================  =========  =======\n"
+#if defined(NDEBUG)
+                                            "        sample_ext/0                 callee0     sample       75\n"
+                                            "        sample_ext/1                 callee1     sample        6\n"
+                                            "          sample_ext                  caller     sample       73\n"
+#else
+                                            "        sample_ext/0                 callee0     sample      413\n"
+                                            "        sample_ext/1                 callee1     sample      190\n"
+                                            "          sample_ext                  caller     sample      413\n"
+#endif
+                                            "\n"
+                                            "                     Key  Value      Max\n"
+                                            "          Map Type  Size   Size  Entries  Name\n"
+                                            "==================  ====  =====  =======  ========\n"
+                                            "        prog_array     4      4       10  map\n";
+
+    REQUIRE((output == expected_output_old || output == expected_output_new));
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -312,19 +335,19 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     const std::string expected_output = "\n"
-                                        "                                    Size\n"
-                                        "             Section       Type  (bytes)\n"
-                                        "====================  =========  =======\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "     cgroup/connect4  sock_addr      285\n"
-                                        "     cgroup/connect6  sock_addr      302\n"
-                                        " cgroup/recv_accept4  sock_addr      285\n"
-                                        " cgroup/recv_accept6  sock_addr      302\n"
+                                        "     cgroup/connect4      authorize_connect4  sock_addr      285\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr      302\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      285\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      302\n"
 #else
-                                        "     cgroup/connect4  sock_addr      860\n"
-                                        "     cgroup/connect6  sock_addr      935\n"
-                                        " cgroup/recv_accept4  sock_addr      860\n"
-                                        " cgroup/recv_accept6  sock_addr      935\n"
+                                        "     cgroup/connect4      authorize_connect4  sock_addr      860\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr      935\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      860\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      935\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -353,7 +376,8 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     test_helper.initialize();
 
     int result;
-    std::string output = _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L".text", L"bind", &result);
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L"program=func", L"type=bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"

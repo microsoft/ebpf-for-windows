@@ -161,6 +161,23 @@ bpf_program__section_name(const struct bpf_program* program)
     return program->section_name;
 }
 
+bool
+bpf_program__autoload(const struct bpf_program* program)
+{
+    return program->autoload;
+}
+
+int
+bpf_program__set_autoload(struct bpf_program* program, bool autoload)
+{
+    if (program->object->loaded) {
+        return libbpf_err(-EINVAL);
+    }
+
+    program->autoload = autoload;
+    return 0;
+}
+
 size_t
 bpf_program__size(const struct bpf_program* program)
 {
@@ -487,6 +504,11 @@ bpf_program__set_type(struct bpf_program* program, enum bpf_prog_type type)
 {
     if (program->object->loaded) {
         return libbpf_err(-EBUSY);
+    }
+    if (program->object->execution_type == EBPF_EXECUTION_NATIVE) {
+        // Native BPF programs have already passed verification and so cannot
+        // have their program type changed.
+        return libbpf_err(-EINVAL);
     }
     const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(type);
     program->program_type = (program_type != nullptr) ? *program_type : EBPF_PROGRAM_TYPE_UNSPECIFIED;
