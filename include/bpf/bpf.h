@@ -204,9 +204,9 @@ bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
  * starts from the beginning of the map.
  * @param[out] out_batch output parameter that should be passed to next call as *in_batch*.
  * @param[out] keys pointer to an array large enough for *count* keys.
- * @param[in] values pointer to an array large enough for *count* values. For per-CPU maps, the size of the array should
- * be at least count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the
- * nearest multiple of 8 bytes.
+ * @param[out] values pointer to an array large enough for *count* values. For per-CPU maps, the size of the array
+ * should be at least count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up
+ * to the nearest multiple of 8 bytes.
  * @param[in, out] count input and output parameter; on input it's the number of elements in the map to read in batch;
  * on output it's the number of elements that were successfully read.
  * @param[in] opts options for configuring the way the batch lookup works.
@@ -235,7 +235,7 @@ bpf_map_lookup_batch(
  * LRU_PERCPU_HASH}**, the memory size must be at least 4 bytes wide regardless of key size.
  * @param[out] out_batch output parameter that should be passed to next call as *in_batch*.
  * @param[out] keys pointer to an array of *count* keys.
- * @param[in] values pointer to an array of *count* values.For per-CPU maps, the size of the array should be at least
+ * @param[out] values pointer to an array of *count* values.For per-CPU maps, the size of the array should be at least
  * count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the
  * nearest multiple of 8 bytes.
  * @param[in, out] count input and output parameter; on input it's the number of elements in the map to read and
