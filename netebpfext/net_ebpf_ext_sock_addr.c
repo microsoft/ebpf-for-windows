@@ -1982,8 +1982,7 @@ _ebpf_sock_addr_context_create(
 
     ctx = (net_ebpf_sock_addr_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, sock_addr_ctx, "sock_addr_ctx", result);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, ctx, "sock_addr_ctx", result);
     sock_addr_ctx = &ctx->base;
 
     memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
@@ -2009,6 +2008,7 @@ _ebpf_sock_addr_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     NET_EBPF_EXT_LOG_ENTRY();
+    net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
 
     UNREFERENCED_PARAMETER(data_out);
     *data_size_out = 0;
@@ -2016,6 +2016,7 @@ _ebpf_sock_addr_context_destroy(
     if (!context) {
         return;
     }
+    sock_addr_ctx = CONTAINING_RECORD(context, net_ebpf_sock_addr_t, base);
 
     if (context_out != NULL && *context_size_out >= sizeof(bpf_sock_addr_t)) {
         memcpy(context_out, context, sizeof(bpf_sock_addr_t));
@@ -2024,8 +2025,8 @@ _ebpf_sock_addr_context_destroy(
         *context_size_out = 0;
     }
 
-    if (context) {
-        ExFreePool(context);
+    if (sock_addr_ctx) {
+        ExFreePool(sock_addr_ctx);
     }
     NET_EBPF_EXT_LOG_EXIT();
 }

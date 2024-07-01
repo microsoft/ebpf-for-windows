@@ -414,7 +414,7 @@ _ebpf_bind_context_create(
 
     *context = NULL;
 
-    if (context_in == NULL || context_size_in < sizeof(bind_context_header_t)) {
+    if (context_in == NULL || context_size_in < sizeof(bind_md_t)) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, "Context is required");
         result = EBPF_INVALID_ARGUMENT;
