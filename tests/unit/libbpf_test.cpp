@@ -3608,6 +3608,11 @@ _test_batch_iteration_percpu_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_bat
     REQUIRE(returned_keys.size() == batch_size);
     REQUIRE(returned_values.size() == batch_size * (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus));
 
+    for (uint32_t i = 0; i < batch_size; i++) {
+        uint32_t key = returned_keys[i];
+        printf("Key: [%u], Values: [%u]", key, returned_values[i]);
+    }
+
     // Verify the retrieved percpu data.
     for (uint32_t i = 0; i < batch_size; i++) {
         uint32_t key = returned_keys[i];
@@ -3649,7 +3654,7 @@ _test_maps_percpu_batch(bpf_map_type map_type)
         // Populate the per-cpu value.
         for (int cpu = 0; cpu < num_of_cpus; cpu++) {
             values[(i * num_of_cpus) + cpu] = static_cast<uint8_t>(i) + 2;
-            // printf("Key: %u, CPU: %u, value: %u \n", keys[i], cpu, (values[i * num_of_cpus + cpu]));
+            printf("Key: %u, CPU: %u, value: %u \n", keys[i], cpu, (values[i * num_of_cpus + cpu]));
         }
     }
 
