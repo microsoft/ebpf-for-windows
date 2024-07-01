@@ -187,28 +187,33 @@ int
 bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
 
 /**
- * @brief Look up multiple entries in a BPF map in batch.
+ * @brief **bpf_map_lookup_batch()** allows for batch lookup of BPF map elements.
  *
- * @param[in] fd File descriptor of the BPF map
- * @param[in] in_batch Address of the first element in the batch to lookup in the map. If set to NULL, the lookup will
- * start from the beginning of the map.
- * @param[out] out_batch Pointer to buffer in which to write the values in the batch.
- * @param[out] keys Pointer to an array where a batch of keys will be written to. The size of the array should be at
- * least count * key_size attribute of the map.
- * @param[out] values Pointer to an array where a batch of values will be written to. For non-per-CPU maps, the size of
- * the array should be at least count * value_size attribute of the map. For per-CPU maps, the size of the array should
- * be at least count * value_size * number of logical CPUs.
- * Note: In case of per-CPU maps, the value_size is rounded up to the nearest multiple of 8 bytes.
- * @param[in, out] count The number of elements in the map to look up and retrieve.
- *  On input, it is the maximum number of elements to read in batch.
- *  On output, it contains the actual number of elements that were successfully retrieved.
- * @param[in] opts The options for the batch lookup operation.
+ * The parameter *in_batch* is the address of the first element in the batch to read. *out_batch* is an output parameter
+ * that should be passed as *in_batch* to subsequent calls to **bpf_map_lookup_batch()**. NULL can be passed for
+ * *in_batch* to indicate that the batched lookup starts from the beginning of the map. Both *in_batch* and *out_batch*
+ * must point to memory large enough to hold a single key, except for maps of type **BPF_MAP_TYPE_{HASH, PERCPU_HASH,
+ * LRU_HASH, LRU_PERCPU_HASH}**, for which the memory size must be atleast 4 bytes wide regardless of key size.
+ *
+ * The *keys* and *values* are output parameters which must point to memory large enough to hold *count* items based on
+ * the key and value size of the map *map_fd*. The *keys* buffer must be of *key_size* * *count*. The *values* buffer
+ * must be of *value_size* * *count*.
+ *
+ * @param[in] fd BPF map file descriptor.
+ * @param[in] in_batch address of the first element in batch to read, can pass NULL to indicate that the batched lookup
+ * starts from the beginning of the map.
+ * @param[out] out_batch output parameter that should be passed to next call as *in_batch*.
+ * @param[out] keys pointer to an array large enough for *count* keys.
+ * @param[in] values pointer to an array large enough for *count* values. For per-CPU maps, the size of the array should
+ * be at least count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the
+ * nearest multiple of 8 bytes.
+ * @param[in, out] count input and output parameter; on input it's the number of elements in the map to read in batch;
+ * on output it's the number of elements that were successfully read.
+ * @param[in] opts options for configuring the way the batch lookup works.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOENT No more entries found, or the key was not found.
+ * @retval EINVAL An invalid argument was provided.
+ * @retval ENOENT No more entries found, or the key was not found.
  */
 int
 bpf_map_lookup_batch(
@@ -221,28 +226,25 @@ bpf_map_lookup_batch(
     const struct bpf_map_batch_opts* opts);
 
 /**
- * @brief Looks up and deletes multiple entries from a BPF map in batch.
+ * @brief **bpf_map_lookup_and_delete_batch()** allows for batch lookup and deletion of BPF map elements where each
+ * element is deleted after being retrieved.
  *
- * This function performs a batch lookup and delete operation on a BPF map.
- * It takes an input batch of keys and performs a lookup operation for each key in the map.
- * If a key is found, the corresponding value is deleted from the map.
- *
- * @param[in] fd File descriptor of the BPF map
- * @param[in] in_batch Address of the first element in the batch to lookup in the map. If set to NULL, the lookup will
- * start from the beginning of the map.
- * @param[out] out_batch Pointer to buffer in which to write the values in the batch.
- * @param[out] keys Pointer to buffer that contains keys on success.
- * @param[out] values Pointer to buffer that contains values on success.
- * @param[in, out] count The number of elements in the map to look up and delete.
- *  On input, it is the number of elements in the map to read and delete in batch.
- *  On output, it contains the actual number of elements that were successfully read and deleted.
- * @param opts The options for the batch lookup and delete operation.
+ * @param[in] fd BPF map file descriptor.
+ * @param[in] in_batch address of the first element in batch to read, can pass NULL to get address of the first element
+ * in *out_batch*. If not NULL, must be large enough to hold a key. For **BPF_MAP_TYPE_{HASH, PERCPU_HASH, LRU_HASH,
+ * LRU_PERCPU_HASH}**, the memory size must be at least 4 bytes wide regardless of key size.
+ * @param[out] out_batch output parameter that should be passed to next call as *in_batch*.
+ * @param[out] keys pointer to an array of *count* keys.
+ * @param[in] values pointer to an array of *count* values.For per-CPU maps, the size of the array should be at least
+ * count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the
+ * nearest multiple of 8 bytes.
+ * @param[in, out] count input and output parameter; on input it's the number of elements in the map to read and
+ * delete in batch; on output it represents the number of elements that were successfully read and deleted.
+ * @param opts options for configuring the way the batch lookup and delete works.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOENT No more entries found, or the key-value pair was not found.
+ * @retval EINVAL An invalid argument was provided.
+ * @retval ENOENT No more entries found, or the key-value pair was not found.
  */
 int
 bpf_map_lookup_and_delete_batch(
@@ -255,39 +257,56 @@ bpf_map_lookup_and_delete_batch(
     const struct bpf_map_batch_opts* opts);
 
 /**
- * @brief Updates multiple entries in a BPF map in batch.
+ * @brief **bpf_map_update_batch()** updates multiple elements in a map by specifying keys and their corresponding
+ * values.
  *
- * @param[in] fd File descriptor of the BPF map.
- * @param[in] keys Pointer to an array of keys.
- * @param[in] values Pointer to an array of values.
- * @param[in, out] count Pointer to the number of entries to update.
- *  On input, it contains the maximum number of entries to update.
- *  On output, it contains the actual number of entries updated.
- * @param[in] opts A pointer to the batch options structure.
+ * The *keys* and *values* parameters must point to memory large enough to hold *count* items based on the key and value
+ * size of the map.
+ *
+ * The *opts* parameter can be used to control how *bpf_map_update_batch()* should handle keys that either do or do not
+ * already exist in the map. In particular the *flags* parameter of *bpf_map_batch_opts* can be one of the following:
+ *
+ * Note that *count* is an input and output parameter, where on output it represents how many elements were successfully
+ * updated.
+ *
+ * **BPF_ANY**
+ *    Create new elements or update existing.
+ *
+ * **BPF_NOEXIST**
+ *    Create new elements only if they do not exist.
+ *
+ * **BPF_EXIST**
+ *    Update existing elements.
+ *
+ * @param[in] fd BPF map file descriptor.
+ * @param[in] keys pointer to an array of *count* keys.
+ * @param[in] values pointer to an array of *count* values. For per-CPU maps, the size of the array should be at least
+ * count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the nearest
+ * multiple of 8 bytes.
+ * @param[in, out] count input and output parameter; on input it's the number of elements in the map to update in batch;
+ * **count** represents the number of updated elements if the output **count** value is not equal to the input **count**
+ * value.
+ * @param[in] opts options for configuring the way the batch update works.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval EINVAL An invalid argument was provided.
+ * @retval ENOMEM Out of memory.
  */
 int
 bpf_map_update_batch(int fd, const void* keys, const void* values, __u32* count, const struct bpf_map_batch_opts* opts);
 
 /**
- * @brief Deletes multiple entries from a BPF map in batch.
+ * @brief **bpf_map_delete_batch()** allows for batch deletion of multiple elements in a BPF map.
  *
- * @param[in] fd File descriptor of the BPF map.
- * @param[in] keys Pointer to an array of keys to be deleted.
- * @param[in, out] count Pointer to the number of keys to be deleted. On output, it will contain the number of keys
- * actually deleted.
- * @param[in] opts Pointer to the batch options for the delete operation.
+ * @param[in] fd BPF map file descriptor.
+ * @param[in] keys pointer to an array of *count* keys.
+ * @param[in, out] count input and output parameter; on input **count** represents the number of  elements in the map to
+ * delete in batch.
+ * @param[in] opts options for configuring the way the batch deletion works.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
- *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOENT The key was not found.
+ * @retval EINVAL An invalid argument was provided.
+ * @retval ENOENT The key was not found.
  */
 int
 bpf_map_delete_batch(int fd, const void* keys, __u32* count, const struct bpf_map_batch_opts* opts);
