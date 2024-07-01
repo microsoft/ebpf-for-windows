@@ -423,7 +423,8 @@ _ebpf_bind_context_create(
 
     context_header = (bind_context_header_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(bind_context_header_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context, "bind_context", result);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, context_header, "bind_context", result);
 
     bind_context = &context_header->context;
     // Copy the context from the caller.
