@@ -1,6 +1,15 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
+# This script assumes it is called from the root of the repository, but it can be called from any directory.
+# To handle this, we first get the directory where the script is located and then change the parent directory to the root of the repository.
+
+# Get the path where this script is located
+$scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
+
+# Change the parent directory for the script directory
+Set-Location $scriptPath\..
+
 # Define the commands to run
 $commands = @(
     "git submodule update --init --recursive",
