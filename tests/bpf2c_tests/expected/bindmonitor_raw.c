@@ -128,7 +128,7 @@ BindMonitor(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-84)) = (uint32_t)r8;
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=19
 #line 61 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 61 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor.c"
@@ -149,7 +149,7 @@ BindMonitor(void* context)
     r1 = r6;
     // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=20
 #line 64 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 64 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[1].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor.c"
@@ -164,7 +164,7 @@ BindMonitor(void* context)
     r1 = r6;
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=21
 #line 65 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 65 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[2].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor.c"
@@ -194,7 +194,7 @@ BindMonitor(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=2
 #line 67 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[3].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor.c"
@@ -212,7 +212,7 @@ BindMonitor(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=1
 #line 119 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 119 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[4].tail_call) && (r0 == 0)) {
 #line 119 "sample/bindmonitor.c"
@@ -286,7 +286,7 @@ BindMonitor(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=46 dst=r0 src=r0 offset=0 imm=1
 #line 78 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 78 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[4].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor.c"
@@ -356,7 +356,7 @@ BindMonitor(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=2
 #line 91 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 91 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[3].tail_call) && (r0 == 0)) {
 #line 91 "sample/bindmonitor.c"
@@ -371,7 +371,7 @@ BindMonitor(void* context)
     r2 = r8;
     // EBPF_OP_CALL pc=67 dst=r0 src=r0 offset=0 imm=1
 #line 92 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[4].tail_call) && (r0 == 0)) {
 #line 92 "sample/bindmonitor.c"
@@ -408,7 +408,7 @@ BindMonitor(void* context)
     r2 = IMMEDIATE(64);
     // EBPF_OP_CALL pc=76 dst=r0 src=r0 offset=0 imm=22
 #line 97 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 97 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[5].tail_call) && (r0 == 0)) {
 #line 97 "sample/bindmonitor.c"
@@ -517,7 +517,7 @@ label_5:
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=103 dst=r0 src=r0 offset=0 imm=3
 #line 149 "sample/bindmonitor.c"
-    r0 = BindMonitor_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 149 "sample/bindmonitor.c"
     if ((BindMonitor_helpers[6].tail_call) && (r0 == 0)) {
 #line 149 "sample/bindmonitor.c"
@@ -570,7 +570,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 18;
     version->revision = 0;
 }
 

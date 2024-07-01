@@ -902,7 +902,6 @@ bpf_code_generator::build_function_table()
             int32_t helper_id = output.instruction.imm;
             bool implicit_context = get_helper_information((uint32_t)helper_id);
             // First check the global.
-            printf("helper_id: %d, implicit_context: %d\n", helper_id, implicit_context);
             current_program->helper_functions[name] = {helper_id, index++, implicit_context};
         }
     }

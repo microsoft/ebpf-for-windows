@@ -267,7 +267,7 @@ lookup(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 39 "sample/undocked/map_in_map_legacy_id.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 39 "sample/undocked/map_in_map_legacy_id.c"
     if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 39 "sample/undocked/map_in_map_legacy_id.c"
@@ -298,7 +298,7 @@ lookup(void* context)
     r1 = r0;
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 42 "sample/undocked/map_in_map_legacy_id.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 42 "sample/undocked/map_in_map_legacy_id.c"
     if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 42 "sample/undocked/map_in_map_legacy_id.c"
@@ -361,7 +361,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 18;
     version->revision = 0;
 }
 

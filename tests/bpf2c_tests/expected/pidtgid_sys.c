@@ -267,7 +267,7 @@ func(void* context)
     }
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
 #line 47 "sample/pidtgid.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 47 "sample/pidtgid.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 47 "sample/pidtgid.c"
@@ -315,7 +315,7 @@ func(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/pidtgid.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/pidtgid.c"
     if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/pidtgid.c"
@@ -364,7 +364,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 18;
     version->revision = 0;
 }
 
