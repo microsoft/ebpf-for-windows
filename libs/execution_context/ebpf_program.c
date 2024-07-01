@@ -1527,6 +1527,9 @@ ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* 
     if (next_program->extension_program_data->supports_context_header) {
         ebpf_program_get_runtime_state(context, &current_program, &state);
     } else {
+        // ANUSA TODO: Remove the below assert once we have moved all the sample programs
+        // that use tail calls to new context header.
+        ebpf_assert(false);
         result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
         if (result != EBPF_SUCCESS) {
             return result;

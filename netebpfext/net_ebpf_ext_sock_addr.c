@@ -176,6 +176,7 @@ _net_ebpf_ext_log_sock_addr_classify(
 
 typedef struct _net_ebpf_bpf_sock_addr
 {
+    uint64_t context_header[8];
     bpf_sock_addr_t base;
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
@@ -1958,6 +1959,7 @@ _ebpf_sock_addr_context_create(
     NET_EBPF_EXT_LOG_ENTRY();
 
     ebpf_result_t result;
+    net_ebpf_sock_addr_t* ctx = NULL;
     bpf_sock_addr_t* sock_addr_ctx = NULL;
 
     *context = NULL;
@@ -1978,21 +1980,22 @@ _ebpf_sock_addr_context_create(
         goto Exit;
     }
 
-    sock_addr_ctx = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
+    ctx = (net_ebpf_sock_addr_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, sock_addr_ctx, "sock_addr_ctx", result);
+    sock_addr_ctx = &ctx->base;
 
     memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
 
     result = EBPF_SUCCESS;
     *context = sock_addr_ctx;
 
-    sock_addr_ctx = NULL;
+    ctx = NULL;
 
 Exit:
-    if (sock_addr_ctx) {
-        ExFreePool(sock_addr_ctx);
+    if (ctx) {
+        ExFreePool(ctx);
     }
     NET_EBPF_EXT_RETURN_RESULT(result);
 }

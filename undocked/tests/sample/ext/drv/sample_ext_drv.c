@@ -221,7 +221,7 @@ _sample_ebpf_ext_driver_io_device_control(
     size_t actual_input_length = 0;
     size_t actual_output_length = 0;
 
-    context_header_t context_header = {0};
+    sample_program_context_header_t context_header = {0};
     sample_program_context_t* program_context = &context_header.context;
     uint32_t program_result = 0;
     ebpf_result_t result = EBPF_INVALID_ARGUMENT;

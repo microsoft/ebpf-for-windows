@@ -609,8 +609,10 @@ sample_ebpf_extension_profile_program(
     LARGE_INTEGER end;
     uint32_t result;
     KIRQL old_irql = PASSIVE_LEVEL;
-    sample_program_context_t program_context = {
+    sample_program_context_header_t context_header = {
         {0}, request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
+
+    sample_program_context_t* program_context = (sample_program_context_t*)&context_header.context;
 
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
 
@@ -623,14 +625,14 @@ sample_ebpf_extension_profile_program(
     ebpf_program_invoke_function_t invoke_program = hook_client->invoke_program;
     const void* client_binding_context = hook_client->client_binding_context;
 
-    program_context.uint32_data = KeGetCurrentProcessorNumber();
+    program_context->uint32_data = KeGetCurrentProcessorNumber();
 
     KeQueryPerformanceCounter(&start);
     if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
         KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     for (size_t i = 0; i < request->iterations; i++) {
-        invoke_program(client_binding_context, &program_context, &result);
+        invoke_program(client_binding_context, program_context, &result);
     }
     if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
         KeLowerIrql(old_irql);

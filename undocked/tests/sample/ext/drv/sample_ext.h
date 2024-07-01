@@ -14,7 +14,7 @@
 #include <ntddk.h>
 
 typedef struct _sample_program_context sample_program_context_t;
-typedef struct _context_header context_header_t;
+// typedef struct _context_header sample_program_context_header_t;
 
 /**
  * @brief Register program information NPI provider.
