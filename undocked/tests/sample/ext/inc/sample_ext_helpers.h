@@ -17,7 +17,6 @@ typedef unsigned int uint32_t;
 typedef unsigned long long uint64_t;
 typedef long long int64_t;
 #endif
-#include "ebpf_extension.h"
 
 // Sample extension program context.
 typedef struct _sample_program_context
@@ -30,12 +29,6 @@ typedef struct _sample_program_context
     uint32_t helper_data_1;
     uint32_t helper_data_2;
 } sample_program_context_t;
-
-typedef struct _sample_program_context_header
-{
-    EBPF_CONTEXT_HEADER;
-    sample_program_context_t context;
-} sample_program_context_header_t;
 
 #define SAMPLE_EXT_HELPER_FN_BASE 0xFFFF
 

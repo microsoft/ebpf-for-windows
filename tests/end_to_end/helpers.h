@@ -8,6 +8,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
+// #include "sample_ext.h"
 #include "sample_ext_program_info.h"
 #include "usersim/ke.h"
 
@@ -19,6 +20,12 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #include <ndis/nbl.h>
 #endif
 #include <vector>
+
+typedef struct _sample_program_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    sample_program_context_t context;
+} sample_program_context_header_t;
 
 #define INITIALIZE_BIND_CONTEXT      \
     bind_context_header_t header{0}; \
