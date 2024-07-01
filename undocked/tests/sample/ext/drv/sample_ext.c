@@ -746,6 +746,7 @@ _sample_context_create(
     _Outptr_ void** context)
 {
     ebpf_result_t result;
+    sample_program_context_header_t* context_header = NULL;
     sample_program_context_t* sample_context = NULL;
 
     *context = NULL;
@@ -762,22 +763,23 @@ _sample_context_create(
         goto Exit;
     }
 
-    sample_context =
-        cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
-    if (sample_context == NULL) {
+    context_header = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_header_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (context_header == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+    sample_context = &context_header->context;
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
 
     *context = sample_context;
-    sample_context = NULL;
+    context_header = NULL;
     result = EBPF_SUCCESS;
 
 Exit:
-    if (sample_context != NULL) {
-        CXPLAT_FREE(sample_context);
+    if (context_header != NULL) {
+        CXPLAT_FREE(context_header);
     }
 
     return result;
@@ -792,9 +794,11 @@ _sample_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     UNREFERENCED_PARAMETER(data_out);
+    sample_program_context_header_t* context_header = NULL;
     if (context == NULL) {
         return;
     }
+    context_header = CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
     // This provider doesn't support data.
     *data_size_out = 0;
@@ -806,5 +810,5 @@ _sample_context_destroy(
         *context_size_out = 0;
     }
 
-    CXPLAT_FREE(context);
+    CXPLAT_FREE(context_header);
 }
