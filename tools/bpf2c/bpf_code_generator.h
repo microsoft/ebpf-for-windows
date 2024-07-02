@@ -295,7 +295,7 @@ class bpf_code_generator
     {
         int32_t id;
         size_t index;
-        bool implicit_context;
+        // bool implicit_context;
     } helper_function_t;
 
     typedef struct _map_entry
@@ -396,8 +396,8 @@ class bpf_code_generator
     void
     build_function_table();
 
-    bool
-    get_helper_information(uint32_t helper_id);
+    // bool
+    // get_helper_information(uint32_t helper_id);
 
     /**
      * @brief Generate the C code for each eBPF instruction.

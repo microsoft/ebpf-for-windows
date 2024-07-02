@@ -27,7 +27,6 @@ typedef struct _ebpf_program_type_descriptor
 typedef struct _ebpf_helper_function_prototype_flags
 {
     bool reallocate_packet : 1;
-    // bool implicit_context : 1;
 } ebpf_helper_function_prototype_flags_t;
 
 // This is the type definition for the eBPF helper function prototype
@@ -92,7 +91,7 @@ typedef struct _ebpf_program_data
     ebpf_program_context_create_t context_create;   ///< Pointer to context create function.
     ebpf_program_context_destroy_t context_destroy; ///< Pointer to context destroy function.
     uint8_t required_irql;                          ///< IRQL at which the program is invoked.
-    bool supports_context_header;                   ///< Whether the program context supports a context header.
+    bool context_header;                            ///< Whether the program context supports a context header.
 } ebpf_program_data_t;
 
 // This is the type definition for the eBPF program section information

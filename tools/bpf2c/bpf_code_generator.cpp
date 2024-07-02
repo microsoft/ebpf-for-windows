@@ -848,36 +848,36 @@ bpf_code_generator::generate_labels()
     }
 }
 
-bool
-bpf_code_generator::get_helper_information(uint32_t helper_id)
-{
-    const ebpf_program_info_t* program_info = current_program->program_info;
+// bool
+// bpf_code_generator::get_helper_information(uint32_t helper_id)
+// {
+//     const ebpf_program_info_t* program_info = current_program->program_info;
 
-    // To allow the case for --no-verify, where the program info is not available.
-    if (!program_info) {
-        return false;
-    }
+//     // To allow the case for --no-verify, where the program info is not available.
+//     if (!program_info) {
+//         return false;
+//     }
 
-    // Iterate through the global helpers first to find the helper id.
-    for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
-        const ebpf_helper_function_prototype_t* helper = &program_info->global_helper_prototype[i];
-        if (helper->helper_id == helper_id) {
-            // return helper->flags.implicit_context;
-            return helper->implicit_context;
-        }
-    }
+//     // Iterate through the global helpers first to find the helper id.
+//     for (uint32_t i = 0; i < program_info->count_of_global_helpers; i++) {
+//         const ebpf_helper_function_prototype_t* helper = &program_info->global_helper_prototype[i];
+//         if (helper->helper_id == helper_id) {
+//             // return helper->flags.implicit_context;
+//             return helper->implicit_context;
+//         }
+//     }
 
-    // Next iterate through the program type specific helpers to find the helper id.
-    for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
-        const ebpf_helper_function_prototype_t* helper = &program_info->program_type_specific_helper_prototype[i];
-        if (helper->helper_id == helper_id) {
-            // return helper->flags.implicit_context;
-            return helper->implicit_context;
-        }
-    }
+//     // Next iterate through the program type specific helpers to find the helper id.
+//     for (uint32_t i = 0; i < program_info->count_of_program_type_specific_helpers; i++) {
+//         const ebpf_helper_function_prototype_t* helper = &program_info->program_type_specific_helper_prototype[i];
+//         if (helper->helper_id == helper_id) {
+//             // return helper->flags.implicit_context;
+//             return helper->implicit_context;
+//         }
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 void
 bpf_code_generator::build_function_table()
@@ -900,9 +900,9 @@ bpf_code_generator::build_function_table()
 
         if (current_program->helper_functions.find(name) == current_program->helper_functions.end()) {
             int32_t helper_id = output.instruction.imm;
-            bool implicit_context = get_helper_information((uint32_t)helper_id);
+            // bool implicit_context = get_helper_information((uint32_t)helper_id);
             // First check the global.
-            current_program->helper_functions[name] = {helper_id, index++, implicit_context};
+            current_program->helper_functions[name] = {helper_id, index++};
         }
     }
 }

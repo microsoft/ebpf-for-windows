@@ -3129,14 +3129,16 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
 
-TEST_CASE("extension_reload_test_implicit_context_native", "[end_to_end]")
+static void
+_extension_reload_test_implicit_context(ebpf_execution_type_t execution_type)
 {
-    const char* file_name = "test_sample_implicit_helpers_um.dll";
-    extension_reload_test_common(file_name, EBPF_EXECUTION_NATIVE);
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_implicit_helpers_um.dll"
+                                                                    : "test_sample_implicit_helpers.o";
+    extension_reload_test_common(file_name, execution_type);
 }
 
-// TODO: Add JIT test case for implicit context to check that the load fails.
-// TODO: Add native test case for implicit context to check that the load succeeds and
+DECLARE_ALL_TEST_CASES(
+    "extension_reload_test_implicit_context", "[end_to_end]", _extension_reload_test_implicit_context);
 
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
 TEST_CASE("close_unload_test", "[close_cleanup]")
@@ -3454,8 +3456,8 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }
 
-void
-_implicit_context_helpers_test(ebpf_execution_type_t execution_type, int expected_result)
+static void
+_implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3487,11 +3489,7 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type, int expecte
         printf("ebpf_program_load failed with %s\n", error_message);
         ebpf_free((void*)error_message);
     }
-    REQUIRE(result == expected_result);
-
-    if (expected_result != 0) {
-        return;
-    }
+    REQUIRE(result == 0);
 
     bpf_link* link = nullptr;
     // Attach only to the single interface being tested.
@@ -3514,12 +3512,4 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type, int expecte
     REQUIRE(data.value_2 == data2 + 10);
 }
 
-void
-implicit_context_helpers_test(ebpf_execution_type_t execution_type)
-{
-    // int expected_result = execution_type == EBPF_EXECUTION_NATIVE ? 0 : -ENOTSUP;
-    int expected_result = 0;
-    _implicit_context_helpers_test(execution_type, expected_result);
-}
-
-DECLARE_ALL_TEST_CASES("implicit_context_helpers_test", "[end_to_end]", implicit_context_helpers_test);
+DECLARE_ALL_TEST_CASES("implicit_context_helpers_test", "[end_to_end]", _implicit_context_helpers_test);

@@ -62,7 +62,7 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
     .required_irql = PASSIVE_LEVEL,
-    .supports_context_header = true,
+    .context_header = true,
 };
 
 // Set the program type as the provider module id.

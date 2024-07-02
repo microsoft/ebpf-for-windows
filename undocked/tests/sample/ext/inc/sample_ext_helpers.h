@@ -21,7 +21,6 @@ typedef long long int64_t;
 // Sample extension program context.
 typedef struct _sample_program_context
 {
-    // uint64_t context_header[8];
     uint8_t* data_start;
     uint8_t* data_end;
     uint32_t uint32_data;
