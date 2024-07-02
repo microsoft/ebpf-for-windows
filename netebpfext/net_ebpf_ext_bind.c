@@ -142,7 +142,7 @@ _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_cli
     ASSERT(filter_context != NULL);
 
     // Delete the WFP filters.
-    net_ebpf_extension_delete_wfp_filters(filter_context->filter_ids_count, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(filter_context, filter_context->filter_ids_count, filter_context->filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 }
 
