@@ -264,6 +264,7 @@ net_ebpf_extension_wfp_filter_context_create(
         __fastfail(FAST_FAIL_INVALID_ARG);
     }
 
+    session.flags = FWPM_SESSION_FLAG_DYNAMIC;
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &local_filter_context->wfp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
 
@@ -625,6 +626,59 @@ net_ebpf_ext_uninitialize_ndis_handles()
     }
 }
 
+static void
+_net_ebpf_extension_cleanup_state(HANDLE wfp_engine_handle)
+/* ++
+
+   This function cleans up persisted WFP related state.
+
+-- */
+{
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    NTSTATUS status = STATUS_SUCCESS;
+    for (size_t index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
+        status =
+            FwpmCalloutDeleteByKey(wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmCalloutDeleteByKey failed for index#",
+                index);
+
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmCalloutDeleteByKey",
+                status);
+        }
+
+        status = FwpmSubLayerDeleteByKey(_wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].layer_guid);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmSubLayerDeleteByKey failed for index#",
+                index);
+
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmSubLayerDeleteByKeyy",
+                status);
+        }
+    }
+
+    status = FwpmProviderDeleteByKey(wfp_engine_handle, (GUID*)&EBPF_WFP_PROVIDER);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "FwpmProviderDeleteByKey",
+            status);
+    }
+
+    NET_EBPF_EXT_LOG_EXIT();
+}
+
 NTSTATUS
 net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 /* ++
@@ -653,9 +707,17 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
+    // It is critical that this specific session be a static session. We explicitly ensure this by making sure that the
+    // FWPM_PROVIDER::flags member is zero.
+    // This logic ensures that we do not break WFP's processing rules for sessions and transactions when we create
+    // other dynamic sessions later (during addition of filters).
+    RtlZeroMemory(&session, sizeof(FWPM_SESSION));
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_wfp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
+
+    // Clean up stale WFP persisted state, if any.
+    _net_ebpf_extension_cleanup_state(_wfp_engine_handle);
 
     status = FwpmTransactionBegin(_wfp_engine_handle, 0);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
@@ -666,7 +728,24 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     ebpf_wfp_provider.displayData.name = L"eBPF for Windows contributors";
     ebpf_wfp_provider.displayData.description = L"Windows Networking eBPF Extension";
     status = FwpmProviderAdd(_wfp_engine_handle, &ebpf_wfp_provider, NULL);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderAdd", status);
+    if (!NT_SUCCESS(status)) {
+        if (status == FWP_E_ALREADY_EXISTS) {
+            // This provider is added statically and thereby is persistent as well.  If we do not explicitly remove it
+            // during driver unload, it will persist across driver restarts and reboots as well. We can get this error
+            // if we could not remove the provider (driver and/or system crash) or the prior removal attempt failed for
+            // some reason.  The persisted provider details are still valid and usable in such cases.
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_INFO,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmProviderAdd() - Benign error (Provider already exists).");
+        } else {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmProviderAdd",
+                status);
+            goto Exit;
+        }
+    }
 
     // Add all the sub layers.
     for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
@@ -705,7 +784,6 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleCreate", status);
 
 Exit:
-
     if (!NT_SUCCESS(status)) {
         if (is_in_transaction) {
             NTSTATUS abort_status = FwpmTransactionAbort(_wfp_engine_handle);
@@ -739,34 +817,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     }
 
     if (_wfp_engine_handle != NULL) {
-        for (size_t index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
-            status =
-                FwpmCalloutDeleteById(_wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
-            if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                    "FwpsCalloutDeleteById failed at index#",
-                    index);
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutDeleteById", status);
-            }
 
-            status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
-            if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
-            }
-        }
+        // Clean up stale WFP persisted state, if any.
+        _net_ebpf_extension_cleanup_state(_wfp_engine_handle);
 
-        status = FwpmSubLayerDeleteByKey(_wfp_engine_handle, (GUID*)&EBPF_WFP_PROVIDER);
-        if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
-        }
-    }
-
-    if (_wfp_engine_handle != NULL) {
         status = FwpmEngineClose(_wfp_engine_handle);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
