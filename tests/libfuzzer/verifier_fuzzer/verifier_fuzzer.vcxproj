@@ -152,7 +152,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\libs\thunk\mock\mock.cpp" />
     <ClCompile Include="..\..\end_to_end\test_helper.cpp" />
-    <ClCompile Include="..\..\libs\util\hash.cpp" />
+    <ClCompile Include="..\..\..\libs\shared\hash.cpp" />
     <ClCompile Include="libfuzz_harness.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -160,7 +160,7 @@
     <ClInclude Include="..\..\..\tools\bpf2c\bpf_code_generator.h" />
     <ClInclude Include="..\..\end_to_end\test_helper.hpp" />
     <ClInclude Include="..\..\libs\thunk\mock\mock.h" />
-    <ClInclude Include="..\..\libs\util\hash.h" />
+    <ClInclude Include="..\..\..\libs\shared\hash.h" />
     <ClInclude Include="..\end_to_end\test_helper.hpp" />
   </ItemGroup>
   <ItemGroup>
