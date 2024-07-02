@@ -52,6 +52,11 @@ get_helper_prototype_windows(int32_t n)
     }
     verifier_prototype.context_descriptor = info->program_type_descriptor->context_descriptor;
 
+    // Helper ID needs to be non-negative for Windows.
+    if (n < 0) {
+        throw std::runtime_error(std::string("helper ID is negative: ") + std::to_string(n));
+    }
+
     const ebpf_helper_function_prototype_t* raw_prototype = _get_helper_function_prototype(info, n);
     if (raw_prototype == nullptr) {
         throw std::runtime_error(std::string("helper prototype not found: ") + std::to_string(n));
