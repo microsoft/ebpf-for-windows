@@ -97,14 +97,6 @@ _ebpf_store_update_helper_prototype(
         if (!IS_SUCCESS(result)) {
             goto Exit;
         }
-
-        // Save the implicit_context flag.
-        uint32_t implicit_context_value = helper_info->implicit_context ? 1 : 0;
-        result = ebpf_write_registry_value_dword(
-            helper_function_key, EBPF_HELPER_DATA_IMPLICIT_CONTEXT, implicit_context_value);
-        if (!IS_SUCCESS(result)) {
-            goto Exit;
-        }
     }
 
 Exit:

@@ -873,7 +873,7 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(options.return_value == TEST_FUNCTION_RETURN);
     REQUIRE(options.duration > 0);
 
-    helper_function_address_info_t addresses[TOTAL_HELPER_COUNT] = {};
+    helper_function_address_t addresses[TOTAL_HELPER_COUNT] = {};
     uint32_t helper_function_ids[] = {1, 3, 2};
     REQUIRE(
         ebpf_program_set_helper_function_ids(program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
@@ -1320,7 +1320,7 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
 
     std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
     std::vector<uint8_t> reply(
-        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(helper_function_address_info_t));
+        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(helper_function_address_t));
     auto resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
 
     // Invalid handle.

@@ -305,7 +305,7 @@ fuzz_program(
     // Get the helper function pointer.
     ebpf_helper_id_t helper_function_id = (ebpf_helper_id_t)prototype->helper_id;
     uint64_t helper_function_address = 0;
-    helper_function_address_info_t address_info = {0};
+    helper_function_address_t address_info = {0};
     result = ebpf_core_resolve_helper(program_handle, 1, (const uint32_t*)&helper_function_id, &address_info);
     if (result != EBPF_SUCCESS) {
         return;

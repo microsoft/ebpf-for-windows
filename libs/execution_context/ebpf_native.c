@@ -32,12 +32,6 @@ static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 typedef uint64_t (*helper_function_address)(
     uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, void* context);
 
-// typedef struct _helper_function_address_info
-// {
-//     helper_function_address address;
-//     bool implicit_context;
-// } helper_function_address_info_t;
-
 typedef struct _ebpf_native_map
 {
     map_entry_t* entry;
@@ -168,9 +162,7 @@ typedef struct _ebpf_native_helper_address_changed_context
 
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
-    size_t address_count,
-    _In_reads_opt_(address_count) helper_function_address_info_t* addresses,
-    _In_opt_ void* context);
+    size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context);
 
 static void
 _ebpf_native_unload_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ const void* service)
@@ -1144,7 +1136,7 @@ _ebpf_native_resolve_helpers_for_program(
     UNREFERENCED_PARAMETER(module);
     ebpf_result_t result;
     uint32_t* helper_ids = NULL;
-    helper_function_address_info_t* helper_addresses = NULL;
+    helper_function_address_t* helper_addresses = NULL;
     uint16_t helper_count = program->entry->helper_count;
     helper_function_entry_t* helpers = program->entry->helpers;
 
@@ -1156,7 +1148,7 @@ _ebpf_native_resolve_helpers_for_program(
         }
 
         helper_addresses =
-            ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address_info_t), EBPF_POOL_TAG_NATIVE);
+            ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_NATIVE);
         if (helper_addresses == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -1733,9 +1725,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
-    size_t address_count,
-    _In_reads_opt_(address_count) helper_function_address_info_t* addresses,
-    _In_opt_ void* context)
+    size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context)
 {
     ebpf_result_t return_value;
     ebpf_native_helper_address_changed_context_t* helper_address_changed_context =

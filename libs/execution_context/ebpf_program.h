@@ -242,7 +242,7 @@ extern "C"
     ebpf_program_get_helper_function_addresses(
         _In_ const ebpf_program_t* program,
         const size_t addresses_count,
-        _Out_writes_(addresses_count) helper_function_address_info_t* addresses);
+        _Out_writes_(addresses_count) helper_function_address_t* addresses);
 
     /**
      * @brief Compute program info hash for the program object. This function
@@ -374,7 +374,7 @@ extern "C"
 
     typedef ebpf_result_t (*ebpf_helper_function_addresses_changed_callback_t)(
         size_t address_count,
-        _In_reads_opt_(address_count) helper_function_address_info_t* addresses,
+        _In_reads_opt_(address_count) helper_function_address_t* addresses,
         _In_opt_ void* context);
 
     /**

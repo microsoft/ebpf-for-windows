@@ -47,7 +47,6 @@ typedef struct _ebpf_link
     _Guarded_by_(lock) HANDLE nmr_client_handle;
     _Guarded_by_(lock) bool provider_attached;
     _Guarded_by_(lock) ebpf_link_state_t state;
-    _Guarded_by_(lock) uint32_t attach_provider_flags;
 } ebpf_link_t;
 
 static NPI_CLIENT_ATTACH_PROVIDER_FN _ebpf_link_client_attach_provider;

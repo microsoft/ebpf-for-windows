@@ -155,20 +155,14 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_he
 
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
-    size_t address_count,
-    _In_reads_(address_count) const helper_function_address_info_t* addresses,
-    _Inout_ void* context);
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context);
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
-    size_t address_count,
-    _In_reads_(address_count) const helper_function_address_info_t* addresses,
-    _Inout_ void* context);
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context);
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
-    _In_ const ebpf_program_t* program,
-    const uint32_t helper_function_id,
-    _Out_ helper_function_address_info_t* address);
+    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ helper_function_address_t* address);
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_initiate()
@@ -1107,14 +1101,14 @@ Done:
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    helper_function_address_info_t* helper_function_addresses = NULL;
+    helper_function_address_t* helper_function_addresses = NULL;
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
 
         // We _can_ have instances of ebpf programs that do not need to call any helper functions.
         // Such programs are valid and the 'program->helper_function_count' member for such programs will be 0 (Zero).
         if (program->helper_function_count) {
             helper_function_addresses = ebpf_allocate_with_tag(
-                program->helper_function_count * sizeof(helper_function_address_info_t), EBPF_POOL_TAG_PROGRAM);
+                program->helper_function_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_PROGRAM);
             if (helper_function_addresses == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -1143,9 +1137,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
-    size_t address_count,
-    _In_reads_(address_count) const helper_function_address_info_t* addresses,
-    _Inout_ void* context)
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(address_count);
@@ -1160,7 +1152,7 @@ _ebpf_program_update_interpret_helpers(
 
     for (index = 0; index < program->helper_function_count; index++) {
         uint32_t helper_function_id = program->helper_function_ids[index];
-        helper_function_address_info_t address_info = {0};
+        helper_function_address_t address_info = {0};
 
         result = _ebpf_program_get_helper_function_address(program, helper_function_id, &address_info);
         if (result != EBPF_SUCCESS) {
@@ -1204,9 +1196,7 @@ _ebpf_program_uses_helper_function(_In_ const ebpf_program_t* program, uint32_t 
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
-    size_t address_count,
-    _In_reads_(address_count) const helper_function_address_info_t* addresses,
-    _Inout_ void* context)
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context)
 {
     ebpf_result_t return_value;
     UNREFERENCED_PARAMETER(address_count);
@@ -1612,7 +1602,7 @@ ebpf_program_invoke(
 
 _Success_(return == true)
     _Requires_lock_held_(program->lock) static bool _ebpf_program_get_helper_address_info_from_program_data(
-        _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_info_t* address)
+        _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_t* address)
 {
     bool found = false;
     const ebpf_program_data_t* program_data = program->extension_program_data;
@@ -1675,7 +1665,7 @@ _Success_(return == true)
 }
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
-    _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_info_t* address)
+    _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_t* address)
 {
     ebpf_result_t return_value;
     uint64_t* function_address = NULL;
@@ -1717,7 +1707,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     if (use_trampoline) {
         return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
         if (return_value == EBPF_SUCCESS) {
-            helper_function_address_info_t local_address = {0};
+            helper_function_address_t local_address = {0};
             if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
                 implicit_context = local_address.implicit_context;
                 found = true;
@@ -1727,7 +1717,7 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
 
     if (!found) {
         // If the helper function is not found in the trampoline table, then get the address from the program data.
-        helper_function_address_info_t local_address = {0};
+        helper_function_address_t local_address = {0};
         if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
             function_address = (uint64_t*)local_address.address;
             implicit_context = local_address.implicit_context;
@@ -1756,7 +1746,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_helper_function_addresses(
     _In_ const ebpf_program_t* program,
     size_t addresses_count,
-    _Out_writes_(addresses_count) helper_function_address_info_t* addresses)
+    _Out_writes_(addresses_count) helper_function_address_t* addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
