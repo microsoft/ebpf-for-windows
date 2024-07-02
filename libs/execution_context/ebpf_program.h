@@ -414,6 +414,24 @@ extern "C"
     size_t
     ebpf_program_get_state_index();
 
+    /**
+     * @brief Query the flags set on the program.
+     *
+     * @param[in] program The program to query.
+     * @return The flags set on the program.
+     */
+    uint64_t
+    ebpf_program_get_flags(_In_ const ebpf_program_t* program);
+
+    /**
+     * @brief Set the flags on the program.
+     *
+     * @param[in] program The program to set the flags on.
+     * @param[in] flags The flags to set on the program.
+     */
+    void
+    ebpf_program_set_flags(_Inout_ ebpf_program_t* program, uint64_t flags);
+
 #ifdef __cplusplus
 }
 #endif

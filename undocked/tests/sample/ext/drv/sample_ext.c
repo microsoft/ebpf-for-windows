@@ -210,7 +210,12 @@ _sample_ebpf_extension_hook_provider_cleanup_binding_context(_Frees_ptr_ void* p
 
 // Sample eBPF extension Hook NPI provider characteristics
 ebpf_attach_provider_data_t _sample_ebpf_extension_attach_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_HEADER, EBPF_PROGRAM_TYPE_SAMPLE_GUID, BPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC};
+    .header = EBPF_ATTACH_PROVIDER_DATA_HEADER,
+    .supported_program_type = EBPF_PROGRAM_TYPE_SAMPLE_GUID,
+    .bpf_attach_type = BPF_ATTACH_TYPE_SAMPLE,
+    .link_type = BPF_LINK_TYPE_UNSPEC,
+    .capabilities = {.support_extension_data_v1 = true},
+};
 
 const NPI_PROVIDER_CHARACTERISTICS _sample_ebpf_extension_hook_provider_characteristics = {
     0,

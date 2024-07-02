@@ -22,7 +22,7 @@ typedef struct _net_ebpf_extension_hook_client
     HANDLE nmr_binding_handle;                     ///< NMR binding handle.
     GUID client_module_id;                         ///< NMR module Id.
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
-    const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
+    ebpf_extension_data_v1_t client_data;          ///< Client supplied attach parameters.
     ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
     void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
     struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
@@ -180,7 +180,7 @@ net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_cli
 const ebpf_extension_data_t*
 net_ebpf_extension_hook_client_get_client_data(_In_ const net_ebpf_extension_hook_client_t* hook_client)
 {
-    return hook_client->client_data;
+    return &hook_client->client_data;
 }
 
 void
@@ -251,7 +251,7 @@ net_ebpf_extension_hook_check_attach_parameter(
             net_ebpf_extension_hook_client_t* next_client =
                 (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(link, net_ebpf_extension_hook_client_t, link);
 
-            const ebpf_extension_data_t* next_client_data = next_client->client_data;
+            const ebpf_extension_data_t* next_client_data = &next_client->client_data;
             const void* next_client_attach_parameter =
                 (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
             if (((memcmp(wild_card_attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) ||
@@ -317,6 +317,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     net_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_program_dispatch_table_t* client_dispatch_table;
     ebpf_result_t result = EBPF_SUCCESS;
+    const ebpf_extension_data_t* client_data = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -343,7 +344,38 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->nmr_binding_handle = nmr_binding_handle;
     hook_client->client_module_id = client_registration_instance->ModuleId->Guid;
     hook_client->client_binding_context = client_binding_context;
-    hook_client->client_data = (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics;
+    client_data = (const ebpf_extension_data_t*)client_registration_instance->NpiSpecificCharacteristics;
+
+    switch (client_data->header.version) {
+    case EBPF_ATTACH_CLIENT_DATA_VERSION_0: {
+        // Convert version 0 to version 1.
+        hook_client->client_data.header.version = EBPF_ATTACH_CLIENT_DATA_VERSION_1;
+        hook_client->client_data.header.size = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE;
+        hook_client->client_data.header.total_size = EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE;
+        hook_client->client_data.data = client_data->data;
+        hook_client->client_data.data_size = client_data->header.size;
+        hook_client->client_data.capabilities.as_uint64 = 0;
+        hook_client->client_data.prog_attach_flags = 0;
+    } break;
+    case EBPF_ATTACH_CLIENT_DATA_VERSION_1: {
+        // Copy the fields that are common between version 1 and the current version.
+        size_t effective_size = min(client_data->header.size, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE);
+        size_t effective_total_size =
+            min(client_data->header.total_size, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE);
+        memcpy(&hook_client->client_data, client_data, effective_size);
+        hook_client->client_data.header.size = effective_size;
+        hook_client->client_data.header.total_size = effective_total_size;
+    } break;
+    default:
+        status = STATUS_INVALID_PARAMETER;
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Invalid client data version.",
+            client_data->header.version);
+        goto Exit;
+    }
+
     client_dispatch_table = (ebpf_extension_program_dispatch_table_t*)client_dispatch;
     if (client_dispatch_table == NULL) {
         status = STATUS_INVALID_PARAMETER;

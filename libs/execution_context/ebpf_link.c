@@ -42,7 +42,16 @@ typedef struct _ebpf_link
     _Guarded_by_(lock) bpf_attach_type_t bpf_attach_type;
     _Guarded_by_(lock) enum bpf_link_type link_type;
     _Guarded_by_(lock) ebpf_program_type_t program_type;
-    _Guarded_by_(lock) ebpf_extension_data_t client_data;
+    // Note: The new v2 data structure is uses to store either the v1 or the v2 data.
+    // The biggest difference is that the v2 data structure has a flags field and uses the header.size field
+    // to represent the size of ebpf_extension_data_t rather than the size of the data being pointed to.
+    // The v2 structure passes the size of the structure via the header.size field and the size of the data
+    // being pointed to via the data_size field.
+    union
+    {
+        _Guarded_by_(lock) ebpf_extension_data_v0_t client_data_v0;
+        _Guarded_by_(lock) ebpf_extension_data_v1_t client_data_v1;
+    };
     _Guarded_by_(lock) NPI_CLIENT_CHARACTERISTICS client_characteristics;
     _Guarded_by_(lock) HANDLE nmr_client_handle;
     _Guarded_by_(lock) bool provider_attached;
@@ -102,6 +111,41 @@ static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table =
 C_ASSERT(
     EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) ==
     EBPF_OFFSET_OF(ebpf_extension_program_dispatch_table_t, ebpf_program_invoke_function));
+
+static void
+_ebpf_link_get_client_data(
+    _In_ const ebpf_link_t* link,
+    _Outptr_result_buffer_maybenull_(*client_data_size) const void** client_data,
+    _Out_ size_t* client_data_size)
+{
+    if (link->client_data_v0.header.version == EBPF_ATTACH_CLIENT_DATA_VERSION_0) {
+        *client_data = link->client_data_v0.data;
+        *client_data_size = link->client_data_v0.header.size;
+    } else if (link->client_data_v1.header.version == EBPF_ATTACH_CLIENT_DATA_VERSION_1) {
+        *client_data = link->client_data_v1.data;
+        *client_data_size = link->client_data_v1.data_size;
+    } else {
+        *client_data = NULL;
+        *client_data_size = 0;
+        ebpf_assert(!"Invalid client data version");
+    }
+}
+
+static void
+_ebpf_link_delete_client_data(_Inout_ ebpf_link_t* link)
+{
+    if (link->client_data_v0.header.version == EBPF_ATTACH_CLIENT_DATA_VERSION_0) {
+        ebpf_free((void*)link->client_data_v0.data);
+    } else if (link->client_data_v1.header.version == EBPF_ATTACH_CLIENT_DATA_VERSION_1) {
+        ebpf_free((void*)link->client_data_v1.data);
+    } else {
+        ebpf_assert(!"Invalid client data version");
+    }
+
+    link->client_data_v0.header.version = EBPF_ATTACH_CLIENT_DATA_VERSION_0;
+    link->client_data_v0.data = NULL;
+    link->client_data_v0.header.size = 0;
+}
 
 NTSTATUS
 _ebpf_link_client_attach_provider(
@@ -177,6 +221,29 @@ _ebpf_link_client_attach_provider(
         goto Done;
     }
 
+    // Check if the attach provider supports the v1 data structure.
+    if ((attach_provider_data->header.version ==
+         EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION) && // Check if it's the current version.
+        (attach_provider_data->header.size >=
+         EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, capabilities)) && // Check if the size is large enough.
+        attach_provider_data->capabilities
+            .support_extension_data_v1) { // Check if the provider supports the v2 data structure.
+        uint64_t program_flags = ebpf_program_get_flags(link->program);
+
+        // Save values from the V0 data structure.
+        size_t data_size = link->client_data_v0.header.size;
+        const void* data = link->client_data_v0.data;
+
+        // Rewrite the V0 data structure with the V1 data structure.
+        link->client_data_v1.header.version = EBPF_ATTACH_CLIENT_DATA_VERSION_1;
+        link->client_data_v1.header.size = EBPF_ATTACH_CLIENT_DATA_VERSION_1_SIZE;
+        link->client_data_v1.header.total_size = EBPF_ATTACH_CLIENT_DATA_VERSION_1_TOTAL_SIZE;
+        link->client_data_v1.prog_attach_flags = program_flags;
+        link->client_data_v1.data = data;
+        link->client_data_v1.data_size = data_size;
+        link->client_data_v1.capabilities.prog_attach_flags = true;
+    }
+
     link->link_type = attach_provider_data->link_type;
     link->bpf_attach_type = attach_provider_data->bpf_attach_type;
 
@@ -217,10 +284,11 @@ _ebpf_link_client_detach_provider(void* client_binding_context)
 }
 
 static void
-_ebpf_link_free(_Frees_ptr_ ebpf_core_object_t* object)
+_ebpf_link_free(_In_ _Frees_ptr_ ebpf_core_object_t* object)
 {
     ebpf_link_t* link = (ebpf_link_t*)object;
-    ebpf_free((void*)link->client_data.data);
+
+    _ebpf_link_delete_client_data(link);
     ebpf_lock_destroy(&link->lock);
     ebpf_epoch_free(link);
 }
@@ -253,15 +321,17 @@ ebpf_link_create(
     ebpf_lock_state_t state = ebpf_lock_lock(&local_link->lock);
     lock_held = true;
 
-    local_link->client_data.header.size = context_data_length;
+    // Assume older version of the data structure. If the provider supports the newer version, it will be updated.
+    local_link->client_data_v0.header.version = EBPF_ATTACH_CLIENT_DATA_VERSION_0;
+    local_link->client_data_v0.header.size = context_data_length;
 
     if (context_data_length > 0) {
-        local_link->client_data.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
-        if (!local_link->client_data.data) {
+        local_link->client_data_v0.data = ebpf_allocate_with_tag(context_data_length, EBPF_POOL_TAG_LINK);
+        if (!local_link->client_data_v0.data) {
             retval = EBPF_NO_MEMORY;
             goto Exit;
         }
-        memcpy((void*)local_link->client_data.data, context_data, context_data_length);
+        memcpy((void*)local_link->client_data_v0.data, context_data, context_data_length);
     }
 
     local_link->module_id.Guid = module_id;
@@ -272,7 +342,6 @@ ebpf_link_create(
 
     local_link->client_characteristics = _ebpf_link_client_characteristics;
     local_link->client_characteristics.ClientRegistrationInstance.ModuleId = &local_link->module_id;
-    local_link->client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = &local_link->client_data;
 
     ebpf_lock_unlock(&local_link->lock, state);
     lock_held = false;
@@ -324,6 +393,8 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
     _ebpf_link_set_state(link, EBPF_LINK_STATE_ATTACHING);
 
     ebpf_assert(link->program == NULL);
+
+    link->client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = &link->client_data_v0;
 
     link->program = program;
     link->program_type = ebpf_program_type_uuid(link->program);
@@ -438,10 +509,8 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
 
     ebpf_program_detach_link(link->program, link);
 
-    ebpf_free((void*)link->client_data.data);
+    _ebpf_link_delete_client_data(link);
 
-    link->client_data.data = NULL;
-    link->client_data.header.size = 0;
     link->program = NULL;
 
 Done:
@@ -551,8 +620,13 @@ ebpf_link_get_info(
 
     // Copy any additional parameters.
     size_t size = sizeof(struct bpf_link_info) - FIELD_OFFSET(struct bpf_link_info, attach_data);
-    if ((link->client_data.header.size > 0) && (link->client_data.header.size <= size)) {
-        memcpy(&info->attach_data, link->client_data.data, link->client_data.header.size);
+    size_t client_data_size = 0;
+    void* client_data = NULL;
+
+    _ebpf_link_get_client_data(link, &client_data, &client_data_size);
+
+    if (client_data && (client_data_size > 0) && (client_data_size <= size)) {
+        memcpy(&info->attach_data, client_data, client_data_size);
     }
 
     ebpf_lock_unlock((ebpf_lock_t*)&link->lock, state);

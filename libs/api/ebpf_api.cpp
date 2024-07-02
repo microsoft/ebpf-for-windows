@@ -2125,6 +2125,12 @@ _initialize_ebpf_programs_native(
             result = EBPF_NO_MEMORY;
             goto Exit;
         }
+        if (program->flags != 0) {
+            result = ebpf_program_set_flags(program->fd, program->flags);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+        }
         program->handle = program_handles[i];
         program_handles[i] = ebpf_handle_invalid;
         program->program_type = info.type_uuid;
@@ -3271,6 +3277,13 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         }
 
         program->fd = _create_file_descriptor_for_handle(program->handle);
+
+        if (program->flags != 0) {
+            result = ebpf_program_set_flags(program->fd, program->flags);
+            if (result != EBPF_SUCCESS) {
+                break;
+            }
+        }
 
         // Populate load_info.
         ebpf_program_load_info load_info = {0};
@@ -4575,4 +4588,21 @@ ebpf_api_thread_local_initialize() noexcept
 {
     // Nothing to do.
     // Added for symmetry with ebpf_api_thread_local_cleanup.
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
+{
+    ebpf_handle_t program_handle = _get_handle_from_file_descriptor(program_fd);
+    if (program_handle == ebpf_handle_invalid) {
+        return EBPF_INVALID_FD;
+    }
+
+    ebpf_operation_program_set_flags_request_t request;
+    request.header.id = ebpf_operation_id_t::EBPF_OPERATION_PROGRAM_SET_FLAGS;
+    request.header.length = sizeof(request);
+    request.program_handle = program_handle;
+    request.flags = flags;
+
+    return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }

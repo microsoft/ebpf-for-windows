@@ -97,7 +97,12 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_sock_ops_program_info_p
 //
 
 ebpf_attach_provider_data_t _net_ebpf_sock_ops_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_HEADER, EBPF_PROGRAM_TYPE_SOCK_OPS_GUID, BPF_CGROUP_SOCK_OPS, BPF_LINK_TYPE_CGROUP};
+    .header = EBPF_ATTACH_PROVIDER_DATA_HEADER,
+    .supported_program_type = EBPF_PROGRAM_TYPE_SOCK_OPS_GUID,
+    .bpf_attach_type = BPF_CGROUP_SOCK_OPS,
+    .link_type = BPF_LINK_TYPE_CGROUP,
+    .capabilities = {.support_extension_data_v1 = true},
+};
 
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_sock_ops_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID};
@@ -129,8 +134,8 @@ net_ebpf_extension_sock_ops_on_client_attach(
         goto Exit;
     }
 
-    if (client_data->header.size > 0) {
-        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->data_size > 0) {
+        if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
         }

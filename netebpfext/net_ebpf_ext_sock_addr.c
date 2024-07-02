@@ -568,8 +568,8 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         goto Exit;
     }
 
-    if (client_data->header.size > 0) {
-        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->data_size > 0) {
+        if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
@@ -1172,6 +1172,7 @@ net_ebpf_ext_sock_addr_register_providers()
         _net_ebpf_sock_addr_hook_provider_data[i].bpf_attach_type =
             (bpf_attach_type_t)_net_ebpf_extension_sock_addr_bpf_attach_types[i];
         _net_ebpf_sock_addr_hook_provider_data[i].link_type = BPF_LINK_TYPE_CGROUP;
+        _net_ebpf_sock_addr_hook_provider_data[i].capabilities.support_extension_data_v1 = true;
 
         // Set the attach type as the provider module id.
         _ebpf_sock_addr_hook_provider_moduleid[i].Length = sizeof(NPI_MODULEID);

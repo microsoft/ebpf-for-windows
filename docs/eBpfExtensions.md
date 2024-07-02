@@ -294,6 +294,7 @@ This structure is used to specify the attach type supported by the extension for
 contains the following fields:
 * `supported_program_type`
 * `bpf_attach_type`
+* `capabilities`
 
 The `supported_program_type` field of the struct should be filled with the `ebpf_program_type_t` (GUID) of the
 supported program type. While attaching an eBPF program to a hook instance, the Execution Context enforces that the
@@ -301,6 +302,9 @@ requested attach type is supported by the Hook NPI provider. If not, the eBPF pr
 
 The `bpf_attach_type` field should contain the equivalent bpf attach type integer. If there is no equivalent bpf
 attach type, this field should be set to `0 (BPF_ATTACH_TYPE_UNSPEC)`.
+
+The `capabilities` field is used to indicate what capabilities the attach provider supports. Currently only support_extension_data_v1 is defined, which determines if the execution context should offer a ebpf_extension_data_v0_t
+or ebpf_extension_data_v1_t structure.
 
 ### 2.5 Hook NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Hook NPI client module with the NMR for each program that is attached to a hook.
@@ -321,6 +325,17 @@ be obtained as follows:
 ebpf_extension_data_t* extension_data = (ebpf_extension_data_t*)ClientRegistrationInstance->NpiSpecificCharacteristics;
 attach_parameter = extension_data->data;
 ```
+
+Note: This structure can be either version EBPF_ATTACH_CLIENT_DATA_VERSION_0 or version EBPF_ATTACH_CLIENT_DATA_VERSION_1.
+It is strongly recommended that hook providers are able to support version 1 as version 0 will be eventually deprecated.
+
+
+Changes from version 0 to version 1:
+1. ebpf_extension_header_t was incorrectly used in version 0 to represent the size of the client data and not the
+structure size.
+2. A field for capabilities was added. Currently only prog_attach_flags is used to represent if the prog_attach_flags field is set.
+2. Field data_size was added to contain the size of the client data.
+3. An extension defined prog_attach_flags field was added.
 
 The per-client data structure should be returned as the `ProviderBindingContext` output parameter.
 
