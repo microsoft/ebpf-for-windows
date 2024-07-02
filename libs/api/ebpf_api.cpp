@@ -509,17 +509,17 @@ _ebpf_map_lookup_element_batch_helper(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_handle_t map_handle;
-    uint32_t key_size_u32;
-    uint32_t value_size_u32;
-    uint32_t max_entries_u32;
-    uint32_t type;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    uint32_t key_size_u32 = 0;
+    uint32_t value_size_u32 = 0;
+    uint32_t max_entries_u32 = 0;
+    uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
     size_t input_count = *count;
     size_t count_returned = 0;
-    size_t max_entries_per_batch;
-    size_t key_size;
-    size_t value_size;
+    size_t max_entries_per_batch = 0;
+    size_t key_size = 0;
+    size_t value_size = 0;
 
     const uint8_t* previous_key = reinterpret_cast<const uint8_t*>(in_batch);
 
@@ -555,6 +555,10 @@ _ebpf_map_lookup_element_batch_helper(
     if (key_size == 0 || value_size == 0 || input_count == 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
+    }
+
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size_u32) * libbpf_num_possible_cpus();
     }
 
     // Compute the maximum number of entries that can be updated in a single batch.
@@ -777,9 +781,8 @@ _update_map_element_batch(
                 uint8_t* source_value = (uint8_t*)value + (key_index + index) * value_size;
                 uint8_t* destination_key = request->data + index * (key_size + value_size);
                 uint8_t* destination_value = request->data + index * (key_size + value_size) + key_size;
-                if (key_size > 0) {
-                    std::copy(source_key, source_key + key_size, destination_key);
-                }
+
+                std::copy(source_key, source_key + key_size, destination_key);
                 std::copy(source_value, source_value + value_size, destination_value);
             }
 
@@ -905,15 +908,15 @@ ebpf_map_update_element_batch(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_handle_t map_handle;
-    uint32_t key_size_u32;
-    uint32_t value_size_u32;
-    uint32_t max_entries_u32;
-    size_t key_size;
-    size_t value_size;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    uint32_t key_size_u32 = 0;
+    uint32_t value_size_u32 = 0;
+    uint32_t max_entries_u32 = 0;
+    size_t key_size = 0;
+    size_t value_size = 0;
     size_t input_count = *count;
 
-    uint32_t type;
+    uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
     ebpf_assert(values);
     if (map_fd <= 0) {
