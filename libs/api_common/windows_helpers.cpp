@@ -40,6 +40,11 @@ is_helper_usable_windows(int32_t n)
 EbpfHelperPrototype
 get_helper_prototype_windows(int32_t n)
 {
+    // Helper ID needs to be non-negative for Windows.
+    if (n < 0) {
+        throw std::runtime_error(std::string("helper ID is negative: ") + std::to_string(n));
+    }
+
     const ebpf_program_info_t* info = nullptr;
     ebpf_result_t result = get_program_type_info_from_tls(&info);
     if (result != EBPF_SUCCESS) {

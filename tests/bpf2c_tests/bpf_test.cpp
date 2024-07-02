@@ -67,8 +67,9 @@ main(int argc, char** argv)
                 std::cout << "bpf_test doesn't support helper id=" << helper_function_entries[j].helper_id << std::endl;
                 return -1;
             } else {
-                helper_function_entries[j].address = helper_functions[helper_function_entries[j].helper_id];
-                if (helper_function_entries[j].address == unwind) {
+                helper_function_entries[j].address =
+                    reinterpret_cast<helper_function_t>(helper_functions[helper_function_entries[j].helper_id]);
+                if (helper_function_entries[j].address == reinterpret_cast<helper_function_t>(unwind)) {
                     helper_function_entries[j].tail_call = true;
                 }
             }

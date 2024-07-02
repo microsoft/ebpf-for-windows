@@ -8,12 +8,17 @@
  */
 
 #include "ebpf_extension.h"
+#include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 
 #include <ntifs.h> // Must be included before ntddk.h
 #include <ntddk.h>
 
-typedef struct _sample_program_context sample_program_context_t;
+typedef struct _sample_program_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    sample_program_context_t context;
+} sample_program_context_header_t;
 
 /**
  * @brief Register program information NPI provider.

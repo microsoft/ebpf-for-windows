@@ -394,7 +394,7 @@ ebpf_core_resolve_helper(
     ebpf_handle_t program_handle,
     const size_t count_of_helpers,
     _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
-    _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses)
+    _Out_writes_(count_of_helpers) helper_function_address_info_t* helper_function_addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;
@@ -2115,14 +2115,12 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
-    UNREFERENCED_PARAMETER(context);
-
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
-    return -ebpf_program_set_tail_call(callee);
+    return -ebpf_program_set_tail_call(context, callee);
 }
 
 static uint32_t

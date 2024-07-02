@@ -54,6 +54,7 @@ typedef unsigned long long size_t;
 
 #define EBPF_HELPER_DATA_PROTOTYPE L"Prototype"
 #define EBPF_HELPER_DATA_REALLOCATE_PACKET L"ReallocatePacket"
+#define EBPF_HELPER_DATA_IMPLICIT_CONTEXT L"ImplicitContext"
 
 #define EBPF_DATA_BPF_PROG_TYPE L"BpfProgType"
 #define EBPF_DATA_BPF_ATTACH_TYPE L"BpfAttachType"
@@ -124,7 +125,7 @@ typedef enum _ebpf_helper_function
     }
 
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION 1
-#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, required_irql)
+#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, supports_context_header)
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_data_t)
 #define EBPF_PROGRAM_DATA_HEADER                                                   \
     {                                                                              \

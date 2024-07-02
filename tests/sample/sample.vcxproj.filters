@@ -66,6 +66,9 @@
     <CustomBuild Include="test_sample_ebpf.c">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="test_sample_implicit_helpers.c">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
     <CustomBuild Include="reflect_packet.c">
       <Filter>Source Files</Filter>
     </CustomBuild>

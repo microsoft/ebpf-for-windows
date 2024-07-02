@@ -117,12 +117,20 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
                 hash_t::append_byte_range(
                     byte_range, program_info->program_type_specific_helper_prototype[index].arguments[argument]);
             }
-            // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is
-            // fixed.
+            // If an existing helper function is modified to toggle implicit_context flag, that would be a breaking
+            // change, and any eBPF program using that helper function will need to be recompiled.
             if (program_info->program_type_specific_helper_prototype[index].flags.reallocate_packet != 0) {
+                // bool reallocate_packet = true;
+                // hash_t::append_byte_range(byte_range, reallocate_packet);
                 hash_t::append_byte_range(
                     byte_range, program_info->program_type_specific_helper_prototype[index].flags);
             }
+            // // If an existing helper function is modified to toggle implicit_context flag, that would be a breaking
+            // // change, and any eBPF program using that helper function will need to be recompiled.
+            // if (program_info->program_type_specific_helper_prototype[index].implicit_context == true) {
+            //     uint32_t implicit_context = 1;
+            //     hash_t::append_byte_range(byte_range, implicit_context);
+            // }
         }
     }
     hash_t hash(algorithm);
@@ -322,8 +330,17 @@ main(int argc, char** argv)
             ebpf_free_string(report);
             ebpf_free_string(error_message);
             error_message = nullptr;
+
+            const ebpf_program_info_t* program_info = nullptr;
+            if (verify_programs) {
+                result = ebpf_get_program_info_from_verifier(&program_info);
+                if (result != EBPF_SUCCESS) {
+                    throw std::runtime_error(std::string("Failed to get program information"));
+                }
+            }
             generator.parse(
                 program,
+                program_info,
                 (global_program_type_set) ? program_type : program->program_type,
                 (global_program_type_set) ? attach_type : program->expected_attach_type,
                 hash_algorithm);

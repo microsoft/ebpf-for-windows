@@ -103,6 +103,7 @@ typedef struct _ebpf_attach_provider_data
     ebpf_program_type_t supported_program_type;
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
+    // bool supports_runtime_context;
 } ebpf_attach_provider_data_t;
 
 /***
@@ -125,3 +126,11 @@ typedef struct _ebpf_execution_context_state
         uint32_t count;
     } tail_call_state;
 } ebpf_execution_context_state_t;
+
+typedef struct _ebpf_context_header
+{
+    uint64_t context_header[8];
+    uint8_t context[1];
+} ebpf_context_header_t;
+
+#define EBPF_CONTEXT_HEADER uint64_t context_header[8]
