@@ -363,13 +363,16 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 }
 void
 net_ebpf_extension_delete_wfp_filters(
-    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
+    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    uint32_t filter_count,
+    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
 {
     NET_EBPF_EXT_LOG_ENTRY();
+
     NTSTATUS status = STATUS_SUCCESS;
 
     for (uint32_t index = 0; index < filter_count; index++) {
-        status = FwpmFilterDeleteById(_wfp_engine_handle, filter_ids[index].id);
+        status = FwpmFilterDeleteById(filter_context->wfp_engine_handle, filter_ids[index].id);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
@@ -636,10 +639,11 @@ _net_ebpf_extension_cleanup_state(HANDLE wfp_engine_handle)
 {
     NET_EBPF_EXT_LOG_ENTRY();
 
+    ebpf_assert(wfp_engine_handle != NULL);
+
     NTSTATUS status = STATUS_SUCCESS;
     for (size_t index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
-        status =
-            FwpmCalloutDeleteByKey(wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
+        status = FwpmCalloutDeleteByKey(wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_MESSAGE_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -648,9 +652,7 @@ _net_ebpf_extension_cleanup_state(HANDLE wfp_engine_handle)
                 index);
 
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmCalloutDeleteByKey",
-                status);
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
         }
 
         status = FwpmSubLayerDeleteByKey(_wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].layer_guid);
@@ -662,18 +664,14 @@ _net_ebpf_extension_cleanup_state(HANDLE wfp_engine_handle)
                 index);
 
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmSubLayerDeleteByKeyy",
-                status);
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKeyy", status);
         }
     }
 
     status = FwpmProviderDeleteByKey(wfp_engine_handle, (GUID*)&EBPF_WFP_PROVIDER);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "FwpmProviderDeleteByKey",
-            status);
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -739,10 +737,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "FwpmProviderAdd() - Benign error (Provider already exists).");
         } else {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmProviderAdd",
-                status);
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderAdd", status);
             goto Exit;
         }
     }
