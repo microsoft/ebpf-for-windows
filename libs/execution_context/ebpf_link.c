@@ -599,12 +599,6 @@ _ebpf_link_instance_invoke_batch_begin_with_context_header(size_t state_size, _O
 
     memset(execution_context_state, 0, sizeof(ebpf_execution_context_state_t));
 
-    // ebpf_get_execution_context_state(execution_context_state);
-    // return_value = ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)state, execution_context_state);
-    // if (return_value != EBPF_SUCCESS) {
-    //     goto Done;
-    // }
-
     ebpf_epoch_enter((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     epoch_entered = true;
 

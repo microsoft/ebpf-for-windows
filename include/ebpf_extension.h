@@ -103,7 +103,6 @@ typedef struct _ebpf_attach_provider_data
     ebpf_program_type_t supported_program_type;
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
-    // bool supports_runtime_context;
 } ebpf_attach_provider_data_t;
 
 /***

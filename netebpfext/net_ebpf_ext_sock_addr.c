@@ -176,7 +176,7 @@ _net_ebpf_ext_log_sock_addr_classify(
 
 typedef struct _net_ebpf_bpf_sock_addr
 {
-    uint64_t context_header[8];
+    EBPF_CONTEXT_HEADER;
     bpf_sock_addr_t base;
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;

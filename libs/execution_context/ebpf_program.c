@@ -1161,12 +1161,6 @@ _ebpf_program_update_interpret_helpers(
         if (address_info.address == 0) {
             continue;
         }
-        // if (address_info.implicit_context) {
-        //     // Implicit context is not supported for interpret mode.
-        //     // ANUSA TODO: Add a trace.
-        //     result = EBPF_INVALID_ARGUMENT;
-        //     goto Exit;
-        // }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
         if (ubpf_register(
@@ -1181,17 +1175,6 @@ _ebpf_program_update_interpret_helpers(
 
 Exit:
     EBPF_RETURN_RESULT(result);
-}
-
-static bool
-_ebpf_program_uses_helper_function(_In_ const ebpf_program_t* program, uint32_t helper_function_id)
-{
-    for (uint32_t index = 0; index < program->helper_function_count; index++) {
-        if (program->helper_function_ids[index] == helper_function_id) {
-            return true;
-        }
-    }
-    return false;
 }
 
 static ebpf_result_t
@@ -1297,12 +1280,6 @@ _ebpf_program_update_jit_helpers(
             for (uint32_t program_helper_index = 0;
                  program_helper_index < helper_function_addresses->helper_function_count;
                  program_helper_index++) {
-                // if (_ebpf_program_uses_helper_function(program, helper_prototypes[program_helper_index].helper_id) &&
-                //     helper_prototypes[program_helper_index].implicit_context) {
-                //     // ANUSA TODO: Add a trace.
-                //     return_value = EBPF_INVALID_ARGUMENT;
-                //     goto Exit;
-                // }
                 total_helper_function_ids[index] = helper_prototypes[program_helper_index].helper_id;
                 total_helper_function_addresses->helper_function_address[program_helper_index] =
                     helper_function_addresses->helper_function_address[program_helper_index];
@@ -1325,12 +1302,6 @@ _ebpf_program_update_jit_helpers(
             for (uint32_t global_helper_index = 0;
                  global_helper_index < global_helper_function_addresses->helper_function_count;
                  global_helper_index++) {
-                // if (_ebpf_program_uses_helper_function(program, helper_prototypes[global_helper_index].helper_id) &&
-                //     helper_prototypes[global_helper_index].implicit_context) {
-                //     // ANUSA TODO: Add a trace.
-                //     return_value = EBPF_INVALID_ARGUMENT;
-                //     goto Exit;
-                // }
                 total_helper_function_ids[index] = helper_prototypes[global_helper_index].helper_id;
                 total_helper_function_addresses->helper_function_address[index] =
                     global_helper_function_addresses->helper_function_address[global_helper_index];
@@ -1536,7 +1507,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
-    bool context_header,
+    bool use_context_header,
     _Inout_ void* context,
     _Out_ uint32_t* result,
     _Inout_ ebpf_execution_context_state_t* execution_state)
@@ -1563,7 +1534,7 @@ ebpf_program_invoke(
     const ebpf_program_t* current_program = program;
 
     // If context header is supported, store the execution state in the context.
-    if (context_header) {
+    if (use_context_header) {
         ebpf_program_set_runtime_state(execution_state, context);
     }
 
@@ -1670,8 +1641,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     ebpf_result_t return_value;
     uint64_t* function_address = NULL;
     bool implicit_context = false;
-    // const ebpf_program_data_t* program_data = NULL;
-    // const ebpf_program_data_t* general_program_data = NULL;
 
     EBPF_LOG_ENTRY();
 
@@ -1689,9 +1658,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
         goto Done;
     }
     provider_data_referenced = true;
-
-    // program_data = program->extension_program_data;
-    // general_program_data = program->general_helper_program_data;
 
     use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
     if (use_trampoline && !program->trampoline_table) {
@@ -2343,20 +2309,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
 
         if (helper_function_prototype->flags.reallocate_packet != 0) {
-            // bool value = 1;
-            // result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, value);
             result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->flags);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
         }
-        // if (helper_function_prototype->implicit_context == true) {
-        //     uint32_t value = 1;
-        //     result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, value);
-        //     if (result != EBPF_SUCCESS) {
-        //         goto Exit;
-        //     }
-        // }
     }
     *hash_length = 0;
     result = ebpf_cryptographic_hash_get_hash_length(cryptographic_hash, hash_length);

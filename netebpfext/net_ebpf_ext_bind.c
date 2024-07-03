@@ -9,6 +9,12 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_bind.h"
 
+typedef struct _bind_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    bind_md_t context;
+} bind_context_header_t;
+
 //
 // WFP filter related globals for bind hook.
 //

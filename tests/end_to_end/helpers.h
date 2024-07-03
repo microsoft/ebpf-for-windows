@@ -27,6 +27,12 @@ typedef struct _sample_program_context_header
     sample_program_context_t context;
 } sample_program_context_header_t;
 
+typedef struct _bind_context_header
+{
+    uint64_t context_header[8];
+    bind_md_t context;
+} bind_context_header_t;
+
 #define INITIALIZE_BIND_CONTEXT      \
     bind_context_header_t header{0}; \
     bind_md_t* ctx = &header.context;

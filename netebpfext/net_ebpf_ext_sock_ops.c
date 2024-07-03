@@ -19,7 +19,7 @@ struct _net_ebpf_extension_sock_ops_wfp_filter_context;
 
 typedef struct _net_ebpf_bpf_sock_ops
 {
-    uint64_t context_header[8];
+    EBPF_CONTEXT_HEADER;
     bpf_sock_ops_t context;
 } net_ebpf_bpf_sock_ops_t;
 

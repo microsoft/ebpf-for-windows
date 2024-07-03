@@ -42,7 +42,7 @@ _resolve_helper_functions(
         if (instruction.opcode != INST_OP_CALL) {
             continue;
         }
-        helper_id_to_address[instruction.imm] = {0, false};
+        helper_id_to_address[instruction.imm] = {0};
     }
 
     ebpf_protocol_buffer_t request_buffer(
@@ -305,14 +305,6 @@ ebpf_verify_and_load_program(
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-
-        // // Currently implicit context is not supported for both JIT and interpret mode execution.
-        // for (auto& [helper_id, address] : helper_id_to_address) {
-        //     if (address.implicit_context) {
-        //         result = EBPF_OPERATION_NOT_SUPPORTED;
-        //         goto Exit;
-        //     }
-        // }
 
         // Verify the program.
         {

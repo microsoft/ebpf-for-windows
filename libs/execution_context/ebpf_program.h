@@ -186,6 +186,7 @@ extern "C"
      * @brief Invoke an ebpf_program_t instance.
      *
      * @param[in] program Program to invoke.
+     * @param[in] use_context_header Whether to use program context header to store state information.
      * @param[in,out] context Pointer to eBPF context for this program.
      * @param[out] result Output from the program.
      * @param[in] execution_state Execution context state.
@@ -196,7 +197,7 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(
         _In_ const ebpf_program_t* program,
-        bool context_header,
+        bool use_context_header,
         _Inout_ void* context,
         _Out_ uint32_t* result,
         _Inout_ ebpf_execution_context_state_t* execution_state);

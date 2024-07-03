@@ -84,12 +84,6 @@ typedef struct _bind_md
     uint8_t protocol;              ///< Protocol number (e.g., IPPROTO_TCP).
 } bind_md_t;
 
-typedef struct _bind_context_header
-{
-    uint64_t context_header[8];
-    bind_md_t context;
-} bind_context_header_t;
-
 typedef enum _bind_action
 {
     BIND_PERMIT,   ///< Permit the bind operation.
