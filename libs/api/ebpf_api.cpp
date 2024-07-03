@@ -559,7 +559,7 @@ _ebpf_map_lookup_element_batch_helper(
     }
 
     if (BPF_MAP_TYPE_PER_CPU(type)) {
-        value_size = EBPF_PAD_8(value_size_u32) * libbpf_num_possible_cpus();
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
     }
 
     // Compute the maximum number of entries that can be updated in a single batch.

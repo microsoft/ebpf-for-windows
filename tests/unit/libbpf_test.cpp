@@ -3570,8 +3570,9 @@ _test_batch_iteration_percpu_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_bat
     uint32_t out_batch = 0;
     std::vector<uint32_t> returned_keys(0);
     std::vector<uint8_t> returned_values(0);
-    uint32_t requested_batch_size = (batch_size / batch_size_divisor) - 2;
+    int32_t requested_batch_size = (batch_size / batch_size_divisor) - 2;
     uint32_t batch_size_count = 0;
+    size_t value_size = EBPF_PAD_8(sizeof(uint64_t)) * num_of_cpus;
     int result = 0;
 
     if (requested_batch_size <= 0) {
@@ -3579,8 +3580,8 @@ _test_batch_iteration_percpu_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_bat
     }
 
     for (;;) {
-        std::vector<uint32_t> batch_keys(requested_batch_size);
-        std::vector<uint8_t> batch_values(requested_batch_size * (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus));
+        std::vector<uint32_t> batch_keys(requested_batch_size, 0);
+        std::vector<uint8_t> batch_values(requested_batch_size * value_size, 0);
 
         batch_size_count = static_cast<uint32_t>(batch_keys.size());
         result = bpf_map_lookup_batch(
@@ -3593,12 +3594,10 @@ _test_batch_iteration_percpu_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_bat
         REQUIRE(result == 0);
         // Number of entries retrieved (batch_size_count) should be less than or equal to requested_batch_size.
         REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_keys.size()));
-        REQUIRE(
-            batch_size_count <=
-            static_cast<uint32_t>(batch_values.size()) / (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus));
+        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_values.size()) / value_size);
 
         batch_keys.resize(batch_size_count);
-        batch_values.resize(batch_size_count * (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus));
+        batch_values.resize(batch_size_count * value_size);
         returned_keys.insert(returned_keys.end(), batch_keys.begin(), batch_keys.end());
         returned_values.insert(returned_values.end(), batch_values.begin(), batch_values.end());
 
@@ -3606,18 +3605,13 @@ _test_batch_iteration_percpu_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_bat
     }
 
     REQUIRE(returned_keys.size() == batch_size);
-    REQUIRE(returned_values.size() == batch_size * (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus));
-
-    for (uint32_t i = 0; i < batch_size; i++) {
-        uint32_t key = returned_keys[i];
-        printf("Key: [%u], Values: [%u]", key, returned_values[i]);
-    }
+    REQUIRE(returned_values.size() == batch_size * value_size);
 
     // Verify the retrieved percpu data.
     for (uint32_t i = 0; i < batch_size; i++) {
         uint32_t key = returned_keys[i];
         for (int cpu = 0; cpu < num_of_cpus; cpu++) {
-            REQUIRE(returned_values[key * num_of_cpus + cpu] == key + 2);
+            REQUIRE(returned_values[(i * value_size) + cpu] == static_cast<uint8_t>(key) + 2);
         }
     }
 }
@@ -3636,7 +3630,7 @@ _test_maps_percpu_batch(bpf_map_type map_type)
     union bpf_attr attr = {};
     attr.map_type = map_type;
     attr.key_size = sizeof(uint32_t);
-    attr.value_size = sizeof(uint8_t);
+    attr.value_size = sizeof(uint64_t);
     attr.max_entries = 1024 * 1024;
 
     fd_t map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
@@ -3645,29 +3639,30 @@ _test_maps_percpu_batch(bpf_map_type map_type)
     // Initialize the keys and its values.
     // The value size is the size of the value multiplied by the number of CPUs.
     // Also, the value size should be closest 8-byte aligned.
-    uint32_t batch_size = 20;
+    uint32_t batch_size = 250;
+    size_t value_size = (EBPF_PAD_8(sizeof(uint64_t)) * num_of_cpus);
     std::vector<uint32_t> keys(batch_size);
-    std::vector<uint8_t> values(batch_size * (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus));
+    std::vector<uint8_t> values(batch_size * value_size);
 
     for (uint32_t i = 0; i < batch_size; i++) {
         keys[i] = i;
         // Populate the per-cpu value.
         for (int cpu = 0; cpu < num_of_cpus; cpu++) {
-            values[(i * num_of_cpus) + cpu] = static_cast<uint8_t>(i) + 2;
-            printf("Key: %u, CPU: %u, value: %u \n", keys[i], cpu, (values[i * num_of_cpus + cpu]));
+            values[(i * value_size) + cpu] = static_cast<uint8_t>(i) + 2;
+            // printf("Key: %u, CPU: %u, value: %u \n", keys[i], cpu, (values[(i * value_size) + cpu]));
         }
     }
 
-    // Update the map with the batch.
+    // 1. Update Batch Operation.
     bpf_map_batch_opts opts = {.elem_flags = BPF_NOEXIST};
     uint32_t update_batch_size = batch_size;
     REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == 0);
     REQUIRE(update_batch_size == batch_size);
 
-    // Fetch the batch.
+    // 2. Lookup Batch Operation.
     uint32_t fetched_batch_size = batch_size;
     std::vector<uint32_t> fetched_keys(batch_size, 0);
-    std::vector<uint8_t> fetched_values(batch_size * (EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus), 0);
+    std::vector<uint8_t> fetched_values(batch_size * value_size, 0);
     uint32_t* in_batch = nullptr;
     uint32_t out_batch = 0;
     opts.elem_flags = BPF_ANY;
@@ -3678,8 +3673,116 @@ _test_maps_percpu_batch(bpf_map_type map_type)
             map_fd, in_batch, &out_batch, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
     REQUIRE(fetched_batch_size == batch_size);
 
-    // Fetch all keys in batches.
+    // Request more keys than present.
+    uint32_t large_fetched_batch_size = fetched_batch_size * 2;
+    out_batch = 0;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd,
+            nullptr,
+            &out_batch,
+            fetched_keys.data(),
+            fetched_values.data(),
+            &large_fetched_batch_size,
+            &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+
+    // Validate all keys in batches.
     _test_batch_iteration_percpu_maps(map_fd, batch_size, &opts, num_of_cpus);
+
+    // Search at end of map, using the out_batch from previous lookup.
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd,
+            &out_batch,
+            &out_batch,
+            fetched_keys.data(),
+            fetched_values.data(),
+            &large_fetched_batch_size,
+            &opts) == -ENOENT);
+
+    // 3. Batch Delete Operation.
+    uint32_t delete_batch_size = batch_size;
+    opts.elem_flags = 0;
+
+    // Delete all keys in one batch.
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == 0);
+    REQUIRE(delete_batch_size == batch_size);
+
+    // Fetch all keys in one batch.
+    out_batch = 0;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &out_batch, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -ENOENT);
+
+    // Negative tests.
+    // Batch size 0
+    update_batch_size = 0;
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EINVAL);
+
+    // Invalid batch size.
+    fetched_batch_size = 0;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &out_batch, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -EINVAL);
+
+    // Invalid delete_batch_size, not matching the keys size.
+    delete_batch_size = 0;
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == -EINVAL);
+
+    // opts.flags has invalid value.
+    opts.flags = 0x100;
+    update_batch_size = batch_size;
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EINVAL);
+
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &out_batch, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -EINVAL);
+
+    delete_batch_size = batch_size;
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == -EINVAL);
+
+    // opts.elem_flags has invalid value.
+    opts.elem_flags = 0x100;
+    opts.flags = 0;
+    update_batch_size = batch_size;
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EINVAL);
+
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &out_batch, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -EINVAL);
+
+    delete_batch_size = batch_size;
+    REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == -EINVAL);
+
+    // invalid map fd.
+    fd_t invalid_map_fd = 0x10000000;
+
+    opts.flags = 0;
+    opts.elem_flags = 0;
+    update_batch_size = batch_size;
+
+    REQUIRE(bpf_map_update_batch(invalid_map_fd, keys.data(), values.data(), &update_batch_size, &opts) == -EBADF);
+
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            invalid_map_fd,
+            nullptr,
+            &out_batch,
+            fetched_keys.data(),
+            fetched_values.data(),
+            &fetched_batch_size,
+            &opts) == -EBADF);
+
+    delete_batch_size = batch_size;
+    REQUIRE(bpf_map_delete_batch(invalid_map_fd, keys.data(), &delete_batch_size, &opts) == -EBADF);
 }
 
 TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_HASH); }
