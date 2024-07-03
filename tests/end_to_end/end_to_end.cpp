@@ -2449,6 +2449,62 @@ _create_service_helper(
         ERROR_SUCCESS);
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+
+TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Try with a valid set of instructions.
+    struct ebpf_inst instructions[] = {
+        {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
+        {INST_OP_EXIT},             // return r0
+    };
+    uint32_t insn_cnt = _countof(instructions);
+    const bpf_prog_type_t prog_type = BPF_PROG_TYPE_SAMPLE;
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(prog_type);
+
+    REQUIRE(program_type != nullptr);
+    REQUIRE(insn_cnt != 0);
+
+    fd_t program_fd;
+#pragma warning(suppress : 28193) // result is examined
+    ebpf_result_t result = ebpf_program_load_bytes(
+        program_type,
+        nullptr,
+        EBPF_EXECUTION_ANY,
+        reinterpret_cast<const ebpf_inst*>(instructions),
+        insn_cnt,
+        nullptr,
+        0,
+        &program_fd);
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(program_fd >= 0);
+
+    // Now query the program info and verify it matches what we set.
+    bpf_prog_info program_info = {};
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
+    REQUIRE(program_info.name != NULL);
+    // Name should contain SHA256 hash in hex (minus last char to stay under BPF_OBJ_NAME_LEN).
+    REQUIRE(strlen(program_info.name) == 63);
+
+    REQUIRE(program_info.type == prog_type);
+
+    Platform::_close(program_fd);
+}
+#endif
+
 // Load a native module with non-existing driver.
 TEST_CASE("load_native_program_negative", "[end-to-end]")
 {
