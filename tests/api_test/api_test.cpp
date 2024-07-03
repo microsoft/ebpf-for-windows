@@ -1334,3 +1334,44 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
     // Clean up.
     bpf_object__close(object);
 }
+
+TEST_CASE("Test program order", "[native_tests]")
+{
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    uint32_t program_count = 4;
+    int result;
+
+    REQUIRE(
+        _program_load_helper(
+            "multiple_programs.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
+
+    // Get all the 4 programs in the native object, and invoke them using bpf_prog_test_run.
+    for (uint32_t i = 0; i < program_count; i++) {
+        bpf_test_run_opts opts = {};
+        bind_md_t ctx = {};
+        std::string program_name = "program" + std::to_string(i + 1);
+        struct bpf_program* program = bpf_object__find_program_by_name(object, program_name.c_str());
+        REQUIRE(program != nullptr);
+        program_fd = bpf_program__fd(program);
+        REQUIRE(program_fd > 0);
+
+        std::string app_id = "api_test.exe";
+
+        opts.ctx_in = &ctx;
+        opts.ctx_size_in = sizeof(ctx);
+        opts.ctx_out = &ctx;
+        opts.ctx_size_out = sizeof(ctx);
+        opts.data_in = app_id.data();
+        opts.data_size_in = static_cast<uint32_t>(app_id.size());
+        opts.data_out = app_id.data();
+        opts.data_size_out = static_cast<uint32_t>(app_id.size());
+
+        result = bpf_prog_test_run_opts(program_fd, &opts);
+        REQUIRE(result == 0);
+        REQUIRE(opts.retval == (i + 1));
+    }
+
+    // Clean up.
+    bpf_object__close(object);
+}
