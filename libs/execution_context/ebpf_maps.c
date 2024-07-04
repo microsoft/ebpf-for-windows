@@ -2859,7 +2859,7 @@ ebpf_map_get_next_key_and_value_batch(
 
         memcpy(key_and_value + output_length + key_size, next_value, value_size);
 
-        if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
+        if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && previous_key != NULL) {
             // If the caller requested deletion, delete the entry.
             result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {
@@ -2879,6 +2879,11 @@ ebpf_map_get_next_key_and_value_batch(
     }
 
     *key_and_value_length = output_length;
+
+    if (flags & EBPF_MAP_FIND_FLAG_DELETE && previous_key != NULL) {
+        // If the caller requested deletion, delete the last entry.
+        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
+    }
 
     return result;
 }
