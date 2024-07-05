@@ -124,7 +124,7 @@ typedef enum _ebpf_helper_function
     }
 
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION 1
-#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, required_irql)
+#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, context_header)
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_data_t)
 #define EBPF_PROGRAM_DATA_HEADER                                                   \
     {                                                                              \

@@ -28,6 +28,19 @@ static size_t _ebpf_program_state_index = MAXUINT64;
 // Global flag to disable invoking programs. This is used when fuzzing the IOCTL interface.
 bool ebpf_program_disable_invoke = false;
 
+typedef struct _ebpf_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    uint8_t context[1];
+} ebpf_context_header_t;
+
+typedef enum _context_header_support
+{
+    CONTEXT_HEADER_SUPPORT_NOT_SET = 0,
+    CONTEXT_HEADER_NOT_SUPPORTED = 1,
+    CONTEXT_HEADER_SUPPORTED = 2,
+} context_header_support_t;
+
 typedef struct _ebpf_program
 {
     ebpf_core_object_t object;
@@ -91,6 +104,7 @@ typedef struct _ebpf_program
 
     _Guarded_by_(lock) ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
     _Guarded_by_(lock) void* helper_function_addresses_changed_context;
+    _Guarded_by_(lock) context_header_support_t context_header;
 } ebpf_program_t;
 
 static struct
@@ -437,6 +451,27 @@ _ebpf_program_type_specific_program_information_attach_provider(
             "Type specific program information provider attached before global program information provider.");
         status = STATUS_INVALID_PARAMETER;
         goto Done;
+    }
+
+    // Check if the context header support has changed. This check and behavior is needed for the below reasons:
+    // After a program has been loaded and attached, i.e. the program information provider and hook info providers
+    // have loaded and attached, either of them can be detached and reattached in any order. Also the hook info
+    // provider uses this information to determine what version of dispatch table to provide to the hook info provider.
+    // To avoid any race conditions, the context header support should be set only once and should not be changed.
+    context_header_support_t new_value =
+        extension_program_data->context_header ? CONTEXT_HEADER_SUPPORTED : CONTEXT_HEADER_NOT_SUPPORTED;
+    if (program->context_header != CONTEXT_HEADER_SUPPORT_NOT_SET) {
+        if (new_value != program->context_header) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "Context header support mismatch between previous and new type specific program information "
+                "providers.");
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+    } else {
+        program->context_header = new_value;
     }
 
     if (ebpf_duplicate_utf8_string(&hash_algorithm, &program->parameters.program_info_hash_type) != EBPF_SUCCESS) {
@@ -1419,14 +1454,19 @@ ebpf_program_load_code(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
+ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* next_program)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
     ebpf_execution_context_state_t* state = NULL;
-    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
-    if (result != EBPF_SUCCESS) {
-        return result;
+
+    if (next_program->extension_program_data->context_header) {
+        ebpf_program_get_runtime_state(context, &state);
+    } else {
+        result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
     }
 
     if (state == NULL) {
@@ -1465,6 +1505,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
+    bool use_context_header,
     _Inout_ void* context,
     _Out_ uint32_t* result,
     _Inout_ ebpf_execution_context_state_t* execution_state)
