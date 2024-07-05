@@ -895,7 +895,7 @@ _delete_map_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* ke
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-static _Ret_maybenull_ ebpf_core_object_t*
+EBPF_INLINE_HINT _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t index = *(uint32_t*)key;
@@ -2526,7 +2526,8 @@ ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_re
             map->ebpf_map_definition.type);
         return NULL;
     }
-    return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
+    return (ebpf_program_t*)_get_object_from_array_map_entry(map, key);
+    // return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
 }
 
 _Must_inspect_result_ ebpf_result_t

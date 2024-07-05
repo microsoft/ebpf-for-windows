@@ -98,7 +98,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
-    _Must_inspect_result_ ebpf_result_t
+    EBPF_INLINE_HINT _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
     /**
@@ -113,7 +113,7 @@ extern "C"
      *  entry in the hash table.
      * @retval EBPF_OUT_OF_SPACE Unable to insert this entry in the hash table.
      */
-    _Must_inspect_result_ ebpf_result_t
+    EBPF_INLINE_HINT _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_update(
         _Inout_ ebpf_hash_table_t* hash_table,
         _In_ const uint8_t* key,
@@ -128,7 +128,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_FOUND Key not found in hash table.
      */
-    _Must_inspect_result_ ebpf_result_t
+    EBPF_INLINE_HINT _Must_inspect_result_ ebpf_result_t
     ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t* key);
 
     /**
