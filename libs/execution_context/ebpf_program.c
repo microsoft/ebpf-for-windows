@@ -1531,6 +1531,11 @@ ebpf_program_invoke(
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
+    // If context header is supported, store the execution state in the context.
+    if (use_context_header) {
+        ebpf_program_set_runtime_state(execution_state, context);
+    }
+
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
          execution_state->tail_call_state.count++) {
@@ -2368,13 +2373,17 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
 
-    ebpf_get_execution_context_state(&execution_context_state);
-    return_value =
-        ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
+    if (context->program_data->context_header) {
+        ebpf_program_set_runtime_state(&execution_context_state, program_context);
+    } else {
+        ebpf_get_execution_context_state(&execution_context_state);
+        return_value = ebpf_state_store(
+            ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+        state_stored = true;
     }
-    state_stored = true;
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2405,7 +2414,12 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        result = ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        result = ebpf_program_invoke(
+            context->program,
+            context->program_data->context_header,
+            program_context,
+            &return_value,
+            &execution_context_state);
         if (result != EBPF_SUCCESS) {
             break;
         }
@@ -2582,4 +2596,30 @@ size_t
 ebpf_program_get_state_index()
 {
     return _ebpf_program_state_index;
+}
+
+bool
+ebpf_program_supports_context_header(_In_ const ebpf_program_t* program)
+{
+    bool return_value;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    return_value = program->context_header == CONTEXT_HEADER_SUPPORTED ? true : false;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
+}
+
+void
+ebpf_program_set_runtime_state(_In_ const ebpf_execution_context_state_t* state, _Inout_ void* program_context)
+{
+    // slot [0] contains the execution context state.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[0] = (uint64_t)state;
+}
+
+void
+ebpf_program_get_runtime_state(_In_ const void* program_context, _Outptr_ const ebpf_execution_context_state_t** state)
+{
+    // slot [0] contains the execution context state.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    *state = (ebpf_execution_context_state_t*)header->context_header[0];
 }

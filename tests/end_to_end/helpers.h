@@ -20,6 +20,26 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #endif
 #include <vector>
 
+typedef struct _sample_program_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    sample_program_context_t context;
+} sample_program_context_header_t;
+
+typedef struct _bind_context_header
+{
+    uint64_t context_header[8];
+    bind_md_t context;
+} bind_context_header_t;
+
+#define INITIALIZE_BIND_CONTEXT      \
+    bind_context_header_t header{0}; \
+    bind_md_t* ctx = &header.context;
+
+#define INITIALIZE_SAMPLE_CONTEXT              \
+    sample_program_context_header_t header{0}; \
+    sample_program_context_t* ctx = &header.context;
+
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
 
@@ -546,6 +566,7 @@ _sample_test_context_create(
     _Outptr_ void** context)
 {
     ebpf_result_t retval = EBPF_FAILED;
+    sample_program_context_header_t* context_header = nullptr;
     sample_program_context_t* sample_context = nullptr;
     *context = nullptr;
 
@@ -561,20 +582,22 @@ _sample_test_context_create(
         goto Done;
     }
 
-    sample_context = reinterpret_cast<sample_program_context_t*>(malloc(sizeof(sample_program_context_t)));
-    if (!sample_context) {
+    context_header =
+        reinterpret_cast<sample_program_context_header_t*>(malloc(sizeof(sample_program_context_header_t)));
+    if (!context_header) {
         goto Done;
     }
+    sample_context = &context_header->context;
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
 
     *context = sample_context;
-    sample_context = nullptr;
+    context_header = nullptr;
     retval = EBPF_SUCCESS;
 
 Done:
-    free(sample_context);
-    sample_context = nullptr;
+    free(context_header);
+    context_header = nullptr;
     return retval;
 }
 
@@ -590,6 +613,8 @@ _sample_test_context_destroy(
     if (!context) {
         return;
     }
+    sample_program_context_header_t* context_header =
+        CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
     // Data is not supported.
     *data_size_out = 0;
@@ -601,7 +626,7 @@ _sample_test_context_destroy(
         *context_size_out = 0;
     }
 
-    free(context);
+    free(context_header);
 }
 
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
@@ -647,7 +672,8 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     _xdp_context_destroy};
 
 // Bind.
-static ebpf_program_data_t _ebpf_bind_program_data = {EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL};
+static ebpf_program_data_t _ebpf_bind_program_data = {
+    EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL, NULL, NULL, NULL, 0, true};
 
 // SOCK_ADDR.
 static int
@@ -876,7 +902,9 @@ static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
     &_sample_ebpf_ext_helper_function_address_table,
     &_test_global_helper_function_address_table,
     _sample_test_context_create,
-    _sample_test_context_destroy};
+    _sample_test_context_destroy,
+    0,
+    true};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 

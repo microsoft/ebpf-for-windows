@@ -614,7 +614,6 @@ static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state)
 {
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
-    ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, execution_context_state));
     ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     return EBPF_SUCCESS;
 }

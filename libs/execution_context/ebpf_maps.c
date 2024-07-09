@@ -896,7 +896,7 @@ _delete_map_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* ke
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-static _Ret_maybenull_ ebpf_core_object_t*
+_Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t index = *(uint32_t*)key;

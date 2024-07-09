@@ -1364,9 +1364,9 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     bpf_link_ptr link(bpf_program__attach(caller));
     REQUIRE(link != nullptr);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == expected_result);
 
     uint32_t key = 0;
@@ -1493,9 +1493,9 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == 3);
 
     // Clear the prog array map entries. This is needed to release reference on the
@@ -3283,13 +3283,13 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
 {
     uint32_t result;
     std::string app_id = appid;
-    bind_md_t ctx{0};
-    ctx.app_id_start = (uint8_t*)app_id.c_str();
-    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx.process_id = pid;
-    ctx.operation = BIND_OPERATION_BIND;
+    INITIALIZE_BIND_CONTEXT
+    ctx->app_id_start = (uint8_t*)app_id.c_str();
+    ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    ctx->process_id = pid;
+    ctx->operation = BIND_OPERATION_BIND;
 
-    REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
 
     return static_cast<bind_action_t>(result);
 }
@@ -3297,7 +3297,6 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
 TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
 {
     const int TOTAL_TAIL_CALL = MAX_TAIL_CALL_CNT + 2;
-    usersim_trace_logging_set_enabled(true, _EBPF_TRACELOG_LEVEL_ERROR, MAXUINT64);
 
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3356,8 +3355,6 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
 
     hook.detach_and_close_link(&link);
-
-    usersim_trace_logging_set_enabled(false, 0, 0);
 }
 
 void
@@ -3651,11 +3648,11 @@ _utility_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    bind_md_t ctx = {0};
-    ctx.operation = BIND_OPERATION_BIND;
+    INITIALIZE_BIND_CONTEXT
+    ctx->operation = BIND_OPERATION_BIND;
 
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
 
     // Verify the result.
     REQUIRE(result == 0);

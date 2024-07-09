@@ -217,7 +217,8 @@ _sample_ebpf_ext_driver_io_device_control(
     void* output_buffer = NULL;
     size_t actual_input_length = 0;
     size_t actual_output_length = 0;
-    sample_program_context_t program_context = {0};
+    sample_program_context_header_t context_header = {0};
+    sample_program_context_t* program_context = &context_header.context;
     uint32_t program_result = 0;
     ebpf_result_t result = EBPF_INVALID_ARGUMENT;
 
@@ -284,9 +285,9 @@ _sample_ebpf_ext_driver_io_device_control(
                 }
 
                 // Invoke the eBPF program. Pass the output buffer as program context data.
-                program_context.data_start = output_buffer;
-                program_context.data_end = (uint8_t*)output_buffer + output_buffer_length;
-                result = sample_ebpf_extension_invoke_program(&program_context, &program_result);
+                program_context->data_start = output_buffer;
+                program_context->data_end = (uint8_t*)output_buffer + output_buffer_length;
+                result = sample_ebpf_extension_invoke_program(program_context, &program_result);
             }
         } else {
             status = STATUS_INVALID_PARAMETER;
@@ -365,12 +366,12 @@ _sample_ebpf_ext_driver_io_device_control(
                 goto Done;
             }
 
-            program_context.data_start = batch_run_request->data;
-            program_context.data_end = (uint8_t*)batch_run_request + input_buffer_length;
+            program_context->data_start = batch_run_request->data;
+            program_context->data_end = (uint8_t*)batch_run_request + input_buffer_length;
 
             // Invoke the eBPF program. Pass the output buffer as program context data.
             for (uint32_t i = 0; i < batch_run_request->count; i++) {
-                result = sample_ebpf_extension_invoke_batch_program(&program_context, &context_state, &program_result);
+                result = sample_ebpf_extension_invoke_batch_program(program_context, &context_state, &program_result);
                 if (result != EBPF_SUCCESS) {
                     status = STATUS_UNSUCCESSFUL;
                     break;
