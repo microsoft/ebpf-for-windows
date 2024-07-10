@@ -1839,9 +1839,9 @@ _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
 
     // Verify the return value is what we saved in the inner map.
     REQUIRE(result == inner_value);
