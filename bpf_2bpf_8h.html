@@ -106,6 +106,18 @@ Functions</h2></td></tr>
 <tr class="memitem:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">bpf_map_update_elem</a> (int fd, const void *key, const void *value, <a class="el" href="types_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440">__u64</a> flags)</td></tr>
 <tr class="memdesc:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create or update an element (key/value pair) in a specified map.  <a href="bpf_2bpf_8h.html#ac9e08c49e17fcf8c69e202cfe15b87b3">More...</a><br /></td></tr>
 <tr class="separator:ac9e08c49e17fcf8c69e202cfe15b87b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1224b7fa4a07d45a39cf76842dbe726"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#ae1224b7fa4a07d45a39cf76842dbe726">bpf_map_lookup_batch</a> (int fd, void *in_batch, void *out_batch, void *keys, void *values, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *count, const struct bpf_map_batch_opts *opts)</td></tr>
+<tr class="memdesc:ae1224b7fa4a07d45a39cf76842dbe726"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="bpf_2bpf_8h.html#ae1224b7fa4a07d45a39cf76842dbe726" title="bpf_map_lookup_batch() allows for batch lookup of BPF map elements.">bpf_map_lookup_batch()</a></b> allows for batch lookup of BPF map elements.  <a href="bpf_2bpf_8h.html#ae1224b7fa4a07d45a39cf76842dbe726">More...</a><br /></td></tr>
+<tr class="separator:ae1224b7fa4a07d45a39cf76842dbe726"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a15a2a5a55afd94da8ee2e202e1d76703"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#a15a2a5a55afd94da8ee2e202e1d76703">bpf_map_lookup_and_delete_batch</a> (int fd, void *in_batch, void *out_batch, void *keys, void *values, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *count, const struct bpf_map_batch_opts *opts)</td></tr>
+<tr class="memdesc:a15a2a5a55afd94da8ee2e202e1d76703"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="bpf_2bpf_8h.html#a15a2a5a55afd94da8ee2e202e1d76703" title="bpf_map_lookup_and_delete_batch() allows for batch lookup and deletion of BPF map elements where each...">bpf_map_lookup_and_delete_batch()</a></b> allows for batch lookup and deletion of BPF map elements where each element is deleted after being retrieved.  <a href="bpf_2bpf_8h.html#a15a2a5a55afd94da8ee2e202e1d76703">More...</a><br /></td></tr>
+<tr class="separator:a15a2a5a55afd94da8ee2e202e1d76703"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a707de653c9dd823ebff0332c96940f75"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#a707de653c9dd823ebff0332c96940f75">bpf_map_update_batch</a> (int fd, const void *keys, const void *values, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *count, const struct bpf_map_batch_opts *opts)</td></tr>
+<tr class="memdesc:a707de653c9dd823ebff0332c96940f75"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="bpf_2bpf_8h.html#a707de653c9dd823ebff0332c96940f75" title="bpf_map_update_batch() updates multiple elements in a map by specifying keys and their corresponding ...">bpf_map_update_batch()</a></b> updates multiple elements in a map by specifying keys and their corresponding values.  <a href="bpf_2bpf_8h.html#a707de653c9dd823ebff0332c96940f75">More...</a><br /></td></tr>
+<tr class="separator:a707de653c9dd823ebff0332c96940f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad33934aa3dc1de284b1e81e59456f12d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#ad33934aa3dc1de284b1e81e59456f12d">bpf_map_delete_batch</a> (int fd, const void *keys, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *count, const struct bpf_map_batch_opts *opts)</td></tr>
+<tr class="memdesc:ad33934aa3dc1de284b1e81e59456f12d"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="bpf_2bpf_8h.html#ad33934aa3dc1de284b1e81e59456f12d" title="bpf_map_delete_batch() allows for batch deletion of multiple elements in a BPF map.">bpf_map_delete_batch()</a></b> allows for batch deletion of multiple elements in a BPF map.  <a href="bpf_2bpf_8h.html#ad33934aa3dc1de284b1e81e59456f12d">More...</a><br /></td></tr>
+<tr class="separator:ad33934aa3dc1de284b1e81e59456f12d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Object-related functions</div></td></tr>
 <tr class="memitem:a2fd48f3d62ed0b56a9d01675bcd68c7a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf_2bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">bpf_obj_get</a> (const char *pathname)</td></tr>
 <tr class="memdesc:a2fd48f3d62ed0b56a9d01675bcd68c7a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a file descriptor for a pinned object by pin path.  <a href="bpf_2bpf_8h.html#a2fd48f3d62ed0b56a9d01675bcd68c7a">More...</a><br /></td></tr>
@@ -329,6 +341,65 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ad33934aa3dc1de284b1e81e59456f12d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad33934aa3dc1de284b1e81e59456f12d">&#9670;&nbsp;</a></span>bpf_map_delete_batch()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_map_delete_batch </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>keys</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *&#160;</td>
+          <td class="paramname"><em>count</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_map_batch_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><b><a class="el" href="bpf_2bpf_8h.html#ad33934aa3dc1de284b1e81e59456f12d" title="bpf_map_delete_batch() allows for batch deletion of multiple elements in a BPF map.">bpf_map_delete_batch()</a></b> allows for batch deletion of multiple elements in a BPF map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fd</td><td>BPF map file descriptor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">keys</td><td>pointer to an array of <em>count</em> keys. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count</td><td>input and output parameter; on input <b>count</b> represents the number of elements in the map to delete in batch. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>options for configuring the way the batch deletion works.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">ENOENT</td><td>The key was not found. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="ad0ed6a975a6d623155c61de44e55e484"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad0ed6a975a6d623155c61de44e55e484">&#9670;&nbsp;</a></span>bpf_map_delete_elem()</h2>
 
@@ -523,6 +594,168 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a15a2a5a55afd94da8ee2e202e1d76703"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a15a2a5a55afd94da8ee2e202e1d76703">&#9670;&nbsp;</a></span>bpf_map_lookup_and_delete_batch()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_map_lookup_and_delete_batch </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>in_batch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>out_batch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>keys</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>values</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *&#160;</td>
+          <td class="paramname"><em>count</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_map_batch_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><b><a class="el" href="bpf_2bpf_8h.html#a15a2a5a55afd94da8ee2e202e1d76703" title="bpf_map_lookup_and_delete_batch() allows for batch lookup and deletion of BPF map elements where each...">bpf_map_lookup_and_delete_batch()</a></b> allows for batch lookup and deletion of BPF map elements where each element is deleted after being retrieved. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fd</td><td>BPF map file descriptor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_batch</td><td>address of the first element in batch to read, can pass NULL to get address of the first element in <em>out_batch</em>. If not NULL, must be large enough to hold a key. For <b>BPF_MAP_TYPE_{HASH, PERCPU_HASH, LRU_HASH, LRU_PERCPU_HASH}</b>, the memory size must be at least 4 bytes wide regardless of key size. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">out_batch</td><td>output parameter that should be passed to next call as <em>in_batch</em>. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">keys</td><td>pointer to an array of <em>count</em> keys. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">values</td><td>pointer to an array of <em>count</em> values.For per-CPU maps, the size of the array should be at least count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the nearest multiple of 8 bytes. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count</td><td>input and output parameter; on input it's the number of elements in the map to read and delete in batch; on output it represents the number of elements that were successfully read and deleted. </td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">opts</td><td>options for configuring the way the batch lookup and delete works.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">ENOENT</td><td>No more entries found, or the key-value pair was not found. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ae1224b7fa4a07d45a39cf76842dbe726"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae1224b7fa4a07d45a39cf76842dbe726">&#9670;&nbsp;</a></span>bpf_map_lookup_batch()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_map_lookup_batch </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>in_batch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>out_batch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>keys</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>values</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *&#160;</td>
+          <td class="paramname"><em>count</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_map_batch_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><b><a class="el" href="bpf_2bpf_8h.html#ae1224b7fa4a07d45a39cf76842dbe726" title="bpf_map_lookup_batch() allows for batch lookup of BPF map elements.">bpf_map_lookup_batch()</a></b> allows for batch lookup of BPF map elements. </p>
+<p>The parameter <em>in_batch</em> is the address of the first element in the batch to read. <em>out_batch</em> is an output parameter that should be passed as <em>in_batch</em> to subsequent calls to <b><a class="el" href="bpf_2bpf_8h.html#ae1224b7fa4a07d45a39cf76842dbe726" title="bpf_map_lookup_batch() allows for batch lookup of BPF map elements.">bpf_map_lookup_batch()</a></b>. NULL can be passed for <em>in_batch</em> to indicate that the batched lookup starts from the beginning of the map. Both <em>in_batch</em> and <em>out_batch</em> must point to memory large enough to hold a single key, except for maps of type <b>BPF_MAP_TYPE_{HASH, PERCPU_HASH, LRU_HASH, LRU_PERCPU_HASH}</b>, for which the memory size must be atleast 4 bytes wide regardless of key size.</p>
+<p>The <em>keys</em> and <em>values</em> are output parameters which must point to memory large enough to hold <em>count</em> items based on the key and value size of the map <em>map_fd</em>. The <em>keys</em> buffer must be of <em>key_size</em> * <em>count</em>. The <em>values</em> buffer must be of <em>value_size</em> * <em>count</em>.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fd</td><td>BPF map file descriptor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">in_batch</td><td>address of the first element in batch to read, can pass NULL to indicate that the batched lookup starts from the beginning of the map. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">out_batch</td><td>output parameter that should be passed to next call as <em>in_batch</em>. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">keys</td><td>pointer to an array large enough for <em>count</em> keys. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">values</td><td>pointer to an array large enough for <em>count</em> values. For per-CPU maps, the size of the array should be at least count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the nearest multiple of 8 bytes. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count</td><td>input and output parameter; on input it's the number of elements in the map to read in batch; on output it's the number of elements that were successfully read. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>options for configuring the way the batch lookup works.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">ENOENT</td><td>No more entries found, or the key was not found. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a95579ca07cccfd0f756a361c2da12ad5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a95579ca07cccfd0f756a361c2da12ad5">&#9670;&nbsp;</a></span>bpf_map_lookup_elem()</h2>
 
@@ -575,6 +808,78 @@ Functions</h2></td></tr>
   <table class="exception">
     <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
     <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
+    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a707de653c9dd823ebff0332c96940f75"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a707de653c9dd823ebff0332c96940f75">&#9670;&nbsp;</a></span>bpf_map_update_batch()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_map_update_batch </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>keys</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const void *&#160;</td>
+          <td class="paramname"><em>values</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> *&#160;</td>
+          <td class="paramname"><em>count</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct bpf_map_batch_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p><b><a class="el" href="bpf_2bpf_8h.html#a707de653c9dd823ebff0332c96940f75" title="bpf_map_update_batch() updates multiple elements in a map by specifying keys and their corresponding ...">bpf_map_update_batch()</a></b> updates multiple elements in a map by specifying keys and their corresponding values. </p>
+<p>The <em>keys</em> and <em>values</em> parameters must point to memory large enough to hold <em>count</em> items based on the key and value size of the map.</p>
+<p>The <em>opts</em> parameter can be used to control how <em><a class="el" href="bpf_2bpf_8h.html#a707de653c9dd823ebff0332c96940f75" title="bpf_map_update_batch() updates multiple elements in a map by specifying keys and their corresponding ...">bpf_map_update_batch()</a></em> should handle keys that either do or do not already exist in the map. In particular the <em>flags</em> parameter of <em>bpf_map_batch_opts</em> can be one of the following:</p>
+<p>Note that <em>count</em> is an input and output parameter, where on output it represents how many elements were successfully updated.</p>
+<p><b>BPF_ANY</b> Create new elements or update existing.</p>
+<p><b>BPF_NOEXIST</b> Create new elements only if they do not exist.</p>
+<p><b>BPF_EXIST</b> Update existing elements.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">fd</td><td>BPF map file descriptor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">keys</td><td>pointer to an array of <em>count</em> keys. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">values</td><td>pointer to an array of <em>count</em> values. For per-CPU maps, the size of the array should be at least count * value_size * number of logical CPUs. In case of per-CPU maps, the value_size is rounded up to the nearest multiple of 8 bytes. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count</td><td>input and output parameter; on input it's the number of elements in the map to update in batch; <b>count</b> represents the number of updated elements if the output <b>count</b> value is not equal to the input <b>count</b> value. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>options for configuring the way the batch update works.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
     <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
   </table>
   </dd>
