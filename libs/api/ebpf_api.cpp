@@ -558,6 +558,10 @@ _ebpf_map_lookup_element_batch_helper(
         goto Exit;
     }
 
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
+    }
+
     // Compute the maximum number of entries that can be updated in a single batch.
     max_entries_per_batch = UINT16_MAX - EBPF_OFFSET_OF(_ebpf_operation_map_get_next_key_value_batch_reply, data);
     max_entries_per_batch /= (key_size + value_size);
