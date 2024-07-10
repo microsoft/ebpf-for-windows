@@ -42,10 +42,10 @@ typedef struct _ebpf_link
     _Guarded_by_(lock) bpf_attach_type_t bpf_attach_type;
     _Guarded_by_(lock) enum bpf_link_type link_type;
     _Guarded_by_(lock) ebpf_program_type_t program_type;
-    // Note: The new v2 data structure is uses to store either the v1 or the v2 data.
-    // The biggest difference is that the v2 data structure has a flags field and uses the header.size field
+    // Note: The new v1 data structure is used to store either the v0 or the v1 data.
+    // The biggest difference is that the v1 data structure has a flags field and uses the header.size field
     // to represent the size of ebpf_extension_data_t rather than the size of the data being pointed to.
-    // The v2 structure passes the size of the structure via the header.size field and the size of the data
+    // The v1 structure passes the size of the structure via the header.size field and the size of the data
     // being pointed to via the data_size field.
     union
     {
@@ -227,7 +227,7 @@ _ebpf_link_client_attach_provider(
         (attach_provider_data->header.size >=
          EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, capabilities)) && // Check if the size is large enough.
         attach_provider_data->capabilities
-            .support_extension_data_v1) { // Check if the provider supports the v2 data structure.
+            .support_extension_data_v1) { // Check if the provider supports the v1 data structure.
         uint64_t program_flags = ebpf_program_get_flags(link->program);
 
         // Save values from the V0 data structure.

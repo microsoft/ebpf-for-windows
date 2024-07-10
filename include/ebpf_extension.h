@@ -103,6 +103,7 @@ typedef struct _ebpf_extension_data_v0
 typedef struct _ebpf_extension_data_v1
 {
     ebpf_extension_header_t header;
+    const void* data;
     union
     {
         uint64_t as_uint64;
@@ -111,7 +112,6 @@ typedef struct _ebpf_extension_data_v1
             bool prog_attach_flags : 1; ///< Program attach flags are supported.
         };
     } capabilities;
-    const void* data;
     size_t data_size;
     uint64_t prog_attach_flags;
 } ebpf_extension_data_v1_t;
