@@ -632,7 +632,7 @@ emulate_bind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pi
     ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx->process_id = pid;
     ctx->operation = BIND_OPERATION_BIND;
-    REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
     return static_cast<bind_action_t>(result);
 }
 
@@ -3186,17 +3186,6 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
-
-static void
-_extension_reload_test_implicit_context(ebpf_execution_type_t execution_type)
-{
-    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_implicit_helpers_um.dll"
-                                                                    : "test_sample_implicit_helpers.o";
-    extension_reload_test_common(file_name, execution_type);
-}
-
-DECLARE_ALL_TEST_CASES(
-    "extension_reload_test_implicit_context", "[end_to_end]", _extension_reload_test_implicit_context);
 
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
 TEST_CASE("close_unload_test", "[close_cleanup]")

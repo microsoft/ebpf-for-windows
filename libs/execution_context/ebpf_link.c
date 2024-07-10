@@ -220,7 +220,7 @@ _ebpf_link_client_attach_provider(
     lock_held = false;
 
     status = NmrClientAttachProvider(
-        nmr_binding_handle, link, &client_dispatch_table, &provider_binding_context, &provider_dispatch);
+        nmr_binding_handle, link, client_dispatch_table, &provider_binding_context, &provider_dispatch);
 
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_MESSAGE_NTSTATUS(
