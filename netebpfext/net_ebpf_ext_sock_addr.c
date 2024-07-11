@@ -521,6 +521,7 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .context_create = &_ebpf_sock_addr_context_create,
     .context_destroy = &_ebpf_sock_addr_context_destroy,
     .required_irql = DISPATCH_LEVEL,
+    .capabilities = (PROGRAM_DATA_CAPABILITY_CONTEXT_HEADER),
 };
 
 // Set the program type as the provider module id.

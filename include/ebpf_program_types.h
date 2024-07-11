@@ -9,6 +9,8 @@
 #define EBPF_MAX_PROGRAM_DESCRIPTOR_NAME_LENGTH 256
 #define EBPF_MAX_HELPER_FUNCTION_NAME_LENGTH 256
 
+#define PROGRAM_DATA_CAPABILITY_CONTEXT_HEADER 1 << 0
+
 // This is the type definition for the eBPF program type descriptor
 // when version is EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION.
 typedef struct _ebpf_program_type_descriptor
@@ -87,7 +89,7 @@ typedef struct _ebpf_program_data
     ebpf_program_context_create_t context_create;   ///< Pointer to context create function.
     ebpf_program_context_destroy_t context_destroy; ///< Pointer to context destroy function.
     uint8_t required_irql;                          ///< IRQL at which the program is invoked.
-    bool context_header;                            ///< Whether the program context supports a context header.
+    uint32_t capabilities;                          ///< Capabilities supported by the program information provider.
 } ebpf_program_data_t;
 
 // This is the type definition for the eBPF program section information
