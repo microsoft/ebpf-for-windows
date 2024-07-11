@@ -3423,14 +3423,14 @@ _test_batch_iteration_maps(
 }
 
 void
-_test_maps_batch(bpf_map_type map_type, bool percpu)
+_test_maps_batch(bpf_map_type map_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
     int num_of_cpus = 1;
     size_t value_size = 1;
 
-    if (percpu) {
+    if (BPF_MAP_TYPE_PER_CPU(map_type)) {
         // Get the number of possible CPUs that the host kernel supports and expects.
         num_of_cpus = libbpf_num_possible_cpus();
         REQUIRE(num_of_cpus > 0);
@@ -3594,13 +3594,13 @@ _test_maps_batch(bpf_map_type map_type, bool percpu)
     REQUIRE(bpf_map_delete_batch(invalid_map_fd, keys.data(), &delete_batch_size, &opts) == -EBADF);
 }
 
-TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_HASH, false); }
+TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_HASH); }
 
-TEST_CASE("libbpf lru hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_HASH, false); }
+TEST_CASE("libbpf lru hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_HASH); }
 
-TEST_CASE("libbpf percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_PERCPU_HASH, true); }
+TEST_CASE("libbpf percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_PERCPU_HASH); }
 
-TEST_CASE("libbpf lru percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_PERCPU_HASH, true); }
+TEST_CASE("libbpf lru percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_PERCPU_HASH); }
 
 void
 _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)
