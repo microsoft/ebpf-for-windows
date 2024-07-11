@@ -719,6 +719,7 @@ static _Requires_lock_held_(object_map->lock) ebpf_result_t _validate_map_value_
     if (value_object->get_program_type) {
         value_program_type = value_object->get_program_type(value_object);
         ebpf_assert(value_object->get_context_header_support != NULL);
+        __analysis_assume(value_object->get_context_header_support != NULL);
         value_supports_context_header = value_object->get_context_header_support(value_object);
         is_program_type_set = true;
     }

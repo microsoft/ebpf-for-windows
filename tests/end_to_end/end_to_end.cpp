@@ -3176,6 +3176,58 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
         REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != 42);
     }
+
+    // Reload the extension again with original data
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 42);
+    }
+
+    // Reload the extension with changed context_header support.
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+        changed_program_data.capabilities = 0;
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        // Program should re-attach to the hook.
+
+        // Program should not run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook_result != 42);
+    }
+
+    // Reload the extension again with original data
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 42);
+    }
 }
 
 static void
