@@ -926,6 +926,8 @@ bpf_program__flags(const struct bpf_program* prog);
 
 /**
  * @brief Set the BPF program flags.
+ * The set of flags is defined by the program type. Neither libbpf nor the eBPF runtime check the flags and only
+ * the extension that handles this program type will interpret them.
  *
  * @param[in] prog A pointer to the BPF program.
  * @param[in] flags The flags to set.
