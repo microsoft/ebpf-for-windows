@@ -101,10 +101,11 @@ structure from provided data and context buffers.
 context structure and populates the returned data and context buffers.
 * `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
 * `capabilities`: 32-bit integer describing the optional capabilities / features supported by the extension.
+   * `supports_context_header`: Flag indicating extension supports adding a context header at the start of each context passed to the eBPF program.
 
 **Capabilities**
 
-`PROGRAM_DATA_CAPABILITY_CONTEXT_HEADER`:
+`supports_context_header`:
 
 Flag indicating that extension supports adding a context header at the start of each context passed to the eBPF program.
 An extension can choose to opt-in to support context header at the start of each program context structure that is

@@ -673,14 +673,7 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
 
 // Bind.
 static ebpf_program_data_t _ebpf_bind_program_data = {
-    EBPF_PROGRAM_DATA_HEADER,
-    &_ebpf_bind_program_info,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    0,
-    PROGRAM_DATA_CAPABILITY_CONTEXT_HEADER};
+    EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL, NULL, NULL, NULL, 0, {true}};
 
 // SOCK_ADDR.
 static int
@@ -911,7 +904,7 @@ static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
     _sample_test_context_create,
     _sample_test_context_destroy,
     0,
-    PROGRAM_DATA_CAPABILITY_CONTEXT_HEADER};
+    {true}};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 

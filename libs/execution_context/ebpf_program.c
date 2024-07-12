@@ -25,8 +25,6 @@
 static size_t _ebpf_program_state_index = MAXUINT64;
 #define EBPF_MAX_HASH_SIZE 128
 
-#define CAPABILITY_CONTEXT_HEADER(capabilities) (capabilities & PROGRAM_DATA_CAPABILITY_CONTEXT_HEADER)
-
 // Global flag to disable invoking programs. This is used when fuzzing the IOCTL interface.
 bool ebpf_program_disable_invoke = false;
 
@@ -460,7 +458,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     // have loaded and attached, either of them can be detached and reattached in any order. Also the hook info
     // provider uses this information to determine what version of dispatch table to provide to the hook info provider.
     // To avoid any race conditions, the context header support should be set only once and should not be changed.
-    context_header_support_t new_value = CAPABILITY_CONTEXT_HEADER(extension_program_data->capabilities)
+    context_header_support_t new_value = extension_program_data->capabilities.supports_context_header
                                              ? CONTEXT_HEADER_SUPPORTED
                                              : CONTEXT_HEADER_NOT_SUPPORTED;
     if (program->context_header_support != CONTEXT_HEADER_SUPPORT_NOT_SET) {
@@ -2389,7 +2387,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
 
-    supports_context_header = CAPABILITY_CONTEXT_HEADER(context->program_data->capabilities);
+    supports_context_header = context->program_data->capabilities.supports_context_header;
     if (supports_context_header) {
         ebpf_program_set_runtime_state(&execution_context_state, program_context);
     } else {

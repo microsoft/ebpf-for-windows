@@ -1673,7 +1673,7 @@ TEST_CASE("disallow prog_array mixed context_header support", "[libbpf]")
     // Now load program without context header support.
     {
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
-        changed_program_data.capabilities = 0;
+        changed_program_data.capabilities.value = 0;
         program_info_provider_t sample_program_info;
         REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
 
