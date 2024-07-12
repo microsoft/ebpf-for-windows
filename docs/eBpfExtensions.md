@@ -109,7 +109,8 @@ context structure and populates the returned data and context buffers.
 Flag indicating that extension supports adding a context header at the start of each context passed to the eBPF program.
 An extension can choose to opt-in to support context header at the start of each program context structure that is
 passed to the eBPF program. To support this feature, the extension can use the macro `EBPF_CONTEXT_HEADER` to include
-the context header at the start of the program context structure.
+the context header at the start of the program context structure. Even when the context header is added, the pointer
+passed to the eBPF program is after the context header.
 
 *Example*
 
@@ -117,7 +118,7 @@ Below is an example of sample extension where it is now including context header
 structure:
 
 ```c
-// Original sample extension program context.
+// Original sample extension program context that is passed to the eBPF program.
 typedef struct _sample_program_context
 {
     uint8_t* data_start;
@@ -133,6 +134,8 @@ typedef struct _sample_program_context_header
     sample_program_context_t context;
 } sample_program_context_header_t;
 ```
+The extension passes a pointer to `context` inside `sample_program_context_header_t`, and not a pointer to
+`sample_program_context_header_t`, when invoking the eBPF program.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
