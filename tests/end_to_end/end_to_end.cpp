@@ -3177,7 +3177,7 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
         REQUIRE(hook_result != 42);
     }
 
-    // Reload the extension again with original data
+    // Reload the extension again with original data.
     {
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
 

@@ -454,7 +454,7 @@ _ebpf_program_type_specific_program_information_attach_provider(
     }
 
     // Check if the context header support has changed. This check and behavior is needed for the below reasons:
-    // After a program has been loaded and attached, i.e. the program information provider and hook info providers
+    // After a program has been loaded and attached, i.e., the program information provider and hook info providers
     // have loaded and attached, either of them can be detached and reattached in any order. Also the hook info
     // provider uses this information to determine what version of dispatch table to provide to the hook info provider.
     // To avoid any race conditions, the context header support should be set only once and should not be changed.
