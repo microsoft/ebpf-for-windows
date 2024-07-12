@@ -116,6 +116,9 @@ typedef struct _ebpf_extension_data_v1
     uint64_t prog_attach_flags;
 } ebpf_extension_data_v1_t;
 
+static_assert(
+    EBPF_FIELD_SIZE(ebpf_extension_data_v1_t, capabilities) == sizeof(uint64_t), "Size of capabilities is 64 bits.");
+
 typedef ebpf_extension_data_v1_t ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data
@@ -133,6 +136,9 @@ typedef struct _ebpf_attach_provider_data
         };
     } capabilities;
 } ebpf_attach_provider_data_t;
+
+static_assert(
+    EBPF_FIELD_SIZE(ebpf_attach_provider_data_t, capabilities) == sizeof(uint64_t), "Size of capabilities is 64 bits.");
 
 /***
  * The state of the execution context when the eBPF program was invoked.
