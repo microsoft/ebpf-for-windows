@@ -422,8 +422,8 @@ extern "C"
      *
      * @param[in] program Pointer to the program object.
      *
-     * @return true when the program supports the context header.
-     * @return false when the program does not support the context header.
+     * @retval true The program supports the context header.
+     * @retval false The program does not support the context header.
      */
     bool
     ebpf_program_supports_context_header(_In_ const ebpf_program_t* program);
