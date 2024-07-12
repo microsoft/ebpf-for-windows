@@ -115,8 +115,8 @@ passed to the eBPF program is after the context header.
 
 *Example*
 
-Below is an example of sample extension where it is now including context header start the of the original context
-structure:
+Below is an example of a sample extension where it is now including eBPF context header at the start of the original
+context structure:
 
 ```c
 // Original sample extension program context that is passed to the eBPF program.
