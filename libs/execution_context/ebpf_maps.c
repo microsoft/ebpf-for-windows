@@ -346,6 +346,13 @@ _get_map_program_type(_In_ const ebpf_core_object_t* object)
     return map->program_type;
 }
 
+static bool
+_ebpf_map_get_program_context_header_support(_In_ const ebpf_core_object_t* object)
+{
+    const ebpf_core_object_map_t* map = (const ebpf_core_object_map_t*)object;
+    return map->supports_context_header;
+}
+
 typedef struct _ebpf_map_metadata_table
 {
     ebpf_map_type_t map_type;
@@ -2413,8 +2420,10 @@ ebpf_map_create(
 
     const ebpf_map_metadata_table_t* table = &ebpf_map_metadata_tables[local_map->ebpf_map_definition.type];
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
-    result =
-        EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, get_program_type, NULL);
+    ebpf_object_get_context_header_support_t get_context_header_support =
+        (table->get_object_from_entry) ? _ebpf_map_get_program_context_header_support : NULL;
+    result = EBPF_OBJECT_INITIALIZE(
+        &local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, get_program_type, get_context_header_support);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
