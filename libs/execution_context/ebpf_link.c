@@ -99,9 +99,10 @@ static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table =
 };
 
 // Assert that the invoke function is aligned with ebpf_extension_dispatch_table_t->function.
-C_ASSERT(
+static_assert(
     EBPF_OFFSET_OF(ebpf_extension_dispatch_table_t, function) ==
-    EBPF_OFFSET_OF(ebpf_extension_program_dispatch_table_t, ebpf_program_invoke_function));
+        EBPF_OFFSET_OF(ebpf_extension_program_dispatch_table_t, ebpf_program_invoke_function),
+    "Invoke function offset mismatch.");
 
 NTSTATUS
 _ebpf_link_client_attach_provider(
