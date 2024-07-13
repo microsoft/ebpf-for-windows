@@ -1470,9 +1470,9 @@ ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* 
     ebpf_result_t result;
     ebpf_execution_context_state_t* state = NULL;
 
-    // BPF_PROG_ARRAY_MAP validates that either all programs in the map either support context header,
-    // or none of them do. So, if the next program supports context header, then the current program
-    // must also support context header.
+    // BPF_PROG_ARRAY_MAP validates that either all programs in the map either support a context header,
+    // or none of them do. So, if the next program supports a context header, then the current program
+    // must also support a context header.
     if (next_program->context_header_support == CONTEXT_HEADER_SUPPORTED) {
         ebpf_program_get_runtime_state(context, &state);
     } else {

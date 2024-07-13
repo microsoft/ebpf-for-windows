@@ -186,7 +186,7 @@ extern "C"
      * @brief Invoke an ebpf_program_t instance.
      *
      * @param[in] program Program to invoke.
-     * @param[in] use_context_header Whether to use program context header to store state information.
+     * @param[in] use_context_header Whether to use a context header to store state information.
      * @param[in,out] context Pointer to eBPF context for this program.
      * @param[out] result Output from the program.
      * @param[in] execution_state Execution context state.
