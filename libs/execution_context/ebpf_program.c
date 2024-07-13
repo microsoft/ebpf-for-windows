@@ -1439,6 +1439,8 @@ ebpf_program_load_code(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    ebpf_assert(code_type > EBPF_CODE_NONE && code_type <= EBPF_CODE_MAX);
+
     program->parameters.code_type = code_type;
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
