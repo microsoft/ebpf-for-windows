@@ -354,6 +354,13 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     uint8_t* code = NULL;
     size_t code_length = 0;
 
+    if (request->code_type <= EBPF_CODE_NONE || request->code_type >= EBPF_CODE_MAX) {
+        retval = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_CORE, "load_code: Invalid code type", request->code_type);
+        goto Done;
+    }
+
     if (request->code_type == EBPF_CODE_NATIVE) {
         retval = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE(

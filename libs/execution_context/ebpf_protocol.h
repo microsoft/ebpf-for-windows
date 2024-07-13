@@ -53,6 +53,7 @@ typedef enum _ebpf_code_type
     EBPF_CODE_JIT,
     EBPF_CODE_EBPF,
     EBPF_CODE_NATIVE,
+    EBPF_CODE_MAX = EBPF_CODE_NATIVE,
 } ebpf_code_type_t;
 
 typedef struct _ebpf_operation_header
