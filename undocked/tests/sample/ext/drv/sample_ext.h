@@ -8,7 +8,7 @@
  */
 
 #include "ebpf_extension.h"
-#include "sample_ext_helpers.h"
+// #include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 
 #include <ntifs.h> // Must be included before ntddk.h

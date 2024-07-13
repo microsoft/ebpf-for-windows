@@ -1425,7 +1425,6 @@ ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
     ebpf_execution_context_state_t* state = NULL;
-
     result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
     if (result != EBPF_SUCCESS) {
         return result;

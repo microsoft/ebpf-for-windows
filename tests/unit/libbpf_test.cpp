@@ -3297,7 +3297,6 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
 TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
 {
     const int TOTAL_TAIL_CALL = MAX_TAIL_CALL_CNT + 2;
-    // usersim_trace_logging_set_enabled(true, _EBPF_TRACELOG_LEVEL_ERROR, MAXUINT64);
 
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3356,8 +3355,6 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
 
     hook.detach_and_close_link(&link);
-
-    // usersim_trace_logging_set_enabled(false, 0, 0);
 }
 
 void
@@ -3651,7 +3648,7 @@ _utility_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    bind_md_t ctx{0};
+    bind_md_t ctx = {0};
     ctx.operation = BIND_OPERATION_BIND;
 
     uint32_t result;
