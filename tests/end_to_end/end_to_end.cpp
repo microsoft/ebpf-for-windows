@@ -3067,7 +3067,6 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
     // Should fail.
     REQUIRE(
         ebpf_program_load(
-            // execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
             file_name,
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
