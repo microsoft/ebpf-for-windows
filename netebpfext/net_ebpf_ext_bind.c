@@ -9,12 +9,6 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_bind.h"
 
-typedef struct _bind_context_header
-{
-    EBPF_CONTEXT_HEADER;
-    bind_md_t context;
-} bind_context_header_t;
-
 //
 // WFP filter related globals for bind hook.
 //
@@ -68,7 +62,6 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
     .required_irql = PASSIVE_LEVEL,
-    .context_header = true,
 };
 
 // Set the program type as the provider module id.
@@ -246,8 +239,7 @@ net_ebpf_ext_resource_allocation_classify(
 {
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
-    bind_context_header_t context_header = {0};
-    bind_md_t* ctx = &context_header.context;
+    bind_md_t ctx;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
 
@@ -288,20 +280,20 @@ net_ebpf_ext_resource_allocation_classify(
     addr.sin_addr.S_un.S_addr =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    ctx->process_id = incoming_metadata_values->processId;
-    memcpy(&ctx->socket_address, &addr, sizeof(addr));
-    ctx->socket_address_length = sizeof(addr);
-    ctx->operation = BIND_OPERATION_BIND;
-    ctx->protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8;
+    ctx.process_id = incoming_metadata_values->processId;
+    memcpy(&ctx.socket_address, &addr, sizeof(addr));
+    ctx.socket_address_length = sizeof(addr);
+    ctx.operation = BIND_OPERATION_BIND;
+    ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8;
 
-    ctx->app_id_start =
+    ctx.app_id_start =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->data;
-    ctx->app_id_end =
-        ctx->app_id_start +
+    ctx.app_id_end =
+        ctx.app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
-    _net_ebpf_ext_resource_truncate_appid(ctx);
-    if (net_ebpf_extension_hook_invoke_program(attached_client, ctx, &result) == EBPF_SUCCESS) {
+    _net_ebpf_ext_resource_truncate_appid(&ctx);
+    if (net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -338,8 +330,7 @@ net_ebpf_ext_resource_release_classify(
 {
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
-    bind_context_header_t context_header = {0};
-    bind_md_t* ctx = &context_header.context;
+    bind_md_t ctx;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
 
@@ -379,22 +370,22 @@ net_ebpf_ext_resource_release_classify(
     addr.sin_addr.S_un.S_addr =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    ctx->process_id = incoming_metadata_values->processId;
-    memcpy(&ctx->socket_address, &addr, sizeof(addr));
-    ctx->socket_address_length = sizeof(addr);
-    ctx->operation = BIND_OPERATION_UNBIND;
-    ctx->protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8;
+    ctx.process_id = incoming_metadata_values->processId;
+    memcpy(&ctx.socket_address, &addr, sizeof(addr));
+    ctx.socket_address_length = sizeof(addr);
+    ctx.operation = BIND_OPERATION_UNBIND;
+    ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8;
 
-    ctx->app_id_start =
+    ctx.app_id_start =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->data;
-    ctx->app_id_end =
-        ctx->app_id_start +
+    ctx.app_id_end =
+        ctx.app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
-    _net_ebpf_ext_resource_truncate_appid(ctx);
+    _net_ebpf_ext_resource_truncate_appid(&ctx);
 
     // Ignore the result of this call as we don't want to block the unbind.
-    (void)net_ebpf_extension_hook_invoke_program(attached_client, ctx, &result);
+    (void)net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
@@ -415,7 +406,6 @@ _ebpf_bind_context_create(
 {
     NET_EBPF_EXT_LOG_ENTRY();
     ebpf_result_t result;
-    bind_context_header_t* context_header = NULL;
     bind_md_t* bind_context = NULL;
 
     *context = NULL;
@@ -427,12 +417,10 @@ _ebpf_bind_context_create(
         goto Exit;
     }
 
-    context_header = (bind_context_header_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(bind_context_header_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, context_header, "bind_context", result);
+    bind_context =
+        (bind_md_t*)ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(bind_md_t), NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context, "bind_context", result);
 
-    bind_context = &context_header->context;
     // Copy the context from the caller.
     memcpy(bind_context, context_in, sizeof(bind_md_t));
 
@@ -464,13 +452,10 @@ _ebpf_bind_context_destroy(
 
     bind_md_t* bind_context = (bind_md_t*)context;
     bind_md_t* bind_context_out = (bind_md_t*)context_out;
-    bind_context_header_t* header = NULL;
 
     if (!bind_context) {
         goto Exit;
     }
-
-    header = CONTAINING_RECORD(bind_context, bind_context_header_t, context);
 
     if (context_out != NULL && *context_size_out >= sizeof(bind_md_t)) {
         // Copy the context to the caller.
@@ -492,7 +477,7 @@ _ebpf_bind_context_destroy(
         *data_size_out = 0;
     }
 
-    ExFreePool(header);
+    ExFreePool(bind_context);
 
 Exit:
     NET_EBPF_EXT_LOG_EXIT();

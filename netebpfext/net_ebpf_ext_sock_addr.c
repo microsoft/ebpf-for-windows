@@ -176,7 +176,6 @@ _net_ebpf_ext_log_sock_addr_classify(
 
 typedef struct _net_ebpf_bpf_sock_addr
 {
-    EBPF_CONTEXT_HEADER;
     bpf_sock_addr_t base;
     TOKEN_ACCESS_INFORMATION* access_information;
     uint64_t process_id;
@@ -1959,7 +1958,6 @@ _ebpf_sock_addr_context_create(
     NET_EBPF_EXT_LOG_ENTRY();
 
     ebpf_result_t result;
-    net_ebpf_sock_addr_t* ctx = NULL;
     bpf_sock_addr_t* sock_addr_ctx = NULL;
 
     *context = NULL;
@@ -1980,21 +1978,21 @@ _ebpf_sock_addr_context_create(
         goto Exit;
     }
 
-    ctx = (net_ebpf_sock_addr_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, ctx, "sock_addr_ctx", result);
-    sock_addr_ctx = &ctx->base;
+    sock_addr_ctx = (bpf_sock_addr_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(bpf_sock_addr_t), NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, sock_addr_ctx, "sock_addr_ctx", result);
 
     memcpy(sock_addr_ctx, context_in, sizeof(bpf_sock_addr_t));
 
     result = EBPF_SUCCESS;
     *context = sock_addr_ctx;
 
-    ctx = NULL;
+    sock_addr_ctx = NULL;
 
 Exit:
-    if (ctx) {
-        ExFreePool(ctx);
+    if (sock_addr_ctx) {
+        ExFreePool(sock_addr_ctx);
     }
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -2008,7 +2006,6 @@ _ebpf_sock_addr_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    net_ebpf_sock_addr_t* sock_addr_ctx = NULL;
 
     UNREFERENCED_PARAMETER(data_out);
     *data_size_out = 0;
@@ -2016,7 +2013,6 @@ _ebpf_sock_addr_context_destroy(
     if (!context) {
         return;
     }
-    sock_addr_ctx = CONTAINING_RECORD(context, net_ebpf_sock_addr_t, base);
 
     if (context_out != NULL && *context_size_out >= sizeof(bpf_sock_addr_t)) {
         memcpy(context_out, context, sizeof(bpf_sock_addr_t));
@@ -2025,8 +2021,8 @@ _ebpf_sock_addr_context_destroy(
         *context_size_out = 0;
     }
 
-    if (sock_addr_ctx) {
-        ExFreePool(sock_addr_ctx);
+    if (context) {
+        ExFreePool(context);
     }
     NET_EBPF_EXT_LOG_EXIT();
 }

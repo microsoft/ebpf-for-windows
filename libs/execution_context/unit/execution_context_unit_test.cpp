@@ -832,7 +832,7 @@ TEST_CASE("program", "[execution_context]")
     sample_program_context_t ctx{0};
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
-    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), false, &ctx, &result, &state);
+    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), &ctx, &result, &state);
     REQUIRE(ebpf_result == EBPF_SUCCESS);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 

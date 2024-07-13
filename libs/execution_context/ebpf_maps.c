@@ -30,7 +30,6 @@ typedef struct _ebpf_core_object_map
     ebpf_map_definition_in_memory_t inner_template_map_definition;
     bool is_program_type_set;
     ebpf_program_type_t program_type;
-    bool context_header;
 } ebpf_core_object_map_t;
 
 // Generations:

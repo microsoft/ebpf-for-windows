@@ -14,11 +14,7 @@
 #include <ntifs.h> // Must be included before ntddk.h
 #include <ntddk.h>
 
-typedef struct _sample_program_context_header
-{
-    EBPF_CONTEXT_HEADER;
-    sample_program_context_t context;
-} sample_program_context_header_t;
+typedef struct _sample_program_context sample_program_context_t;
 
 /**
  * @brief Register program information NPI provider.
