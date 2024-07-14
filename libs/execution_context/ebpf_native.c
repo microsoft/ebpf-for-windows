@@ -1742,11 +1742,11 @@ _ebpf_native_helper_address_changed(
     ebpf_result_t return_value;
     ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
         (ebpf_native_helper_address_changed_context_t*)context;
+    _Analysis_assume_(context != NULL);
     ebpf_native_module_t* module = helper_address_changed_context->module;
     bool implicit_context_supported = false;
 
     uint64_t* helper_function_addresses = NULL;
-    _Analysis_assume_(context != NULL);
     size_t helper_count = helper_address_changed_context->native_program->entry->helper_count;
 
     if (helper_count == 0) {
