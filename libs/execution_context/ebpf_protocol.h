@@ -395,7 +395,6 @@ typedef struct _ebpf_operation_ring_buffer_map_write_data_request
 {
     struct _ebpf_operation_header header;
     ebpf_handle_t map_handle;
-    size_t data_length;
     uint8_t data[1];
 } ebpf_operation_ring_buffer_map_write_data_request_t;
 

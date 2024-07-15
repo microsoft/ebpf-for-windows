@@ -4491,7 +4491,6 @@ ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void
         request->header.length = static_cast<uint16_t>(request_buffer.size());
         request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_WRITE_DATA;
         request->map_handle = (uint64_t)map_handle;
-        request->data_length = data_length;
         std::copy((uint8_t*)data, (uint8_t*)data + data_length, request->data);
 
         result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));

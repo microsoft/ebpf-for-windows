@@ -2087,6 +2087,7 @@ static ebpf_result_t
 _ebpf_core_protocol_ring_buffer_map_write_data(_In_ const ebpf_operation_ring_buffer_map_write_data_request_t* request)
 {
     ebpf_map_t* map = NULL;
+    size_t data_length = 0;
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
     if (result != EBPF_SUCCESS) {
@@ -2101,7 +2102,8 @@ _ebpf_core_protocol_ring_buffer_map_write_data(_In_ const ebpf_operation_ring_bu
             result);
         goto Exit;
     }
-    result = ebpf_ring_buffer_map_output(map, (uint8_t*)request->data, request->data_length);
+    data_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data);
+    result = ebpf_ring_buffer_map_output(map, (uint8_t*)request->data, data_length);
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
     EBPF_RETURN_RESULT(result);
