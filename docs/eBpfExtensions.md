@@ -178,7 +178,29 @@ helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
 * `flags`: Bit field of flags.
    * `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
+* `implicit_context`: Flag indicating the extension requires implicit context for this helper function.
 
+**Note about `implicit_context`**:
+With the `implicit_context` feature, an extension can choose to get the program context as the 6th argument to the
+helper function. In case the helper function does not require all the original 5 arguments (program context being
+the 6th argument), the helper function should declare dummy arguments as placeholders for the unused arguments.
+Note that this new change does not require any change in the helper function prototype that is needed for the
+program verification.
+
+**Example**
+Below is an example of a helper function only takes 1 argument `arg` as input, but to get also program context
+as input, also declares the remaining 4 dummy arguments (`dummy_param1` to `dummy_param4`).
+
+```c
+static int64_t
+sample_ebpf_extension_helper_implicit_2(
+    uint32_t arg,
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    _In_ const sample_program_context_t* context)
+```
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
