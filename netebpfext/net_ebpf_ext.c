@@ -264,7 +264,6 @@ net_ebpf_extension_wfp_filter_context_create(
         __fastfail(FAST_FAIL_INVALID_ARG);
     }
 
-    session.flags = FWPM_SESSION_FLAG_DYNAMIC;
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &local_filter_context->wfp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
 
@@ -629,66 +628,6 @@ net_ebpf_ext_uninitialize_ndis_handles()
     }
 }
 
-static void
-_net_ebpf_extension_cleanup_state(HANDLE wfp_engine_handle)
-/* ++
-
-   This function cleans up persisted WFP related state.
-
--- */
-{
-    NET_EBPF_EXT_LOG_ENTRY();
-
-    ebpf_assert(wfp_engine_handle != NULL);
-
-    NTSTATUS status = STATUS_SUCCESS;
-    for (size_t index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
-        status = FwpmCalloutDeleteByKey(wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
-        if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmCalloutDeleteByKey failed for index#",
-                index);
-
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
-        }
-
-        status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
-        if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpsCalloutUnregisterById failed for index#",
-                index);
-
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
-        }
-
-        status = FwpmSubLayerDeleteByKey(_wfp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].layer_guid);
-        if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmSubLayerDeleteByKey failed for index#",
-                index);
-
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
-        }
-    }
-
-    status = FwpmProviderDeleteByKey(wfp_engine_handle, (GUID*)&EBPF_WFP_PROVIDER);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
-    }
-
-    NET_EBPF_EXT_LOG_EXIT();
-}
-
 NTSTATUS
 net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 /* ++
@@ -717,15 +656,13 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
-    // This session needs to be a static session.
     // Details @ https://learn.microsoft.com/en-us/windows/win32/fwp/object-management#object-associations.
     RtlZeroMemory(&session, sizeof(FWPM_SESSION));
+    session.flags = FWPM_SESSION_FLAG_DYNAMIC;
+
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_wfp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
-
-    // Clean up stale WFP persisted state, if any.
-    _net_ebpf_extension_cleanup_state(_wfp_engine_handle);
 
     status = FwpmTransactionBegin(_wfp_engine_handle, 0);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
@@ -811,10 +748,6 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     }
 
     if (_wfp_engine_handle != NULL) {
-
-        // Clean up stale WFP persisted state, if any.
-        _net_ebpf_extension_cleanup_state(_wfp_engine_handle);
-
         status = FwpmEngineClose(_wfp_engine_handle);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
