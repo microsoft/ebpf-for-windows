@@ -100,6 +100,43 @@ structure from provided data and context buffers.
 * `context_destroy`: Pointer to `ebpf_program_context_destroy_t` function that destroys a program type specific
 context structure and populates the returned data and context buffers.
 * `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
+* `capabilities`: 32-bit integer describing the optional capabilities / features supported by the extension.
+   * `supports_context_header`: Flag indicating extension supports adding a context header at the start of each context passed to the eBPF program.
+
+**Capabilities**
+
+`supports_context_header`:
+
+Flag indicating that extension supports adding a context header at the start of each context passed to the eBPF program.
+An extension can choose to opt in to support context header at the start of each program context structure that is
+passed to the eBPF program. To support this feature, the extension can use the macro `EBPF_CONTEXT_HEADER` to include
+the context header at the start of the program context structure. Even when the context header is added, the pointer
+passed to the eBPF program is after the context header.
+
+*Example*
+
+Below is an example of a sample extension where it is now including eBPF context header at the start of the original
+context structure:
+
+```c
+// Original sample extension program context that is passed to the eBPF program.
+typedef struct _sample_program_context
+{
+    uint8_t* data_start;
+    uint8_t* data_end;
+    uint32_t uint32_data;
+    uint16_t uint16_data;
+} sample_program_context_t;
+
+// Program context including the context header.
+typedef struct _sample_program_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    sample_program_context_t context;
+} sample_program_context_header_t;
+```
+The extension passes a pointer to `context` inside `sample_program_context_header_t`, and not a pointer to
+`sample_program_context_header_t`, when invoking the eBPF program.
 
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
