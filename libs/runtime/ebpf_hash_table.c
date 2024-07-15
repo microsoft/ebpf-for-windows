@@ -4,6 +4,8 @@
 #include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_random.h"
+#define XXH_INLINE_ALL
+#include "xxhash.h"
 
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
@@ -220,14 +222,15 @@ static uint32_t
 _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     size_t length;
+    uint32_t hash_value = 0;
     const uint8_t* data;
     if (hash_table->extract) {
         hash_table->extract(key, &data, &length);
+        hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
     } else {
-        length = hash_table->key_size * 8;
-        data = key;
+        hash_value = (uint32_t)(XXH3_64bits_withSeed(key, hash_table->key_size, hash_table->seed));
     }
-    uint32_t hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
+
     return hash_value & hash_table->bucket_count_mask;
 }
 

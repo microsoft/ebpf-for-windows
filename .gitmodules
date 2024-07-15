@@ -23,3 +23,6 @@
 [submodule "tests/external/kissfft"]
 	path = tests/external/kissfft
 	url = https://github.com/mborgerding/kissfft
+[submodule "external/xxhash"]
+	path = external/xxhash
+	url = https://github.com/Cyan4973/xxHash
