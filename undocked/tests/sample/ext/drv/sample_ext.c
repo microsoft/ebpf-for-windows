@@ -95,7 +95,8 @@ static ebpf_program_data_t _sample_ebpf_extension_program_data = {
     .global_helper_function_addresses = &_sample_global_helper_function_address_table,
     .context_create = &_sample_context_create,
     .context_destroy = &_sample_context_destroy,
-    DISPATCH_LEVEL};
+    DISPATCH_LEVEL,
+    true};
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_SAMPLE_GUID};
@@ -607,9 +608,10 @@ sample_ebpf_extension_profile_program(
     LARGE_INTEGER end;
     uint32_t result;
     KIRQL old_irql = PASSIVE_LEVEL;
-    sample_program_context_t program_context = {
-        request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
+    sample_program_context_header_t context_header = {
+        {0}, request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
 
+    sample_program_context_t* program_context = (sample_program_context_t*)&context_header.context;
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
 
     sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
@@ -621,14 +623,14 @@ sample_ebpf_extension_profile_program(
     ebpf_program_invoke_function_t invoke_program = hook_client->invoke_program;
     const void* client_binding_context = hook_client->client_binding_context;
 
-    program_context.uint32_data = KeGetCurrentProcessorNumber();
+    program_context->uint32_data = KeGetCurrentProcessorNumber();
 
     KeQueryPerformanceCounter(&start);
     if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
         KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     for (size_t i = 0; i < request->iterations; i++) {
-        invoke_program(client_binding_context, &program_context, &result);
+        invoke_program(client_binding_context, program_context, &result);
     }
     if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
         KeLowerIrql(old_irql);
@@ -743,6 +745,7 @@ _sample_context_create(
     _Outptr_ void** context)
 {
     ebpf_result_t result;
+    sample_program_context_header_t* context_header = NULL;
     sample_program_context_t* sample_context = NULL;
 
     *context = NULL;
@@ -759,22 +762,23 @@ _sample_context_create(
         goto Exit;
     }
 
-    sample_context =
-        cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
-    if (sample_context == NULL) {
+    context_header = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_header_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (context_header == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+    sample_context = (sample_program_context_t*)&context_header->context;
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
 
     *context = sample_context;
-    sample_context = NULL;
+    context_header = NULL;
     result = EBPF_SUCCESS;
 
 Exit:
-    if (sample_context != NULL) {
-        CXPLAT_FREE(sample_context);
+    if (context_header != NULL) {
+        CXPLAT_FREE(context_header);
     }
 
     return result;
@@ -789,9 +793,11 @@ _sample_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     UNREFERENCED_PARAMETER(data_out);
+    sample_program_context_header_t* context_header = NULL;
     if (context == NULL) {
         return;
     }
+    context_header = CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
     // This provider doesn't support data.
     *data_size_out = 0;
@@ -803,5 +809,5 @@ _sample_context_destroy(
         *context_size_out = 0;
     }
 
-    CXPLAT_FREE(context);
+    CXPLAT_FREE(context_header);
 }

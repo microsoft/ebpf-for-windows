@@ -55,7 +55,8 @@ size_t _ebpf_program_info_supported_size[] = {EBPF_PROGRAM_INFO_SIZE_0};
 size_t _ebpf_helper_function_addresses_supported_size[] = {EBPF_HELPER_FUNCTION_ADDRESSES_SIZE_0};
 
 #define EBPF_PROGRAM_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, required_irql)
-size_t _ebpf_program_data_supported_size[] = {EBPF_PROGRAM_DATA_SIZE_0};
+#define EBPF_PROGRAM_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, capabilities)
+size_t _ebpf_program_data_supported_size[] = {EBPF_PROGRAM_DATA_SIZE_0, EBPF_PROGRAM_DATA_SIZE_1};
 
 #define EBPF_PROGRAM_SECTION_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)
 size_t _ebpf_program_section_supported_size[] = {EBPF_PROGRAM_SECTION_SIZE_0};

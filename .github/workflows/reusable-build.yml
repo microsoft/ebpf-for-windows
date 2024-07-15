@@ -126,7 +126,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@b611370bb5703a7efb587f9d136a52ea24c5c38c
+      uses: github/codeql-action/init@4fa2a7953630fd2f3fb380f21be14ede0169dd4f
       with:
         languages: 'cpp'
 
@@ -302,4 +302,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@b611370bb5703a7efb587f9d136a52ea24c5c38c
+      uses: github/codeql-action/analyze@4fa2a7953630fd2f3fb380f21be14ede0169dd4f

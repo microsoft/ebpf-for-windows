@@ -36,8 +36,6 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
         Write-Host -ForegroundColor DarkGreen "Regenerating the expected 'bpf2c' output..."
         .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
         Write-Host -ForegroundColor DarkGreen "Expected 'bpf2c' output regenerated."
-
-        Write-Host -ForegroundColor DarkYellow "Please verify all the changes then submit the pull-request into the 'release/$majorVersion.$minorVersion' branch."
     } else {
         Write-Host -ForegroundColor Red "'ebpf-for-windows.sln' not found in the current path."
         Write-Host -ForegroundColor DarkYellow "Please run this script from the root directory of the repository, within a Developer Poweshell for VS 2022."
@@ -45,6 +43,6 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
 } else {
     Write-Host -ForegroundColor Red "Invalid version number format. Please enter the version number in the format 'X Y Z', e.g.:"
     Write-Host
-    Write-Host -ForegroundColor DarkGreen "   PS> .\scripts\update-release-version.ps1 0 9 0"
+    Write-Host -ForegroundColor DarkGreen "   PS> .\scripts\update-product-version.ps1 0 9 0"
     Write-Host
 }
