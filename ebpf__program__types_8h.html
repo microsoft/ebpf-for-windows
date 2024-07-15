@@ -91,6 +91,8 @@ Data Structures</h2></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__helper__function__addresses.html">_ebpf_helper_function_addresses</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">union &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="union__program__data__capabilities.html">_program_data_capabilities</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__data.html">_ebpf_program_data</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__program__section__info.html">_ebpf_program_section_info</a></td></tr>
@@ -119,6 +121,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:a28b3cc0ae54948736df5ee837df7b5ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a622122ac2d7dc24ae608e44a1a61d8b8"><td class="memItemLeft" align="right" valign="top">typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a622122ac2d7dc24ae608e44a1a61d8b8">ebpf_program_context_destroy_t</a>) (void *context, _Out_writes_bytes_to_opt_(*data_size_out, *data_size_out) uint8_t *data_out, _Inout_ size_t *data_size_out, _Out_writes_bytes_to_opt_(*context_size_out, *context_size_out) uint8_t *context_out, _Inout_ size_t *context_size_out)</td></tr>
 <tr class="separator:a622122ac2d7dc24ae608e44a1a61d8b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9da9c3ec20872be5cc10a075de4d23cd"><td class="memItemLeft" align="right" valign="top">typedef union <a class="el" href="union__program__data__capabilities.html">_program_data_capabilities</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a9da9c3ec20872be5cc10a075de4d23cd">program_data_capabilities_t</a></td></tr>
+<tr class="separator:a9da9c3ec20872be5cc10a075de4d23cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a28e774e1c41a3b613b24765200af83e5"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__data.html">_ebpf_program_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#a28e774e1c41a3b613b24765200af83e5">ebpf_program_data_t</a></td></tr>
 <tr class="separator:a28e774e1c41a3b613b24765200af83e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd468780732b93cd71055799c732d4b0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__program__section__info.html">_ebpf_program_section_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__program__types_8h.html#acd468780732b93cd71055799c732d4b0">ebpf_program_section_info_t</a></td></tr>
@@ -274,6 +278,20 @@ Typedefs</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef struct <a class="el" href="struct__ebpf__program__type__descriptor.html">_ebpf_program_type_descriptor</a> <a class="el" href="ebpf__program__types_8h.html#a15c99d9ad970c656327b558ac17c0b89">ebpf_program_type_descriptor_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9da9c3ec20872be5cc10a075de4d23cd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9da9c3ec20872be5cc10a075de4d23cd">&#9670;&nbsp;</a></span>program_data_capabilities_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef union <a class="el" href="union__program__data__capabilities.html">_program_data_capabilities</a> <a class="el" href="ebpf__program__types_8h.html#a9da9c3ec20872be5cc10a075de4d23cd">program_data_capabilities_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">

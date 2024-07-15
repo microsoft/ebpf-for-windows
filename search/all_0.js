@@ -74,10 +74,11 @@ var searchData=
   ['_5fmap_5fentry_71',['_map_entry',['../struct__map__entry.html',1,'']]],
   ['_5fmap_5finitial_5fvalues_72',['_map_initial_values',['../struct__map__initial__values.html',1,'']]],
   ['_5fmetadata_5ftable_73',['_metadata_table',['../struct__metadata__table.html',1,'']]],
-  ['_5fprogram_5fentry_74',['_program_entry',['../struct__program__entry.html',1,'']]],
-  ['_5freadable_5fbytes_5f_75',['_Readable_bytes_',['../struct__ebpf__test__run__options.html#ac7a877d6a0996aa94b80904f79d6c0bf',1,'_ebpf_test_run_options::_Readable_bytes_(data_size_in) const uint8_t *data_in'],['../struct__ebpf__test__run__options.html#a750de00392ed86486b768c28916a5c04',1,'_ebpf_test_run_options::_Readable_bytes_(context_size_in) const uint8_t *context_in']]],
-  ['_5fwhen_5f_76',['_When_',['../ebpf__utilities_8h.html#aec984ca719d11b96a5abeef195a01f0b',1,'ebpf_utilities.h']]],
-  ['_5fwin32_77',['_WIN32',['../bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3',1,'bpf_helpers.h']]],
-  ['_5fwritable_5fbytes_5f_78',['_Writable_bytes_',['../struct__ebpf__test__run__options.html#ae963f1d440686fe0918a00ea2df3a087',1,'_ebpf_test_run_options::_Writable_bytes_(data_size_out) uint8_t *data_out'],['../struct__ebpf__test__run__options.html#a780806bc67545b522f85267655dd3cc6',1,'_ebpf_test_run_options::_Writable_bytes_(context_size_out) uint8_t *context_out']]],
-  ['_5fxdp_5faction_79',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
+  ['_5fprogram_5fdata_5fcapabilities_74',['_program_data_capabilities',['../union__program__data__capabilities.html',1,'']]],
+  ['_5fprogram_5fentry_75',['_program_entry',['../struct__program__entry.html',1,'']]],
+  ['_5freadable_5fbytes_5f_76',['_Readable_bytes_',['../struct__ebpf__test__run__options.html#ac7a877d6a0996aa94b80904f79d6c0bf',1,'_ebpf_test_run_options::_Readable_bytes_(data_size_in) const uint8_t *data_in'],['../struct__ebpf__test__run__options.html#a750de00392ed86486b768c28916a5c04',1,'_ebpf_test_run_options::_Readable_bytes_(context_size_in) const uint8_t *context_in']]],
+  ['_5fwhen_5f_77',['_When_',['../ebpf__utilities_8h.html#aec984ca719d11b96a5abeef195a01f0b',1,'ebpf_utilities.h']]],
+  ['_5fwin32_78',['_WIN32',['../bpf__helpers_8h.html#a7d7e5874cd6f169187aac7db998625f3',1,'bpf_helpers.h']]],
+  ['_5fwritable_5fbytes_5f_79',['_Writable_bytes_',['../struct__ebpf__test__run__options.html#ae963f1d440686fe0918a00ea2df3a087',1,'_ebpf_test_run_options::_Writable_bytes_(data_size_out) uint8_t *data_out'],['../struct__ebpf__test__run__options.html#a780806bc67545b522f85267655dd3cc6',1,'_ebpf_test_run_options::_Writable_bytes_(context_size_out) uint8_t *context_out']]],
+  ['_5fxdp_5faction_80',['_xdp_action',['../ebpf__nethooks_8h.html#a5aff0d5d670941126cebc5687d5e280d',1,'ebpf_nethooks.h']]]
 ];
