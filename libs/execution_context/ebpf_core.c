@@ -2021,6 +2021,11 @@ _ebpf_core_protocol_ring_buffer_map_query_buffer(
 
     if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "query buffer operation called on a map that is not of the ring buffer type.",
+            result);
         goto Exit;
     }
 
@@ -2053,6 +2058,11 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
 
     if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "async query operation called on a map that is not of the ring buffer type.",
+            result);
         goto Exit;
     }
 
@@ -2084,6 +2094,11 @@ _ebpf_core_protocol_ring_buffer_map_write_data(_In_ const ebpf_operation_ring_bu
     }
     if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "write data operation called on a map that is not of the ring buffer type.",
+            result);
         goto Exit;
     }
     result = ebpf_ring_buffer_map_output(map, (uint8_t*)request->data, request->data_length);

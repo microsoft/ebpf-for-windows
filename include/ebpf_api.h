@@ -567,9 +567,9 @@ extern "C"
     /**
      * @brief Write data into the ring buffer map.
      *
-     * @param ring_buffer_map_fd ring buffer map file descriptor.
-     * @param data Pointer to data to be written.
-     * @param data_length Length of data to be written.
+     * @param [in] ring_buffer_map_fd ring buffer map file descriptor.
+     * @param [in]  data Pointer to data to be written.
+     * @param [in] data_length Length of data to be written.
      * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      * @retval EBPF_NO_MEMORY Out of memory.
