@@ -127,7 +127,7 @@ xdp_adjust_head_unsafe(void* context)
     r2 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=65536
 #line 34 "sample/unsafe/xdp_adjust_head_unsafe.c"
-    r0 = xdp_adjust_head_unsafe_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = xdp_adjust_head_unsafe_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 34 "sample/unsafe/xdp_adjust_head_unsafe.c"
     if ((xdp_adjust_head_unsafe_helpers[0].tail_call) && (r0 == 0)) {
 #line 34 "sample/unsafe/xdp_adjust_head_unsafe.c"
