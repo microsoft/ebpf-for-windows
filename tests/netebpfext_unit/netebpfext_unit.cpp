@@ -281,7 +281,52 @@ TEST_CASE("bind_context", "[netebpfext]")
     REQUIRE(
         bind_program_data->context_create(
             nullptr, 0, (const uint8_t*)&input_context, sizeof(input_context), (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
+    // Positive test:
+    // Valid app id
+    wchar_t valid_app_id_1[] = L"TestAppId.exe";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_1,
+            sizeof(valid_app_id_1),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, valid_app_id_1) == 0);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
+
+    // Positive test:
+    // Valid app id with full path (truncation logic is used)
+    wchar_t valid_app_id_2[] = L"C:\\Windows\\System32\\TestAppId.exe";
+    wchar_t truncated_app_id_2[] = L"TestAppId.exe";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_2,
+            sizeof(valid_app_id_2),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, truncated_app_id_2) == 0);
+    bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
+
+    // Positive test:
+    // Valid app id - only the \ character
+    // The WFP framework should not pass the eBPF framework this data, but we should ensure it's handled gracefully.
+    wchar_t valid_app_id_3[] = L"\\";
+    wchar_t truncated_app_id_3[] = L"";
+    REQUIRE(
+        bind_program_data->context_create(
+            (uint8_t*)valid_app_id_3,
+            sizeof(valid_app_id_3),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_SUCCESS);
+    REQUIRE(bind_context->app_id_start <= bind_context->app_id_end);
+    REQUIRE(wcscmp((wchar_t*)bind_context->app_id_start, truncated_app_id_3) == 0);
     bind_program_data->context_destroy(bind_context, nullptr, &output_data_size, nullptr, &output_context_size);
 
     // Negative test:
@@ -290,6 +335,27 @@ TEST_CASE("bind_context", "[netebpfext]")
         bind_program_data->context_create(input_data.data(), input_data.size(), nullptr, 0, (void**)&bind_context) ==
         EBPF_INVALID_ARGUMENT);
     bind_context = nullptr;
+
+    // Negative test:
+    // Odd number of bytes
+    byte odd_input_data[5] = {0};
+    REQUIRE(
+        bind_program_data->context_create(
+            odd_input_data,
+            sizeof(odd_input_data),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_INVALID_ARGUMENT);
+
+    // Negative test:
+    // Invalid data size
+    REQUIRE(
+        bind_program_data->context_create(
+            nullptr,
+            sizeof(valid_app_id_1),
+            (const uint8_t*)&input_context,
+            sizeof(input_context),
+            (void**)&bind_context) == EBPF_INVALID_ARGUMENT);
 
     REQUIRE(
         bind_program_data->context_create(
