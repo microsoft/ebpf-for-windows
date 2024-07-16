@@ -17,6 +17,12 @@
 
 struct _net_ebpf_extension_sock_ops_wfp_filter_context;
 
+typedef struct _net_ebpf_bpf_sock_ops
+{
+    EBPF_CONTEXT_HEADER;
+    bpf_sock_ops_t context;
+} net_ebpf_bpf_sock_ops_t;
+
 /**
  * @brief Custom context associated with WFP flows that are notified to eBPF programs.
  */
@@ -25,8 +31,8 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
     LIST_ENTRY link;                                         ///< Link to next flow context.
     net_ebpf_extension_flow_context_parameters_t parameters; ///< WFP flow parameters.
     struct _net_ebpf_extension_sock_ops_wfp_filter_context*
-        filter_context;     ///< WFP filter context associated with this flow.
-    bpf_sock_ops_t context; ///< sock_ops context.
+        filter_context;              ///< WFP filter context associated with this flow.
+    net_ebpf_bpf_sock_ops_t context; ///< sock_ops context.
 } net_ebpf_extension_sock_ops_wfp_flow_context_t;
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
@@ -84,6 +90,7 @@ static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
+    .capabilities = {.supports_context_header = true},
 };
 
 // Set the program type as the provider module id.
@@ -430,7 +437,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     REFERENCE_FILTER_CONTEXT(&filter_context->base);
     local_flow_context->filter_context = filter_context;
 
-    sock_ops_context = &local_flow_context->context;
+    sock_ops_context = &local_flow_context->context.context;
     _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(incoming_fixed_values, sock_ops_context);
 
     client_compartment_id = filter_context->compartment_id;
@@ -552,7 +559,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         local_flow_context->parameters.flow_id);
 
     // Invoke eBPF program with connection deleted socket event.
-    sock_ops_context = &local_flow_context->context;
+    sock_ops_context = &local_flow_context->context.context;
     sock_ops_context->op = BPF_SOCK_OPS_CONNECTION_DELETED_CB;
     if (net_ebpf_extension_hook_invoke_program(attached_client, sock_ops_context, &result) != EBPF_SUCCESS) {
         goto Exit;
@@ -582,6 +589,7 @@ _ebpf_sock_ops_context_create(
 {
     ebpf_result_t result;
     bpf_sock_ops_t* sock_ops_context = NULL;
+    net_ebpf_bpf_sock_ops_t* context_header = NULL;
 
     *context = NULL;
 
@@ -601,23 +609,24 @@ _ebpf_sock_ops_context_create(
         goto Exit;
     }
 
-    sock_ops_context = (bpf_sock_ops_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(bpf_sock_ops_t), NET_EBPF_EXTENSION_POOL_TAG);
+    context_header = (net_ebpf_bpf_sock_ops_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_bpf_sock_ops_t), NET_EBPF_EXTENSION_POOL_TAG);
 
-    if (sock_ops_context == NULL) {
+    if (context_header == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+    sock_ops_context = &context_header->context;
 
     memcpy(sock_ops_context, context_in, sizeof(bpf_sock_ops_t));
 
     *context = sock_ops_context;
-    sock_ops_context = NULL;
+    context_header = NULL;
     result = EBPF_SUCCESS;
 
 Exit:
-    if (sock_ops_context != NULL) {
-        ExFreePool(sock_ops_context);
+    if (context_header != NULL) {
+        ExFreePool(context_header);
     }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
@@ -632,10 +641,13 @@ _ebpf_sock_ops_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     NET_EBPF_EXT_LOG_ENTRY();
+    net_ebpf_bpf_sock_ops_t* context_header = NULL;
+
     UNREFERENCED_PARAMETER(data_out);
     if (context == NULL) {
         goto Exit;
     }
+    context_header = CONTAINING_RECORD(context, net_ebpf_bpf_sock_ops_t, context);
 
     // This provider doesn't support data.
 
@@ -648,7 +660,7 @@ _ebpf_sock_ops_context_destroy(
         *context_size_out = 0;
     }
 
-    ExFreePool(context);
+    ExFreePool(context_header);
 Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }

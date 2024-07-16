@@ -248,6 +248,8 @@ DECLARE_TEST("test_sample_ebpf", _test_mode::Verify)
 DECLARE_TEST("test_utility_helpers", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::UseHashSHA512)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::UseHashX)
+DECLARE_TEST("xdp_adjust_head_unsafe", _test_mode::NoVerify)
+DECLARE_TEST("xdp_datasize_unsafe", _test_mode::NoVerify)
 
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("bind"))
