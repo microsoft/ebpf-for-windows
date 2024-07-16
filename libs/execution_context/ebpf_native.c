@@ -23,7 +23,7 @@ static const uint32_t _ebpf_native_marker = 'entv';
 static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
 
 // Minimum bpf2c version that supports implicit context.
-static bpf2c_version_t _ebpf_version_implicit_context = {0, 18, 0};
+static const bpf2c_version_t _ebpf_version_implicit_context = {0, 18, 0};
 
 #ifndef __CGUID_H__
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
