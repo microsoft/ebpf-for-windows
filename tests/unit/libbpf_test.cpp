@@ -1364,9 +1364,9 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     bpf_link_ptr link(bpf_program__attach(caller));
     REQUIRE(link != nullptr);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == expected_result);
 
     uint32_t key = 0;
@@ -1493,9 +1493,9 @@ _multiple_tail_calls_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
     REQUIRE(result == 3);
 
     // Clear the prog array map entries. This is needed to release reference on the
@@ -1640,6 +1640,71 @@ TEST_CASE("disallow prog_array mixed program type values", "[libbpf]")
     Platform::_close(map_fd);
     bpf_object__close(bind_object);
     bpf_object__close(sample_object);
+}
+
+TEST_CASE("disallow prog_array mixed context_header support", "[libbpf]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+    int program1_fd;
+    int program2_fd;
+    struct bpf_object* sample_object1 = nullptr;
+    struct bpf_object* sample_object2 = nullptr;
+
+    // Load the same program 2 times, but with different "context_header" support from providers.
+
+    // First load program with context header support.
+    {
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+        sample_object1 = bpf_object__open("test_sample_ebpf.o");
+        REQUIRE(sample_object1 != nullptr);
+        // Load the program(s).
+        REQUIRE(bpf_object__load(sample_object1) == 0);
+        struct bpf_program* sample_program = bpf_object__find_program_by_name(sample_object1, "test_program_entry");
+        program1_fd = bpf_program__fd(const_cast<const bpf_program*>(sample_program));
+
+        // Extension will unload now.
+    }
+
+    // Now load program without context header support.
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+        changed_program_data.capabilities.value = 0;
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        sample_object2 = bpf_object__open("test_sample_ebpf.o");
+        REQUIRE(sample_object2 != nullptr);
+        // Load the program(s).
+        REQUIRE(bpf_object__load(sample_object2) == 0);
+        struct bpf_program* sample_program = bpf_object__find_program_by_name(sample_object2, "test_program_entry");
+        program2_fd = bpf_program__fd(const_cast<const bpf_program*>(sample_program));
+
+        // Extension will unload now.
+    }
+
+    // Create a map.
+    int map_fd = bpf_map_create(BPF_MAP_TYPE_PROG_ARRAY, nullptr, sizeof(uint32_t), sizeof(uint32_t), 2, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Since the map is not yet associated with a program, the first program fd
+    // we add will become the PROG_ARRAY's program type.
+    int index = 0;
+    int error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&program1_fd, 0);
+    REQUIRE(error == 0);
+
+    // Adding an entry with same program type but different context_header support should fail.
+    error = bpf_map_update_elem(map_fd, (uint8_t*)&index, (uint8_t*)&program2_fd, 0);
+    REQUIRE(error < 0);
+    REQUIRE(errno == EBADF);
+
+    Platform::_close(map_fd);
+    bpf_object__close(sample_object1);
+    bpf_object__close(sample_object2);
 }
 #endif
 
@@ -1839,9 +1904,9 @@ _array_of_maps_test(ebpf_execution_type_t execution_type, _In_ PCSTR dll_name, _
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
 
     // Verify the return value is what we saved in the inner map.
     REQUIRE(result == inner_value);
@@ -3283,13 +3348,13 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
 {
     uint32_t result;
     std::string app_id = appid;
-    bind_md_t ctx{0};
-    ctx.app_id_start = (uint8_t*)app_id.c_str();
-    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx.process_id = pid;
-    ctx.operation = BIND_OPERATION_BIND;
+    INITIALIZE_BIND_CONTEXT
+    ctx->app_id_start = (uint8_t*)app_id.c_str();
+    ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    ctx->process_id = pid;
+    ctx->operation = BIND_OPERATION_BIND;
 
-    REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
 
     return static_cast<bind_action_t>(result);
 }
@@ -3297,7 +3362,6 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
 TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
 {
     const int TOTAL_TAIL_CALL = MAX_TAIL_CALL_CNT + 2;
-    usersim_trace_logging_set_enabled(true, _EBPF_TRACELOG_LEVEL_ERROR, MAXUINT64);
 
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -3356,8 +3420,6 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
     REQUIRE(emulate_bind_tail_call(invoke, fake_pid, "fake_app_1") == BIND_DENY);
 
     hook.detach_and_close_link(&link);
-
-    usersim_trace_logging_set_enabled(false, 0, 0);
 }
 
 void
@@ -3651,11 +3713,11 @@ _utility_test(ebpf_execution_type_t execution_type)
     REQUIRE(link != nullptr);
 
     // Now run the ebpf program.
-    bind_md_t ctx = {0};
-    ctx.operation = BIND_OPERATION_BIND;
+    INITIALIZE_BIND_CONTEXT
+    ctx->operation = BIND_OPERATION_BIND;
 
     uint32_t result;
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
 
     // Verify the result.
     REQUIRE(result == 0);

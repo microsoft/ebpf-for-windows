@@ -161,4 +161,6 @@ typedef struct _ebpf_execution_context_state
     } tail_call_state;
 } ebpf_execution_context_state_t;
 
+#define EBPF_CONTEXT_HEADER uint64_t context_header[8]
+
 #pragma warning(pop)
