@@ -2102,7 +2102,13 @@ _ebpf_core_protocol_ring_buffer_map_write_data(_In_ const ebpf_operation_ring_bu
             result);
         goto Exit;
     }
-    data_length = request->header.length - EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data);
+    result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data),
+        &data_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
     result = ebpf_ring_buffer_map_output(map, (uint8_t*)request->data, data_length);
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
