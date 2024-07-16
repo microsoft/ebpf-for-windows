@@ -67,8 +67,7 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#nested-classes">Data Structures</a> &#124;
-<a href="#define-members">Macros</a> &#124;
-<a href="#func-members">Functions</a>  </div>
+<a href="#define-members">Macros</a>  </div>
   <div class="headertitle">
 <div class="title">tcp.h File Reference</div>  </div>
 </div><!--header-->
@@ -83,46 +82,32 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
 Macros</h2></td></tr>
-<tr class="memitem:abf28f80e90bef143796d9dfcf34dd239"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="net_2tcp_8h.html#abf28f80e90bef143796d9dfcf34dd239">C_ASSERT</a>(e)&#160;&#160;&#160;typedef char __C_ASSERT__[(e) ? 1 : -1]</td></tr>
-<tr class="separator:abf28f80e90bef143796d9dfcf34dd239"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
-Functions</h2></td></tr>
-<tr class="memitem:ab316856b9d3820985e349a72c4693cac"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="net_2tcp_8h.html#ab316856b9d3820985e349a72c4693cac">C_ASSERT</a> (sizeof(struct <a class="el" href="structtcphdr.html">tcphdr</a>)==20)</td></tr>
-<tr class="separator:ab316856b9d3820985e349a72c4693cac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a604ba97a2c83b2f94a711e05e5515429"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="net_2tcp_8h.html#a604ba97a2c83b2f94a711e05e5515429">FIELD_OFFSET</a>(type,  field)&#160;&#160;&#160;((long)&amp;(((type*)0)-&gt;field))</td></tr>
+<tr class="separator:a604ba97a2c83b2f94a711e05e5515429"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Macro Definition Documentation</h2>
-<a id="abf28f80e90bef143796d9dfcf34dd239"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abf28f80e90bef143796d9dfcf34dd239">&#9670;&nbsp;</a></span>C_ASSERT</h2>
+<a id="a604ba97a2c83b2f94a711e05e5515429"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a604ba97a2c83b2f94a711e05e5515429">&#9670;&nbsp;</a></span>FIELD_OFFSET</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">#define C_ASSERT</td>
+          <td class="memname">#define FIELD_OFFSET</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname">e</td><td>)</td>
-          <td>&#160;&#160;&#160;typedef char __C_ASSERT__[(e) ? 1 : -1]</td>
+          <td class="paramname">type, </td>
         </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<h2 class="groupheader">Function Documentation</h2>
-<a id="ab316856b9d3820985e349a72c4693cac"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab316856b9d3820985e349a72c4693cac">&#9670;&nbsp;</a></span>C_ASSERT()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
         <tr>
-          <td class="memname">C_ASSERT </td>
-          <td>(</td>
-          <td class="paramtype">sizeof(struct <a class="el" href="structtcphdr.html">tcphdr</a>)&#160;</td>
-          <td class="paramname"> = <code>=20</code></td><td>)</td>
+          <td class="paramkey"></td>
           <td></td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">field&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td>&#160;&#160;&#160;((long)&amp;(((type*)0)-&gt;field))</td>
         </tr>
       </table>
 </div><div class="memdoc">
