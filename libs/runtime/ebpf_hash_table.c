@@ -107,7 +107,7 @@ _ebpf_rol(uint32_t value, size_t count)
  * @param[in] seed Seed to randomize hash.
  * @return Hash of key.
  */
-static unsigned long
+static __forceinline unsigned long
 _ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t length_in_bits, uint32_t seed)
 {
     uint32_t c1 = 0xcc9e2d51;
@@ -156,6 +156,30 @@ _ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t
     return hash;
 }
 
+static __forceinline unsigned long
+_ebpf_hash_uint8_t(uint8_t key, uint32_t seed)
+{
+    return (uint32_t)XXH3_64bits_withSeed(&key, sizeof(key), seed);
+}
+
+static __forceinline unsigned long
+_ebpf_hash_uint16_t(uint16_t key, uint32_t seed)
+{
+    return (uint32_t)XXH3_64bits_withSeed(&key, sizeof(key), seed);
+}
+
+static __forceinline unsigned long
+_ebpf_hash_uint32_t(uint32_t key, uint32_t seed)
+{
+    return (uint32_t)XXH3_64bits_withSeed(&key, sizeof(key), seed);
+}
+
+static __forceinline unsigned long
+_ebpf_hash_uint64_t(uint64_t key, uint32_t seed)
+{
+    return (uint32_t)XXH3_64bits_withSeed(&key, sizeof(key), seed);
+}
+
 /**
  * @brief Given two potentially non-comparable key values, extract the key and
  * compare them.
@@ -167,7 +191,7 @@ _ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t
  * @retval 0 if key_a == key_b
  * @retval 1 if key_a > key_b
  */
-static int
+static __forceinline int
 _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key_a, _In_ const uint8_t* key_b)
 {
     size_t length_a_in_bits;
@@ -191,7 +215,22 @@ _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const ui
     if (length_a_in_bits > length_b_in_bits) {
         return 1;
     }
-    int cmp_result = memcmp(data_a, data_b, length_a_in_bits / 8);
+    int cmp_result = 0;
+    // Special case common key sizes.
+    switch (length_a_in_bits) {
+    case 8:
+        return (uint8_t)*data_a - (uint8_t)*data_b;
+    case 16:
+        return (uint16_t) * (uint16_t*)data_a - (uint16_t) * (uint16_t*)data_b;
+    case 32:
+        return (uint32_t) * (uint32_t*)data_a - (uint32_t) * (uint32_t*)data_b;
+    case 64:
+        return (uint32_t)((uint64_t) * (uint64_t*)data_a - (uint64_t) * (uint64_t*)data_b);
+    default:
+        cmp_result = memcmp(data_a, data_b, length_a_in_bits / 8);
+        break;
+    }
+
     // No match or length ends on a byte boundary.
     if (cmp_result != 0 || length_a_in_bits % 8 == 0) {
         return cmp_result;
@@ -218,7 +257,8 @@ _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const ui
  * @param[in] key Key to hash.
  * @return Bucket index.
  */
-static uint32_t
+
+static __forceinline uint32_t
 _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
     size_t length;
@@ -228,7 +268,23 @@ _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, 
         hash_table->extract(key, &data, &length);
         hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
     } else {
-        hash_value = (uint32_t)(XXH3_64bits_withSeed(key, hash_table->key_size, hash_table->seed));
+        switch (hash_table->key_size) {
+        case 1:
+            hash_value = (uint32_t)_ebpf_hash_uint8_t(*key, hash_table->seed);
+            break;
+        case 2:
+            hash_value = (uint32_t)_ebpf_hash_uint16_t(*(uint16_t*)key, hash_table->seed);
+            break;
+        case 4:
+            hash_value = (uint32_t)_ebpf_hash_uint32_t(*(uint32_t*)key, hash_table->seed);
+            break;
+        case 8:
+            hash_value = (uint32_t)_ebpf_hash_uint64_t(*(uint64_t*)key, hash_table->seed);
+            break;
+        default:
+            hash_value = (uint32_t)(XXH3_64bits_withSeed(key, hash_table->key_size, hash_table->seed));
+            break;
+        }
     }
 
     return hash_value & hash_table->bucket_count_mask;
@@ -242,7 +298,8 @@ _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, 
  * @param [in] index Index into the bucket.
  * @return Pointer to the ebpf_hash_bucket_entry_t.
  */
-static ebpf_hash_bucket_entry_t*
+
+static __forceinline ebpf_hash_bucket_entry_t*
 _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_header_t* bucket, size_t index)
 {
     uint8_t* offset = (uint8_t*)bucket->entries;
