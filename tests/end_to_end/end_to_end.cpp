@@ -3570,6 +3570,7 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    INITIALIZE_SAMPLE_CONTEXT
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
     program_info_provider_t sample_program_info;
@@ -3580,10 +3581,8 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
     const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "test_sample_implicit_helpers_um.dll"
                                                                       : "test_sample_implicit_helpers.o";
 
-    // Empty context (not used by the eBPF program).
-    sample_program_context_t ctx{0};
-    ctx.helper_data_1 = data1;
-    ctx.helper_data_2 = data2;
+    ctx->helper_data_1 = data1;
+    ctx->helper_data_2 = data2;
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_test_sample_ebpf_object;
@@ -3608,7 +3607,7 @@ _implicit_context_helpers_test(ebpf_execution_type_t execution_type)
 
     // Program should run.
     uint32_t hook_result = MAXUINT32;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 42);
 
     // Read the output_map and check the values.
