@@ -4,8 +4,12 @@
 #include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_random.h"
+#pragma warning(push)
+#pragma warning(disable : 26451) // Arithmetic overflow: Using operator '<<' on a 4 byte value then casting the result
+                                 // to a 8 byte value.
 #define XXH_INLINE_ALL
 #include "xxhash.h"
+#pragma warning(pop)
 
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
