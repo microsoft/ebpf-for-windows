@@ -3236,13 +3236,6 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     extension_reload_test_common(file_name, execution_type);
 }
 
-static void
-extension_reload_test(ebpf_execution_type_t execution_type)
-{
-    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
-    extension_reload_test_common(file_name, execution_type);
-}
-
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
 
 static void
