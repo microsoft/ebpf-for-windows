@@ -510,17 +510,17 @@ _ebpf_map_lookup_element_batch_helper(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_handle_t map_handle;
-    uint32_t key_size_u32;
-    uint32_t value_size_u32;
-    uint32_t max_entries_u32;
-    uint32_t type;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    uint32_t key_size_u32 = 0;
+    uint32_t value_size_u32 = 0;
+    uint32_t max_entries_u32 = 0;
+    uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
     size_t input_count = *count;
     size_t count_returned = 0;
-    size_t max_entries_per_batch;
-    size_t key_size;
-    size_t value_size;
+    size_t max_entries_per_batch = 0;
+    size_t key_size = 0;
+    size_t value_size = 0;
 
     const uint8_t* previous_key = reinterpret_cast<const uint8_t*>(in_batch);
 
@@ -556,6 +556,10 @@ _ebpf_map_lookup_element_batch_helper(
     if (key_size == 0 || value_size == 0 || input_count == 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
+    }
+
+    if (BPF_MAP_TYPE_PER_CPU(type)) {
+        value_size = EBPF_PAD_8(value_size) * libbpf_num_possible_cpus();
     }
 
     // Compute the maximum number of entries that can be updated in a single batch.
@@ -778,9 +782,8 @@ _update_map_element_batch(
                 uint8_t* source_value = (uint8_t*)value + (key_index + index) * value_size;
                 uint8_t* destination_key = request->data + index * (key_size + value_size);
                 uint8_t* destination_value = request->data + index * (key_size + value_size) + key_size;
-                if (key_size > 0) {
-                    std::copy(source_key, source_key + key_size, destination_key);
-                }
+
+                std::copy(source_key, source_key + key_size, destination_key);
                 std::copy(source_value, source_value + value_size, destination_value);
             }
 
@@ -906,15 +909,15 @@ ebpf_map_update_element_batch(
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_handle_t map_handle;
-    uint32_t key_size_u32;
-    uint32_t value_size_u32;
-    uint32_t max_entries_u32;
-    size_t key_size;
-    size_t value_size;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    uint32_t key_size_u32 = 0;
+    uint32_t value_size_u32 = 0;
+    uint32_t max_entries_u32 = 0;
+    size_t key_size = 0;
+    size_t value_size = 0;
     size_t input_count = *count;
 
-    uint32_t type;
+    uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
     ebpf_assert(values);
     if (map_fd <= 0) {
@@ -4329,7 +4332,7 @@ CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_subscribe(
-    fd_t ring_buffer_map_fd,
+    fd_t map_fd,
     _Inout_opt_ void* sample_callback_context,
     ring_buffer_sample_fn sample_callback,
     _Outptr_ ring_buffer_subscription_t** subscription) NO_EXCEPT_TRY
@@ -4343,22 +4346,41 @@ ebpf_ring_buffer_map_subscribe(
 
         ebpf_result_t result = EBPF_SUCCESS;
 
+        uint32_t key_size = 0;
+        uint32_t value_size = 0;
+        uint32_t max_entries = 0;
+        uint32_t type;
+
+        ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
+        if (map_handle == ebpf_handle_invalid) {
+            result = EBPF_INVALID_FD;
+            EBPF_RETURN_RESULT(result);
+        }
+
+        result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+
+        if (type != BPF_MAP_TYPE_RINGBUF) {
+            result = EBPF_INVALID_ARGUMENT;
+            EBPF_LOG_MESSAGE_ERROR(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ring_buffer__new API is called on a map that is not of the ring buffer type.",
+                result);
+            EBPF_RETURN_RESULT(result);
+        }
+
         *subscription = nullptr;
 
         ebpf_ring_buffer_subscription_ptr local_subscription = std::make_unique<ebpf_ring_buffer_subscription_t>();
 
         local_subscription->ring_buffer_map_handle = ebpf_handle_invalid;
 
-        // Get the handle to ring buffer map.
-        ebpf_handle_t ring_buffer_map_handle = _get_handle_from_file_descriptor(ring_buffer_map_fd);
-        if (ring_buffer_map_handle == ebpf_handle_invalid) {
-            result = EBPF_INVALID_FD;
-            EBPF_RETURN_RESULT(result);
-        }
-
         if (!Platform::DuplicateHandle(
                 reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
-                ring_buffer_map_handle,
+                map_handle,
                 reinterpret_cast<ebpf_handle_t>(GetCurrentProcess()),
                 &local_subscription->ring_buffer_map_handle,
                 0,
@@ -4423,6 +4445,62 @@ ebpf_ring_buffer_map_subscribe(
     } catch (const std::bad_alloc&) {
         return EBPF_NO_MEMORY;
     }
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    ebpf_protocol_buffer_t request_buffer;
+    ebpf_operation_ring_buffer_map_write_data_request_t* request;
+
+    if (!data || !data_length) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    try {
+        uint32_t key_size = 0;
+        uint32_t value_size = 0;
+        uint32_t max_entries = 0;
+        uint32_t type;
+
+        map_handle = _get_handle_from_file_descriptor(map_fd);
+        if (map_handle == ebpf_handle_invalid) {
+            result = EBPF_INVALID_FD;
+            EBPF_RETURN_RESULT(result);
+        }
+
+        result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+
+        if (type != BPF_MAP_TYPE_RINGBUF) {
+            result = EBPF_INVALID_ARGUMENT;
+            EBPF_LOG_MESSAGE_ERROR(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_ring_buffer_map_write API is called on a map that is not of the ring buffer type.",
+                result);
+            EBPF_RETURN_RESULT(result);
+        }
+
+        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data) + data_length);
+        request = reinterpret_cast<_ebpf_operation_ring_buffer_map_write_data_request*>(request_buffer.data());
+        request->header.length = static_cast<uint16_t>(request_buffer.size());
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_WRITE_DATA;
+        request->map_handle = (uint64_t)map_handle;
+        std::copy((uint8_t*)data, (uint8_t*)data + data_length, request->data);
+
+        result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
+    } catch (const std::bad_alloc&) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
+    EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
