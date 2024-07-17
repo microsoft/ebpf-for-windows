@@ -1347,6 +1347,11 @@ TEST_CASE("Test program order", "[native_tests]")
             "multiple_programs.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
     // Get all 4 programs in the native object, and invoke them using bpf_prog_test_run.
+    //
+    // If there is a mismatch in the sorting order of bpf2c and ebpfapi, the 4 eBPF programs
+    // in this object file will be initialized with wrong handles. That will cause wrong programs
+    // to be invoked when bpf_prog_test_run is called. Since each program returns a different value,
+    // we can validate that the correct / expected program was invoked by checking the return value.
     for (uint32_t i = 0; i < program_count; i++) {
         bpf_test_run_opts opts = {};
         bind_md_t ctx = {};
