@@ -48,6 +48,9 @@ typedef struct _ebpf_core_object_map
 // Fewer partitions will result in more contention on the lock, but more partitions will consume more memory.
 #define EBPF_LRU_MAXIMUM_PARTITIONS 8
 
+// Limit maximum map allocation size to 128GB.
+#define EBPF_MAP_MAXIMUM_ALLOCATION (((uint64_t)1) << 37)
+
 /**
  * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
  * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
@@ -200,6 +203,14 @@ typedef struct _ebpf_core_lpm_map
     // Bitmap of prefix lengths inserted into the map.
     uint64_t data[1];
 } ebpf_core_lpm_map_t;
+
+typedef struct _ebpf_core_lpm_key
+{
+    // Length of the prefix in bits.
+    uint32_t prefix_length;
+    // The prefix starts from prefix[0] and is prefix_length bits long.
+    uint8_t prefix[1];
+} ebpf_core_lpm_key_t;
 
 typedef struct _ebpf_core_ring_buffer_map
 {
@@ -415,6 +426,12 @@ _create_array_map_with_map_struct_size(
     size_t full_map_size;
     retval = ebpf_safe_size_t_add(EBPF_PAD_CACHE(map_struct_size), map_data_size, &full_map_size);
     if (retval != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    // Prevent allocation larger than 128GB (default maximum non-paged pool size).
+    if (full_map_size > EBPF_MAP_MAXIMUM_ALLOCATION) {
+        retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
@@ -1726,7 +1743,7 @@ static ebpf_result_t
 _next_hash_map_key_and_value(
     _Inout_ ebpf_core_map_t* map,
     _In_opt_ const uint8_t* previous_key,
-    _Out_ uint8_t* next_key,
+    _Inout_ uint8_t* next_key,
     _Inout_opt_ uint8_t** next_value)
 {
     ebpf_result_t result;
@@ -1795,9 +1812,10 @@ _update_entry_per_cpu(
 static void
 _lpm_extract(_In_ const uint8_t* value, _Outptr_ const uint8_t** data, _Out_ size_t* length_in_bits)
 {
-    uint32_t prefix_length = *(uint32_t*)value;
+    const ebpf_core_lpm_key_t* key = (const ebpf_core_lpm_key_t*)value;
     *data = value;
-    *length_in_bits = sizeof(uint32_t) * 8 + prefix_length;
+    // The length of the hash table key is the size of the prefix length (32 bits) plus the prefix length.
+    *length_in_bits = sizeof(uint32_t) * 8 + key->prefix_length;
 }
 
 static ebpf_result_t
@@ -1807,7 +1825,9 @@ _create_lpm_map(
     _Outptr_ ebpf_core_map_t** map)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8 + 1;
+    // Key is uint32_t prefix length plus space for a max length prefix.
+    // - Only the prefix length plus prefix_length bits are actually used in an lpm key.
+    size_t max_prefix_length = (map_definition->key_size - sizeof(uint32_t)) * 8;
     ebpf_core_lpm_map_t* lpm_map = NULL;
 
     EBPF_LOG_ENTRY();
@@ -1820,7 +1840,7 @@ _create_lpm_map(
     }
 
     result = _create_hash_map_internal(
-        EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length),
+        EBPF_OFFSET_OF(ebpf_core_lpm_map_t, data) + ebpf_bitmap_size(max_prefix_length + 1),
         map_definition,
         0,
         false,
@@ -1831,7 +1851,8 @@ _create_lpm_map(
         goto Exit;
     }
     lpm_map->max_prefix = (uint32_t)max_prefix_length;
-    ebpf_bitmap_initialize((ebpf_bitmap_t*)lpm_map->data, max_prefix_length);
+    // Add one to max_prefix_length to account for max length prefixes in the prefix_length bitmap.
+    ebpf_bitmap_initialize((ebpf_bitmap_t*)lpm_map->data, max_prefix_length + 1);
 
     *map = &lpm_map->core_map;
 
@@ -1848,24 +1869,28 @@ _find_lpm_map_entry(
     }
 
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
-    uint32_t* prefix_length = (uint32_t*)key;
-    uint32_t original_prefix_length = *prefix_length;
-    uint8_t* value = NULL;
-
-    if (original_prefix_length > trie_map->max_prefix) {
+    ebpf_core_lpm_key_t* lpm_key = (ebpf_core_lpm_key_t*)key;
+    if (!lpm_key || lpm_key->prefix_length > trie_map->max_prefix) {
         return EBPF_INVALID_ARGUMENT;
     }
+    uint32_t original_prefix_length = lpm_key->prefix_length;
+    uint8_t* value = NULL;
 
     ebpf_bitmap_cursor_t cursor;
-    ebpf_bitmap_start_reverse_search((ebpf_bitmap_t*)trie_map->data, &cursor);
-    while (*prefix_length != MAXUINT32) {
-        *prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
+    // Start the key size search from the size of the passed in key.
+    // Iterate down through the inserted key lengths until we find a match.
+    // - Uses the passed in key for iteration by overwriting the prefix length.
+    ebpf_bitmap_start_reverse_search_at((ebpf_bitmap_t*)trie_map->data, &cursor, original_prefix_length);
+    lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
+    while (lpm_key->prefix_length != MAXUINT32) {
         if (_find_hash_map_entry(map, key, false, &value) == EBPF_SUCCESS) {
             break;
         }
+        lpm_key->prefix_length = (uint32_t)ebpf_bitmap_reverse_search_next_bit(&cursor);
     }
-    *prefix_length = original_prefix_length;
 
+    // Restore the original prefix length.
+    lpm_key->prefix_length = original_prefix_length;
     if (!value) {
         return EBPF_KEY_NOT_FOUND;
     } else {
@@ -1894,16 +1919,16 @@ _update_lpm_map_entry(
     if (!key) {
         return EBPF_INVALID_ARGUMENT;
     }
-    uint32_t prefix_length = *(uint32_t*)key;
-    if (prefix_length > trie_map->max_prefix) {
+    ebpf_core_lpm_key_t* lpm_key = (ebpf_core_lpm_key_t*)key;
+    if (lpm_key->prefix_length > trie_map->max_prefix) {
         return EBPF_INVALID_ARGUMENT;
     }
 
     ebpf_result_t result = _update_hash_map_entry(map, key, data, option);
     if (result == EBPF_SUCCESS) {
         // Test if the bit is set before setting it. This avoids the overhead of a the interlocked operation.
-        if (!ebpf_bitmap_test_bit((ebpf_bitmap_t*)trie_map->data, prefix_length)) {
-            ebpf_bitmap_set_bit((ebpf_bitmap_t*)trie_map->data, prefix_length, true);
+        if (!ebpf_bitmap_test_bit((ebpf_bitmap_t*)trie_map->data, lpm_key->prefix_length)) {
+            ebpf_bitmap_set_bit((ebpf_bitmap_t*)trie_map->data, lpm_key->prefix_length, true);
         }
     }
     return result;
@@ -1913,15 +1938,14 @@ static ebpf_result_t
 _next_lpm_map_key_and_value(
     _Inout_ ebpf_core_map_t* map,
     _In_opt_ const uint8_t* previous_key,
-    _Out_ uint8_t* next_key,
+    _Inout_ uint8_t* next_key,
     _Inout_opt_ uint8_t** next_value)
 {
-    // Validate prefix length.
-
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
-    uint32_t* prefix_length = (uint32_t*)previous_key;
+    ebpf_core_lpm_key_t* lpm_key = (ebpf_core_lpm_key_t*)next_key;
 
-    if (prefix_length && (*prefix_length > trie_map->max_prefix)) {
+    // Validate prefix length.
+    if (!lpm_key || lpm_key->prefix_length > trie_map->max_prefix) {
         return EBPF_INVALID_ARGUMENT;
     }
 
