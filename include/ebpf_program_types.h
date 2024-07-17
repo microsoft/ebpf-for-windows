@@ -73,6 +73,17 @@ typedef void (*ebpf_program_context_destroy_t)(
     _Out_writes_bytes_to_opt_(*context_size_out, *context_size_out) uint8_t* context_out,
     _Inout_ size_t* context_size_out);
 
+#pragma warning(push)
+#pragma warning(disable : 4201) // nonstandard extension used: nameless struct/union
+typedef union _program_data_capabilities
+{
+    uint32_t value;
+    struct
+    {
+        bool supports_context_header : 1; // Program supports context header.
+    };
+} program_data_capabilities_t;
+
 // This is the type definition for the eBPF program data
 // when version is EBPF_PROGRAM_DATA_CURRENT_VERSION.
 typedef struct _ebpf_program_data
@@ -87,7 +98,12 @@ typedef struct _ebpf_program_data
     ebpf_program_context_create_t context_create;   ///< Pointer to context create function.
     ebpf_program_context_destroy_t context_destroy; ///< Pointer to context destroy function.
     uint8_t required_irql;                          ///< IRQL at which the program is invoked.
+    program_data_capabilities_t capabilities;       ///< Capabilities supported by the program information provider.
 } ebpf_program_data_t;
+#pragma warning(pop)
+
+static_assert(
+    EBPF_FIELD_SIZE(ebpf_program_data_t, capabilities) == sizeof(uint32_t), "Size of capabilities is 32 bits.");
 
 // This is the type definition for the eBPF program section information
 // when version is EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION.
