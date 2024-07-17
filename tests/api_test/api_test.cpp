@@ -1346,7 +1346,7 @@ TEST_CASE("Test program order", "[native_tests]")
         _program_load_helper(
             "multiple_programs.sys", BPF_PROG_TYPE_SAMPLE, EBPF_EXECUTION_NATIVE, &object, &program_fd) == 0);
 
-    // Get all the 4 programs in the native object, and invoke them using bpf_prog_test_run.
+    // Get all 4 programs in the native object, and invoke them using bpf_prog_test_run.
     for (uint32_t i = 0; i < program_count; i++) {
         bpf_test_run_opts opts = {};
         bind_md_t ctx = {};
