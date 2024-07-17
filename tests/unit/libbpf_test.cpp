@@ -3423,7 +3423,8 @@ TEST_CASE("bind_tail_call_max_exceed", "[libbpf]")
 }
 
 void
-_test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts)
+_test_batch_iteration_maps(
+    fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts* opts, size_t value_size, int num_of_cpus)
 {
     // Retrieve in batches.
     const uint8_t batch_size_divisor = 10;
@@ -3431,13 +3432,17 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
     uint32_t out_batch = 0;
     std::vector<uint32_t> returned_keys(0);
     std::vector<uint64_t> returned_values(0);
-    uint32_t requested_batch_size = (batch_size / batch_size_divisor) - 2;
+    int32_t requested_batch_size = (batch_size / batch_size_divisor) - 2;
     uint32_t batch_size_count = 0;
     int result = 0;
 
+    if (requested_batch_size <= 0) {
+        requested_batch_size = 1;
+    }
+
     for (;;) {
-        std::vector<uint32_t> batch_keys(requested_batch_size);
-        std::vector<uint64_t> batch_values(requested_batch_size);
+        std::vector<uint32_t> batch_keys(requested_batch_size, 0);
+        std::vector<uint64_t> batch_values(requested_batch_size * value_size, 0);
 
         batch_size_count = static_cast<uint32_t>(batch_keys.size());
         result = bpf_map_lookup_batch(
@@ -3450,10 +3455,10 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
         REQUIRE(result == 0);
         // Number of entries retrieved (batch_size_count) should be less than or equal to requested_batch_size.
         REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_keys.size()));
-        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_values.size()));
+        REQUIRE(batch_size_count <= static_cast<uint32_t>(batch_values.size()) / value_size);
 
         batch_keys.resize(batch_size_count);
-        batch_values.resize(batch_size_count);
+        batch_values.resize(batch_size_count * value_size);
         returned_keys.insert(returned_keys.end(), batch_keys.begin(), batch_keys.end());
         returned_values.insert(returned_values.end(), batch_values.begin(), batch_values.end());
 
@@ -3461,15 +3466,21 @@ _test_batch_iteration_maps(fd_t& map_fd, uint32_t batch_size, bpf_map_batch_opts
     }
 
     REQUIRE(returned_keys.size() == batch_size);
-    REQUIRE(returned_values.size() == batch_size);
-
-    std::sort(returned_keys.begin(), returned_keys.end());
-    std::sort(returned_values.begin(), returned_values.end());
+    REQUIRE(returned_values.size() == batch_size * value_size);
 
     // Verify the returned keys and values.
+    uint32_t key = 0;
+    for (uint32_t i = 0; i < batch_size; i++) {
+        key = returned_keys[i];
+        for (int cpu = 0; cpu < num_of_cpus; cpu++) {
+            REQUIRE(returned_values[(i * value_size) + cpu] == static_cast<uint64_t>(key) * 2ul);
+        }
+    }
+    // Hash maps do not guarantee order of keys.
+    // The keys in the returned_keys vector should be in the range [0, batch_size-1].
+    std::sort(returned_keys.begin(), returned_keys.end());
     for (uint32_t i = 0; i < batch_size; i++) {
         REQUIRE(returned_keys[i] == i);
-        REQUIRE(returned_values[i] == static_cast<uint64_t>(i) * 2ul);
     }
 }
 
@@ -3478,6 +3489,25 @@ _test_maps_batch(bpf_map_type map_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
+    int num_of_cpus = 1;
+    size_t value_size = 1;
+
+    if (BPF_MAP_TYPE_PER_CPU(map_type)) {
+        // Get the number of possible CPUs that the host kernel supports and expects.
+        num_of_cpus = libbpf_num_possible_cpus();
+        REQUIRE(num_of_cpus > 0);
+
+        // The value size is the size of the value multiplied by the number of CPUs.
+        // Also, the value size should be closest 8-byte aligned.
+        //       value_size = EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus
+        //
+        // If you use vector<uint8_t> to initialize the values, then use
+        //       value_size = EBPF_PAD_8(sizeof(uint8_t)) * num_of_cpus
+        //       vector<uint8_t> values(batch_size * value_size);
+        //
+        // In this test case, we use vector<uint64_t> to initialize the values, which is already 8-byte aligned.
+        value_size = num_of_cpus;
+    }
 
     // Create a hash map.
     union bpf_attr attr = {};
@@ -3491,10 +3521,13 @@ _test_maps_batch(bpf_map_type map_type)
 
     uint32_t batch_size = 20000;
     std::vector<uint32_t> keys(batch_size);
-    std::vector<uint64_t> values(batch_size);
+    std::vector<uint64_t> values(batch_size * value_size);
     for (uint32_t i = 0; i < batch_size; i++) {
         keys[i] = i;
-        values[i] = static_cast<uint64_t>(i) * 2ul;
+        // Populate the value.
+        for (int cpu = 0; cpu < num_of_cpus; cpu++) {
+            values[(i * value_size) + cpu] = static_cast<uint64_t>(i) * 2ul;
+        }
     }
 
     // Update the map with the batch.
@@ -3509,7 +3542,7 @@ _test_maps_batch(bpf_map_type map_type)
     // Fetch the batch.
     uint32_t fetched_batch_size = batch_size;
     std::vector<uint32_t> fetched_keys(batch_size);
-    std::vector<uint64_t> fetched_values(batch_size);
+    std::vector<uint64_t> fetched_values(batch_size * value_size);
     uint32_t next_key = 0;
     opts.elem_flags = 0;
 
@@ -3539,7 +3572,7 @@ _test_maps_batch(bpf_map_type map_type)
             &opts) == -ENOENT);
 
     // Fetch all keys in batches.
-    _test_batch_iteration_maps(map_fd, batch_size, &opts);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
 
     // Delete the batch.
     uint32_t delete_batch_size = batch_size;
@@ -3626,6 +3659,10 @@ _test_maps_batch(bpf_map_type map_type)
 TEST_CASE("libbpf hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_HASH); }
 
 TEST_CASE("libbpf lru hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_HASH); }
+
+TEST_CASE("libbpf percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_PERCPU_HASH); }
+
+TEST_CASE("libbpf lru percpu hash map batch", "[libbpf]") { _test_maps_batch(BPF_MAP_TYPE_LRU_PERCPU_HASH); }
 
 void
 _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)

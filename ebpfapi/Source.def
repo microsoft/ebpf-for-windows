@@ -127,6 +127,7 @@ EXPORTS
     ebpf_program_attach
     ebpf_program_attach_by_fd
     ebpf_program_query_info
+    ebpf_ring_buffer_map_write
     ebpf_store_delete_program_information
     ebpf_store_delete_section_information
     ebpf_store_update_program_information_array
