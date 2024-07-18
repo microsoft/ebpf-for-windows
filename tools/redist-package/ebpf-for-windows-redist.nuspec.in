@@ -25,6 +25,8 @@
 		<file src="ebpfapi.pdb" target="package\bin"/>
 		<file src="ebpfnetsh.dll" target="package\bin"/>
 		<file src="ebpfnetsh.pdb" target="package\bin"/>
+		<file src="export_program_info.exe" target="package\bin"/>
+		<file src="export_program_info.pdb" target="package\bin"/>
 		<!--eBPF drivers-->
 		<file src="eBPFCore.sys" target="package\bin\drivers"/>
 		<file src="eBPFCore.pdb" target="package\bin\drivers"/>

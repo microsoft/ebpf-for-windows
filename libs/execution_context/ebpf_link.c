@@ -651,7 +651,7 @@ _ebpf_link_instance_invoke_with_context_header(
 
     return_value = _ebpf_link_instance_invoke_batch_with_context_header(
         extension_client_binding_context, program_context, result, &state);
-    (void)_ebpf_link_instance_invoke_batch_end(&state);
+    (void)_ebpf_link_instance_invoke_batch_end_with_context_header(&state);
 
 Done:
     return return_value;
