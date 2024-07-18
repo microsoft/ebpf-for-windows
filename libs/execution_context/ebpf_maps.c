@@ -388,6 +388,13 @@ typedef struct _ebpf_map_metadata_table
 
 const ebpf_map_metadata_table_t ebpf_map_metadata_tables[];
 
+// ebpf_map_get_table(type) - get the metadata table for the given map type.
+//
+// type is checked on map creation and not user writeable, so in release mode we don't need to check it.
+// In debug mode, we assert that the type is within the table bounds.
+static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
+ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type);
+
 const ebpf_map_definition_in_memory_t*
 ebpf_map_get_definition(_In_ const ebpf_map_t* map)
 {
@@ -1565,6 +1572,8 @@ _update_hash_map_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
     // If the map is full, try to delete the oldest entry and try again.
     // Repeat while the insert fails with EBPF_NO_MEMORY.
     for (;;) {
@@ -1574,7 +1583,7 @@ _update_hash_map_entry(
         }
 
         // If this is not an LRU map, break.
-        if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].key_history)) {
+        if (!(table->key_history)) {
             break;
         }
 
@@ -1741,7 +1750,7 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
 
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
+    if (!(ebpf_map_get_table(map->ebpf_map_definition.type)->per_cpu)) {
         return EBPF_SUCCESS;
     }
 
@@ -1770,15 +1779,15 @@ _Must_inspect_result_ ebpf_result_t
 _update_entry_per_cpu(
     _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
 {
+
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
     uint8_t* target;
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, key, false, &target) != EBPF_SUCCESS) {
-        ebpf_result_t return_value =
-            ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, key, NULL, option);
+    if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
+        ebpf_result_t return_value = table->update_entry(map, key, NULL, option);
         if (return_value != EBPF_SUCCESS) {
             return return_value;
         }
-        if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, key, false, &target) !=
-            EBPF_SUCCESS) {
+        if (table->find_entry(map, key, false, &target) != EBPF_SUCCESS) {
             return EBPF_NO_MEMORY;
         }
     }
@@ -2369,6 +2378,17 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
     },
 };
 
+// ebpf_map_get_table(type) - get the metadata table for the given map type.
+//
+// type is checked on map creation and not user writeable, so in release mode we don't need to check it.
+// In debug mode, we assert that the type is within the table bounds.
+static inline _Ret_notnull_ const ebpf_map_metadata_table_t*
+ebpf_map_get_table(_In_range_(0, EBPF_COUNT_OF(ebpf_map_metadata_tables) - 1) const ebpf_map_type_t type)
+{
+    ebpf_assert(type < EBPF_COUNT_OF(ebpf_map_metadata_tables));
+    return &ebpf_map_metadata_tables[type];
+}
+
 static void
 _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
 {
@@ -2376,7 +2396,7 @@ _ebpf_map_delete(_In_ _Post_invalid_ ebpf_core_object_t* object)
     ebpf_map_t* map = (ebpf_map_t*)object;
 
     ebpf_free(map->name.value);
-    ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_map(map);
+    ebpf_map_get_table(map->ebpf_map_definition.type)->delete_map(map);
     EBPF_RETURN_VOID();
 }
 
@@ -2395,20 +2415,22 @@ ebpf_map_create(
     cpu_count = ebpf_get_cpu_count();
     ebpf_map_definition_in_memory_t local_map_definition = *ebpf_map_definition;
 
-    if (type >= EBPF_COUNT_OF(ebpf_map_metadata_tables)) {
+    if (type < 0 || type >= EBPF_COUNT_OF(ebpf_map_metadata_tables)) {
         EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Unsupported map type", type);
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
 
-    ebpf_assert(type == ebpf_map_metadata_tables[type].map_type);
-    ebpf_assert(BPF_MAP_TYPE_PER_CPU(type) == !!(ebpf_map_metadata_tables[type].per_cpu));
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(type);
 
-    if (ebpf_map_definition->key_size == 0 && !(ebpf_map_metadata_tables[type].zero_length_key)) {
+    ebpf_assert(type == table->map_type);
+    ebpf_assert(BPF_MAP_TYPE_PER_CPU(type) == !!(table->per_cpu));
+
+    if (ebpf_map_definition->key_size == 0 && !(table->zero_length_key)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
-    if (ebpf_map_definition->value_size == 0 && !(ebpf_map_metadata_tables[type].zero_length_value)) {
+    if (ebpf_map_definition->value_size == 0 && !(table->zero_length_value)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -2417,7 +2439,7 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (ebpf_map_metadata_tables[type].per_cpu) {
+    if (table->per_cpu) {
         local_map_definition.value_size = cpu_count * EBPF_PAD_8(local_map_definition.value_size);
     }
 
@@ -2428,16 +2450,17 @@ ebpf_map_create(
         goto Exit;
     }
 
-    if (!ebpf_map_metadata_tables[type].create_map) {
+    if (table->create_map == NULL) {
         EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Unsupported map type", type);
         result = EBPF_OPERATION_NOT_SUPPORTED;
         goto Exit;
     }
 
-    result = ebpf_map_metadata_tables[type].create_map(&local_map_definition, inner_map_handle, &local_map);
+    result = table->create_map(&local_map_definition, inner_map_handle, &local_map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+    ebpf_assert(type == local_map->ebpf_map_definition.type);
 
     local_map->original_value_size = ebpf_map_definition->value_size;
 
@@ -2446,7 +2469,6 @@ ebpf_map_create(
         goto Exit;
     }
 
-    const ebpf_map_metadata_table_t* table = &ebpf_map_metadata_tables[local_map->ebpf_map_definition.type];
     ebpf_object_get_program_type_t get_program_type = (table->get_object_from_entry) ? _get_map_program_type : NULL;
     result = EBPF_OBJECT_INITIALIZE(&local_map->object, EBPF_OBJECT_MAP, _ebpf_map_delete, NULL, get_program_type);
     if (result != EBPF_SUCCESS) {
@@ -2495,17 +2517,16 @@ ebpf_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+    ebpf_map_type_t type = map->ebpf_map_definition.type;
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(type);
+
+    if (table->find_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_map_find_entry not supported on map",
-            map->ebpf_map_definition.type);
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "ebpf_map_find_entry not supported on map", type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_map_type_t type = map->ebpf_map_definition.type;
-    if ((flags & EBPF_MAP_FLAG_HELPER) && (ebpf_map_metadata_tables[type].get_object_from_entry != NULL)) {
+    if ((flags & EBPF_MAP_FLAG_HELPER) && (table->get_object_from_entry != NULL)) {
 
         // Disallow reads to prog array maps from this helper call for now.
         if (type == BPF_MAP_TYPE_PROG_ARRAY) {
@@ -2514,13 +2535,13 @@ ebpf_map_find_entry(
             return EBPF_INVALID_ARGUMENT;
         }
 
-        ebpf_core_object_t* object = ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
+        ebpf_core_object_t* object = table->get_object_from_entry(map, key);
         if (object) {
             return_value = (uint8_t*)object;
         }
     } else {
-        ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(
-            map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+        ebpf_result_t result =
+            table->find_entry(map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -2545,10 +2566,12 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_associate_program(_Inout_ ebpf_map_t* map, _In_ const ebpf_program_t* program)
 {
     EBPF_LOG_ENTRY();
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].associate_program) {
-        return ebpf_map_metadata_tables[map->ebpf_map_definition.type].associate_program(map, program);
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+    if (table->associate_program != NULL) {
+        return table->associate_program(map, program);
+    } else {
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
-    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 _Ret_maybenull_ ebpf_program_t*
@@ -2564,8 +2587,8 @@ ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_re
             map->ebpf_map_definition.key_size);
         return NULL;
     }
-    ebpf_map_type_t type = map->ebpf_map_definition.type;
-    if (ebpf_map_metadata_tables[type].get_object_from_entry == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+    if (table->get_object_from_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2573,7 +2596,7 @@ ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_re
             map->ebpf_map_definition.type);
         return NULL;
     }
-    return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
+    return (ebpf_program_t*)table->get_object_from_entry(map, key);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2589,7 +2612,9 @@ ebpf_map_update_entry(
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].zero_length_key) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->zero_length_key) {
         if (key_size != 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -2620,7 +2645,7 @@ ebpf_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry == NULL) {
+    if (table->update_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2630,11 +2655,10 @@ ebpf_map_update_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if ((flags & EBPF_MAP_FLAG_HELPER) &&
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
-        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value, option);
+    if ((flags & EBPF_MAP_FLAG_HELPER) && (table->update_entry_per_cpu != NULL)) {
+        result = table->update_entry_per_cpu(map, key, value, option);
     } else {
-        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, key, value, option);
+        result = table->update_entry(map, key, value, option);
     }
     return result;
 }
@@ -2658,7 +2682,9 @@ ebpf_map_update_entry_with_handle(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_with_handle == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->update_entry_with_handle == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2666,8 +2692,7 @@ ebpf_map_update_entry_with_handle(
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
-    return ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_with_handle(
-        map, key, value_handle, option);
+    return table->update_entry_with_handle(map, key, value_handle, option);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2684,7 +2709,9 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->delete_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2693,7 +2720,7 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
+    ebpf_result_t result = table->delete_entry(map, key);
     return result;
 }
 
@@ -2714,7 +2741,9 @@ ebpf_map_next_key(
             map->ebpf_map_definition.key_size);
         return EBPF_INVALID_ARGUMENT;
     }
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key_and_value == NULL) {
+
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+    if (table->next_key_and_value == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2722,8 +2751,7 @@ ebpf_map_next_key(
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
-    return ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key_and_value(
-        map, previous_key, next_key, NULL);
+    return table->next_key_and_value(map, previous_key, next_key, NULL);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2771,7 +2799,9 @@ ebpf_map_push_entry(_Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->update_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2780,7 +2810,7 @@ ebpf_map_push_entry(_Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    return ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, NULL, value, flags);
+    return table->update_entry(map, NULL, value, flags);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2791,7 +2821,9 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->find_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2800,8 +2832,7 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result =
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, NULL, true, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, true, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -2818,7 +2849,9 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->find_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2827,8 +2860,7 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result =
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, NULL, false, &return_value);
+    ebpf_result_t result = table->find_entry(map, NULL, false, &return_value);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -2858,7 +2890,9 @@ ebpf_map_get_next_key_and_value_batch(
     size_t output_length = 0;
     size_t maximum_output_length = *key_and_value_length;
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key_and_value == NULL) {
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->next_key_and_value == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2867,7 +2901,7 @@ ebpf_map_get_next_key_and_value_batch(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry == NULL) {
+    if (table->delete_entry == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2897,8 +2931,7 @@ ebpf_map_get_next_key_and_value_batch(
         uint8_t* next_value = NULL;
 
         // Get the next key and value.
-        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key_and_value(
-            map, previous_key, key_and_value + output_length, &next_value);
+        result = table->next_key_and_value(map, previous_key, key_and_value + output_length, &next_value);
 
         if (result != EBPF_SUCCESS) {
             break;
@@ -2908,7 +2941,7 @@ ebpf_map_get_next_key_and_value_batch(
 
         if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
             // If the caller requested deletion, delete the entry.
-            result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
+            result = table->delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {
                 break;
             }
