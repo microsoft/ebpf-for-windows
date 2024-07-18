@@ -602,7 +602,7 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
