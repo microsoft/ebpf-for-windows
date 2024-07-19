@@ -255,9 +255,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "          sample_ext           lookup_update     sample      295\n"
+                                        "          sample_ext           lookup_update     sample      324\n"
 #else
-                                        "          sample_ext           lookup_update     sample     1087\n"
+                                        "          sample_ext           lookup_update     sample     1126\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -307,13 +307,13 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                                             "             Section                 Program       Type  (bytes)\n"
                                             "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                            "        sample_ext/0                 callee0     sample       75\n"
+                                            "        sample_ext/0                 callee0     sample       80\n"
                                             "        sample_ext/1                 callee1     sample        6\n"
-                                            "          sample_ext                  caller     sample       73\n"
+                                            "          sample_ext                  caller     sample       78\n"
 #else
-                                            "        sample_ext/0                 callee0     sample      413\n"
+                                            "        sample_ext/0                 callee0     sample      426\n"
                                             "        sample_ext/1                 callee1     sample      190\n"
-                                            "          sample_ext                  caller     sample      413\n"
+                                            "          sample_ext                  caller     sample      426\n"
 #endif
                                             "\n"
                                             "                     Key  Value      Max\n"
@@ -339,15 +339,15 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "     cgroup/connect4      authorize_connect4  sock_addr      285\n"
-                                        "     cgroup/connect6      authorize_connect6  sock_addr      302\n"
-                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      285\n"
-                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      302\n"
+                                        "     cgroup/connect4      authorize_connect4  sock_addr      322\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr      339\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      322\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      339\n"
 #else
-                                        "     cgroup/connect4      authorize_connect4  sock_addr      860\n"
-                                        "     cgroup/connect6      authorize_connect6  sock_addr      935\n"
-                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      860\n"
-                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      935\n"
+                                        "     cgroup/connect4      authorize_connect4  sock_addr      911\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr      986\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      911\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      986\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"

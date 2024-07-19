@@ -334,7 +334,7 @@ BindMonitor(void* context)
     r1 = POINTER(_maps[3].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 131 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 131 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 131 "sample/unsafe/invalid_helpers.c"
@@ -359,7 +359,7 @@ BindMonitor(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=5
 #line 136 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 136 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_helpers[1].tail_call) && (r0 == 0)) {
 #line 136 "sample/unsafe/invalid_helpers.c"
@@ -443,7 +443,7 @@ BindMonitor_Callee0(void* context)
     r1 = POINTER(_maps[3].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 147 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 147 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/unsafe/invalid_helpers.c"
@@ -468,7 +468,7 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=5
 #line 152 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 152 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee0_helpers[1].tail_call) && (r0 == 0)) {
 #line 152 "sample/unsafe/invalid_helpers.c"
@@ -560,7 +560,7 @@ BindMonitor_Callee1(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 164 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 164 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 164 "sample/unsafe/invalid_helpers.c"
@@ -634,7 +634,7 @@ BindMonitor_Callee1(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 87 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 87 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 87 "sample/unsafe/invalid_helpers.c"
@@ -663,7 +663,7 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=999
 #line 92 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0)) {
 #line 92 "sample/unsafe/invalid_helpers.c"
@@ -737,7 +737,7 @@ label_2:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=53 dst=r0 src=r0 offset=0 imm=2
 #line 105 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 105 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee1_helpers[2].tail_call) && (r0 == 0)) {
 #line 105 "sample/unsafe/invalid_helpers.c"
@@ -752,7 +752,7 @@ label_2:
     r2 = r8;
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=1
 #line 106 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 106 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 106 "sample/unsafe/invalid_helpers.c"
@@ -913,7 +913,7 @@ label_8:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=97 dst=r0 src=r0 offset=0 imm=3
 #line 194 "sample/unsafe/invalid_helpers.c"
-    r0 = BindMonitor_Callee1_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 194 "sample/unsafe/invalid_helpers.c"
     if ((BindMonitor_Callee1_helpers[3].tail_call) && (r0 == 0)) {
 #line 194 "sample/unsafe/invalid_helpers.c"

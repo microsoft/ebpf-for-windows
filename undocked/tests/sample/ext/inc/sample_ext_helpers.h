@@ -25,6 +25,8 @@ typedef struct _sample_program_context
     uint8_t* data_end;
     uint32_t uint32_data;
     uint16_t uint16_data;
+    uint32_t helper_data_1;
+    uint32_t helper_data_2;
 } sample_program_context_t;
 
 #define SAMPLE_EXT_HELPER_FN_BASE 0xFFFF
@@ -72,4 +74,36 @@ EBPF_HELPER(
     (void* buffer, uint32_t size, int64_t position, void* replace, uint32_t arg_size));
 #ifndef __doxygen
 #define sample_ebpf_extension_replace ((sample_ebpf_extension_replace_t)SAMPLE_EXT_HELPER_FN_BASE + 3)
+#endif
+
+/**
+ * @brief Replaces bytes in input buffer with supplied replacement at given offset.
+ * @param[in] context Pointer to buffer.
+ * @param[in] size Size of buffer.
+ * @param[in] position Offset of input buffer at which replacement has to be done.
+ * @param[in] find Pointer to replacement buffer.
+ * @param[in] arg_size Length of replacement buffer.
+ * @retval 0 The operation was successful.
+ * @retval -1 An error occurred.
+ */
+EBPF_HELPER(int64_t, sample_ebpf_extension_helper_implicit_1, ());
+#ifndef __doxygen
+#define sample_ebpf_extension_helper_implicit_1 \
+    ((sample_ebpf_extension_helper_implicit_1_t)SAMPLE_EXT_HELPER_FN_BASE + 4)
+#endif
+
+/**
+ * @brief Replaces bytes in input buffer with supplied replacement at given offset.
+ * @param[in] context Pointer to buffer.
+ * @param[in] size Size of buffer.
+ * @param[in] position Offset of input buffer at which replacement has to be done.
+ * @param[in] find Pointer to replacement buffer.
+ * @param[in] arg_size Length of replacement buffer.
+ * @retval 0 The operation was successful.
+ * @retval -1 An error occurred.
+ */
+EBPF_HELPER(int64_t, sample_ebpf_extension_helper_implicit_2, (uint32_t arg));
+#ifndef __doxygen
+#define sample_ebpf_extension_helper_implicit_2 \
+    ((sample_ebpf_extension_helper_implicit_2_t)SAMPLE_EXT_HELPER_FN_BASE + 5)
 #endif
