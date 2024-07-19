@@ -155,14 +155,14 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_he
 
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context);
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context);
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context);
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context);
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
-    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ uint64_t* address);
+    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ helper_function_address_t* address);
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_initiate()
@@ -1111,14 +1111,14 @@ Done:
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    uintptr_t* helper_function_addresses = NULL;
+    helper_function_address_t* helper_function_addresses = NULL;
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
 
         // We _can_ have instances of ebpf programs that do not need to call any helper functions.
         // Such programs are valid and the 'program->helper_function_count' member for such programs will be 0 (Zero).
         if (program->helper_function_count) {
-            helper_function_addresses =
-                ebpf_allocate_with_tag(program->helper_function_count * sizeof(uintptr_t), EBPF_POOL_TAG_PROGRAM);
+            helper_function_addresses = ebpf_allocate_with_tag(
+                program->helper_function_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_PROGRAM);
             if (helper_function_addresses == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -1147,7 +1147,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context)
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(address_count);
@@ -1162,18 +1162,19 @@ _ebpf_program_update_interpret_helpers(
 
     for (index = 0; index < program->helper_function_count; index++) {
         uint32_t helper_function_id = program->helper_function_ids[index];
-        void* helper = NULL;
+        helper_function_address_t address_info = {0};
 
-        result = _ebpf_program_get_helper_function_address(program, helper_function_id, (uint64_t*)&helper);
+        result = _ebpf_program_get_helper_function_address(program, helper_function_id, &address_info);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-        if (helper == NULL) {
+        if (address_info.address == 0) {
             continue;
         }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (external_function_t)helper) < 0) {
+        if (ubpf_register(
+                program->code_or_vm.vm, (unsigned int)index, NULL, (external_function_t)address_info.address) < 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
             result = EBPF_INVALID_ARGUMENT;
@@ -1188,7 +1189,7 @@ Exit:
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context)
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context)
 {
     ebpf_result_t return_value;
     UNREFERENCED_PARAMETER(address_count);
@@ -1583,13 +1584,76 @@ ebpf_program_invoke(
     return EBPF_SUCCESS;
 }
 
+_Success_(return == true)
+    _Requires_lock_held_(program->lock) static bool _ebpf_program_get_helper_address_info_from_program_data(
+        _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_t* address)
+{
+    bool found = false;
+    const ebpf_program_data_t* program_data = program->extension_program_data;
+    const ebpf_program_data_t* general_program_data = program->general_helper_program_data;
+
+    if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
+        // First check the global helper function table of the program type for any helper functions that are
+        // overwritten.
+        for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
+            if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
+                address->address = program_data->global_helper_function_addresses->helper_function_address[index];
+                address->implicit_context = program_data->program_info->global_helper_prototype[index].implicit_context;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // Next check the general helper function table of the general program type.
+            for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
+                 index++) {
+                if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                    helper_function_id) {
+                    address->address = general_program_data->program_type_specific_helper_function_addresses
+                                           ->helper_function_address[index];
+                    // In case of helper functions that do not have any default / general implementation, the function
+                    // address will be NULL.
+                    if (address->address != 0) {
+                        address->implicit_context =
+                            general_program_data->program_info->program_type_specific_helper_prototype[index]
+                                .implicit_context;
+                        found = true;
+                    } else {
+                        EBPF_LOG_MESSAGE_UINT64(
+                            EBPF_TRACELOG_LEVEL_ERROR,
+                            EBPF_TRACELOG_KEYWORD_PROGRAM,
+                            "No override implementation found for helper ID",
+                            helper_function_id);
+                    }
+                    break;
+                }
+            }
+        }
+    } else {
+        // Check the program type specific helper function table of the program type.
+        for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers; index++) {
+            if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                helper_function_id) {
+                address->address =
+                    program_data->program_type_specific_helper_function_addresses->helper_function_address[index];
+                address->implicit_context =
+                    program_data->program_info->program_type_specific_helper_prototype[index].implicit_context;
+                found = true;
+                break;
+            }
+        }
+    }
+
+    return found;
+}
+
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
-    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ uint64_t* address)
+    _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_t* address)
 {
     ebpf_result_t return_value;
     uint64_t* function_address = NULL;
-    const ebpf_program_data_t* program_data = NULL;
-    const ebpf_program_data_t* general_program_data = NULL;
+    bool implicit_context = false;
 
     EBPF_LOG_ENTRY();
 
@@ -1608,9 +1672,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     }
     provider_data_referenced = true;
 
-    program_data = program->extension_program_data;
-    general_program_data = program->general_helper_program_data;
-
     use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
     if (use_trampoline && !program->trampoline_table) {
         EBPF_LOG_MESSAGE(
@@ -1625,60 +1686,21 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     if (use_trampoline) {
         return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
         if (return_value == EBPF_SUCCESS) {
-            found = true;
+            helper_function_address_t local_address = {0};
+            if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
+                implicit_context = local_address.implicit_context;
+                found = true;
+            }
         }
     }
 
-    if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
-        // First check the global helper function table of the program type for any helper functions that are
-        // overwritten.
-        if (!found) {
-            for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
-                if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
-                    function_address =
-                        (void*)program_data->global_helper_function_addresses->helper_function_address[index];
-                    found = true;
-                    break;
-                }
-            }
-        }
-
-        // Next check the general helper function table of the general program type.
-        if (!found) {
-            for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
-                 index++) {
-                if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
-                    helper_function_id) {
-                    function_address = (void*)general_program_data->program_type_specific_helper_function_addresses
-                                           ->helper_function_address[index];
-                    // In case of helper functions that do not have any default / general implementation, the function
-                    // address will be NULL.
-                    if (function_address != NULL) {
-                        found = true;
-                    } else {
-                        EBPF_LOG_MESSAGE_UINT64(
-                            EBPF_TRACELOG_LEVEL_ERROR,
-                            EBPF_TRACELOG_KEYWORD_PROGRAM,
-                            "No override implementation found for helper ID",
-                            helper_function_id);
-                    }
-                    break;
-                }
-            }
-        }
-    } else {
-        // Check the program type specific helper function table of the program type.
-        if (!found) {
-            for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers;
-                 index++) {
-                if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
-                    helper_function_id) {
-                    function_address = (void*)program_data->program_type_specific_helper_function_addresses
-                                           ->helper_function_address[index];
-                    found = true;
-                    break;
-                }
-            }
+    if (!found) {
+        // If the helper function is not found in the trampoline table, then get the address from the program data.
+        helper_function_address_t local_address = {0};
+        if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
+            function_address = (uint64_t*)local_address.address;
+            implicit_context = local_address.implicit_context;
+            found = true;
         }
     }
 
@@ -1687,7 +1709,8 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
         goto Done;
     }
 
-    *address = (uint64_t)function_address;
+    address->address = (uint64_t)function_address;
+    address->implicit_context = implicit_context;
 
     return_value = EBPF_SUCCESS;
 
@@ -1700,7 +1723,9 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_helper_function_addresses(
-    _In_ const ebpf_program_t* program, size_t addresses_count, _Out_writes_(addresses_count) uint64_t* addresses)
+    _In_ const ebpf_program_t* program,
+    size_t addresses_count,
+    _Out_writes_(addresses_count) helper_function_address_t* addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2296,7 +2321,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
             }
         }
 
-        // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is fixed.
         if (helper_function_prototype->flags.reallocate_packet != 0) {
             result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->flags);
             if (result != EBPF_SUCCESS) {

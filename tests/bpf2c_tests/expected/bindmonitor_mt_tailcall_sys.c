@@ -278,7 +278,7 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -296,7 +296,7 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee0_helpers[1].tail_call) && (r0 == 0)) {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -351,7 +351,7 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 53 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 53 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
 #line 53 "sample/bindmonitor_mt_tailcall.c"
@@ -451,7 +451,7 @@ BindMonitor_Callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -469,7 +469,7 @@ BindMonitor_Callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0)) {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -524,7 +524,7 @@ BindMonitor_Callee1(void* context)
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 54 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 54 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 54 "sample/bindmonitor_mt_tailcall.c"
@@ -624,7 +624,7 @@ BindMonitor_Callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee10_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee10_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee10_helpers[0].tail_call) && (r0 == 0)) {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -642,7 +642,7 @@ BindMonitor_Callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee10_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee10_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee10_helpers[1].tail_call) && (r0 == 0)) {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -697,7 +697,7 @@ BindMonitor_Callee10(void* context)
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 63 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee10_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee10_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 63 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee10_helpers[0].tail_call) && (r0 == 0)) {
 #line 63 "sample/bindmonitor_mt_tailcall.c"
@@ -797,7 +797,7 @@ BindMonitor_Callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee11_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee11_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee11_helpers[0].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -815,7 +815,7 @@ BindMonitor_Callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee11_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee11_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee11_helpers[1].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -870,7 +870,7 @@ BindMonitor_Callee11(void* context)
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 64 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee11_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee11_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 64 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee11_helpers[0].tail_call) && (r0 == 0)) {
 #line 64 "sample/bindmonitor_mt_tailcall.c"
@@ -970,7 +970,7 @@ BindMonitor_Callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee12_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee12_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee12_helpers[0].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -988,7 +988,7 @@ BindMonitor_Callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee12_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee12_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee12_helpers[1].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -1043,7 +1043,7 @@ BindMonitor_Callee12(void* context)
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 65 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee12_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee12_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 65 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee12_helpers[0].tail_call) && (r0 == 0)) {
 #line 65 "sample/bindmonitor_mt_tailcall.c"
@@ -1143,7 +1143,7 @@ BindMonitor_Callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee13_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee13_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee13_helpers[0].tail_call) && (r0 == 0)) {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1161,7 +1161,7 @@ BindMonitor_Callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee13_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee13_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee13_helpers[1].tail_call) && (r0 == 0)) {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1216,7 +1216,7 @@ BindMonitor_Callee13(void* context)
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 66 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee13_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee13_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 66 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee13_helpers[0].tail_call) && (r0 == 0)) {
 #line 66 "sample/bindmonitor_mt_tailcall.c"
@@ -1316,7 +1316,7 @@ BindMonitor_Callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee14_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee14_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee14_helpers[0].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1334,7 +1334,7 @@ BindMonitor_Callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee14_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee14_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee14_helpers[1].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1389,7 +1389,7 @@ BindMonitor_Callee14(void* context)
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 67 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee14_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee14_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee14_helpers[0].tail_call) && (r0 == 0)) {
 #line 67 "sample/bindmonitor_mt_tailcall.c"
@@ -1489,7 +1489,7 @@ BindMonitor_Callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee15_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee15_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee15_helpers[0].tail_call) && (r0 == 0)) {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1507,7 +1507,7 @@ BindMonitor_Callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee15_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee15_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee15_helpers[1].tail_call) && (r0 == 0)) {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1562,7 +1562,7 @@ BindMonitor_Callee15(void* context)
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 68 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee15_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee15_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 68 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee15_helpers[0].tail_call) && (r0 == 0)) {
 #line 68 "sample/bindmonitor_mt_tailcall.c"
@@ -1662,7 +1662,7 @@ BindMonitor_Callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee16_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee16_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee16_helpers[0].tail_call) && (r0 == 0)) {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1680,7 +1680,7 @@ BindMonitor_Callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee16_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee16_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee16_helpers[1].tail_call) && (r0 == 0)) {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1735,7 +1735,7 @@ BindMonitor_Callee16(void* context)
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 69 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee16_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee16_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 69 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee16_helpers[0].tail_call) && (r0 == 0)) {
 #line 69 "sample/bindmonitor_mt_tailcall.c"
@@ -1835,7 +1835,7 @@ BindMonitor_Callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee17_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee17_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee17_helpers[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1853,7 +1853,7 @@ BindMonitor_Callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee17_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee17_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee17_helpers[1].tail_call) && (r0 == 0)) {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -1908,7 +1908,7 @@ BindMonitor_Callee17(void* context)
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 70 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee17_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee17_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee17_helpers[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/bindmonitor_mt_tailcall.c"
@@ -2008,7 +2008,7 @@ BindMonitor_Callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee18_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee18_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee18_helpers[0].tail_call) && (r0 == 0)) {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2026,7 +2026,7 @@ BindMonitor_Callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee18_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee18_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee18_helpers[1].tail_call) && (r0 == 0)) {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2081,7 +2081,7 @@ BindMonitor_Callee18(void* context)
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 71 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee18_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee18_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 71 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee18_helpers[0].tail_call) && (r0 == 0)) {
 #line 71 "sample/bindmonitor_mt_tailcall.c"
@@ -2181,7 +2181,7 @@ BindMonitor_Callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee19_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee19_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee19_helpers[0].tail_call) && (r0 == 0)) {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2199,7 +2199,7 @@ BindMonitor_Callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee19_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee19_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee19_helpers[1].tail_call) && (r0 == 0)) {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2254,7 +2254,7 @@ BindMonitor_Callee19(void* context)
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 72 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee19_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee19_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 72 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee19_helpers[0].tail_call) && (r0 == 0)) {
 #line 72 "sample/bindmonitor_mt_tailcall.c"
@@ -2354,7 +2354,7 @@ BindMonitor_Callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee2_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee2_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee2_helpers[0].tail_call) && (r0 == 0)) {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2372,7 +2372,7 @@ BindMonitor_Callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee2_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee2_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee2_helpers[1].tail_call) && (r0 == 0)) {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2427,7 +2427,7 @@ BindMonitor_Callee2(void* context)
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 55 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee2_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee2_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 55 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee2_helpers[0].tail_call) && (r0 == 0)) {
 #line 55 "sample/bindmonitor_mt_tailcall.c"
@@ -2527,7 +2527,7 @@ BindMonitor_Callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee20_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee20_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee20_helpers[0].tail_call) && (r0 == 0)) {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2545,7 +2545,7 @@ BindMonitor_Callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee20_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee20_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee20_helpers[1].tail_call) && (r0 == 0)) {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2600,7 +2600,7 @@ BindMonitor_Callee20(void* context)
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 73 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee20_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee20_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 73 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee20_helpers[0].tail_call) && (r0 == 0)) {
 #line 73 "sample/bindmonitor_mt_tailcall.c"
@@ -2700,7 +2700,7 @@ BindMonitor_Callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee21_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee21_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee21_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2718,7 +2718,7 @@ BindMonitor_Callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee21_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee21_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee21_helpers[1].tail_call) && (r0 == 0)) {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2773,7 +2773,7 @@ BindMonitor_Callee21(void* context)
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 74 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee21_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee21_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee21_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/bindmonitor_mt_tailcall.c"
@@ -2873,7 +2873,7 @@ BindMonitor_Callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee22_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee22_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee22_helpers[0].tail_call) && (r0 == 0)) {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2891,7 +2891,7 @@ BindMonitor_Callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee22_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee22_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee22_helpers[1].tail_call) && (r0 == 0)) {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -2946,7 +2946,7 @@ BindMonitor_Callee22(void* context)
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 75 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee22_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee22_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 75 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee22_helpers[0].tail_call) && (r0 == 0)) {
 #line 75 "sample/bindmonitor_mt_tailcall.c"
@@ -3046,7 +3046,7 @@ BindMonitor_Callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee23_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee23_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee23_helpers[0].tail_call) && (r0 == 0)) {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3064,7 +3064,7 @@ BindMonitor_Callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee23_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee23_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee23_helpers[1].tail_call) && (r0 == 0)) {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3119,7 +3119,7 @@ BindMonitor_Callee23(void* context)
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 76 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee23_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee23_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee23_helpers[0].tail_call) && (r0 == 0)) {
 #line 76 "sample/bindmonitor_mt_tailcall.c"
@@ -3219,7 +3219,7 @@ BindMonitor_Callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee24_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee24_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee24_helpers[0].tail_call) && (r0 == 0)) {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3237,7 +3237,7 @@ BindMonitor_Callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee24_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee24_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee24_helpers[1].tail_call) && (r0 == 0)) {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3292,7 +3292,7 @@ BindMonitor_Callee24(void* context)
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 77 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee24_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee24_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 77 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee24_helpers[0].tail_call) && (r0 == 0)) {
 #line 77 "sample/bindmonitor_mt_tailcall.c"
@@ -3392,7 +3392,7 @@ BindMonitor_Callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee25_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee25_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee25_helpers[0].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3410,7 +3410,7 @@ BindMonitor_Callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee25_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee25_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee25_helpers[1].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3465,7 +3465,7 @@ BindMonitor_Callee25(void* context)
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 78 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee25_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee25_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 78 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee25_helpers[0].tail_call) && (r0 == 0)) {
 #line 78 "sample/bindmonitor_mt_tailcall.c"
@@ -3565,7 +3565,7 @@ BindMonitor_Callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee26_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee26_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee26_helpers[0].tail_call) && (r0 == 0)) {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3583,7 +3583,7 @@ BindMonitor_Callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee26_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee26_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee26_helpers[1].tail_call) && (r0 == 0)) {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3638,7 +3638,7 @@ BindMonitor_Callee26(void* context)
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 79 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee26_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee26_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 79 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee26_helpers[0].tail_call) && (r0 == 0)) {
 #line 79 "sample/bindmonitor_mt_tailcall.c"
@@ -3738,7 +3738,7 @@ BindMonitor_Callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee27_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee27_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee27_helpers[0].tail_call) && (r0 == 0)) {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3756,7 +3756,7 @@ BindMonitor_Callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee27_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee27_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee27_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3811,7 +3811,7 @@ BindMonitor_Callee27(void* context)
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 80 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee27_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee27_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee27_helpers[0].tail_call) && (r0 == 0)) {
 #line 80 "sample/bindmonitor_mt_tailcall.c"
@@ -3911,7 +3911,7 @@ BindMonitor_Callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee28_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee28_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee28_helpers[0].tail_call) && (r0 == 0)) {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3929,7 +3929,7 @@ BindMonitor_Callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee28_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee28_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee28_helpers[1].tail_call) && (r0 == 0)) {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -3984,7 +3984,7 @@ BindMonitor_Callee28(void* context)
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 81 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee28_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee28_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 81 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee28_helpers[0].tail_call) && (r0 == 0)) {
 #line 81 "sample/bindmonitor_mt_tailcall.c"
@@ -4084,7 +4084,7 @@ BindMonitor_Callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee29_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee29_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee29_helpers[0].tail_call) && (r0 == 0)) {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4102,7 +4102,7 @@ BindMonitor_Callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee29_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee29_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee29_helpers[1].tail_call) && (r0 == 0)) {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4157,7 +4157,7 @@ BindMonitor_Callee29(void* context)
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 82 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee29_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee29_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee29_helpers[0].tail_call) && (r0 == 0)) {
 #line 82 "sample/bindmonitor_mt_tailcall.c"
@@ -4257,7 +4257,7 @@ BindMonitor_Callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee3_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee3_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee3_helpers[0].tail_call) && (r0 == 0)) {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4275,7 +4275,7 @@ BindMonitor_Callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee3_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee3_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee3_helpers[1].tail_call) && (r0 == 0)) {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4330,7 +4330,7 @@ BindMonitor_Callee3(void* context)
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 56 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee3_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee3_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 56 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee3_helpers[0].tail_call) && (r0 == 0)) {
 #line 56 "sample/bindmonitor_mt_tailcall.c"
@@ -4430,7 +4430,7 @@ BindMonitor_Callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee30_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee30_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee30_helpers[0].tail_call) && (r0 == 0)) {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4448,7 +4448,7 @@ BindMonitor_Callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee30_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee30_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee30_helpers[1].tail_call) && (r0 == 0)) {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4503,7 +4503,7 @@ BindMonitor_Callee30(void* context)
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 83 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee30_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee30_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 83 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee30_helpers[0].tail_call) && (r0 == 0)) {
 #line 83 "sample/bindmonitor_mt_tailcall.c"
@@ -4603,7 +4603,7 @@ BindMonitor_Callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee31_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee31_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee31_helpers[0].tail_call) && (r0 == 0)) {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4621,7 +4621,7 @@ BindMonitor_Callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee31_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee31_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee31_helpers[1].tail_call) && (r0 == 0)) {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4676,7 +4676,7 @@ BindMonitor_Callee31(void* context)
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 84 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee31_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee31_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 84 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee31_helpers[0].tail_call) && (r0 == 0)) {
 #line 84 "sample/bindmonitor_mt_tailcall.c"
@@ -4812,7 +4812,7 @@ BindMonitor_Callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee4_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee4_helpers[0].tail_call) && (r0 == 0)) {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4830,7 +4830,7 @@ BindMonitor_Callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee4_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee4_helpers[1].tail_call) && (r0 == 0)) {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4885,7 +4885,7 @@ BindMonitor_Callee4(void* context)
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 57 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee4_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 57 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee4_helpers[0].tail_call) && (r0 == 0)) {
 #line 57 "sample/bindmonitor_mt_tailcall.c"
@@ -4985,7 +4985,7 @@ BindMonitor_Callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee5_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee5_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee5_helpers[0].tail_call) && (r0 == 0)) {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -5003,7 +5003,7 @@ BindMonitor_Callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee5_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee5_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee5_helpers[1].tail_call) && (r0 == 0)) {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -5058,7 +5058,7 @@ BindMonitor_Callee5(void* context)
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 58 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee5_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee5_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 58 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee5_helpers[0].tail_call) && (r0 == 0)) {
 #line 58 "sample/bindmonitor_mt_tailcall.c"
@@ -5158,7 +5158,7 @@ BindMonitor_Callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee6_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee6_helpers[0].tail_call) && (r0 == 0)) {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5176,7 +5176,7 @@ BindMonitor_Callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee6_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee6_helpers[1].tail_call) && (r0 == 0)) {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5231,7 +5231,7 @@ BindMonitor_Callee6(void* context)
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 59 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee6_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 59 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee6_helpers[0].tail_call) && (r0 == 0)) {
 #line 59 "sample/bindmonitor_mt_tailcall.c"
@@ -5331,7 +5331,7 @@ BindMonitor_Callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee7_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee7_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee7_helpers[0].tail_call) && (r0 == 0)) {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5349,7 +5349,7 @@ BindMonitor_Callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee7_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee7_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee7_helpers[1].tail_call) && (r0 == 0)) {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5404,7 +5404,7 @@ BindMonitor_Callee7(void* context)
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 60 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee7_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee7_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee7_helpers[0].tail_call) && (r0 == 0)) {
 #line 60 "sample/bindmonitor_mt_tailcall.c"
@@ -5504,7 +5504,7 @@ BindMonitor_Callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=13
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee8_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee8_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee8_helpers[0].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5522,7 +5522,7 @@ BindMonitor_Callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=5
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee8_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee8_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee8_helpers[1].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5577,7 +5577,7 @@ BindMonitor_Callee8(void* context)
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 61 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee8_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee8_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 61 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee8_helpers[0].tail_call) && (r0 == 0)) {
 #line 61 "sample/bindmonitor_mt_tailcall.c"
@@ -5682,7 +5682,7 @@ BindMonitor_Callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=13
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee9_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee9_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee9_helpers[0].tail_call) && (r0 == 0)) {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
@@ -5700,7 +5700,7 @@ BindMonitor_Callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=19 dst=r0 src=r0 offset=0 imm=5
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee9_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee9_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee9_helpers[1].tail_call) && (r0 == 0)) {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
@@ -5752,7 +5752,7 @@ BindMonitor_Callee9(void* context)
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=13
 #line 62 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Callee9_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee9_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 62 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Callee9_helpers[0].tail_call) && (r0 == 0)) {
 #line 62 "sample/bindmonitor_mt_tailcall.c"
@@ -5862,7 +5862,7 @@ BindMonitor_Caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=13
 #line 33 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Caller_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Caller_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 33 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Caller_helpers[0].tail_call) && (r0 == 0)) {
 #line 33 "sample/bindmonitor_mt_tailcall.c"
@@ -5880,7 +5880,7 @@ BindMonitor_Caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=5
 #line 34 "sample/bindmonitor_mt_tailcall.c"
-    r0 = BindMonitor_Caller_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Caller_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 34 "sample/bindmonitor_mt_tailcall.c"
     if ((BindMonitor_Caller_helpers[1].tail_call) && (r0 == 0)) {
 #line 34 "sample/bindmonitor_mt_tailcall.c"

@@ -42,8 +42,12 @@ size_t _ebpf_program_type_descriptor_supported_size[] = {EBPF_PROGRAM_TYPE_DESCR
 
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, arguments)
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, flags)
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_2 \
+    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, implicit_context)
 size_t _ebpf_helper_function_prototype_supported_size[] = {
-    EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0, EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1};
+    EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_0,
+    EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_1,
+    EBPF_HELPER_FUNCTION_PROTOTYPE_SIZE_2};
 
 #define EBPF_PROGRAM_INFO_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)
 size_t _ebpf_program_info_supported_size[] = {EBPF_PROGRAM_INFO_SIZE_0};

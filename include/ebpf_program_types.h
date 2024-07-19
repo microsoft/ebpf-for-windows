@@ -36,6 +36,7 @@ typedef struct _ebpf_helper_function_prototype
     ebpf_return_type_t return_type;
     ebpf_argument_type_t arguments[5];
     ebpf_helper_function_prototype_flags_t flags;
+    bool implicit_context;
 } ebpf_helper_function_prototype_t;
 
 // This is the type definition for the eBPF program information

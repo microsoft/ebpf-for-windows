@@ -393,7 +393,7 @@ label_2:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 26 "sample/sockops.c"
     if ((connection_monitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
@@ -749,7 +749,7 @@ label_3:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 26 "sample/sockops.c"
     if ((connection_monitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
@@ -787,7 +787,7 @@ label_4:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=169 dst=r0 src=r0 offset=0 imm=11
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = connection_monitor_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 26 "sample/sockops.c"
     if ((connection_monitor_helpers[1].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"

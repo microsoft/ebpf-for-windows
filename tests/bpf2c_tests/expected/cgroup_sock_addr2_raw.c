@@ -201,7 +201,7 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=1
 #line 70 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/cgroup_sock_addr2.c"
@@ -277,7 +277,7 @@ label_1:
     r2 = IMMEDIATE(35);
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=14
 #line 72 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 72 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[1].tail_call) && (r0 == 0)) {
 #line 72 "sample/cgroup_sock_addr2.c"
@@ -308,7 +308,7 @@ label_1:
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=64 dst=r0 src=r0 offset=0 imm=65537
 #line 79 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 79 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[2].tail_call) && (r0 == 0)) {
 #line 79 "sample/cgroup_sock_addr2.c"
@@ -359,7 +359,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=77 dst=r0 src=r0 offset=0 imm=65536
 #line 44 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[3].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr2.c"
@@ -377,7 +377,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=81 dst=r0 src=r0 offset=0 imm=20
 #line 45 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[4].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr2.c"
@@ -392,7 +392,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=84 dst=r0 src=r0 offset=0 imm=21
 #line 46 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 46 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[5].tail_call) && (r0 == 0)) {
 #line 46 "sample/cgroup_sock_addr2.c"
@@ -413,7 +413,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=89 dst=r0 src=r0 offset=0 imm=26
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[6].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_sock_addr2.c"
@@ -446,7 +446,7 @@ label_3:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=99 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect4_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect4_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect4_helpers[7].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_sock_addr2.c"
@@ -642,7 +642,7 @@ label_1:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 114 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 114 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[0].tail_call) && (r0 == 0)) {
 #line 114 "sample/cgroup_sock_addr2.c"
@@ -706,7 +706,7 @@ label_1:
     r2 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=60 dst=r0 src=r0 offset=0 imm=12
 #line 116 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 116 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[1].tail_call) && (r0 == 0)) {
 #line 116 "sample/cgroup_sock_addr2.c"
@@ -737,7 +737,7 @@ label_1:
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=67 dst=r0 src=r0 offset=0 imm=65537
 #line 123 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 123 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[2].tail_call) && (r0 == 0)) {
 #line 123 "sample/cgroup_sock_addr2.c"
@@ -812,7 +812,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=88 dst=r0 src=r0 offset=0 imm=65536
 #line 44 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[3].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr2.c"
@@ -830,7 +830,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=92 dst=r0 src=r0 offset=0 imm=20
 #line 45 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[4].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr2.c"
@@ -845,7 +845,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=95 dst=r0 src=r0 offset=0 imm=21
 #line 46 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 46 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[5].tail_call) && (r0 == 0)) {
 #line 46 "sample/cgroup_sock_addr2.c"
@@ -866,7 +866,7 @@ label_3:
     r1 = r6;
     // EBPF_OP_CALL pc=100 dst=r0 src=r0 offset=0 imm=26
 #line 48 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[6].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_sock_addr2.c"
@@ -899,7 +899,7 @@ label_3:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=110 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_sock_addr2.c"
-    r0 = connect_redirect6_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = connect_redirect6_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/cgroup_sock_addr2.c"
     if ((connect_redirect6_helpers[7].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_sock_addr2.c"

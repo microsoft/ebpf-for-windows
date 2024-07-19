@@ -152,7 +152,7 @@ count_tcp_connect4(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect4.c"
-    r0 = count_tcp_connect4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = count_tcp_connect4_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/cgroup_count_connect4.c"
     if ((count_tcp_connect4_helpers[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_count_connect4.c"
@@ -195,7 +195,7 @@ count_tcp_connect4(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_count_connect4.c"
-    r0 = count_tcp_connect4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = count_tcp_connect4_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/cgroup_count_connect4.c"
     if ((count_tcp_connect4_helpers[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_count_connect4.c"

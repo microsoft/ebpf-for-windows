@@ -394,7 +394,7 @@ ebpf_core_resolve_helper(
     ebpf_handle_t program_handle,
     const size_t count_of_helpers,
     _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
-    _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses)
+    _Out_writes_(count_of_helpers) helper_function_address_t* helper_function_addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;

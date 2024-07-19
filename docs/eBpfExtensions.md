@@ -215,7 +215,29 @@ helper function.
 * `arguments`: Array of (at most) five helper function arguments of type `ebpf_argument_type_t`.
 * `flags`: Bit field of flags.
    * `reallocate_packet`: Flag indicating if this helper function performs packet reallocation.
+* `implicit_context`: Flag indicating the extension requires implicit context for this helper function.
 
+**Note about `implicit_context`**:
+With the `implicit_context` feature, an extension can choose to get the program context as the 6th argument to the
+helper function. In case the helper function does not require all the original 5 arguments (program context being
+the 6th argument), the helper function should declare dummy arguments as placeholders for the unused arguments.
+Note that this new change does not require any change in the helper function prototype that is needed for the
+program verification.
+
+**Example**
+Below is an example of a helper function only takes 1 argument `arg` as input, but to get also program context
+as input, also declares the remaining 4 dummy arguments (`dummy_param1` to `dummy_param4`).
+
+```c
+static int64_t
+sample_ebpf_extension_helper_implicit_2(
+    uint32_t arg,
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    _In_ const sample_program_context_t* context)
+```
 
 #### `ebpf_argument_type_t` Enum
 This enum describes the various argument types that can be passed to an eBPF helper function. This is defined in the
@@ -285,7 +307,19 @@ If the change in data structure is such that it is no longer backward compatible
 then the version number will be updated. In this case, the product version of eBPF for Windows must be updated to indicate a breaking change
 as well. Existing eBPF extensions would need to be re-compiled to work with the latest version of eBPF.
 
-#### 2.2.1 Hashing of data structures to validate verification of native images
+#### 2.2.1 Backward / Forward compatibility
+For the cases when a new feature is exposed from eBPF to the extensions that is backward compatible, and requires a bit field / flag to be
+added to one of the extension data structures, there are 2 possible options:
+1. Add a new variable in the structure corresponding to the new feature. This will result in increasing the size of the struct.
+2. Utilize a bit field in an (if available) existing `flags` field. This option does not result in increasing the size of the struct.
+
+Which of the above 2 options to choose will depend if the feature is forward compatible. If the new feature is forward compatible, (i.e.
+an extension compiled with new eBPF headers can work fine with an older eBPF runtime), then any of the above 2 options can be chosen to
+add the flag. However, if the feature is not forward compatible, and will cause functional issues or crashes (when a new extension is
+deployed with older eBPF runtime), then option 1 **MUST** be chosen. Choosing option 1 results in and increase of the size of the struct,
+allowing older eBPF runtime to detect an incompatible extension, and reject binding to such an extension.
+
+#### 2.2.2 Hashing of data structures to validate verification of native images
 When native images are generated, bpf2c uses the verifier to ensure that the program is safe to execute and then
 computes a hash over the invariants used to validate the program. These invariants include the properties of the
 program information provider and the signature of any helper functions used. The following fields are included in the hash:
