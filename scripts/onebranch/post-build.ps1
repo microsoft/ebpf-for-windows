@@ -15,7 +15,7 @@ $OneBranchConfig = $env:ONEBRANCH_CONFIG
 # Copy the signed binaries to the output directory
 if ($OneBranchConfig -eq "Release" -and $OneBranchArch -eq "x64")
 {
-    xcopy /y build\bin\amd64fre .\x64\Release
+    xcopy /y build\bin\amd64fre .\x64\NativeOnlyRelease
     Get-ChildItem -Path .\build\bin\amd64fre -Recurse | Remove-Item -Force -Recurse
 }
 else
@@ -34,8 +34,8 @@ msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platfo
 # Copy the nupkg and msi to the output directory
 if ($OneBranchConfig -eq "Release" -and $OneBranchArch -eq "x64")
 {
-    xcopy /y .\x64\Release\*.nupkg .\build\bin\amd64fre
-    xcopy /y .\x64\Release\*.msi .\build\bin\amd64fre
+    xcopy /y .\x64\NativeOnlyRelease\*.nupkg .\build\bin\amd64fre
+    xcopy /y .\x64\NativeOnlyRelease\*.msi .\build\bin\amd64fre
 }
 else
 {
