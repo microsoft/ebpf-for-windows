@@ -282,8 +282,15 @@ bpf_code_generator::program_sections()
 }
 
 void
+bpf_code_generator::set_program_information(_In_ const ebpf_program_info_t* program_info)
+{
+    current_program->program_info = program_info;
+}
+
+void
 bpf_code_generator::parse(
     const ebpf_api_program_info_t* program,
+    _In_opt_ const ebpf_program_info_t* program_info,
     const GUID& program_type,
     const GUID& attach_type,
     const std::string& program_info_hash_type)
@@ -292,6 +299,10 @@ bpf_code_generator::parse(
     get_register_name(0);
     get_register_name(1);
     get_register_name(10);
+
+    if (program_info != nullptr) {
+        set_program_information(program_info);
+    }
 
     current_program->elf_section_name = program->section_name;
     current_program->program_name = program->program_name;
@@ -857,7 +868,8 @@ bpf_code_generator::build_function_table()
         }
 
         if (current_program->helper_functions.find(name) == current_program->helper_functions.end()) {
-            current_program->helper_functions[name] = {output.instruction.imm, index++};
+            int32_t helper_id = output.instruction.imm;
+            current_program->helper_functions[name] = {helper_id, index++};
         }
     }
 }
@@ -1296,7 +1308,6 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 if (output.relocation.empty()) {
                     auto str = std::to_string(
                         current_program->helper_functions["helper_id_" + std::to_string(output.instruction.imm)].index);
-
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 } else {
                     auto helper_function = current_program->helper_functions.find(output.relocation);
@@ -1304,14 +1315,17 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     auto str = std::to_string(current_program->helper_functions[output.relocation].index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 }
+
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + ".address(" + get_register_name(1) + ", " +
                     get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ");");
+                    get_register_name(5) + ", context);");
+
                 output.lines.push_back(
                     std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
                 output.lines.push_back("}");
+
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {

@@ -133,7 +133,7 @@ func(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=2
 #line 29 "sample/undocked/bpf_call.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 29 "sample/undocked/bpf_call.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 29 "sample/undocked/bpf_call.c"

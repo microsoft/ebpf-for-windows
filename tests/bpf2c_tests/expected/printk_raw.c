@@ -98,7 +98,7 @@ func(void* context)
     r2 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=12
 #line 23 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 23 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 23 "sample/printk.c"
@@ -131,7 +131,7 @@ func(void* context)
     r2 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 24 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 24 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 24 "sample/printk.c"
@@ -143,7 +143,7 @@ func(void* context)
     r6 = r0;
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=19
 #line 27 "sample/printk.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 27 "sample/printk.c"
     if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 27 "sample/printk.c"
@@ -194,7 +194,7 @@ func(void* context)
     r3 = r8;
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=13
 #line 28 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 28 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 28 "sample/printk.c"
@@ -236,7 +236,7 @@ func(void* context)
     r3 = r8;
     // EBPF_OP_CALL pc=53 dst=r0 src=r0 offset=0 imm=13
 #line 29 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 29 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 29 "sample/printk.c"
@@ -281,7 +281,7 @@ func(void* context)
     r3 = r8;
     // EBPF_OP_CALL pc=68 dst=r0 src=r0 offset=0 imm=13
 #line 30 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 30 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 30 "sample/printk.c"
@@ -323,7 +323,7 @@ func(void* context)
     r2 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=82 dst=r0 src=r0 offset=0 imm=14
 #line 31 "sample/printk.c"
-    r0 = func_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 31 "sample/printk.c"
     if ((func_helpers[3].tail_call) && (r0 == 0)) {
 #line 31 "sample/printk.c"
@@ -377,7 +377,7 @@ func(void* context)
     r2 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=99 dst=r0 src=r0 offset=0 imm=15
 #line 33 "sample/printk.c"
-    r0 = func_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 33 "sample/printk.c"
     if ((func_helpers[4].tail_call) && (r0 == 0)) {
 #line 33 "sample/printk.c"
@@ -416,7 +416,7 @@ func(void* context)
     r2 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=110 dst=r0 src=r0 offset=0 imm=12
 #line 37 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 37 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 37 "sample/printk.c"
@@ -449,7 +449,7 @@ func(void* context)
     r2 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=120 dst=r0 src=r0 offset=0 imm=12
 #line 38 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 38 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 38 "sample/printk.c"
@@ -482,7 +482,7 @@ func(void* context)
     r2 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=130 dst=r0 src=r0 offset=0 imm=13
 #line 39 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 39 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 39 "sample/printk.c"
@@ -512,7 +512,7 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=139 dst=r0 src=r0 offset=0 imm=13
 #line 40 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 40 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 40 "sample/printk.c"
@@ -545,7 +545,7 @@ func(void* context)
     r2 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=148 dst=r0 src=r0 offset=0 imm=13
 #line 44 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 44 "sample/printk.c"
@@ -572,7 +572,7 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=156 dst=r0 src=r0 offset=0 imm=12
 #line 45 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 45 "sample/printk.c"
@@ -608,7 +608,7 @@ func(void* context)
     r2 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=167 dst=r0 src=r0 offset=0 imm=12
 #line 48 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/printk.c"

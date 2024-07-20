@@ -17,5 +17,11 @@ typedef struct _ebpf_utility_helpers_data
     uint64_t pid_tgid;
 } ebpf_utility_helpers_data_t;
 
+typedef struct _helper_values
+{
+    uint64_t value_1;
+    uint64_t value_2;
+} helper_values_t;
+
 #define UTILITY_MAP_SIZE 2
 #define SAMPLE_EXT_PID_TGID 9999

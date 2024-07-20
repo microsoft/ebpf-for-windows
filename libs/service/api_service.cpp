@@ -31,7 +31,7 @@ _resolve_helper_functions(
     ebpf_handle_t program_handle,
     _In_reads_(instruction_count) ebpf_inst* instructions,
     uint32_t instruction_count,
-    std::map<uint32_t, uint64_t>& helper_id_to_address)
+    std::map<uint32_t, helper_function_address_t>& helper_id_to_address)
 {
     // Note:
     // eBPF supports helper IDs in the range [1, MAXUINT32]
@@ -42,14 +42,15 @@ _resolve_helper_functions(
         if (instruction.opcode != INST_OP_CALL) {
             continue;
         }
-        helper_id_to_address[instruction.imm] = 0;
+        helper_id_to_address[instruction.imm] = {0};
     }
 
     ebpf_protocol_buffer_t request_buffer(
         offsetof(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t) * helper_id_to_address.size());
 
     ebpf_protocol_buffer_t reply_buffer(
-        offsetof(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uint64_t) * helper_id_to_address.size());
+        offsetof(ebpf_operation_resolve_helper_reply_t, address) +
+        sizeof(helper_function_address_t) * helper_id_to_address.size());
 
     auto request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_resolve_helper_reply_t*>(reply_buffer.data());
@@ -80,7 +81,7 @@ static ebpf_result_t
 _build_helper_id_to_address_map(
     _In_reads_(instruction_count) ebpf_inst* instructions,
     uint32_t instruction_count,
-    const std::map<uint32_t, uint64_t>& helper_id_to_address,
+    const std::map<uint32_t, helper_function_address_t>& helper_id_to_address,
     uint32_t& unwind_index)
 {
     // Note:
@@ -299,7 +300,7 @@ ebpf_verify_and_load_program(
             goto Exit;
         }
 
-        std::map<uint32_t, uint64_t> helper_id_to_address;
+        std::map<uint32_t, helper_function_address_t> helper_id_to_address;
         result = _resolve_helper_functions(program_handle, instructions, instruction_count, helper_id_to_address);
         if (result != EBPF_SUCCESS) {
             goto Exit;
@@ -332,7 +333,7 @@ ebpf_verify_and_load_program(
 
         std::vector<uint64_t> helper_id_address;
         for (auto& [helper_id, address] : helper_id_to_address) {
-            helper_id_address.push_back(address);
+            helper_id_address.push_back(address.address);
         }
 
         ebpf_code_buffer_t machine_code(MAX_NATIVE_CODE_SIZE_IN_BYTES);

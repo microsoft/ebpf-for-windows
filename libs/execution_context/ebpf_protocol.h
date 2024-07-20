@@ -67,6 +67,12 @@ typedef enum _ebpf_ec_function
     EBPF_EC_FUNCTION_LOG
 } ebpf_ec_function_t;
 
+typedef struct _helper_function_address
+{
+    uint64_t address;
+    bool implicit_context;
+} helper_function_address_t;
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 typedef struct _ebpf_operation_resolve_helper_request
 {
@@ -78,7 +84,7 @@ typedef struct _ebpf_operation_resolve_helper_request
 typedef struct _ebpf_operation_resolve_helper_reply
 {
     struct _ebpf_operation_header header;
-    uintptr_t address[1];
+    helper_function_address_t address[1];
 } ebpf_operation_resolve_helper_reply_t;
 
 typedef struct _ebpf_operation_resolve_map_request

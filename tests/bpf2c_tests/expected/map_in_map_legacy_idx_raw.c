@@ -106,7 +106,7 @@ lookup(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
     if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
@@ -137,7 +137,7 @@ lookup(void* context)
     r1 = r0;
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=1
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"
     if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"

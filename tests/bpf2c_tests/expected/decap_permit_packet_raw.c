@@ -258,7 +258,7 @@ decapsulate_permit_packet(void* context)
     r2 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=56 dst=r0 src=r0 offset=0 imm=65536
 #line 41 "sample/decap_permit_packet.c"
-    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 41 "sample/decap_permit_packet.c"
     if ((decapsulate_permit_packet_helpers[0].tail_call) && (r0 == 0)) {
 #line 41 "sample/decap_permit_packet.c"
@@ -416,7 +416,7 @@ label_1:
     r2 = IMMEDIATE(40);
     // EBPF_OP_CALL pc=101 dst=r0 src=r0 offset=0 imm=65536
 #line 70 "sample/decap_permit_packet.c"
-    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/decap_permit_packet.c"
     if ((decapsulate_permit_packet_helpers[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/decap_permit_packet.c"
