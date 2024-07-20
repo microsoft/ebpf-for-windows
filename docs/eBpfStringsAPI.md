@@ -1,4 +1,4 @@
-# Proposal to add string manipulation functions to eBPF
+# eBPF Strings Library API proposal
 
 ## Overview
 
