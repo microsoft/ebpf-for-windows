@@ -2,15 +2,22 @@
 
 ## Overview
 
-A majority of use cases and examples of eBPF functions are focused on operating on fixed fields in buffers; network structures with known sizes and offsets, bit-fields, and the like. The programs we can write with the available tooling are powerful, but fall short of the needs of Application-layer customers like HTTP servers, where string operations are mandatory to interact with HTTP requests and responses.
+A majority of use cases and examples of eBPF functions are focused on operating on fixed fields in buffers; network
+structures with known sizes and offsets, bit-fields, and the like. The programs we can write with the available tooling
+are powerful, but fall short of the needs of Application-layer customers like HTTP servers, where string operations are
+mandatory to interact with HTTP requests and responses.
 
-This has precedent; in [`ebpf_core_helper_function_prototype_array[]`](../libs/execution_context/ebpf_general_helpers.c) there are `bpf_memcmp()`, `bpf_memcpy()`, `bpf_memmove()`, and `bpf_memset()` -- all of which are also derived from `<string.h>` functions.
+This has precedent; in [`ebpf_core_helper_function_prototype_array`](../libs/execution_context/ebpf_general_helpers.c)
+there are `bpf_memcmp()`, `bpf_memcpy()`, `bpf_memmove()`, and `bpf_memset()` -- all of which are also derived from
+`<string.h>` functions. As has been pointed out, there are also limited examples
 
 ## Scenarios
 
 ### Finding a token in a header
 
-Assuming an appropriate extension existed to interact with an in-flight HTTP request, a customer wants to search through the Accept-Encoding header, because some older application can't handle gzip appropriately. (I'm sure this is a real use case somewhere.) Error handling is elided in this example for brevity.
+Assuming an appropriate extension existed to interact with an in-flight HTTP request, a developer wants to search
+through the Accept-Encoding header, because some older application can't handle gzip appropriately. (I'm sure this is a
+real use case somewhere.) Error handling is elided in this example for brevity.
 
 ```C
 char accept_encoding[] = "Accept-Encoding";
@@ -52,7 +59,9 @@ if (after_size > 1)
 
 ## Functions of interest
 
-We should aim to have sufficient coverage of the core C string functions. The functions that are of interest in particular are listed here; their eBPF counterparts will necessarily need to be somewhat different, especially an example like `strstr()`.
+We should aim to have sufficient coverage of the core C string functions. The functions that are of interest in
+particular are listed here; their eBPF counterparts will necessarily need to be somewhat different, especially an
+example like `strstr()`.
 
 ```C
 errno_t strncpy_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
@@ -63,7 +72,11 @@ char *strchr(const char *str, int ch);
 char *strstr(const char *str, const char *substr);
 ```
 
-This proposal isn't currently considering wide strings, but if there's appetite for them they'd follow the same pattern.
+This proposal isn't currently considering wide strings, but can be adjusted for them.
+
+While there is an upstream `bpf_strncmp()`, its argument pattern is inconsistent with the C stdlib `strncmp()`, and the
+lack of an argument for the second string's length makes it not fit the pattern of our eBPF extension functions. That
+appears to be implemented as another type of argument that our runtime doesn't allow for currently.
 
 ## Proposed names & prototypes
 
@@ -74,9 +87,18 @@ size_t bpf_strlen(const char *str, size_t str_size);
 int bpf_strcmp(const char *lhs, size_t lhs_size, const char *rhs, size_t rhs_size, size_t count);
 char *bpf_strchr(const char *str, size_t str_size, char ch);
 char *bpf_strstr(const char *str, size_t str_size, const char *substr, size_t substr_size);
+long bpf_strtol(const char *str, unsigned long str_len, uint64_t flags, long *res); // Note
+long bpf_strtoul(const char *str, unsigned long str_len, uint64_t flags, unsigned long *res); // Note
 ```
 
-There are some key differences between the C and BPF versions of these functions, mostly because the C definitions depend on the sentinel terminal null. Note that a string may be shorter than its buffer in the eBPF functions, but will be considered terminated at the first null. For example:
+Note: This list of proposed functions includes two additional functions that are in upstream eBPF, and which make sense
+to include: [bpf_strtoul](https://ebpf-docs.dylanreimerink.nl/linux/helper-function/bpf_strtoul/) and
+[bpf_strtol](https://ebpf-docs.dylanreimerink.nl/linux/helper-function/bpf_strtol/); these functions are only supported
+on the `CGROUP_SYSCTL` program type, but seem broadly applicable for us.
+
+There are some key differences between the C and BPF versions of these functions, mostly because the C definitions
+depend on the sentinel terminal null. Note that a string may be shorter than its buffer in the eBPF functions, but will
+be considered terminated at the first null. For example:
 
 ```C
 char *input = { 'a', 'l', 'p', 'h', 'a', '\0', 'b', 'r', 'a', 'v', 'o', '\0' };
