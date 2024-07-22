@@ -881,6 +881,46 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 }
 
 void
+negative_ring_buffer_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bpf_call_um.dll" : "bpf_call.o");
+
+    // Load eBPF program.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map");
+    REQUIRE(map_fd > 0);
+
+    // Calls to ring buffer APIs on this map (array_map) must fail.
+    REQUIRE(
+        ring_buffer__new(
+            map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr) == nullptr);
+    REQUIRE(libbpf_get_error(nullptr) == EINVAL);
+    uint8_t data = 0;
+    REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
 bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
@@ -1016,6 +1056,7 @@ DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um)
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
+DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
@@ -3150,10 +3191,10 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_helper_function_prototype_t helper_function_prototypes[3];
+        ebpf_helper_function_prototype_t helper_function_prototypes[5];
         std::copy(
             _sample_ebpf_extension_helper_function_prototype,
-            _sample_ebpf_extension_helper_function_prototype + 3,
+            _sample_ebpf_extension_helper_function_prototype + 5,
             helper_function_prototypes);
         // Change the return type of the helper function from EBPF_RETURN_TYPE_INTEGER to
         // EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL.
@@ -3237,6 +3278,17 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 }
 
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
+
+static void
+_extension_reload_test_implicit_context(ebpf_execution_type_t execution_type)
+{
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_implicit_helpers_um.dll"
+                                                                    : "test_sample_implicit_helpers.o";
+    extension_reload_test_common(file_name, execution_type);
+}
+
+DECLARE_ALL_TEST_CASES(
+    "extension_reload_test_implicit_context", "[end_to_end]", _extension_reload_test_implicit_context);
 
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
 TEST_CASE("close_unload_test", "[close_cleanup]")
@@ -3553,3 +3605,60 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
 #endif
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }
+
+static void
+_implicit_context_helpers_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    INITIALIZE_SAMPLE_CONTEXT
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    uint32_t data1 = 1;
+    uint32_t data2 = 2;
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "test_sample_implicit_helpers_um.dll"
+                                                                      : "test_sample_implicit_helpers.o";
+
+    ctx->helper_data_1 = data1;
+    ctx->helper_data_2 = data2;
+
+    // Try loading without the extension loaded.
+    bpf_object_ptr unique_test_sample_ebpf_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+    int result;
+
+    result = ebpf_program_load(
+        file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_test_sample_ebpf_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_link* link = nullptr;
+    // Attach only to the single interface being tested.
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+    bpf_link__disconnect(link);
+    bpf_link__destroy(link);
+
+    // Program should run.
+    uint32_t hook_result = MAXUINT32;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 42);
+
+    // Read the output_map and check the values.
+    fd_t output_map_fd = bpf_object__find_map_fd_by_name(unique_test_sample_ebpf_object.get(), "output_map");
+    REQUIRE(output_map_fd > 0);
+    helper_values_t data = {0};
+    uint32_t key = 0;
+    REQUIRE(bpf_map_lookup_elem(output_map_fd, &key, &data) == 0);
+    REQUIRE(data.value_1 == data1);
+    REQUIRE(data.value_2 == data2 + 10);
+}
+
+DECLARE_ALL_TEST_CASES("implicit_context_helpers_test", "[end_to_end]", _implicit_context_helpers_test);

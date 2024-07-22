@@ -394,7 +394,7 @@ ebpf_core_resolve_helper(
     ebpf_handle_t program_handle,
     const size_t count_of_helpers,
     _In_reads_(count_of_helpers) const uint32_t* helper_function_ids,
-    _Out_writes_(count_of_helpers) uint64_t* helper_function_addresses)
+    _Out_writes_(count_of_helpers) helper_function_address_t* helper_function_addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_program_t* program = NULL;
@@ -2021,6 +2021,11 @@ _ebpf_core_protocol_ring_buffer_map_query_buffer(
 
     if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "query buffer operation called on a map that is not of the ring buffer type.",
+            result);
         goto Exit;
     }
 
@@ -2053,6 +2058,11 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
 
     if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "async query operation called on a map that is not of the ring buffer type.",
+            result);
         goto Exit;
     }
 
@@ -2071,6 +2081,38 @@ Exit:
         EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
     }
     return result;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_ring_buffer_map_write_data(_In_ const ebpf_operation_ring_buffer_map_write_data_request_t* request)
+{
+    ebpf_map_t* map = NULL;
+    size_t data_length = 0;
+    ebpf_result_t result =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "write data operation called on a map that is not of the ring buffer type.",
+            result);
+        goto Exit;
+    }
+    result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data),
+        &data_length);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+    result = ebpf_ring_buffer_map_output(map, (uint8_t*)request->data, data_length);
+Exit:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(result);
 }
 
 static void*
@@ -2606,6 +2648,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(bind_map, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_query_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(ring_buffer_map_async_query, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(ring_buffer_map_write_data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),

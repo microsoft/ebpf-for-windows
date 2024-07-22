@@ -363,6 +363,11 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
     ebpf_result result = EBPF_SUCCESS;
     ring_buffer_t* local_ring_buffer = nullptr;
 
+    if (sample_cb == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
     try {
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
         ring_buffer_subscription_t* subscription = nullptr;
@@ -378,6 +383,7 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
     }
 Exit:
     if (result != EBPF_SUCCESS) {
+        errno = libbpf_result_err(result);
         EBPF_LOG_FUNCTION_ERROR(result);
     }
     EBPF_RETURN_POINTER(ring_buffer_t*, local_ring_buffer);

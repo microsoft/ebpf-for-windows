@@ -137,7 +137,7 @@ bind_monitor(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=9 dst=r0 src=r0 offset=0 imm=11
 #line 29 "sample/bindmonitor_ringbuf.c"
-    r0 = bind_monitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = bind_monitor_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 29 "sample/bindmonitor_ringbuf.c"
     if ((bind_monitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 29 "sample/bindmonitor_ringbuf.c"

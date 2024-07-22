@@ -22,11 +22,15 @@ static const uint32_t _ebpf_native_marker = 'entv';
 // Set this value if there is a need to block older version of the native driver.
 static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
 
+// Minimum bpf2c version that supports implicit context.
+static const bpf2c_version_t _ebpf_version_implicit_context = {0, 18, 0};
+
 #ifndef __CGUID_H__
 static const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
 #endif
 
-typedef uint64_t (*helper_function_address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
+typedef uint64_t (*helper_function_address)(
+    uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, void* context);
 
 typedef struct _ebpf_native_map
 {
@@ -74,6 +78,7 @@ typedef struct _ebpf_native_module
     HANDLE nmr_binding_handle;
     ebpf_list_entry_t list_entry;
     cxplat_preemptible_work_item_t* cleanup_work_item;
+    bpf2c_version_t version;
 } ebpf_native_module_t;
 
 static const GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -125,7 +130,7 @@ void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
 static int
-_ebpf_compare_versions(bpf2c_version_t* lhs, bpf2c_version_t* rhs)
+_ebpf_compare_versions(_In_ const bpf2c_version_t* lhs, _In_ const bpf2c_version_t* rhs)
 {
     if (lhs->major < rhs->major) {
         return -1;
@@ -158,7 +163,7 @@ typedef struct _ebpf_native_helper_address_changed_context
 
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
-    size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context);
+    size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context);
 
 static void
 _ebpf_native_unload_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _In_opt_ const void* service)
@@ -479,9 +484,8 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
-    bpf2c_version_t client_version = {0, 0, 0};
-    table->version(&client_version);
-    if (_ebpf_compare_versions(&client_version, &_ebpf_minimum_version) < 0) {
+    table->version(&client_context->version);
+    if (_ebpf_compare_versions(&client_context->version, &_ebpf_minimum_version) < 0) {
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -1129,12 +1133,12 @@ _ebpf_native_resolve_helpers_for_program(
     _In_ const ebpf_native_module_t* module, _In_ const ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
-    UNREFERENCED_PARAMETER(module);
     ebpf_result_t result;
     uint32_t* helper_ids = NULL;
-    helper_function_address* helper_addresses = NULL;
+    helper_function_address_t* helper_addresses = NULL;
     uint16_t helper_count = program->entry->helper_count;
     helper_function_entry_t* helpers = program->entry->helpers;
+    bool implicit_context_supported = false;
 
     if (helper_count > 0) {
         helper_ids = ebpf_allocate_with_tag(helper_count * sizeof(uint32_t), EBPF_POOL_TAG_NATIVE);
@@ -1143,7 +1147,8 @@ _ebpf_native_resolve_helpers_for_program(
             goto Done;
         }
 
-        helper_addresses = ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address), EBPF_POOL_TAG_NATIVE);
+        helper_addresses =
+            ebpf_allocate_with_tag(helper_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_NATIVE);
         if (helper_addresses == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
@@ -1155,7 +1160,7 @@ _ebpf_native_resolve_helpers_for_program(
         }
     }
 
-    result = ebpf_core_resolve_helper(program->handle, helper_count, helper_ids, (uint64_t*)helper_addresses);
+    result = ebpf_core_resolve_helper(program->handle, helper_count, helper_ids, helper_addresses);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -1165,9 +1170,23 @@ _ebpf_native_resolve_helpers_for_program(
         goto Done;
     }
 
+    if (_ebpf_compare_versions(&module->version, &_ebpf_version_implicit_context) >= 0) {
+        implicit_context_supported = true;
+    }
+
     // Update the addresses in the helper entries.
     for (uint16_t i = 0; i < helper_count; i++) {
-        helpers[i].address = helper_addresses[i];
+        if (!implicit_context_supported && helper_addresses[i].implicit_context) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "_ebpf_native_resolve_helpers_for_program: module does not support implicit context, but extension "
+                "does.",
+                &module->client_module_id);
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        helpers[i].address = (helper_function_t)helper_addresses[i].address;
     }
 
 Done:
@@ -1718,14 +1737,16 @@ Done:
 
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
-    size_t address_count, _In_reads_opt_(address_count) uintptr_t* addresses, _In_opt_ void* context)
+    size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context)
 {
     ebpf_result_t return_value;
     ebpf_native_helper_address_changed_context_t* helper_address_changed_context =
         (ebpf_native_helper_address_changed_context_t*)context;
+    _Analysis_assume_(context != NULL);
+    ebpf_native_module_t* module = helper_address_changed_context->module;
+    bool implicit_context_supported = false;
 
     uint64_t* helper_function_addresses = NULL;
-    _Analysis_assume_(context != NULL);
     size_t helper_count = helper_address_changed_context->native_program->entry->helper_count;
 
     if (helper_count == 0) {
@@ -1738,8 +1759,21 @@ _ebpf_native_helper_address_changed(
         goto Done;
     }
 
+    if (_ebpf_compare_versions(&module->version, &_ebpf_version_implicit_context) >= 0) {
+        implicit_context_supported = true;
+    }
+
     for (size_t i = 0; i < helper_count; i++) {
-        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) = addresses[i];
+        if (!implicit_context_supported && addresses[i].implicit_context) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "_ebpf_native_helper_address_changed: module does not support implicit context, but extension does.",
+                &module->client_module_id);
+            return_value = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
+        *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) = addresses[i].address;
     }
 
     return_value = EBPF_SUCCESS;
