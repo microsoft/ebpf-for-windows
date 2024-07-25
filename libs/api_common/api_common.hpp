@@ -163,6 +163,10 @@ ebpf_result_to_errno(ebpf_result_t result)
         error = ENOSPC;
         break;
 
+    case EBPF_ACCESS_DENIED:
+        error = EPERM;
+        break;
+
     default:
         error = EOTHER;
         break;
