@@ -2841,6 +2841,41 @@ TEST_CASE("bpf_object__load with .o from memory", "[libbpf]")
     bpf_object__close(object);
 }
 
+// Test that bpf() accepts a smaller and a larger bpf_attr.
+TEST_CASE("bpf() backwards compatibility", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct
+    {
+        union bpf_attr attr;
+        char pad[3];
+    } tmp = {};
+    union bpf_attr* attr = &tmp.attr;
+
+    attr->map_type = BPF_MAP_TYPE_ARRAY;
+    attr->key_size = sizeof(uint32_t);
+    attr->value_size = sizeof(uint32_t);
+    attr->max_entries = 2;
+    attr->map_flags = 0;
+
+    // Truncate bpf_attr before map_flags.
+    int map_fd = bpf(BPF_MAP_CREATE, attr, offsetof(union bpf_attr, map_flags));
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+
+    // Pass extra trailing bytes.
+    map_fd = bpf(BPF_MAP_CREATE, attr, sizeof(tmp));
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+
+    // Ensure that non-zero trailing bytes are rejected.
+    tmp.pad[0] = 1;
+    map_fd = bpf(BPF_MAP_CREATE, attr, sizeof(tmp));
+    REQUIRE(map_fd == -EINVAL);
+}
+
 // Test bpf() with the following command ids:
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
 // BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
