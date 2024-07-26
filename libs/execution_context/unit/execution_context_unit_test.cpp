@@ -1946,9 +1946,22 @@ void
 test_register_provider(
     _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics, bool expected_to_succeed = false)
 {
+    class provider_deregister_helper
+    {
+      public:
+        void
+        operator()(HANDLE handle)
+        {
+            NmrDeregisterProvider(handle);
+        }
+    };
+
+    typedef std::unique_ptr<void, provider_deregister_helper> provider_ptr;
+    provider_ptr provider;
     HANDLE nmr_provider_handle;
 
     REQUIRE(NmrRegisterProvider(provider_characteristics, nullptr, &nmr_provider_handle) == STATUS_SUCCESS);
+    provider.reset(nmr_provider_handle);
 
     ebpf_program_type_t EBPF_PROGRAM_TYPE_TEST = EBPF_PROGRAM_TYPE_TEST_GUID;
     const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
@@ -1974,14 +1987,45 @@ test_register_provider(
             REQUIRE(addresses[0].address != 0);
         }
     }
-
-    NmrDeregisterProvider(nmr_provider_handle);
 }
 
 TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
 {
     _ebpf_core_initializer core;
     core.initialize();
+
+    ebpf_context_descriptor_t _test_context_descriptor = {sizeof(ebpf_context_descriptor_t), -1, -1, -1};
+
+    const uint32_t _test_prog_type = 1000;
+    ebpf_program_type_descriptor_t _test_program_type_descriptor = {
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
+        "test_program_type",
+        &_test_context_descriptor,
+        EBPF_PROGRAM_TYPE_TEST_GUID,
+        _test_prog_type,
+        0};
+
+    ebpf_helper_function_prototype_t _test_helper_function_prototype[] = {
+        {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+         EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
+         "test_helper_function",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_DONTCARE}}};
+
+    ebpf_program_info_t _test_program_info = {
+        EBPF_PROGRAM_INFORMATION_HEADER,
+        &_test_program_type_descriptor,
+        EBPF_COUNT_OF(_test_helper_function_prototype),
+        _test_helper_function_prototype};
+
+    auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
+    ebpf_result_t (*function_pointer1)() = provider_function1;
+    const void* helper_functions[] = {(void*)function_pointer1};
+    ebpf_helper_function_addresses_t helper_function_addresses = {
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
+
+    ebpf_program_data_t _test_program_data = {
+        EBPF_PROGRAM_DATA_HEADER, &_test_program_info, &helper_function_addresses};
 
     auto provider_attach_client_callback =
         [](HANDLE, void*, const NPI_REGISTRATION_INSTANCE*, void*, const void*, void**, const void**) -> NTSTATUS {
@@ -2003,71 +2047,79 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
             &EBPF_PROGRAM_INFO_EXTENSION_IID,
             &module_id,
             0,
-            nullptr,
+            &_test_program_data,
         },
     };
 
-    // Program data in the provider characterstics struct is NULL.
-    test_register_provider(&provider_characteristics);
-
-    // Add an empty program data.
-    ebpf_program_data_t _test_program_data = {EBPF_PROGRAM_DATA_HEADER, nullptr, nullptr, nullptr, nullptr, nullptr};
-    provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = &_test_program_data;
-    test_register_provider(&provider_characteristics);
-
-    // Add an invalid helper function addresses struct to the program data.
-    ebpf_helper_function_addresses_t helper_function_addresses = {EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, 1, nullptr};
-    _test_program_data.program_type_specific_helper_function_addresses = &helper_function_addresses;
-    test_register_provider(&provider_characteristics);
-
-    // Add the address to the helper function.
-    auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
-    ebpf_result_t (*function_pointer1)() = provider_function1;
-    const void* helper_functions[] = {(void*)function_pointer1};
-    helper_function_addresses.helper_function_count = EBPF_COUNT_OF(helper_functions);
-    helper_function_addresses.helper_function_address = (uint64_t*)helper_functions;
-    test_register_provider(&provider_characteristics);
-
-    // Add an empty program info struct to the program data.
-    ebpf_program_info_t _test_program_info = {EBPF_PROGRAM_INFORMATION_HEADER, nullptr, 0, nullptr, 0, nullptr};
-    _test_program_data.program_info = &_test_program_info;
-    test_register_provider(&provider_characteristics);
-
-    // Add invalid program type descriptor (name = null, context descriptor = null) to the program info.
-    const uint32_t _test_prog_type = 1000;
-    ebpf_program_type_descriptor_t _test_program_type_descriptor = {
-        EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER, nullptr, nullptr, EBPF_PROGRAM_TYPE_TEST_GUID, _test_prog_type, 0};
-    _test_program_info.program_type_descriptor = &_test_program_type_descriptor;
-    test_register_provider(&provider_characteristics);
-
-    // Add a name to the program type descriptor.
-    _test_program_type_descriptor.name = "test_program_type";
-    test_register_provider(&provider_characteristics);
-
-    // Add an invalid context descriptor (bad size) to the program type descriptor.
-    ebpf_context_descriptor_t _test_context_descriptor = {0, -1, -1, -1};
-    _test_program_type_descriptor.context_descriptor = &_test_context_descriptor;
-    test_register_provider(&provider_characteristics);
-
-    // Fix up the context descriptor.
-    _test_context_descriptor.size = sizeof(ebpf_context_descriptor_t);
-    test_register_provider(&provider_characteristics);
-
-    // Add invalid helper prototype (name = null) to the program info.
-    ebpf_helper_function_prototype_t _test_helper_function_prototype[] = {
-        {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-         EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
-         nullptr,
-         EBPF_RETURN_TYPE_INTEGER,
-         {EBPF_ARGUMENT_TYPE_DONTCARE}}};
-    _test_program_info.count_of_program_type_specific_helpers = EBPF_COUNT_OF(_test_helper_function_prototype);
-    _test_program_info.program_type_specific_helper_prototype = _test_helper_function_prototype;
-    test_register_provider(&provider_characteristics);
-
-    // Fix up the helper prototype.
-    _test_helper_function_prototype[0].name = "test_helper";
+    // Register the provider with valid program data. The test is expected to succeed.
     bool expected_to_succeed = true;
     test_register_provider(&provider_characteristics, expected_to_succeed);
+
+    // In the next tests, exactly one field of the program data will be invalidated. The tests are expected to fail.
+
+    // Set bad version for program data header.
+    _test_program_data.header.version = 0;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_data.header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
+
+    // Set bigger size than supported for the program data header.
+    _test_program_data.header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE + 1;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_data.header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
+
+    // Remove the program data from the provider characteristics struct.
+    provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = &_test_program_data;
+
+    // Remove the address from the helper function.
+    helper_function_addresses.helper_function_address = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    helper_function_addresses.helper_function_address = (uint64_t*)helper_functions;
+
+    // Remove the program info struct from the program data.
+    _test_program_data.program_info = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_data.program_info = &_test_program_info;
+
+    // Remove the program type descriptor from the program info.
+    _test_program_info.program_type_descriptor = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_info.program_type_descriptor = &_test_program_type_descriptor;
+
+    // Remove name to the program type descriptor.
+    _test_program_type_descriptor.name = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_type_descriptor.name = "test_program_type";
+
+    // Remove the context descriptor from the program type descriptor.
+    _test_program_type_descriptor.context_descriptor = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_type_descriptor.context_descriptor = &_test_context_descriptor;
+
+    // Invalidate the context descriptor (size = 0).
+    _test_context_descriptor.size = 0;
+    test_register_provider(&provider_characteristics);
+    // Fix up the context descriptor.
+    _test_context_descriptor.size = sizeof(ebpf_context_descriptor_t);
+
+    // Remove the helper function prototype from the program info.
+    _test_program_info.program_type_specific_helper_prototype = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_info.program_type_specific_helper_prototype = _test_helper_function_prototype;
+
+    // Invalidate the helper function prototype by removing the name of the helper function.
+    _test_helper_function_prototype[0].name = nullptr;
+    test_register_provider(&provider_characteristics);
 }
 
 // TODO: Add more native module loading IOCTL negative tests.
