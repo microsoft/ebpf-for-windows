@@ -322,7 +322,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 18;
+    version->minor = 19;
     version->revision = 0;
 }
 
