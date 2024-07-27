@@ -63,8 +63,8 @@ The release manager must download the following artifacts from the latest build 
     For example, the file list for `v0.12.0` should be:
     - `Build-x64-Debug.zip`
     - `Build-x64-Release.zip`
-    - `Build-x64-native-only-Debug.0.12.0.zip`
-    - `Build-x64-native-only-Release.0.12.0.zip`
+    - `Build-x64-native-only-NativeOnlyDebug.zip`
+    - `Build-x64-native-only-NativeOnlyRelease.zip`
     - `ebpf-for-windows.0.12.0.msi`
     - `eBPF-for-Windows.0.12.0.nupkg`
 
