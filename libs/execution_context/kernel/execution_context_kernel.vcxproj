@@ -73,6 +73,7 @@
     <ClCompile Include="..\ebpf_maps.c" />
     <ClCompile Include="..\ebpf_native.c" />
     <ClCompile Include="..\ebpf_program.c" />
+    <ClCompile Include=".\string_opts.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_core.h" />
