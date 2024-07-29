@@ -72,17 +72,20 @@ char *strchr(const char *str, int ch);
 char *strstr(const char *str, const char *substr);
 ```
 
-This proposal isn't currently considering wide strings, but can be adjusted for them.
+Barring a strong requirement, this proposal is limited to 8-bit and UTF-8 strings. Wide strings would follow a similar
+pattern, but are not considered necessary here.
 
 While there is an upstream `bpf_strncmp()`, its argument pattern is inconsistent with the C stdlib `strncmp()`, and the
 lack of an argument for the second string's length makes it not fit the pattern of our eBPF extension functions. That
-appears to be implemented as another type of argument that our runtime doesn't allow for currently.
+appears to be implemented as another type of argument that our runtime doesn't allow for currently. As such, our
+implementation will not be compatible with upstream's `bpf_strncmp()` but will instead use `bpf_strcmp()` so as to not
+cause an uncomfortable name collision.
 
 ## Proposed names & prototypes
 
 ```C
-errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
-errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
+errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
+errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
 size_t bpf_strlen(const char *str, size_t str_size);
 int bpf_strcmp(const char *lhs, size_t lhs_size, const char *rhs, size_t rhs_size, size_t count);
 char *bpf_strchr(const char *str, size_t str_size, char ch);
@@ -94,7 +97,8 @@ long bpf_strtoul(const char *str, unsigned long str_len, uint64_t flags, unsigne
 Note: This list of proposed functions includes two additional functions that are in upstream eBPF, and which make sense
 to include: [bpf_strtoul](https://ebpf-docs.dylanreimerink.nl/linux/helper-function/bpf_strtoul/) and
 [bpf_strtol](https://ebpf-docs.dylanreimerink.nl/linux/helper-function/bpf_strtol/); these functions are only supported
-on the `CGROUP_SYSCTL` program type, but seem broadly applicable for us.
+on the `CGROUP_SYSCTL` program type, but seem broadly applicable for us. Their return values will be documented in the
+header, negative return values have a particular meaning for them.
 
 There are some key differences between the C and BPF versions of these functions, mostly because the C definitions
 depend on the sentinel terminal null. Note that a string may be shorter than its buffer in the eBPF functions, but will
