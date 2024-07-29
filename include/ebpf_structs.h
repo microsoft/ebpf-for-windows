@@ -161,6 +161,14 @@ typedef enum
     BPF_FUNC_memset = 24,                    ///< \ref bpf_memset
     BPF_FUNC_memmove = 25,                   ///< \ref bpf_memmove
     BPF_FUNC_get_socket_cookie = 26,         ///< \ref bpf_get_socket_cookie
+    BPF_FUNC_strcpy = 27,                    ///< \ref bpf_strcpy
+    BPF_FUNC_strcat = 28,                    ///< \ref bpf_strcat
+    BPF_FUNC_strlen = 29,                    ///< \ref bpf_strlen
+    BPF_FUNC_strcmp = 30,                    ///< \ref bpf_strcmp
+    BPF_FUNC_strchr = 31,                    ///< \ref bpf_strchr
+    BPF_FUNC_strstr = 32,                    ///< \ref bpf_strstr
+    BPF_FUNC_strtol = 33,                    ///< \ref bpf_strtol
+    BPF_FUNC_strtoul = 34,                   ///< \ref bpf_strtoul
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
