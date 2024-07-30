@@ -346,8 +346,7 @@ _ebpf_program_general_program_information_attach_provider(
 
     program->general_helper_program_data = program_data;
 
-    program->global_helper_function_count =
-        program_data->program_type_specific_helper_function_addresses->helper_function_count;
+    program->global_helper_function_count = program_data->global_helper_function_addresses->helper_function_count;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -1589,13 +1588,17 @@ _Success_(return == true)
 {
     bool found = false;
     const ebpf_program_data_t* program_data = program->extension_program_data;
+    ebpf_assert_assume(program_data != NULL);
     const ebpf_program_data_t* general_program_data = program->general_helper_program_data;
+    ebpf_assert_assume(general_program_data != NULL);
 
     if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
         // First check the global helper function table of the program type for any helper functions that are
         // overwritten.
+        ebpf_assert_assume(program_data->program_info != NULL);
         for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
             if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
+                ebpf_assert_assume(program_data->global_helper_function_addresses != NULL);
                 address->address = program_data->global_helper_function_addresses->helper_function_address[index];
                 address->implicit_context = program_data->program_info->global_helper_prototype[index].implicit_context;
                 found = true;
@@ -1605,18 +1608,18 @@ _Success_(return == true)
 
         if (!found) {
             // Next check the general helper function table of the general program type.
-            for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
-                 index++) {
-                if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+            ebpf_assert_assume(general_program_data->program_info != NULL);
+            for (size_t index = 0; index < general_program_data->program_info->count_of_global_helpers; index++) {
+                if (general_program_data->program_info->global_helper_prototype[index].helper_id ==
                     helper_function_id) {
-                    address->address = general_program_data->program_type_specific_helper_function_addresses
-                                           ->helper_function_address[index];
+                    ebpf_assert_assume(general_program_data->global_helper_function_addresses != NULL);
+                    address->address =
+                        general_program_data->global_helper_function_addresses->helper_function_address[index];
                     // In case of helper functions that do not have any default / general implementation, the function
                     // address will be NULL.
                     if (address->address != 0) {
                         address->implicit_context =
-                            general_program_data->program_info->program_type_specific_helper_prototype[index]
-                                .implicit_context;
+                            general_program_data->program_info->global_helper_prototype[index].implicit_context;
                         found = true;
                     } else {
                         EBPF_LOG_MESSAGE_UINT64(
@@ -1631,9 +1634,11 @@ _Success_(return == true)
         }
     } else {
         // Check the program type specific helper function table of the program type.
+        ebpf_assert_assume(program_data->program_info != NULL);
         for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers; index++) {
             if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
                 helper_function_id) {
+                ebpf_assert_assume(program_data->program_type_specific_helper_function_addresses != NULL);
                 address->address =
                     program_data->program_type_specific_helper_function_addresses->helper_function_address[index];
                 address->implicit_context =
@@ -1929,6 +1934,7 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     }
     provider_data_referenced = true;
     program_data = program->extension_program_data;
+    ebpf_assert_assume(program_data != NULL);
 
     if (!program->general_helper_program_data) {
         EBPF_LOG_MESSAGE_GUID(
@@ -1940,11 +1946,12 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
         goto Exit;
     }
     general_helper_program_data = program->general_helper_program_data;
+    ebpf_assert_assume(general_helper_program_data != NULL);
 
     total_count_of_helpers = program_data->program_info->count_of_program_type_specific_helpers +
-                             general_helper_program_data->program_info->count_of_program_type_specific_helpers;
+                             general_helper_program_data->program_info->count_of_global_helpers;
     if ((total_count_of_helpers < program_data->program_info->count_of_program_type_specific_helpers) ||
-        (total_count_of_helpers < general_helper_program_data->program_info->count_of_program_type_specific_helpers)) {
+        (total_count_of_helpers < general_helper_program_data->program_info->count_of_global_helpers)) {
         result = EBPF_ARITHMETIC_OVERFLOW;
         goto Exit;
     }
@@ -1976,12 +1983,10 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
                 program_data->program_info->program_type_specific_helper_prototype[index];
         }
 
-        for (uint32_t index = 0;
-             index < general_helper_program_data->program_info->count_of_program_type_specific_helpers;
-             index++) {
+        for (uint32_t index = 0; index < general_helper_program_data->program_info->count_of_global_helpers; index++) {
             __analysis_assume(helper_index < total_count_of_helpers);
             helper_prototype[helper_index++] =
-                general_helper_program_data->program_info->program_type_specific_helper_prototype[index];
+                general_helper_program_data->program_info->global_helper_prototype[index];
         }
     }
 
@@ -2198,14 +2203,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
 
         // Copy global helpers to helper_id_to_index.
-        for (uint32_t index = 0; index < general_program_info->count_of_program_type_specific_helpers; index++) {
-            uint32_t helper_id = general_program_info->program_type_specific_helper_prototype[index].helper_id;
+        for (uint32_t index = 0; index < general_program_info->count_of_global_helpers; index++) {
+            uint32_t helper_id = general_program_info->global_helper_prototype[index].helper_id;
             if (!_ebpf_contains_helper_id(actual_helper_ids, count_of_actual_helper_ids, helper_id)) {
                 continue;
             }
             helper_id_to_index[helper_function_index].helper_id = helper_id;
             helper_id_to_index[helper_function_index].helper_function_prototype =
-                &general_program_info->program_type_specific_helper_prototype[index];
+                &general_program_info->global_helper_prototype[index];
             helper_function_index++;
         }
 
