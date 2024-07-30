@@ -144,7 +144,7 @@ static const void* _ebpf_general_helpers[] = {
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(_ebpf_general_helpers), (uint64_t*)_ebpf_general_helpers};
 static const ebpf_program_data_t _ebpf_global_helper_function_program_data = {
-    EBPF_PROGRAM_DATA_HEADER, &_ebpf_global_helper_program_info, &_ebpf_global_helper_function_dispatch_table};
+    EBPF_PROGRAM_DATA_HEADER, &_ebpf_global_helper_program_info, NULL, &_ebpf_global_helper_function_dispatch_table};
 
 static NPI_PROVIDER_ATTACH_CLIENT_FN _ebpf_general_helper_function_provider_attach_client;
 static NPI_PROVIDER_DETACH_CLIENT_FN _ebpf_general_helper_function_provider_detach_client;
@@ -256,8 +256,8 @@ ebpf_core_initiate()
         goto Done;
     }
 
-    _ebpf_global_helper_program_info.count_of_program_type_specific_helpers = ebpf_core_helper_functions_count;
-    _ebpf_global_helper_program_info.program_type_specific_helper_prototype = ebpf_core_helper_function_prototype;
+    _ebpf_global_helper_program_info.count_of_global_helpers = ebpf_core_helper_functions_count;
+    _ebpf_global_helper_program_info.global_helper_prototype = ebpf_core_helper_function_prototype;
 
     status = NmrRegisterProvider(
         &_ebpf_global_helper_function_provider_characteristics, NULL, &_ebpf_global_helper_function_nmr_binding_handle);

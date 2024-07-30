@@ -247,6 +247,8 @@ bpf_object__close(struct bpf_object* object);
  * @param[in] name The name to look for.
  *
  * @returns The map found, or NULL if none.
+ *
+ * @exception ENOENT The map was not found.
  */
 struct bpf_map*
 bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name);

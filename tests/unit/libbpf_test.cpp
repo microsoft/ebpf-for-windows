@@ -480,7 +480,13 @@ TEST_CASE("libbpf program", "[libbpf]")
     struct bpf_program* program = bpf_object__find_program_by_name(object, "test_program_entry");
     REQUIRE(program != nullptr);
 
+    errno = 0;
     REQUIRE(bpf_object__find_program_by_name(object, "not_a_valid_name") == NULL);
+    REQUIRE(errno == ENOENT);
+
+    // Testing invalid map name.
+    errno = 0;
+    REQUIRE(bpf_object__find_map_by_name(object, "not_a_valid_map") == NULL);
     REQUIRE(errno == ENOENT);
 
     name = bpf_program__section_name(program);
