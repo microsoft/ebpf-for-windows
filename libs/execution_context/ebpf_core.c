@@ -100,18 +100,18 @@ _ebpf_core_memmove(
     _In_reads_(source_length) const void* source,
     size_t source_length);
 
-static errno_t
+errno_t
 _ebpf_core_strcpy(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count);
 
-static errno_t
+errno_t
 _ebpf_core_strcat(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count);
 
-static size_t
+size_t
 _ebpf_core_strlen(_In_reads_(str_size) const char* str, size_t str_size);
 
-static int32_t
+int32_t
 _ebpf_core_strcmp(
     _In_reads_(lhs_size) const char* lhs,
     size_t lhs_size,
@@ -119,20 +119,20 @@ _ebpf_core_strcmp(
     size_t rhs_size,
     size_t count);
 
-static char*
+char*
 _ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch);
 
-static char*
+char*
 _ebpf_core_strstr(
     _In_reads_(str_size) const char* str,
     size_t str_size,
     _In_reads_(substr_size) const char* substr,
     size_t substr_size);
 
-static long
+long
 _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ long* result);
 
-static long
+long
 _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ unsigned long* result);
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0

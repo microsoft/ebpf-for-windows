@@ -2,19 +2,22 @@
 // SPDX-License-Identifier: MIT
 
 #include <Ntstrsafe.h>
+#include <errno.h>
+#include <ntstatus.h>
+#include <stdint.h>
 
-static errno_t
+errno_t
 _ebpf_core_strcpy(
-    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count);
+    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count);
 
-static errno_t
+errno_t
 _ebpf_core_strcat(
-    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count);
+    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count);
 
-static size_t
+size_t
 _ebpf_core_strlen(_In_reads_(str_size) const char* str, size_t str_size);
 
-static int32_t
+int32_t
 _ebpf_core_strcmp(
     _In_reads_(lhs_size) const char* lhs,
     size_t lhs_size,
@@ -22,47 +25,45 @@ _ebpf_core_strcmp(
     size_t rhs_size,
     size_t count);
 
-static char*
+char*
 _ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch);
 
-static char*
+char*
 _ebpf_core_strstr(
     _In_reads_(str_size) const char* str,
     size_t str_size,
     _In_reads_(substr_size) const char* substr,
     size_t substr_size);
 
-static long
+long
 _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ long* result);
 
-static long
+long
 _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ unsigned long* result);
 
-// errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
-static errno_t
-_ebpf_core_strcpy(
-    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count)
+// errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
+errno_t
+_ebpf_core_strcpy(_Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count)
 {
-    return RtlStringCbCopyNExA(dest, dest_size, src, src_count, NULL, NULL, STRSAFE_FILL_BEHIND_NULL | 0);
+    return RtlStringCbCopyNExA(dest, dest_size, src, count, NULL, NULL, STRSAFE_FILL_BEHIND_NULL | 0);
 }
 
-// errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
-static errno_t
-_ebpf_core_strcat(
-    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count)
+// errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
+errno_t
+_ebpf_core_strcat(_Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count)
 {
-    return strncat_s(dest, dest_size, src, src_count);
+    return strncat_s(dest, dest_size, src, count);
 }
 
 // size_t bpf_strlen(const char *str, size_t str_size);
-static size_t
+size_t
 _ebpf_core_strlen(_In_reads_(str_size) const char* str, size_t str_size)
 {
     return strnlen_s(str, str_size);
 }
 
 // int bpf_strcmp(const char *lhs, size_t lhs_size, const char *rhs, size_t rhs_size, size_t count);
-static int32_t
+int32_t
 _ebpf_core_strcmp(
     _In_reads_(lhs_size) const char* lhs,
     size_t lhs_size,
@@ -110,7 +111,7 @@ _ebpf_core_strcmp(
 }
 
 // char *bpf_strchr(const char *str, size_t str_size, char ch);
-static char*
+char*
 _ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch)
 {
     size_t str_len = strnlen_s(str, str_size);
@@ -125,7 +126,7 @@ _ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch
 }
 
 // char *bpf_strstr(const char *str, size_t str_size, const char *substr, size_t substr_size);
-static char*
+char*
 _ebpf_core_strstr(
     _In_reads_(str_size) const char* str,
     size_t str_size,
@@ -139,7 +140,7 @@ _ebpf_core_strstr(
 }
 
 // long bpf_strtol(const char *str, unsigned long str_len, uint64_t flags, long *res); // Note
-static long
+long
 _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ long* result)
 {
     // Much as with strtoul below, this will need RtlCharToInteger for kernel mode.
@@ -148,7 +149,7 @@ _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_
 
     long value = 0;
     int base = (int)(0x1F & flags); // We take five bits for base
-    char* num_end = NULL;
+    // char* num_end = NULL;
 
     if (result == NULL) {
         return -EINVAL;
@@ -168,7 +169,8 @@ _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_
     }
 
     errno = 0;
-    value = strtol(str, &num_end, base);
+
+    // value = strtol(str, &num_end, base);
 
     if (errno == ERANGE) {
         // exceeded range
@@ -176,11 +178,11 @@ _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_
     }
 
     *result = value;
-    return (long)(num_end - str);
+    return (long)(0);
 }
 
 // long bpf_strtoul(const char *str, unsigned long str_len, uint64_t flags, unsigned long *res); // Note
-static long
+long
 _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ unsigned long* result)
 {
     // This one's going to need RtlCharToInteger for the kernel code, UM code can make use of strtoul.
@@ -205,12 +207,12 @@ _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64
 
     errno = 0;
 
-    value = strtoul(str, &num_end, base);
+    // value = strtoul(str, &num_end, base);
 
     if (errno == ERANGE) {
         return -ERANGE;
     }
 
-    *result = value;
-    return (long)(num_end - str);
+    *result = (uint32_t)value;
+    return (long)(0);
 }
