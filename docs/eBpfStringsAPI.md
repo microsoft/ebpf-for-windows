@@ -64,8 +64,8 @@ particular are listed here; their eBPF counterparts will necessarily need to be 
 example like `strstr()`.
 
 ```C
-errno_t strncpy_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
-errno_t strncat_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
+errno_t strncpy_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
+errno_t strncat_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
 size_t strnlen_s(const char *str, size_t str_size);
 int strncmp(const char *lhs, const char *rhs, size_t count);
 char *strchr(const char *str, int ch);
