@@ -45,6 +45,8 @@ extern "C"
 #define htole64(X) (X)
 #endif
 
+    typedef uint64_t (*helper_function_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, void*);
+
     /**
      * @brief Helper function entry.
      * This structure defines a helper function entry in the metadata table. The address of the helper function is
@@ -53,7 +55,7 @@ extern "C"
      */
     typedef struct _helper_function_entry
     {
-        uint64_t (*address)(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5);
+        helper_function_t address;
         uint32_t helper_id;
         const char* name;
         bool tail_call;

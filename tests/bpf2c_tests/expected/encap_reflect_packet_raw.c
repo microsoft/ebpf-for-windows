@@ -171,7 +171,7 @@ encap_reflect_packet(void* context)
     r2 = (uint64_t)4294967276;
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=65536
 #line 22 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 22 "sample/encap_reflect_packet.c"
     if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0)) {
 #line 22 "sample/encap_reflect_packet.c"
@@ -480,7 +480,7 @@ label_1:
     r5 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=117 dst=r0 src=r0 offset=0 imm=10
 #line 82 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = encap_reflect_packet_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/encap_reflect_packet.c"
     if ((encap_reflect_packet_helpers[1].tail_call) && (r0 == 0)) {
 #line 82 "sample/encap_reflect_packet.c"
@@ -575,7 +575,7 @@ label_2:
     r2 = (uint64_t)4294967256;
     // EBPF_OP_CALL pc=142 dst=r0 src=r0 offset=0 imm=65536
 #line 96 "sample/encap_reflect_packet.c"
-    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 96 "sample/encap_reflect_packet.c"
     if ((encap_reflect_packet_helpers[0].tail_call) && (r0 == 0)) {
 #line 96 "sample/encap_reflect_packet.c"
@@ -1192,7 +1192,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 18;
+    version->minor = 19;
     version->revision = 0;
 }
 

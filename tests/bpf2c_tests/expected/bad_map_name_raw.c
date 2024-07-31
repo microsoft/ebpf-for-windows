@@ -92,7 +92,7 @@ lookup(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 29 "sample/undocked/bad_map_name.c"
-    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = lookup_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 29 "sample/undocked/bad_map_name.c"
     if ((lookup_helpers[0].tail_call) && (r0 == 0)) {
 #line 29 "sample/undocked/bad_map_name.c"
@@ -154,7 +154,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 18;
+    version->minor = 19;
     version->revision = 0;
 }
 

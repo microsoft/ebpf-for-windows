@@ -173,7 +173,7 @@ BindMonitor(void* context)
     r1 = POINTER(_maps[3].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 123 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 123 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_helpers[0].tail_call) && (r0 == 0)) {
 #line 123 "sample/bindmonitor_tailcall.c"
@@ -198,7 +198,7 @@ BindMonitor(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=5
 #line 128 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 128 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_helpers[1].tail_call) && (r0 == 0)) {
 #line 128 "sample/bindmonitor_tailcall.c"
@@ -282,7 +282,7 @@ BindMonitor_Callee0(void* context)
     r1 = POINTER(_maps[3].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 139 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 139 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee0_helpers[0].tail_call) && (r0 == 0)) {
 #line 139 "sample/bindmonitor_tailcall.c"
@@ -307,7 +307,7 @@ BindMonitor_Callee0(void* context)
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=13 dst=r0 src=r0 offset=0 imm=5
 #line 144 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee0_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 144 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee0_helpers[1].tail_call) && (r0 == 0)) {
 #line 144 "sample/bindmonitor_tailcall.c"
@@ -399,7 +399,7 @@ BindMonitor_Callee1(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 156 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 156 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 156 "sample/bindmonitor_tailcall.c"
@@ -473,7 +473,7 @@ BindMonitor_Callee1(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 86 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 86 "sample/bindmonitor_tailcall.c"
@@ -543,7 +543,7 @@ BindMonitor_Callee1(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=2
 #line 99 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 99 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee1_helpers[1].tail_call) && (r0 == 0)) {
 #line 99 "sample/bindmonitor_tailcall.c"
@@ -558,7 +558,7 @@ BindMonitor_Callee1(void* context)
     r2 = r8;
     // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=1
 #line 100 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 100 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee1_helpers[0].tail_call) && (r0 == 0)) {
 #line 100 "sample/bindmonitor_tailcall.c"
@@ -595,7 +595,7 @@ BindMonitor_Callee1(void* context)
     r2 = IMMEDIATE(64);
     // EBPF_OP_CALL pc=58 dst=r0 src=r0 offset=0 imm=22
 #line 105 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 105 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee1_helpers[2].tail_call) && (r0 == 0)) {
 #line 105 "sample/bindmonitor_tailcall.c"
@@ -704,7 +704,7 @@ label_5:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=85 dst=r0 src=r0 offset=0 imm=3
 #line 186 "sample/bindmonitor_tailcall.c"
-    r0 = BindMonitor_Callee1_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = BindMonitor_Callee1_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 186 "sample/bindmonitor_tailcall.c"
     if ((BindMonitor_Callee1_helpers[3].tail_call) && (r0 == 0)) {
 #line 186 "sample/bindmonitor_tailcall.c"
@@ -785,7 +785,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 18;
+    version->minor = 19;
     version->revision = 0;
 }
 

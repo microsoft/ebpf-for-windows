@@ -221,6 +221,7 @@ class bpf_code_generator
      * @brief Parse the eBPF file.
      *
      * @param[in] program Program to parse.
+     * @param[in] program_info Program information object.
      * @param[in] program_type Program type GUID for the program.
      * @param[in] attach_type Expected attach type GUID for the program.
      * @param[in] program_info_hash_type Optional bytes containing hash type of the program info.
@@ -228,6 +229,7 @@ class bpf_code_generator
     void
     parse(
         const struct _ebpf_api_program_info* program,
+        _In_opt_ const ebpf_program_info_t* program_info,
         const GUID& program_type,
         const GUID& attach_type,
         const std::string& program_info_hash_type);
@@ -327,7 +329,7 @@ class bpf_code_generator
         std::set<size_t> referenced_map_indices;
         std::map<unsafe_string, helper_function_t> helper_functions;
         std::string program_info_hash_type{};
-        ebpf_program_info_t* program_info = nullptr;
+        const ebpf_program_info_t* program_info = nullptr;
     } program_t;
 
     typedef struct _line_info
@@ -445,6 +447,15 @@ class bpf_code_generator
      */
     void
     visit_symbols(symbol_visitor_t visitor, const unsafe_string& section_name);
+
+    /**
+     * @brief Set the program information object from the verifier for the current program.
+     *
+     * @param[in] program_info Pointer to program information object.
+     *
+     */
+    void
+    set_program_information(_In_ const ebpf_program_info_t* program_info);
 
     int pe_section_name_counter{};
     std::map<unsafe_string, program_t> programs;

@@ -241,7 +241,7 @@ bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name)
             return pos;
         }
     }
-    return NULL;
+    return (struct bpf_map*)libbpf_err_ptr(-ENOENT);
 }
 
 int

@@ -376,7 +376,7 @@ test_maps(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
@@ -433,7 +433,7 @@ label_2:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/undocked/map.c"
     if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
@@ -489,7 +489,7 @@ label_2:
 label_3:
     // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/undocked/map.c"
     if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
@@ -514,7 +514,7 @@ label_4:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/undocked/map.c"
     if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
@@ -576,7 +576,7 @@ label_5:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=78 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 88 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
@@ -642,7 +642,7 @@ label_7:
 label_8:
     // EBPF_OP_CALL pc=101 dst=r0 src=r0 offset=0 imm=13
 #line 293 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 293 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 293 "sample/undocked/map.c"
@@ -677,7 +677,7 @@ label_10:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=111 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
@@ -718,7 +718,7 @@ label_11:
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=122 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 103 "sample/undocked/map.c"
     if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
@@ -819,7 +819,7 @@ label_12:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
@@ -876,7 +876,7 @@ label_14:
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=177 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/undocked/map.c"
     if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
@@ -932,7 +932,7 @@ label_14:
 label_15:
     // EBPF_OP_CALL pc=196 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/undocked/map.c"
     if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
@@ -957,7 +957,7 @@ label_16:
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=204 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/undocked/map.c"
     if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
@@ -1019,7 +1019,7 @@ label_17:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=225 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 88 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
@@ -1112,7 +1112,7 @@ label_20:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=259 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
@@ -1153,7 +1153,7 @@ label_21:
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=270 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 103 "sample/undocked/map.c"
     if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
@@ -1254,7 +1254,7 @@ label_22:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=306 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
@@ -1295,7 +1295,7 @@ label_23:
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_CALL pc=317 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/undocked/map.c"
     if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
@@ -1350,7 +1350,7 @@ label_23:
     r2 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=336 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/undocked/map.c"
     if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
@@ -1375,7 +1375,7 @@ label_24:
     r1 = POINTER(_maps[2].address);
     // EBPF_OP_CALL pc=344 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/undocked/map.c"
     if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
@@ -1443,7 +1443,7 @@ label_25:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=367 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
@@ -1506,7 +1506,7 @@ label_27:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=388 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 93 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 93 "sample/undocked/map.c"
@@ -1607,7 +1607,7 @@ label_29:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=424 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
@@ -1648,7 +1648,7 @@ label_30:
     r1 = POINTER(_maps[3].address);
     // EBPF_OP_CALL pc=435 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/undocked/map.c"
     if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
@@ -1703,7 +1703,7 @@ label_30:
     r2 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=454 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/undocked/map.c"
     if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
@@ -1728,7 +1728,7 @@ label_31:
     r1 = POINTER(_maps[3].address);
     // EBPF_OP_CALL pc=462 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/undocked/map.c"
     if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
@@ -1796,7 +1796,7 @@ label_32:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=485 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
@@ -1859,7 +1859,7 @@ label_34:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=506 dst=r0 src=r0 offset=0 imm=13
 #line 93 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 93 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 93 "sample/undocked/map.c"
@@ -1960,7 +1960,7 @@ label_36:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=543 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
@@ -2017,7 +2017,7 @@ label_38:
     r1 = POINTER(_maps[4].address);
     // EBPF_OP_CALL pc=562 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/undocked/map.c"
     if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
@@ -2073,7 +2073,7 @@ label_38:
 label_39:
     // EBPF_OP_CALL pc=581 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/undocked/map.c"
     if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
@@ -2098,7 +2098,7 @@ label_40:
     r1 = POINTER(_maps[4].address);
     // EBPF_OP_CALL pc=589 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/undocked/map.c"
     if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
@@ -2160,7 +2160,7 @@ label_41:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=610 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 88 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
@@ -2246,7 +2246,7 @@ label_43:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=642 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
@@ -2287,7 +2287,7 @@ label_44:
     r1 = POINTER(_maps[4].address);
     // EBPF_OP_CALL pc=653 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 103 "sample/undocked/map.c"
     if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
@@ -2388,7 +2388,7 @@ label_45:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=689 dst=r0 src=r0 offset=0 imm=2
 #line 74 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/map.c"
@@ -2445,7 +2445,7 @@ label_47:
     r1 = POINTER(_maps[5].address);
     // EBPF_OP_CALL pc=708 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/undocked/map.c"
-    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/undocked/map.c"
     if ((test_maps_helpers[1].tail_call) && (r0 == 0)) {
 #line 80 "sample/undocked/map.c"
@@ -2501,7 +2501,7 @@ label_47:
 label_48:
     // EBPF_OP_CALL pc=727 dst=r0 src=r0 offset=0 imm=12
 #line 82 "sample/undocked/map.c"
-    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 82 "sample/undocked/map.c"
     if ((test_maps_helpers[2].tail_call) && (r0 == 0)) {
 #line 82 "sample/undocked/map.c"
@@ -2526,7 +2526,7 @@ label_49:
     r1 = POINTER(_maps[5].address);
     // EBPF_OP_CALL pc=735 dst=r0 src=r0 offset=0 imm=3
 #line 86 "sample/undocked/map.c"
-    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 86 "sample/undocked/map.c"
     if ((test_maps_helpers[3].tail_call) && (r0 == 0)) {
 #line 86 "sample/undocked/map.c"
@@ -2588,7 +2588,7 @@ label_50:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=756 dst=r0 src=r0 offset=0 imm=13
 #line 88 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 88 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 88 "sample/undocked/map.c"
@@ -2680,7 +2680,7 @@ label_52:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=791 dst=r0 src=r0 offset=0 imm=2
 #line 92 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 92 "sample/undocked/map.c"
@@ -2721,7 +2721,7 @@ label_53:
     r1 = POINTER(_maps[5].address);
     // EBPF_OP_CALL pc=802 dst=r0 src=r0 offset=0 imm=4
 #line 103 "sample/undocked/map.c"
-    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[5].address(r1, r2, r3, r4, r5, context);
 #line 103 "sample/undocked/map.c"
     if ((test_maps_helpers[5].tail_call) && (r0 == 0)) {
 #line 103 "sample/undocked/map.c"
@@ -2822,7 +2822,7 @@ label_54:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=838 dst=r0 src=r0 offset=0 imm=2
 #line 129 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 129 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 129 "sample/undocked/map.c"
@@ -2875,7 +2875,7 @@ label_55:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=853 dst=r0 src=r0 offset=0 imm=2
 #line 135 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 135 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/map.c"
@@ -2931,7 +2931,7 @@ label_56:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=869 dst=r0 src=r0 offset=0 imm=2
 #line 141 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 141 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/map.c"
@@ -2987,7 +2987,7 @@ label_57:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=885 dst=r0 src=r0 offset=0 imm=2
 #line 147 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 147 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/map.c"
@@ -3043,7 +3043,7 @@ label_58:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=901 dst=r0 src=r0 offset=0 imm=2
 #line 153 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 153 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/map.c"
@@ -3099,7 +3099,7 @@ label_59:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=917 dst=r0 src=r0 offset=0 imm=2
 #line 159 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 159 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/map.c"
@@ -3155,7 +3155,7 @@ label_60:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=933 dst=r0 src=r0 offset=0 imm=2
 #line 165 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 165 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/map.c"
@@ -3211,7 +3211,7 @@ label_61:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=949 dst=r0 src=r0 offset=0 imm=2
 #line 171 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 171 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 171 "sample/undocked/map.c"
@@ -3267,7 +3267,7 @@ label_62:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=965 dst=r0 src=r0 offset=0 imm=2
 #line 177 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 177 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 177 "sample/undocked/map.c"
@@ -3323,7 +3323,7 @@ label_63:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=981 dst=r0 src=r0 offset=0 imm=2
 #line 183 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 183 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 183 "sample/undocked/map.c"
@@ -3382,7 +3382,7 @@ label_64:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=998 dst=r0 src=r0 offset=0 imm=2
 #line 189 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 189 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 189 "sample/undocked/map.c"
@@ -3444,7 +3444,7 @@ label_65:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=1019 dst=r0 src=r0 offset=0 imm=13
 #line 190 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 190 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 190 "sample/undocked/map.c"
@@ -3517,7 +3517,7 @@ label_66:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1046 dst=r0 src=r0 offset=0 imm=2
 #line 129 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 129 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 129 "sample/undocked/map.c"
@@ -3570,7 +3570,7 @@ label_67:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1061 dst=r0 src=r0 offset=0 imm=2
 #line 135 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 135 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/map.c"
@@ -3626,7 +3626,7 @@ label_68:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1077 dst=r0 src=r0 offset=0 imm=2
 #line 141 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 141 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/map.c"
@@ -3682,7 +3682,7 @@ label_69:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1093 dst=r0 src=r0 offset=0 imm=2
 #line 147 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 147 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/map.c"
@@ -3738,7 +3738,7 @@ label_70:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1109 dst=r0 src=r0 offset=0 imm=2
 #line 153 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 153 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/map.c"
@@ -3794,7 +3794,7 @@ label_71:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1125 dst=r0 src=r0 offset=0 imm=2
 #line 159 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 159 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/map.c"
@@ -3850,7 +3850,7 @@ label_72:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1141 dst=r0 src=r0 offset=0 imm=2
 #line 165 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 165 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/map.c"
@@ -3906,7 +3906,7 @@ label_73:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1157 dst=r0 src=r0 offset=0 imm=2
 #line 171 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 171 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 171 "sample/undocked/map.c"
@@ -3962,7 +3962,7 @@ label_74:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1173 dst=r0 src=r0 offset=0 imm=2
 #line 177 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 177 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 177 "sample/undocked/map.c"
@@ -4018,7 +4018,7 @@ label_75:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1189 dst=r0 src=r0 offset=0 imm=2
 #line 183 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 183 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 183 "sample/undocked/map.c"
@@ -4077,7 +4077,7 @@ label_76:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1206 dst=r0 src=r0 offset=0 imm=2
 #line 189 "sample/undocked/map.c"
-    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 189 "sample/undocked/map.c"
     if ((test_maps_helpers[0].tail_call) && (r0 == 0)) {
 #line 189 "sample/undocked/map.c"
@@ -4139,7 +4139,7 @@ label_77:
     r2 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=1227 dst=r0 src=r0 offset=0 imm=13
 #line 190 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 190 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 190 "sample/undocked/map.c"
@@ -4203,7 +4203,7 @@ label_78:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1252 dst=r0 src=r0 offset=0 imm=18
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 240 "sample/undocked/map.c"
     if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
@@ -4296,7 +4296,7 @@ label_80:
     r3 = IMMEDIATE(-7);
     // EBPF_OP_CALL pc=1286 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 240 "sample/undocked/map.c"
     if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
@@ -4370,7 +4370,7 @@ label_83:
 label_84:
     // EBPF_OP_CALL pc=1311 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 240 "sample/undocked/map.c"
     if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
@@ -4418,7 +4418,7 @@ label_86:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=1325 dst=r0 src=r0 offset=0 imm=18
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 240 "sample/undocked/map.c"
     if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
@@ -4511,7 +4511,7 @@ label_88:
     r3 = IMMEDIATE(-7);
     // EBPF_OP_CALL pc=1359 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 240 "sample/undocked/map.c"
     if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
@@ -4582,7 +4582,7 @@ label_90:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1386 dst=r0 src=r0 offset=0 imm=17
 #line 241 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 241 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 241 "sample/undocked/map.c"
@@ -4744,7 +4744,7 @@ label_94:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1447 dst=r0 src=r0 offset=0 imm=16
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 249 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
@@ -4847,7 +4847,7 @@ label_96:
 label_97:
     // EBPF_OP_CALL pc=1483 dst=r0 src=r0 offset=0 imm=15
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[10].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[10].address(r1, r2, r3, r4, r5, context);
 #line 249 "sample/undocked/map.c"
     if ((test_maps_helpers[10].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
@@ -4881,7 +4881,7 @@ label_98:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1493 dst=r0 src=r0 offset=0 imm=16
 #line 250 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 250 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 250 "sample/undocked/map.c"
@@ -4937,7 +4937,7 @@ label_99:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1509 dst=r0 src=r0 offset=0 imm=16
 #line 251 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 251 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 251 "sample/undocked/map.c"
@@ -4993,7 +4993,7 @@ label_100:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1525 dst=r0 src=r0 offset=0 imm=16
 #line 252 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 252 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 252 "sample/undocked/map.c"
@@ -5049,7 +5049,7 @@ label_101:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1541 dst=r0 src=r0 offset=0 imm=16
 #line 253 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 253 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 253 "sample/undocked/map.c"
@@ -5105,7 +5105,7 @@ label_102:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1557 dst=r0 src=r0 offset=0 imm=16
 #line 254 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 254 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 254 "sample/undocked/map.c"
@@ -5161,7 +5161,7 @@ label_103:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1573 dst=r0 src=r0 offset=0 imm=16
 #line 255 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 255 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 255 "sample/undocked/map.c"
@@ -5217,7 +5217,7 @@ label_104:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1589 dst=r0 src=r0 offset=0 imm=16
 #line 256 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 256 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 256 "sample/undocked/map.c"
@@ -5273,7 +5273,7 @@ label_105:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1605 dst=r0 src=r0 offset=0 imm=16
 #line 257 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 257 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 257 "sample/undocked/map.c"
@@ -5329,7 +5329,7 @@ label_106:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1621 dst=r0 src=r0 offset=0 imm=16
 #line 258 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 258 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 258 "sample/undocked/map.c"
@@ -5385,7 +5385,7 @@ label_107:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1637 dst=r0 src=r0 offset=0 imm=16
 #line 261 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 261 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 261 "sample/undocked/map.c"
@@ -5507,7 +5507,7 @@ label_108:
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=1682 dst=r0 src=r0 offset=0 imm=16
 #line 262 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 262 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 262 "sample/undocked/map.c"
@@ -5611,7 +5611,7 @@ label_109:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1720 dst=r0 src=r0 offset=0 imm=18
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 264 "sample/undocked/map.c"
     if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
@@ -5700,7 +5700,7 @@ label_110:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=1752 dst=r0 src=r0 offset=0 imm=14
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 264 "sample/undocked/map.c"
     if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
@@ -5790,7 +5790,7 @@ label_112:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1784 dst=r0 src=r0 offset=0 imm=17
 #line 272 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 272 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 272 "sample/undocked/map.c"
@@ -5948,7 +5948,7 @@ label_115:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1843 dst=r0 src=r0 offset=0 imm=17
 #line 273 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 273 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 273 "sample/undocked/map.c"
@@ -6054,7 +6054,7 @@ label_117:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1879 dst=r0 src=r0 offset=0 imm=17
 #line 274 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 274 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 274 "sample/undocked/map.c"
@@ -6160,7 +6160,7 @@ label_119:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1915 dst=r0 src=r0 offset=0 imm=17
 #line 275 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 275 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 275 "sample/undocked/map.c"
@@ -6266,7 +6266,7 @@ label_121:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1951 dst=r0 src=r0 offset=0 imm=17
 #line 276 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 276 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 276 "sample/undocked/map.c"
@@ -6372,7 +6372,7 @@ label_123:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=1987 dst=r0 src=r0 offset=0 imm=17
 #line 277 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 277 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 277 "sample/undocked/map.c"
@@ -6478,7 +6478,7 @@ label_125:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=2023 dst=r0 src=r0 offset=0 imm=17
 #line 278 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 278 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 278 "sample/undocked/map.c"
@@ -6584,7 +6584,7 @@ label_127:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=2059 dst=r0 src=r0 offset=0 imm=17
 #line 279 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 279 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 279 "sample/undocked/map.c"
@@ -6690,7 +6690,7 @@ label_129:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=2095 dst=r0 src=r0 offset=0 imm=17
 #line 280 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 280 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 280 "sample/undocked/map.c"
@@ -6796,7 +6796,7 @@ label_131:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=2131 dst=r0 src=r0 offset=0 imm=17
 #line 281 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 281 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 281 "sample/undocked/map.c"
@@ -6902,7 +6902,7 @@ label_133:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=2167 dst=r0 src=r0 offset=0 imm=18
 #line 284 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 284 "sample/undocked/map.c"
     if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
 #line 284 "sample/undocked/map.c"
@@ -6969,7 +6969,7 @@ label_135:
     r1 = POINTER(_maps[6].address);
     // EBPF_OP_CALL pc=2186 dst=r0 src=r0 offset=0 imm=17
 #line 285 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 285 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 285 "sample/undocked/map.c"
@@ -7082,7 +7082,7 @@ label_139:
 label_140:
     // EBPF_OP_CALL pc=2222 dst=r0 src=r0 offset=0 imm=14
 #line 240 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 240 "sample/undocked/map.c"
     if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
 #line 240 "sample/undocked/map.c"
@@ -7153,7 +7153,7 @@ label_141:
     r2 = IMMEDIATE(40);
     // EBPF_OP_CALL pc=2248 dst=r0 src=r0 offset=0 imm=13
 #line 304 "sample/undocked/map.c"
-    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 304 "sample/undocked/map.c"
     if ((test_maps_helpers[4].tail_call) && (r0 == 0)) {
 #line 304 "sample/undocked/map.c"
@@ -7184,7 +7184,7 @@ label_142:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2257 dst=r0 src=r0 offset=0 imm=17
 #line 241 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 241 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 241 "sample/undocked/map.c"
@@ -7346,7 +7346,7 @@ label_146:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2318 dst=r0 src=r0 offset=0 imm=16
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 249 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
@@ -7449,7 +7449,7 @@ label_148:
 label_149:
     // EBPF_OP_CALL pc=2354 dst=r0 src=r0 offset=0 imm=15
 #line 249 "sample/undocked/map.c"
-    r0 = test_maps_helpers[10].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[10].address(r1, r2, r3, r4, r5, context);
 #line 249 "sample/undocked/map.c"
     if ((test_maps_helpers[10].tail_call) && (r0 == 0)) {
 #line 249 "sample/undocked/map.c"
@@ -7483,7 +7483,7 @@ label_150:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2364 dst=r0 src=r0 offset=0 imm=16
 #line 250 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 250 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 250 "sample/undocked/map.c"
@@ -7539,7 +7539,7 @@ label_151:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2380 dst=r0 src=r0 offset=0 imm=16
 #line 251 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 251 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 251 "sample/undocked/map.c"
@@ -7595,7 +7595,7 @@ label_152:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2396 dst=r0 src=r0 offset=0 imm=16
 #line 252 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 252 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 252 "sample/undocked/map.c"
@@ -7651,7 +7651,7 @@ label_153:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2412 dst=r0 src=r0 offset=0 imm=16
 #line 253 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 253 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 253 "sample/undocked/map.c"
@@ -7707,7 +7707,7 @@ label_154:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2428 dst=r0 src=r0 offset=0 imm=16
 #line 254 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 254 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 254 "sample/undocked/map.c"
@@ -7763,7 +7763,7 @@ label_155:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2444 dst=r0 src=r0 offset=0 imm=16
 #line 255 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 255 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 255 "sample/undocked/map.c"
@@ -7819,7 +7819,7 @@ label_156:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2460 dst=r0 src=r0 offset=0 imm=16
 #line 256 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 256 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 256 "sample/undocked/map.c"
@@ -7875,7 +7875,7 @@ label_157:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2476 dst=r0 src=r0 offset=0 imm=16
 #line 257 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 257 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 257 "sample/undocked/map.c"
@@ -7931,7 +7931,7 @@ label_158:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2492 dst=r0 src=r0 offset=0 imm=16
 #line 258 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 258 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 258 "sample/undocked/map.c"
@@ -7987,7 +7987,7 @@ label_159:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2508 dst=r0 src=r0 offset=0 imm=16
 #line 261 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 261 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 261 "sample/undocked/map.c"
@@ -8109,7 +8109,7 @@ label_160:
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=2553 dst=r0 src=r0 offset=0 imm=16
 #line 262 "sample/undocked/map.c"
-    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[9].address(r1, r2, r3, r4, r5, context);
 #line 262 "sample/undocked/map.c"
     if ((test_maps_helpers[9].tail_call) && (r0 == 0)) {
 #line 262 "sample/undocked/map.c"
@@ -8213,7 +8213,7 @@ label_161:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2591 dst=r0 src=r0 offset=0 imm=18
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 264 "sample/undocked/map.c"
     if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
@@ -8302,7 +8302,7 @@ label_162:
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=2623 dst=r0 src=r0 offset=0 imm=14
 #line 264 "sample/undocked/map.c"
-    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[7].address(r1, r2, r3, r4, r5, context);
 #line 264 "sample/undocked/map.c"
     if ((test_maps_helpers[7].tail_call) && (r0 == 0)) {
 #line 264 "sample/undocked/map.c"
@@ -8392,7 +8392,7 @@ label_164:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2655 dst=r0 src=r0 offset=0 imm=17
 #line 272 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 272 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 272 "sample/undocked/map.c"
@@ -8550,7 +8550,7 @@ label_167:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2714 dst=r0 src=r0 offset=0 imm=17
 #line 273 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 273 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 273 "sample/undocked/map.c"
@@ -8656,7 +8656,7 @@ label_169:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2750 dst=r0 src=r0 offset=0 imm=17
 #line 274 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 274 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 274 "sample/undocked/map.c"
@@ -8762,7 +8762,7 @@ label_171:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2786 dst=r0 src=r0 offset=0 imm=17
 #line 275 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 275 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 275 "sample/undocked/map.c"
@@ -8868,7 +8868,7 @@ label_173:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2822 dst=r0 src=r0 offset=0 imm=17
 #line 276 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 276 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 276 "sample/undocked/map.c"
@@ -8974,7 +8974,7 @@ label_175:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2858 dst=r0 src=r0 offset=0 imm=17
 #line 277 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 277 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 277 "sample/undocked/map.c"
@@ -9080,7 +9080,7 @@ label_177:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2894 dst=r0 src=r0 offset=0 imm=17
 #line 278 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 278 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 278 "sample/undocked/map.c"
@@ -9186,7 +9186,7 @@ label_179:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2930 dst=r0 src=r0 offset=0 imm=17
 #line 279 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 279 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 279 "sample/undocked/map.c"
@@ -9292,7 +9292,7 @@ label_181:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=2966 dst=r0 src=r0 offset=0 imm=17
 #line 280 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 280 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 280 "sample/undocked/map.c"
@@ -9398,7 +9398,7 @@ label_183:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=3002 dst=r0 src=r0 offset=0 imm=17
 #line 281 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 281 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 281 "sample/undocked/map.c"
@@ -9504,7 +9504,7 @@ label_185:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=3038 dst=r0 src=r0 offset=0 imm=18
 #line 284 "sample/undocked/map.c"
-    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[6].address(r1, r2, r3, r4, r5, context);
 #line 284 "sample/undocked/map.c"
     if ((test_maps_helpers[6].tail_call) && (r0 == 0)) {
 #line 284 "sample/undocked/map.c"
@@ -9571,7 +9571,7 @@ label_187:
     r1 = POINTER(_maps[7].address);
     // EBPF_OP_CALL pc=3057 dst=r0 src=r0 offset=0 imm=17
 #line 285 "sample/undocked/map.c"
-    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5);
+    r0 = test_maps_helpers[8].address(r1, r2, r3, r4, r5, context);
 #line 285 "sample/undocked/map.c"
     if ((test_maps_helpers[8].tail_call) && (r0 == 0)) {
 #line 285 "sample/undocked/map.c"
@@ -9662,7 +9662,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 18;
+    version->minor = 19;
     version->revision = 0;
 }
 
