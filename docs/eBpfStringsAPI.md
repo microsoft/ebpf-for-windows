@@ -84,12 +84,12 @@ cause an uncomfortable name collision.
 ## Proposed names & prototypes
 
 ```C
-errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
-errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
-size_t bpf_strlen(const char *str, size_t str_size);
-int bpf_strcmp(const char *lhs, size_t lhs_size, const char *rhs, size_t rhs_size, size_t count);
-char *bpf_strchr(const char *str, size_t str_size, char ch);
-char *bpf_strstr(const char *str, size_t str_size, const char *substr, size_t substr_size);
+errno_t bpf_strcpy_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
+errno_t bpf_strcat_s(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
+size_t bpf_strlen_s(const char *str, size_t str_size);
+int bpf_strncmp_s(const char *lhs, size_t lhs_size, const char *rhs, size_t rhs_size, size_t count);
+char *bpf_strchr_s(const char *str, size_t str_size, char ch);
+char *bpf_strstr_s(const char *str, size_t str_size, const char *substr, size_t substr_size);
 long bpf_strtol(const char *str, unsigned long str_len, uint64_t flags, long *res); // Note
 long bpf_strtoul(const char *str, unsigned long str_len, uint64_t flags, unsigned long *res); // Note
 ```
