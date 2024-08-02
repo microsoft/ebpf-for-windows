@@ -226,26 +226,6 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
          EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
          EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
      }},
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_strtol,
-     "bpf_strtol",
-     EBPF_RETURN_TYPE_INTEGER,
-     {
-         EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
-         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
-         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
-         EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
-     }},
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_strtoul,
-     "bpf_strtoul",
-     EBPF_RETURN_TYPE_INTEGER,
-     {
-         EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
-         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
-         EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
-         EBPF_ARGUMENT_TYPE_PTR_TO_WRITABLE_MEM,
-     }},
 };
 
 #ifdef __cplusplus

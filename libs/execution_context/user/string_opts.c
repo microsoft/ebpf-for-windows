@@ -1,53 +1,22 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-#include <Ntstrsafe.h>
+#include "ebpf_strings.h"
 
-static errno_t
-_ebpf_core_strcpy(
-    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count);
-
-static errno_t
-_ebpf_core_strcat(
-    _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count);
-
-static size_t
-_ebpf_core_strlen(_In_reads_(str_size) const char* str, size_t str_size);
-
-static int32_t
-_ebpf_core_strcmp(
-    _In_reads_(lhs_size) const char* lhs,
-    size_t lhs_size,
-    _In_reads_(rhs_size) const char* rhs,
-    size_t rhs_size,
-    size_t count);
-
-static char*
-_ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch);
-
-static char*
-_ebpf_core_strstr(
-    _In_reads_(str_size) const char* str,
-    size_t str_size,
-    _In_reads_(substr_size) const char* substr,
-    size_t substr_size);
-
-static long
-_ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ long* result);
-
-static long
-_ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ unsigned long* result);
+#include <stdlib.h>
+#include <string.h>
+#include <strsafe.h>
 
 // errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
-static errno_t
+errno_t
 _ebpf_core_strcpy(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count)
 {
-    return RtlStringCbCopyNExA(dest, dest_size, src, src_count, NULL, NULL, STRSAFE_FILL_BEHIND_NULL | 0);
+    return StringCbCopyNExA(dest, dest_size, src, src_count, NULL, NULL, STRSAFE_FILL_BEHIND_NULL | 0);
 }
 
 // errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t src_count);
-static errno_t
+errno_t
 _ebpf_core_strcat(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(src_count) const char* src, size_t src_count)
 {
@@ -55,14 +24,14 @@ _ebpf_core_strcat(
 }
 
 // size_t bpf_strlen(const char *str, size_t str_size);
-static size_t
-_ebpf_core_strlen(_In_reads_(str_size) const char* str, size_t str_size)
+size_t
+_ebpf_core_strlen_s(_In_reads_(str_size) const char* str, size_t str_size)
 {
     return strnlen_s(str, str_size);
 }
 
 // int bpf_strcmp(const char *lhs, size_t lhs_size, const char *rhs, size_t rhs_size, size_t count);
-static int32_t
+int32_t
 _ebpf_core_strcmp(
     _In_reads_(lhs_size) const char* lhs,
     size_t lhs_size,
@@ -81,7 +50,8 @@ _ebpf_core_strcmp(
 
     // Being cognizant that either or both lhs and rhs might not be null-terminated, we can use the minimum length bound
     // of any of them to establish what is the "safe" number of characters to use for the string check.
-    size_t min_count = min(min(lhs_size, rhs_size), count);
+    size_t min_size = __min(lhs_size, rhs_size);
+    size_t min_count = __min(min_size, count);
 
     int compare = strncmp(lhs, rhs, min_count);
     // However, the output of strncmp isn't the only story. If compare == 0, we should also consider if min_count is
@@ -110,7 +80,7 @@ _ebpf_core_strcmp(
 }
 
 // char *bpf_strchr(const char *str, size_t str_size, char ch);
-static char*
+char*
 _ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch)
 {
     size_t str_len = strnlen_s(str, str_size);
@@ -125,7 +95,7 @@ _ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch
 }
 
 // char *bpf_strstr(const char *str, size_t str_size, const char *substr, size_t substr_size);
-static char*
+char*
 _ebpf_core_strstr(
     _In_reads_(str_size) const char* str,
     size_t str_size,
@@ -139,7 +109,7 @@ _ebpf_core_strstr(
 }
 
 // long bpf_strtol(const char *str, unsigned long str_len, uint64_t flags, long *res); // Note
-static long
+long
 _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ long* result)
 {
     // Much as with strtoul below, this will need RtlCharToInteger for kernel mode.
@@ -180,7 +150,7 @@ _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_
 }
 
 // long bpf_strtoul(const char *str, unsigned long str_len, uint64_t flags, unsigned long *res); // Note
-static long
+long
 _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64_t flags, _Out_ unsigned long* result)
 {
     // This one's going to need RtlCharToInteger for the kernel code, UM code can make use of strtoul.
@@ -188,9 +158,11 @@ _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64
     // have RtlUnicodeToInteger, but we're working with ANSI strings, and upconverting a random ANSI
     // string to Unicode internally just to parse a number feels like way too much work.
 
+    (void)str_size;
     int64_t value = 0;
 
     int base = (int)(0x1F & flags);
+    char* num_end = NULL;
 
     if (result == NULL) {
         return -EINVAL;
@@ -211,6 +183,6 @@ _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64
         return -ERANGE;
     }
 
-    *result = value;
+    *result = (unsigned long)value;
     return (long)(num_end - str);
 }
