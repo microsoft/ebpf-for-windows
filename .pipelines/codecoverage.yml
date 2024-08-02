@@ -46,9 +46,9 @@ jobs:
   steps:
   # Get source code
   - script: |
-        git clone https://mscodehub.visualstudio.com/eBPFForWindows/_git/eBPFForWindows
+        git clone https://dev.azure.com/microsoft/undock/_git/ebpf-for-windows
         git checkout $(commit-ID)
-    displayName: 'Clone eBPFForWindows and checkout commit'
+    displayName: 'Clone ebpf-for-windows and checkout commit'
 
   # Get code coverage from OneFuzz for the job
   - powershell: |
