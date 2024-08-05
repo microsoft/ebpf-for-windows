@@ -53,13 +53,13 @@ jobs:
           gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
 
       - name: upload_results_azure_2022_x64
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029
         with:
             name: Test-Logs-netperf_azure_2022_x64
             path: netperf/ebpf_azure_2022_x64/ebpf.csv
 
       - name: upload_results_lab_2022_x64
-        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+        uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029
         with:
             name: Test-Logs-netperf_lab_2022_x64
             path: netperf/ebpf_lab_2022_x64/ebpf.csv
