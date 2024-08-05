@@ -937,7 +937,7 @@ code.
 
 # 5. Installing eBPF programs
 
-`netsh ebpf` can also install your eBPF program. As an example, the program we created above won't do much but we can install it with program type `xdp_test` via:
+`netsh ebpf` can also install your eBPF program. As an example, the program we created above won't do much but we can install it using the program type `xdp_test` via:
 
 ```
 netsh ebpf add program .\myxdp.o xdp_test
