@@ -240,6 +240,8 @@ net_ebpf_extension_wfp_filter_context_create(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
 
+    UNREFERENCED_PARAMETER(client_context);
+
     NET_EBPF_EXT_LOG_ENTRY();
 
     *filter_context = NULL;
@@ -252,15 +254,15 @@ net_ebpf_extension_wfp_filter_context_create(
 
     memset(local_filter_context, 0, filter_context_size);
     local_filter_context->reference_count = 1; // Initial reference.
-    local_filter_context->client_context = client_context;
+    // local_filter_context->client_context = client_context;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(
-            (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+    // if (!net_ebpf_extension_hook_client_enter_rundown(
+    //         (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
 
-        // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
-        // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
-        __fastfail(FAST_FAIL_INVALID_ARG);
-    }
+    //     // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
+    //     // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
+    //     __fastfail(FAST_FAIL_INVALID_ARG);
+    // }
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
@@ -380,6 +382,7 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
+    uint32_t filter_weight,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids)
 {
@@ -431,7 +434,13 @@ net_ebpf_extension_add_wfp_filters(
         } else {
             filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
         }
-        filter.weight.type = FWP_EMPTY; // auto-weight.
+        if (filter_weight == 0) {
+            filter.weight.type = FWP_EMPTY; // auto-weight.
+        } else {
+            filter.weight.type = FWP_UINT32;
+            filter.weight.uint32 = filter_weight;
+        }
+
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 

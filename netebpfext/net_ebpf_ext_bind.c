@@ -122,6 +122,7 @@ _net_ebpf_extension_bind_on_client_attach(
         _net_ebpf_extension_bind_wfp_filter_parameters,
         0,
         NULL,
+        0,
         filter_context,
         &filter_context->filter_ids);
     if (result != EBPF_SUCCESS) {

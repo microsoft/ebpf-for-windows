@@ -27,6 +27,24 @@
 
 CONST IN6_ADDR DECLSPEC_SELECTANY in6addr_v4mappedprefix = IN6ADDR_V4MAPPEDPREFIX_INIT;
 
+#define _ACQUIRE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        KeEnterCriticalRegion();       \
+        ExAcquirePushLock##mode(lock); \
+    }
+
+#define _RELEASE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        ExReleasePushLock##mode(lock); \
+        KeLeaveCriticalRegion();       \
+    }
+
+#define ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) _ACQUIRE_PUSH_LOCK(lock, Exclusive)
+#define ACQUIRE_PUSH_LOCK_SHARED(lock) _ACQUIRE_PUSH_LOCK(lock, Shared)
+
+#define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _RELEASE_PUSH_LOCK(lock, Exclusive)
+#define RELEASE_PUSH_LOCK_SHARED(lock) _RELEASE_PUSH_LOCK(lock, Shared)
+
 #define htonl(x) _byteswap_ulong(x)
 #define htons(x) _byteswap_ushort(x)
 #define ntohl(x) _byteswap_ulong(x)
@@ -92,7 +110,11 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
-    volatile long reference_count;                                ///< Reference count.
+    // LIST_ENTRY list_entry; ///< Entry in the list of filter contexts.
+    volatile long reference_count;  ///< Reference count.
+    uint64_t client_context_count;  ///< Number of hook NPI clients.
+    LIST_ENTRY client_context_list; ///< List of hook NPI clients.
+    // ANUSA TODO: `client_context` needs to be removed. There is instead now a list of client contexts.
     const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
 
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
@@ -106,16 +128,14 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
-#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                    \
-    if ((filter_context) != NULL) {                                                   \
-        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {          \
-            net_ebpf_extension_hook_client_leave_rundown(                             \
-                (net_ebpf_extension_hook_client_t*)(filter_context)->client_context); \
-            if ((filter_context)->filter_ids != NULL) {                               \
-                ExFreePool((filter_context)->filter_ids);                             \
-            }                                                                         \
-            ExFreePool((filter_context));                                             \
-        }                                                                             \
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                           \
+    if ((filter_context) != NULL) {                                          \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) { \
+            if ((filter_context)->filter_ids != NULL) {                      \
+                ExFreePool((filter_context)->filter_ids);                    \
+            }                                                                \
+            ExFreePool((filter_context));                                    \
+        }                                                                    \
     }
 
 /**
@@ -196,11 +216,12 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 /**
  * @brief Add WFP filters with specified conditions at specified layers.
  *
- * @param[in]  filter_count Count of filters to be added.
- * @param[in]  parameters Filter parameters.
- * @param[in]  condition_count Count of filter conditions.
- * @param[in]  conditions Common filter conditions to be applied to each filter.
- * @param[in, out]  filter_context Caller supplied context to be associated with the WFP filter.
+ * @param[in] filter_count Count of filters to be added.
+ * @param[in] parameters Filter parameters.
+ * @param[in] condition_count Count of filter conditions.
+ * @param[in] conditions Common filter conditions to be applied to each filter.
+ * @param[in] filter_weight Weight of the filter. If 0, default weight is used.
+ * @param[in, out] filter_context Caller supplied context to be associated with the WFP filter.
  * @param[out] filter_ids Output buffer where the added filter IDs are stored.
  *
  * @retval EBPF_SUCCESS The operation completed successfully.
@@ -212,6 +233,7 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
+    uint32_t filter_weight,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids);
 

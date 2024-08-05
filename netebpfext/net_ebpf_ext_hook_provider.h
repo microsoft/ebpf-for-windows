@@ -13,6 +13,8 @@
  */
 typedef struct _net_ebpf_extension_hook_client net_ebpf_extension_hook_client_t;
 
+typedef struct _net_ebpf_extension_wfp_filter_context net_ebpf_extension_wfp_filter_context_t;
+
 /**
  * @brief Attempt to acquire rundown.
  *
@@ -152,6 +154,15 @@ net_ebpf_extension_hook_invoke_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _Inout_ void* context, _Out_ uint32_t* result);
 
 /**
+ * @brief When hook provider supports multiple programs per hook, this callback function is invoked after
+ * every program invocation to determine whether we should continue invoking next program in the list.
+ * @param[in] progrma_verdict Pointer to context of the hook NPI client that is requesting to be detached.
+ *
+ * @returns TRUE if the next program should be invoked, FALSE otherwise.
+ */
+typedef bool (*net_ebpf_extension_hook_process_verdict)(int program_verdict);
+
+/**
  * @brief Return client attached to the hook NPI provider.
  * @param[in, out] provider_context Provider module's context.
  * @returns Attached client.
@@ -190,3 +201,26 @@ net_ebpf_extension_hook_check_attach_parameter(
     _In_reads_(attach_parameter_size) const void* attach_parameter,
     _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
     _Inout_ net_ebpf_extension_hook_provider_t* provider_context);
+
+net_ebpf_extension_hook_client_t*
+net_ebpf_extension_get_matching_client(
+    size_t attach_parameter_size,
+    _In_reads_(attach_parameter_size) const void* attach_parameter,
+    _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
+    _In_ net_ebpf_extension_hook_provider_t* provider_context);
+
+void
+net_ebpf_extension_hook_client_insert(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Inout_ net_ebpf_extension_hook_client_t* client_context);
+
+void
+net_ebpf_extension_hook_client_remove(
+    _Inout_ void* filter_context, _In_ net_ebpf_extension_hook_client_t* client_context);
+
+ebpf_result_t
+net_ebpf_extension_invoke_programs(
+    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Inout_ void* program_context,
+    _In_ const net_ebpf_extension_hook_process_verdict process_callback,
+    _Out_ uint32_t* result);

@@ -203,6 +203,7 @@ net_ebpf_extension_xdp_on_client_attach(
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
+        0,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
         &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS) {
