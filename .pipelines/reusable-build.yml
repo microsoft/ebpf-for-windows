@@ -61,11 +61,13 @@ jobs:
       CXX_FLAGS: ${{parameters.cxx_flags}}
       LD_FLAGS: ${{parameters.ld_flags}}
       MSBUILD_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\amd64'
+      VSVARS64_PATH: 'C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build'
       GDN_CODESIGN_TARGETDIRECTORY: '$(Build.SourcesDirectory)/$(BUILD_PLATFORM)/$(buildConfiguration)'
+      LLVM_PATH: 'C:\Program Files\LLVM\bin'
 
     steps:
       - script: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "$(VSVARS64_PATH)\vcvars64.bat"
           echo "##vso[task.setvariable variable=msvc_tools_path;isOutput=true]%VCToolsInstallDir%"
           echo "##vso[task.setvariable variable=msvc_tools_version;isOutput=true]%VCToolsVersion%"
         name: msvc_variables
@@ -90,7 +92,7 @@ jobs:
 
       - bash: |
           choco install -y llvm --version 11.0.1 --allow-downgrade
-          echo '##vso[task.prependpath]C:\Program Files\LLVM\bin'
+          echo '##vso[task.prependpath]$(LLVM_PATH)'
           choco install wixtoolset
         workingDirectory: $(Build.SourcesDirectory)
         displayName:  'Install tools'
