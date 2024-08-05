@@ -205,4 +205,4 @@ Start an admin Powershell on the Windows Host and run the following command and 
 
 ## Installing eBPF external extensions
 
-- Install [xdp-for-windows](https://github.com/microsoft/xdp-for-windows/releases) extension, if your eBPF program uses XDP driver. Please refer to  [installation here](https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md)
+- If your eBPF program requires XDP, install the [xdp-for-windows](https://github.com/microsoft/xdp-for-windows/releases) extension by following the [XDP for Windows installation instructions](https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md).
