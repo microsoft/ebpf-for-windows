@@ -594,5 +594,5 @@ This eliminates the need for repeated manual copy of the modified driver binary 
 development cycle.  See the [Windows Hardware Developer documentation](https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/-kdfiles--set-driver-replacement-map-) for more details.
 
 ## eBPF external extensions
-Extensions that integrate with eBPF for Windows platform:
+Extensions that integrate with eBPF for Windows:
 - XDP extension: [xdp-for-windows](https://github.com/microsoft/xdp-for-windows)
