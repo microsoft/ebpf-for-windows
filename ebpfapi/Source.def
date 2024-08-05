@@ -107,6 +107,8 @@ EXPORTS
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
+    ebpf_close_fd
+    ebpf_dup_fd
     ebpf_enumerate_programs
     ebpf_enumerate_sections = ebpf_enumerate_programs
     ebpf_free_programs

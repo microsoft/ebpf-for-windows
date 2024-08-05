@@ -473,6 +473,17 @@ extern "C"
     ebpf_close_fd(fd_t fd) EBPF_NO_EXCEPT;
 
     /**
+     * @brief Duplicate a file descriptor.
+     *
+     * @param [in] fd File descriptor to be duplicated.
+     * @param [out] dup Duplicated file descriptor.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_dup_fd(fd_t fd, _Out_ fd_t* dup) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Get eBPF program type and expected attach type by name.
      *
      * @param[in] name Name, as if it were a section name in an ELF file.

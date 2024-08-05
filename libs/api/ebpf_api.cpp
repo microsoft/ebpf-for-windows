@@ -1766,6 +1766,35 @@ ebpf_api_close_handle(ebpf_handle_t handle) NO_EXCEPT_TRY
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_close_fd(fd_t fd) noexcept
+{
+    EBPF_LOG_ENTRY();
+
+    if (Platform::_close(fd) == -1) {
+        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(errno));
+    }
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_dup_fd(fd_t fd, _Out_ fd_t* dup) noexcept
+{
+    EBPF_LOG_ENTRY();
+
+    ebpf_assert(dup);
+
+    int retval = Platform::_dup(fd);
+    *dup = retval;
+
+    if (retval == -1) {
+        EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(errno));
+    }
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_api_get_pinned_map_info(
     _Out_ uint16_t* map_count, _Outptr_result_buffer_maybenull_(*map_count) ebpf_map_info_t** map_info) NO_EXCEPT_TRY
 {
