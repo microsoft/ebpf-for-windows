@@ -367,6 +367,7 @@ jobs:
       leak_detection: true
 
 # Run multi-threaded stress tests against the user mode 'mock' framework.
+# Runs on a schedule as this takes a long time to run.
 - ${{ if in(variables['Build.Reason'], 'Schedule', 'Manual') }}:
   - template: ./reusable-test.yml
     parameters:
