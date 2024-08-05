@@ -963,7 +963,7 @@ You can also install and interact with the eBPF programs programmatically. See h
 
 Learn more about using eBPF at https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-ebpf-for-windows
 
-You can install `xdp-for-windows` extension from https://github.com/microsoft/xdp-for-windows/releases. This [github repository](https://github.com/microsoft/xdp-for-windows) has the Windows native XDP support, with the program type=xdp.
+You can install the `xdp-for-windows` extension from https://github.com/microsoft/xdp-for-windows/releases. Its [github repository](https://github.com/microsoft/xdp-for-windows) has Windows native XDP support, with the program type=xdp.
 
 # 6. Next steps
 
