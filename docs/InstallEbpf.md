@@ -202,3 +202,7 @@ Start an admin Powershell on the Windows Host and run the following command and 
     ```cmd
     kubectl apply -f manifests/Kubernetes/ebpf-for-windows-daemonset.yaml
     ```
+
+## Installing eBPF external extensions
+
+- Install [xdp-for-windows](https://github.com/microsoft/xdp-for-windows/releases) extension, if your eBPF program uses XDP driver. Please refer to  [installation here](https://github.com/microsoft/xdp-for-windows/blob/main/docs/usage.md)
