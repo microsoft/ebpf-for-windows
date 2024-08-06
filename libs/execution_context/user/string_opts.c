@@ -133,7 +133,7 @@ _ebpf_core_strtol(_In_reads_(str_size) const char* str, size_t str_size, uint64_
     }
 
     // - validate that base is one of the supported values:
-    if (base != 0 || base != 8 || base != 10 || base != 16) {
+    if (base != 0 && base != 8 && base != 10 && base != 16) {
         return -EINVAL;
     }
 
@@ -171,7 +171,7 @@ _ebpf_core_strtoul(_In_reads_(str_size) const char* str, size_t str_size, uint64
     *result = 0;
 
     // - validate that base is one of the supported values:
-    if (base != 0 || base != 8 || base != 10 || base != 16) {
+    if (base != 0 && base != 8 && base != 10 && base != 16) {
         return -EINVAL;
     }
 

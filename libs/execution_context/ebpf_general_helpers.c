@@ -170,7 +170,7 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_strcpy,
+     BPF_FUNC_strncpy_s,
      "bpf_strcpy",
      EBPF_RETURN_TYPE_INTEGER,
      {
@@ -180,7 +180,7 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
          EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
      }},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_strcat,
+     BPF_FUNC_strncat_s,
      "bpf_strcat",
      EBPF_RETURN_TYPE_INTEGER,
      {
@@ -190,15 +190,15 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
          EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
      }},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_strlen,
-     "bpf_strlen",
+     BPF_FUNC_strnlen_s,
+     "bpf_strlen_s",
      EBPF_RETURN_TYPE_INTEGER,
      {
          EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
          EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
      }},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_strcmp,
+     BPF_FUNC_strncmp_s,
      "bpf_strcmp",
      EBPF_RETURN_TYPE_INTEGER,
      {

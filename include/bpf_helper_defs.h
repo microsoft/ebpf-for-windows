@@ -419,6 +419,41 @@ EBPF_HELPER(int64_t, bpf_get_socket_cookie, (const void* ctx));
 #define bpf_get_socket_cookie ((bpf_get_socket_cookie_t)BPF_FUNC_get_socket_cookie)
 #endif
 
+/**
+ * @brief Copy a string into a buffer, of a fixed size.
+ *
+ * @param[in] dest Destination buffer
+ * @param[in] dest_size Size of the destination buffer.
+ * @param[in] src Source string
+ * @param[in] count Upper limit on bytes to copy.
+ *
+ * @retval 0 The operation was successful
+ * @retval -ERANGE The destination buffer isn't large enough for the string being copied.
+ */
+EBPF_HELPER(int, bpf_strncpy_s, (char* dest, size_t dest_size, const char* src, size_t count));
+#ifndef __doxygen
+#define bpf_strncpy_s ((bpf_strncpy_s_t)BPF_FUNC_strncpy_s)
+#endif
+
+/**
+ * @brief Concatenate a string to an existing buffer, up to a certain number of characters.
+ */
+EBPF_HELPER(int, bpf_strncat_s, (char* dest, size_t dest_size, const char* src, size_t count));
+#ifndef __doxygen
+#define bpf_strncat_s ((bpf_strncat_s_t)BPF_FUNC_strncat_s)
+#endif
+
+/**
+ * @brief Find the length of a string, up to a certain number of characters.
+ *
+ * @returns The length of the string if the string is non-null or str_size if there is no null in the first str_size
+ * characters; otherwise, returns 0.
+ */
+EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
+#ifndef __doxygen
+#define bpf_strnlen_s ((bpf_strnlen_s_t)BPF_FUNC_strnlen_s)
+#endif
+
 #if __clang__
 #define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
 #define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)

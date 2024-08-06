@@ -3767,6 +3767,22 @@ _utility_test(ebpf_execution_type_t execution_type)
 
     result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
+
+    // Load the next test.
+    struct bpf_program* string_caller = bpf_object__find_program_by_name(process_object, "StringOpsTest");
+    REQUIRE(string_caller != nullptr);
+
+    bpf_link_ptr string_link(bpf_program__attach(string_caller));
+    REQUIRE(link != nullptr);
+
+    result = 0;
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
+
+    REQUIRE(result == 0);
+
+    result = bpf_link__destroy(link.release());
+    REQUIRE(result == 0);
+
     bpf_object__close(process_object);
 }
 

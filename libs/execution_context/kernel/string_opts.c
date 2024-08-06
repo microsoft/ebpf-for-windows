@@ -29,7 +29,7 @@ _ebpf_core_strcat(_Out_writes_(dest_size) char* dest, size_t dest_size, _In_read
 
 // size_t bpf_strlen(const char *str, size_t str_size);
 size_t
-_ebpf_core_strlen(_In_reads_(str_size) const char* str, size_t str_size)
+_ebpf_core_strlen_s(_In_reads_(str_size) const char* str, size_t str_size)
 {
     size_t length = 0;
 

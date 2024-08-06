@@ -143,7 +143,7 @@ static const void* _ebpf_general_helpers[] = {
     (void*)NULL, // bpf_get_socket_cookie
     (void*)&_ebpf_core_strcpy,
     (void*)&_ebpf_core_strcat,
-    (void*)&_ebpf_core_strlen,
+    (void*)&_ebpf_core_strlen_s,
     (void*)&_ebpf_core_strcmp,
     (void*)&_ebpf_core_strchr,
     (void*)&_ebpf_core_strstr,
