@@ -263,7 +263,8 @@ static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 // ANUSA TODO: Change to scalable RW lock.
 // Lock to synchronize access to client list in the filter contexts.
 // When using this lock, we no longer need to use client context rundown.
-static EX_PUSH_LOCK _sock_addr_client_attach_lock;
+static EX_PUSH_LOCK _sock_addr_client_attach_passive_lock;  ///< Lock for serializing multiple attach / detach calls.
+static EX_SPIN_LOCK _sock_addr_client_attach_dispatch_lock; ///< Lock for synchronizing access to client list.
 
 //
 // sock_addr helper functions.
@@ -574,8 +575,10 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     net_ebpf_extension_wfp_filter_parameters_array_t* filter_parameters_array = NULL;
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
-    bool lock_acquired = false;
+    bool passive_lock_acquired = FALSE;
+    bool dispatch_lock_acquired = FALSE;
     net_ebpf_extension_hook_client_t* existing_client = NULL;
+    KIRQL old_irql = 0;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -604,9 +607,13 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         compartment_id = wild_card_compartment_id;
     }
 
-    // Acquire client attach lock to synchronize client attach and detach callbacks.
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_lock);
-    lock_acquired = true;
+    // Acquire passive lock to serialize multiple attach / detach calls.
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_passive_lock);
+    passive_lock_acquired = TRUE;
+
+    // Acquire dispatch lock to synchronize access to client list.
+    old_irql = ExAcquireSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock);
+    dispatch_lock_acquired = TRUE;
 
     // Query (and get) any existing client matching the attach parameters.
     existing_client = net_ebpf_extension_get_matching_client(
@@ -684,6 +691,10 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
     }
 
+    // Release dispatch lock befor making calls to WFP, as that needs to happen at PASSIVE.
+    ExReleaseSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock, old_irql);
+    dispatch_lock_acquired = FALSE;
+
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
     // filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
@@ -696,9 +707,17 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         &filter_context->base.filter_ids);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
+    // Reacquire dispatch lock to update the client list.
+    old_irql = ExAcquireSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock);
+    dispatch_lock_acquired = TRUE;
+
     // Set the filter context as the client context's provider data.
     net_ebpf_extension_hook_client_set_provider_data(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
+
+    // Release the dispatch lock.
+    ExReleaseSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock, old_irql);
+    dispatch_lock_acquired = FALSE;
 
     // // Insert the client in the list of clients for this filter context.
     // net_ebpf_extension_hook_client_insert(
@@ -706,9 +725,13 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     //     (net_ebpf_extension_hook_client_t*)attaching_client);
 
 Exit:
-    if (lock_acquired) {
-        RELEASE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_lock);
-        lock_acquired = FALSE;
+    if (dispatch_lock_acquired) {
+        ExReleaseSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock, old_irql);
+        dispatch_lock_acquired = FALSE;
+    }
+    if (passive_lock_acquired) {
+        RELEASE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_passive_lock);
+        passive_lock_acquired = FALSE;
     }
     if (result != EBPF_SUCCESS) {
         CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(filter_context);
@@ -720,12 +743,12 @@ Exit:
 static void
 _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
 {
-    bool lock_acquired = FALSE;
+    bool passive_lock_acquired = FALSE;
     NET_EBPF_EXT_LOG_ENTRY();
 
     // Acquire client attach lock to synchronize client attach and detach callbacks.
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_lock);
-    lock_acquired = TRUE;
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_passive_lock);
+    passive_lock_acquired = TRUE;
 
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context =
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
@@ -744,7 +767,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
     }
 
-    RELEASE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_lock);
+    RELEASE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_passive_lock);
 
     NET_EBPF_EXT_LOG_EXIT();
 }
@@ -1217,7 +1240,7 @@ net_ebpf_ext_sock_addr_register_providers()
     }
     blocked_connection_contexts_initialized = true;
 
-    ExInitializePushLock(&_sock_addr_client_attach_lock);
+    ExInitializePushLock(&_sock_addr_client_attach_passive_lock);
 
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_sock_addr_program_info_provider_context);
@@ -1456,7 +1479,7 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
 
 // // 1. If we failed to invoke an eBPF program, block the connection.
 // // 2. If any eBPF program returned verdict as block, stop processing and return.
-// _Requires_shared_lock_held_(_sock_addr_client_attach_lock)
+// _Requires_shared_lock_held_(_sock_addr_client_attach_passive_lock)
 // ebpf_result_t
 // net_ebpf_extension_sock_addr_invoke_programs(
 //     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context,
@@ -1521,6 +1544,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     bool lock_acquired = FALSE;
+    bool old_irql = FALSE;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
@@ -1544,8 +1568,8 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    // Acquire read lock.
-    ACQUIRE_PUSH_LOCK_SHARED(&_sock_addr_client_attach_lock);
+    // Acquire shared dispatch lock.
+    old_irql = ExAcquireSpinLockShared(&_sock_addr_client_attach_dispatch_lock);
     lock_acquired = TRUE;
 
     // attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
@@ -1604,7 +1628,7 @@ Exit:
     //     net_ebpf_extension_hook_client_leave_rundown(attached_client);
     // }
     if (lock_acquired) {
-        RELEASE_PUSH_LOCK_SHARED(&_sock_addr_client_attach_lock);
+        ExReleaseSpinLockShared(&_sock_addr_client_attach_dispatch_lock, old_irql);
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -1878,6 +1902,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     bool classify_handle_acquired = FALSE;
     bool redirected = FALSE;
     bool lock_acquired = FALSE;
+    KIRQL old_irql = 0;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1932,8 +1957,9 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Acquire read lock.
-    ACQUIRE_PUSH_LOCK_SHARED(&_sock_addr_client_attach_lock);
+    old_irql = ExAcquireSpinLockShared(&_sock_addr_client_attach_dispatch_lock);
     lock_acquired = TRUE;
+
     // attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
     // if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
     //     NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -2047,8 +2073,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
 Exit:
     if (lock_acquired) {
-        RELEASE_PUSH_LOCK_SHARED(&_sock_addr_client_attach_lock);
-        lock_acquired = FALSE;
+        ExReleaseSpinLockShared(&_sock_addr_client_attach_dispatch_lock, old_irql);
     }
 
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
