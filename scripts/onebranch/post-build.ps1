@@ -13,7 +13,7 @@ $OneBranchArch = $env:ONEBRANCH_ARCH
 $OneBranchConfig = $env:ONEBRANCH_CONFIG
 
 # Copy the signed binaries to the output directory
-if ($OneBranchConfig -eq "Release" -and $OneBranchArch -eq "x64")
+if ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "x64")
 {
     xcopy /y build\bin\amd64fre .\x64\Release
     Get-ChildItem -Path .\build\bin\amd64fre -Recurse | Remove-Item -Force -Recurse
@@ -25,8 +25,7 @@ elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "x64")
 }
 else
 {
-    xcopy /y build\bin\amd64chk .\x64\Debug
-    Get-ChildItem -Path .\build\bin\amd64chk -Recurse | Remove-Item -Force -Recurse
+    throw ("Build configuration $OneBranchConfig not supported")
 }
 
 Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
