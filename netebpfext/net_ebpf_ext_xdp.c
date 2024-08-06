@@ -231,7 +231,7 @@ net_ebpf_extension_xdp_on_client_attach(
 Exit:
     if (result != EBPF_SUCCESS) {
         if (filter_context != NULL) {
-            ExFreePool(filter_context);
+            CLEAN_UP_FILTER_CONTEXT(&filter_context->base);
         }
     }
 

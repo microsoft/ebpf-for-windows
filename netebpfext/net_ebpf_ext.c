@@ -284,13 +284,9 @@ net_ebpf_extension_wfp_filter_context_create(
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
+
 Exit:
-    if (local_filter_context != NULL) {
-        if (local_filter_context->client_contexts != NULL) {
-            ExFreePool(local_filter_context->client_contexts);
-        }
-        ExFreePool(local_filter_context);
-    }
+    CLEAN_UP_FILTER_CONTEXT(local_filter_context);
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }

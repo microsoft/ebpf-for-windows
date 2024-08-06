@@ -144,9 +144,7 @@ _net_ebpf_extension_bind_on_client_attach(
 
 Exit:
     if (result != EBPF_SUCCESS) {
-        if (filter_context != NULL) {
-            ExFreePool(filter_context);
-        }
+        CLEAN_UP_FILTER_CONTEXT(filter_context);
     }
     NET_EBPF_EXT_RETURN_RESULT(result);
 }

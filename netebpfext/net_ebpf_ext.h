@@ -133,6 +133,17 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     bool client_detached : 1; ///< True if client has detached.
 } net_ebpf_extension_wfp_filter_context_t;
 
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)            \
+    if ((filter_context) != NULL) {                        \
+        if ((filter_context)->filter_ids != NULL) {        \
+            ExFreePool((filter_context)->filter_ids);      \
+        }                                                  \
+        if ((filter_context)->client_contexts != NULL) {   \
+            ExFreePool((filter_context)->client_contexts); \
+        }                                                  \
+        ExFreePool((filter_context));                      \
+    }
+
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
     if ((filter_context) != NULL) {                               \
         InterlockedIncrement(&(filter_context)->reference_count); \
@@ -141,13 +152,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 #define DEREFERENCE_FILTER_CONTEXT(filter_context)                           \
     if ((filter_context) != NULL) {                                          \
         if (InterlockedDecrement(&(filter_context)->reference_count) == 0) { \
-            if ((filter_context)->filter_ids != NULL) {                      \
-                ExFreePool((filter_context)->filter_ids);                    \
-            }                                                                \
-            if ((filter_context)->client_contexts != NULL) {                 \
-                ExFreePool((filter_context)->client_contexts);               \
-            }                                                                \
-            ExFreePool((filter_context));                                    \
+            CLEAN_UP_FILTER_CONTEXT((filter_context));                       \
         }                                                                    \
     }
 

@@ -19,6 +19,14 @@
 
 // NDIS_RW_LOCK_EX lock;
 
+#define CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(filter_context)                 \
+    if ((filter_context) != NULL) {                                       \
+        if ((filter_context)->redirect_handle != NULL) {                  \
+            FwpsRedirectHandleDestroy((filter_context)->redirect_handle); \
+        }                                                                 \
+        CLEAN_UP_FILTER_CONTEXT(&(filter_context)->base);                 \
+    }
+
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                                                              \
@@ -703,12 +711,7 @@ Exit:
         lock_acquired = FALSE;
     }
     if (result != EBPF_SUCCESS) {
-        if (filter_context != NULL) {
-            if (filter_context->redirect_handle != NULL) {
-                FwpsRedirectHandleDestroy(filter_context->redirect_handle);
-            }
-            ExFreePool(filter_context);
-        }
+        CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(filter_context);
     }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
