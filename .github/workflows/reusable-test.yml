@@ -404,7 +404,7 @@ jobs:
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
       if: always() && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+      uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -423,7 +423,7 @@ jobs:
       # Upload test logs even if the workflow failed.
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_logs.outputs.files_exists == 'true')
       id: upload_logs
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+      uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029
       continue-on-error: true
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -443,7 +443,7 @@ jobs:
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_artifacts.outputs.files_exists == 'true')
       id: upload_artifacts
       continue-on-error: true
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+      uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029
       with:
         name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
