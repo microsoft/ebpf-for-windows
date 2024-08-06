@@ -23,9 +23,10 @@ The following must be installed in order to build this project:
 
    - `"Desktop development with C++"` (ensure that the "*C++ Address Sanitizer*" component is installed)
 
-   including the following *Spectre* library, which must be selected from the "*Individual components*" tab in the *Visual Studio Installer*:
+   including the following components, which must be selected from the "*Individual components*" tab in the *Visual Studio Installer*:
 
    - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
+   - `"C++ Clang Compiler for Windows"`
 
 1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
 1. [The WiX Toolset v3.14.1 build tools](https://github.com/wixtoolset/wix3/releases)
@@ -37,8 +38,6 @@ install it directly from [here](https://www.microsoft.com/en-us/download/details
  "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
   check box is checked before completing the installer).
     >Note: as multiple versions of WDKs cannot coexist side-by-side, you may be asked to uninstall previous versions.
-1. [Clang for Windows 64-bit](https://github.com/llvm/llvm-project/releases/download/llvmorg-11.0.1/LLVM-11.0.1-win64.exe) (version **11.0.1**).
- Note: clang versions 12 and higher are NOT yet supported, as they perform program optimizations that are incompatible with the PREVAIL verifier.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.3.1 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
 
