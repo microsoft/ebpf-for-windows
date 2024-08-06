@@ -181,7 +181,7 @@ net_ebpf_extension_hook_get_attached_client(_Inout_ net_ebpf_extension_hook_prov
  */
 net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_next_attached_client(
-    _Inout_ net_ebpf_extension_hook_provider_t* provider_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_opt_ const net_ebpf_extension_hook_client_t* client_context);
 
 /**
@@ -209,18 +209,25 @@ net_ebpf_extension_get_matching_client(
     _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
     _In_ net_ebpf_extension_hook_provider_t* provider_context);
 
-void
-net_ebpf_extension_hook_client_insert(
-    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Inout_ net_ebpf_extension_hook_client_t* client_context);
+// void
+// net_ebpf_extension_hook_client_insert(
+//     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+//     _Inout_ net_ebpf_extension_hook_client_t* client_context);
 
-void
-net_ebpf_extension_hook_client_remove(
-    _Inout_ void* filter_context, _In_ net_ebpf_extension_hook_client_t* client_context);
+// void
+// net_ebpf_extension_hook_client_remove(
+//     _Inout_ void* filter_context, _In_ net_ebpf_extension_hook_client_t* client_context);
 
 ebpf_result_t
 net_ebpf_extension_invoke_programs(
-    _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const net_ebpf_extension_hook_client_t** client_contexts,
+    uint32_t client_context_count,
     _Inout_ void* program_context,
     _In_ const net_ebpf_extension_hook_process_verdict process_callback,
     _Out_ uint32_t* result);
+
+void
+net_ebpf_extension_hook_acquire_shared_lock(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
+
+void
+net_ebpf_extension_hook_release_shared_lock(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);

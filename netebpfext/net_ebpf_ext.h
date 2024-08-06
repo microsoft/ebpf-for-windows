@@ -25,6 +25,8 @@
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+#define NET_EBPF_EXTENSION_MAX_CLIENTS_PER_HOOK 32
+
 CONST IN6_ADDR DECLSPEC_SELECTANY in6addr_v4mappedprefix = IN6ADDR_V4MAPPEDPREFIX_INIT;
 
 #define _ACQUIRE_PUSH_LOCK(lock, mode) \
@@ -110,12 +112,20 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
-    // LIST_ENTRY list_entry; ///< Entry in the list of filter contexts.
-    volatile long reference_count;  ///< Reference count.
-    uint64_t client_context_count;  ///< Number of hook NPI clients.
+    LIST_ENTRY list_entry;                                    ///< Entry in the list of filter contexts.
+    volatile long reference_count;                            ///< Reference count.
+    uint32_t client_context_max_count;                        ///< Maximum number of hook NPI clients.
+    struct _net_ebpf_extension_hook_client** client_contexts; ///< Array of pointers to hook NPI clients.
+    uint32_t client_context_count;                            ///< Current number of hook NPI clients.
+    // ANUSA TODO: Possibly remove client_context_list and replace it with an array.
+    // union {
+    //     LIST_ENTRY client_context_list; ///< List of hook NPI clients.
+    //     struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
+    // };
     LIST_ENTRY client_context_list; ///< List of hook NPI clients.
     // ANUSA TODO: `client_context` needs to be removed. There is instead now a list of client contexts.
-    const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
+    // const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
+    // const net_ebpf_extension_hook_provider_t* provider_context; ///< Pointer to provider binding context.
 
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
@@ -133,6 +143,9 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         if (InterlockedDecrement(&(filter_context)->reference_count) == 0) { \
             if ((filter_context)->filter_ids != NULL) {                      \
                 ExFreePool((filter_context)->filter_ids);                    \
+            }                                                                \
+            if ((filter_context)->client_contexts != NULL) {                 \
+                ExFreePool((filter_context)->client_contexts);               \
             }                                                                \
             ExFreePool((filter_context));                                    \
         }                                                                    \
@@ -152,6 +165,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
+    uint32_t client_context_count,
     _In_ const struct _net_ebpf_extension_hook_client* client_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
@@ -317,3 +331,13 @@ net_ebpf_ext_unregister_providers();
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
+
+void
+net_ebpf_ext_remove_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client);
+
+ebpf_result_t
+net_ebpf_ext_add_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client);

@@ -15,6 +15,8 @@
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 #define LOW_MEMORY_CONNECTION_CONTEXT_COUNT 1000
 
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_ADDR 16
+
 // NDIS_RW_LOCK_EX lock;
 
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
@@ -251,6 +253,8 @@ static ACL* _net_ebpf_ext_dacl_admin = NULL;
 static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 
 // ANUSA TODO: Change to scalable RW lock.
+// Lock to synchronize access to client list in the filter contexts.
+// When using this lock, we no longer need to use client context rundown.
 static EX_PUSH_LOCK _sock_addr_client_attach_lock;
 
 //
@@ -615,8 +619,8 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         net_ebpf_extension_hook_client_set_provider_data(
             (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
-        // Insert the new client in the list of clients for the existing filter context.
-        net_ebpf_extension_hook_client_insert(
+        // // Insert the new client in the list of clients for the existing filter context.
+        net_ebpf_ext_add_client_context(
             (net_ebpf_extension_wfp_filter_context_t*)filter_context,
             (net_ebpf_extension_hook_client_t*)attaching_client);
 
@@ -638,6 +642,7 @@ _net_ebpf_extension_sock_addr_on_client_attach(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t),
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_ADDR,
         attaching_client,
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
@@ -687,9 +692,10 @@ _net_ebpf_extension_sock_addr_on_client_attach(
     net_ebpf_extension_hook_client_set_provider_data(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
-    // Insert the client in the list of clients for this filter context.
-    net_ebpf_extension_hook_client_insert(
-        (net_ebpf_extension_wfp_filter_context_t*)filter_context, (net_ebpf_extension_hook_client_t*)attaching_client);
+    // // Insert the client in the list of clients for this filter context.
+    // net_ebpf_extension_hook_client_insert(
+    //     (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+    //     (net_ebpf_extension_hook_client_t*)attaching_client);
 
 Exit:
     if (lock_acquired) {
@@ -711,10 +717,12 @@ Exit:
 static void
 _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
 {
+    bool lock_acquired = FALSE;
     NET_EBPF_EXT_LOG_ENTRY();
 
     // Acquire client attach lock to synchronize client attach and detach callbacks.
     ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_lock);
+    lock_acquired = TRUE;
 
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context =
         (net_ebpf_extension_sock_addr_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
@@ -722,7 +730,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
     ASSERT(filter_context != NULL);
 
     // Remove the client from the list of clients for this filter context.
-    net_ebpf_extension_hook_client_remove(filter_context, (net_ebpf_extension_hook_client_t*)detaching_client);
+    net_ebpf_ext_remove_client_context((net_ebpf_extension_wfp_filter_context_t*)filter_context, detaching_client);
 
     // If the count of clients for this filter context is zero, delete the WFP filters and free the filter context.
     if (filter_context->base.client_context_count == 0) {
@@ -732,6 +740,7 @@ _net_ebpf_extension_sock_addr_on_client_detach(_In_ const net_ebpf_extension_hoo
         }
         net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
     }
+
     RELEASE_PUSH_LOCK_EXCLUSIVE(&_sock_addr_client_attach_lock);
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -1569,8 +1578,11 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     if (net_ebpf_extension_invoke_programs(
-            &filter_context->base, sock_addr_ctx, _net_ebpf_extension_sock_addr_process_verdict, &result) !=
-        EBPF_SUCCESS) {
+            (const net_ebpf_extension_hook_client_t**)filter_context->base.client_contexts,
+            filter_context->base.client_context_count,
+            sock_addr_ctx,
+            _net_ebpf_extension_sock_addr_process_verdict,
+            &result) != EBPF_SUCCESS) {
         // We failed to invoke at least one program in the chain, block the request.
         classify_output->actionType = FWP_ACTION_BLOCK;
         goto Exit;
@@ -1851,7 +1863,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
-    net_ebpf_extension_hook_client_t* attached_client = NULL;
+    // net_ebpf_extension_hook_client_t* attached_client = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)&net_ebpf_sock_addr_ctx.base;
     bpf_sock_addr_t sock_addr_ctx_original = {0};
@@ -1862,6 +1874,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t classify_handle = 0;
     bool classify_handle_acquired = FALSE;
     bool redirected = FALSE;
+    bool lock_acquired = FALSE;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1915,16 +1928,19 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
-            "net_ebpf_extension_sock_addr_redirect_connection_classify - Rundown already started.",
-            STATUS_INVALID_PARAMETER);
-        attached_client = NULL;
-        goto Exit;
-    }
+    // Acquire read lock.
+    ACQUIRE_PUSH_LOCK_SHARED(&_sock_addr_client_attach_lock);
+    lock_acquired = TRUE;
+    // attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    // if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
+    //     NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+    //         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+    //         NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+    //         "net_ebpf_extension_sock_addr_redirect_connection_classify - Rundown already started.",
+    //         STATUS_INVALID_PARAMETER);
+    //     attached_client = NULL;
+    //     goto Exit;
+    // }
 
     // Get the redirect handle for this filter.
     redirect_handle = filter_context->redirect_handle;
@@ -1982,7 +1998,12 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
-    result = net_ebpf_extension_hook_invoke_program(attached_client, sock_addr_ctx, &verdict);
+    result = net_ebpf_extension_invoke_programs(
+        (const net_ebpf_extension_hook_client_t**)filter_context->base.client_contexts,
+        filter_context->base.client_context_count,
+        sock_addr_ctx,
+        _net_ebpf_extension_sock_addr_process_verdict,
+        &verdict);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
 
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
@@ -2022,6 +2043,11 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         verdict);
 
 Exit:
+    if (lock_acquired) {
+        RELEASE_PUSH_LOCK_SHARED(&_sock_addr_client_attach_lock);
+        lock_acquired = FALSE;
+    }
+
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
         // Create a blocked connection context and add it to list for the AUTH_CONNECT layer callout to enforce the
         // verdict of the program.
@@ -2049,9 +2075,9 @@ Exit:
         FwpsReleaseClassifyHandle(classify_handle);
     }
 
-    if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    }
+    // if (attached_client) {
+    //     net_ebpf_extension_hook_client_leave_rundown(attached_client);
+    // }
 
     if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {
         ExFreePool(net_ebpf_sock_addr_ctx.redirect_context);

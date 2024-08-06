@@ -9,6 +9,8 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_bind.h"
 
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_BIND 1
+
 typedef struct _bind_context_header
 {
     EBPF_CONTEXT_HEADER;
@@ -103,14 +105,16 @@ _net_ebpf_extension_bind_on_client_attach(
     NET_EBPF_EXT_LOG_ENTRY();
 
     // Bind hook allows only one client at a time.
-    if (net_ebpf_extension_hook_get_next_attached_client((net_ebpf_extension_hook_provider_t*)provider_context, NULL) !=
-        NULL) {
+    if (net_ebpf_extension_hook_get_attached_client((net_ebpf_extension_hook_provider_t*)provider_context) != NULL) {
         result = EBPF_ACCESS_DENIED;
         goto Exit;
     }
 
     result = net_ebpf_extension_wfp_filter_context_create(
-        sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, &filter_context);
+        sizeof(net_ebpf_extension_wfp_filter_context_t),
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_BIND,
+        attaching_client,
+        &filter_context);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -132,6 +136,11 @@ _net_ebpf_extension_bind_on_client_attach(
     // Set the filter context as the client context's provider data.
     net_ebpf_extension_hook_client_set_provider_data(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
+
+    // // Insert the new client in the list of clients for the existing filter context.
+    // net_ebpf_extension_hook_client_insert(
+    //         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+    //         (net_ebpf_extension_hook_client_t*)attaching_client);
 
 Exit:
     if (result != EBPF_SUCCESS) {
@@ -273,7 +282,7 @@ net_ebpf_ext_resource_allocation_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_contexts[0];
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -365,7 +374,7 @@ net_ebpf_ext_resource_release_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_contexts[0];
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,

@@ -15,6 +15,8 @@
 // WFP related types & globals for SOCK_OPS hook.
 //
 
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_OPS 1
+
 struct _net_ebpf_extension_sock_ops_wfp_filter_context;
 
 typedef struct _net_ebpf_bpf_sock_ops
@@ -170,6 +172,7 @@ net_ebpf_extension_sock_ops_on_client_attach(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t),
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_OPS,
         attaching_client,
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
     if (result != EBPF_SUCCESS) {
@@ -197,6 +200,11 @@ net_ebpf_extension_sock_ops_on_client_attach(
     // Set the filter context as the client context's provider data.
     net_ebpf_extension_hook_client_set_provider_data(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
+
+    // // Insert the new client in the list of clients for the existing filter context.
+    // net_ebpf_extension_hook_client_insert(
+    //     (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+    //     (net_ebpf_extension_hook_client_t*)attaching_client);
 
 Exit:
     if (result != EBPF_SUCCESS) {
@@ -417,7 +425,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_contexts[0];
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -537,7 +545,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_contexts[0];
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
