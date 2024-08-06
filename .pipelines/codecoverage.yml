@@ -45,10 +45,10 @@ jobs:
   displayName: Prod Task
   steps:
   # Get source code
-  - script: |
-        git clone https://dev.azure.com/microsoft/undock/_git/ebpf-for-windows
-        git checkout $(commit-ID)
-    displayName: 'Clone ebpf-for-windows and checkout commit'
+  - checkout: self
+    displayName: 'Checkout Repo'
+    submodules: 'recursive'
+    fetchDepth: 0
 
   # Get code coverage from OneFuzz for the job
   - powershell: |

@@ -1,17 +1,6 @@
 # Copyright (c) Microsoft Corporation
 # SPDX-License-Identifier: MIT
 
-#################################################################################
-#                      OneBranch Pipelines - PR Build                           #
-# This pipeline was created by EasyStart from a sample located at:              #
-#   https://aka.ms/obpipelines/easystart/samples                                #
-# Documentation:  https://aka.ms/obpipelines                                    #
-# Yaml Schema:    https://aka.ms/obpipelines/yaml/schema                        #
-# Retail Tasks:   https://aka.ms/obpipelines/tasks                              #
-# Support:        https://aka.ms/onebranchsup                                   #
-#################################################################################
-
-# https://aka.ms/obpipelines/triggers
 trigger:
   ## disable batching of changes when a push happens.
   batch: false
@@ -41,7 +30,7 @@ parameters: # parameters are shown up in ADO UI in a build queue time
   default: false
 
 variables:
-  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)] # needed for onebranch.pipeline.version task https://aka.ms/obpipelines/versioning
+  CDP_DEFINITION_BUILD_COUNT: $[counter('', 0)] 
   system.debug: ${{ parameters.debug }}
   ENABLE_PRS_DELAYSIGN: 0
   ROOT: $(Build.SourcesDirectory)
@@ -49,7 +38,7 @@ variables:
   OUTPUTROOT: $(REPOROOT)\out
   NUGET_XMLDOC_MODE: none
 
-  WindowsContainerImage: 'cdpxwin1809.azurecr.io/global/vse2022:latest' # Docker image which is used to build the project https://aka.ms/obpipelines/containers
+  WindowsContainerImage: 'cdpxwin1809.azurecr.io/global/vse2022:latest' # Docker image which is used to build the project 
 
 resources:
   repositories: 
