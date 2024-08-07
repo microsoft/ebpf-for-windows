@@ -95,76 +95,75 @@ $(function() {
 <div class="line"><a name="l00024"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#af08e1a624091482cb3442114de56906e">   24</a></span>&#160;<span class="preprocessor">#define ___bpf_swab32(x) \</span></div>
 <div class="line"><a name="l00025"></a><span class="lineno">   25</span>&#160;<span class="preprocessor">    ((__u32)(___bpf_mvb(x, 32, 0, 3) | ___bpf_mvb(x, 32, 1, 2) | ___bpf_mvb(x, 32, 2, 1) | ___bpf_mvb(x, 32, 3, 0)))</span></div>
 <div class="line"><a name="l00026"></a><span class="lineno">   26</span>&#160; </div>
-<div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#aaac02248a3bcb50712f942aed3365cdf">   27</a></span>&#160;<span class="preprocessor">#define ___bpf_swab64(x)                                                                                        \</span></div>
-<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="preprocessor">    ((__u64)(                                                                                                   \</span></div>
-<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="preprocessor">        ___bpf_mvb(x, 64, 0, 7) | ___bpf_mvb(x, 64, 1, 6) | ___bpf_mvb(x, 64, 2, 5) | ___bpf_mvb(x, 64, 3, 4) | \</span></div>
-<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160;<span class="preprocessor">        ___bpf_mvb(x, 64, 4, 3) | ___bpf_mvb(x, 64, 5, 2) | ___bpf_mvb(x, 64, 6, 1) | ___bpf_mvb(x, 64, 7, 0)))</span></div>
-<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160; </div>
-<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="comment">/* LLVM&#39;s BPF target selects the endianness of the CPU</span></div>
-<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="comment"> * it compiles on, or the user specifies (bpfel/bpfeb),</span></div>
-<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="comment"> * respectively. The used __BYTE_ORDER__ is defined by</span></div>
-<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;<span class="comment"> * the compiler, we cannot rely on __BYTE_ORDER from</span></div>
-<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="comment"> * libc headers, since it doesn&#39;t reflect the actual</span></div>
-<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment"> * requested byte order.</span></div>
-<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="comment"> *</span></div>
-<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="comment"> * Note, LLVM&#39;s BPF target has different __builtin_bswapX()</span></div>
-<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="comment"> * semantics. It does map to BPF_ALU | BPF_END | BPF_TO_BE</span></div>
-<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="comment"> * in bpfel and bpfeb case, which means below, that we map</span></div>
-<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="comment"> * to cpu_to_be16(). We could use it unconditionally in BPF</span></div>
-<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment"> * case, but better not rely on it, so that this header here</span></div>
-<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment"> * can be used from application and BPF program side, which</span></div>
-<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="comment"> * use different targets.</span></div>
-<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="comment"> */</span></div>
-<div class="line"><a name="l00047"></a><span class="lineno">   47</span>&#160;<span class="preprocessor">#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__</span></div>
-<div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a13d2694f56a9835d7034e403e4522662">   48</a></span>&#160;<span class="preprocessor">#define __bpf_ntohs(x) __builtin_bswap16(x)</span></div>
-<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a82df40d599b20819eb2866be3220c29d">   49</a></span>&#160;<span class="preprocessor">#define __bpf_htons(x) __builtin_bswap16(x)</span></div>
-<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a2736d1b187a28c845b93d67dc1e96489">   50</a></span>&#160;<span class="preprocessor">#define __bpf_constant_ntohs(x) ___bpf_swab16(x)</span></div>
-<div class="line"><a name="l00051"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a92612920d78ac22557357119e335ed3a">   51</a></span>&#160;<span class="preprocessor">#define __bpf_constant_htons(x) ___bpf_swab16(x)</span></div>
-<div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#ae36c02eb69b6b145bfe3b9a2ac6cdd8d">   52</a></span>&#160;<span class="preprocessor">#define __bpf_ntohl(x) __builtin_bswap32(x)</span></div>
-<div class="line"><a name="l00053"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a9c9d67fa63abe0fc43ce3d649fa53f2a">   53</a></span>&#160;<span class="preprocessor">#define __bpf_htonl(x) __builtin_bswap32(x)</span></div>
-<div class="line"><a name="l00054"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a15f900ff4f7c4144dc84c802f0ee2ba9">   54</a></span>&#160;<span class="preprocessor">#define __bpf_constant_ntohl(x) ___bpf_swab32(x)</span></div>
-<div class="line"><a name="l00055"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#aa21f6ec765cc9f90b639f13ae43de1c8">   55</a></span>&#160;<span class="preprocessor">#define __bpf_constant_htonl(x) ___bpf_swab32(x)</span></div>
-<div class="line"><a name="l00056"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a6dd22d80b05293db6363c75ea2fa98d1">   56</a></span>&#160;<span class="preprocessor">#define __bpf_be64_to_cpu(x) __builtin_bswap64(x)</span></div>
-<div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a4d5fa895c29a4b187ec9bf0921026868">   57</a></span>&#160;<span class="preprocessor">#define __bpf_cpu_to_be64(x) __builtin_bswap64(x)</span></div>
-<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a5feec262eac342c713300fcc5cc16abc">   58</a></span>&#160;<span class="preprocessor">#define __bpf_constant_be64_to_cpu(x) ___bpf_swab64(x)</span></div>
-<div class="line"><a name="l00059"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a5b9379d7e75930466ca8bbfd885fb12f">   59</a></span>&#160;<span class="preprocessor">#define __bpf_constant_cpu_to_be64(x) ___bpf_swab64(x)</span></div>
-<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="preprocessor">#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__</span></div>
-<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="preprocessor">#define __bpf_ntohs(x) (x)</span></div>
-<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="preprocessor">#define __bpf_htons(x) (x)</span></div>
-<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="preprocessor">#define __bpf_constant_ntohs(x) (x)</span></div>
-<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="preprocessor">#define __bpf_constant_htons(x) (x)</span></div>
-<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="preprocessor">#define __bpf_ntohl(x) (x)</span></div>
-<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="preprocessor">#define __bpf_htonl(x) (x)</span></div>
-<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="preprocessor">#define __bpf_constant_ntohl(x) (x)</span></div>
-<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="preprocessor">#define __bpf_constant_htonl(x) (x)</span></div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="preprocessor">#define __bpf_be64_to_cpu(x) (x)</span></div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="preprocessor">#define __bpf_cpu_to_be64(x) (x)</span></div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="preprocessor">#define __bpf_constant_be64_to_cpu(x) (x)</span></div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">#define __bpf_constant_cpu_to_be64(x) (x)</span></div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">#else</span></div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#error &quot;Fix your compiler&#39;s __BYTE_ORDER__?!&quot;</span></div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160; </div>
-<div class="line"><a name="l00077"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#ae7511f9fffd00abc58871fb173afeb1d">   77</a></span>&#160;<span class="preprocessor">#define bpf_htons(x) (__builtin_constant_p(x) ? __bpf_constant_htons(x) : __bpf_htons(x))</span></div>
-<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a809ca78691cdb5e0fd36b7b313f98cda">   78</a></span>&#160;<span class="preprocessor">#define bpf_ntohs(x) (__builtin_constant_p(x) ? __bpf_constant_ntohs(x) : __bpf_ntohs(x))</span></div>
-<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a9236515069a6759868aa9d9cbed9a90f">   79</a></span>&#160;<span class="preprocessor">#define bpf_htonl(x) (__builtin_constant_p(x) ? __bpf_constant_htonl(x) : __bpf_htonl(x))</span></div>
-<div class="line"><a name="l00080"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#af00de0e4ad75ac60bc837d0a002054cc">   80</a></span>&#160;<span class="preprocessor">#define bpf_ntohl(x) (__builtin_constant_p(x) ? __bpf_constant_ntohl(x) : __bpf_ntohl(x))</span></div>
-<div class="line"><a name="l00081"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#ae3ec658b099837a01148e25873c1fc6c">   81</a></span>&#160;<span class="preprocessor">#define bpf_cpu_to_be64(x) (__builtin_constant_p(x) ? __bpf_constant_cpu_to_be64(x) : __bpf_cpu_to_be64(x))</span></div>
-<div class="line"><a name="l00082"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a3e6f8b4773ae5dff64179237f86fcafa">   82</a></span>&#160;<span class="preprocessor">#define bpf_be64_to_cpu(x) (__builtin_constant_p(x) ? __bpf_constant_be64_to_cpu(x) : __bpf_be64_to_cpu(x))</span></div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160; </div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="preprocessor">#ifndef ntohs</span></div>
-<div class="line"><a name="l00085"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a118e9d76568ab81ad97f138d4ea1ddd2">   85</a></span>&#160;<span class="preprocessor">#define ntohs bpf_ntohs</span></div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;<span class="preprocessor">#ifndef htons</span></div>
-<div class="line"><a name="l00088"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a463850890cb814906018adbc3768858a">   88</a></span>&#160;<span class="preprocessor">#define htons bpf_htons</span></div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160; </div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;<span class="preprocessor">#ifndef ntohl</span></div>
-<div class="line"><a name="l00092"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a6a20f63e739c4f61a0f7f74cf1963c3b">   92</a></span>&#160;<span class="preprocessor">#define ntohl bpf_ntohl</span></div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="preprocessor">#endif</span></div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;<span class="preprocessor">#ifndef htonl</span></div>
-<div class="line"><a name="l00095"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a4be6d04dda69d558c3fb2bc22d0566dc">   95</a></span>&#160;<span class="preprocessor">#define htonl bpf_htonl</span></div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00027"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#aaac02248a3bcb50712f942aed3365cdf">   27</a></span>&#160;<span class="preprocessor">#define ___bpf_swab64(x)                                                                                             \</span></div>
+<div class="line"><a name="l00028"></a><span class="lineno">   28</span>&#160;<span class="preprocessor">    ((__u64)(___bpf_mvb(x, 64, 0, 7) | ___bpf_mvb(x, 64, 1, 6) | ___bpf_mvb(x, 64, 2, 5) | ___bpf_mvb(x, 64, 3, 4) | \</span></div>
+<div class="line"><a name="l00029"></a><span class="lineno">   29</span>&#160;<span class="preprocessor">             ___bpf_mvb(x, 64, 4, 3) | ___bpf_mvb(x, 64, 5, 2) | ___bpf_mvb(x, 64, 6, 1) | ___bpf_mvb(x, 64, 7, 0)))</span></div>
+<div class="line"><a name="l00030"></a><span class="lineno">   30</span>&#160; </div>
+<div class="line"><a name="l00031"></a><span class="lineno">   31</span>&#160;<span class="comment">/* LLVM&#39;s BPF target selects the endianness of the CPU</span></div>
+<div class="line"><a name="l00032"></a><span class="lineno">   32</span>&#160;<span class="comment"> * it compiles on, or the user specifies (bpfel/bpfeb),</span></div>
+<div class="line"><a name="l00033"></a><span class="lineno">   33</span>&#160;<span class="comment"> * respectively. The used __BYTE_ORDER__ is defined by</span></div>
+<div class="line"><a name="l00034"></a><span class="lineno">   34</span>&#160;<span class="comment"> * the compiler, we cannot rely on __BYTE_ORDER from</span></div>
+<div class="line"><a name="l00035"></a><span class="lineno">   35</span>&#160;<span class="comment"> * libc headers, since it doesn&#39;t reflect the actual</span></div>
+<div class="line"><a name="l00036"></a><span class="lineno">   36</span>&#160;<span class="comment"> * requested byte order.</span></div>
+<div class="line"><a name="l00037"></a><span class="lineno">   37</span>&#160;<span class="comment"> *</span></div>
+<div class="line"><a name="l00038"></a><span class="lineno">   38</span>&#160;<span class="comment"> * Note, LLVM&#39;s BPF target has different __builtin_bswapX()</span></div>
+<div class="line"><a name="l00039"></a><span class="lineno">   39</span>&#160;<span class="comment"> * semantics. It does map to BPF_ALU | BPF_END | BPF_TO_BE</span></div>
+<div class="line"><a name="l00040"></a><span class="lineno">   40</span>&#160;<span class="comment"> * in bpfel and bpfeb case, which means below, that we map</span></div>
+<div class="line"><a name="l00041"></a><span class="lineno">   41</span>&#160;<span class="comment"> * to cpu_to_be16(). We could use it unconditionally in BPF</span></div>
+<div class="line"><a name="l00042"></a><span class="lineno">   42</span>&#160;<span class="comment"> * case, but better not rely on it, so that this header here</span></div>
+<div class="line"><a name="l00043"></a><span class="lineno">   43</span>&#160;<span class="comment"> * can be used from application and BPF program side, which</span></div>
+<div class="line"><a name="l00044"></a><span class="lineno">   44</span>&#160;<span class="comment"> * use different targets.</span></div>
+<div class="line"><a name="l00045"></a><span class="lineno">   45</span>&#160;<span class="comment"> */</span></div>
+<div class="line"><a name="l00046"></a><span class="lineno">   46</span>&#160;<span class="preprocessor">#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__</span></div>
+<div class="line"><a name="l00047"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a13d2694f56a9835d7034e403e4522662">   47</a></span>&#160;<span class="preprocessor">#define __bpf_ntohs(x) __builtin_bswap16(x)</span></div>
+<div class="line"><a name="l00048"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a82df40d599b20819eb2866be3220c29d">   48</a></span>&#160;<span class="preprocessor">#define __bpf_htons(x) __builtin_bswap16(x)</span></div>
+<div class="line"><a name="l00049"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a2736d1b187a28c845b93d67dc1e96489">   49</a></span>&#160;<span class="preprocessor">#define __bpf_constant_ntohs(x) ___bpf_swab16(x)</span></div>
+<div class="line"><a name="l00050"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a92612920d78ac22557357119e335ed3a">   50</a></span>&#160;<span class="preprocessor">#define __bpf_constant_htons(x) ___bpf_swab16(x)</span></div>
+<div class="line"><a name="l00051"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#ae36c02eb69b6b145bfe3b9a2ac6cdd8d">   51</a></span>&#160;<span class="preprocessor">#define __bpf_ntohl(x) __builtin_bswap32(x)</span></div>
+<div class="line"><a name="l00052"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a9c9d67fa63abe0fc43ce3d649fa53f2a">   52</a></span>&#160;<span class="preprocessor">#define __bpf_htonl(x) __builtin_bswap32(x)</span></div>
+<div class="line"><a name="l00053"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a15f900ff4f7c4144dc84c802f0ee2ba9">   53</a></span>&#160;<span class="preprocessor">#define __bpf_constant_ntohl(x) ___bpf_swab32(x)</span></div>
+<div class="line"><a name="l00054"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#aa21f6ec765cc9f90b639f13ae43de1c8">   54</a></span>&#160;<span class="preprocessor">#define __bpf_constant_htonl(x) ___bpf_swab32(x)</span></div>
+<div class="line"><a name="l00055"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a6dd22d80b05293db6363c75ea2fa98d1">   55</a></span>&#160;<span class="preprocessor">#define __bpf_be64_to_cpu(x) __builtin_bswap64(x)</span></div>
+<div class="line"><a name="l00056"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a4d5fa895c29a4b187ec9bf0921026868">   56</a></span>&#160;<span class="preprocessor">#define __bpf_cpu_to_be64(x) __builtin_bswap64(x)</span></div>
+<div class="line"><a name="l00057"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a5feec262eac342c713300fcc5cc16abc">   57</a></span>&#160;<span class="preprocessor">#define __bpf_constant_be64_to_cpu(x) ___bpf_swab64(x)</span></div>
+<div class="line"><a name="l00058"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a5b9379d7e75930466ca8bbfd885fb12f">   58</a></span>&#160;<span class="preprocessor">#define __bpf_constant_cpu_to_be64(x) ___bpf_swab64(x)</span></div>
+<div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="preprocessor">#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__</span></div>
+<div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="preprocessor">#define __bpf_ntohs(x) (x)</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;<span class="preprocessor">#define __bpf_htons(x) (x)</span></div>
+<div class="line"><a name="l00062"></a><span class="lineno">   62</span>&#160;<span class="preprocessor">#define __bpf_constant_ntohs(x) (x)</span></div>
+<div class="line"><a name="l00063"></a><span class="lineno">   63</span>&#160;<span class="preprocessor">#define __bpf_constant_htons(x) (x)</span></div>
+<div class="line"><a name="l00064"></a><span class="lineno">   64</span>&#160;<span class="preprocessor">#define __bpf_ntohl(x) (x)</span></div>
+<div class="line"><a name="l00065"></a><span class="lineno">   65</span>&#160;<span class="preprocessor">#define __bpf_htonl(x) (x)</span></div>
+<div class="line"><a name="l00066"></a><span class="lineno">   66</span>&#160;<span class="preprocessor">#define __bpf_constant_ntohl(x) (x)</span></div>
+<div class="line"><a name="l00067"></a><span class="lineno">   67</span>&#160;<span class="preprocessor">#define __bpf_constant_htonl(x) (x)</span></div>
+<div class="line"><a name="l00068"></a><span class="lineno">   68</span>&#160;<span class="preprocessor">#define __bpf_be64_to_cpu(x) (x)</span></div>
+<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="preprocessor">#define __bpf_cpu_to_be64(x) (x)</span></div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="preprocessor">#define __bpf_constant_be64_to_cpu(x) (x)</span></div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="preprocessor">#define __bpf_constant_cpu_to_be64(x) (x)</span></div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="preprocessor">#else</span></div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="preprocessor">#error &quot;Fix your compiler&#39;s __BYTE_ORDER__?!&quot;</span></div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160; </div>
+<div class="line"><a name="l00076"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#ae7511f9fffd00abc58871fb173afeb1d">   76</a></span>&#160;<span class="preprocessor">#define bpf_htons(x) (__builtin_constant_p(x) ? __bpf_constant_htons(x) : __bpf_htons(x))</span></div>
+<div class="line"><a name="l00077"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a809ca78691cdb5e0fd36b7b313f98cda">   77</a></span>&#160;<span class="preprocessor">#define bpf_ntohs(x) (__builtin_constant_p(x) ? __bpf_constant_ntohs(x) : __bpf_ntohs(x))</span></div>
+<div class="line"><a name="l00078"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a9236515069a6759868aa9d9cbed9a90f">   78</a></span>&#160;<span class="preprocessor">#define bpf_htonl(x) (__builtin_constant_p(x) ? __bpf_constant_htonl(x) : __bpf_htonl(x))</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#af00de0e4ad75ac60bc837d0a002054cc">   79</a></span>&#160;<span class="preprocessor">#define bpf_ntohl(x) (__builtin_constant_p(x) ? __bpf_constant_ntohl(x) : __bpf_ntohl(x))</span></div>
+<div class="line"><a name="l00080"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#ae3ec658b099837a01148e25873c1fc6c">   80</a></span>&#160;<span class="preprocessor">#define bpf_cpu_to_be64(x) (__builtin_constant_p(x) ? __bpf_constant_cpu_to_be64(x) : __bpf_cpu_to_be64(x))</span></div>
+<div class="line"><a name="l00081"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a3e6f8b4773ae5dff64179237f86fcafa">   81</a></span>&#160;<span class="preprocessor">#define bpf_be64_to_cpu(x) (__builtin_constant_p(x) ? __bpf_constant_be64_to_cpu(x) : __bpf_be64_to_cpu(x))</span></div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160; </div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="preprocessor">#ifndef ntohs</span></div>
+<div class="line"><a name="l00084"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a118e9d76568ab81ad97f138d4ea1ddd2">   84</a></span>&#160;<span class="preprocessor">#define ntohs bpf_ntohs</span></div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;<span class="preprocessor">#ifndef htons</span></div>
+<div class="line"><a name="l00087"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a463850890cb814906018adbc3768858a">   87</a></span>&#160;<span class="preprocessor">#define htons bpf_htons</span></div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160; </div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;<span class="preprocessor">#ifndef ntohl</span></div>
+<div class="line"><a name="l00091"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a6a20f63e739c4f61a0f7f74cf1963c3b">   91</a></span>&#160;<span class="preprocessor">#define ntohl bpf_ntohl</span></div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;<span class="preprocessor">#ifndef htonl</span></div>
+<div class="line"><a name="l00094"></a><span class="lineno"><a class="line" href="bpf__endian_8h.html#a4be6d04dda69d558c3fb2bc22d0566dc">   94</a></span>&#160;<span class="preprocessor">#define htonl bpf_htonl</span></div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;<span class="preprocessor">#endif</span></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
