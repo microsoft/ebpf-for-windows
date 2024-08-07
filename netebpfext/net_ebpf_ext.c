@@ -234,11 +234,14 @@ static HANDLE _fwp_engine_handle;
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
+    uint32_t client_context_count,
     _In_ const net_ebpf_extension_hook_client_t* client_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
+
+    UNREFERENCED_PARAMETER(client_context);
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -251,23 +254,39 @@ net_ebpf_extension_wfp_filter_context_create(
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_context, "local_filter_context", result);
 
     memset(local_filter_context, 0, filter_context_size);
+
+    local_filter_context->client_contexts = (net_ebpf_extension_hook_client_t**)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, client_context_count * sizeof(net_ebpf_extension_hook_client_t*), NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        local_filter_context->client_contexts,
+        "local_filter_context - client_contexts",
+        result);
+
+    memset(local_filter_context->client_contexts, 0, client_context_count * sizeof(net_ebpf_extension_hook_client_t*));
+    local_filter_context->client_context_max_count = client_context_count;
+    local_filter_context->client_detached = FALSE;
+    InitializeListHead(&local_filter_context->list_entry);
     local_filter_context->reference_count = 1; // Initial reference.
-    local_filter_context->client_context = client_context;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(
-            (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+    // Set the first client context.
+    local_filter_context->client_contexts[0] = (net_ebpf_extension_hook_client_t*)client_context;
+    local_filter_context->client_context_count = 1;
+    // local_filter_context->client_context = client_context;
 
-        // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
-        // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
-        __fastfail(FAST_FAIL_INVALID_ARG);
-    }
+    // if (!net_ebpf_extension_hook_client_enter_rundown(
+    //         (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+
+    //     // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
+    //     // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
+    //     __fastfail(FAST_FAIL_INVALID_ARG);
+    // }
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
+
 Exit:
-    if (local_filter_context != NULL) {
-        ExFreePool(local_filter_context);
-    }
+    CLEAN_UP_FILTER_CONTEXT(local_filter_context);
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -380,6 +399,7 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
+    uint32_t filter_weight,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids)
 {
@@ -431,7 +451,13 @@ net_ebpf_extension_add_wfp_filters(
         } else {
             filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
         }
-        filter.weight.type = FWP_EMPTY; // auto-weight.
+        if (filter_weight == 0) {
+            filter.weight.type = FWP_EMPTY; // auto-weight.
+        } else {
+            filter.weight.type = FWP_UINT32;
+            filter.weight.uint32 = filter_weight;
+        }
+
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
@@ -868,5 +894,44 @@ net_ebpf_ext_unregister_providers()
     if (_net_ebpf_sock_ops_providers_registered) {
         net_ebpf_ext_sock_ops_unregister_providers();
         _net_ebpf_sock_ops_providers_registered = false;
+    }
+}
+
+ebpf_result_t
+net_ebpf_ext_add_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client)
+{
+    // Check if we have reached max capacity.
+    if (filter_context->client_context_count == filter_context->client_context_max_count) {
+        return EBPF_NO_MEMORY;
+    }
+
+    // Append the client context to the end.
+    filter_context->client_contexts[filter_context->client_context_count] =
+        (struct _net_ebpf_extension_hook_client*)hook_client;
+    filter_context->client_context_count++;
+
+    return EBPF_SUCCESS;
+}
+
+void
+net_ebpf_ext_remove_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client)
+{
+    uint32_t index;
+    for (index = 0; index < filter_context->client_context_count; index++) {
+        if (filter_context->client_contexts[index] == hook_client) {
+            filter_context->client_contexts[index] = NULL;
+            filter_context->client_context_count--;
+            break;
+        }
+    }
+    if (index != filter_context->client_context_count) {
+        memcpy(
+            &filter_context->client_contexts[index],
+            &filter_context->client_contexts[index + 1],
+            (filter_context->client_context_count - index) * sizeof(net_ebpf_extension_hook_client_t*));
     }
 }

@@ -91,10 +91,24 @@ typedef struct _ebpf_extension_program_dispatch_table
     ebpf_program_batch_end_invoke_function_t ebpf_program_batch_end_invoke_function;
 } ebpf_extension_program_dispatch_table_t;
 
+// typedef enum _ebpf_multi_attach_flags
+// {
+
+// }
+
+// typedef struct _ebpf_multiple_attach_data
+// {
+//     ebpf_extension_header_t header;
+//     uint32_t program_id;
+//     uint32_t link_id;
+//     uint32_t flags;
+// } ebpf_multiple_attach_data_t;
+
 typedef struct _ebpf_extension_data
 {
     ebpf_extension_header_t header;
     const void* data;
+    // ebpf_multiple_attach_data_t* multi_attach_data;
 } ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data

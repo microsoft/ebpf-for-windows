@@ -18,7 +18,8 @@ struct _net_ebpf_extension_hook_provider;
  */
 typedef struct _net_ebpf_extension_hook_client
 {
-    LIST_ENTRY link;                               ///< Link to next client (if any).
+    LIST_ENTRY link;                               ///< Link to next client (if any) in the provider context list.
+    LIST_ENTRY filter_context_link;                ///< Link to next client (if any) in the filter context list.
     HANDLE nmr_binding_handle;                     ///< NMR binding handle.
     GUID client_module_id;                         ///< NMR module Id.
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
@@ -28,13 +29,14 @@ typedef struct _net_ebpf_extension_hook_client
     struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
     PIO_WORKITEM detach_work_item;              ///< Pointer to IO work item that is invoked to detach the client.
     net_ebpf_ext_hook_client_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
+    uint64_t filter_weight;
 } net_ebpf_extension_hook_client_t;
 
-typedef struct _net_ebpf_extension_hook_clients_list
-{
-    EX_PUSH_LOCK lock;
-    LIST_ENTRY attached_clients_list;
-} net_ebpf_extension_hook_clients_list_t;
+// typedef struct _net_ebpf_extension_hook_clients_list
+// {
+//     EX_PUSH_LOCK lock;
+//     LIST_ENTRY attached_clients_list;
+// } net_ebpf_extension_hook_clients_list_t;
 
 typedef struct _net_ebpf_extension_hook_provider
 {
@@ -46,27 +48,12 @@ typedef struct _net_ebpf_extension_hook_provider
     net_ebpf_extension_hook_on_client_detach detach_callback; /*!< Pointer to hook specific callback to be invoked
                                                               when a client detaches. */
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
+    // ANUSA TODO: remove attached_clients_list. This should be replaced by filter_context_list.
     _Guarded_by_(lock)
         LIST_ENTRY attached_clients_list; ///< Linked list of hook NPI clients that are attached to this provider.
+    _Guarded_by_(lock)
+        LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
-
-#define _ACQUIRE_PUSH_LOCK(lock, mode) \
-    {                                  \
-        KeEnterCriticalRegion();       \
-        ExAcquirePushLock##mode(lock); \
-    }
-
-#define _RELEASE_PUSH_LOCK(lock, mode) \
-    {                                  \
-        ExReleasePushLock##mode(lock); \
-        KeLeaveCriticalRegion();       \
-    }
-
-#define ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) _ACQUIRE_PUSH_LOCK(lock, Exclusive)
-#define ACQUIRE_PUSH_LOCK_SHARED(lock) _ACQUIRE_PUSH_LOCK(lock, Shared)
-
-#define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _RELEASE_PUSH_LOCK(lock, Exclusive)
-#define RELEASE_PUSH_LOCK_SHARED(lock) _RELEASE_PUSH_LOCK(lock, Shared)
 
 /**
  * @brief Initialize the hook client rundown state.
@@ -201,6 +188,43 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
     return provider_context->custom_data;
 }
 
+// 1. If we failed to invoke an eBPF program, block the connection.
+// 2. If any eBPF program returned verdict as block, stop processing and return.
+// _Requires_shared_lock_held_(_client_attach_lock)
+ebpf_result_t
+net_ebpf_extension_invoke_programs(
+    _In_ const net_ebpf_extension_hook_client_t** client_contexts,
+    uint32_t client_context_count,
+    _Inout_ void* program_context,
+    _In_ const net_ebpf_extension_hook_process_verdict process_callback,
+    _Out_ uint32_t* result)
+{
+    ebpf_result_t program_result;
+
+    *result = 0;
+
+    // Iterate over all the programs in the array.
+    for (uint32_t i = 0; i < client_context_count; i++) {
+        const net_ebpf_extension_hook_client_t* client = client_contexts[i];
+        ASSERT(client != NULL);
+
+        // ANUSA TODO: Switch to batch invoke.
+        program_result = net_ebpf_extension_hook_invoke_program(client, program_context, result);
+        if (program_result != EBPF_SUCCESS) {
+            // Block the connection if we failed to invoke the eBPF program.
+            return program_result;
+        }
+
+        // Invoke callback to see if we should continue processing.
+        bool continue_processing = process_callback(*result);
+        if (!continue_processing) {
+            return EBPF_SUCCESS;
+        }
+    }
+
+    return EBPF_SUCCESS;
+}
+
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_invoke_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _Inout_ void* context, _Out_ uint32_t* result)
@@ -212,6 +236,45 @@ net_ebpf_extension_hook_invoke_program(
     NET_EBPF_EXT_RETURN_RESULT(invoke_result);
 }
 
+// net_ebpf_extension_hook_client_t*
+// net_ebpf_extension_hook_get_next_attached_client(
+//     _Inout_ net_ebpf_extension_hook_provider_t* provider_context,
+//     _In_opt_ const net_ebpf_extension_hook_client_t* client_context)
+
+net_ebpf_extension_hook_client_t*
+net_ebpf_extension_get_matching_client(
+    size_t attach_parameter_size,
+    _In_reads_(attach_parameter_size) const void* attach_parameter,
+    _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
+    _In_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    // ebpf_result_t result = EBPF_SUCCESS;
+    net_ebpf_extension_hook_client_t* matching_client = NULL;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    // ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
+
+    LIST_ENTRY* link = provider_context->attached_clients_list.Flink;
+    while (link != &provider_context->attached_clients_list) {
+        net_ebpf_extension_hook_client_t* next_client =
+            (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(link, net_ebpf_extension_hook_client_t, link);
+
+        const ebpf_extension_data_t* next_client_data = next_client->client_data;
+        const void* next_client_attach_parameter =
+            (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
+        if (((memcmp(attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0))) {
+            matching_client = next_client;
+            break;
+        }
+
+        link = link->Flink;
+    }
+
+    // RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
+    NET_EBPF_EXT_RETURN_POINTER(net_ebpf_extension_hook_client_t*, matching_client);
+}
+
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_hook_check_attach_parameter(
     size_t attach_parameter_size,
@@ -221,7 +284,7 @@ net_ebpf_extension_hook_check_attach_parameter(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     bool using_wild_card_attach_parameter = FALSE;
-    bool lock_held = FALSE;
+    // bool lock_held = FALSE;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -229,8 +292,13 @@ net_ebpf_extension_hook_check_attach_parameter(
         using_wild_card_attach_parameter = TRUE;
     }
 
-    ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
-    lock_held = TRUE;
+    // ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
+    // lock_held = TRUE;
+
+    // TODO: Check all the attached clients and "insert" this client in the correct position.
+    // Then calculate the filter weight for this client.
+    // If no flags specified, then append this in the end.
+
     if (using_wild_card_attach_parameter) {
         // Client requested wild card attach parameter. This will only be allowed if there are no other clients
         // attached.
@@ -269,9 +337,9 @@ net_ebpf_extension_hook_check_attach_parameter(
     }
 
 Exit:
-    if (lock_held) {
-        RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
-    }
+    // if (lock_held) {
+    //     RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
+    // }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -531,35 +599,66 @@ net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_attached_client(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     net_ebpf_extension_hook_client_t* client_context = NULL;
-    ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
+    // ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     if (!IsListEmpty(&provider_context->attached_clients_list)) {
         client_context = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
             provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
     }
-    RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
+    // RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
     return client_context;
 }
 
 net_ebpf_extension_hook_client_t*
 net_ebpf_extension_hook_get_next_attached_client(
-    _Inout_ net_ebpf_extension_hook_provider_t* provider_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_opt_ const net_ebpf_extension_hook_client_t* client_context)
 {
     net_ebpf_extension_hook_client_t* next_client = NULL;
-    ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
+    // ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
     if (client_context == NULL) {
         // Return the first attached client (if any).
-        if (!IsListEmpty(&provider_context->attached_clients_list)) {
+        if (!IsListEmpty(&filter_context->client_context_list)) {
             next_client = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
-                provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
+                filter_context->client_context_list.Flink, net_ebpf_extension_hook_client_t, link);
         }
     } else {
         // Return the next client, unless this is the last one.
-        if (client_context->link.Flink != &provider_context->attached_clients_list) {
+        if (client_context->link.Flink != &filter_context->client_context_list) {
             next_client = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
                 client_context->link.Flink, net_ebpf_extension_hook_client_t, link);
         }
     }
-    RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
+    // RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
     return next_client;
 }
+
+// void
+// net_ebpf_extension_hook_client_insert(
+//     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+//     _Inout_ net_ebpf_extension_hook_client_t* hook_client)
+// {
+//     InsertTailList(&filter_context->client_context_list, &hook_client->filter_context_link);
+//     filter_context->client_context_count++;
+// }
+
+// void
+// net_ebpf_extension_hook_client_remove(_Inout_ void* filter_context, _In_ net_ebpf_extension_hook_client_t*
+// hook_client)
+// {
+//     net_ebpf_extension_wfp_filter_context_t* local_filter_context =
+//         (net_ebpf_extension_wfp_filter_context_t*)filter_context;
+//     RemoveEntryList(&hook_client->filter_context_link);
+//     local_filter_context->client_context_count--;
+// }
+
+// void
+// net_ebpf_extension_hook_acquire_shared_lock(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+// {
+//     ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
+// }
+
+// void
+// net_ebpf_extension_hook_release_shared_lock(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+// {
+//     RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
+// }

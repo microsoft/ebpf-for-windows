@@ -9,6 +9,8 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_xdp.h"
 
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_XDP 1
+
 //
 // Utility functions.
 //
@@ -183,6 +185,7 @@ net_ebpf_extension_xdp_on_client_attach(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_xdp_wfp_filter_context_t),
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_XDP,
         attaching_client,
         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
     if (result != EBPF_SUCCESS) {
@@ -195,6 +198,7 @@ net_ebpf_extension_xdp_on_client_attach(
     }
     filter_context->if_index = if_index;
     filter_context->base.filter_ids_count = NET_EBPF_XDP_FILTER_COUNT;
+    // filter_context->base.provider_context = provider_context;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_XDP_FILTER_COUNT;
@@ -203,6 +207,7 @@ net_ebpf_extension_xdp_on_client_attach(
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
+        0,
         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
         &filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS) {
@@ -218,10 +223,15 @@ net_ebpf_extension_xdp_on_client_attach(
     net_ebpf_extension_hook_client_set_provider_data(
         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
+    // // Insert the new client in the list of clients for the existing filter context.
+    // net_ebpf_extension_hook_client_insert(
+    //     (net_ebpf_extension_wfp_filter_context_t*)filter_context,
+    //     (net_ebpf_extension_hook_client_t*)attaching_client);
+
 Exit:
     if (result != EBPF_SUCCESS) {
         if (filter_context != NULL) {
-            ExFreePool(filter_context);
+            CLEAN_UP_FILTER_CONTEXT(&filter_context->base);
         }
     }
 
@@ -238,6 +248,7 @@ _net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_clie
     NET_EBPF_EXT_LOG_ENTRY();
 
     ASSERT(filter_context != NULL);
+
     net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
@@ -608,6 +619,12 @@ Exit:
     return;
 }
 
+static bool
+_net_ebpf_extension_xdp_process_verdict(int program_verdict)
+{
+    return program_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
+}
+
 //
 // WFP Classify callback.
 //
@@ -631,6 +648,7 @@ net_ebpf_ext_layer_2_classify(
     net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
     net_ebpf_extension_hook_client_t* attached_client = NULL;
     uint32_t client_if_index;
+    // bool provider_lock_acquired = FALSE;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(classify_context);
@@ -657,6 +675,10 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
+    // // Acquire shared lock to prevent client detach during processing.
+    // net_ebpf_extension_hook_acquire_shared_lock(filter_context->base.provider_context);
+    // provider_lock_acquired = TRUE;
+
     if (filter_context->base.client_detached) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -666,7 +688,7 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
+    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_contexts[0];
     if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -771,6 +793,9 @@ net_ebpf_ext_layer_2_classify(
     }
 
 Exit:
+    // if (provider_lock_acquired) {
+    //     net_ebpf_extension_hook_release_shared_lock(filter_context->base.provider_context);
+    // }
     if (attached_client) {
         net_ebpf_extension_hook_client_leave_rundown(attached_client);
     }
