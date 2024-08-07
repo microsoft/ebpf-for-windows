@@ -678,6 +678,10 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         filter_context->v4_attach_type = TRUE;
     }
 
+    // Release dispatch lock befor making calls to WFP, as that needs to happen at PASSIVE.
+    ExReleaseSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock, old_irql);
+    dispatch_lock_acquired = FALSE;
+
     // Allocate redirect handle for this filter context, only in the case of INET*_CONNECT attach types.
     if (memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
         memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0) {
@@ -690,10 +694,6 @@ _net_ebpf_extension_sock_addr_on_client_attach(
         }
         NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
     }
-
-    // Release dispatch lock befor making calls to WFP, as that needs to happen at PASSIVE.
-    ExReleaseSpinLockExclusive(&_sock_addr_client_attach_dispatch_lock, old_irql);
-    dispatch_lock_acquired = FALSE;
 
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
     // filter's raw context.
@@ -1544,7 +1544,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
     bool lock_acquired = FALSE;
-    bool old_irql = FALSE;
+    KIRQL old_irql = PASSIVE_LEVEL;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(layer_data);
