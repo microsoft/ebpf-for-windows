@@ -86,11 +86,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "runtime_kernel", "libs\runt
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfCore", "ebpfcore\EbpfCore.vcxproj", "{97E52ABB-2F1E-4AD2-AEFD-6EB7FDC0A41D}"
 	ProjectSection(ProjectDependencies) = postProject
+		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 		{675B59F8-089E-40B5-8388-56254447CFA3} = {675B59F8-089E-40B5-8388-56254447CFA3}
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "netebpfext", "netebpfext\sys\netebpfext.vcxproj", "{55499E36-37D4-4F86-B694-9F2990315758}"
 	ProjectSection(ProjectDependencies) = postProject
+		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 		{FA9BB88D-8259-40C1-9422-BDEDF9E9CE68} = {FA9BB88D-8259-40C1-9422-BDEDF9E9CE68}
 	EndProjectSection
 EndProject
@@ -222,6 +224,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "usersim_dll_skeleton", "external\usersim\usersim_dll_skeleton\usersim_dll_skeleton.vcxproj", "{1937DB41-F3EB-4955-A636-6386DCB394F6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EbpfCore_Usersim", "ebpfcore\usersim\EbpfCore_Usersim.vcxproj", "{1FDAD2FD-EBD8-462A-B285-ED5174E55079}"
+	ProjectSection(ProjectDependencies) = postProject
+		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "shared_user", "libs\shared\user\shared_user.vcxproj", "{9388DD45-7941-45D7-B4FF-BC00F550AF17}"
 EndProject
