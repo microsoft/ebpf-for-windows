@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#pragma pack(push)
+#pragma pack(1)
 struct tcphdr
 {
     uint16_t source;
@@ -27,9 +29,18 @@ struct tcphdr
     uint16_t check;   // Checksum
     uint16_t urg_ptr; // Urgent Pointer
 };
+#pragma pack(pop)
 
-// Verify the bit fields give the correct header size.
-#ifndef C_ASSERT
-#define C_ASSERT(e) typedef char __C_ASSERT__[(e) ? 1 : -1]
+#ifndef FIELD_OFFSET
+#define FIELD_OFFSET(type, field) ((long)&(((type*)0)->field))
 #endif
-C_ASSERT(sizeof(struct tcphdr) == 20);
+
+// check the offset of each field
+static_assert(FIELD_OFFSET(struct tcphdr, source) == 0, "source offset mismatch");
+static_assert(FIELD_OFFSET(struct tcphdr, dest) == 2, "dest offset mismatch");
+static_assert(FIELD_OFFSET(struct tcphdr, seq) == 4, "seq offset mismatch");
+static_assert(FIELD_OFFSET(struct tcphdr, ack_seq) == 8, "ack_seq offset mismatch");
+// Skip bit fields
+static_assert(FIELD_OFFSET(struct tcphdr, window) == 14, "window offset mismatch");
+static_assert(FIELD_OFFSET(struct tcphdr, check) == 16, "check offset mismatch");
+static_assert(FIELD_OFFSET(struct tcphdr, urg_ptr) == 18, "urg_ptr offset mismatch");

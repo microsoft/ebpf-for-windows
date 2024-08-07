@@ -935,12 +935,12 @@ FDs or addresses.  When the program is actually installed, the relocation
 section will be used to insert the actual map address into the executable
 code.
 
-## 5. Installing eBPF programs
+# 5. Installing eBPF programs
 
-`netsh ebpf` can also install your eBPF program. As an example, the program we created above won't do much but we can install it via:
+`netsh ebpf` can also install your eBPF program. As an example, the program we created above won't do much but we can install it using the program type `xdp_test` via:
 
 ```
-netsh ebpf add program .\myxdp.o xdp
+netsh ebpf add program .\myxdp.o xdp_test
 ```
 
 To see it installed:
@@ -963,7 +963,9 @@ You can also install and interact with the eBPF programs programmatically. See h
 
 Learn more about using eBPF at https://github.com/microsoft/ebpf-for-windows/blob/main/docs/GettingStarted.md#using-ebpf-for-windows
 
-# 7. Next steps
+You can install the `xdp-for-windows` extension from https://github.com/microsoft/xdp-for-windows/releases. Its [github repository](https://github.com/microsoft/xdp-for-windows) has Windows native XDP support, with the program type=xdp.
+
+# 6. Next steps
 
 Once you've completed this tutorial, you may want to check out our
 [tutorial on debugging eBPF verification failures](debugging.md).

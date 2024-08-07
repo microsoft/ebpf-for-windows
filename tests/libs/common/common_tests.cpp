@@ -111,7 +111,8 @@ verify_utility_helper_results(_In_ const bpf_object* object, bool helper_overrid
 
 ring_buffer_test_event_context_t::_ring_buffer_test_event_context()
     : ring_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0), test_event_count(0)
-{}
+{
+}
 ring_buffer_test_event_context_t::~_ring_buffer_test_event_context()
 {
     if (ring_buffer != nullptr) {
@@ -189,16 +190,29 @@ void
 ring_buffer_api_test_helper(
     fd_t ring_buffer_map, std::vector<std::vector<char>>& expected_records, std::function<void(int)> generate_event)
 {
+    std::vector<std::vector<char>> records = expected_records;
+
+    // Add a couple of interleaved messages to the records vector.
+    std::string message = "Interleaved message #1";
+    std::vector<char> record(message.begin(), message.end());
+    record.push_back('\0');
+    records.push_back(record);
+    record[record.size() - 2] = '2';
+    records.push_back(record);
+
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
-    context->test_event_count = RING_BUFFER_TEST_EVENT_COUNT;
+    context->test_event_count = RING_BUFFER_TEST_EVENT_COUNT + 2;
 
-    context->records = &expected_records;
+    context->records = &records;
 
     // Generate events prior to subscribing for ring buffer events.
     for (int i = 0; i < RING_BUFFER_TEST_EVENT_COUNT / 2; i++) {
         generate_event(i);
     }
+
+    // Write an interleaved message to the ring buffer map.
+    REQUIRE(ebpf_ring_buffer_map_write(ring_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
 
     // Get the std::future from the promise field in ring buffer event context, which should be in ready state
     // once notifications for all events are received.
@@ -215,10 +229,14 @@ ring_buffer_api_test_helper(
         generate_event(i);
     }
 
+    // Write another interleaved message to the ring buffer map.
+    message[message.length() - 1] = '2';
+    REQUIRE(ebpf_ring_buffer_map_write(ring_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
+
     // Wait for event handler getting notifications for all RING_BUFFER_TEST_EVENT_COUNT events.
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
-    REQUIRE(context->matched_entry_count == RING_BUFFER_TEST_EVENT_COUNT);
+    REQUIRE(context->matched_entry_count == context->test_event_count);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;

@@ -24,10 +24,9 @@
 #define ___bpf_swab32(x) \
     ((__u32)(___bpf_mvb(x, 32, 0, 3) | ___bpf_mvb(x, 32, 1, 2) | ___bpf_mvb(x, 32, 2, 1) | ___bpf_mvb(x, 32, 3, 0)))
 
-#define ___bpf_swab64(x)                                                                                        \
-    ((__u64)(                                                                                                   \
-        ___bpf_mvb(x, 64, 0, 7) | ___bpf_mvb(x, 64, 1, 6) | ___bpf_mvb(x, 64, 2, 5) | ___bpf_mvb(x, 64, 3, 4) | \
-        ___bpf_mvb(x, 64, 4, 3) | ___bpf_mvb(x, 64, 5, 2) | ___bpf_mvb(x, 64, 6, 1) | ___bpf_mvb(x, 64, 7, 0)))
+#define ___bpf_swab64(x)                                                                                             \
+    ((__u64)(___bpf_mvb(x, 64, 0, 7) | ___bpf_mvb(x, 64, 1, 6) | ___bpf_mvb(x, 64, 2, 5) | ___bpf_mvb(x, 64, 3, 4) | \
+             ___bpf_mvb(x, 64, 4, 3) | ___bpf_mvb(x, 64, 5, 2) | ___bpf_mvb(x, 64, 6, 1) | ___bpf_mvb(x, 64, 7, 0)))
 
 /* LLVM's BPF target selects the endianness of the CPU
  * it compiles on, or the user specifies (bpfel/bpfeb),

@@ -124,7 +124,7 @@ func(void* context)
     r2 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=12
 #line 23 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 23 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 23 "sample/printk.c"
@@ -157,7 +157,7 @@ func(void* context)
     r2 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 24 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 24 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 24 "sample/printk.c"
@@ -169,7 +169,7 @@ func(void* context)
     r6 = r0;
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=19
 #line 27 "sample/printk.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 27 "sample/printk.c"
     if ((func_helpers[1].tail_call) && (r0 == 0)) {
 #line 27 "sample/printk.c"
@@ -220,7 +220,7 @@ func(void* context)
     r3 = r8;
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=13
 #line 28 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 28 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 28 "sample/printk.c"
@@ -262,7 +262,7 @@ func(void* context)
     r3 = r8;
     // EBPF_OP_CALL pc=53 dst=r0 src=r0 offset=0 imm=13
 #line 29 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 29 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 29 "sample/printk.c"
@@ -307,7 +307,7 @@ func(void* context)
     r3 = r8;
     // EBPF_OP_CALL pc=68 dst=r0 src=r0 offset=0 imm=13
 #line 30 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 30 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 30 "sample/printk.c"
@@ -349,7 +349,7 @@ func(void* context)
     r2 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=82 dst=r0 src=r0 offset=0 imm=14
 #line 31 "sample/printk.c"
-    r0 = func_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 31 "sample/printk.c"
     if ((func_helpers[3].tail_call) && (r0 == 0)) {
 #line 31 "sample/printk.c"
@@ -403,7 +403,7 @@ func(void* context)
     r2 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=99 dst=r0 src=r0 offset=0 imm=15
 #line 33 "sample/printk.c"
-    r0 = func_helpers[4].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[4].address(r1, r2, r3, r4, r5, context);
 #line 33 "sample/printk.c"
     if ((func_helpers[4].tail_call) && (r0 == 0)) {
 #line 33 "sample/printk.c"
@@ -442,7 +442,7 @@ func(void* context)
     r2 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=110 dst=r0 src=r0 offset=0 imm=12
 #line 37 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 37 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 37 "sample/printk.c"
@@ -461,193 +461,190 @@ func(void* context)
     // EBPF_OP_STXB pc=115 dst=r10 src=r8 offset=-24 imm=0
 #line 38 "sample/printk.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint8_t)r8;
-    // EBPF_OP_MOV64_IMM pc=116 dst=r8 src=r0 offset=0 imm=0
-#line 38 "sample/printk.c"
-    r8 = IMMEDIATE(0);
-    // EBPF_OP_MOV64_REG pc=117 dst=r1 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=116 dst=r1 src=r10 offset=0 imm=0
 #line 38 "sample/printk.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=118 dst=r1 src=r0 offset=0 imm=-32
+    // EBPF_OP_ADD64_IMM pc=117 dst=r1 src=r0 offset=0 imm=-32
 #line 38 "sample/printk.c"
     r1 += IMMEDIATE(-32);
-    // EBPF_OP_MOV64_IMM pc=119 dst=r2 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV64_IMM pc=118 dst=r2 src=r0 offset=0 imm=9
 #line 38 "sample/printk.c"
     r2 = IMMEDIATE(9);
-    // EBPF_OP_CALL pc=120 dst=r0 src=r0 offset=0 imm=12
+    // EBPF_OP_CALL pc=119 dst=r0 src=r0 offset=0 imm=12
 #line 38 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 38 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 38 "sample/printk.c"
         return 0;
 #line 38 "sample/printk.c"
     }
-    // EBPF_OP_LDDW pc=121 dst=r1 src=r0 offset=0 imm=860111170
+    // EBPF_OP_LDDW pc=120 dst=r1 src=r0 offset=0 imm=860111170
 #line 38 "sample/printk.c"
     r1 = (uint64_t)7220718397787750722;
-    // EBPF_OP_STXDW pc=123 dst=r10 src=r1 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=122 dst=r10 src=r1 offset=-32 imm=0
 #line 39 "sample/printk.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
-    // EBPF_OP_ADD64_REG pc=124 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=123 dst=r6 src=r0 offset=0 imm=0
 #line 38 "sample/printk.c"
     r6 += r0;
-    // EBPF_OP_STXB pc=125 dst=r10 src=r8 offset=-24 imm=0
+    // EBPF_OP_STXB pc=124 dst=r10 src=r8 offset=-24 imm=0
 #line 39 "sample/printk.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint8_t)r8;
-    // EBPF_OP_LDXDW pc=126 dst=r3 src=r7 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=125 dst=r3 src=r7 offset=16 imm=0
 #line 39 "sample/printk.c"
     r3 = *(uint64_t*)(uintptr_t)(r7 + OFFSET(16));
-    // EBPF_OP_MOV64_REG pc=127 dst=r1 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=126 dst=r1 src=r10 offset=0 imm=0
 #line 39 "sample/printk.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=128 dst=r1 src=r0 offset=0 imm=-32
+    // EBPF_OP_ADD64_IMM pc=127 dst=r1 src=r0 offset=0 imm=-32
 #line 39 "sample/printk.c"
     r1 += IMMEDIATE(-32);
-    // EBPF_OP_MOV64_IMM pc=129 dst=r2 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV64_IMM pc=128 dst=r2 src=r0 offset=0 imm=9
 #line 39 "sample/printk.c"
     r2 = IMMEDIATE(9);
-    // EBPF_OP_CALL pc=130 dst=r0 src=r0 offset=0 imm=13
+    // EBPF_OP_CALL pc=129 dst=r0 src=r0 offset=0 imm=13
 #line 39 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 39 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 39 "sample/printk.c"
         return 0;
 #line 39 "sample/printk.c"
     }
-    // EBPF_OP_LDDW pc=131 dst=r1 src=r0 offset=0 imm=876888386
+    // EBPF_OP_LDDW pc=130 dst=r1 src=r0 offset=0 imm=876888386
 #line 39 "sample/printk.c"
     r1 = (uint64_t)31566017637663042;
-    // EBPF_OP_STXDW pc=133 dst=r10 src=r1 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=132 dst=r10 src=r1 offset=-32 imm=0
 #line 40 "sample/printk.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
-    // EBPF_OP_ADD64_REG pc=134 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=133 dst=r6 src=r0 offset=0 imm=0
 #line 39 "sample/printk.c"
     r6 += r0;
-    // EBPF_OP_LDXDW pc=135 dst=r3 src=r7 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=134 dst=r3 src=r7 offset=16 imm=0
 #line 40 "sample/printk.c"
     r3 = *(uint64_t*)(uintptr_t)(r7 + OFFSET(16));
-    // EBPF_OP_MOV64_REG pc=136 dst=r1 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=135 dst=r1 src=r10 offset=0 imm=0
 #line 40 "sample/printk.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=137 dst=r1 src=r0 offset=0 imm=-32
+    // EBPF_OP_ADD64_IMM pc=136 dst=r1 src=r0 offset=0 imm=-32
 #line 40 "sample/printk.c"
     r1 += IMMEDIATE(-32);
-    // EBPF_OP_MOV64_IMM pc=138 dst=r2 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=137 dst=r2 src=r0 offset=0 imm=8
 #line 40 "sample/printk.c"
     r2 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=139 dst=r0 src=r0 offset=0 imm=13
+    // EBPF_OP_CALL pc=138 dst=r0 src=r0 offset=0 imm=13
 #line 40 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 40 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 40 "sample/printk.c"
         return 0;
 #line 40 "sample/printk.c"
     }
-    // EBPF_OP_MOV64_IMM pc=140 dst=r1 src=r0 offset=0 imm=893665602
+    // EBPF_OP_MOV64_IMM pc=139 dst=r1 src=r0 offset=0 imm=893665602
 #line 40 "sample/printk.c"
     r1 = IMMEDIATE(893665602);
-    // EBPF_OP_STXW pc=141 dst=r10 src=r1 offset=-32 imm=0
+    // EBPF_OP_STXW pc=140 dst=r10 src=r1 offset=-32 imm=0
 #line 44 "sample/printk.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint32_t)r1;
-    // EBPF_OP_ADD64_REG pc=142 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=141 dst=r6 src=r0 offset=0 imm=0
 #line 40 "sample/printk.c"
     r6 += r0;
-    // EBPF_OP_STXB pc=143 dst=r10 src=r8 offset=-28 imm=0
+    // EBPF_OP_STXB pc=142 dst=r10 src=r8 offset=-28 imm=0
 #line 44 "sample/printk.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-28)) = (uint8_t)r8;
-    // EBPF_OP_LDXDW pc=144 dst=r3 src=r7 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=143 dst=r3 src=r7 offset=16 imm=0
 #line 44 "sample/printk.c"
     r3 = *(uint64_t*)(uintptr_t)(r7 + OFFSET(16));
-    // EBPF_OP_MOV64_REG pc=145 dst=r1 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=144 dst=r1 src=r10 offset=0 imm=0
 #line 44 "sample/printk.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=146 dst=r1 src=r0 offset=0 imm=-32
+    // EBPF_OP_ADD64_IMM pc=145 dst=r1 src=r0 offset=0 imm=-32
 #line 44 "sample/printk.c"
     r1 += IMMEDIATE(-32);
-    // EBPF_OP_MOV64_IMM pc=147 dst=r2 src=r0 offset=0 imm=5
+    // EBPF_OP_MOV64_IMM pc=146 dst=r2 src=r0 offset=0 imm=5
 #line 44 "sample/printk.c"
     r2 = IMMEDIATE(5);
-    // EBPF_OP_CALL pc=148 dst=r0 src=r0 offset=0 imm=13
+    // EBPF_OP_CALL pc=147 dst=r0 src=r0 offset=0 imm=13
 #line 44 "sample/printk.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/printk.c"
     if ((func_helpers[2].tail_call) && (r0 == 0)) {
 #line 44 "sample/printk.c"
         return 0;
 #line 44 "sample/printk.c"
     }
-    // EBPF_OP_LDDW pc=149 dst=r1 src=r0 offset=0 imm=910442818
+    // EBPF_OP_LDDW pc=148 dst=r1 src=r0 offset=0 imm=910442818
 #line 44 "sample/printk.c"
     r1 = (uint64_t)32973392554770754;
-    // EBPF_OP_STXDW pc=151 dst=r10 src=r1 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=150 dst=r10 src=r1 offset=-32 imm=0
 #line 45 "sample/printk.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
-    // EBPF_OP_ADD64_REG pc=152 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=151 dst=r6 src=r0 offset=0 imm=0
 #line 44 "sample/printk.c"
     r6 += r0;
-    // EBPF_OP_MOV64_REG pc=153 dst=r1 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=152 dst=r1 src=r10 offset=0 imm=0
 #line 44 "sample/printk.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=154 dst=r1 src=r0 offset=0 imm=-32
+    // EBPF_OP_ADD64_IMM pc=153 dst=r1 src=r0 offset=0 imm=-32
 #line 44 "sample/printk.c"
     r1 += IMMEDIATE(-32);
-    // EBPF_OP_MOV64_IMM pc=155 dst=r2 src=r0 offset=0 imm=8
+    // EBPF_OP_MOV64_IMM pc=154 dst=r2 src=r0 offset=0 imm=8
 #line 45 "sample/printk.c"
     r2 = IMMEDIATE(8);
-    // EBPF_OP_CALL pc=156 dst=r0 src=r0 offset=0 imm=12
+    // EBPF_OP_CALL pc=155 dst=r0 src=r0 offset=0 imm=12
 #line 45 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 45 "sample/printk.c"
         return 0;
 #line 45 "sample/printk.c"
     }
-    // EBPF_OP_STXB pc=157 dst=r10 src=r8 offset=-22 imm=0
+    // EBPF_OP_STXB pc=156 dst=r10 src=r8 offset=-22 imm=0
 #line 48 "sample/printk.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-22)) = (uint8_t)r8;
-    // EBPF_OP_MOV64_IMM pc=158 dst=r1 src=r0 offset=0 imm=25966
+    // EBPF_OP_MOV64_IMM pc=157 dst=r1 src=r0 offset=0 imm=25966
 #line 48 "sample/printk.c"
     r1 = IMMEDIATE(25966);
-    // EBPF_OP_STXH pc=159 dst=r10 src=r1 offset=-24 imm=0
+    // EBPF_OP_STXH pc=158 dst=r10 src=r1 offset=-24 imm=0
 #line 48 "sample/printk.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint16_t)r1;
-    // EBPF_OP_LDDW pc=160 dst=r1 src=r0 offset=0 imm=623915057
+    // EBPF_OP_LDDW pc=159 dst=r1 src=r0 offset=0 imm=623915057
 #line 48 "sample/printk.c"
     r1 = (uint64_t)8026575779790860337;
-    // EBPF_OP_STXDW pc=162 dst=r10 src=r1 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=161 dst=r10 src=r1 offset=-32 imm=0
 #line 48 "sample/printk.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
-    // EBPF_OP_ADD64_REG pc=163 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=162 dst=r6 src=r0 offset=0 imm=0
 #line 45 "sample/printk.c"
     r6 += r0;
-    // EBPF_OP_MOV64_REG pc=164 dst=r1 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=163 dst=r1 src=r10 offset=0 imm=0
 #line 45 "sample/printk.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=165 dst=r1 src=r0 offset=0 imm=-32
+    // EBPF_OP_ADD64_IMM pc=164 dst=r1 src=r0 offset=0 imm=-32
 #line 45 "sample/printk.c"
     r1 += IMMEDIATE(-32);
-    // EBPF_OP_MOV64_IMM pc=166 dst=r2 src=r0 offset=0 imm=11
+    // EBPF_OP_MOV64_IMM pc=165 dst=r2 src=r0 offset=0 imm=11
 #line 48 "sample/printk.c"
     r2 = IMMEDIATE(11);
-    // EBPF_OP_CALL pc=167 dst=r0 src=r0 offset=0 imm=12
+    // EBPF_OP_CALL pc=166 dst=r0 src=r0 offset=0 imm=12
 #line 48 "sample/printk.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/printk.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/printk.c"
         return 0;
 #line 48 "sample/printk.c"
     }
-    // EBPF_OP_ADD64_REG pc=168 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_ADD64_REG pc=167 dst=r6 src=r0 offset=0 imm=0
 #line 48 "sample/printk.c"
     r6 += r0;
-    // EBPF_OP_MOV64_REG pc=169 dst=r0 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=168 dst=r0 src=r6 offset=0 imm=0
 #line 50 "sample/printk.c"
     r0 = r6;
-    // EBPF_OP_EXIT pc=170 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=169 dst=r0 src=r0 offset=0 imm=0
 #line 50 "sample/printk.c"
     return r0;
 #line 50 "sample/printk.c"
@@ -667,7 +664,7 @@ static program_entry_t _programs[] = {
         0,
         func_helpers,
         5,
-        171,
+        170,
         &func_program_type_guid,
         &func_attach_type_guid,
     },
@@ -685,7 +682,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 19;
     version->revision = 0;
 }
 

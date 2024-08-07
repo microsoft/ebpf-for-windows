@@ -564,6 +564,20 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_test_run(fd_t program_fd, _Inout_ ebpf_test_run_options_t* options) EBPF_NO_EXCEPT;
 
+    /**
+     * @brief Write data into the ring buffer map.
+     *
+     * @param [in] ring_buffer_map_fd ring buffer map file descriptor.
+     * @param [in]  data Pointer to data to be written.
+     * @param [in] data_length Length of data to be written.
+     * @retval EPBF_SUCCESS Successfully wrote record into ring buffer.
+     * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
+     * @retval EBPF_NO_MEMORY Out of memory.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_write(
+        fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
+
 #ifdef __cplusplus
 }
 #endif

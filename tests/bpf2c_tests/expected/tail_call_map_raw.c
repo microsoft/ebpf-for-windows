@@ -144,7 +144,7 @@ caller(void* context)
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 43 "sample/undocked/tail_call_map.c"
-    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 43 "sample/undocked/tail_call_map.c"
     if ((caller_helpers[0].tail_call) && (r0 == 0)) {
 #line 43 "sample/undocked/tail_call_map.c"
@@ -162,7 +162,7 @@ caller(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=5
 #line 45 "sample/undocked/tail_call_map.c"
-    r0 = caller_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = caller_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/undocked/tail_call_map.c"
     if ((caller_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/undocked/tail_call_map.c"
@@ -224,7 +224,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 19;
     version->revision = 0;
 }
 

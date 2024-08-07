@@ -40,12 +40,14 @@ typedef struct _map_cache
     _map_cache()
         : handle(0), id(EBPF_ID_NONE), section_offset(0), verifier_map_descriptor(), pinning(LIBBPF_PIN_NONE),
           inner_id(EBPF_ID_NONE)
-    {}
+    {
+    }
 
     _map_cache(ebpf_handle_t handle, size_t section_offset, EbpfMapDescriptor descriptor, ebpf_pin_type_t pinning)
         : handle(handle), id(EBPF_ID_NONE), section_offset(section_offset), verifier_map_descriptor(descriptor),
           pinning(pinning), inner_id(EBPF_ID_NONE)
-    {}
+    {
+    }
 
     _map_cache(
         ebpf_handle_t handle,
