@@ -121,6 +121,7 @@ EXPORTS
     ebpf_get_program_type_name
     ebpf_link_close
     ebpf_link_free
+    ebpf_object_load_native_fds
     ebpf_object_get
     ebpf_object_get_execution_type
     ebpf_object_set_execution_type

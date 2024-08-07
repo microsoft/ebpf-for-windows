@@ -369,14 +369,26 @@ extern "C"
     ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
         EBPF_NO_EXCEPT;
 
+    /**
+     * @brief Load a native image from a file and return map and program file
+     * descriptors.
+     *
+     * @param[in] file_name Path to the eBPF object file.
+     * @param[in, out] count_of_maps Size of map_fds.
+     * @param[in] map_fds Pre-allocated array for map file descriptors.
+     * @param[in, out] count_of_programs Size of program_fds.
+     * @param[in] program_fds Pre-allocated array for program file descriptors.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Either count_of_maps or count_of_programs was too small.
+     */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_load_native(
+    ebpf_object_load_native_fds(
         _In_z_ const char* file_name,
-        _Out_ ebpf_handle_t* native_module_handle,
-        _Out_ size_t* count_of_maps,
-        _Outptr_result_maybenull_ ebpf_handle_t** map_handles,
-        _Out_ size_t* count_of_programs,
-        _Outptr_result_maybenull_ ebpf_handle_t** program_handles) EBPF_NO_EXCEPT;
+        _Inout_ size_t* count_of_maps,
+        _Out_writes_opt_(count_of_maps) fd_t* map_fds,
+        _Inout_ size_t* count_of_programs,
+        _Out_writes_opt_(count_of_programs) fd_t* program_fds) EBPF_NO_EXCEPT;
 
     /**
      * @brief Attach an eBPF program.
