@@ -143,7 +143,6 @@ main(int argc, char** argv)
         std::string output_file_name;
         std::string type_string = "";
         std::string hash_algorithm = EBPF_HASH_ALGORITHM;
-        bool verify_programs = true;
         std::vector<std::string> parameters(argv + 1, argv + argc);
         auto iter = parameters.begin();
         auto iter_end = parameters.end();
@@ -178,14 +177,6 @@ main(int argc, char** argv)
                   }
                   return true;
               }}},
-#if defined(ENABLE_SKIP_VERIFY)
-            {"--no-verify",
-             {"Skip validating code using verifier",
-              [&]() {
-                  verify_programs = false;
-                  return true;
-              }}},
-#endif
             {"--bpf",
              {"Input ELF file containing BPF byte code",
               [&]() {
@@ -273,7 +264,7 @@ main(int argc, char** argv)
         ebpf_api_program_info_t* infos = nullptr;
         const char* error_message = nullptr;
         ebpf_result_t result = ebpf_enumerate_programs(file.c_str(), false, &infos, &error_message);
-        if ((result != EBPF_SUCCESS) && verify_programs) {
+        if (result != EBPF_SUCCESS) {
             std::cerr << error_message << std::endl;
             ebpf_free_string(error_message);
             return 1;
@@ -303,16 +294,16 @@ main(int argc, char** argv)
             const char* report = nullptr;
             ebpf_api_verifier_stats_t stats;
             std::optional<std::vector<uint8_t>> program_info_hash;
-            if (verify_programs && ebpf_api_elf_verify_program_from_memory(
-                                       data.c_str(),
-                                       data.size(),
-                                       program->section_name,
-                                       program->program_name,
-                                       (global_program_type_set) ? &program_type : &program->program_type,
-                                       EBPF_VERIFICATION_VERBOSITY_NORMAL,
-                                       &report,
-                                       &error_message,
-                                       &stats) != 0) {
+            if (ebpf_api_elf_verify_program_from_memory(
+                    data.c_str(),
+                    data.size(),
+                    program->section_name,
+                    program->program_name,
+                    (global_program_type_set) ? &program_type : &program->program_type,
+                    EBPF_VERIFICATION_VERBOSITY_NORMAL,
+                    &report,
+                    &error_message,
+                    &stats) != 0) {
                 report = ((report == nullptr) ? "" : report);
                 throw std::runtime_error(
                     std::string("Verification failed for ") + std::string(program->program_name) +
@@ -338,7 +329,7 @@ main(int argc, char** argv)
                 hash_algorithm);
             generator.generate(program->section_name, program->program_name);
 
-            if (verify_programs && (hash_algorithm != "none")) {
+            if (hash_algorithm != "none") {
                 std::vector<int32_t> helper_ids = generator.get_helper_ids();
                 program_info_hash = get_program_info_type_hash(helper_ids, hash_algorithm);
                 generator.set_program_hash_info(program_info_hash);
