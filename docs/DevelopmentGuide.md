@@ -55,7 +55,7 @@ Style Guide
 ### Automated Formatting with `clang-format`
 
 For all C/C++ files (`*.c`, `*.cpp` and `*.h`), we use `clang-format` (specifically
-version ```11.0.1```) to apply our code formatting rules. After modifying C/C++ files and
+version ```17.0.3```) to apply our code formatting rules. After modifying C/C++ files and
 before merging, be sure to run:
 
 ```sh
