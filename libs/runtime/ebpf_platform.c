@@ -37,7 +37,9 @@ ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL)
+ebpf_lock_state_t
+ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
     return KeAcquireSpinLockRaiseToDpc(lock);
 }

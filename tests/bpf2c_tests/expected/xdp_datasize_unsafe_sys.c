@@ -224,23 +224,19 @@ unsafe_program(void* context)
     // EBPF_OP_ADD64_IMM pc=4 dst=r3 src=r0 offset=0 imm=14
 #line 32 "sample/unsafe/xdp_datasize_unsafe.c"
     r3 += IMMEDIATE(14);
-    // EBPF_OP_JGT_REG pc=5 dst=r3 src=r1 offset=4 imm=0
+    // EBPF_OP_JGT_REG pc=5 dst=r3 src=r1 offset=6 imm=0
 #line 32 "sample/unsafe/xdp_datasize_unsafe.c"
     if (r3 > r1) {
 #line 32 "sample/unsafe/xdp_datasize_unsafe.c"
-        goto label_1;
+        goto label_2;
 #line 32 "sample/unsafe/xdp_datasize_unsafe.c"
     }
     // EBPF_OP_LDXH pc=6 dst=r1 src=r2 offset=12 imm=0
 #line 38 "sample/unsafe/xdp_datasize_unsafe.c"
     r1 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(12));
-    // EBPF_OP_JEQ_IMM pc=7 dst=r1 src=r0 offset=2 imm=8
+    // EBPF_OP_MOV64_IMM pc=7 dst=r2 src=r0 offset=0 imm=1
 #line 38 "sample/unsafe/xdp_datasize_unsafe.c"
-    if (r1 == IMMEDIATE(8)) {
-#line 38 "sample/unsafe/xdp_datasize_unsafe.c"
-        goto label_1;
-#line 38 "sample/unsafe/xdp_datasize_unsafe.c"
-    }
+    r2 = IMMEDIATE(1);
     // EBPF_OP_JEQ_IMM pc=8 dst=r1 src=r0 offset=1 imm=56710
 #line 38 "sample/unsafe/xdp_datasize_unsafe.c"
     if (r1 == IMMEDIATE(56710)) {
@@ -248,11 +244,22 @@ unsafe_program(void* context)
         goto label_1;
 #line 38 "sample/unsafe/xdp_datasize_unsafe.c"
     }
-    // EBPF_OP_MOV64_IMM pc=9 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV64_IMM pc=9 dst=r2 src=r0 offset=0 imm=2
 #line 38 "sample/unsafe/xdp_datasize_unsafe.c"
-    r0 = IMMEDIATE(2);
+    r2 = IMMEDIATE(2);
 label_1:
-    // EBPF_OP_EXIT pc=10 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_JEQ_IMM pc=10 dst=r1 src=r0 offset=1 imm=8
+#line 38 "sample/unsafe/xdp_datasize_unsafe.c"
+    if (r1 == IMMEDIATE(8)) {
+#line 38 "sample/unsafe/xdp_datasize_unsafe.c"
+        goto label_2;
+#line 38 "sample/unsafe/xdp_datasize_unsafe.c"
+    }
+    // EBPF_OP_MOV64_REG pc=11 dst=r0 src=r2 offset=0 imm=0
+#line 38 "sample/unsafe/xdp_datasize_unsafe.c"
+    r0 = r2;
+label_2:
+    // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 43 "sample/unsafe/xdp_datasize_unsafe.c"
     return r0;
 #line 43 "sample/unsafe/xdp_datasize_unsafe.c"
@@ -272,7 +279,7 @@ static program_entry_t _programs[] = {
         0,
         NULL,
         0,
-        11,
+        13,
         &unsafe_program_program_type_guid,
         &unsafe_program_attach_type_guid,
     },

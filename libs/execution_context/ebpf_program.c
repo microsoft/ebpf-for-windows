@@ -172,7 +172,8 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{}
+{
+}
 
 _Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 {
