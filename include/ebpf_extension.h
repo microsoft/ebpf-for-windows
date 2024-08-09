@@ -6,6 +6,9 @@
 #include "ebpf_structs.h"
 #include "ebpf_windows.h"
 
+#pragma warning(push)
+#pragma warning(disable : 4201) // nonstandard extension used: nameless struct/union
+
 typedef ebpf_result_t (*_ebpf_extension_dispatch_function)();
 
 typedef struct _ebpf_extension_dispatch_table
@@ -91,11 +94,32 @@ typedef struct _ebpf_extension_program_dispatch_table
     ebpf_program_batch_end_invoke_function_t ebpf_program_batch_end_invoke_function;
 } ebpf_extension_program_dispatch_table_t;
 
-typedef struct _ebpf_extension_data
+typedef struct _ebpf_extension_data_v0
 {
     ebpf_extension_header_t header;
     const void* data;
-} ebpf_extension_data_t;
+} ebpf_extension_data_v0_t;
+
+typedef struct _ebpf_extension_data_v1
+{
+    ebpf_extension_header_t header;
+    const void* data;
+    union
+    {
+        uint64_t as_uint64;
+        struct
+        {
+            bool prog_attach_flags : 1; ///< Program attach flags are supported.
+        };
+    } capabilities;
+    size_t data_size;
+    uint64_t prog_attach_flags;
+} ebpf_extension_data_v1_t;
+
+static_assert(
+    EBPF_FIELD_SIZE(ebpf_extension_data_v1_t, capabilities) == sizeof(uint64_t), "Size of capabilities is 64 bits.");
+
+typedef ebpf_extension_data_v1_t ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data
 {
@@ -103,7 +127,18 @@ typedef struct _ebpf_attach_provider_data
     ebpf_program_type_t supported_program_type;
     bpf_attach_type_t bpf_attach_type;
     enum bpf_link_type link_type;
+    union
+    {
+        uint64_t as_uint64;
+        struct
+        {
+            bool support_extension_data_v1 : 1; ///< Support extension data v1.
+        };
+    } capabilities;
 } ebpf_attach_provider_data_t;
+
+static_assert(
+    EBPF_FIELD_SIZE(ebpf_attach_provider_data_t, capabilities) == sizeof(uint64_t), "Size of capabilities is 64 bits.");
 
 /***
  * The state of the execution context when the eBPF program was invoked.
@@ -127,3 +162,5 @@ typedef struct _ebpf_execution_context_state
 } ebpf_execution_context_state_t;
 
 #define EBPF_CONTEXT_HEADER uint64_t context_header[8]
+
+#pragma warning(pop)

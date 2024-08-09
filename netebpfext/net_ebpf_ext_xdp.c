@@ -107,7 +107,12 @@ static net_ebpf_extension_program_info_provider_t* _ebpf_xdp_test_program_info_p
 //
 
 ebpf_attach_provider_data_t _net_ebpf_xdp_test_hook_provider_data = {
-    EBPF_ATTACH_PROVIDER_DATA_HEADER, EBPF_PROGRAM_TYPE_XDP_TEST_GUID, BPF_XDP_TEST, BPF_LINK_TYPE_XDP};
+    .header = EBPF_ATTACH_PROVIDER_DATA_HEADER,
+    .supported_program_type = EBPF_PROGRAM_TYPE_XDP_TEST_GUID,
+    .bpf_attach_type = BPF_XDP_TEST,
+    .link_type = BPF_LINK_TYPE_XDP,
+    .capabilities = {.support_extension_data_v1 = true},
+};
 
 NPI_MODULEID DECLSPEC_SELECTANY _ebpf_xdp_test_hook_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_ATTACH_TYPE_XDP_TEST_GUID};
@@ -143,8 +148,8 @@ net_ebpf_extension_xdp_on_client_attach(
         goto Exit;
     }
 
-    if (client_data->header.size > 0) {
-        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->data_size > 0) {
+        if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,

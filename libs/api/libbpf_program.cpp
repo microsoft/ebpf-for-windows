@@ -755,3 +755,19 @@ bpf_prog_test_run_opts(int prog_fd, struct bpf_test_run_opts* opts)
 
     return 0;
 }
+
+__u32
+bpf_program__flags(const struct bpf_program* prog)
+{
+    return static_cast<uint32_t>(prog->flags);
+}
+
+int
+bpf_program__set_flags(struct bpf_program* prog, __u32 flags)
+{
+    if (prog->object->loaded) {
+        return libbpf_err(-EBUSY);
+    }
+    prog->flags = flags;
+    return 0;
+}
