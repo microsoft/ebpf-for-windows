@@ -29,6 +29,8 @@ using namespace std::chrono_literals;
 
 CATCH_REGISTER_LISTENER(_watchdog)
 
+#define MULTIPLE_ATTACH_PROGRAM_COUNT 3
+
 void
 connection_test(
     ADDRESS_FAMILY address_family,
@@ -467,6 +469,45 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     REQUIRE(_program != nullptr);
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
+    REQUIRE(result == 0);
+}
+
+void
+multi_attach_test()
+{
+    // This test is to verify that multiple programs can be attached to the same hook, and they work as exptected.
+    // Scenarios covered:
+    // 1. Multiple programs attached to the same hook.
+    // 2. For multiple programs attached to same hook, validate the order of execution.
+    // 3. For multiple programs attached to same hook, validate the verdict based on the order of execution.
+    // 4. Programs attached to different hooks -- only one should be invoked.
+
+    native_module_helper_t helpers[MULTIPLE_ATTACH_PROGRAM_COUNT];
+    struct bpf_object* objects[MULTIPLE_ATTACH_PROGRAM_COUNT] = {nullptr};
+    bpf_object_ptr object_ptr[MULTIPLE_ATTACH_PROGRAM_COUNT];
+
+    // Load the programs.
+    for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+        helpers[i].initialize("cgroup_sock_addr2");
+        objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
+        REQUIRE(object[i] != nullptr);
+        REQUIRE(bpf_object__load(object[i]) == 0);
+        object_ptr[i] = bpf_object_ptr(objects[i]);
+    }
+
+    // Attach all the programs to the same hook (i.e. same attach parameters).
+    for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+        bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], "authorize_connect4");
+        REQUIRE(connect_program != nullptr);
+        int result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, BPF_CGROUP_INET4_CONNECT, 0);
+        REQUIRE(result == 0);
+    }
+
+    // Attach the connect program at BPF_CGROUP_INET4_CONNECT.
+    bpf_attach_type connect_attach_type = BPF_CGROUP_INET4_CONNECT;
+    int result =
+        bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, connect_attach_type, 0);
     REQUIRE(result == 0);
 }
 
