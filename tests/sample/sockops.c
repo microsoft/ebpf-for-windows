@@ -41,6 +41,9 @@ handle_v4(bpf_sock_ops_t* ctx, bool outbound, bool connected)
     audit_entry.tuple.remote_port = ctx->remote_port;
     audit_entry.tuple.protocol = ctx->protocol;
     audit_entry.tuple.interface_luid = ctx->interface_luid;
+    audit_entry.process_id = bpf_get_current_pid_tgid();
+    // Ignore the thread Id.
+    audit_entry.process_id >>= 32;
     audit_entry.outbound = outbound;
     audit_entry.connected = connected;
 
@@ -61,6 +64,9 @@ handle_v6(bpf_sock_ops_t* ctx, bool outbound, bool connected)
     audit_entry.tuple.remote_port = ctx->remote_port;
     audit_entry.tuple.protocol = ctx->protocol;
     audit_entry.tuple.interface_luid = ctx->interface_luid;
+    audit_entry.process_id = bpf_get_current_pid_tgid();
+    // Ignore the thread Id.
+    audit_entry.process_id >>= 32;
     audit_entry.outbound = outbound;
     audit_entry.connected = connected;
 

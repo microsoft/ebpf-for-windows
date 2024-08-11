@@ -17,6 +17,7 @@
 #include "common_tests.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_structs.h"
+#include "misc_helper.h"
 #include "native_helper.hpp"
 #include "socket_helper.h"
 #include "socket_tests_common.h"
@@ -276,6 +277,10 @@ connection_monitor_test(
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
     REQUIRE(_program != nullptr);
 
+    uint64_t process_id = get_current_pid_tgid();
+    // Ignore the thread Id.
+    process_id >>= 32;
+
     PSOCKADDR local_address = nullptr;
     int local_address_length = 0;
     sender_socket.get_local_address(local_address, local_address_length);
@@ -307,6 +312,7 @@ connection_monitor_test(
 
     // Connect outbound.
     audit_entries[0].tuple = tuple;
+    audit_entries[0].process_id = process_id;
     audit_entries[0].connected = true;
     audit_entries[0].outbound = true;
     char* p = reinterpret_cast<char*>(&audit_entries[0]);
@@ -314,6 +320,7 @@ connection_monitor_test(
 
     // Connect inbound.
     audit_entries[1].tuple = reverse_tuple;
+    audit_entries[1].process_id = process_id;
     audit_entries[1].connected = true;
     audit_entries[1].outbound = false;
     p = reinterpret_cast<char*>(&audit_entries[1]);
@@ -322,6 +329,7 @@ connection_monitor_test(
     // Create an audit entry for the disconnect case.
     // The direction bit is set to false.
     audit_entries[2].tuple = tuple;
+    audit_entries[2].process_id = process_id;
     audit_entries[2].connected = false;
     audit_entries[2].outbound = false;
     p = reinterpret_cast<char*>(&audit_entries[2]);
@@ -329,6 +337,7 @@ connection_monitor_test(
 
     // Create another audit entry for the disconnect event with the reverse packet tuple.
     audit_entries[3].tuple = reverse_tuple;
+    audit_entries[3].process_id = process_id;
     audit_entries[3].connected = false;
     audit_entries[3].outbound = false;
     p = reinterpret_cast<char*>(&audit_entries[3]);
