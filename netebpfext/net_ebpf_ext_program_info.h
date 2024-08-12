@@ -74,11 +74,6 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
 static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_function_prototype[] = {
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_sock_addr_get_current_pid_tgid,
-     "bpf_sock_addr_get_current_pid_tgid",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_sock_addr_set_redirect_context,
      "bpf_sock_addr_set_redirect_context",
      EBPF_RETURN_TYPE_INTEGER,
@@ -86,6 +81,12 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
 
 // CGROUP_SOCK_ADDR global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_prototype[] = {
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_current_pid_tgid,
+     .name = "bpf_get_current_pid_tgid",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
+     .implicit_context = true},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_get_current_logon_id,
      "bpf_get_current_logon_id",
