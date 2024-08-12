@@ -2136,13 +2136,11 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     // Verify the enumeration is empty.
     union bpf_attr attr;
     memset(&attr, 0, sizeof(attr));
-    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
 
     memset(&attr, 0, sizeof(attr));
     attr.link_id = EBPF_ID_NONE;
-    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
 
     // Load and attach some programs.
     program_load_attach_helper_t sample_helper;
@@ -2170,8 +2168,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     fd_t fd2 = bpf(BPF_LINK_GET_FD_BY_ID, &attr, sizeof(attr));
     REQUIRE(fd2 >= 0);
 
-    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
 
     // Get info on the first link.
     memset(&attr, 0, sizeof(attr));
@@ -2202,8 +2199,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
-    REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) == -EINVAL);
 
     // Retrieve a new fd from the pin path.
     attr.bpf_fd = 0;
@@ -2219,8 +2215,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(info.id == id1);
 
     // And for completeness, try an invalid bpf() call.
-    REQUIRE(bpf(-1, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(bpf(-1, &attr, sizeof(attr)) == -EINVAL);
 
     // Unpin the link.
     REQUIRE(ebpf_object_unpin("MyPath") == EBPF_SUCCESS);

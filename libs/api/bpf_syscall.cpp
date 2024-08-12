@@ -7,13 +7,16 @@
 
 #define CHECK_SIZE(last_field_name)                                                         \
     if (size < offsetof(union bpf_attr, last_field_name) + sizeof(attr->last_field_name)) { \
-        errno = EINVAL;                                                                     \
-        return -1;                                                                          \
+        return -EINVAL;                                                                     \
     }
 
 int
 bpf(int cmd, union bpf_attr* attr, unsigned int size)
 {
+    // bpf() is ABI compatible with the Linux bpf() syscall.
+    //
+    // * Do not return errors via errno.
+
     switch (cmd) {
     case BPF_LINK_DETACH:
         CHECK_SIZE(link_detach.link_fd);
@@ -53,8 +56,7 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
     case BPF_OBJ_GET:
         CHECK_SIZE(bpf_fd);
         if (attr->bpf_fd != 0) {
-            errno = EINVAL;
-            return -1;
+            return -EINVAL;
         }
         return bpf_obj_get((const char*)attr->pathname);
     case BPF_PROG_ATTACH: {
@@ -120,7 +122,6 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         return retval;
     }
     default:
-        errno = EINVAL;
-        return -1;
+        return -EINVAL;
     }
 }
