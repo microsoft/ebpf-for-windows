@@ -557,7 +557,7 @@ function Is-InstallOrUpdate-Supported {
     Write-Log -level $LogLevelInfo -message "Is-InstallOrUpdate-Supported()"
 
     # Retrieve the registry key value
-    $keyValue = (Get-ItemProperty -Path $EbpfRegistryPath -Name $EbpfDisableRuntimeUpdateRegistryKey).EbpfDisableRuntimeUpdate
+    $keyValue = (Get-ItemProperty -Path $EbpfRegistryPath -Name $EbpfDisableRuntimeUpdateRegistryKey -ErrorAction SilentlyContinue).EbpfDisableRuntimeUpdate
     If ($null -eq $keyValue) {
         Write-Log -level $LogLevelWarning -message "The registry key '$EbpfDisableRuntimeUpdateRegistryKey' does not exist -> Install or Update are allowed by default."
     } else {
@@ -745,7 +745,7 @@ function Enable-EbpfTracing {
     return Create-EbpfTracingTasks -installDirectory $installDirectory
 }
 
-function Disable-EbpfTracing {    
+function Disable-EbpfTracing {
     param (
         [string]$installDirectory
     )
@@ -1175,6 +1175,7 @@ function Update-eBPF {
         [string]$operationName,
         [string]$currProductVersion,
         [string]$newProductVersion,
+        [string]$sourcePath,
         [string]$installDirectory
     )
 
@@ -1189,7 +1190,7 @@ function Update-eBPF {
         Write-Log -level $LogLevelError -message $statusMessage
     } else {
         Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
-        $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
+        $statusCode = Install-eBPF -sourcePath "$sourcePath" -destinationPath "$installDirectory"
         if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
             $statusMessage = "eBPF $operationName FAILED (Install failed)."
             Write-Log -level $LogLevelError -message $statusMessage
@@ -1243,7 +1244,7 @@ function InstallOrUpdate-eBPF {
         # By default, no rollback is needed.
         $rollback = $false
 
-        # Retrieve the current installation version info.        
+        # Retrieve the current installation version info.
         $versionInfo = Get-EbpfVersionInfo -sourcePath $sourcePath -destinationPath $destinationPath
 
         # If $currProductVersion has a value, then a version of eBPF is already installed, let's check if it needs to (or can) be updated.
@@ -1299,7 +1300,7 @@ function InstallOrUpdate-eBPF {
                                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                                 Write-Log -level $LogLevelInfo -message "The installed eBPF version (v$($versionInfo.currProductVersion)) is older than the one in the VM Extension package (v$($versionInfo.newProductVersion)) -> eBPF will be upgraded to (v$($versionInfo.newProductVersion))."
                             }
-                            $statusInfo.StatusCode = Update-eBPF -operationName $operationName -currProductVersion $versionInfo.currProductVersion -newProductVersion $versionInfo.newProductVersion -installDirectory "$($versionInfo.currInstallPath)"
+                            $statusInfo.StatusCode = Update-eBPF -operationName $operationName -currProductVersion $versionInfo.currProductVersion -newProductVersion $versionInfo.newProductVersion -sourcePath "$sourcePath" -installDirectory "$($versionInfo.currInstallPath)"
                         } else {
                             $statusInfo.StatusString = $StatusError
                             $statusInfo.StatusMessage = "eBPF $operationName FAILED (Backing up the current installation failed) -> Nothing changed in the system."
