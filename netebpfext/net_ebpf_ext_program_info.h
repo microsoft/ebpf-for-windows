@@ -11,6 +11,11 @@
 
 #define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
 
+enum _xdp_test_helper_functions
+{
+    XDP_TEST_HELPER_ADJUST_HEAD,
+};
+
 // XDP_TEST helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
@@ -71,13 +76,32 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
      BPF_PROG_TYPE_BIND,
      BPF_ATTACH_TYPE_BIND}};
 
+enum _sock_addr_helper_functions
+{
+    SOCK_ADDR_HELPER_GET_CURRENT_PID_TGID,
+    SOCK_ADDR_HELPER_SET_REDIRECT_CONTEXT,
+};
+
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
 static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_function_prototype[] = {
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_sock_addr_get_current_pid_tgid,
+     "bpf_sock_addr_get_current_pid_tgid",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_sock_addr_set_redirect_context,
      "bpf_sock_addr_set_redirect_context",
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
+
+enum _sock_addr_global_helper_functions
+{
+    SOCK_ADDR_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
+    SOCK_ADDR_GLOBAL_HELPER_GET_CURRENT_LOGON_ID,
+    SOCK_ADDR_GLOBAL_HELPER_IS_CURRENT_ADMIN,
+    SOCK_ADDR_GLOBAL_HELPER_GET_SOCKET_COOKIE,
+};
 
 // CGROUP_SOCK_ADDR global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_prototype[] = {
@@ -167,6 +191,12 @@ static const ebpf_program_type_descriptor_t _ebpf_sock_ops_program_type_descript
     EBPF_PROGRAM_TYPE_SOCK_OPS_GUID,
     BPF_PROG_TYPE_SOCK_OPS,
     0};
+
+enum _sock_ops_global_helper_functions
+{
+    SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
+};
+
 // SOCK_OPS global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_function_prototype[] = {
     {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,

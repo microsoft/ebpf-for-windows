@@ -258,7 +258,7 @@ _get_thread_id()
 }
 
 static uint64_t
-_ebpf_sock_addr_get_current_pid_tgid(
+_ebpf_sock_addr_get_current_pid_tgid_implicit(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
     uint64_t dummy_param3,
@@ -291,6 +291,13 @@ _ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
 {
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     return sock_addr_ctx->transport_endpoint_handle;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return (sock_addr_ctx->process_id << 32 | _get_thread_id());
 }
 
 static int
@@ -501,7 +508,8 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -509,7 +517,7 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_pid_tgid,
+    (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
     (void*)_ebpf_sock_addr_get_socket_cookie};

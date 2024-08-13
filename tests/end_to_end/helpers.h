@@ -711,8 +711,24 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL, NULL, NULL, NULL, 0, {.supports_context_header = true}};
 
 // SOCK_ADDR.
+static int
+_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    return -ENOTSUP;
+}
+
+static int
+_ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(data_size);
+    return -ENOTSUP;
+}
+
 static uint64_t
-_ebpf_sock_addr_get_current_pid_tgid(
+_ebpf_sock_addr_get_current_pid_tgid_implicit(
     uint64_t dummy_param1,
     uint64_t dummy_param2,
     uint64_t dummy_param3,
@@ -727,15 +743,6 @@ _ebpf_sock_addr_get_current_pid_tgid(
     UNREFERENCED_PARAMETER(dummy_param5);
     UNREFERENCED_PARAMETER(ctx);
     return 0;
-}
-
-static int
-_ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
-{
-    UNREFERENCED_PARAMETER(ctx);
-    UNREFERENCED_PARAMETER(data);
-    UNREFERENCED_PARAMETER(data_size);
-    return -ENOTSUP;
 }
 
 static int
@@ -824,7 +831,8 @@ _ebpf_sock_addr_context_destroy(
     return;
 }
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -832,7 +840,7 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_pid_tgid,
+    (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
     (void*)_ebpf_sock_addr_get_socket_cookie};
