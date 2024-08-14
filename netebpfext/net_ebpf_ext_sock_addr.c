@@ -995,12 +995,13 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
         BOOLEAN result =
             RtlDeleteElementGenericTableAvl(&_net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_table, entry);
         ebpf_assert(result);
+        entry = NULL;
+        _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
         NET_EBPF_EXT_LOG_MESSAGE_UINT64(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
             "_net_ebpf_ext_purge_block_connect_contexts: Delete",
             transport_endpoint_handle);
-        _net_ebpf_ext_sock_addr_blocked_contexts.blocked_context_count--;
     }
 
     // Free entries from low-memory list.
