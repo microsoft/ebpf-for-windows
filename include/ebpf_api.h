@@ -369,6 +369,15 @@ extern "C"
     ebpf_object_set_execution_type(_Inout_ struct bpf_object* object, ebpf_execution_type_t execution_type)
         EBPF_NO_EXCEPT;
 
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_load_native(
+        _In_z_ const char* file_name,
+        _Out_ ebpf_handle_t* native_module_handle,
+        _Out_ size_t* count_of_maps,
+        _Outptr_result_maybenull_ ebpf_handle_t** map_handles,
+        _Out_ size_t* count_of_programs,
+        _Outptr_result_maybenull_ ebpf_handle_t** program_handles) EBPF_NO_EXCEPT;
+
     /**
      * @brief Attach an eBPF program.
      *
@@ -461,6 +470,17 @@ extern "C"
      */
     void
     ebpf_link_close(_Frees_ptr_ struct bpf_link* link) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Free bpf_link structure without cleaning up the underlying fd.
+     *
+     * The file descriptor must be closed using \ref ebpf_close_fd.
+     *
+     * @param[in] link Pointer to the bpf_link structure.
+     * @retval The file descriptor of the link.
+     */
+    fd_t
+    ebpf_link_free(_Frees_ptr_ struct bpf_link* link) EBPF_NO_EXCEPT;
 
     /**
      * @brief Close a file descriptor. Also close the underlying handle.

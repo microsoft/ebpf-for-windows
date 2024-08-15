@@ -1766,6 +1766,19 @@ ebpf_link_close(_Frees_ptr_ struct bpf_link* link) noexcept
     EBPF_LOG_EXIT();
 }
 
+fd_t
+ebpf_link_free(_Frees_ptr_ struct bpf_link* link) noexcept
+{
+    EBPF_LOG_ENTRY();
+    ebpf_assert(link);
+
+    fd_t fd = link->fd;
+    link->fd = ebpf_fd_invalid;
+    _clean_up_ebpf_link(link);
+
+    EBPF_RETURN_FD(fd);
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_api_close_handle(ebpf_handle_t handle) NO_EXCEPT_TRY
 {
