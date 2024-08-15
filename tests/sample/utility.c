@@ -102,7 +102,7 @@ StringOpsTest(bind_md_t* ctx)
         return 2;
     }
 
-    if (bpf_strnlen_s(test_str_1, 6) != 5 {
+    if (bpf_strnlen_s(test_str_1, 6) != 5) {
         return 3;
     }
 
