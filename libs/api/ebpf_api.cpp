@@ -3217,7 +3217,7 @@ ebpf_program_load_bytes(
         for (auto byte : sha256_hash) {
             program_hash << std::setw(2) << (int)byte;
         }
-        program_hash_string = program_hash.str().substr(0, 63);
+        program_hash_string = program_hash.str().substr(0, BPF_OBJ_NAME_LEN - 1);
         program_name = program_hash_string.c_str();
     }
 

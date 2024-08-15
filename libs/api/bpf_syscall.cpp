@@ -119,7 +119,7 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         break;
     }
     case BPF_OBJ_GET_INFO_BY_FD:
-        CHECK_SIZE(info.info_len);
+        CHECK_SIZE(info.info);
         retval = bpf_obj_get_info_by_fd(attr->info.bpf_fd, (void*)attr->info.info, &attr->info.info_len);
         break;
     case BPF_OBJ_PIN:

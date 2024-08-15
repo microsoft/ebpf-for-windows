@@ -76,13 +76,14 @@ enum bpf_cmd_id
 typedef struct
 {
     uint32_t bpf_fd; ///< File descriptor referring to an eBPF object.
-    uint64_t info;   ///< Pointer to memory in which to write the info obtained.
 
     /**
      * @brief On input, contains the maximum number of bytes to write into the info. On output, contains
      * the actual number of bytes written.
      */
     uint32_t info_len;
+
+    uint64_t info; ///< Pointer to memory in which to write the info obtained.
 } bpf_obj_info_attr_t;
 
 /// Attributes used by BPF_LINK_DETACH.
@@ -136,12 +137,12 @@ union bpf_attr
     struct
     {
         enum bpf_prog_type prog_type; ///< Program type to use for loading the program.
-        uint64_t insns;               ///< Array of instructions
         uint32_t insn_cnt;            ///< Number of instructions in the array.
+        uint64_t insns;               ///< Array of instructions
         uint64_t license;      ///< Optional pointer to a string specifying the license (currently ignored on Windows).
         uint32_t log_level;    ///< Logging level (currently ignored on Windows).
-        uint64_t log_buf;      ///< Pointer to a buffer in which log info can be written.
         uint32_t log_size;     ///< Size in bytes of the log buffer.
+        uint64_t log_buf;      ///< Pointer to a buffer in which log info can be written.
         uint32_t kern_version; ///< Kernel version (currently ignored on Windows).
     };                         ///< Attributes used by BPF_PROG_LOAD.
 

@@ -176,17 +176,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_XDP,
-
-    /** @brief Program type for handling socket bind() requests.
-     *
-     * **eBPF program prototype:** \ref bind_hook_t
-     *
-     * **Attach type(s):** \ref BPF_ATTACH_TYPE_BIND
-     *
-     * **Helpers available:** all helpers defined in bpf_helpers.h
-     */
-    BPF_PROG_TYPE_BIND, // TODO(#333): replace with cross-platform program type
+    BPF_PROG_TYPE_XDP = 6,
 
     /** @brief Program type for handling various socket operations such as connect(), accept() etc.
      *
@@ -200,7 +190,7 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_CGROUP_SOCK_ADDR,
+    BPF_PROG_TYPE_CGROUP_SOCK_ADDR = 18,
 
     /** @brief Program type for handling various socket event notifications such as connection established etc.
      *
@@ -211,7 +201,17 @@ enum bpf_prog_type
      *
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
-    BPF_PROG_TYPE_SOCK_OPS,
+    BPF_PROG_TYPE_SOCK_OPS = 13,
+
+    /** @brief Program type for handling socket bind() requests.
+     *
+     * **eBPF program prototype:** \ref bind_hook_t
+     *
+     * **Attach type(s):** \ref BPF_ATTACH_TYPE_BIND
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_BIND = 997, // TODO(#333): replace with cross-platform program type
 
     /** @brief Program type for handling incoming packets as early as possible.
      *
@@ -335,9 +335,9 @@ typedef enum bpf_attach_type bpf_attach_type_t;
  */
 struct bpf_link_info
 {
+    enum bpf_link_type type;               ///< Link type.
     ebpf_id_t id;                          ///< Link ID.
     ebpf_id_t prog_id;                     ///< Program ID.
-    enum bpf_link_type type;               ///< Link type.
     enum bpf_attach_type attach_type;      ///< Attach type.
     ebpf_attach_type_t attach_type_uuid;   ///< Attach type UUID.
     ebpf_program_type_t program_type_uuid; ///< Program type UUID.
@@ -358,7 +358,7 @@ struct bpf_link_info
 #pragma warning(pop)
 #endif
 
-#define BPF_OBJ_NAME_LEN 64
+#define BPF_OBJ_NAME_LEN 16
 
 /**
  * @brief eBPF map information.  This structure can be retrieved by calling
@@ -367,13 +367,13 @@ struct bpf_link_info
 struct bpf_map_info
 {
     // Cross-platform fields.
-    ebpf_id_t id;                ///< Map ID.
     ebpf_map_type_t type;        ///< Type of map.
+    ebpf_id_t id;                ///< Map ID.
     uint32_t key_size;           ///< Size in bytes of a map key.
     uint32_t value_size;         ///< Size in bytes of a map value.
     uint32_t max_entries;        ///< Maximum number of entries allowed in the map.
-    char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
     uint32_t map_flags;          ///< Map flags.
+    char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated map name.
 
     // Windows-specific fields.
     ebpf_id_t inner_map_id;     ///< ID of inner map template.
@@ -391,8 +391,15 @@ struct bpf_map_info
 struct bpf_prog_info
 {
     // Cross-platform fields.
-    ebpf_id_t id;                ///< Program ID.
     enum bpf_prog_type type;     ///< Program type, if a cross-platform type.
+    ebpf_id_t id;                ///< Program ID.
+    char tag[8];                 ///< Program tag.
+    uint32_t jited_prog_len;     ///< Not supported.
+    uint32_t xlated_prog_len;    ///< Not supported.
+    uint64_t jited_prog_insns;   ///< Not supported.
+    uint64_t xlated_prog_insns;  ///< Not supported.
+    uint64_t load_time;          ///< Not supported.
+    uint32_t created_by_uid;     ///< Not supported.
     uint32_t nr_map_ids;         ///< Number of maps associated with this program.
     uintptr_t map_ids;           ///< Pointer to caller-allocated array to fill map IDs into.
     char name[BPF_OBJ_NAME_LEN]; ///< Null-terminated program name.

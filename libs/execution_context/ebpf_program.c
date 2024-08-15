@@ -2051,8 +2051,8 @@ ebpf_program_get_info(
 {
     EBPF_LOG_ENTRY();
     const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
-    struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
-    if (*info_size < sizeof(*output_info)) {
+    struct bpf_prog_info output_info = {};
+    if (*info_size == 0) {
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
     }
 
@@ -2080,22 +2080,22 @@ ebpf_program_get_info(
         }
     }
 
-    memset(output_info, 0, sizeof(*output_info));
-    output_info->id = program->object.id;
+    output_info.id = program->object.id;
     strncpy_s(
-        output_info->name,
-        sizeof(output_info->name),
+        output_info.name,
+        sizeof(output_info.name),
         (char*)program->parameters.program_name.value,
         program->parameters.program_name.length);
-    output_info->nr_map_ids = program->count_of_maps;
-    output_info->map_ids = (uintptr_t)map_ids;
-    output_info->type = _ebpf_program_get_bpf_prog_type(program);
-    output_info->type_uuid = ebpf_program_type_uuid(program);
-    output_info->attach_type_uuid = ebpf_expected_attach_type(program);
-    output_info->pinned_path_count = program->object.pinned_path_count;
-    output_info->link_count = program->link_count;
+    output_info.nr_map_ids = program->count_of_maps;
+    output_info.map_ids = (uintptr_t)map_ids;
+    output_info.type = _ebpf_program_get_bpf_prog_type(program);
+    output_info.type_uuid = ebpf_program_type_uuid(program);
+    output_info.attach_type_uuid = ebpf_expected_attach_type(program);
+    output_info.pinned_path_count = program->object.pinned_path_count;
+    output_info.link_count = program->link_count;
 
-    *info_size = sizeof(*output_info);
+    *info_size = min(sizeof(output_info), *info_size);
+    memcpy(output_buffer, &output_info, *info_size);
     EBPF_RETURN_RESULT(result);
 }
 

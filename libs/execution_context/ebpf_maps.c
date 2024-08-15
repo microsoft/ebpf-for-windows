@@ -2706,36 +2706,32 @@ ebpf_map_get_info(
     _In_ const ebpf_map_t* map, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {
     // High volume call - Skip entry/exit logging.
-    struct bpf_map_info* info = (struct bpf_map_info*)buffer;
+    struct bpf_map_info info = {};
 
-    if (*info_size < sizeof(*info)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_map_get_info buffer too small",
-            *info_size,
-            sizeof(*info));
+    if (*info_size == 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "ebpf_map_get_info buffer too small", *info_size);
         return EBPF_INSUFFICIENT_BUFFER;
     }
-
-    info->id = map->object.id;
-    info->type = map->ebpf_map_definition.type;
-    info->key_size = map->ebpf_map_definition.key_size;
-    info->value_size = map->original_value_size;
-    info->max_entries = map->ebpf_map_definition.max_entries;
-    info->map_flags = 0;
-    if (info->type == BPF_MAP_TYPE_ARRAY_OF_MAPS || info->type == BPF_MAP_TYPE_HASH_OF_MAPS) {
+    info.id = map->object.id;
+    info.type = map->ebpf_map_definition.type;
+    info.key_size = map->ebpf_map_definition.key_size;
+    info.value_size = map->original_value_size;
+    info.max_entries = map->ebpf_map_definition.max_entries;
+    info.map_flags = 0;
+    if (info.type == BPF_MAP_TYPE_ARRAY_OF_MAPS || info.type == BPF_MAP_TYPE_HASH_OF_MAPS) {
         ebpf_core_object_map_t* object_map = EBPF_FROM_FIELD(ebpf_core_object_map_t, core_map, map);
-        info->inner_map_id = object_map->core_map.ebpf_map_definition.inner_map_id
-                                 ? object_map->core_map.ebpf_map_definition.inner_map_id
-                                 : EBPF_ID_NONE;
+        info.inner_map_id = object_map->core_map.ebpf_map_definition.inner_map_id
+                                ? object_map->core_map.ebpf_map_definition.inner_map_id
+                                : EBPF_ID_NONE;
     } else {
-        info->inner_map_id = EBPF_ID_NONE;
+        info.inner_map_id = EBPF_ID_NONE;
     }
-    info->pinned_path_count = map->object.pinned_path_count;
-    strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
+    info.pinned_path_count = map->object.pinned_path_count;
+    strncpy_s(info.name, sizeof(info.name), (char*)map->name.value, map->name.length);
 
-    *info_size = sizeof(*info);
+    *info_size = min(sizeof(info), *info_size);
+    memcpy(buffer, &info, *info_size);
     return EBPF_SUCCESS;
 }
 
