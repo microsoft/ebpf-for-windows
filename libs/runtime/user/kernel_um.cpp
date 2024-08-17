@@ -451,11 +451,13 @@ IoFreeMdl(MDL* mdl)
 
 void
 KeEnterCriticalRegion(void)
-{}
+{
+}
 
 void
 KeLeaveCriticalRegion(void)
-{}
+{
+}
 
 void
 KeInitializeSpinLock(_Out_ PKSPIN_LOCK spin_lock)

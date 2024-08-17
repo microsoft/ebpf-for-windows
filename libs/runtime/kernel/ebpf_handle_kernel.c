@@ -18,7 +18,8 @@ ebpf_handle_table_initiate()
 
 void
 ebpf_handle_table_terminate()
-{}
+{
+}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_handle_create(_Out_ ebpf_handle_t* handle, _Inout_ ebpf_base_object_t* object)

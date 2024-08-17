@@ -255,9 +255,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "          sample_ext           lookup_update     sample      324\n"
+                                        "          sample_ext           lookup_update     sample      311\n"
 #else
-                                        "          sample_ext           lookup_update     sample     1126\n"
+                                        "          sample_ext           lookup_update     sample     1114\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"
@@ -658,8 +658,8 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "Program type   : sample\n"
                   "Mode           : JIT\n"
                   "# map IDs      : 2\n"
-                  "map IDs        : 4\n"
-                  "                 3\n"
+                  "map IDs        : 3\n"
+                  "                 4\n"
                   "# pinned paths : 1\n"
                   "# links        : 1\n"
                   "\n"
