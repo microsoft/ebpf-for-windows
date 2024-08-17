@@ -186,7 +186,8 @@ class bpf_code_generator
          */
         bpf_code_generator_exception(const unsafe_string& what, size_t offset)
             : std::runtime_error(what.raw() + " at offset " + std::to_string(offset))
-        {}
+        {
+        }
     };
 
     /**
