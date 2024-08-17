@@ -236,7 +236,6 @@ net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
     uint32_t client_context_count,
     _In_ const net_ebpf_extension_hook_client_t* client_context,
-    _In_ const net_ebpf_extension_hook_provider_t* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
@@ -264,19 +263,24 @@ net_ebpf_extension_wfp_filter_context_create(
         "local_filter_context - client_contexts",
         result);
 
-    // ExInitializeSpinLock(&local_filter_context->lock);
     memset(local_filter_context->client_contexts, 0, client_context_count * sizeof(net_ebpf_extension_hook_client_t*));
-    local_filter_context->client_context_count_max = client_context_count;
-    local_filter_context->context_deleting = FALSE;
-    InitializeListHead(&local_filter_context->link);
+    local_filter_context->client_context_max_count = client_context_count;
+    local_filter_context->client_detached = FALSE;
+    InitializeListHead(&local_filter_context->list_entry);
     local_filter_context->reference_count = 1; // Initial reference.
 
     // Set the first client context.
     local_filter_context->client_contexts[0] = (net_ebpf_extension_hook_client_t*)client_context;
     local_filter_context->client_context_count = 1;
+    // local_filter_context->client_context = client_context;
 
-    // Set the provider context.
-    local_filter_context->provider_context = provider_context;
+    // if (!net_ebpf_extension_hook_client_enter_rundown(
+    //         (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+
+    //     // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
+    //     // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
+    //     __fastfail(FAST_FAIL_INVALID_ARG);
+    // }
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
@@ -291,10 +295,10 @@ void
 net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     // Since the hook client is detaching, the eBPF program should not be invoked any further.
-    // The context_deleting field in filter_context is set to false for this reason. This way any
+    // The client_detached field in filter_context is set to false for this reason. This way any
     // lingering WFP classify callbacks will exit as it would not find any hook client associated
     // with the filter context. This is best effort & no locks are held.
-    filter_context->context_deleting = TRUE;
+    filter_context->client_detached = TRUE;
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -898,15 +902,9 @@ net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client)
 {
-    ebpf_result_t result = EBPF_SUCCESS;
-    KIRQL old_irql;
-
-    old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
-
     // Check if we have reached max capacity.
-    if (filter_context->client_context_count == filter_context->client_context_count_max) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
+    if (filter_context->client_context_count == filter_context->client_context_max_count) {
+        return EBPF_NO_MEMORY;
     }
 
     // Append the client context to the end.
@@ -914,36 +912,26 @@ net_ebpf_ext_add_client_context(
         (struct _net_ebpf_extension_hook_client*)hook_client;
     filter_context->client_context_count++;
 
-    // Add filter_context as provider data for the client.
-    net_ebpf_extension_hook_client_set_provider_data(
-        (struct _net_ebpf_extension_hook_client*)hook_client, (void*)filter_context);
-
-Exit:
-    ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
-    return result;
+    return EBPF_SUCCESS;
 }
 
-_Requires_exclusive_lock_held_(filter_context->lock) void net_ebpf_ext_remove_client_context(
+void
+net_ebpf_ext_remove_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client)
 {
     uint32_t index;
-    bool found = FALSE;
     for (index = 0; index < filter_context->client_context_count; index++) {
         if (filter_context->client_contexts[index] == hook_client) {
             filter_context->client_contexts[index] = NULL;
             filter_context->client_context_count--;
-            found = TRUE;
             break;
         }
     }
-    ASSERT(found == TRUE);
     if (index != filter_context->client_context_count) {
         memcpy(
             &filter_context->client_contexts[index],
             &filter_context->client_contexts[index + 1],
             (filter_context->client_context_count - index) * sizeof(net_ebpf_extension_hook_client_t*));
-
-        filter_context->client_contexts[filter_context->client_context_count] = NULL;
     }
 }
