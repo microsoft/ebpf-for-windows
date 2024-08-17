@@ -2450,6 +2450,21 @@ ebpf_map_find_entry(
 {
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
+    const char* map_type_str = _ebpf_map_display_names[map->ebpf_map_definition.type];
+    uint32_t key_size32 = key ? (uint32_t)map->ebpf_map_definition.key_size : 0;
+
+    if ((flags & EBPF_MAP_FLAG_HELPER)) {
+        // Kernel helper call.
+        EBPF_LOG_MESSAGE_BINARY(
+            EBPF_TRACELOG_LEVEL_INFO,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "SCN: Map lookup",
+            map_type_str ? map_type_str : "NULL",
+            &map->name,
+            key,
+            key_size32);
+    }
+
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,

@@ -976,6 +976,89 @@ __declspec(noinline) void ebpf_log_message_uint64_uint64(
     }
 }
 
+#define _EBPF_LOG_MESSAGE_BINARY(trace_level, keyword, message, type, name, key, key_size)               \
+    TraceLoggingWrite(                                                                                   \
+        ebpf_tracelog_provider,                                                                          \
+        EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,                                                             \
+        TraceLoggingLevel((trace_level)),                                                                \
+        TraceLoggingKeyword((keyword)),                                                                  \
+        TraceLoggingString((message), "Message"),                                                        \
+        TraceLoggingString((type), "Type"),                                                              \
+        TraceLoggingCountedUtf8String((const char*)(name)->value, (unsigned long)(name)->length, #name), \
+        TraceLoggingBinary((key), (key_size)));
+#define EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(trace_level, message, type, name, key, key_size)                 \
+    switch (keyword) {                                                                                          \
+    CASE_FUNCTION_ENTRY_EXIT:                                                                                   \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_FUNCTION_ENTRY_EXIT, message, type, name, key, key_size); \
+        break;                                                                                                  \
+    CASE_BASE:                                                                                                  \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_BASE, message, type, name, key, key_size);                \
+        break;                                                                                                  \
+    CASE_ERROR:                                                                                                 \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_ERROR, message, type, name, key, key_size);               \
+        break;                                                                                                  \
+    CASE_EPOCH:                                                                                                 \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_EPOCH, message, type, name, key, key_size);               \
+        break;                                                                                                  \
+    CASE_CORE:                                                                                                  \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_CORE, message, type, name, key, key_size);                \
+        break;                                                                                                  \
+    CASE_LINK:                                                                                                  \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_LINK, message, type, name, key, key_size);                \
+        break;                                                                                                  \
+    CASE_MAP:                                                                                                   \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_MAP, message, type, name, key, key_size);                 \
+        break;                                                                                                  \
+    CASE_PROGRAM:                                                                                               \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_PROGRAM, message, type, name, key, key_size);             \
+        break;                                                                                                  \
+    CASE_API:                                                                                                   \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_API, message, type, name, key, key_size);                 \
+        break;                                                                                                  \
+    CASE_PRINTK:                                                                                                \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_PRINTK, message, type, name, key, key_size);              \
+        break;                                                                                                  \
+    CASE_NATIVE:                                                                                                \
+        _EBPF_LOG_MESSAGE_BINARY(trace_level, KEYWORD_NATIVE, message, type, name, key, key_size);              \
+        break;                                                                                                  \
+    default:                                                                                                    \
+        ebpf_assert(!"Invalid keyword");                                                                        \
+        break;                                                                                                  \
+    }
+__declspec(noinline) void ebpf_log_message_binary(
+    ebpf_tracelog_level_t trace_level,
+    ebpf_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    _In_z_ const char* type,
+    _In_z_ const cxplat_utf8_string_t* name,
+    const void* key,
+    uint32_t key_size)
+{
+    switch (trace_level) {
+    CASE_LOG_ALWAYS:
+        EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, message, type, name, key, key_size);
+        break;
+    CASE_CRITICAL:
+        EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(LEVEL_CRITICAL, message, type, name, key, key_size);
+        break;
+    CASE_LEVEL_ERROR:
+        EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(LEVEL_ERROR, message, type, name, key, key_size);
+        break;
+    CASE_WARNING:
+        EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(LEVEL_WARNING, message, type, name, key, key_size);
+        break;
+    CASE_INFO:
+        EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(LEVEL_INFO, message, type, name, key, key_size);
+        break;
+    CASE_VERBOSE:
+        EBPF_LOG_MESSAGE_BINARY_KEYWORD_SWITCH(LEVEL_VERBOSE, message, type, name, key, key_size);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
+    }
+}
+
 #define _EBPF_LOG_MESSAGE_ERROR(trace_level, keyword, message, error) \
     TraceLoggingWrite(                                                \
         ebpf_tracelog_provider,                                       \

@@ -1559,6 +1559,11 @@ ebpf_program_invoke(
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
+            EBPF_LOG_MESSAGE_UTF8_STRING(
+                EBPF_TRACELOG_LEVEL_INFO,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "SCN: Tail call program name",
+                &current_program->parameters.program_name);
         } else {
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t out_value;
