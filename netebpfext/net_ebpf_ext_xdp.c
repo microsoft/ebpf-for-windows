@@ -424,7 +424,7 @@ net_ebpf_ext_xdp_register_providers()
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
         &dispatch_table,
-        ATTACH_CAPABILITY_SINGLE_ATTACH,
+        ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
         NULL,
         &_ebpf_xdp_test_hook_provider_context);
     if (status != EBPF_SUCCESS) {
