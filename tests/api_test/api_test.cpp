@@ -904,12 +904,12 @@ bpf_user_helpers_test(ebpf_execution_type_t execution_type)
 
     REQUIRE(entry.is_admin == -1);
 
-    // REQUIRE(entry.logon_id != 0);
-    // SECURITY_LOGON_SESSION_DATA* data = NULL;
-    // result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
-    // REQUIRE(result == ERROR_SUCCESS);
+    REQUIRE(entry.logon_id != 0);
+    SECURITY_LOGON_SESSION_DATA* data = NULL;
+    result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
+    REQUIRE(result == ERROR_SUCCESS);
 
-    // LsaFreeReturnBuffer(data);
+    LsaFreeReturnBuffer(data);
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
