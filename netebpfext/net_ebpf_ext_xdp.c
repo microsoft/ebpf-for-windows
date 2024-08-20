@@ -292,7 +292,6 @@ _net_ebpf_extension_xdp_create_filter_context(
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
         (if_index == 0) ? NULL : &condition,
-        0,
         (net_ebpf_extension_wfp_filter_context_t*)xdp_filter_context,
         &xdp_filter_context->base.filter_ids);
     if (result != EBPF_SUCCESS) {

@@ -206,7 +206,6 @@ _net_ebpf_ext_bind_create_filter_context(
         _net_ebpf_extension_bind_wfp_filter_parameters,
         0,
         NULL,
-        0,
         local_filter_context,
         &local_filter_context->filter_ids);
     if (result != EBPF_SUCCESS) {

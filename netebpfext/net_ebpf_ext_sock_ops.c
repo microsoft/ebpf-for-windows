@@ -262,7 +262,6 @@ _net_ebpf_extension_sock_ops_create_filter_context(
         _net_ebpf_extension_sock_ops_wfp_filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
-        0,
         (net_ebpf_extension_wfp_filter_context_t*)local_filter_context,
         &local_filter_context->base.filter_ids);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);

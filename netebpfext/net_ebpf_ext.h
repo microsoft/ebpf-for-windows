@@ -25,7 +25,8 @@
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-#define NET_EBPF_EXTENSION_MAX_CLIENTS_PER_HOOK 32
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH 16
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH 1
 
 CONST IN6_ADDR DECLSPEC_SELECTANY in6addr_v4mappedprefix = IN6ADDR_V4MAPPEDPREFIX_INIT;
 
@@ -250,7 +251,6 @@ net_ebpf_extension_add_wfp_filters(
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
     _In_opt_count_(condition_count) const FWPM_FILTER_CONDITION* conditions,
-    uint32_t filter_weight,
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Outptr_result_buffer_maybenull_(filter_count) net_ebpf_ext_wfp_filter_id_t** filter_ids);
 

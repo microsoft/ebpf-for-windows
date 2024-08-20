@@ -15,7 +15,7 @@
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 #define LOW_MEMORY_CONNECTION_CONTEXT_COUNT 1000
 
-#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_ADDR 16
+// #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_ADDR 16
 
 // NDIS_RW_LOCK_EX lock;
 
@@ -559,7 +559,8 @@ static net_ebpf_extension_hook_provider_t*
     _ebpf_sock_addr_hook_provider_context[NET_EBPF_SOCK_ADDR_HOOK_PROVIDER_COUNT] = {0};
 
 static ebpf_result_t
-_sock_addr_validate_client_data(_In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard)
+_net_ebpf_extension_sock_addr_validate_client_data(
+    _In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     *is_wildcard = FALSE;
@@ -803,7 +804,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_ADDR,
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH,
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&local_filter_context);
@@ -845,7 +846,6 @@ _net_ebpf_extension_sock_addr_create_filter_context(
         filter_parameters_array->filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
-        0,
         (net_ebpf_extension_wfp_filter_context_t*)local_filter_context,
         &local_filter_context->base.filter_ids);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
@@ -1370,7 +1370,7 @@ net_ebpf_ext_sock_addr_register_providers()
     const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
         .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
-        .validate_client_data = _sock_addr_validate_client_data,
+        .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
     };
 
     status = _net_ebpf_sock_addr_create_security_descriptor();
@@ -2208,7 +2208,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
         if (v4_mapped) {
-            // Revert back the sock_addr_ctx to v4-mapped v6 address for conenction-redirection processing.
+            // Revert back the sock_addr_ctx to v4-mapped v6 address for connection-redirection processing.
             sock_addr_ctx->family = AF_INET6;
             IN_ADDR v4_address = *((IN_ADDR*)&sock_addr_ctx->user_ip4);
             IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6, (IN_ADDR*)&v4_address);
@@ -2262,6 +2262,13 @@ Exit:
     // AUTH_CONNECT layer further downstream.
 
     classify_output->actionType = FWP_ACTION_PERMIT;
+
+    // // In case the connection is not redirected, change the action to CONTINUE (i.e. soft permit).
+    // if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED && !redirected) {
+    //     classify_output->actionType = FWP_ACTION_CONTINUE;
+    // } else {
+    //     classify_output->actionType = FWP_ACTION_PERMIT;
+    // }
 
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
