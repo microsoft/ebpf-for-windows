@@ -90,13 +90,14 @@ bind_action_t
 StringOpsTest(bind_md_t* ctx)
 {
     char buffer[20] = {};
-    char* test_str_1 = "alpha";
-    char* test_str_2 = "alfa";
+    char test_str_1[6] = "alpha";
+    char test_str_2[5] = "alfa";
     char test_buffer[] = {'a', 'l', 'p', 'h', 'a', 0, 'b', 'r', 'a', 'v', 'o', 0};
 
-    if (bpf_strnlen_s(NULL, 0) != 0) {
+    // This will fail to verify.
+    /*if (bpf_strnlen_s(NULL, 0) != 0) {
         return 1;
-    }
+    }*/
 
     if (bpf_strnlen_s(buffer, 20) != 0) {
         return 2;
