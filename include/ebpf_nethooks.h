@@ -161,8 +161,8 @@ typedef enum
 
 /**
  * @brief Get current pid and tgid (sock_addr specific only).
- * This helper function is there only to support legacy programs.
- * New sock_addr programs should use bpf_get_current_pid_tgid helper instead.
+ *
+ * @deprecated Use bpf_get_current_pid_tgid instead.
  *
  * @param[in] ctx Pointer to bpf_sock_addr_t context.
  *
