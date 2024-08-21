@@ -454,6 +454,18 @@ EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
 #define bpf_strnlen_s ((bpf_strnlen_s_t)BPF_FUNC_strnlen_s)
 #endif
 
+/**
+ * @brief Compare two strings of given lengths, up to a certain number of characters.
+ *
+ * @returns The order of the two strings; if `count` characters are equal, returns 0. Returns a negative value if the
+ * left string is shorter, or alphabetically before the right string, and a positive value if it's longer or after.
+ */
+EBPF_HELPER(
+    int, bpf_strncmp_s, (const char* left, uint32_t left_size, const char* right, uint32_t right_size, uint32_t count));
+#ifndef __doxygen
+#define bpf_strncmp_s ((bpf_strncmp_s_t)BPF_FUNC_strncmp_s)
+#endif
+
 #if __clang__
 #define memcpy(dest, src, dest_size) bpf_memcpy(dest, dest_size, src, dest_size)
 #define memcmp(mem1, mem2, mem1_size) bpf_memcmp(mem1, mem1_size, mem2, mem1_size)

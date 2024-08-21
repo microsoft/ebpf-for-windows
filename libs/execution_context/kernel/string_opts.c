@@ -52,10 +52,10 @@ _ebpf_core_strlen_s(_In_reads_(str_size) const char* str, size_t str_size)
 int32_t
 _ebpf_core_strcmp(
     _In_reads_(lhs_size) const char* lhs,
-    size_t lhs_size,
+    uint32_t lhs_size,
     _In_reads_(rhs_size) const char* rhs,
-    size_t rhs_size,
-    size_t count)
+    uint32_t rhs_size,
+    uint32_t count)
 {
     // Minor issue: strncmp() takes three arguments: lhs, rhs, len. The length is the number of characters to compare.
 
