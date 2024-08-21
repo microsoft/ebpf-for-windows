@@ -875,212 +875,10 @@ TEST_CASE("multi_attach_test_redirection_wildcard", "[sock_addr_tests][multi_att
     multi_attach_test_redirection(UNSPECIFIED_COMPARTMENT_ID);
 }
 
-// TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_tests]")
-// {
-//     // This test case validates that a program attached with specific compartment id is always invoked before a
-//     // program attached with wildcard compartment id, irrespective of the order of attachment.
-
-//     int result = 0;
-//     native_module_helper_t native_helpers_specific;
-//     native_module_helper_t native_helpers_wildcard;
-//     native_helpers_specific.initialize("cgroup_sock_addr2");
-//     native_helpers_wildcard.initialize("cgroup_sock_addr2");
-
-//     struct bpf_object* object_specific = bpf_object__open(native_helpers_specific.get_file_name().c_str());
-//     REQUIRE(object_specific != nullptr);
-//     bpf_object_ptr object_specific_ptr(object_specific);
-
-//     struct bpf_object* object_wildcard = bpf_object__open(native_helpers_wildcard.get_file_name().c_str());
-//     REQUIRE(object_wildcard != nullptr);
-//     bpf_object_ptr object_wildcard_ptr(object_wildcard);
-
-//     // Load the programs.
-//     REQUIRE(bpf_object__load(object_specific) == 0);
-//     REQUIRE(bpf_object__load(object_wildcard) == 0);
-
-//     bpf_program* connect_program_specific = bpf_object__find_program_by_name(object_specific, "connect_redirect4");
-//     REQUIRE(connect_program_specific != nullptr);
-
-//     bpf_program* connect_program_wildcard = bpf_object__find_program_by_name(object_wildcard, "connect_redirect4");
-//     REQUIRE(connect_program_wildcard != nullptr);
-
-//     // ANUSA TODO: Uncomment this code.
-//     // Attach the program with specific compartment id first.
-//     result = bpf_prog_attach(
-//         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)),
-//         1,
-//         BPF_CGROUP_INET4_CONNECT,
-//         0);
-
-//     REQUIRE(result == 0);
-
-//     system("pause");
-
-//     // Attach the program with wildcard compartment id next.
-//     result = bpf_prog_attach(
-//         bpf_program__fd(const_cast<const bpf_program*>(connect_program_wildcard)),
-//         UNSPECIFIED_COMPARTMENT_ID,
-//         BPF_CGROUP_INET4_CONNECT,
-//         0);
-
-//     REQUIRE(result == 0);
-
-//     system("pause");
-
-//     // First configure both the programs to allow the connection.
-//     bpf_map* policy_map_specific = bpf_object__find_map_by_name(object_specific, "policy_map");
-//     REQUIRE(policy_map_specific != nullptr);
-
-//     fd_t map_fd_specific = bpf_map__fd(policy_map_specific);
-//     REQUIRE(map_fd_specific != ebpf_fd_invalid);
-
-//     _update_map_entry(
-//         map_fd_specific,
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         true);
-
-//     bpf_map* policy_map_wildcard = bpf_object__find_map_by_name(object_wildcard, "policy_map");
-//     REQUIRE(policy_map_wildcard != nullptr);
-
-//     fd_t map_fd_wildcard = bpf_map__fd(policy_map_wildcard);
-//     REQUIRE(map_fd_wildcard != ebpf_fd_invalid);
-
-//     _update_map_entry(
-//         map_fd_wildcard,
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         true);
-
-//     // Validate that the connection is allowed.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, false, false);
-
-//     printf("anusa: reached 1\n");
-//     system("pause");
-
-//     // Now configure the program with specific compartment id to block the connection.
-//     _update_map_entry(
-//         map_fd_specific,
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         false);
-
-//     // The connection should be blocked.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, true, false);
-
-//     printf("anusa: reached 2\n");
-
-//     // Revert the policy to allow the connection.
-//     _update_map_entry(
-//         map_fd_specific,
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         true);
-
-//     // The connection should be allowed.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, false, false);
-
-//     printf("anusa: reached 3\n");
-
-//     // Now configure the program with wildcard compartment id to block the connection.
-//     _update_map_entry(
-//         map_fd_wildcard,
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         false);
-
-//     // The connection should be blocked.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, true, false);
-
-//     printf("anusa: reached 4\n");
-
-//     // Revert the policy to allow the connection.
-//     _update_map_entry(
-//         map_fd_wildcard,
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         true);
-
-//     // The connection should be allowed.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, false, false);
-
-//     printf("anusa: reached 5\n");
-
-//     // Now configure the programs to redirect the connection.
-//     uint16_t destination_port = SOCKET_TEST_PORT - 2;
-//     uint16_t proxy_port = destination_port + 1;
-
-//     _update_map_entry(
-//         map_fd_specific,
-//         htonl(INADDR_LOOPBACK),
-//         htons(destination_port),
-//         htonl(INADDR_LOOPBACK),
-//         htons(proxy_port),
-//         IPPROTO_TCP,
-//         true);
-
-//     _update_map_entry(
-//         map_fd_wildcard,
-//         htonl(INADDR_LOOPBACK),
-//         htons(proxy_port),
-//         htonl(INADDR_LOOPBACK),
-//         htons(SOCKET_TEST_PORT),
-//         IPPROTO_TCP,
-//         true);
-
-//     // Validate that the connection is redirected to the final port.
-//     // The order of attach and invocation should be: specific --> wildcard.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, false, false);
-
-//     printf("anusa: reached 6\n");
-
-//     // Now detach the program with specific compartment id.
-//     result = bpf_prog_detach2(
-//         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT);
-
-//     // The connection should now be blocked.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, true, false);
-
-//     printf("anusa: reached 7\n");
-
-//     // Re-attach the program with specific compartment id.
-//     result = bpf_prog_attach(
-//         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT, 0);
-
-//     // The connection should be allowed. This validates that the program with specific compartment id is always
-//     // invoked before the program with wildcard compartment id.
-//     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, false, false);
-
-//     printf("anusa: reached 8\n");
-// }
-
 TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_tests]")
 {
     // This test case validates that a program attached with specific compartment id is always invoked before a
     // program attached with wildcard compartment id, irrespective of the order of attachment.
-    //
-    // Below is the expected behavior:
-    // 1. If program attach to specific compartment id redirects or blocks the connection, the wildcard program
-    //    should not be invoked.
-    // 2. If program attach to specific compartment id allows the connection, the wildcard program should be invoked.
 
     int result = 0;
     native_module_helper_t native_helpers_specific;
@@ -1106,12 +904,11 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     bpf_program* connect_program_wildcard = bpf_object__find_program_by_name(object_wildcard, "connect_redirect4");
     REQUIRE(connect_program_wildcard != nullptr);
 
+    // ANUSA TODO: Uncomment this code.
     // Attach the program with specific compartment id first.
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT, 0);
     REQUIRE(result == 0);
-
-    system("pause");
 
     // Attach the program with wildcard compartment id next.
     result = bpf_prog_attach(
@@ -1120,8 +917,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         BPF_CGROUP_INET4_CONNECT,
         0);
     REQUIRE(result == 0);
-
-    system("pause");
 
     // First configure both the programs to allow the connection.
     bpf_map* policy_map_specific = bpf_object__find_map_by_name(object_specific, "policy_map");
@@ -1157,9 +952,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     // Validate that the connection is allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, false, false);
 
-    printf("anusa: reached 1\n");
-    system("pause");
-
     // Now configure the program with specific compartment id to block the connection.
     _update_map_entry(
         map_fd_specific,
@@ -1190,10 +982,7 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
 
     printf("anusa: reached 3\n");
 
-    system("pause");
-
-    // Now configure the program with wildcard compartment id to block the connection. Since the first program is
-    // allowing the connection, the second program should be invoked.
+    // Now configure the program with wildcard compartment id to block the connection.
     _update_map_entry(
         map_fd_wildcard,
         htonl(INADDR_LOOPBACK),
@@ -1202,8 +991,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         false);
-
-    system("pause");
 
     // The connection should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, true, false);
@@ -1226,8 +1013,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     printf("anusa: reached 5\n");
 
     // Now configure the programs to redirect the connection.
-    uint16_t destination_port = SOCKET_TEST_PORT - 1;
-    uint16_t proxy_port = SOCKET_TEST_PORT;
+    uint16_t destination_port = SOCKET_TEST_PORT - 2;
+    uint16_t proxy_port = destination_port + 1;
 
     _update_map_entry(
         map_fd_specific,
@@ -1243,12 +1030,12 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         htonl(INADDR_LOOPBACK),
         htons(proxy_port),
         htonl(INADDR_LOOPBACK),
-        htons(proxy_port + 1),
+        htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
 
     // Validate that the connection is redirected to the final port.
-    // Since the first program is redirecting the connection, the second program should not be invoked.
+    // The order of attach and invocation should be: specific --> wildcard.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, false, false);
 
     printf("anusa: reached 6\n");
@@ -1272,45 +1059,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
 
     printf("anusa: reached 8\n");
 }
-
-// void thread_function_invoke_connection(std::stop_token token, ADDRESS_FAMILY address_family, uint16_t protocol,
-// uint16_t receiver_port)
-// {
-//     client_socket_t* sender_socket = nullptr;
-//     // receiver_socket_t* receiver_socket = nullptr;
-
-//     while (!token.stop_requested()) {
-//         if (protocol == IPPROTO_UDP) {
-//         sender_socket = new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0);
-//         // receiver_socket = new datagram_server_socket_t(SOCK_DGRAM, IPPROTO_UDP, receiver_port);
-//         } else if (protocol == IPPROTO_TCP) {
-//             sender_socket = new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0);
-//             // receiver_socket = new stream_server_socket_t(SOCK_STREAM, IPPROTO_TCP, receiver_port);
-//         } else {
-//             REQUIRE(false);
-//         }
-
-//         // Post an asynchronous receive on the receiver socket.
-//         // receiver_socket->post_async_receive();
-
-//         // Send loopback message to test port.
-//         const char* message = CLIENT_MESSAGE;
-//         sockaddr_storage destination_address{};
-//         if (address_family == AF_INET) {
-//             IN6ADDR_SETV4MAPPED((PSOCKADDR_IN6)&destination_address, &in4addr_loopback, scopeid_unspecified, 0);
-//         } else {
-//             IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&destination_address);
-//         }
-
-//         sender_socket->send_message_to_remote_host(message, destination_address, receiver_port);
-
-//         // Try to receive the packet. We dont care if the packet is actually received or not.
-//         // receiver_socket->complete_async_receive(500, _server_socket::MODE_DONT_CARE);
-
-//         delete sender_socket;
-//         delete receiver_socket;
-//     }
-// }
 
 /**
  * @brief This function sends messages to the receiver port in a loop using UDP socket.
@@ -1438,6 +1186,18 @@ thread_function_allow_block_connection(
     fd_t map_fd = bpf_map__fd(policy_map);
     REQUIRE(map_fd != ebpf_fd_invalid);
 
+    // Since the default policy is to block the connection, update the policy map to allow the connection for the
+    // "other" protocol. This will ensure this program does not interfere with the connections for the second thread
+    // that is also running in parallel.
+    _update_map_entry(
+        map_fd,
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        (uint16_t)(protocol == IPPROTO_TCP ? IPPROTO_UDP : IPPROTO_TCP),
+        true);
+
     _update_map_entry(
         map_fd,
         htonl(INADDR_LOOPBACK),
@@ -1482,7 +1242,7 @@ thread_function_allow_block_connection(
 }
 
 void
-multi_attach_thread_function(
+multi_attach_test_thread_function(
     std::stop_token token, uint32_t index, ADDRESS_FAMILY address_family, uint16_t destination_port)
 {
     // Get the mode.
@@ -1490,11 +1250,12 @@ multi_attach_thread_function(
     uint32_t default_compartment = 1;
     uint32_t unspecified_compartment = 0;
 
-    // UNREFERENCED_PARAMETER(address_family);
+    UNREFERENCED_PARAMETER(default_compartment);
     UNREFERENCED_PARAMETER(unspecified_compartment);
 
     switch (mode) {
     case 0:
+        __fallthrough;
     case 1:
         thread_function_invoke_connection(token, address_family, destination_port);
         break;
@@ -1509,6 +1270,7 @@ multi_attach_thread_function(
         break;
     case 5:
         thread_function_allow_block_connection(token, address_family, IPPROTO_TCP, destination_port);
+        break;
     case 6:
         thread_function_allow_block_connection(token, address_family, IPPROTO_UDP, destination_port);
         break;
@@ -1521,16 +1283,16 @@ TEST_CASE("multi_attach_concurrency_test", "[multi_attach][concurrent_tests]")
     // verdict is as expected. The test case will have the following threads:
     //
     // Thread 0,1: Invokes connections in a loop.
-    // Thread 2,3: Attach a program, sleep for 200ms, detach the program.
-    // Thread 4,5: Block and allow the connection in a loop.
+    // Thread 2,3,4: Attach a program, sleep for few ms, detach the program.
+    // Thread 5,6: Block and allow the connection in a loop, and invoke the connection to validate.
 
     uint16_t destination_port = SOCKET_TEST_PORT;
     std::vector<std::jthread> threads;
     uint32_t thread_count = 7;
-    uint32_t thread_run_time = 30;
+    uint32_t thread_run_time = 60;
 
     for (uint32_t i = 0; i < thread_count; i++) {
-        threads.emplace_back(multi_attach_thread_function, i, (ADDRESS_FAMILY)AF_INET, destination_port);
+        threads.emplace_back(multi_attach_test_thread_function, i, (ADDRESS_FAMILY)AF_INET, destination_port);
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(thread_run_time));

@@ -95,9 +95,6 @@ typedef struct _net_ebpf_extension_hook_provider
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
     net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
-    // ANUSA TODO: remove attached_clients_list. This should be replaced by filter_context_list.
-    // _Guarded_by_(lock)
-    //     LIST_ENTRY attached_clients_list; ///< Linked list of hook NPI clients that are attached to this provider.
     _Guarded_by_(push_lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
@@ -258,6 +255,7 @@ net_ebpf_extension_hook_invoke_programs(
 {
     ebpf_result_t program_result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
+    const net_ebpf_extension_hook_provider_t* provider_context = filter_context->provider_context;
     *result = 0;
 
     // Acquire shared filter context lock.
@@ -286,6 +284,38 @@ net_ebpf_extension_hook_invoke_programs(
             if (!process_callback(*result)) {
                 program_result = EBPF_SUCCESS;
                 goto Exit;
+            }
+        }
+    }
+
+    // If the current filter context is not for the wildcard attach parameter, invoke the programs for the wildcard
+    // attach parameter.
+    if (!filter_context->wildcard) {
+        // Get the wildcard filter context from tail of the filter_context list.
+        net_ebpf_extension_wfp_filter_context_t* wildcard_filter_context =
+            (net_ebpf_extension_wfp_filter_context_t*)CONTAINING_RECORD(
+                provider_context->filter_context_list.Blink, net_ebpf_extension_wfp_filter_context_t, link);
+
+        if (wildcard_filter_context->wildcard) {
+            // Iterate over all the programs in the array.
+            for (uint32_t i = 0; i < wildcard_filter_context->client_context_count; i++) {
+                const net_ebpf_extension_hook_client_t* client = wildcard_filter_context->client_contexts[i];
+                ASSERT(client != NULL);
+
+                // ANUSA TODO: Switch to batch invoke.
+                program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
+                if (program_result != EBPF_SUCCESS) {
+                    // If we failed to invoke an eBPF program, stop processing and return the error code.
+                    goto Exit;
+                }
+
+                // Invoke callback to see if we should continue processing.
+                if (process_callback != NULL) {
+                    if (!process_callback(*result)) {
+                        program_result = EBPF_SUCCESS;
+                        goto Exit;
+                    }
+                }
             }
         }
     }
@@ -595,11 +625,21 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
+    // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
+    if (is_wild_card_attach_parameter) {
+        new_filter_context->wildcard = TRUE;
+    }
+
     // Set filter context as provider data in the hook client.
     net_ebpf_extension_hook_client_set_provider_data(hook_client, new_filter_context);
 
     // Insert the new filter context in the list of filter contexts.
-    InsertTailList(&local_provider_context->filter_context_list, &new_filter_context->link);
+    // In case of wildcard attach parameter, insert at the tail of the list.
+    if (is_wild_card_attach_parameter) {
+        InsertTailList(&local_provider_context->filter_context_list, &new_filter_context->link);
+    } else {
+        InsertHeadList(&local_provider_context->filter_context_list, &new_filter_context->link);
+    }
     new_filter_context = NULL;
 
     *provider_binding_context = hook_client;

@@ -563,6 +563,7 @@ _net_ebpf_extension_sock_addr_validate_client_data(
     _In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard)
 {
     ebpf_result_t result = EBPF_SUCCESS;
+    uint32_t compartment_id;
     *is_wildcard = FALSE;
 
     // SOCK_ADDR hook clients must always provide data.
@@ -583,6 +584,10 @@ _net_ebpf_extension_sock_addr_validate_client_data(
                 "Attach denied. Invalid client data.");
             result = EBPF_INVALID_ARGUMENT;
             goto Exit;
+        }
+        compartment_id = *(uint32_t*)client_data->data;
+        if (compartment_id == UNSPECIFIED_COMPARTMENT_ID) {
+            *is_wildcard = TRUE;
         }
     } else {
         // If the client did not specify any attach parameters, we treat that as a wildcard compartment id.
