@@ -422,12 +422,12 @@ EBPF_HELPER(int64_t, bpf_get_socket_cookie, (const void* ctx));
 /**
  * @brief Copy a string into a buffer, of a fixed size.
  *
- * @param[in] dest Destination buffer
+ * @param[in] dest Destination buffer.
  * @param[in] dest_size Size of the destination buffer.
- * @param[in] src Source string
+ * @param[in] src Source string.
  * @param[in] count Upper limit on bytes to copy.
  *
- * @retval 0 The operation was successful
+ * @retval 0 The operation was successful.
  * @retval -ERANGE The destination buffer isn't large enough for the string being copied.
  */
 EBPF_HELPER(int, bpf_strncpy_s, (char* dest, size_t dest_size, const char* src, size_t count));
@@ -437,6 +437,14 @@ EBPF_HELPER(int, bpf_strncpy_s, (char* dest, size_t dest_size, const char* src, 
 
 /**
  * @brief Concatenate a string to an existing buffer, up to a certain number of characters.
+ *
+ * @param[in,out] dest Destination buffer.
+ * @param[in] dest_size Size of the destination buffer.
+ * @param[in] src String to append to the contents of dest.
+ * @param[in] count Upper limit on the characters to append to dest.
+ *
+ * @retval 0 Concatenation was successful.
+ * @returns Error code on failure, depending on the error.
  */
 EBPF_HELPER(int, bpf_strncat_s, (char* dest, size_t dest_size, const char* src, size_t count));
 #ifndef __doxygen
@@ -446,24 +454,15 @@ EBPF_HELPER(int, bpf_strncat_s, (char* dest, size_t dest_size, const char* src, 
 /**
  * @brief Find the length of a string, up to a certain number of characters.
  *
- * @returns The length of the string if the string is non-null or str_size if there is no null in the first str_size
- * characters; otherwise, returns 0.
+ * @param[in] str Buffer containing one or more null-terminated strings.
+ * @param[in] str_size Buffer length.
+ *
+ * @returns The length of the first string encountered in the str buffer. If str[0] is the null terminator, or str
+ * itself is null, returns 0. If there is no null terminator in the first str_size bytes, returns str_size.
  */
 EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
 #ifndef __doxygen
 #define bpf_strnlen_s ((bpf_strnlen_s_t)BPF_FUNC_strnlen_s)
-#endif
-
-/**
- * @brief Compare two strings of given lengths, up to a certain number of characters.
- *
- * @returns The order of the two strings; if `count` characters are equal, returns 0. Returns a negative value if the
- * left string is shorter, or alphabetically before the right string, and a positive value if it's longer or after.
- */
-EBPF_HELPER(
-    int, bpf_strncmp_s, (const char* left, uint32_t left_size, const char* right, uint32_t right_size, uint32_t count));
-#ifndef __doxygen
-#define bpf_strncmp_s ((bpf_strncmp_s_t)BPF_FUNC_strncmp_s)
 #endif
 
 #if __clang__
