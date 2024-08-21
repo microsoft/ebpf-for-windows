@@ -148,11 +148,13 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
-#define DEREFERENCE_FILTER_CONTEXT(filter_context)                           \
-    if ((filter_context) != NULL) {                                          \
-        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) { \
-            CLEAN_UP_FILTER_CONTEXT((filter_context));                       \
-        }                                                                    \
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
+    if ((filter_context) != NULL) {                                                       \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
+            net_ebpf_extension_hook_provider_leave_rundown(                               \
+                (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
+            CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
+        }                                                                                 \
     }
 
 /**
@@ -336,7 +338,8 @@ NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
-_Requires_exclusive_lock_held_(filter_context->lock) void net_ebpf_ext_remove_client_context(
+void
+net_ebpf_ext_remove_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
 

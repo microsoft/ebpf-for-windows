@@ -21,7 +21,16 @@ typedef enum _net_ebpf_extension_hook_attach_capability
  */
 typedef struct _net_ebpf_extension_hook_client net_ebpf_extension_hook_client_t;
 
+/**
+ *  @brief This is the per filter context for the eBPF Hook
+ *         NPI provider.
+ */
 typedef struct _net_ebpf_extension_wfp_filter_context net_ebpf_extension_wfp_filter_context_t;
+
+/**
+ *  @brief This is the provider context of eBPF Hook NPI provider.
+ */
+typedef struct _net_ebpf_extension_hook_provider net_ebpf_extension_hook_provider_t;
 
 // /**
 //  * @brief Attempt to acquire rundown.
@@ -41,6 +50,9 @@ typedef struct _net_ebpf_extension_wfp_filter_context net_ebpf_extension_wfp_fil
 //  */
 // void
 // net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client);
+
+void
+net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
 
 /**
  * @brief Get the attach parameters for the input client.
@@ -70,11 +82,6 @@ net_ebpf_extension_hook_client_set_provider_data(_In_ net_ebpf_extension_hook_cl
  */
 const void*
 net_ebpf_extension_hook_client_get_provider_data(_In_ const net_ebpf_extension_hook_client_t* hook_client);
-
-/**
- *  @brief This is the provider context of eBPF Hook NPI provider.
- */
-typedef struct _net_ebpf_extension_hook_provider net_ebpf_extension_hook_provider_t;
 
 /**
  * @brief Get the hook-specific custom data from the provider.

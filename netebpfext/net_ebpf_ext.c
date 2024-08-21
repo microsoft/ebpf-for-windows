@@ -919,12 +919,17 @@ Exit:
     return result;
 }
 
-_Requires_exclusive_lock_held_(filter_context->lock) void net_ebpf_ext_remove_client_context(
+void
+net_ebpf_ext_remove_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client)
 {
+    KIRQL old_irql;
     uint32_t index;
     bool found = FALSE;
+
+    old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+
     for (index = 0; index < filter_context->client_context_count; index++) {
         if (filter_context->client_contexts[index] == hook_client) {
             filter_context->client_contexts[index] = NULL;
@@ -942,4 +947,6 @@ _Requires_exclusive_lock_held_(filter_context->lock) void net_ebpf_ext_remove_cl
 
         filter_context->client_contexts[filter_context->client_context_count] = NULL;
     }
+
+    ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
