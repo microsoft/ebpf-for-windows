@@ -191,7 +191,7 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      }},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_strnlen_s,
-     "bpf_strlen_s",
+     "bpf_strnlen_s",
      EBPF_RETURN_TYPE_INTEGER,
      {
          EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
