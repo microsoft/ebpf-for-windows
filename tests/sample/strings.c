@@ -74,13 +74,5 @@ StringOpsTest(bind_md_t* ctx)
         return 8;
     }
 
-    // if (bpf_strncmp_s(buffer, 20, test_str_1, 6, 6) != 0) {
-    //     return 9;
-    // }
-
-    // if (bpf_strncmp_s(test_str_2, 5, test_str_1, 6, 6) >= 0) {
-    //     return 10;
-    // }
-
     return 0;
 }

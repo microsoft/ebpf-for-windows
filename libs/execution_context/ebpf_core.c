@@ -144,9 +144,6 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_strcpy,
     (void*)&_ebpf_core_strcat,
     (void*)&_ebpf_core_strlen_s,
-    (void*)&_ebpf_core_strcmp,
-    (void*)&_ebpf_core_strchr,
-    (void*)&_ebpf_core_strstr,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {

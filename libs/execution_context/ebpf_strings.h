@@ -15,21 +15,3 @@ _ebpf_core_strcat(
 
 size_t
 _ebpf_core_strlen_s(_In_reads_(str_size) const char* str, size_t str_size);
-
-int32_t
-_ebpf_core_strcmp(
-    _In_reads_(lhs_size) const char* lhs,
-    uint32_t lhs_size,
-    _In_reads_(rhs_size) const char* rhs,
-    uint32_t rhs_size,
-    uint32_t count);
-
-char*
-_ebpf_core_strchr(_In_reads_(str_size) const char* str, size_t str_size, char ch);
-
-char*
-_ebpf_core_strstr(
-    _In_reads_(str_size) const char* str,
-    size_t str_size,
-    _In_reads_(substr_size) const char* substr,
-    size_t substr_size);

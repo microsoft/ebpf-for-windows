@@ -164,11 +164,6 @@ typedef enum
     BPF_FUNC_strncpy_s = 27,                 ///< \ref bpf_strncpy_s
     BPF_FUNC_strncat_s = 28,                 ///< \ref bpf_strncat_s
     BPF_FUNC_strnlen_s = 29,                 ///< \ref bpf_strnlen_s
-    BPF_FUNC_strncmp_s = 30,                 ///< \ref bpf_strncmp_s
-    BPF_FUNC_strchr = 31,                    ///< \ref bpf_strchr
-    BPF_FUNC_strstr = 32,                    ///< \ref bpf_strstr
-    BPF_FUNC_strtol = 33,                    ///< \ref bpf_strtol
-    BPF_FUNC_strtoul = 34,                   ///< \ref bpf_strtoul
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
