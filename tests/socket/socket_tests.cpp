@@ -1157,10 +1157,13 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
 
 void
 thread_function_allow_block_connection(
-    std::stop_token token, ADDRESS_FAMILY address_family, uint16_t protocol, uint16_t destination_port)
+    std::stop_token token,
+    ADDRESS_FAMILY address_family,
+    uint16_t protocol,
+    uint16_t destination_port,
+    uint32_t compartment_id)
 {
     native_module_helper_t helper;
-    uint32_t compartment_id = 1;
     helper.initialize("cgroup_sock_addr2");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     REQUIRE(object != nullptr);
@@ -1242,16 +1245,13 @@ thread_function_allow_block_connection(
 }
 
 void
-multi_attach_test_thread_function(
+multi_attach_test_thread_function1(
     std::stop_token token, uint32_t index, ADDRESS_FAMILY address_family, uint16_t destination_port)
 {
     // Get the mode.
     uint32_t mode = index % 7;
     uint32_t default_compartment = 1;
     uint32_t unspecified_compartment = 0;
-
-    UNREFERENCED_PARAMETER(default_compartment);
-    UNREFERENCED_PARAMETER(unspecified_compartment);
 
     switch (mode) {
     case 0:
@@ -1269,15 +1269,17 @@ multi_attach_test_thread_function(
         thread_function_attach_detach(token, default_compartment, destination_port);
         break;
     case 5:
-        thread_function_allow_block_connection(token, address_family, IPPROTO_TCP, destination_port);
+        thread_function_allow_block_connection(
+            token, address_family, IPPROTO_TCP, destination_port, default_compartment);
         break;
     case 6:
-        thread_function_allow_block_connection(token, address_family, IPPROTO_UDP, destination_port);
+        thread_function_allow_block_connection(
+            token, address_family, IPPROTO_UDP, destination_port, default_compartment);
         break;
     }
 }
 
-TEST_CASE("multi_attach_concurrency_test", "[multi_attach][concurrent_tests]")
+TEST_CASE("multi_attach_concurrency_test1", "[multi_attach][concurrent_tests]")
 {
     // This test case validates that multiple threads can attach / detach programs concurrently, and the connection
     // verdict is as expected. The test case will have the following threads:
@@ -1292,7 +1294,60 @@ TEST_CASE("multi_attach_concurrency_test", "[multi_attach][concurrent_tests]")
     uint32_t thread_run_time = 60;
 
     for (uint32_t i = 0; i < thread_count; i++) {
-        threads.emplace_back(multi_attach_test_thread_function, i, (ADDRESS_FAMILY)AF_INET, destination_port);
+        threads.emplace_back(multi_attach_test_thread_function1, i, (ADDRESS_FAMILY)AF_INET, destination_port);
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(thread_run_time));
+
+    for (auto& thread : threads) {
+        thread.request_stop();
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+
+void
+multi_attach_test_thread_function2(
+    std::stop_token token, uint32_t index, ADDRESS_FAMILY address_family, uint16_t destination_port)
+{
+    // Get the mode.
+    uint32_t mode = index % 7;
+    uint32_t default_compartment = 1;
+    uint32_t unspecified_compartment = 0;
+
+    switch (mode) {
+    case 0:
+        __fallthrough;
+    case 1:
+        thread_function_invoke_connection(token, address_family, destination_port);
+        break;
+    case 2:
+        thread_function_attach_detach(token, default_compartment, destination_port);
+        break;
+    case 3:
+        thread_function_attach_detach(token, unspecified_compartment, destination_port);
+        break;
+    }
+}
+
+TEST_CASE("multi_attach_concurrency_test2", "[multi_attach][concurrent_tests]")
+{
+    // This test case stresses the code path where 2 program -- one of type wildcard and other of specific attach
+    // types are attaching and detaching in parallel, and a third thread invokes the hook by sending packets.
+    //
+    // Thread 0,1: Invokes connections in a loop.
+    // Thread 2: Attach / detach program with wildcard.
+    // Thread 3: Attach / detach program with specific compartment id.
+
+    uint16_t destination_port = SOCKET_TEST_PORT;
+    std::vector<std::jthread> threads;
+    uint32_t thread_count = 4;
+    uint32_t thread_run_time = 60;
+
+    for (uint32_t i = 0; i < thread_count; i++) {
+        threads.emplace_back(multi_attach_test_thread_function2, i, (ADDRESS_FAMILY)AF_INET, destination_port);
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(thread_run_time));

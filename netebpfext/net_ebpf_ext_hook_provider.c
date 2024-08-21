@@ -255,24 +255,44 @@ net_ebpf_extension_hook_invoke_programs(
 {
     ebpf_result_t program_result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
+    bool lock_acquired = FALSE;
+    bool wildcard_lock_acquired = FALSE;
+    net_ebpf_extension_wfp_filter_context_t* wildcard_filter_context = NULL;
     const net_ebpf_extension_hook_provider_t* provider_context = filter_context->provider_context;
     *result = 0;
 
+    // uintptr_t client_context_array[NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH] = {0};
+
+    // Acquire shared lock for the provider context.
+    ACQUIRE_PUSH_LOCK_SHARED((EX_PUSH_LOCK*)&provider_context->push_lock);
+
+    if (!filter_context->wildcard) {
+        // Try to find the wildcard filter context, if it exists. It should be the last filter context in the list.
+        wildcard_filter_context = (net_ebpf_extension_wfp_filter_context_t*)CONTAINING_RECORD(
+            provider_context->filter_context_list.Blink, net_ebpf_extension_wfp_filter_context_t, link);
+
+        if (wildcard_filter_context->wildcard) {
+            // Found the wildcard filter context. Acquire a reference to it before releasing the provider context lock.
+            REFERENCE_FILTER_CONTEXT(wildcard_filter_context);
+        } else {
+            // Wildcard filter context not found. Set to NULL.
+            wildcard_filter_context = NULL;
+        }
+    }
+
+    RELEASE_PUSH_LOCK_SHARED((EX_PUSH_LOCK*)&provider_context->push_lock);
+
     // Acquire shared filter context lock.
     old_irql = ExAcquireSpinLockShared(&filter_context->lock);
+    lock_acquired = TRUE;
 
-    if (filter_context->client_context_count == 0) {
-        // No clients attached to this filter context.
-        program_result = EBPF_OBJECT_NOT_FOUND;
-        goto Exit;
-    }
+    program_result = EBPF_OBJECT_NOT_FOUND;
 
     // Iterate over all the programs in the array.
     for (uint32_t i = 0; i < filter_context->client_context_count; i++) {
         const net_ebpf_extension_hook_client_t* client = filter_context->client_contexts[i];
         ASSERT(client != NULL);
 
-        // ANUSA TODO: Switch to batch invoke.
         program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
         if (program_result != EBPF_SUCCESS) {
             // If we failed to invoke an eBPF program, stop processing and return the error code.
@@ -288,40 +308,48 @@ net_ebpf_extension_hook_invoke_programs(
         }
     }
 
-    // If the current filter context is not for the wildcard attach parameter, invoke the programs for the wildcard
-    // attach parameter.
-    if (!filter_context->wildcard) {
-        // Get the wildcard filter context from tail of the filter_context list.
-        net_ebpf_extension_wfp_filter_context_t* wildcard_filter_context =
-            (net_ebpf_extension_wfp_filter_context_t*)CONTAINING_RECORD(
-                provider_context->filter_context_list.Blink, net_ebpf_extension_wfp_filter_context_t, link);
+    // Release the shared filter context lock.
+    ExReleaseSpinLockShared(&filter_context->lock, old_irql);
+    lock_acquired = FALSE;
 
-        if (wildcard_filter_context->wildcard) {
-            // Iterate over all the programs in the array.
-            for (uint32_t i = 0; i < wildcard_filter_context->client_context_count; i++) {
-                const net_ebpf_extension_hook_client_t* client = wildcard_filter_context->client_contexts[i];
-                ASSERT(client != NULL);
+    if (!wildcard_filter_context) {
+        goto Exit;
+    }
 
-                // ANUSA TODO: Switch to batch invoke.
-                program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
-                if (program_result != EBPF_SUCCESS) {
-                    // If we failed to invoke an eBPF program, stop processing and return the error code.
-                    goto Exit;
-                }
+    // Acquire shared lock for wildcard filter context.
+    old_irql = ExAcquireSpinLockShared(&wildcard_filter_context->lock);
+    wildcard_lock_acquired = TRUE;
 
-                // Invoke callback to see if we should continue processing.
-                if (process_callback != NULL) {
-                    if (!process_callback(*result)) {
-                        program_result = EBPF_SUCCESS;
-                        goto Exit;
-                    }
-                }
+    // Iterate over all the programs in the array.
+    for (uint32_t i = 0; i < wildcard_filter_context->client_context_count; i++) {
+        const net_ebpf_extension_hook_client_t* client = wildcard_filter_context->client_contexts[i];
+        ASSERT(client != NULL);
+
+        program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
+        if (program_result != EBPF_SUCCESS) {
+            // If we failed to invoke an eBPF program, stop processing and return the error code.
+            goto Exit;
+        }
+
+        // Invoke callback to see if we should continue processing.
+        if (process_callback != NULL) {
+            if (!process_callback(*result)) {
+                program_result = EBPF_SUCCESS;
+                goto Exit;
             }
         }
     }
 
 Exit:
-    ExReleaseSpinLockShared(&filter_context->lock, old_irql);
+    if (lock_acquired) {
+        ExReleaseSpinLockShared(&filter_context->lock, old_irql);
+    }
+    if (wildcard_filter_context) {
+        if (wildcard_lock_acquired) {
+            ExReleaseSpinLockShared(&wildcard_filter_context->lock, old_irql);
+        }
+        DEREFERENCE_FILTER_CONTEXT(wildcard_filter_context);
+    }
     return program_result;
 }
 
@@ -714,9 +742,12 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
     if (filter_context->client_context_count == 0) {
         RemoveEntryList(&filter_context->link);
 
-        // Release the spin lock before invoking the hook specific callback.
+        // Release both filter context lock and hook provider lock before invoking the hook specific callback.
         ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
         spin_lock_acquired = FALSE;
+
+        RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
+        push_lock_acquired = FALSE;
 
         local_provider_context->dispatch.delete_filter_context(filter_context);
     }
