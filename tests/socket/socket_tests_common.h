@@ -39,6 +39,7 @@ typedef struct _connection_tuple
 typedef struct _audit_entry
 {
     connection_tuple_t tuple;
+    uint64_t process_id;
     bool outbound : 1;
     bool connected : 1;
 } audit_entry_t;
