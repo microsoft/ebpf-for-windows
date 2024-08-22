@@ -11,6 +11,11 @@
 
 #define HELPER_FUNCTION_REALLOCATE_PACKET TRUE
 
+enum _xdp_test_helper_functions
+{
+    XDP_TEST_HELPER_ADJUST_HEAD,
+};
+
 // XDP_TEST helper function prototype descriptors.
 static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_function_prototype[] = {
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
@@ -71,6 +76,12 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
      BPF_PROG_TYPE_BIND,
      BPF_ATTACH_TYPE_BIND}};
 
+enum _sock_addr_helper_functions
+{
+    SOCK_ADDR_HELPER_GET_CURRENT_PID_TGID,
+    SOCK_ADDR_HELPER_SET_REDIRECT_CONTEXT,
+};
+
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
 static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_function_prototype[] = {
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
@@ -84,8 +95,22 @@ static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_f
      EBPF_RETURN_TYPE_INTEGER,
      {EBPF_ARGUMENT_TYPE_PTR_TO_CTX, EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM, EBPF_ARGUMENT_TYPE_CONST_SIZE}}};
 
+enum _sock_addr_global_helper_functions
+{
+    SOCK_ADDR_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
+    SOCK_ADDR_GLOBAL_HELPER_GET_CURRENT_LOGON_ID,
+    SOCK_ADDR_GLOBAL_HELPER_IS_CURRENT_ADMIN,
+    SOCK_ADDR_GLOBAL_HELPER_GET_SOCKET_COOKIE,
+};
+
 // CGROUP_SOCK_ADDR global helper function prototypes.
 static const ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_function_prototype[] = {
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_current_pid_tgid,
+     .name = "bpf_get_current_pid_tgid",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
+     .implicit_context = true},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_get_current_logon_id,
      "bpf_get_current_logon_id",
@@ -166,8 +191,27 @@ static const ebpf_program_type_descriptor_t _ebpf_sock_ops_program_type_descript
     EBPF_PROGRAM_TYPE_SOCK_OPS_GUID,
     BPF_PROG_TYPE_SOCK_OPS,
     0};
+
+enum _sock_ops_global_helper_functions
+{
+    SOCK_OPS_GLOBAL_HELPER_GET_CURRENT_PID_TGID,
+};
+
+// SOCK_OPS global helper function prototypes.
+static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_function_prototype[] = {
+    {.header = EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     .helper_id = BPF_FUNC_get_current_pid_tgid,
+     .name = "bpf_get_current_pid_tgid",
+     .return_type = EBPF_RETURN_TYPE_INTEGER,
+     .arguments = {},
+     .implicit_context = true}};
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {
-    EBPF_PROGRAM_INFORMATION_HEADER, &_ebpf_sock_ops_program_type_descriptor, 0, NULL, 0, NULL};
+    EBPF_PROGRAM_INFORMATION_HEADER,
+    &_ebpf_sock_ops_program_type_descriptor,
+    0,
+    NULL,
+    EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_function_prototype),
+    _ebpf_sock_ops_global_helper_function_prototype};
 
 static const ebpf_program_section_info_t _ebpf_sock_ops_section_info[] = {
     {{EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE},

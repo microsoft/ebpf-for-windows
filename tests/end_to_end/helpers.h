@@ -804,6 +804,24 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     return -ENOTSUP;
 }
 
+static uint64_t
+_ebpf_sock_addr_get_current_pid_tgid_implicit(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
+}
+
 static int
 _ebpf_sock_addr_get_current_logon_id(_In_ const bpf_sock_addr_t* ctx)
 {
@@ -899,6 +917,7 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
     (void*)_ebpf_sock_addr_get_socket_cookie};
@@ -919,6 +938,31 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
 };
 
 // SOCK_OPS.
+static uint64_t
+_ebpf_sock_ops_get_current_pid_tgid(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
+}
+
+static const void* _ebpf_sock_ops_global_helper_functions[] = {(void*)_ebpf_sock_ops_get_current_pid_tgid};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+    EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_functions),
+    (uint64_t*)_ebpf_sock_ops_global_helper_functions};
+
 static ebpf_result_t
 _ebpf_sock_ops_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
@@ -985,6 +1029,7 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
+    .global_helper_function_addresses = &_ebpf_sock_ops_global_helper_function_address_table,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
