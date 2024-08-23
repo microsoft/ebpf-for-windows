@@ -195,20 +195,20 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     NET_EBPF_EXT_LOG_EXIT();
 }
 
-// _Must_inspect_result_ bool
-// net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
-// {
-//     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
-//     bool status = ExAcquireRundownProtection(&rundown->protection);
-//     return status;
-// }
+_Must_inspect_result_ bool
+net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
+{
+    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
+    bool status = ExAcquireRundownProtection(&rundown->protection);
+    return status;
+}
 
-// void
-// net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
-// {
-//     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
-//     ExReleaseRundownProtection(&rundown->protection);
-// }
+void
+net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
+{
+    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
+    ExReleaseRundownProtection(&rundown->protection);
+}
 
 void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
@@ -252,6 +252,66 @@ _net_ebpf_extension_hook_invoke_program(
     NET_EBPF_EXT_RETURN_RESULT(invoke_result);
 }
 
+_Must_inspect_result_ static ebpf_result_t
+_net_ebpf_extension_hook_invoke_program2(
+    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Inout_ void* context,
+    _In_opt_ const net_ebpf_extension_hook_process_verdict process_callback,
+    _Out_ uint32_t* result,
+    _Out_ bool* continue_processing)
+{
+    KIRQL old_irql = PASSIVE_LEVEL;
+    ebpf_result_t program_result = EBPF_OBJECT_NOT_FOUND;
+
+    *result = 0;
+    *continue_processing = true;
+
+    // Acquire shared filter context lock.
+    old_irql = ExAcquireSpinLockShared(&filter_context->lock);
+
+    // Iterate over all the programs in the array.
+    for (uint32_t i = 0; i < filter_context->client_context_count; i++) {
+        const net_ebpf_extension_hook_client_t* client = filter_context->client_contexts[i];
+        ASSERT(client != NULL);
+
+        ebpf_program_invoke_function_t invoke_program = client->invoke_program;
+        const void* client_binding_context = client->client_binding_context;
+
+        program_result = invoke_program(client_binding_context, context, result);
+        if (program_result != EBPF_SUCCESS) {
+            // If we failed to invoke an eBPF program, stop processing and return the error code.
+            goto Exit;
+        }
+
+        // Invoke callback to see if we should continue processing.
+        if (process_callback != NULL) {
+            if (!process_callback(*result)) {
+                program_result = EBPF_SUCCESS;
+                *continue_processing = false;
+                goto Exit;
+            }
+        }
+    }
+
+Exit:
+    ExReleaseSpinLockShared(&filter_context->lock, old_irql);
+
+    return program_result;
+}
+
+static void
+_net_ebpf_extension_release_rundown_for_clients(
+    _Inout_ net_ebpf_extension_hook_client_t** hook_clients, uint32_t client_count)
+{
+    for (uint32_t i = 0; i < client_count; i++) {
+        if (hook_clients[i] == NULL) {
+            continue;
+        }
+        net_ebpf_extension_hook_client_leave_rundown(hook_clients[i]);
+        hook_clients[i] = NULL;
+    }
+}
+
 // 1. If we failed to invoke an eBPF program, block the connection.
 // 2. If any eBPF program returned verdict as block, stop processing and return.
 // _Requires_shared_lock_held_(_client_attach_lock)
@@ -266,9 +326,13 @@ net_ebpf_extension_hook_invoke_programs(
     KIRQL old_irql = PASSIVE_LEVEL;
     bool lock_acquired = FALSE;
     bool wildcard_lock_acquired = FALSE;
+    // bool continue_processing = true;
     net_ebpf_extension_wfp_filter_context_t* wildcard_filter_context = NULL;
     net_ebpf_extension_hook_provider_t* provider_context =
         (net_ebpf_extension_hook_provider_t*)filter_context->provider_context;
+    uint32_t client_count = 0;
+    net_ebpf_extension_hook_client_t* clients[NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH] = {0};
+
     *result = 0;
 
     // Optimization: Look for the wildcard filter context only in these cases:
@@ -298,15 +362,44 @@ net_ebpf_extension_hook_invoke_programs(
         ExReleaseSpinLockShared(&provider_context->spin_lock, old_irql);
     }
 
+    // program_result = _net_ebpf_extension_hook_invoke_program2(
+    //     filter_context, program_context, process_callback, result, &continue_processing);
+    // if ((program_result != EBPF_SUCCESS && program_result != EBPF_OBJECT_NOT_FOUND) || !continue_processing) {
+    //     // If we failed to invoke an eBPF program, stop processing and return the error code.
+    //     // If any eBPF program returned verdict as block, stop processing and return.
+    //     goto Exit;
+    // }
+
     // Acquire shared filter context lock.
     old_irql = ExAcquireSpinLockShared(&filter_context->lock);
     lock_acquired = TRUE;
 
+    // Create a local copy of the client contexts.
+    client_count = filter_context->client_context_count;
+    for (uint32_t i = 0; i < client_count; i++) {
+        // Acquire rundown protection for the client. Rundown for a client only starts once the client has been removed
+        // from the list of clients in the filter context. So we should not expect any failure in acquring rundown here.
+        // If acquiring rundown fails, bail.
+        if (!net_ebpf_extension_hook_client_enter_rundown(filter_context->client_contexts[i])) {
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "net_ebpf_extension_hook_invoke_programs: Rundown failed for client");
+            goto Exit;
+        }
+        clients[i] = filter_context->client_contexts[i];
+    }
+
+    // Release the shared filter context lock.
+    ExReleaseSpinLockShared(&filter_context->lock, old_irql);
+    lock_acquired = FALSE;
+    filter_context = NULL;
+
     program_result = EBPF_OBJECT_NOT_FOUND;
 
     // Iterate over all the programs in the array.
-    for (uint32_t i = 0; i < filter_context->client_context_count; i++) {
-        const net_ebpf_extension_hook_client_t* client = filter_context->client_contexts[i];
+    for (uint32_t i = 0; i < client_count; i++) {
+        const net_ebpf_extension_hook_client_t* client = clients[i];
         ASSERT(client != NULL);
 
         program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
@@ -324,21 +417,53 @@ net_ebpf_extension_hook_invoke_programs(
         }
     }
 
-    // Release the shared filter context lock.
-    ExReleaseSpinLockShared(&filter_context->lock, old_irql);
-    lock_acquired = FALSE;
+    // Release rundown protection for all the clients.
+    _net_ebpf_extension_release_rundown_for_clients(clients, client_count);
+
+    // // Release the shared filter context lock.
+    // ExReleaseSpinLockShared(&filter_context->lock, old_irql);
+    // lock_acquired = FALSE;
 
     if (!wildcard_filter_context) {
         goto Exit;
     }
 
+    // program_result = _net_ebpf_extension_hook_invoke_program2(
+    //     wildcard_filter_context, program_context, process_callback, result, &continue_processing);
+    // if (program_result != EBPF_SUCCESS) {
+    //     // If no programs were found, change the result to EBPF_SUCCESS.
+    //     if (program_result == EBPF_OBJECT_NOT_FOUND) {
+    //         program_result = EBPF_SUCCESS;
+    //     }
+    // }
+
     // Acquire shared lock for wildcard filter context.
     old_irql = ExAcquireSpinLockShared(&wildcard_filter_context->lock);
     wildcard_lock_acquired = TRUE;
 
+    // Create a local copy of the client contexts.
+    client_count = wildcard_filter_context->client_context_count;
+    for (uint32_t i = 0; i < client_count; i++) {
+        // Acquire rundown protection for the client. Rundown for a client only starts once the client has been removed
+        // from the list of clients in the filter context. So we should not expect any failure in acquiring rundown
+        // here. If acquiring rundown fails, bail.
+        if (!net_ebpf_extension_hook_client_enter_rundown(wildcard_filter_context->client_contexts[i])) {
+            NET_EBPF_EXT_LOG_MESSAGE(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "net_ebpf_extension_hook_invoke_programs: Rundown failed for client");
+            goto Exit;
+        }
+        clients[i] = wildcard_filter_context->client_contexts[i];
+    }
+
+    // Release the shared lock for wildcard filter context.
+    ExReleaseSpinLockShared(&wildcard_filter_context->lock, old_irql);
+    wildcard_lock_acquired = FALSE;
+
     // Iterate over all the programs in the array.
     for (uint32_t i = 0; i < wildcard_filter_context->client_context_count; i++) {
-        const net_ebpf_extension_hook_client_t* client = wildcard_filter_context->client_contexts[i];
+        const net_ebpf_extension_hook_client_t* client = clients[i];
         ASSERT(client != NULL);
 
         program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
@@ -363,6 +488,9 @@ Exit:
     if (lock_acquired) {
         ExReleaseSpinLockShared(&filter_context->lock, old_irql);
     }
+
+    _net_ebpf_extension_release_rundown_for_clients(clients, client_count);
+
     DEREFERENCE_FILTER_CONTEXT(wildcard_filter_context);
     return program_result;
 }
@@ -576,15 +704,15 @@ _net_ebpf_extension_hook_provider_attach_client(
     hook_client->invoke_program = client_dispatch_table->ebpf_program_invoke_function;
     hook_client->provider_context = local_provider_context;
 
-    // status = _ebpf_ext_attach_init_rundown(hook_client);
-    // if (!NT_SUCCESS(status)) {
-    //     NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-    //         NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-    //         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-    //         "_ebpf_ext_attach_init_rundown failed. Attach attempt rejected.",
-    //         status);
-    //     goto Exit;
-    // }
+    status = _ebpf_ext_attach_init_rundown(hook_client);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "_ebpf_ext_attach_init_rundown failed. Attach attempt rejected.",
+            status);
+        goto Exit;
+    }
 
     // // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
     // rundown_acquired = ExAcquireRundownProtection(&local_provider_context->rundown.protection);
@@ -714,6 +842,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     } else {
         InsertHeadList(&local_provider_context->filter_context_list, &new_filter_context->link);
     }
+    new_filter_context->initialized = TRUE;
     new_filter_context = NULL;
 
     *provider_binding_context = hook_client;
@@ -778,7 +907,7 @@ _net_ebpf_ext_remove_filter_context_from_provider(
 static NTSTATUS
 _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_binding_context)
 {
-    NTSTATUS status = STATUS_SUCCESS;
+    NTSTATUS status = STATUS_PENDING;
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
     bool push_lock_acquired = FALSE;
     // bool spin_lock_acquired = FALSE;
@@ -818,6 +947,13 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
     if (filter_context->client_context_count == 0) {
         _net_ebpf_ext_remove_filter_context_from_provider(local_provider_context, filter_context);
     }
+
+    // Queue a work item to delete the client context.
+    IoQueueWorkItem(
+        local_client_context->detach_work_item,
+        _net_ebpf_extension_detach_client_completion,
+        DelayedWorkQueue,
+        (void*)local_client_context);
 
 Exit:
     if (local_provider_context) {

@@ -100,7 +100,9 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters_array
 typedef enum _net_ebpf_ext_wfp_filter_state
 {
     NET_EBPF_EXT_WFP_FILTER_ADDED = 1,
-    NET_EBPF_EXT_WFP_FILTER_DELETED = 2,
+    NET_EBPF_EXT_WFP_FILTER_DELETING = 2,
+    NET_EBPF_EXT_WFP_FILTER_DELETED = 3,
+    NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED = 4,
 
 } net_ebpf_ext_wfp_filter_state_t;
 
@@ -109,6 +111,7 @@ typedef struct _net_ebpf_ext_wfp_filter_id
     wchar_t* name;
     uint64_t id;
     net_ebpf_ext_wfp_filter_state_t state;
+    NTSTATUS error_code;
 } net_ebpf_ext_wfp_filter_id_t;
 
 typedef struct _net_ebpf_extension_wfp_filter_context
@@ -130,6 +133,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
+    bool initialized : 1;      ///< True if the filter context has been successfully initialized.
 } net_ebpf_extension_wfp_filter_context_t;
 
 #define CLEAN_UP_FILTER_CONTEXT(filter_context)            \
