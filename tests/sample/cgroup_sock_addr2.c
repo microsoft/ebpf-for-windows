@@ -41,7 +41,7 @@ update_audit_map_entry(bpf_sock_addr_t* ctx)
 {
     uint64_t key = 0;
     sock_addr_audit_entry_t entry = {0};
-    entry.process_id = bpf_sock_addr_get_current_pid_tgid(ctx);
+    entry.process_id = bpf_get_current_pid_tgid();
     entry.logon_id = bpf_get_current_logon_id(ctx);
     entry.is_admin = bpf_is_current_admin(ctx);
     entry.local_port = ctx->msg_src_port;

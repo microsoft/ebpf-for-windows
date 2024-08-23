@@ -21,7 +21,8 @@ typedef struct _net_ebpf_bpf_sock_ops
 {
     EBPF_CONTEXT_HEADER;
     bpf_sock_ops_t context;
-} net_ebpf_bpf_sock_ops_t;
+    uint64_t process_id;
+} net_ebpf_sock_ops_t;
 
 /**
  * @brief Custom context associated with WFP flows that are notified to eBPF programs.
@@ -31,8 +32,8 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context
     LIST_ENTRY link;                                         ///< Link to next flow context.
     net_ebpf_extension_flow_context_parameters_t parameters; ///< WFP flow parameters.
     struct _net_ebpf_extension_sock_ops_wfp_filter_context*
-        filter_context;              ///< WFP filter context associated with this flow.
-    net_ebpf_bpf_sock_ops_t context; ///< sock_ops context.
+        filter_context;          ///< WFP filter context associated with this flow.
+    net_ebpf_sock_ops_t context; ///< sock_ops context.
 } net_ebpf_extension_sock_ops_wfp_flow_context_t;
 
 typedef struct _net_ebpf_extension_sock_ops_wfp_flow_context_list
@@ -65,8 +66,36 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
 } net_ebpf_extension_sock_ops_wfp_filter_context_t;
 
 //
+// SOCK_OPS Global helper function implementation.
+//
+static uint64_t
+_ebpf_sock_ops_get_current_pid_tgid(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_ops_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    net_ebpf_sock_ops_t* sock_ops_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_ops_t, context);
+    return (sock_ops_ctx->process_id << 32 | (uint32_t)(uintptr_t)PsGetCurrentThreadId());
+}
+
+//
 // SOCK_OPS Program Information NPI Provider.
 //
+
+static const void* _ebpf_sock_ops_global_helper_functions[] = {(void*)_ebpf_sock_ops_get_current_pid_tgid};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+    EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_functions),
+    (uint64_t*)_ebpf_sock_ops_global_helper_functions};
 
 static ebpf_result_t
 _ebpf_sock_ops_context_create(
@@ -87,6 +116,7 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
+    .global_helper_function_addresses = &_ebpf_sock_ops_global_helper_function_address_table,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
@@ -336,39 +366,53 @@ wfp_ale_layer_fields_t wfp_flow_established_fields[] = {
 
 static void
 _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
-    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values, _Out_ bpf_sock_ops_t* sock_ops_context)
+    _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
+    _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _Out_ net_ebpf_sock_ops_t* sock_ops_context)
 {
     uint16_t wfp_layer_id = incoming_fixed_values->layerId;
     net_ebpf_extension_hook_id_t hook_id = net_ebpf_extension_get_hook_id_from_wfp_layer_id(wfp_layer_id);
     wfp_ale_layer_fields_t* fields = &wfp_flow_established_fields[hook_id - EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4];
+    bpf_sock_ops_t* sock_ops = &sock_ops_context->context;
 
     FWPS_INCOMING_VALUE0* incoming_values = incoming_fixed_values->incomingValue;
 
-    sock_ops_context->op = (incoming_values[fields->direction_field].value.uint32 == FWP_DIRECTION_OUTBOUND)
-                               ? BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB
-                               : BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB;
+    sock_ops->op = (incoming_values[fields->direction_field].value.uint32 == FWP_DIRECTION_OUTBOUND)
+                       ? BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB
+                       : BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB;
 
     // Copy IP address fields.
     if (hook_id == EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4) {
-        sock_ops_context->family = AF_INET;
-        sock_ops_context->local_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
-        sock_ops_context->remote_ip4 = htonl(incoming_values[fields->remote_ip_address_field].value.uint32);
+        sock_ops->family = AF_INET;
+        sock_ops->local_ip4 = htonl(incoming_values[fields->local_ip_address_field].value.uint32);
+        sock_ops->remote_ip4 = htonl(incoming_values[fields->remote_ip_address_field].value.uint32);
     } else {
-        sock_ops_context->family = AF_INET6;
+        sock_ops->family = AF_INET6;
         RtlCopyMemory(
-            sock_ops_context->local_ip6,
+            sock_ops->local_ip6,
             incoming_values[fields->local_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
         RtlCopyMemory(
-            sock_ops_context->remote_ip6,
+            sock_ops->remote_ip6,
             incoming_values[fields->remote_ip_address_field].value.byteArray16,
             sizeof(FWP_BYTE_ARRAY16));
     }
-    sock_ops_context->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
-    sock_ops_context->remote_port = htons(incoming_values[fields->remote_port_field].value.uint16);
-    sock_ops_context->protocol = incoming_values[fields->protocol_field].value.uint8;
-    sock_ops_context->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
-    sock_ops_context->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
+    sock_ops->local_port = htons(incoming_values[fields->local_port_field].value.uint16);
+    sock_ops->remote_port = htons(incoming_values[fields->remote_port_field].value.uint16);
+    sock_ops->protocol = incoming_values[fields->protocol_field].value.uint8;
+    sock_ops->compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
+    sock_ops->interface_luid = *incoming_values[fields->interface_luid_field].value.uint64;
+    if (incoming_metadata_values->currentMetadataValues & FWPS_METADATA_FIELD_PROCESS_ID) {
+        sock_ops_context->process_id = incoming_metadata_values->processId;
+    } else {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "FWPS_METADATA_FIELD_PROCESS_ID not present",
+            hook_id);
+
+        sock_ops_context->process_id = 0;
+    }
 }
 
 //
@@ -438,7 +482,8 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     local_flow_context->filter_context = filter_context;
 
     sock_ops_context = &local_flow_context->context.context;
-    _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(incoming_fixed_values, sock_ops_context);
+    _net_ebpf_extension_sock_ops_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &local_flow_context->context);
 
     client_compartment_id = filter_context->compartment_id;
     ASSERT(
@@ -589,7 +634,7 @@ _ebpf_sock_ops_context_create(
 {
     ebpf_result_t result;
     bpf_sock_ops_t* sock_ops_context = NULL;
-    net_ebpf_bpf_sock_ops_t* context_header = NULL;
+    net_ebpf_sock_ops_t* context_header = NULL;
 
     *context = NULL;
 
@@ -609,8 +654,8 @@ _ebpf_sock_ops_context_create(
         goto Exit;
     }
 
-    context_header = (net_ebpf_bpf_sock_ops_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_bpf_sock_ops_t), NET_EBPF_EXTENSION_POOL_TAG);
+    context_header = (net_ebpf_sock_ops_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_sock_ops_t), NET_EBPF_EXTENSION_POOL_TAG);
 
     if (context_header == NULL) {
         result = EBPF_NO_MEMORY;
@@ -641,13 +686,13 @@ _ebpf_sock_ops_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    net_ebpf_bpf_sock_ops_t* context_header = NULL;
+    net_ebpf_sock_ops_t* context_header = NULL;
 
     UNREFERENCED_PARAMETER(data_out);
     if (context == NULL) {
         goto Exit;
     }
-    context_header = CONTAINING_RECORD(context, net_ebpf_bpf_sock_ops_t, context);
+    context_header = CONTAINING_RECORD(context, net_ebpf_sock_ops_t, context);
 
     // This provider doesn't support data.
 
