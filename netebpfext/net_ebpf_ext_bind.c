@@ -9,8 +9,6 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_bind.h"
 
-#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_BIND 1
-
 typedef struct _bind_context_header
 {
     EBPF_CONTEXT_HEADER;
@@ -116,7 +114,7 @@ _net_ebpf_ext_bind_create_filter_context(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_BIND,
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH,
         attaching_client,
         provider_context,
         &local_filter_context);

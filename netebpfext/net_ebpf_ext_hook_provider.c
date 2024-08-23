@@ -74,11 +74,10 @@ typedef struct _net_ebpf_extension_hook_client
 typedef struct _net_ebpf_extension_hook_provider
 {
     NPI_PROVIDER_CHARACTERISTICS characteristics; ///< NPI Provider characteristics.
-    // volatile long reference_count;                ///< Reference count.
-    net_ebpf_ext_hook_rundown_t rundown; ///< Rundown reference for the hook provider.
-    HANDLE nmr_provider_handle;          ///< NMR binding handle.
-    EX_PUSH_LOCK push_lock;              ///< Lock for serializing attach / detach calls.
-    EX_SPIN_LOCK spin_lock;              ///< Lock for synchronizing access to filter_context_list.
+    net_ebpf_ext_hook_rundown_t rundown;          ///< Rundown reference for the hook provider.
+    HANDLE nmr_provider_handle;                   ///< NMR binding handle.
+    EX_PUSH_LOCK push_lock;                       ///< Lock for serializing attach / detach calls.
+    EX_SPIN_LOCK spin_lock;                       ///< Lock for synchronizing access to filter_context_list.
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
     net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
@@ -516,75 +515,6 @@ _Requires_lock_held_(provider_context->spin_lock)
     NET_EBPF_EXT_RETURN_POINTER(net_ebpf_extension_wfp_filter_context_t*, matching_context);
 }
 
-// _Must_inspect_result_ ebpf_result_t
-// net_ebpf_extension_hook_check_attach_parameter(
-//     size_t attach_parameter_size,
-//     _In_reads_(attach_parameter_size) const void* attach_parameter,
-//     _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
-//     _Inout_ net_ebpf_extension_hook_provider_t* provider_context)
-// {
-//     ebpf_result_t result = EBPF_SUCCESS;
-//     bool using_wild_card_attach_parameter = FALSE;
-//     // bool lock_held = FALSE;
-
-//     NET_EBPF_EXT_LOG_ENTRY();
-
-//     if (memcmp(attach_parameter, wild_card_attach_parameter, attach_parameter_size) == 0) {
-//         using_wild_card_attach_parameter = TRUE;
-//     }
-
-//     // ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
-//     // lock_held = TRUE;
-
-//     // TODO: Check all the attached clients and "insert" this client in the correct position.
-//     // Then calculate the filter weight for this client.
-//     // If no flags specified, then append this in the end.
-
-//     if (using_wild_card_attach_parameter) {
-//         // Client requested wild card attach parameter. This will only be allowed if there are no other clients
-//         // attached.
-//         if (!IsListEmpty(&provider_context->attached_clients_list)) {
-//             NET_EBPF_EXT_LOG_MESSAGE(
-//                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-//                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-//                 "Wildcard attach denied as other clients present.");
-//             result = EBPF_ACCESS_DENIED;
-//             goto Exit;
-//         }
-//     } else {
-//         // Ensure there are no other clients with wild card attach parameter or with the same attach parameter as the
-//         // requesting client.
-
-//         LIST_ENTRY* link = provider_context->attached_clients_list.Flink;
-//         while (link != &provider_context->attached_clients_list) {
-//             net_ebpf_extension_hook_client_t* next_client =
-//                 (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(link, net_ebpf_extension_hook_client_t, link);
-
-//             const ebpf_extension_data_t* next_client_data = next_client->client_data;
-//             const void* next_client_attach_parameter =
-//                 (next_client_data->data == NULL) ? wild_card_attach_parameter : next_client_data->data;
-//             if (((memcmp(wild_card_attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) ||
-//                 (memcmp(attach_parameter, next_client_attach_parameter, attach_parameter_size) == 0)) {
-//                 NET_EBPF_EXT_LOG_MESSAGE(
-//                     NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-//                     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-//                     "Attach denied as other clients present with wildcard/exact attach parameter.");
-//                 result = EBPF_ACCESS_DENIED;
-//                 goto Exit;
-//             }
-
-//             link = link->Flink;
-//         }
-//     }
-
-// Exit:
-//     // if (lock_held) {
-//     //     RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
-//     // }
-
-//     NET_EBPF_EXT_RETURN_RESULT(result);
-// }
-
 void
 _net_ebpf_extension_hook_client_cleanup(_In_opt_ _Frees_ptr_opt_ net_ebpf_extension_hook_client_t* hook_client)
 {
@@ -694,17 +624,6 @@ _net_ebpf_extension_hook_provider_attach_client(
             status);
         goto Exit;
     }
-
-    // // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    // rundown_acquired = ExAcquireRundownProtection(&local_provider_context->rundown.protection);
-    // if (!rundown_acquired) {
-    //     NET_EBPF_EXT_LOG_MESSAGE(
-    //         NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-    //         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-    //         "ExAcquireRundownProtection failed. Attach attempt rejected.");
-    //     status = STATUS_ACCESS_DENIED;
-    //     goto Exit;
-    // }
 
     // Acquire passive lock to serialize attach / detach operations.
     ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
@@ -1043,52 +962,3 @@ Exit:
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
-
-// net_ebpf_extension_hook_client_t*
-// net_ebpf_extension_hook_get_attached_client(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
-// {
-//     net_ebpf_extension_hook_client_t* client_context = NULL;
-//     // ACQUIRE_PUSH_LOCK_SHARED(&provider_context->lock);
-//     if (!IsListEmpty(&provider_context->attached_clients_list)) {
-//         client_context = (net_ebpf_extension_hook_client_t*)CONTAINING_RECORD(
-//             provider_context->attached_clients_list.Flink, net_ebpf_extension_hook_client_t, link);
-//     }
-//     // RELEASE_PUSH_LOCK_SHARED(&provider_context->lock);
-//     return client_context;
-// }
-
-// _Requires_lock_held_(provider_context->spin_lock)
-// static net_ebpf_extension_wfp_filter_context_t* _net_ebpf_extension_hook_get_next_filter_context(
-//     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context,
-//     _In_ const net_ebpf_extension_hook_provider_t* provider_context)
-// {
-//     net_ebpf_extension_wfp_filter_context_t* next_context = NULL;
-//     if (filter_context == NULL) {
-//         // Return the first context (if any).
-//         if (!IsListEmpty(&provider_context->filter_context_list)) {
-//             next_context = (net_ebpf_extension_wfp_filter_context_t*)CONTAINING_RECORD(
-//                 provider_context->filter_context_list.Flink, net_ebpf_extension_wfp_filter_context_t, link);
-//         }
-//     } else {
-//         // Return the next client, unless this is the last one.
-//         if (filter_context->link.Flink != &provider_context->filter_context_list) {
-//             next_context = (net_ebpf_extension_wfp_filter_context_t*)CONTAINING_RECORD(
-//                 next_context->link.Flink, net_ebpf_extension_wfp_filter_context_t, link);
-//         }
-//     }
-
-//     return next_context;
-// }
-
-// KIRQL
-// net_ebpf_extension_hook_acquire_spin_lock_shared(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
-// {
-//     return ExAcquireSpinLockShared(&provider_context->spin_lock);
-// }
-
-// void
-// net_ebpf_extension_hook_release_spin_lock_shared(
-//     _Inout_ net_ebpf_extension_hook_provider_t* provider_context, KIRQL old_irql)
-// {
-//     ExReleaseSpinLockShared(&provider_context->spin_lock, old_irql);
-// }

@@ -15,10 +15,6 @@
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 #define LOW_MEMORY_CONNECTION_CONTEXT_COUNT 1000
 
-// #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_ADDR 16
-
-// NDIS_RW_LOCK_EX lock;
-
 #define CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(filter_context)                 \
     if ((filter_context) != NULL) {                                       \
         if ((filter_context)->redirect_handle != NULL) {                  \
@@ -259,12 +255,6 @@ static net_ebpf_ext_sock_addr_connection_contexts_t _net_ebpf_ext_sock_addr_bloc
 static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
 static ACL* _net_ebpf_ext_dacl_admin = NULL;
 static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
-
-// ANUSA TODO: Change to scalable RW lock.
-// Lock to synchronize access to client list in the filter contexts.
-// When using this lock, we no longer need to use client context rundown.
-// static EX_PUSH_LOCK _sock_addr_client_attach_passive_lock;  ///< Lock for serializing multiple attach / detach calls.
-// static EX_SPIN_LOCK _sock_addr_client_attach_dispatch_lock; ///< Lock for synchronizing access to client list.
 
 //
 // sock_addr helper functions.
@@ -1458,12 +1448,9 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     NET_EBPF_EXT_LOG_ENTRY();
     uint32_t result;
     net_ebpf_extension_sock_addr_wfp_filter_context_t* filter_context = NULL;
-    // net_ebpf_extension_hook_client_t* attached_client = NULL;
     net_ebpf_sock_addr_t net_ebpf_sock_addr_ctx = {0};
     bpf_sock_addr_t* sock_addr_ctx = &net_ebpf_sock_addr_ctx.base;
     uint32_t compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-    // bool lock_acquired = FALSE;
-    // KIRQL old_irql = PASSIVE_LEVEL;
     ebpf_result_t program_result;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
@@ -1986,10 +1973,6 @@ Exit:
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);
     }
-
-    // if (attached_client) {
-    //     net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    // }
 
     if (net_ebpf_sock_addr_ctx.redirect_context != NULL) {
         ExFreePool(net_ebpf_sock_addr_ctx.redirect_context);

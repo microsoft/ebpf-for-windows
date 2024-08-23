@@ -9,8 +9,6 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_xdp.h"
 
-#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_XDP 1
-
 //
 // Utility functions.
 //
@@ -152,7 +150,7 @@ _net_ebpf_extension_xdp_create_filter_context(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_xdp_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_XDP,
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH,
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&xdp_filter_context);
