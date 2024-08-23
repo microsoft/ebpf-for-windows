@@ -309,12 +309,12 @@ extern "C"
         ebpf_tracelog_keyword_t keyword,
         _In_z_ const char* message,
         _In_z_ const char* type,
-        _In_z_ const cxplat_utf8_string_t* name,
-        const void* key,
-        uint32_t key_size);
-#define EBPF_LOG_MESSAGE_BINARY(trace_level, keyword, message, type, name, key, key_size)            \
-    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                 \
-        ebpf_log_message_binary(_##trace_level##, _##keyword##, message, type, name, key, key_size); \
+        _In_ const cxplat_utf8_string_t* name,
+        const void* data,
+        uint32_t data_size);
+#define EBPF_LOG_MESSAGE_BINARY(trace_level, keyword, message, type, name, data, data_size)            \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                   \
+        ebpf_log_message_binary(_##trace_level##, _##keyword##, message, type, name, data, data_size); \
     }
 
     void
