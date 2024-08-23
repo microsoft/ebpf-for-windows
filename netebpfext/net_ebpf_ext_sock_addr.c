@@ -252,20 +252,26 @@ static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 // sock_addr helper functions.
 //
 static uint32_t
-_get_process_id()
-{
-    return (uint32_t)(uintptr_t)PsGetCurrentProcessId();
-}
-
-static uint32_t
 _get_thread_id()
 {
     return (uint32_t)(uintptr_t)PsGetCurrentThreadId();
 }
 
 static uint64_t
-_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
+_ebpf_sock_addr_get_current_pid_tgid_implicit(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_addr_t* ctx)
 {
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     return (sock_addr_ctx->process_id << 32 | _get_thread_id());
 }
@@ -285,6 +291,13 @@ _ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
 {
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
     return sock_addr_ctx->transport_endpoint_handle;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
+{
+    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
+    return (sock_addr_ctx->process_id << 32 | _get_thread_id());
 }
 
 static int
@@ -504,6 +517,7 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
     (void*)_ebpf_sock_addr_get_socket_cookie};
