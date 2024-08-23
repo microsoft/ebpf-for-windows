@@ -191,8 +191,9 @@ TEST_CASE("xdp_context", "[netebpfext]")
             sizeof(input_context),
             (void**)&xdp_context) == 0);
 
-    bpf_xdp_adjust_head_t adjust_head = reinterpret_cast<bpf_xdp_adjust_head_t>(
-        xdp_program_data->program_type_specific_helper_function_addresses->helper_function_address[0]);
+    bpf_xdp_adjust_head_t adjust_head =
+        reinterpret_cast<bpf_xdp_adjust_head_t>(xdp_program_data->program_type_specific_helper_function_addresses
+                                                    ->helper_function_address[XDP_TEST_HELPER_ADJUST_HEAD]);
 
     // Modify the context.
     REQUIRE(adjust_head(xdp_context, 10) == 0);
@@ -375,7 +376,8 @@ netebpfext_unit_invoke_sock_addr_program(
     // Test _ebpf_sock_addr_is_current_admin global helper function.
     // If the user is not admin, then the default action is to block.
     bpf_is_current_admin_t is_current_admin = reinterpret_cast<bpf_is_current_admin_t>(
-        sock_addr_program_data->global_helper_function_addresses->helper_function_address[1]);
+        sock_addr_program_data->global_helper_function_addresses
+            ->helper_function_address[SOCK_ADDR_GLOBAL_HELPER_IS_CURRENT_ADMIN]);
     is_admin = is_current_admin(sock_addr_context);
 
     // Verify context fields match what the netebpfext helper set.
