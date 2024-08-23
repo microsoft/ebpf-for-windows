@@ -141,8 +141,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_memmove,
     // No default implementation of bpf_get_socket_cookie
     (void*)NULL, // bpf_get_socket_cookie
-    (void*)&_ebpf_core_strcpy,
-    (void*)&_ebpf_core_strcat,
+    (void*)&_ebpf_core_strncpy_s,
+    (void*)&_ebpf_core_strncat_s,
     (void*)&_ebpf_core_strlen_s,
 };
 

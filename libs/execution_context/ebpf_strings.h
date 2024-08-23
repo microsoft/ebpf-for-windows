@@ -6,11 +6,11 @@
 #include <stdint.h>
 
 errno_t
-_ebpf_core_strcpy(
+_ebpf_core_strncpy_s(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count);
 
 errno_t
-_ebpf_core_strcat(
+_ebpf_core_strncat_s(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count);
 
 size_t
