@@ -166,7 +166,9 @@ typedef struct _net_ebpf_extension_wfp_filter_context
  * the hook client is being attached.
  *
  * @param[in] filter_context_size Size in bytes of the filter context.
- * @param[in] client_context Pointer to hook client being attached. This would be associated with the filter context.
+ * @param[in] client_context_count Maximum number of clients that can be added to the filter context.
+ * @param[in] client_context Pointer to hook client being attached.
+ * @param[in] provider_context Pointer to hook provider context.
  * @param[out] filter_context Pointer to created filter_context.
  *
  * @retval EBPF_SUCCESS The filter context was created successfully.
@@ -342,11 +344,26 @@ NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
 
+/**
+ * @brief Remove the client context from the filter context.
+ *
+ * @param filter_context Filter context to remove the client from.
+ * @param hook_client Hook client to remove.
+ */
 void
 net_ebpf_ext_remove_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
 
+/**
+ * @brief Add a client context to the filter context.
+ *
+ * @param filter_context Filter context to add the client to.
+ * @param hook_client Hook client to add.
+ *
+ * @retval EBPF_SUCCESS The client context was added successfully.
+ * @retval EBPF_NO_MEMORY No more client contexts can be added.
+ */
 ebpf_result_t
 net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,

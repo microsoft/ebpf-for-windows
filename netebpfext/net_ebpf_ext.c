@@ -242,8 +242,6 @@ net_ebpf_extension_wfp_filter_context_create(
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
 
-    UNREFERENCED_PARAMETER(client_context);
-
     NET_EBPF_EXT_LOG_ENTRY();
 
     ASSERT(client_context_count <= NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH);
@@ -266,7 +264,6 @@ net_ebpf_extension_wfp_filter_context_create(
         "local_filter_context - client_contexts",
         result);
 
-    // ExInitializeSpinLock(&local_filter_context->lock);
     memset(local_filter_context->client_contexts, 0, client_context_count * sizeof(net_ebpf_extension_hook_client_t*));
     local_filter_context->client_context_count_max = client_context_count;
     local_filter_context->context_deleting = FALSE;
@@ -452,7 +449,6 @@ net_ebpf_extension_add_wfp_filters(
             filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
         }
         filter.weight.type = FWP_EMPTY; // auto-weight.
-
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 

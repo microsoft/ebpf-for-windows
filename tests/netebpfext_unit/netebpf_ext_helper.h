@@ -41,8 +41,6 @@ typedef class _netebpf_ext_helper
         bool initialize_platform = true);
     ~_netebpf_ext_helper();
 
-    // _netebpf_ext_helper(_netebpf_ext_helper&&) = default;
-
     std::vector<GUID>
     program_info_provider_guids();
 

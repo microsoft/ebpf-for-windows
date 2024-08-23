@@ -94,81 +94,6 @@ static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NU
 // Client attach/detach handler routines.
 //
 
-// static ebpf_result_t
-// _net_ebpf_extension_bind_on_client_attach(
-//     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
-//     _In_ const net_ebpf_extension_hook_provider_t* provider_context);
-
-// typedef bool (*net_ebpf_extension_can_append_client)(
-//     _In_ const ebpf_extension_data_t* client_data,
-//     _In_ const net_ebpf_extension_wfp_filter_context_t* filter_context);
-
-// static ebpf_result_t
-// _net_ebpf_extension_bind_can_append_client(
-//     _In_ const ebpf_extension_data_t* client_data, _In_ const net_ebpf_extension_wfp_filter_context_t*
-//     filter_context)
-// {
-//     UNREFERENCED_PARAMETER(client_data);
-//     UNREFERENCED_PARAMETER(filter_context);
-//     // Only one client is allowed to attach to the bind hook.
-//     return EBPF_ACCESS_DENIED;
-// }
-
-// static ebpf_result_t
-// _net_ebpf_extension_bind_on_client_attach(
-//     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
-//     _In_ const net_ebpf_extension_hook_provider_t* provider_context)
-// {
-//     ebpf_result_t result = EBPF_SUCCESS;
-//     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
-
-//     NET_EBPF_EXT_LOG_ENTRY();
-
-//     // Bind hook allows only one client at a time.
-//     if (net_ebpf_extension_hook_get_attached_client((net_ebpf_extension_hook_provider_t*)provider_context) != NULL) {
-//         result = EBPF_ACCESS_DENIED;
-//         goto Exit;
-//     }
-
-//     result = net_ebpf_extension_wfp_filter_context_create(
-//         sizeof(net_ebpf_extension_wfp_filter_context_t),
-//         NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_BIND,
-//         attaching_client,
-//         &filter_context);
-//     if (result != EBPF_SUCCESS) {
-//         goto Exit;
-//     }
-//     filter_context->filter_ids_count = NET_EBPF_BIND_FILTER_COUNT;
-
-//     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
-//     result = net_ebpf_extension_add_wfp_filters(
-//         EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters),
-//         _net_ebpf_extension_bind_wfp_filter_parameters,
-//         0,
-//         NULL,
-//         0,
-//         filter_context,
-//         &filter_context->filter_ids);
-//     if (result != EBPF_SUCCESS) {
-//         goto Exit;
-//     }
-
-//     // Set the filter context as the client context's provider data.
-//     net_ebpf_extension_hook_client_set_provider_data(
-//         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
-
-//     // // Insert the new client in the list of clients for the existing filter context.
-//     // net_ebpf_extension_hook_client_insert(
-//     //         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-//     //         (net_ebpf_extension_hook_client_t*)attaching_client);
-
-// Exit:
-//     if (result != EBPF_SUCCESS) {
-//         CLEAN_UP_FILTER_CONTEXT(filter_context);
-//     }
-//     NET_EBPF_EXT_RETURN_RESULT(result);
-// }
-
 static ebpf_result_t
 _net_ebpf_ext_bind_validate_client_data(_In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard)
 {
@@ -212,10 +137,6 @@ _net_ebpf_ext_bind_create_filter_context(
         goto Exit;
     }
 
-    // // Set the filter context as the client context's provider data.
-    // net_ebpf_extension_hook_client_set_provider_data(
-    //     (net_ebpf_extension_hook_client_t*)attaching_client, local_filter_context);
-
     *filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_filter_context;
     local_filter_context = NULL;
 
@@ -224,18 +145,6 @@ Exit:
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
-
-// static void
-// _net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
-// {
-//     net_ebpf_extension_wfp_filter_context_t* filter_context =
-//         (net_ebpf_extension_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(detaching_client);
-//     ASSERT(filter_context != NULL);
-
-//     // Delete the WFP filters.
-//     net_ebpf_extension_delete_wfp_filters(filter_context->filter_ids_count, filter_context->filter_ids);
-//     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
-// }
 
 static void
 _net_ebpf_ext_bind_delete_filter_context(
@@ -340,12 +249,6 @@ _net_ebpf_ext_resource_truncate_appid(bind_md_t* ctx)
     ctx->app_id_start = (uint8_t*)last_separator;
 }
 
-// static bool
-// _net_ebpf_extension_bind_process_verdict(int program_verdict)
-// {
-//     return (program_verdict == BIND_PERMIT || program_verdict == BIND_REDIRECT);
-// }
-
 void
 net_ebpf_ext_resource_allocation_classify(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
@@ -362,9 +265,6 @@ net_ebpf_ext_resource_allocation_classify(
     bind_context_header_t context_header = {0};
     bind_md_t* ctx = &context_header.context;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
-    // net_ebpf_extension_hook_client_t* attached_client = NULL;
-    // KIRQL old_irql = PASSIVE_LEVEL;
-    // BOOLEAN lock_acquired = FALSE;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
@@ -388,13 +288,6 @@ net_ebpf_ext_resource_allocation_classify(
             STATUS_INVALID_PARAMETER);
         goto Exit;
     }
-
-    // // Acquire shared dispatch lock.
-    // old_irql = net_ebpf_extension_hook_acquire_spin_lock_shared(
-    //     (net_ebpf_extension_hook_provider_t*)filter_context->provider_context);
-    // lock_acquired = TRUE;
-
-    // attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_contexts[0];
 
     addr.sin_port =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_PORT].value.uint16;
@@ -449,13 +342,6 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
 Exit:
-    // if (lock_acquired) {
-    //     net_ebpf_extension_hook_release_spin_lock_shared(
-    //         (net_ebpf_extension_hook_provider_t*)filter_context->provider_context, old_irql);
-    // }
-    // if (attached_client) {
-    //     net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    // }
     return;
 }
 
@@ -474,7 +360,6 @@ net_ebpf_ext_resource_release_classify(
     bind_context_header_t context_header = {0};
     bind_md_t* ctx = &context_header.context;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
-    // net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
@@ -498,17 +383,6 @@ net_ebpf_ext_resource_release_classify(
             STATUS_INVALID_PARAMETER);
         goto Exit;
     }
-
-    // attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_contexts[0];
-    // if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-    //     NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-    //         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-    //         NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-    //         "net_ebpf_ext_resource_release_classify - Rundown already started.",
-    //         STATUS_INVALID_PARAMETER);
-    //     attached_client = NULL;
-    //     goto Exit;
-    // }
 
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr =
@@ -534,9 +408,6 @@ net_ebpf_ext_resource_release_classify(
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
-    // if (attached_client) {
-    //     net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    // }
     return;
 }
 

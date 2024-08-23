@@ -1140,6 +1140,8 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
         result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, BPF_CGROUP_INET4_CONNECT);
         REQUIRE(result == 0);
 
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
         count++;
     }
 

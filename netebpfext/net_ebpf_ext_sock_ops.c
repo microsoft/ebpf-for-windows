@@ -15,8 +15,6 @@
 // WFP related types & globals for SOCK_OPS hook.
 //
 
-#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_OPS 1
-
 struct _net_ebpf_extension_sock_ops_wfp_filter_context;
 
 typedef struct _net_ebpf_bpf_sock_ops
@@ -147,105 +145,6 @@ static net_ebpf_extension_hook_provider_t* _ebpf_sock_ops_hook_provider_context 
 // NMR Registration Helper Routines.
 //
 
-// static ebpf_result_t
-// net_ebpf_extension_sock_ops_on_client_attach(
-//     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
-//     _In_ const net_ebpf_extension_hook_provider_t* provider_context)
-// {
-//     ebpf_result_t result = EBPF_SUCCESS;
-//     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
-//     uint32_t compartment_id;
-//     uint32_t wild_card_compartment_id = UNSPECIFIED_COMPARTMENT_ID;
-//     uint32_t filter_count;
-//     FWPM_FILTER_CONDITION condition = {0};
-//     net_ebpf_extension_sock_ops_wfp_filter_context_t* filter_context = NULL;
-
-//     NET_EBPF_EXT_LOG_ENTRY();
-
-//     // SOCK_OPS hook clients must always provide data.
-//     if (client_data == NULL) {
-//         result = EBPF_INVALID_ARGUMENT;
-//         goto Exit;
-//     }
-
-//     if (client_data->header.size > 0) {
-//         if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
-//             result = EBPF_INVALID_ARGUMENT;
-//             goto Exit;
-//         }
-//         compartment_id = *(uint32_t*)client_data->data;
-//     } else {
-//         // If the client did not specify any attach parameters, we treat that as a wildcard interface index.
-//         compartment_id = wild_card_compartment_id;
-//     }
-
-//     result = net_ebpf_extension_hook_check_attach_parameter(
-//         sizeof(compartment_id),
-//         &compartment_id,
-//         &wild_card_compartment_id,
-//         (net_ebpf_extension_hook_provider_t*)provider_context);
-//     if (result != EBPF_SUCCESS) {
-//         goto Exit;
-//     }
-
-//     if (client_data->data != NULL) {
-//         compartment_id = *(uint32_t*)client_data->data;
-//     }
-
-//     // Set compartment id (if not UNSPECIFIED_COMPARTMENT_ID) as WFP filter condition.
-//     if (compartment_id != UNSPECIFIED_COMPARTMENT_ID) {
-//         condition.fieldKey = FWPM_CONDITION_COMPARTMENT_ID;
-//         condition.matchType = FWP_MATCH_EQUAL;
-//         condition.conditionValue.type = FWP_UINT32;
-//         condition.conditionValue.uint32 = compartment_id;
-//     }
-
-//     result = net_ebpf_extension_wfp_filter_context_create(
-//         sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t),
-//         NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_OPS,
-//         attaching_client,
-//         (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
-//     if (result != EBPF_SUCCESS) {
-//         goto Exit;
-//     }
-//     filter_context->compartment_id = compartment_id;
-//     filter_context->base.filter_ids_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
-//     KeInitializeSpinLock(&filter_context->lock);
-//     InitializeListHead(&filter_context->flow_context_list.list_head);
-
-//     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
-//     filter_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
-//     result = net_ebpf_extension_add_wfp_filters(
-//         filter_count,
-//         _net_ebpf_extension_sock_ops_wfp_filter_parameters,
-//         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
-//         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? NULL : &condition,
-//         0,
-//         (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-//         &filter_context->base.filter_ids);
-//     if (result != EBPF_SUCCESS) {
-//         goto Exit;
-//     }
-
-//     // Set the filter context as the client context's provider data.
-//     net_ebpf_extension_hook_client_set_provider_data(
-//         (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
-
-//     // // Insert the new client in the list of clients for the existing filter context.
-//     // net_ebpf_extension_hook_client_insert(
-//     //     (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-//     //     (net_ebpf_extension_hook_client_t*)attaching_client);
-
-// Exit:
-//     if (result != EBPF_SUCCESS) {
-//         if (filter_context != NULL) {
-//             CLEAN_UP_FILTER_CONTEXT(&filter_context->base);
-//         }
-//     }
-
-//     NET_EBPF_EXT_RETURN_RESULT(result);
-// }
-
 static ebpf_result_t
 _net_ebpf_extension_sock_ops_create_filter_context(
     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
@@ -274,7 +173,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SOCK_OPS,
+        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH,
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&local_filter_context);
@@ -295,11 +194,6 @@ _net_ebpf_extension_sock_ops_create_filter_context(
         (net_ebpf_extension_wfp_filter_context_t*)local_filter_context,
         &local_filter_context->base.filter_ids);
     NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result);
-
-    // ANUSA TODO: Check if this code can move to the common place so that each hook provider does not need to call it.
-    // Set the filter context as the client context's provider data.
-    net_ebpf_extension_hook_client_set_provider_data(
-        (net_ebpf_extension_hook_client_t*)attaching_client, local_filter_context);
 
     *filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_filter_context;
     local_filter_context = NULL;

@@ -18,8 +18,6 @@ CATCH_REGISTER_LISTENER(cxplat_passed_test_log)
 
 #define CONCURRENT_THREAD_RUN_TIME_IN_SECONDS 10
 
-#define MULTIPLE_ATTACH_PROGRAM_COUNT 3
-
 typedef enum _sock_addr_test_type
 {
     SOCK_ADDR_TEST_TYPE_CONNECT,
@@ -340,7 +338,6 @@ typedef struct test_sock_addr_client_context_t
     netebpfext_helper_base_client_context_t base;
     int sock_addr_action;
     bool validate_sock_addr_entries = true;
-    uint32_t invocation_count;
 } test_sock_addr_client_context_t;
 
 static inline sock_addr_test_action_t
@@ -425,8 +422,6 @@ netebpfext_unit_invoke_sock_addr_program(
     default:
         *result = BPF_SOCK_ADDR_VERDICT_REJECT;
     }
-
-    client_context->invocation_count++;
 
     return return_result;
 }
@@ -518,40 +513,6 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     result = helper.test_cgroup_inet6_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 }
-
-// TEST_CASE("sock_addr_multiple_attach", "[netebpfext]")
-// {
-//     ebpf_extension_data_t npi_specific_characteristics[MULTIPLE_ATTACH_PROGRAM_COUNT] = {};
-//     test_sock_addr_client_context_t client_context[MULTIPLE_ATTACH_PROGRAM_COUNT] = {};
-//     netebpf_ext_helper_t* helpers[MULTIPLE_ATTACH_PROGRAM_COUNT];
-//     fwp_classify_parameters_t parameters = {};
-
-//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-//         helpers[i] = new netebpf_ext_helper_t(
-//             &npi_specific_characteristics[i],
-//             (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
-//             (netebpfext_helper_base_client_context_t*)&client_context[i]);
-//     }
-
-//     netebpfext_initialize_fwp_classify_parameters(&parameters);
-
-//     // Case 1: All programs return "permit".
-//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-//         client_context[i].sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
-//         client_context[i].validate_sock_addr_entries = true;
-//     }
-
-//     FWP_ACTION_TYPE result = helpers[0]->test_cgroup_inet4_connect(&parameters);
-//     REQUIRE(result == FWP_ACTION_PERMIT);
-//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-//         REQUIRE(client_context[i].invocation_count == 1);
-//     }
-
-//     // Delete the helpers.
-//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-//         delete helpers[i];
-//     }
-// }
 
 void
 sock_addr_thread_function(

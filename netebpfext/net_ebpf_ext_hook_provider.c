@@ -51,16 +51,12 @@ typedef struct _net_ebpf_ext_hook_client_rundown
 
 struct _net_ebpf_extension_hook_provider;
 
-static volatile LONG _hook_client_counter = 0;
-
 /**
  * @brief Data structure representing a hook NPI client (attached eBPF program). This is returned
  * as the provider binding context in the NMR client attach callback.
  */
 typedef struct _net_ebpf_extension_hook_client
 {
-    // LIST_ENTRY link;                               ///< Link to next client (if any) in the provider context list.
-    // LIST_ENTRY filter_context_link;                ///< Link to next client (if any) in the filter context list.
     HANDLE nmr_binding_handle;                     ///< NMR binding handle.
     GUID client_module_id;                         ///< NMR module Id.
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
@@ -69,18 +65,11 @@ typedef struct _net_ebpf_extension_hook_client
     // ANUSA TODO: See if we can remove provider_data.
     void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
     struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
-    // ANUSA TODO: Remove detach_work_item and rundown.
     PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
     net_ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
     uint64_t filter_weight;
     LONG counter;
 } net_ebpf_extension_hook_client_t;
-
-// typedef struct _net_ebpf_extension_hook_clients_list
-// {
-//     EX_PUSH_LOCK lock;
-//     LIST_ENTRY attached_clients_list;
-// } net_ebpf_extension_hook_clients_list_t;
 
 typedef struct _net_ebpf_extension_hook_provider
 {
@@ -90,10 +79,6 @@ typedef struct _net_ebpf_extension_hook_provider
     HANDLE nmr_provider_handle;          ///< NMR binding handle.
     EX_PUSH_LOCK push_lock;              ///< Lock for serializing attach / detach calls.
     EX_SPIN_LOCK spin_lock;              ///< Lock for synchronizing access to filter_context_list.
-    // net_ebpf_extension_hook_on_client_attach attach_callback; /*!< Pointer to hook specific callback to be invoked
-    //                                                           when a client attaches. */
-    // net_ebpf_extension_hook_on_client_detach detach_callback; /*!< Pointer to hook specific callback to be invoked
-    //                                                           when a client detaches. */
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
     net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
@@ -241,7 +226,7 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
     return provider_context->custom_data;
 }
 
-_Must_inspect_result_ static ebpf_result_t
+__forceinline _Must_inspect_result_ static ebpf_result_t
 _net_ebpf_extension_hook_invoke_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _Inout_ void* context, _Out_ uint32_t* result)
 {
@@ -399,10 +384,9 @@ net_ebpf_extension_hook_invoke_programs(
 
     // Iterate over all the programs in the array.
     for (uint32_t i = 0; i < client_count; i++) {
-        const net_ebpf_extension_hook_client_t* client = clients[i];
-        ASSERT(client != NULL);
+        ASSERT(clients[i] != NULL);
 
-        program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
+        program_result = _net_ebpf_extension_hook_invoke_program(clients[i], program_context, result);
         if (program_result != EBPF_SUCCESS) {
             // If we failed to invoke an eBPF program, stop processing and return the error code.
             goto Exit;
@@ -463,10 +447,9 @@ net_ebpf_extension_hook_invoke_programs(
 
     // Iterate over all the programs in the array.
     for (uint32_t i = 0; i < wildcard_filter_context->client_context_count; i++) {
-        const net_ebpf_extension_hook_client_t* client = clients[i];
-        ASSERT(client != NULL);
+        ASSERT(clients[i] != NULL);
 
-        program_result = _net_ebpf_extension_hook_invoke_program(client, program_context, result);
+        program_result = _net_ebpf_extension_hook_invoke_program(clients[i], program_context, result);
         if (program_result != EBPF_SUCCESS) {
             // If we failed to invoke an eBPF program, stop processing and return the error code.
             goto Exit;
@@ -684,8 +667,6 @@ _net_ebpf_extension_hook_provider_attach_client(
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, hook_client, "hook_client", status);
 
     memset(hook_client, 0, sizeof(net_ebpf_extension_hook_client_t));
-
-    hook_client->counter = InterlockedIncrement(&_hook_client_counter);
 
     hook_client->detach_work_item = NULL;
     hook_client->nmr_binding_handle = nmr_binding_handle;
