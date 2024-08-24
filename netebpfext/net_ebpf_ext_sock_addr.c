@@ -602,6 +602,14 @@ Exit:
     return result;
 }
 
+static bool
+_net_ebpf_ext_is_cgroup_connect_attach_type(_In_ const ebpf_attach_type_t* attach_type)
+{
+    return (
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
+        memcmp(attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0);
+}
+
 //
 // NMR Registration Helper Routines.
 //
@@ -633,9 +641,14 @@ _net_ebpf_extension_sock_addr_create_filter_context(
         condition.conditionValue.uint32 = compartment_id;
     }
 
+    // Get the WFP filter parameters for this hook type.
+    filter_parameters_array =
+        (net_ebpf_extension_wfp_filter_parameters_array_t*)net_ebpf_extension_hook_provider_get_custom_data(
+            provider_context);
+    ASSERT(filter_parameters_array != NULL);
+
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_sock_addr_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH,
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&local_filter_context);
@@ -644,11 +657,6 @@ _net_ebpf_extension_sock_addr_create_filter_context(
     local_filter_context->redirect_handle = NULL;
     local_filter_context->compartment_id = compartment_id;
 
-    // Get the WFP filter parameters for this hook type.
-    filter_parameters_array =
-        (net_ebpf_extension_wfp_filter_parameters_array_t*)net_ebpf_extension_hook_provider_get_custom_data(
-            provider_context);
-    ASSERT(filter_parameters_array != NULL);
     local_filter_context->base.filter_ids_count = filter_parameters_array->count;
 
     // Special case of connect_redirect. If the attach type is v4, set v4_attach_type in the filter
@@ -658,8 +666,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
     }
 
     // Allocate redirect handle for this filter context, only in the case of INET*_CONNECT attach types.
-    if (memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT, sizeof(GUID)) == 0 ||
-        memcmp(filter_parameters_array->attach_type, &EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT, sizeof(GUID)) == 0) {
+    if (_net_ebpf_ext_is_cgroup_connect_attach_type(filter_parameters_array->attach_type)) {
         status = FwpsRedirectHandleCreate(
             &EBPF_HOOK_ALE_CONNECT_REDIRECT_PROVIDER, 0, &local_filter_context->redirect_handle);
         if (!NT_SUCCESS(status)) {
@@ -1156,6 +1163,7 @@ net_ebpf_ext_sock_addr_register_providers()
 {
     NTSTATUS status = STATUS_SUCCESS;
     bool blocked_connection_contexts_initialized = false;
+    bool is_cgroup_connect_attach_type = false;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -1218,12 +1226,15 @@ net_ebpf_ext_sock_addr_register_providers()
         _ebpf_sock_addr_hook_provider_moduleid[i].Type = MIT_GUID;
         _ebpf_sock_addr_hook_provider_moduleid[i].Guid = *_net_ebpf_extension_sock_addr_attach_types[i];
 
+        is_cgroup_connect_attach_type =
+            _net_ebpf_ext_is_cgroup_connect_attach_type(_net_ebpf_extension_sock_addr_attach_types[i]);
+
         // Register the provider context and pass the pointer to the WFP filter parameters
         // corresponding to this hook type as custom data.
         status = net_ebpf_extension_hook_provider_register(
             &hook_provider_parameters,
             &dispatch_table,
-            ATTACH_CAPABILITY_MULTI_ATTACH,
+            is_cgroup_connect_attach_type ? ATTACH_CAPABILITY_MULTI_ATTACH : ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
             &_ebpf_sock_addr_hook_provider_context[i]);
         if (!NT_SUCCESS(status)) {

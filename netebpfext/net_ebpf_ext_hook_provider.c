@@ -1,45 +1,6 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
-// Details about multi-attach support implementation.
-//
-// Multi-attach support allows multiple eBPF programs to be attached to the same attach point (aka "hook") with the
-// same attach parameters. For example, for BPF_CGROUP_INET4_CONNECT attach type, the attach parameter is the
-// compartment ID. With this feature, multiple eBPF programs can be attached to the same compartment ID.
-//
-// "net_ebpf_extension_hook_provider_t" is the provider context for the hook NPI provider. It maintains a list of
-// filter contexts. Each filter context represents a unique attach parameter. Each filter context in turn maintains
-// a list of clients that were attached with that attach parameters. Each client is a unique eBPF program attached
-// to the provider.
-//
-// Whenever a new eBPF program is attached, the provider checks if there is an existing filter context with the same
-// attach parameter. If a filter context is found, the new client is added to the list of clients for that filter
-// context. If no filter context is found, a new filter context is created and the new client is added to the list of
-// clients for that filter context.
-//
-// When a client detaches, the provider removes the client from the list of clients for the filter context. If the
-// filter context becomes empty, the filter context is removed from the list of filter contexts.
-//
-// *Synchronization*
-// Access to the list of clients in the filter context and the list of filter contexts in the provider context
-// needs to be synchronized. The provider maintains a DISPATCH level lock to synchronize access to these lists.
-// DISPATCH level lock is chosen here as the WFP callouts can be invoked at both PASSIVE_LEVEL and DISPATCH_LEVEL.
-// Attach and detach callbacks flow acquire this lock in exclusive mode, and the program invocation flow acquires
-// this lock in shared mode.
-// Along with the above, there is also a need to serialize attach and detach operations callbacks, as the whole
-// flow of creating filter context, adding filter context to the provider list, and configuring WFP filters.
-// Since WFP APIs require PASSIVE_LEVEL, the same DISPATCH_LEVEL lock cannot be used to serialize the attach and
-// detach operations. To address this, a separate PASSIVE lock is maintained in the provider context to serialize
-// attach and detach operations.
-// As a result of this, in attach and detach operations, the flow acquires both the DISPATCH_LEVEL lock and the
-// PASSIVE_LEVEL lock. In the program invocation flow, only the DISPATCH_LEVEL lock is acquired.
-//
-// *Wildcard vs. exact attach parameter*:
-// In case there are 2 programs, one with a wildcard attach parameter and another with an exact attach parameter,
-// the program with the exact attach parameter will be invoked first. WFP filters for the exact attach parameter
-// will be added with higher weight than the wildcard attach parameter. This is to ensure that the program with
-// more specific match will be invoked before the program with a wildcard match.
-
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
@@ -62,9 +23,7 @@ typedef struct _net_ebpf_extension_hook_client
     const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
     const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
     ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
-    // ANUSA TODO: See if we can remove provider_data.
-    void* provider_data; ///< Opaque pointer to hook specific data associated with this client.
-    struct _net_ebpf_extension_hook_provider* provider_context; ///< Pointer to the hook NPI provider context.
+    void* provider_data;                 ///< Opaque pointer to hook specific data associated with this client.
     PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
     net_ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
     uint64_t filter_weight;
@@ -223,6 +182,12 @@ const void*
 net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     return provider_context->custom_data;
+}
+
+net_ebpf_extension_hook_attach_capability_t
+net_ebpf_extension_hook_provider_get_attach_calability(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
+{
+    return provider_context->attach_capability;
 }
 
 __forceinline _Must_inspect_result_ static ebpf_result_t
@@ -612,7 +577,6 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
     hook_client->invoke_program = client_dispatch_table->ebpf_program_invoke_function;
-    hook_client->provider_context = local_provider_context;
 
     status = _ebpf_ext_attach_init_rundown(hook_client);
     if (!NT_SUCCESS(status)) {
@@ -727,9 +691,6 @@ _net_ebpf_extension_hook_provider_attach_client(
         new_filter_context->wildcard = TRUE;
     }
 
-    // Set filter context as provider data in the hook client.
-    net_ebpf_extension_hook_client_set_provider_data(hook_client, new_filter_context);
-
     // Acquire the spin lock to synchronize access to filter_context_list.
     old_irql = ExAcquireSpinLockExclusive(&local_provider_context->spin_lock);
     spin_lock_acquired = TRUE;
@@ -827,15 +788,14 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
         goto Exit;
     }
 
-    local_provider_context = local_client_context->provider_context;
+    filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_client_context->provider_data;
+    local_provider_context = (net_ebpf_extension_hook_provider_t*)filter_context->provider_context;
 
     // Acquire push lock to serialize attach / detach operations.
     ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
     push_lock_acquired = TRUE;
 
     // ANUSA TODO: Move the below block of code (line 657 - 673) to a separate function.
-
-    filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_client_context->provider_data;
 
     // Remove the client from the filter context.
     net_ebpf_ext_remove_client_context(filter_context, local_client_context);

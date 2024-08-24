@@ -173,7 +173,6 @@ _net_ebpf_extension_sock_ops_create_filter_context(
 
     result = net_ebpf_extension_wfp_filter_context_create(
         sizeof(net_ebpf_extension_sock_ops_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH,
         attaching_client,
         provider_context,
         (net_ebpf_extension_wfp_filter_context_t**)&local_filter_context);

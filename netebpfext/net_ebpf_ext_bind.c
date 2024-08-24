@@ -113,11 +113,7 @@ _net_ebpf_ext_bind_create_filter_context(
     NET_EBPF_EXT_LOG_ENTRY();
 
     result = net_ebpf_extension_wfp_filter_context_create(
-        sizeof(net_ebpf_extension_wfp_filter_context_t),
-        NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH,
-        attaching_client,
-        provider_context,
-        &local_filter_context);
+        sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, provider_context, &local_filter_context);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }

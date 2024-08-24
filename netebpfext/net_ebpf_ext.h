@@ -166,7 +166,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
  * the hook client is being attached.
  *
  * @param[in] filter_context_size Size in bytes of the filter context.
- * @param[in] client_context_count Maximum number of clients that can be added to the filter context.
  * @param[in] client_context Pointer to hook client being attached.
  * @param[in] provider_context Pointer to hook provider context.
  * @param[out] filter_context Pointer to created filter_context.
@@ -177,7 +176,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
-    uint32_t client_context_count,
     _In_ const struct _net_ebpf_extension_hook_client* client_context,
     _In_ const struct _net_ebpf_extension_hook_provider* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);

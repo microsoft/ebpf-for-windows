@@ -234,19 +234,23 @@ static HANDLE _fwp_engine_handle;
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
-    uint32_t client_context_count,
     _In_ const net_ebpf_extension_hook_client_t* client_context,
     _In_ const net_ebpf_extension_hook_provider_t* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
+    net_ebpf_extension_hook_attach_capability_t capability;
+    uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    ASSERT(client_context_count <= NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH);
-
     *filter_context = NULL;
+
+    capability = net_ebpf_extension_hook_provider_get_attach_calability(provider_context);
+    if (capability == ATTACH_CAPABILITY_MULTI_ATTACH) {
+        client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH;
+    }
 
     // Allocate buffer for WFP filter context.
     local_filter_context = (net_ebpf_extension_wfp_filter_context_t*)ExAllocatePoolUninitialized(
@@ -257,15 +261,18 @@ net_ebpf_extension_wfp_filter_context_create(
     memset(local_filter_context, 0, filter_context_size);
 
     local_filter_context->client_contexts = (net_ebpf_extension_hook_client_t**)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, client_context_count * sizeof(net_ebpf_extension_hook_client_t*), NET_EBPF_EXTENSION_POOL_TAG);
+        NonPagedPoolNx,
+        client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*),
+        NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
         local_filter_context->client_contexts,
         "local_filter_context - client_contexts",
         result);
 
-    memset(local_filter_context->client_contexts, 0, client_context_count * sizeof(net_ebpf_extension_hook_client_t*));
-    local_filter_context->client_context_count_max = client_context_count;
+    memset(
+        local_filter_context->client_contexts, 0, client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*));
+    local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
     local_filter_context->reference_count = 1; // Initial reference.
@@ -273,6 +280,10 @@ net_ebpf_extension_wfp_filter_context_create(
     // Set the first client context.
     local_filter_context->client_contexts[0] = (net_ebpf_extension_hook_client_t*)client_context;
     local_filter_context->client_context_count = 1;
+
+    // Set filter context as provider data in the hook client.
+    net_ebpf_extension_hook_client_set_provider_data(
+        (net_ebpf_extension_hook_client_t*)client_context, local_filter_context);
 
     // Set the provider context.
     local_filter_context->provider_context = provider_context;

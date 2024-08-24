@@ -84,28 +84,39 @@ net_ebpf_extension_hook_provider_unregister(
     _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_hook_provider_t* provider_context);
 
 /**
- * @brief This callback function should be implemented by hook modules. This callback is invoked when a hook NPI client
- * is attempting to attach to the hook NPI provider. The hook NPI client is allowed to attach only if the API returns
- * success.
- * @param attaching_client Pointer to context of the hook NPI client that is requesting to be attached.
- * @param provider_context Pointer to the hook NPI provider context to which the client is being attached.
+ * @brief Callback function to create hook specific filter context. This callback is invoked when a hook NPI client
+          is attempting to attach to the hook NPI provider.
  *
- * @retval EBPF_SUCCESS The operation succeeded.
- * @retval EBPF_ACCESS_DENIED Request to attach client is denied by the provider.
- * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
+ * @param[in] attaching_client Pointer to context of the hook NPI client that is requesting to be attached.
+ * @param[in] provider_context Pointer to the hook NPI provider context to which the client is being attached.
+ * @param[out] filter_context Pointer to the filter context being created.
+ *
+ * @return EBPF_SUCCESS when operation succeeded, failure otherwise.
  */
-typedef ebpf_result_t (*net_ebpf_extension_hook_on_client_attach)(
-    _In_ const net_ebpf_extension_hook_client_t* attaching_client,
-    _In_ const net_ebpf_extension_hook_provider_t* provider_context);
-
 typedef ebpf_result_t (*net_ebpf_extension_create_filter_context)(
     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
     _In_ const net_ebpf_extension_hook_provider_t* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
+/**
+ * @brief Callback function to delete hook specific filter context. This callback is invoked when a hook NPI client
+          is detaching from the hook NPI provider.
+ *
+ * @param[in] filter_context Pointer to the filter context being deleted.
+ */
 typedef void (*net_ebpf_extension_delete_filter_context)(
     _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
+/**
+ * @brief Callback function to validate if the attach parameters (i.e. client data) is valid, and to get information
+ *        if the attach parameter is a wildcard attach parameter.
+ *
+ * @param[in] client_data Pointer to the attach parameters (client data) that is being validated.
+ * @param[out] is_wildcard Pointer to a boolean that will be set to true if the attach parameter is a wildcard attach
+ *             parameter.
+ *
+ * @return EBPF_SUCCESS when the attach parameters are valid, failure otherwise.
+ */
 typedef ebpf_result_t (*net_ebpf_extension_validate_client_data)(
     _In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard);
 
@@ -131,6 +142,7 @@ typedef struct _net_ebpf_extension_hook_provider_parameters
  *
  * @param[in] parameters Pointer to the NPI provider characteristics struct.
  * @param[in] dispatch Pointer to dispatch table.
+ * @param[in] attach_capability Capability of the hook provider to attach clients.
  * @param[in] custom_data (Optional) Opaque pointer to hook-specific custom data.
  * @param[in, out] provider_context Pointer to the provider context being registered.
  *
@@ -161,9 +173,29 @@ net_ebpf_extension_get_matching_client(
     _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
     _In_ net_ebpf_extension_hook_provider_t* provider_context);
 
+/**
+ * @brief Invoke all the eBPF programs attached to the specified filter context.
+ *
+ * @param[in] program_context Context to pass to eBPF program.
+ * @param[in] filter_context Filter context to invoke the programs from.
+ * @param[in] process_callback Callback function to determine if the next program should be invoked.
+ * @param[out] result Return value from the eBPF programs.
+ *
+ * @return ebpf_result_t Status of the program invocation.
+ */
 ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
     _Inout_ void* program_context,
     _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_opt_ const net_ebpf_extension_hook_process_verdict process_callback,
     _Out_ uint32_t* result);
+
+/**
+ * @brief Get attach capability for the hook provider.
+ *
+ * @param provider_context Pointer to the hook provider context.
+ *
+ * @return Attach capability for the hook provider.
+ */
+net_ebpf_extension_hook_attach_capability_t
+net_ebpf_extension_hook_provider_get_attach_calability(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
