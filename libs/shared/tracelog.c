@@ -1031,7 +1031,7 @@ __declspec(noinline) void ebpf_log_message_binary(
     _In_z_ const char* message,
     _In_z_ const char* type,
     _In_ const cxplat_utf8_string_t* name,
-    const void* data,
+    _In_reads_bytes_opt_(data_size) const void* data,
     uint32_t data_size)
 {
     switch (trace_level) {
