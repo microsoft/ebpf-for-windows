@@ -232,8 +232,7 @@ _net_ebpf_extension_hook_invoke_program(
     ebpf_program_invoke_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
 
-    ebpf_result_t invoke_result = invoke_program(client_binding_context, context, result);
-    NET_EBPF_EXT_RETURN_RESULT(invoke_result);
+    return invoke_program(client_binding_context, context, result);
 }
 
 _Must_inspect_result_ static ebpf_result_t
