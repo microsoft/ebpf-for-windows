@@ -310,13 +310,13 @@ net_ebpf_ext_resource_allocation_classify(
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
     result = _net_ebpf_ext_resource_validate_and_truncate_appid(
-        &ctx,
+        ctx,
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result) == EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_program(attached_client, ctx, &result) == EBPF_SUCCESS) {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -406,15 +406,11 @@ net_ebpf_ext_resource_release_classify(
         ctx->app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
-<<<<<<< HEAD
-    _net_ebpf_ext_resource_truncate_appid(ctx);
-=======
     result = _net_ebpf_ext_resource_validate_and_truncate_appid(
-        &ctx, incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size);
+        ctx, incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
->>>>>>> 6bf3c677 (Merged PR 31674: Update netebpfext bind context app_id truncation logic for safety)
 
     // Ignore the result of this call as we don't want to block the unbind.
     (void)net_ebpf_extension_hook_invoke_program(attached_client, ctx, &result);
