@@ -30,11 +30,6 @@ StringOpsTest(bind_md_t* ctx)
     char test_buffer[] = {'a', 'l', 'p', 'h', 'a', 0, 'b', 'r', 'a', 'v', 'o', 0};
     char null_str = 0;
 
-    // This will fail to verify, which is expected.
-    /*if (bpf_strnlen_s(NULL, 0) != 0) {
-        return 1;
-    }*/
-
     if (bpf_strnlen_s(&null_str, 0) != 0) {
         return 1;
     }

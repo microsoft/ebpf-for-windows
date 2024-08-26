@@ -5,7 +5,6 @@
 #include <ntstatus.h>
 #include <ntstrsafe.h>
 
-// errno_t bpf_strcpy(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
 errno_t
 _ebpf_core_strncpy_s(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count)
@@ -13,7 +12,6 @@ _ebpf_core_strncpy_s(
     return RtlStringCbCopyNExA(dest, dest_size, src, count, NULL, NULL, STRSAFE_FILL_BEHIND_NULL | 0);
 }
 
-// errno_t bpf_strcat(char *restrict dest, size_t dest_size, const char *restrict src, size_t count);
 errno_t
 _ebpf_core_strncat_s(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count)
@@ -21,7 +19,6 @@ _ebpf_core_strncat_s(
     return strncat_s(dest, dest_size, src, count);
 }
 
-// size_t bpf_strlen(const char *str, size_t str_size);
 size_t
 _ebpf_core_strlen_s(_In_reads_(str_size) const char* str, size_t str_size)
 {

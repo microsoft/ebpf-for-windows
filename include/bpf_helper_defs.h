@@ -444,7 +444,7 @@ EBPF_HELPER(int, bpf_strncpy_s, (char* dest, size_t dest_size, const char* src, 
  * @param[in] count Upper limit on the characters to append to dest.
  *
  * @retval 0 Concatenation was successful.
- * @returns Error code on failure, depending on the error.
+ * @retval <0 Error code on failure, depending on the error.
  */
 EBPF_HELPER(int, bpf_strncat_s, (char* dest, size_t dest_size, const char* src, size_t count));
 #ifndef __doxygen
