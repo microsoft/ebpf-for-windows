@@ -117,6 +117,9 @@
     <Manifest>
       <InputResourceManifests>bpf2c.exe.manifest;1</InputResourceManifests>
     </Manifest>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
@@ -132,6 +135,9 @@
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
@@ -147,6 +153,9 @@
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -165,6 +174,9 @@
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
@@ -183,6 +195,9 @@
     <PreBuildEvent>
       <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Process-File.ps1 -InputFile Convert-BpfToNative.ps1.template -OutputFile $(OutDir)Convert-BpfToNative.ps1 -ConfigFile replacements.json</Command>
     </PreBuildEvent>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\shared\hash.cpp" />
@@ -279,6 +294,9 @@
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(OutputPath)bpf2c.exe.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource\ebpf_resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -255,5 +255,14 @@ $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
       <Project>{aa933b9f-b5d8-4aa8-ac18-98fe1a161e8a}</Project>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\resource\ebpf_resource.rc">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

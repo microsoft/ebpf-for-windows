@@ -133,6 +133,9 @@ $(OutputPath)export_program_info_sample.exe</Command>
     <CustomBuildStep>
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
@@ -156,6 +159,9 @@ $(OutputPath)export_program_info_sample.exe</Command>
     <CustomBuildStep>
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
@@ -179,6 +185,9 @@ $(OutputPath)export_program_info_sample.exe</Command>
     <CustomBuildStep>
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -204,6 +213,9 @@ $(OutputPath)export_program_info_sample.exe</Command>
     <CustomBuildStep>
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
@@ -229,6 +241,9 @@ $(OutputPath)export_program_info_sample.exe</Command>
     <CustomBuildStep>
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="export_program_info_sample.cpp" />
@@ -241,6 +256,9 @@ $(OutputPath)export_program_info_sample.exe</Command>
     <ProjectReference Include="..\..\..\ebpfapi\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="..\..\..\resource\ebpf_resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
