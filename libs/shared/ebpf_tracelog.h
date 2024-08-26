@@ -310,7 +310,7 @@ extern "C"
         _In_z_ const char* message,
         _In_z_ const char* type,
         _In_ const cxplat_utf8_string_t* name,
-        _In_reads_bytes_opt_(data_size) const void* data,
+        _In_reads_bytes_(data_size) const void* data,
         uint32_t data_size);
 #define EBPF_LOG_MESSAGE_BINARY(trace_level, keyword, message, type, name, data, data_size)            \
     if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {                   \
