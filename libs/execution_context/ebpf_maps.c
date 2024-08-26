@@ -2576,17 +2576,6 @@ ebpf_map_update_entry(
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
 
-    if (flags & EBPF_MAP_FLAG_HELPER) {
-        EBPF_LOG_MESSAGE_BINARY(
-            EBPF_TRACELOG_LEVEL_VERBOSE,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Map update",
-            _ebpf_map_display_names[map->ebpf_map_definition.type],
-            &map->name,
-            key,
-            map->ebpf_map_definition.key_size);
-    }
-
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].zero_length_key) {
         if (key_size != 0) {
             EBPF_LOG_MESSAGE_UINT64(
