@@ -157,10 +157,10 @@ TEST_CASE("xdp_context", "[netebpfext]")
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
     size_t output_data_size = output_data.size();
-    xdp_md_t input_context = {};
-    size_t output_context_size = sizeof(xdp_md_t);
-    xdp_md_t output_context = {};
-    xdp_md_t* xdp_context = nullptr;
+    xdp_test_md_t input_context = {};
+    size_t output_context_size = sizeof(xdp_test_md_t);
+    xdp_test_md_t output_context = {};
+    xdp_test_md_t* xdp_context = nullptr;
 
     input_context.data_meta = 12345;
     input_context.ingress_ifindex = 67890;

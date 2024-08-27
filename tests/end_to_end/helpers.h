@@ -7,6 +7,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_xdp_test_hooks.h"
 #include "net_ebpf_ext_program_info.h"
 #include "sample_ext_program_info.h"
 #include "usersim/ke.h"
@@ -350,11 +351,11 @@ typedef class _single_instance_hook : public _hook_helper
     bpf_link* link_object = nullptr;
 } single_instance_hook_t;
 
-typedef class xdp_md_helper : public xdp_md_t
+typedef class xdp_md_helper : public xdp_test_md_t
 {
   public:
     xdp_md_helper(std::vector<uint8_t>& packet)
-        : xdp_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()),
+        : xdp_test_md_t{packet.data(), packet.data() + packet.size()}, _packet(&packet), _begin(0), _end(packet.size()),
           cloned_nbl(nullptr)
     {
         original_nbl = &_original_nbl_storage;
@@ -418,7 +419,7 @@ typedef class _test_xdp_helper
 {
   public:
     static int
-    adjust_head(_In_ const xdp_md_t* ctx, int delta)
+    adjust_head(_In_ const xdp_test_md_t* ctx, int delta)
     {
         return ((xdp_md_helper_t*)ctx)->adjust_head(delta);
     }
@@ -436,16 +437,16 @@ _xdp_context_create(
     ebpf_result_t retval = EBPF_FAILED;
     *context = nullptr;
 
-    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
+    xdp_test_md_t* xdp_context = reinterpret_cast<xdp_test_md_t*>(malloc(sizeof(xdp_test_md_t)));
     if (xdp_context == nullptr) {
         goto Done;
     }
 
     if (context_in) {
-        if (context_size_in < sizeof(xdp_md_t)) {
+        if (context_size_in < sizeof(xdp_test_md_t)) {
             goto Done;
         }
-        xdp_md_t* provided_context = (xdp_md_t*)context_in;
+        xdp_test_md_t* provided_context = (xdp_test_md_t*)context_in;
         xdp_context->ingress_ifindex = provided_context->ingress_ifindex;
         xdp_context->data_meta = provided_context->data_meta;
     }
@@ -474,7 +475,7 @@ _xdp_context_destroy(
         return;
     }
 
-    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(context);
+    xdp_test_md_t* xdp_context = reinterpret_cast<xdp_test_md_t*>(context);
     uint8_t* data = reinterpret_cast<uint8_t*>(xdp_context->data);
     uint8_t* data_end = reinterpret_cast<uint8_t*>(xdp_context->data_end);
     size_t data_length = data_end - data;
@@ -485,11 +486,11 @@ _xdp_context_destroy(
         *data_size_out = 0;
     }
 
-    if (context_out && *context_size_out >= sizeof(xdp_md_t)) {
-        xdp_md_t* provided_context = (xdp_md_t*)context_out;
+    if (context_out && *context_size_out >= sizeof(xdp_test_md_t)) {
+        xdp_test_md_t* provided_context = (xdp_test_md_t*)context_out;
         provided_context->ingress_ifindex = xdp_context->ingress_ifindex;
         provided_context->data_meta = xdp_context->data_meta;
-        *context_size_out = sizeof(xdp_md_t);
+        *context_size_out = sizeof(xdp_test_md_t);
     }
 
     free(context);

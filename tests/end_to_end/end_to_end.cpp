@@ -438,7 +438,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+    xdp_test_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
 
     uint32_t hook_result;
     REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
@@ -454,7 +454,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     // Create a normal (not 0-byte) UDP packet.
     auto packet10 = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx10{packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX};
+    xdp_test_md_t ctx10{packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX};
 
     // Test that we don't drop the normal packet.
     REQUIRE(hook.fire(&ctx10, &hook_result) == EBPF_SUCCESS);
@@ -499,7 +499,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
 
     // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
-    xdp_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
+    xdp_test_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
     REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
@@ -1770,7 +1770,7 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     udp_packet_t packet(address_family);
     packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
 
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
+    xdp_test_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
 
     uint32_t hook_result;
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);

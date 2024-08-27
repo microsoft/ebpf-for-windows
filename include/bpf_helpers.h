@@ -41,6 +41,7 @@
 
 #define bpf_map_def _ebpf_map_definition_in_file
 #include "ebpf_nethooks.h"
+#include "ebpf_xdp_test_hooks.h"
 
 #endif
 

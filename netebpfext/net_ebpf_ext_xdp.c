@@ -62,7 +62,7 @@ typedef struct _net_ebpf_extension_xdp_wfp_filter_context
 // XDP Program Information NPI Provider.
 //
 static int
-_net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta);
+_net_ebpf_xdp_adjust_head(_Inout_ xdp_test_md_t* ctx, int delta);
 
 static ebpf_result_t
 _ebpf_xdp_context_create(
@@ -307,7 +307,7 @@ net_ebpf_ext_xdp_unregister_providers()
  */
 typedef struct _net_ebpf_xdp_md
 {
-    xdp_md_t base;
+    xdp_test_md_t base;
     NET_BUFFER_LIST* original_nbl;
     NET_BUFFER_LIST* cloned_nbl;
 } net_ebpf_xdp_md_t;
@@ -437,7 +437,7 @@ _net_ebpf_ext_free_nbl(_Inout_ NET_BUFFER_LIST* nbl, BOOLEAN free_data)
 //
 
 static int
-_net_ebpf_xdp_adjust_head(_Inout_ xdp_md_t* ctx, int delta)
+_net_ebpf_xdp_adjust_head(_Inout_ xdp_test_md_t* ctx, int delta)
 {
     int return_value = 0;
     NDIS_STATUS ndis_status = NDIS_STATUS_SUCCESS;
@@ -777,7 +777,7 @@ Exit:
 }
 
 /**
- * @brief Build a xdp_md_t context for the eBPF program. This includes copying the packet data and
+ * @brief Build a xdp_test_md_t context for the eBPF program. This includes copying the packet data and
  * metadata into a contiguous buffer and building an MDL chain for the same.
  *
  * @param[in] data_in The packet data.
@@ -849,8 +849,8 @@ _ebpf_xdp_context_create(
     new_context->base.data = (void*)data_in;
     new_context->base.data_end = (void*)(data_in + data_size_in);
 
-    if (context_in != NULL && context_size_in >= sizeof(xdp_md_t)) {
-        xdp_md_t* xdp_context = (xdp_md_t*)context_in;
+    if (context_in != NULL && context_size_in >= sizeof(xdp_test_md_t)) {
+        xdp_test_md_t* xdp_context = (xdp_test_md_t*)context_in;
         new_context->base.data_meta = xdp_context->data_meta;
         new_context->base.ingress_ifindex = xdp_context->ingress_ifindex;
     }
@@ -907,11 +907,11 @@ _ebpf_xdp_context_delete(
     // Copy some fields from the context to the output buffer.
     if (context_out != NULL && context_size_out != NULL) {
         size_t context_size = *context_size_out;
-        if (context_size > sizeof(xdp_md_t)) {
-            context_size = sizeof(xdp_md_t);
+        if (context_size > sizeof(xdp_test_md_t)) {
+            context_size = sizeof(xdp_test_md_t);
         }
 
-        xdp_md_t* xdp_context_out = (xdp_md_t*)context_out;
+        xdp_test_md_t* xdp_context_out = (xdp_test_md_t*)context_out;
         xdp_context_out->data_meta = xdp_context->base.data_meta;
         xdp_context_out->ingress_ifindex = xdp_context->base.ingress_ifindex;
         *context_size_out = context_size;

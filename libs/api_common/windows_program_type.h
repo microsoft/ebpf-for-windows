@@ -6,6 +6,7 @@
 #include "crab_verifier_wrapper.hpp"
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
+#include "ebpf_xdp_test_hooks.h"
 
 #define PTYPE(name, descr, native_type, prefixes) \
     {                                             \

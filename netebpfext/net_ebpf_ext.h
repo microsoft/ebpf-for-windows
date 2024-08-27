@@ -12,6 +12,7 @@
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_windows.h"
+#include "ebpf_xdp_test_hooks.h"
 #include "net_ebpf_ext_hook_provider.h"
 #include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"

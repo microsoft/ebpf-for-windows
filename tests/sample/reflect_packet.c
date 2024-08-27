@@ -20,7 +20,7 @@
 //
 SEC("xdp_test/reflect")
 int
-reflect_packet(xdp_md_t* ctx)
+reflect_packet(xdp_test_md_t* ctx)
 {
     int rc = XDP_PASS;
 

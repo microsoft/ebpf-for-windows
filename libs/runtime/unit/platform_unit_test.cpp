@@ -18,6 +18,7 @@
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
 #include "ebpf_work_queue.h"
+#include "ebpf_xdp_test_hooks.h"
 #include "helpers.h"
 #include "kissfft.hh"
 

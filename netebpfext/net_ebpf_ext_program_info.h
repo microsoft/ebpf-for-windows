@@ -6,6 +6,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
 #include "ebpf_shared_framework.h"
+#include "ebpf_xdp_test_hooks.h"
 
 #define XDP_EXT_HELPER_FUNCTION_START EBPF_MAX_GENERAL_HELPER_FUNCTION
 
@@ -28,10 +29,10 @@ static const ebpf_helper_function_prototype_t _xdp_test_ebpf_extension_helper_fu
 
 // XDP_TEST program information.
 static const ebpf_context_descriptor_t _ebpf_xdp_test_context_descriptor = {
-    sizeof(xdp_md_t),
-    EBPF_OFFSET_OF(xdp_md_t, data),
-    EBPF_OFFSET_OF(xdp_md_t, data_end),
-    EBPF_OFFSET_OF(xdp_md_t, data_meta)};
+    sizeof(xdp_test_md_t),
+    EBPF_OFFSET_OF(xdp_test_md_t, data),
+    EBPF_OFFSET_OF(xdp_test_md_t, data_end),
+    EBPF_OFFSET_OF(xdp_test_md_t, data_meta)};
 
 static const ebpf_program_type_descriptor_t _ebpf_xdp_test_program_type_descriptor = {
     EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,

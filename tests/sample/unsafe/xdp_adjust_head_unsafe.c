@@ -14,7 +14,7 @@
 
 SEC("xdp")
 int
-xdp_adjust_head_unsafe(xdp_md_t* ctx)
+xdp_adjust_head_unsafe(xdp_test_md_t* ctx)
 {
     int rc = XDP_PASS;
 
