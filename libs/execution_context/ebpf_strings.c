@@ -3,7 +3,10 @@
 
 #include <ebpf_strings.h>
 #include <ntstatus.h>
+#pragma warning(push)
+#pragma warning(disable : 28196) // There's a bad annotation in ntstrsafe.h that fails to validate
 #include <ntstrsafe.h>
+#pragma warning(pop)
 
 errno_t
 _ebpf_core_strncpy_s(
@@ -16,7 +19,7 @@ errno_t
 _ebpf_core_strncat_s(
     _Out_writes_(dest_size) char* dest, size_t dest_size, _In_reads_(count) const char* src, size_t count)
 {
-    return strncat_s(dest, dest_size, src, count);
+    return RtlStringCbCatNExA(dest, dest_size, src, count, NULL, NULL, STRSAFE_FILL_BEHIND_NULL | 0);
 }
 
 size_t

@@ -3812,4 +3812,4 @@ _strings_test(ebpf_execution_type_t execution_type)
 
     bpf_object__close(process_object);
 }
-DECLARE_ALL_TEST_CASES("strings_test", "[libbf]", _strings_test);
+DECLARE_ALL_TEST_CASES("strings_test", "[libbpf]", _strings_test);
