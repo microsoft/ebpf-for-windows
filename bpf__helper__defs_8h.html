@@ -160,6 +160,15 @@ Functions</h2></td></tr>
 <tr class="memitem:a91543269c3d993aa3b79fa250d4df943"><td class="memItemLeft" align="right" valign="top">int64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a91543269c3d993aa3b79fa250d4df943">bpf_get_socket_cookie</a> (const void *ctx)</td></tr>
 <tr class="memdesc:a91543269c3d993aa3b79fa250d4df943"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the socket cookie associated with the socket context. The context can be <em><a class="el" href="structbpf__sock__addr.html" title="Data structure used as context for BPF_PROG_TYPE_CGROUP_SOCK_ADDR program type.">bpf_sock_addr</a></em> struct, <em>bpf_sock_ops</em> struct, or <em>bpf_sock</em> struct.  <a href="bpf__helper__defs_8h.html#a91543269c3d993aa3b79fa250d4df943">More...</a><br /></td></tr>
 <tr class="separator:a91543269c3d993aa3b79fa250d4df943"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f748dcfe88e5f21b763292bb2b1b167"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a0f748dcfe88e5f21b763292bb2b1b167">bpf_strncpy_s</a> (char *dest, size_t dest_size, const char *src, size_t count)</td></tr>
+<tr class="memdesc:a0f748dcfe88e5f21b763292bb2b1b167"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy a string into a buffer, of a fixed size.  <a href="bpf__helper__defs_8h.html#a0f748dcfe88e5f21b763292bb2b1b167">More...</a><br /></td></tr>
+<tr class="separator:a0f748dcfe88e5f21b763292bb2b1b167"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3b05d4c2e61c03388ac432f1188c52b9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a3b05d4c2e61c03388ac432f1188c52b9">bpf_strncat_s</a> (char *dest, size_t dest_size, const char *src, size_t count)</td></tr>
+<tr class="memdesc:a3b05d4c2e61c03388ac432f1188c52b9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Concatenate a string to an existing buffer, up to a certain number of characters.  <a href="bpf__helper__defs_8h.html#a3b05d4c2e61c03388ac432f1188c52b9">More...</a><br /></td></tr>
+<tr class="separator:a3b05d4c2e61c03388ac432f1188c52b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a38bf8179fba161626e0eff58e222d88a"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a38bf8179fba161626e0eff58e222d88a">bpf_strnlen_s</a> (const char *str, size_t str_size)</td></tr>
+<tr class="memdesc:a38bf8179fba161626e0eff58e222d88a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the length of a string, up to a certain number of characters.  <a href="bpf__helper__defs_8h.html#a38bf8179fba161626e0eff58e222d88a">More...</a><br /></td></tr>
+<tr class="separator:a38bf8179fba161626e0eff58e222d88a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -1027,6 +1036,160 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>0 on success and a negative value on error. </dd></dl>
+
+</div>
+</div>
+<a id="a3b05d4c2e61c03388ac432f1188c52b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3b05d4c2e61c03388ac432f1188c52b9">&#9670;&nbsp;</a></span>bpf_strncat_s()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_strncat_s </td>
+          <td>(</td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>dest</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>dest_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>src</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>count</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Concatenate a string to an existing buffer, up to a certain number of characters. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">dest</td><td>Destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dest_size</td><td>Size of the destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>String to append to the contents of dest. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">count</td><td>Upper limit on the characters to append to dest.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>Concatenation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>Error code on failure, depending on the error. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a0f748dcfe88e5f21b763292bb2b1b167"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f748dcfe88e5f21b763292bb2b1b167">&#9670;&nbsp;</a></span>bpf_strncpy_s()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_strncpy_s </td>
+          <td>(</td>
+          <td class="paramtype">char *&#160;</td>
+          <td class="paramname"><em>dest</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>dest_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>src</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>count</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy a string into a buffer, of a fixed size. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">dest</td><td>Destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">dest_size</td><td>Size of the destination buffer. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">src</td><td>Source string. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">count</td><td>Upper limit on bytes to copy.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-ERANGE</td><td>The destination buffer isn't large enough for the string being copied. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a38bf8179fba161626e0eff58e222d88a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a38bf8179fba161626e0eff58e222d88a">&#9670;&nbsp;</a></span>bpf_strnlen_s()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">size_t bpf_strnlen_s </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>str</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>str_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Find the length of a string, up to a certain number of characters. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">str</td><td>Buffer containing one or more null-terminated strings. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">str_size</td><td>Buffer length.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The length of the first string encountered in the str buffer. If str[0] is the null terminator, or str itself is null, returns 0. If there is no null terminator in the first str_size bytes, returns str_size. </dd></dl>
 
 </div>
 </div>
