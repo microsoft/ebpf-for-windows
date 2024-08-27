@@ -2451,7 +2451,7 @@ ebpf_map_find_entry(
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
 
-    if (flags & EBPF_MAP_FLAG_HELPER) {
+    if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.key_size != 0) {
         EBPF_LOG_MESSAGE_BINARY(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2617,6 +2617,17 @@ ebpf_map_update_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
+    if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.key_size != 0) {
+        EBPF_LOG_MESSAGE_BINARY(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "Map update",
+            _ebpf_map_display_names[map->ebpf_map_definition.type],
+            &map->name,
+            key,
+            map->ebpf_map_definition.key_size);
+    }
+
     if ((flags & EBPF_MAP_FLAG_HELPER) &&
         ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
         result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value, option);
@@ -2661,7 +2672,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     // High volume call - Skip entry/exit logging.
-    if (flags & EBPF_MAP_FLAG_HELPER) {
+    if (flags & EBPF_MAP_FLAG_HELPER && map->ebpf_map_definition.key_size != 0) {
         EBPF_LOG_MESSAGE_BINARY(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_MAP,
