@@ -10,7 +10,6 @@
 #include "ebpf_protocol.h"
 #include "ebpf_serialize.h"
 #include "ebpf_store_helper.h"
-#include "ebpf_xdp_test_hooks.h"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
