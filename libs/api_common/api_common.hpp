@@ -168,6 +168,10 @@ ebpf_result_to_errno(ebpf_result_t result)
     case EBPF_ACCESS_DENIED:
         error = EPERM;
         break;
+        
+    case EBPF_BUSY:
+        error = EBUSY;
+        break;
 
     default:
         error = EOTHER;

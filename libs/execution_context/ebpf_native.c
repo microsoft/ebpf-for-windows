@@ -1434,6 +1434,8 @@ ebpf_native_load(
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_driver failed",
             local_service_name);
+        result = native_load_result;
+        goto Done;
     }
 
     // Find the native entry in hash table.

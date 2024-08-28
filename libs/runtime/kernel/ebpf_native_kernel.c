@@ -14,7 +14,9 @@ ebpf_native_load_driver(_In_z_ const wchar_t* service_name)
     RtlInitUnicodeString(&driver_service_name, service_name);
     status = ZwLoadDriver(&driver_service_name);
     EBPF_LOG_NTSTATUS_WSTRING_API(EBPF_TRACELOG_KEYWORD_NATIVE, service_name, ZwLoadDriver, status);
-    if (status != STATUS_SUCCESS) {
+    if (status == STATUS_OBJECT_NAME_NOT_FOUND) {
+        result = EBPF_OBJECT_NOT_FOUND;
+    } else if (status != STATUS_SUCCESS) {
         result = EBPF_FAILED;
     }
 

@@ -3745,6 +3745,11 @@ _ebpf_program_load_native(
 
 Done:
     if (result != EBPF_SUCCESS) {
+        // If the service is still being deleted, starting it can fail with EBPF_OBJECT_NOT_FOUND.
+        if (result == EBPF_OBJECT_NOT_FOUND) {
+            result = EBPF_BUSY;
+        }
+
         if (map_handles != nullptr) {
             for (int i = 0; i < count_of_maps; i++) {
                 if (map_handles[i] != ebpf_handle_invalid && map_handles[i] != 0) {
