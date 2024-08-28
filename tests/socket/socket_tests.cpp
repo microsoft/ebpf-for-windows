@@ -33,6 +33,19 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define MULTIPLE_ATTACH_PROGRAM_COUNT 3
 
+__forceinline static void
+pause()
+{
+    // system("pause");
+}
+
+__forceinline static void
+pause(int count)
+{
+    printf("anusa: reached %d\n", count);
+    // system("pause");
+}
+
 void
 connection_test(
     ADDRESS_FAMILY address_family,
@@ -505,7 +518,7 @@ _update_map_entry(
     if (add) {
         REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     } else {
-        REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
+        bpf_map_delete_elem(map_fd, &key);
     }
 }
 
@@ -601,6 +614,9 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
         IPPROTO_TCP,
         false);
 
+    printf("anusa: reached 3\n");
+    pause();
+
     // The packet should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
@@ -613,6 +629,9 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
+
+    printf("anusa: reached 4\n");
+    pause();
 
     // The packet should be allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -628,12 +647,18 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
             IPPROTO_TCP,
             false);
 
+        printf("anusa: reached 5\n");
+        pause();
+
         // The packet should be blocked.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
         // Detach the program.
         int result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, BPF_CGROUP_INET4_CONNECT);
         REQUIRE(result == 0);
+
+        printf("anusa: reached 6\n");
+        pause();
 
         // The packet should now be allowed.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -645,6 +670,9 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
             BPF_CGROUP_INET4_CONNECT,
             0);
         REQUIRE(result == 0);
+
+        printf("anusa: reached 7\n");
+        pause();
 
         // The packet should be blocked.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
@@ -658,6 +686,9 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
             htons(SOCKET_TEST_PORT),
             IPPROTO_TCP,
             true);
+
+        printf("anusa: reached 8\n");
+        pause();
 
         // The packet should now be allowed.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -715,8 +746,14 @@ multi_attach_test(uint32_t compartment_id)
             true);
     }
 
+    printf("anusa: reached 1\n");
+    pause();
+
     // Validate that the connection is allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
+
+    printf("anusa: reached 2\n");
+    pause();
 
     // Test that the connection is blocked if any of the programs block the connection.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
@@ -759,19 +796,121 @@ multi_attach_test(uint32_t compartment_id)
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
 }
 
+// void
+// multi_attach_test_redirection(uint32_t compartment_id)
+// {
+//     // This test validates that redirection correctly happens when multiple programs are redirecting the connection.
+//     native_module_helper_t helpers[MULTIPLE_ATTACH_PROGRAM_COUNT];
+//     struct bpf_object* objects[MULTIPLE_ATTACH_PROGRAM_COUNT] = {nullptr};
+//     bpf_object_ptr object_ptrs[MULTIPLE_ATTACH_PROGRAM_COUNT];
+//     uint16_t destination_port = SOCKET_TEST_PORT - 4;
+//     uint16_t proxy_port1 = destination_port + 1;
+//     uint16_t proxy_port2 = destination_port + 2;
+//     uint16_t original_ports[MULTIPLE_ATTACH_PROGRAM_COUNT] = {destination_port, proxy_port1, proxy_port2};
+//     uint16_t redirect_ports[MULTIPLE_ATTACH_PROGRAM_COUNT] = {proxy_port1, proxy_port2, SOCKET_TEST_PORT};
+
+//     // Load 3 programs.
+//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+//         helpers[i].initialize("cgroup_sock_addr2");
+//         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
+//         REQUIRE(objects[i] != nullptr);
+//         object_ptrs[i] = bpf_object_ptr(objects[i]);
+//         REQUIRE(bpf_object__load(objects[i]) == 0);
+//     }
+
+//     // Attach all the 3 programs to the same hook (i.e. same attach parameters).
+//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+//         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], "connect_redirect4");
+//         REQUIRE(connect_program != nullptr);
+//         int result = bpf_prog_attach(
+//             bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
+//             compartment_id,
+//             BPF_CGROUP_INET4_CONNECT,
+//             0);
+//         REQUIRE(result == 0);
+//     }
+
+//     // Lambda function to update the policy map entry, and validate the connection.
+//     auto validate_program_detach_reattach = [&](uint32_t program_index) {
+//         // Configure policy maps for all programs to "redirect" the connection.
+//         // Below is the configuration:
+//         // 1. Receiver will listen on SOCKET_TEST_PORT and client will send traffic to destination_port.
+//         // 2. Program 0: Redirect from port destination_port --> proxy_port1
+//         // 3. Program 1: Redirect from port proxy_port1 --> proxy_port2
+//         // 4. Program 2: Redirect from port proxy_port2 --> SOCKET_TEST_PORT
+//         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+//             bpf_map* policy_map = bpf_object__find_map_by_name(objects[i], "policy_map");
+//             REQUIRE(policy_map != nullptr);
+//             fd_t map_fd = bpf_map__fd(policy_map);
+//             REQUIRE(map_fd != ebpf_fd_invalid);
+//             _update_map_entry(
+//                 map_fd,
+//                 htonl(INADDR_LOOPBACK),
+//                 htons(original_ports[i]),
+//                 htonl(INADDR_LOOPBACK),
+//                 htons(redirect_ports[i]),
+//                 IPPROTO_TCP,
+//                 true);
+//         }
+
+//         // Validate that the connection is allowed.
+//         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+//         // Detach the program.
+//         bpf_program* connect_program = bpf_object__find_program_by_name(objects[program_index], "connect_redirect4");
+//         REQUIRE(connect_program != nullptr);
+//         int result = bpf_prog_detach2(
+//             bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id,
+//             BPF_CGROUP_INET4_CONNECT);
+
+//         // The connection should now be blocked.
+//         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_DROP);
+
+//         // Reset the whole state by detaching and re-attaching all the programs in-order.
+//         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+//             if (i == program_index) {
+//                 continue;
+//             }
+//             bpf_program* program = bpf_object__find_program_by_name(objects[i], "connect_redirect4");
+//             REQUIRE(program != nullptr);
+//             result = bpf_prog_detach2(
+//                 bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, BPF_CGROUP_INET4_CONNECT);
+//             REQUIRE(result == 0);
+//         }
+
+//         // Re-attach the programs in-order.
+//         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+//             bpf_program* program = bpf_object__find_program_by_name(objects[i], "connect_redirect4");
+//             REQUIRE(program != nullptr);
+//             result = bpf_prog_attach(
+//                 bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, BPF_CGROUP_INET4_CONNECT,
+//                 0);
+//             REQUIRE(result == 0);
+//         }
+
+//         // Validate that the connection is again allowed.
+//         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+//     };
+
+//     // For each program, detach and re-attach it, and validate the connection.
+//     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+//         validate_program_detach_reattach(i);
+//     }
+// }
+
 void
 multi_attach_test_redirection(uint32_t compartment_id)
 {
-    // This test validates that redirection correctly happens when multiple programs are redirecting the connection.
-
+    // This test validates combination of redirection and other program verdicts.
     native_module_helper_t helpers[MULTIPLE_ATTACH_PROGRAM_COUNT];
     struct bpf_object* objects[MULTIPLE_ATTACH_PROGRAM_COUNT] = {nullptr};
     bpf_object_ptr object_ptrs[MULTIPLE_ATTACH_PROGRAM_COUNT];
-    uint16_t destination_port = SOCKET_TEST_PORT - 4;
-    uint16_t proxy_port1 = destination_port + 1;
-    uint16_t proxy_port2 = destination_port + 2;
-    uint16_t original_ports[MULTIPLE_ATTACH_PROGRAM_COUNT] = {destination_port, proxy_port1, proxy_port2};
-    uint16_t redirect_ports[MULTIPLE_ATTACH_PROGRAM_COUNT] = {proxy_port1, proxy_port2, SOCKET_TEST_PORT};
+    uint16_t proxy_port = SOCKET_TEST_PORT;
+    uint16_t destination_port = proxy_port - 1;
+    // uint16_t proxy_port1 = destination_port + 1;
+    // uint16_t proxy_port2 = destination_port + 2;
+    // uint16_t original_ports[MULTIPLE_ATTACH_PROGRAM_COUNT] = {destination_port, proxy_port1, proxy_port2};
+    // uint16_t redirect_ports[MULTIPLE_ATTACH_PROGRAM_COUNT] = {proxy_port1, proxy_port2, SOCKET_TEST_PORT};
 
     // Load 3 programs.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
@@ -795,68 +934,226 @@ multi_attach_test_redirection(uint32_t compartment_id)
     }
 
     // Lambda function to update the policy map entry, and validate the connection.
-    auto validate_program_detach_reattach = [&](uint32_t program_index) {
-        // Configure policy maps for all programs to "redirect" the connection.
-        // Below is the configuration:
-        // 1. Receiver will listen on SOCKET_TEST_PORT and client will send traffic to destination_port.
-        // 2. Program 0: Redirect from port destination_port --> proxy_port1
-        // 3. Program 1: Redirect from port proxy_port1 --> proxy_port2
-        // 4. Program 2: Redirect from port proxy_port2 --> SOCKET_TEST_PORT
+    auto validate_program_redirection = [&](uint32_t program_index) {
         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
+            // Configure ith program to redirect the connection. Configure all other programs to "allow" the connection.
             bpf_map* policy_map = bpf_object__find_map_by_name(objects[i], "policy_map");
             REQUIRE(policy_map != nullptr);
             fd_t map_fd = bpf_map__fd(policy_map);
             REQUIRE(map_fd != ebpf_fd_invalid);
+
+            if (i != program_index) {
+                _update_map_entry(
+                    map_fd,
+                    htonl(INADDR_LOOPBACK),
+                    htons(destination_port),
+                    htonl(INADDR_LOOPBACK),
+                    htons(destination_port),
+                    IPPROTO_TCP,
+                    true);
+
+                _update_map_entry(
+                    map_fd,
+                    htonl(INADDR_LOOPBACK),
+                    htons(proxy_port),
+                    htonl(INADDR_LOOPBACK),
+                    htons(proxy_port),
+                    IPPROTO_TCP,
+                    true);
+            } else {
+                _update_map_entry(
+                    map_fd,
+                    htonl(INADDR_LOOPBACK),
+                    htons(destination_port),
+                    htonl(INADDR_LOOPBACK),
+                    htons(proxy_port),
+                    IPPROTO_TCP,
+                    true);
+            }
+        }
+
+        pause(1);
+
+        // Validate that the connection is successfully redirected.
+        validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+        if (program_index > 0) {
+            // If this is not the first program, configure the preceding program to block the connection.
+            // That should result in the connection being blocked.
+            bpf_map* policy_map = bpf_object__find_map_by_name(objects[program_index - 1], "policy_map");
+            REQUIRE(policy_map != nullptr);
+            fd_t map_fd = bpf_map__fd(policy_map);
+            REQUIRE(map_fd != ebpf_fd_invalid);
+
             _update_map_entry(
                 map_fd,
                 htonl(INADDR_LOOPBACK),
-                htons(original_ports[i]),
+                htons(destination_port),
                 htonl(INADDR_LOOPBACK),
-                htons(redirect_ports[i]),
+                htons(destination_port),
+                IPPROTO_TCP,
+                false);
+
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                IPPROTO_TCP,
+                false);
+
+            pause(2);
+
+            // Validate that the connection is blocked.
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_DROP);
+
+            // Now detach the preceding program, and validate that the connection is allowed.
+            bpf_program* connect_program =
+                bpf_object__find_program_by_name(objects[program_index - 1], "connect_redirect4");
+            REQUIRE(connect_program != nullptr);
+
+            int result = bpf_prog_detach2(
+                bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
+                compartment_id,
+                BPF_CGROUP_INET4_CONNECT);
+            REQUIRE(result == 0);
+
+            pause(3);
+
+            // The connection should now be allowed.
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+            // Revert the policy to allow the connection.
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                IPPROTO_TCP,
+                true);
+
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
                 IPPROTO_TCP,
                 true);
         }
 
-        // Validate that the connection is allowed.
-        validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
-
-        // Detach the program.
-        bpf_program* connect_program = bpf_object__find_program_by_name(objects[program_index], "connect_redirect4");
-        REQUIRE(connect_program != nullptr);
-        int result = bpf_prog_detach2(
-            bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, BPF_CGROUP_INET4_CONNECT);
-
-        // The connection should now be blocked.
-        validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_DROP);
-
         // Reset the whole state by detaching and re-attaching all the programs in-order.
         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-            if (i == program_index) {
-                continue;
-            }
             bpf_program* program = bpf_object__find_program_by_name(objects[i], "connect_redirect4");
             REQUIRE(program != nullptr);
-            result = bpf_prog_detach2(
+            bpf_prog_detach2(
                 bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, BPF_CGROUP_INET4_CONNECT);
-            REQUIRE(result == 0);
         }
 
         // Re-attach the programs in-order.
         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
             bpf_program* program = bpf_object__find_program_by_name(objects[i], "connect_redirect4");
             REQUIRE(program != nullptr);
-            result = bpf_prog_attach(
+            int result = bpf_prog_attach(
                 bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, BPF_CGROUP_INET4_CONNECT, 0);
             REQUIRE(result == 0);
         }
 
+        pause(4);
+
         // Validate that the connection is again allowed.
-        validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+        validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+        if (program_index < MULTIPLE_ATTACH_PROGRAM_COUNT - 1) {
+            // If this is not the last program, configure the following program to block the connection.
+            // That should result in the connection still be redirected.
+
+            bpf_map* policy_map = bpf_object__find_map_by_name(objects[program_index + 1], "policy_map");
+            REQUIRE(policy_map != nullptr);
+
+            fd_t map_fd = bpf_map__fd(policy_map);
+            REQUIRE(map_fd != ebpf_fd_invalid);
+
+            // Delete the map entry to block the connection.
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                IPPROTO_TCP,
+                false);
+
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                IPPROTO_TCP,
+                false);
+
+            pause(5);
+
+            // Validate that the connection is still redirected.
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+            // Next configure the last program to redirect the connection to proxy_port + 1.
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port + 1),
+                IPPROTO_TCP,
+                true);
+
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port + 1),
+                IPPROTO_TCP,
+                true);
+
+            pause(6);
+
+            // Validate that the connection is not redirected to proxy_port + 1. This is because the connection is
+            // already redirected by the previous program.
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+            // Revert the policy to allow the connection.
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                htonl(INADDR_LOOPBACK),
+                htons(proxy_port),
+                IPPROTO_TCP,
+                true);
+
+            _update_map_entry(
+                map_fd,
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                htonl(INADDR_LOOPBACK),
+                htons(destination_port),
+                IPPROTO_TCP,
+                true);
+
+            pause(7);
+
+            // Validate that the connection is allowed.
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+        }
     };
 
     // For each program, detach and re-attach it, and validate the connection.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-        validate_program_detach_reattach(i);
+        validate_program_redirection(i);
     }
 }
 
@@ -869,6 +1166,181 @@ TEST_CASE("multi_attach_test", "[sock_addr_tests][multi_attach_tests]")
 TEST_CASE("multi_attach_test_wildcard", "[sock_addr_tests][multi_attach_tests]")
 {
     multi_attach_test(UNSPECIFIED_COMPARTMENT_ID);
+}
+
+typedef enum _program_action
+{
+    ACTION_ALLOW,
+    ACTION_REDIRECT,
+    ACTION_BLOCK,
+    ACTION_MAX,
+} program_action_t;
+
+void
+multi_attach_configure_map(
+    bpf_object* object, uint16_t destination_port, uint16_t proxy_port, uint16_t protocol, program_action_t action)
+{
+    bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
+    REQUIRE(policy_map != nullptr);
+    fd_t map_fd = bpf_map__fd(policy_map);
+    REQUIRE(map_fd != ebpf_fd_invalid);
+
+    if (action == ACTION_ALLOW) {
+        _update_map_entry(
+            map_fd,
+            htonl(INADDR_LOOPBACK),
+            htons(destination_port),
+            htonl(INADDR_LOOPBACK),
+            htons(destination_port),
+            protocol,
+            true);
+
+        _update_map_entry(
+            map_fd,
+            htonl(INADDR_LOOPBACK),
+            htons(proxy_port),
+            htonl(INADDR_LOOPBACK),
+            htons(proxy_port),
+            protocol,
+            true);
+    } else if (action == ACTION_REDIRECT) {
+        _update_map_entry(
+            map_fd,
+            htonl(INADDR_LOOPBACK),
+            htons(destination_port),
+            htonl(INADDR_LOOPBACK),
+            htons(proxy_port),
+            protocol,
+            true);
+    } else if (action == ACTION_BLOCK) {
+        _update_map_entry(
+            map_fd,
+            htonl(INADDR_LOOPBACK),
+            htons(destination_port),
+            htonl(INADDR_LOOPBACK),
+            htons(destination_port),
+            protocol,
+            false);
+
+        _update_map_entry(
+            map_fd,
+            htonl(INADDR_LOOPBACK),
+            htons(proxy_port),
+            htonl(INADDR_LOOPBACK),
+            htons(proxy_port),
+            protocol,
+            false);
+    } else {
+        REQUIRE(false);
+    }
+}
+
+static program_action_t
+_multi_attach_get_combined_verdict(program_action_t* actions, uint32_t count)
+{
+    REQUIRE(count % 2 == 0);
+
+    for (uint32_t i = 0; i < count; i++) {
+        if (actions[i] == ACTION_BLOCK) {
+            return ACTION_BLOCK;
+        } else if (actions[i] == ACTION_REDIRECT) {
+            return ACTION_REDIRECT;
+        }
+    }
+    return ACTION_ALLOW;
+}
+
+TEST_CASE("multi_attach_test_combined", "[sock_addr_tests][multi_attach_tests]")
+{
+    // This test case loads and attaches MULTIPLE_ATTACH_PROGRAM_COUNT * 2 programs:
+    // MULTIPLE_ATTACH_PROGRAM_COUNT programs with specific compartment id, and
+    // MULTIPLE_ATTACH_PROGRAM_COUNT programs with wildcard compartment id.
+    // Then the test case iterates over all the possible combinations of program actions (allow, redirect, block) for
+    // each program, and validates the connection based on the expected result.
+
+    constexpr uint32_t program_count_per_hook = 2;
+    native_module_helper_t helpers[program_count_per_hook * 2];
+    struct bpf_object* objects[program_count_per_hook * 2] = {nullptr};
+    bpf_object_ptr object_ptrs[program_count_per_hook * 2];
+    program_action_t actions[program_count_per_hook * 2] = {ACTION_ALLOW};
+    uint16_t proxy_port = SOCKET_TEST_PORT;
+    uint16_t destination_port = proxy_port - 1;
+
+    // Load the programs.
+    for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+        helpers[i].initialize("cgroup_sock_addr2");
+        objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
+        REQUIRE(objects[i] != nullptr);
+        object_ptrs[i] = bpf_object_ptr(objects[i]);
+        REQUIRE(bpf_object__load(objects[i]) == 0);
+    }
+
+    // Attach all the programs.
+    for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+        bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], "connect_redirect4");
+        REQUIRE(connect_program != nullptr);
+        int result = bpf_prog_attach(
+            bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
+            i < program_count_per_hook ? 1 : UNSPECIFIED_COMPARTMENT_ID,
+            BPF_CGROUP_INET4_CONNECT,
+            0);
+        REQUIRE(result == 0);
+    }
+
+    // This loop will iterate over all the possible combinations of program actions for each program.
+    while (true) {
+        // Configure program actions.
+        for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+            multi_attach_configure_map(objects[i], destination_port, proxy_port, IPPROTO_TCP, actions[i]);
+        }
+
+        program_action_t expected_action = _multi_attach_get_combined_verdict(actions, program_count_per_hook * 2);
+
+        // Validate the connection based on the expected action.
+        switch (expected_action) {
+        case ACTION_ALLOW:
+            validate_connection_multi_attach(AF_INET, destination_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+            break;
+        case ACTION_REDIRECT:
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+            break;
+        case ACTION_BLOCK:
+            validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_DROP);
+            break;
+        default:
+            REQUIRE(false);
+        }
+
+        // Increment the program actions.
+        for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+            actions[i] = static_cast<program_action_t>(actions[i] + 1);
+            if (actions[i] == ACTION_MAX) {
+                actions[i] = ACTION_ALLOW;
+            } else {
+                break;
+            }
+        }
+
+        // Print the program actions.
+        printf("Program actions: ");
+        for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+            printf("%d ", actions[i]);
+        }
+        printf("\n");
+
+        // Break if all the program actions are ACTION_BLOCK.
+        bool should_break = true;
+        for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
+            if (actions[i] != ACTION_BLOCK) {
+                should_break = false;
+                break;
+            }
+        }
+
+        if (should_break) {
+            break;
+        }
+    }
 }
 
 TEST_CASE("multi_attach_test_redirection", "[sock_addr_tests][multi_attach_tests]")
@@ -955,6 +1427,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         true);
 
+    pause(1);
+
     // Validate that the connection is allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
 
@@ -968,6 +1442,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         false);
 
+    pause(2);
+
     // The connection should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
@@ -980,6 +1456,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
+
+    pause(3);
 
     // The connection should be allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -994,6 +1472,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         false);
 
+    pause(4);
+
     // The connection should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
@@ -1007,38 +1487,58 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         true);
 
+    pause(5);
+
     // The connection should be allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
 
-    // Now configure the programs to redirect the connection.
-    uint16_t destination_port = SOCKET_TEST_PORT - 2;
-    uint16_t proxy_port = destination_port + 1;
+    // Now configure the specific program to redirect the connection.
+    uint16_t destination_port = SOCKET_TEST_PORT - 1;
+    // uint16_t proxy_port = destination_port + 1;
 
     _update_map_entry(
         map_fd_specific,
         htonl(INADDR_LOOPBACK),
         htons(destination_port),
         htonl(INADDR_LOOPBACK),
-        htons(proxy_port),
-        IPPROTO_TCP,
-        true);
-
-    _update_map_entry(
-        map_fd_wildcard,
-        htonl(INADDR_LOOPBACK),
-        htons(proxy_port),
-        htonl(INADDR_LOOPBACK),
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
+
+    pause(6);
 
     // Validate that the connection is redirected to the final port.
     // The order of attach and invocation should be: specific --> wildcard.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
 
+    // Now configure blocking rule for wildcard program.
+    _update_map_entry(
+        map_fd_wildcard,
+        htonl(INADDR_LOOPBACK),
+        htons(SOCKET_TEST_PORT),
+        htonl(INADDR_LOOPBACK),
+        htons(SOCKET_TEST_PORT),
+        IPPROTO_TCP,
+        false);
+
+    // Validate that the connection is still redirected to the final port.
+    validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+    // Revert the policy to allow the connection.
+    _update_map_entry(
+        map_fd_wildcard,
+        htonl(INADDR_LOOPBACK),
+        htons(SOCKET_TEST_PORT),
+        htonl(INADDR_LOOPBACK),
+        htons(SOCKET_TEST_PORT),
+        IPPROTO_TCP,
+        true);
+
     // Now detach the program with specific compartment id.
     result = bpf_prog_detach2(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT);
+
+    pause(7);
 
     // The connection should now be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_DROP);
@@ -1047,8 +1547,63 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT, 0);
 
+    pause(8);
+
     // The connection should be allowed. This validates that the program with specific compartment id is always
     // invoked before the program with wildcard compartment id.
+    validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+    // Now configure allow rule for specific program and redirect rule for wildcard program.
+    _update_map_entry(
+        map_fd_specific,
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        IPPROTO_TCP,
+        true);
+
+    _update_map_entry(
+        map_fd_wildcard,
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        htonl(INADDR_LOOPBACK),
+        htons(SOCKET_TEST_PORT),
+        IPPROTO_TCP,
+        true);
+
+    pause(9);
+
+    // Validate that the connection is redirected to the final port.
+    validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
+
+    pause(10);
+
+    // Block the connection for specific program.
+    _update_map_entry(
+        map_fd_specific,
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        htonl(INADDR_LOOPBACK),
+        htons(destination_port),
+        IPPROTO_TCP,
+        false);
+
+    pause(11);
+
+    // Validate that the connection is now blocked.
+    validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_DROP);
+
+    pause(12);
+
+    // Detach the program with specific compartment id.
+    result = bpf_prog_detach2(
+        bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT);
+    REQUIRE(result == 0);
+
+    pause(13);
+
+    // Since the specific program is now detached, the connection should be correctly redirected by wildcard program.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
 }
 
@@ -1278,7 +1833,7 @@ multi_attach_test_thread_function1(
     }
 }
 
-TEST_CASE("multi_attach_concurrency_test1", "[multi_attach][concurrent_tests]")
+TEST_CASE("multi_attach_concurrency_test1", "[multi_attach_tests][concurrent_tests]")
 {
     // This test case validates that multiple threads can attach / detach programs concurrently, and the connection
     // verdict is as expected. The test case will have the following threads:
@@ -1331,7 +1886,7 @@ multi_attach_test_thread_function2(
     }
 }
 
-TEST_CASE("multi_attach_concurrency_test2", "[multi_attach][concurrent_tests]")
+TEST_CASE("multi_attach_concurrency_test2", "[multi_attach_tests][concurrent_tests]")
 {
     // This test case stresses the code path where 2 program -- one of type wildcard and other of specific attach
     // types are attaching and detaching in parallel, and a third thread invokes the hook by sending packets.
@@ -1359,6 +1914,11 @@ TEST_CASE("multi_attach_concurrency_test2", "[multi_attach][concurrent_tests]")
         thread.join();
     }
 }
+
+// ANUSA TODO: Make all the multi-attach tests for:
+// 1. IPv6
+// 2. UDP
+// 3. dual stack sockets
 
 int
 main(int argc, char* argv[])

@@ -15,6 +15,8 @@
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 #define LOW_MEMORY_CONNECTION_CONTEXT_COUNT 1000
 
+uint32_t debug_break = 0;
+
 #define CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(filter_context)                 \
     if ((filter_context) != NULL) {                                       \
         if ((filter_context)->redirect_handle != NULL) {                  \
@@ -193,6 +195,10 @@ typedef struct _net_ebpf_bpf_sock_addr
     void* redirect_context;
     uint32_t redirect_context_size;
     uint64_t transport_endpoint_handle;
+    bpf_sock_addr_t* original_context;
+    bool redirected : 1;
+    bool address_changed : 1;
+    bool v4_mapped : 1;
 } net_ebpf_sock_addr_t;
 
 /**
@@ -435,13 +441,15 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_filter_paramete
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"},
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_UNKNOWN},
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
      &EBPF_HOOK_CGROUP_CONNECT_V4_SUBLAYER,
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"}};
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_UNKNOWN}};
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_CONNECT_V6,
@@ -454,7 +462,8 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_filter_paramete
      &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
      &EBPF_HOOK_ALE_CONNECT_REDIRECT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"}};
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_UNKNOWN}};
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_recv_accept_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V4,
@@ -1366,6 +1375,7 @@ static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
+    _In_opt_ const FWPS_CONNECT_REQUEST* connect_request,
     _Out_ net_ebpf_sock_addr_t* sock_addr_ctx)
 {
     net_ebpf_extension_hook_id_t hook_id =
@@ -1388,25 +1398,51 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->hook_id = hook_id;
     sock_addr_ctx->transport_endpoint_handle = incoming_metadata_values->transportEndpointHandle;
 
-    // Copy IP address fields.
-    if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
-        (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
-        sock_addr_ctx->base.family = AF_INET;
-        sock_addr_ctx->base.msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
-        sock_addr_ctx->base.user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
+    if (connect_request == NULL) {
+        // Copy IP address fields.
+        if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
+            (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
+            sock_addr_ctx->base.family = AF_INET;
+            sock_addr_ctx->base.msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
+            sock_addr_ctx->base.user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
+        } else {
+            sock_addr_ctx->base.family = AF_INET6;
+            RtlCopyMemory(
+                sock_addr_ctx->base.msg_src_ip6,
+                incoming_values[source_ip_address_field].value.byteArray16,
+                sizeof(FWP_BYTE_ARRAY16));
+            RtlCopyMemory(
+                sock_addr_ctx->base.user_ip6,
+                incoming_values[destination_ip_address_field].value.byteArray16,
+                sizeof(FWP_BYTE_ARRAY16));
+        }
+
+        sock_addr_ctx->base.msg_src_port = htons(incoming_values[source_port_field].value.uint16);
+        sock_addr_ctx->base.user_port = htons(incoming_values[destination_port_field].value.uint16);
     } else {
-        sock_addr_ctx->base.family = AF_INET6;
-        RtlCopyMemory(
-            sock_addr_ctx->base.msg_src_ip6,
-            incoming_values[source_ip_address_field].value.byteArray16,
-            sizeof(FWP_BYTE_ARRAY16));
-        RtlCopyMemory(
-            sock_addr_ctx->base.user_ip6,
-            incoming_values[destination_ip_address_field].value.byteArray16,
-            sizeof(FWP_BYTE_ARRAY16));
+        // Use connect_request to populate the fields.
+        if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
+            (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
+            sock_addr_ctx->base.family = AF_INET;
+            sock_addr_ctx->base.msg_src_ip4 =
+                *(uint32_t*)INETADDR_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort);
+            sock_addr_ctx->base.user_ip4 =
+                *(uint32_t*)INETADDR_ADDRESS((PSOCKADDR)&connect_request->localAddressAndPort);
+        } else {
+            sock_addr_ctx->base.family = AF_INET6;
+            RtlCopyMemory(
+                sock_addr_ctx->base.msg_src_ip6,
+                INETADDR_ADDRESS((PSOCKADDR)&connect_request->localAddressAndPort),
+                sizeof(FWP_BYTE_ARRAY16));
+            RtlCopyMemory(
+                sock_addr_ctx->base.user_ip6,
+                INETADDR_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort),
+                sizeof(FWP_BYTE_ARRAY16));
+        }
+        sock_addr_ctx->base.user_port = INETADDR_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort);
+        sock_addr_ctx->base.msg_src_port = INETADDR_PORT((PSOCKADDR)&connect_request->localAddressAndPort);
     }
-    sock_addr_ctx->base.msg_src_port = htons(incoming_values[source_port_field].value.uint16);
-    sock_addr_ctx->base.user_port = htons(incoming_values[destination_port_field].value.uint16);
+
     sock_addr_ctx->base.protocol = incoming_values[fields->protocol_field].value.uint8;
     sock_addr_ctx->base.compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
 
@@ -1436,10 +1472,49 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->flags = incoming_values[fields->flags_field].value.uint32;
 }
 
-static bool
-_net_ebpf_extension_sock_addr_process_verdict(int program_verdict)
+static void
+_net_ebpf_ext_sock_addr_redirected(
+    _In_ const bpf_sock_addr_t* original_context,
+    _In_ const bpf_sock_addr_t* redirected_context,
+    _Out_ bool* redirected,
+    _Out_ bool* address_changed)
 {
-    return program_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
+    *redirected = FALSE;
+    *address_changed = !_net_ebpf_ext_compare_destination_address(redirected_context, original_context);
+    if (redirected_context->user_port != original_context->user_port || *address_changed) {
+        *redirected = TRUE;
+    }
+}
+
+static bool
+_net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict)
+{
+    // Check if the updated context is same as the original context.
+    // If it has been modified, then the verdict is to stop processing.
+
+    bpf_sock_addr_t* sock_addr_ctx = (bpf_sock_addr_t*)program_context;
+    net_ebpf_sock_addr_t* context = CONTAINING_RECORD(sock_addr_ctx, net_ebpf_sock_addr_t, base);
+    bpf_sock_addr_t* original_context = context->original_context;
+    bpf_sock_addr_t local_context = *sock_addr_ctx;
+    bool redirected = FALSE;
+    bool address_changed = FALSE;
+
+    if (context->v4_mapped) {
+        // If it is a v4-mapped address, convert it to v6 before comparing.
+        local_context.family = AF_INET6;
+        IN_ADDR v4_address = *((IN_ADDR*)&local_context.user_ip4);
+        IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&local_context.user_ip6, (IN_ADDR*)&v4_address);
+    }
+
+    _net_ebpf_ext_sock_addr_redirected(original_context, &local_context, &redirected, &address_changed);
+    context->redirected = redirected;
+    context->address_changed = address_changed;
+
+    if (redirected || program_verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+        return FALSE;
+    }
+
+    return TRUE;
 }
 
 //
@@ -1489,7 +1564,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+        incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
 
     // eBPF programs will not be invoked on connection re-authorization.
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
@@ -1509,8 +1584,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    program_result = net_ebpf_extension_hook_invoke_programs(
-        sock_addr_ctx, &filter_context->base, _net_ebpf_extension_sock_addr_process_verdict, &result);
+    program_result = net_ebpf_extension_hook_invoke_programs(sock_addr_ctx, &filter_context->base, NULL, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         goto Exit;
@@ -1566,7 +1640,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+        incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
 
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         // This is a re-authorization of a connection that was previously authorized by the
@@ -1639,7 +1713,6 @@ _net_ebpf_ext_process_redirect_verdict(
     _In_ const FWPS_FILTER* filter,
     uint64_t classify_handle,
     HANDLE redirect_handle,
-    _Out_ bool* redirected,
     _Inout_ FWPS_CLASSIFY_OUT* classify_output)
 {
     NTSTATUS status = STATUS_SUCCESS;
@@ -1647,13 +1720,10 @@ _net_ebpf_ext_process_redirect_verdict(
     BOOLEAN commit_layer_data = FALSE;
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(redirected_context, net_ebpf_sock_addr_t, base);
 
-    *redirected = FALSE;
-
     // Check if destination IP and/or port have been modified.
-    BOOLEAN address_changed = !_net_ebpf_ext_compare_destination_address(redirected_context, original_context);
-    if (redirected_context->user_port != original_context->user_port || address_changed) {
-        *redirected = TRUE;
-
+    // BOOLEAN address_changed = !_net_ebpf_ext_compare_destination_address(redirected_context, original_context);
+    if (sock_addr_ctx->redirected) {
+        // if (redirected_context->user_port != original_context->user_port || address_changed) {
         status = FwpsAcquireWritableLayerDataPointer(
             classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
         if (!NT_SUCCESS(status)) {
@@ -1678,7 +1748,7 @@ _net_ebpf_ext_process_redirect_verdict(
         if (redirected_context->user_port != original_context->user_port) {
             INETADDR_SET_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort, redirected_context->user_port);
         }
-        if (address_changed) {
+        if (sock_addr_ctx->address_changed) {
             uint8_t* address;
             if (redirected_context->family == AF_INET) {
                 address = (uint8_t*)&redirected_context->user_ip4;
@@ -1798,6 +1868,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     uint64_t classify_handle = 0;
     bool classify_handle_acquired = FALSE;
     bool redirected = FALSE;
+    bool reauthorization = FALSE;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(flow_context);
@@ -1836,9 +1907,34 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Populate the sock_addr context with WFP classify input fields.
-    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
+    // If the filter context is wildcard filter context, use layer data to populate context.
+    if (filter_context->base.wildcard) {
+        // Populate the sock_addr context with WFP classify input fields.
+        // _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        //     incoming_fixed_values, incoming_metadata_values, (FWPS_CONNECT_REQUEST*)layer_data,
+        //     &net_ebpf_sock_addr_ctx);
+        _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+            incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
+    } else {
+        _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+            incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
+    }
+
+    if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
+        // In case of re-authorization, the verdict is always to proceed (terminating).
+        verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
+        reauthorization = TRUE;
+        goto Exit;
+    }
+
     memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
+    net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
+
+    // ANUSA: This is added for debugging purposes. Remove it later.
+    if ((net_ebpf_sock_addr_ctx.base.user_port == 0x1D23 || net_ebpf_sock_addr_ctx.base.user_port == 0x1C23) &&
+        debug_break) {
+        // DbgBreakPoint();
+    }
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));
@@ -1880,6 +1976,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         goto Exit;
     }
+    net_ebpf_sock_addr_ctx.v4_mapped = v4_mapped;
 
 #pragma warning(push)
 // SAL annotation for FwpsAcquireClassifyHandle for classify_context is _In_ whereas,
@@ -1927,6 +2024,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         goto Exit;
     }
 
+    redirected = net_ebpf_sock_addr_ctx.redirected;
+
     if (verdict == BPF_SOCK_ADDR_VERDICT_PROCEED) {
         if (v4_mapped) {
             // Revert back the sock_addr_ctx to v4-mapped v6 address for connection-redirection processing.
@@ -1935,13 +2034,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
             IN6_SET_ADDR_V4MAPPED((IN6_ADDR*)&sock_addr_ctx->user_ip6, (IN_ADDR*)&v4_address);
         }
         status = _net_ebpf_ext_process_redirect_verdict(
-            &sock_addr_ctx_original,
-            sock_addr_ctx,
-            filter,
-            classify_handle,
-            redirect_handle,
-            &redirected,
-            classify_output);
+            &sock_addr_ctx_original, sock_addr_ctx, filter, classify_handle, redirect_handle, classify_output);
         NET_EBPF_EXT_BAIL_ON_ERROR_STATUS(status);
 
         (redirected) ? InterlockedIncrement(&_net_ebpf_ext_statistics.redirect_connection_count)
@@ -1963,7 +2056,7 @@ Exit:
         // connection redirection, even if the program modified the destination.
         _net_ebpf_ext_insert_connection_context_to_list(
             incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
-    } else {
+    } else if (!reauthorization) {
         // Remove any 'stale' connection context if found.
         // A stale context is expected in the case of connected UDP, where the connect()
         // call results in WFP invoking the callout at the connect_redirect layer, and the
@@ -1973,13 +2066,13 @@ Exit:
             incoming_metadata_values->transportEndpointHandle, sock_addr_ctx);
     }
 
-    // Purge stale connection contexts.
-
-    // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT.
-    // If the eBPF program was invoked and it returned a REJECT verdict, it would be enforced by the callout at
-    // AUTH_CONNECT layer further downstream.
-
-    classify_output->actionType = FWP_ACTION_PERMIT;
+    // Callout at CONNECT_REDIRECT layer always returns WFP action PERMIT / CONTINUE.
+    // If the connection was redirected or blocked, make the action TERMINATING.
+    if (reauthorization || redirected || verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
+        classify_output->actionType = FWP_ACTION_PERMIT;
+    } else {
+        classify_output->actionType = FWP_ACTION_CONTINUE;
+    }
 
     if (classify_handle_acquired) {
         FwpsReleaseClassifyHandle(classify_handle);

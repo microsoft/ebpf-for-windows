@@ -70,11 +70,12 @@ typedef struct _wfp_ale_layer_fields
 
 typedef struct _net_ebpf_extension_wfp_filter_parameters
 {
-    const GUID* layer_guid;     ///< GUID of WFP layer to which this filter is associated.
-    const GUID* sublayer_guid;  ///< GUID of the WFP sublayer to which this filter is associated.
-    const GUID* callout_guid;   ///< GUID of WFP callout to which this filter is associated.
-    const wchar_t* name;        ///< Display name of filter.
-    const wchar_t* description; ///< Description of filter.
+    const GUID* layer_guid;            ///< GUID of WFP layer to which this filter is associated.
+    const GUID* sublayer_guid;         ///< GUID of the WFP sublayer to which this filter is associated.
+    const GUID* callout_guid;          ///< GUID of WFP callout to which this filter is associated.
+    const wchar_t* name;               ///< Display name of filter.
+    const wchar_t* description;        ///< Description of filter.
+    const FWP_ACTION_TYPE action_type; ///< Action type for the filter.
 } net_ebpf_extension_wfp_filter_parameters_t;
 
 typedef struct _net_ebpf_ext_sublayer_info

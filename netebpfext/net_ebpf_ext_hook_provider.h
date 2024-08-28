@@ -159,12 +159,14 @@ net_ebpf_extension_hook_provider_register(
 
 /**
  * @brief When hook provider supports multiple programs per hook, this callback function is invoked after
- * every program invocation to determine whether we should continue invoking next program in the list.
- * @param[in] progrma_verdict Pointer to context of the hook NPI client that is requesting to be detached.
+ * every program invocation to determine whether the next program in the list should be invoked.
+ *
+ * @param[in] program_context Pointer to context passed to the eBPF program.
+ * @param[in] progrma_verdict Result returned by the eBPF program.
  *
  * @returns TRUE if the next program should be invoked, FALSE otherwise.
  */
-typedef bool (*net_ebpf_extension_hook_process_verdict)(int program_verdict);
+typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_context, int program_verdict);
 
 net_ebpf_extension_hook_client_t*
 net_ebpf_extension_get_matching_client(
