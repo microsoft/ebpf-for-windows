@@ -33,19 +33,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define MULTIPLE_ATTACH_PROGRAM_COUNT 3
 
-__forceinline static void
-pause()
-{
-    // system("pause");
-}
-
-__forceinline static void
-pause(int count)
-{
-    printf("anusa: reached %d\n", count);
-    // system("pause");
-}
-
 void
 connection_test(
     ADDRESS_FAMILY address_family,
@@ -614,9 +601,6 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
         IPPROTO_TCP,
         false);
 
-    printf("anusa: reached 3\n");
-    pause();
-
     // The packet should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
@@ -629,9 +613,6 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
-
-    printf("anusa: reached 4\n");
-    pause();
 
     // The packet should be allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -647,18 +628,12 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
             IPPROTO_TCP,
             false);
 
-        printf("anusa: reached 5\n");
-        pause();
-
         // The packet should be blocked.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
         // Detach the program.
         int result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, BPF_CGROUP_INET4_CONNECT);
         REQUIRE(result == 0);
-
-        printf("anusa: reached 6\n");
-        pause();
 
         // The packet should now be allowed.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -670,9 +645,6 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
             BPF_CGROUP_INET4_CONNECT,
             0);
         REQUIRE(result == 0);
-
-        printf("anusa: reached 7\n");
-        pause();
 
         // The packet should be blocked.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
@@ -686,9 +658,6 @@ multi_attach_test_common(bpf_object* object, uint32_t compartment_id, bool detac
             htons(SOCKET_TEST_PORT),
             IPPROTO_TCP,
             true);
-
-        printf("anusa: reached 8\n");
-        pause();
 
         // The packet should now be allowed.
         validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -746,14 +715,8 @@ multi_attach_test(uint32_t compartment_id)
             true);
     }
 
-    printf("anusa: reached 1\n");
-    pause();
-
     // Validate that the connection is allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
-
-    printf("anusa: reached 2\n");
-    pause();
 
     // Test that the connection is blocked if any of the programs block the connection.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
@@ -972,8 +935,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
             }
         }
 
-        pause(1);
-
         // Validate that the connection is successfully redirected.
         validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
 
@@ -1003,8 +964,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
                 IPPROTO_TCP,
                 false);
 
-            pause(2);
-
             // Validate that the connection is blocked.
             validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_DROP);
 
@@ -1018,8 +977,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
                 compartment_id,
                 BPF_CGROUP_INET4_CONNECT);
             REQUIRE(result == 0);
-
-            pause(3);
 
             // The connection should now be allowed.
             validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
@@ -1061,8 +1018,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
             REQUIRE(result == 0);
         }
 
-        pause(4);
-
         // Validate that the connection is again allowed.
         validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
 
@@ -1095,8 +1050,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
                 IPPROTO_TCP,
                 false);
 
-            pause(5);
-
             // Validate that the connection is still redirected.
             validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
 
@@ -1118,8 +1071,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
                 htons(proxy_port + 1),
                 IPPROTO_TCP,
                 true);
-
-            pause(6);
 
             // Validate that the connection is not redirected to proxy_port + 1. This is because the connection is
             // already redirected by the previous program.
@@ -1143,8 +1094,6 @@ multi_attach_test_redirection(uint32_t compartment_id)
                 htons(destination_port),
                 IPPROTO_TCP,
                 true);
-
-            pause(7);
 
             // Validate that the connection is allowed.
             validate_connection_multi_attach(AF_INET, proxy_port, destination_port, IPPROTO_TCP, RESULT_ALLOW);
@@ -1427,8 +1376,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         true);
 
-    pause(1);
-
     // Validate that the connection is allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
 
@@ -1442,8 +1389,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         false);
 
-    pause(2);
-
     // The connection should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
@@ -1456,8 +1401,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
-
-    pause(3);
 
     // The connection should be allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -1472,8 +1415,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         false);
 
-    pause(4);
-
     // The connection should be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_DROP);
 
@@ -1486,8 +1427,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
-
-    pause(5);
 
     // The connection should be allowed.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, SOCKET_TEST_PORT, IPPROTO_TCP, RESULT_ALLOW);
@@ -1504,8 +1443,6 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         htons(SOCKET_TEST_PORT),
         IPPROTO_TCP,
         true);
-
-    pause(6);
 
     // Validate that the connection is redirected to the final port.
     // The order of attach and invocation should be: specific --> wildcard.
@@ -1538,16 +1475,12 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     result = bpf_prog_detach2(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT);
 
-    pause(7);
-
     // The connection should now be blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_DROP);
 
     // Re-attach the program with specific compartment id.
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT, 0);
-
-    pause(8);
 
     // The connection should be allowed. This validates that the program with specific compartment id is always
     // invoked before the program with wildcard compartment id.
@@ -1572,12 +1505,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         true);
 
-    pause(9);
-
     // Validate that the connection is redirected to the final port.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);
-
-    pause(10);
 
     // Block the connection for specific program.
     _update_map_entry(
@@ -1589,19 +1518,13 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         IPPROTO_TCP,
         false);
 
-    pause(11);
-
     // Validate that the connection is now blocked.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_DROP);
-
-    pause(12);
 
     // Detach the program with specific compartment id.
     result = bpf_prog_detach2(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, BPF_CGROUP_INET4_CONNECT);
     REQUIRE(result == 0);
-
-    pause(13);
 
     // Since the specific program is now detached, the connection should be correctly redirected by wildcard program.
     validate_connection_multi_attach(AF_INET, SOCKET_TEST_PORT, destination_port, IPPROTO_TCP, RESULT_ALLOW);

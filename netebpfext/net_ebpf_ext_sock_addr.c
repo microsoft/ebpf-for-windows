@@ -1721,9 +1721,7 @@ _net_ebpf_ext_process_redirect_verdict(
     net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(redirected_context, net_ebpf_sock_addr_t, base);
 
     // Check if destination IP and/or port have been modified.
-    // BOOLEAN address_changed = !_net_ebpf_ext_compare_destination_address(redirected_context, original_context);
     if (sock_addr_ctx->redirected) {
-        // if (redirected_context->user_port != original_context->user_port || address_changed) {
         status = FwpsAcquireWritableLayerDataPointer(
             classify_handle, filter->filterId, 0, (PVOID*)&connect_request, classify_output);
         if (!NT_SUCCESS(status)) {
@@ -1909,10 +1907,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     // Populate the sock_addr context with WFP classify input fields.
     // If the filter context is wildcard filter context, use layer data to populate context.
     if (filter_context->base.wildcard) {
-        // Populate the sock_addr context with WFP classify input fields.
-        // _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        //     incoming_fixed_values, incoming_metadata_values, (FWPS_CONNECT_REQUEST*)layer_data,
-        //     &net_ebpf_sock_addr_ctx);
         _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
             incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
     } else {
@@ -1929,12 +1923,6 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
 
     memcpy(&sock_addr_ctx_original, sock_addr_ctx, sizeof(sock_addr_ctx_original));
     net_ebpf_sock_addr_ctx.original_context = &sock_addr_ctx_original;
-
-    // ANUSA: This is added for debugging purposes. Remove it later.
-    if ((net_ebpf_sock_addr_ctx.base.user_port == 0x1D23 || net_ebpf_sock_addr_ctx.base.user_port == 0x1C23) &&
-        debug_break) {
-        // DbgBreakPoint();
-    }
 
     compartment_id = filter_context->compartment_id;
     ASSERT((compartment_id == UNSPECIFIED_COMPARTMENT_ID) || (compartment_id == sock_addr_ctx->compartment_id));

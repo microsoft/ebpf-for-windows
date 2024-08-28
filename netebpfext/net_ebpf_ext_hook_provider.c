@@ -32,16 +32,14 @@ typedef struct _net_ebpf_extension_hook_client
 
 typedef struct _net_ebpf_extension_hook_provider
 {
-    NPI_PROVIDER_CHARACTERISTICS characteristics; ///< NPI Provider characteristics.
-    net_ebpf_ext_hook_rundown_t rundown;          ///< Rundown reference for the hook provider.
-    HANDLE nmr_provider_handle;                   ///< NMR binding handle.
-    EX_PUSH_LOCK
-    push_lock; ///< Lock for synchronizing access to filter_context_list and serializing attach / detach calls.
-    // EX_SPIN_LOCK spin_lock;                       ///< Lock for synchronizing access to filter_context_list.
+    NPI_PROVIDER_CHARACTERISTICS characteristics;                  ///< NPI Provider characteristics.
+    net_ebpf_ext_hook_rundown_t rundown;                           ///< Rundown reference for the hook provider.
+    HANDLE nmr_provider_handle;                                    ///< NMR binding handle.
+    EX_PUSH_LOCK lock;                                             ///< Lock for serializing attach / detach calls.
     net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
     net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
-    _Guarded_by_(push_lock)
+    _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
 
@@ -274,50 +272,10 @@ net_ebpf_extension_hook_invoke_programs(
     ebpf_result_t program_result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
     bool lock_acquired = FALSE;
-    // bool wildcard_lock_acquired = FALSE;
-    // bool continue_processing = true;
-    // net_ebpf_extension_wfp_filter_context_t* wildcard_filter_context = NULL;
-    // net_ebpf_extension_hook_provider_t* provider_context =
-    //     (net_ebpf_extension_hook_provider_t*)filter_context->provider_context;
     uint32_t client_count = 0;
     net_ebpf_extension_hook_client_t* clients[NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH] = {0};
 
     *result = 0;
-
-    // // Optimization: Look for the wildcard filter context only in these cases:
-    // // 1. If the current filter context itself is not a wildcard filter context.
-    // // 2. The hook provider supports multi-attach.
-    // if (!filter_context->wildcard && provider_context->attach_capability == ATTACH_CAPABILITY_MULTI_ATTACH) {
-    //     // Acquire shared spin lock for the provider context.
-    //     old_irql = ExAcquireSpinLockShared(&provider_context->spin_lock);
-
-    //     if (provider_context->filter_context_list.Blink != &provider_context->filter_context_list) {
-    //         // Try to find the wildcard filter context, if it exists. It should be the last filter context in the
-    //         list. wildcard_filter_context = (net_ebpf_extension_wfp_filter_context_t*)CONTAINING_RECORD(
-    //             provider_context->filter_context_list.Blink, net_ebpf_extension_wfp_filter_context_t, link);
-
-    //         if (wildcard_filter_context->wildcard == FALSE || wildcard_filter_context->client_context_count == 0 ||
-    //             wildcard_filter_context->context_deleting) {
-    //             // We cannot invoke programs on the wildcard filter context.
-    //             wildcard_filter_context = NULL;
-    //         } else {
-    //             // Found the wildcard filter context. Acquire a reference to it before releasing the provider context
-    //             // lock.
-    //             REFERENCE_FILTER_CONTEXT(wildcard_filter_context);
-    //         }
-    //     }
-
-    //     // Release the shared spin lock for the provider context.
-    //     ExReleaseSpinLockShared(&provider_context->spin_lock, old_irql);
-    // }
-
-    // program_result = _net_ebpf_extension_hook_invoke_program2(
-    //     filter_context, program_context, process_callback, result, &continue_processing);
-    // if ((program_result != EBPF_SUCCESS && program_result != EBPF_OBJECT_NOT_FOUND) || !continue_processing) {
-    //     // If we failed to invoke an eBPF program, stop processing and return the error code.
-    //     // If any eBPF program returned verdict as block, stop processing and return.
-    //     goto Exit;
-    // }
 
     // Acquire shared filter context lock.
     old_irql = ExAcquireSpinLockShared(&filter_context->lock);
@@ -327,8 +285,8 @@ net_ebpf_extension_hook_invoke_programs(
     client_count = filter_context->client_context_count;
     for (uint32_t i = 0; i < client_count; i++) {
         // Acquire rundown protection for the client. Rundown for a client only starts once the client has been removed
-        // from the list of clients in the filter context. So we should not expect any failure in acquring rundown here.
-        // If acquiring rundown fails, bail.
+        // from the list of clients in the filter context. So we should not expect any failure in acquiring rundown
+        // here. If acquiring rundown fails, bail.
         if (!net_ebpf_extension_hook_client_enter_rundown(filter_context->client_contexts[i])) {
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -365,85 +323,16 @@ net_ebpf_extension_hook_invoke_programs(
         }
     }
 
-    // // Release rundown protection for all the clients.
-    // _net_ebpf_extension_release_rundown_for_clients(clients, client_count);
-
-    // // Release the shared filter context lock.
-    // ExReleaseSpinLockShared(&filter_context->lock, old_irql);
-    // lock_acquired = FALSE;
-
-    // if (!wildcard_filter_context) {
-    //     goto Exit;
-    // }
-
-    // // program_result = _net_ebpf_extension_hook_invoke_program2(
-    // //     wildcard_filter_context, program_context, process_callback, result, &continue_processing);
-    // // if (program_result != EBPF_SUCCESS) {
-    // //     // If no programs were found, change the result to EBPF_SUCCESS.
-    // //     if (program_result == EBPF_OBJECT_NOT_FOUND) {
-    // //         program_result = EBPF_SUCCESS;
-    // //     }
-    // // }
-
-    // // Acquire shared lock for wildcard filter context.
-    // old_irql = ExAcquireSpinLockShared(&wildcard_filter_context->lock);
-    // wildcard_lock_acquired = TRUE;
-
-    // // Create a local copy of the client contexts.
-    // client_count = wildcard_filter_context->client_context_count;
-    // for (uint32_t i = 0; i < client_count; i++) {
-    //     // Acquire rundown protection for the client. Rundown for a client only starts once the client has been
-    //     removed
-    //     // from the list of clients in the filter context. So we should not expect any failure in acquiring rundown
-    //     // here. If acquiring rundown fails, bail.
-    //     if (!net_ebpf_extension_hook_client_enter_rundown(wildcard_filter_context->client_contexts[i])) {
-    //         NET_EBPF_EXT_LOG_MESSAGE(
-    //             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-    //             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-    //             "net_ebpf_extension_hook_invoke_programs: Rundown failed for client");
-    //         goto Exit;
-    //     }
-    //     clients[i] = wildcard_filter_context->client_contexts[i];
-    // }
-
-    // // Release the shared lock for wildcard filter context.
-    // ExReleaseSpinLockShared(&wildcard_filter_context->lock, old_irql);
-    // wildcard_lock_acquired = FALSE;
-
-    // // Iterate over all the programs in the array.
-    // for (uint32_t i = 0; i < wildcard_filter_context->client_context_count; i++) {
-    //     ASSERT(clients[i] != NULL);
-
-    //     program_result = _net_ebpf_extension_hook_invoke_program(clients[i], program_context, result);
-    //     if (program_result != EBPF_SUCCESS) {
-    //         // If we failed to invoke an eBPF program, stop processing and return the error code.
-    //         goto Exit;
-    //     }
-
-    //     // Invoke callback to see if we should continue processing.
-    //     if (process_callback != NULL) {
-    //         if (!process_callback(*result)) {
-    //             program_result = EBPF_SUCCESS;
-    //             goto Exit;
-    //         }
-    //     }
-    // }
-
 Exit:
-    // if (wildcard_lock_acquired) {
-    //     ExReleaseSpinLockShared(&wildcard_filter_context->lock, old_irql);
-    // }
     if (lock_acquired) {
         ExReleaseSpinLockShared(&filter_context->lock, old_irql);
     }
 
     _net_ebpf_extension_release_rundown_for_clients(clients, client_count);
-
-    // DEREFERENCE_FILTER_CONTEXT(wildcard_filter_context);
     return program_result;
 }
 
-_Requires_lock_held_(provider_context->push_lock)
+_Requires_lock_held_(provider_context->lock)
     net_ebpf_extension_wfp_filter_context_t* net_ebpf_extension_get_matching_filter_context(
         size_t attach_parameter_size,
         _In_reads_(attach_parameter_size) const void* attach_parameter,
@@ -522,9 +411,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     net_ebpf_extension_hook_client_t* hook_client = NULL;
     ebpf_extension_program_dispatch_table_t* client_dispatch_table;
     ebpf_result_t result = EBPF_SUCCESS;
-    bool push_lock_acquired = FALSE;
-    // bool spin_lock_acquired = FALSE;
-    // KIRQL old_irql = PASSIVE_LEVEL;
+    bool provider_lock_acquired = FALSE;
     ebpf_extension_data_t* client_data = NULL;
     bool is_wild_card_attach_parameter = FALSE;
     net_ebpf_extension_wfp_filter_context_t* new_filter_context = NULL;
@@ -591,12 +478,8 @@ _net_ebpf_extension_hook_provider_attach_client(
     }
 
     // Acquire passive lock to serialize attach / detach operations.
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
-    push_lock_acquired = TRUE;
-
-    // // Acquire the spin lock to synchronize access to filter_context_list.
-    // old_irql = ExAcquireSpinLockExclusive(&local_provider_context->spin_lock);
-    // spin_lock_acquired = TRUE;
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
+    provider_lock_acquired = TRUE;
 
     if (local_provider_context->attach_capability == ATTACH_CAPABILITY_SINGLE_ATTACH) {
         // Single attach capability. Only one client can be attached.
@@ -659,10 +542,6 @@ _net_ebpf_extension_hook_provider_attach_client(
         }
     }
 
-    // // Release the spin lock before creating a new filter context.
-    // ExReleaseSpinLockExclusive(&local_provider_context->spin_lock, old_irql);
-    // spin_lock_acquired = FALSE;
-
     // No matching filter context found. Need to create a new filter context.
     // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
     rundown_acquired = ExAcquireRundownProtection(&local_provider_context->rundown.protection);
@@ -693,10 +572,6 @@ _net_ebpf_extension_hook_provider_attach_client(
         new_filter_context->wildcard = TRUE;
     }
 
-    // // Acquire the spin lock to synchronize access to filter_context_list.
-    // old_irql = ExAcquireSpinLockExclusive(&local_provider_context->spin_lock);
-    // spin_lock_acquired = TRUE;
-
     // Insert the new filter context in the list of filter contexts.
     // In case of wildcard attach parameter, insert at the tail of the list.
     if (is_wild_card_attach_parameter) {
@@ -712,11 +587,8 @@ _net_ebpf_extension_hook_provider_attach_client(
 
 Exit:
     if (local_provider_context) {
-        // if (spin_lock_acquired) {
-        //     ExReleaseSpinLockExclusive(&local_provider_context->spin_lock, old_irql);
-        // }
-        if (push_lock_acquired) {
-            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
+        if (provider_lock_acquired) {
+            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
 
         local_provider_context->dispatch.delete_filter_context(new_filter_context);
@@ -733,23 +605,13 @@ Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
-_Requires_exclusive_lock_held_(provider_context->push_lock) static void _net_ebpf_ext_remove_filter_context_from_provider(
+_Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext_remove_filter_context_from_provider(
     _In_ net_ebpf_extension_hook_provider_t* provider_context,
     _In_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    // KIRQL old_irql = PASSIVE_LEVEL;
-    // bool spin_lock_acquired = FALSE;
-
     NET_EBPF_EXT_LOG_ENTRY();
 
-    // // Acquire the spin lock to synchronize access to filter_context_list.
-    // old_irql = ExAcquireSpinLockExclusive(&provider_context->spin_lock);
-    // spin_lock_acquired = TRUE;
-
     RemoveEntryList(&filter_context->link);
-
-    // ExReleaseSpinLockExclusive(&provider_context->spin_lock, old_irql);
-    // spin_lock_acquired = FALSE;
 
     // Release the filter context.
     provider_context->dispatch.delete_filter_context(filter_context);
@@ -770,10 +632,8 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
 {
     NTSTATUS status = STATUS_PENDING;
     net_ebpf_extension_hook_provider_t* local_provider_context = NULL;
-    bool push_lock_acquired = FALSE;
-    // bool spin_lock_acquired = FALSE;
+    bool provider_lock_acquired = FALSE;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
-    // KIRQL old_irql = PASSIVE_LEVEL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -793,10 +653,8 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
     local_provider_context = (net_ebpf_extension_hook_provider_t*)filter_context->provider_context;
 
     // Acquire push lock to serialize attach / detach operations.
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
-    push_lock_acquired = TRUE;
-
-    // ANUSA TODO: Move the below block of code (line 657 - 673) to a separate function.
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
+    provider_lock_acquired = TRUE;
 
     // Remove the client from the filter context.
     net_ebpf_ext_remove_client_context(filter_context, local_client_context);
@@ -817,8 +675,8 @@ _net_ebpf_extension_hook_provider_detach_client(_In_ const void* provider_bindin
 
 Exit:
     if (local_provider_context) {
-        if (push_lock_acquired) {
-            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->push_lock);
+        if (provider_lock_acquired) {
+            RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->lock);
         }
     }
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -876,7 +734,7 @@ net_ebpf_extension_hook_provider_register(
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_provider_context, "local_provider_context", status);
 
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
-    ExInitializePushLock(&local_provider_context->push_lock);
+    ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
 
     characteristics = &local_provider_context->characteristics;
@@ -892,10 +750,6 @@ net_ebpf_extension_hook_provider_register(
     characteristics->ProviderRegistrationInstance.ModuleId = parameters->provider_module_id;
 
     local_provider_context->dispatch = *dispatch;
-    // local_provider_context->dispatch.create_filter_context = create_filter_context;
-    // local_provider_context->dispatch.validate_client_data = validate_client_data;
-    // local_provider_context->attach_callback = attach_callback;
-    // local_provider_context->detach_callback = detach_callback;
     local_provider_context->custom_data = custom_data;
     local_provider_context->attach_capability = attach_capability;
 
