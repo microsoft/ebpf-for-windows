@@ -595,4 +595,6 @@ development cycle.  See the [Windows Hardware Developer documentation](https://l
 ## eBPF external extensions
 Extensions that integrate with eBPF for Windows:
 - XDP extension: [xdp-for-windows](https://github.com/microsoft/xdp-for-windows)
-- NTOS eBPF extensions: [ntosebpfext](https://github.com/microsoft/ntosebpfext)
+- NTOS eBPF extensions:
+   - ntosebpfext extension: [ntosebpfext](https://github.com/microsoft/ntosebpfext)
+   - Network event extension: [neteventebpfext](https://github.com/microsoft/ntosebpfext/blob/main/docs/neteventebpfext.md)
