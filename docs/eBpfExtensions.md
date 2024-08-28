@@ -167,7 +167,7 @@ invoking an eBPF program. The various fields of this struct are as follows.
 
 For example, for the XDP_TEST program types, the context data structure is as follows:
 ```c
-// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
+// XDP_TEST hook.  We use "struct xdp_test_md" for cross-platform compatibility.
 typedef struct xdp_test_md
 {
     void* data;         ///< Pointer to start of packet data.
