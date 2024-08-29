@@ -5,6 +5,8 @@
 #include "ebpf_hash_table.h"
 #include "ebpf_random.h"
 
+#include <nmmintrin.h>
+
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
 // modified.
@@ -154,6 +156,37 @@ _ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t
     return hash;
 }
 
+static unsigned long
+_ebpf_compute_crc32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t length_in_bits, uint32_t seed)
+{
+    // Use processor intrinsics if available.
+
+    // First process 8 bytes at a time.
+    uint32_t crc = seed;
+    size_t length_in_bytes = (length_in_bits + 7) / 8;
+
+    while (length_in_bytes >= 8) {
+        crc = (uint32_t)_mm_crc32_u64(crc, *(uint64_t*)key);
+        key += 8;
+        length_in_bytes -= 8;
+    }
+
+    // Process 4 bytes at a time.
+    while (length_in_bytes >= 4) {
+        crc = _mm_crc32_u32(crc, *(uint32_t*)key);
+        key += 4;
+        length_in_bytes -= 4;
+    }
+
+    // Process remaining bytes.
+    while (length_in_bytes > 0) {
+        crc = _mm_crc32_u8(crc, *key);
+        key++;
+        length_in_bytes--;
+    }
+    return crc;
+}
+
 /**
  * @brief Compare keys assuming they are integers.
  *
@@ -287,8 +320,11 @@ _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, 
         length = hash_table->key_size * 8;
         data = key;
     }
-    uint32_t hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
-    return hash_value & hash_table->bucket_count_mask;
+    if (ebpf_processor_supports_sse42) {
+        return _ebpf_compute_crc32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
+    } else {
+        return _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
+    }
 }
 
 /**
@@ -757,6 +793,9 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
+
+    // Prefetch the data on the assumption that it will be used by the caller soon.
+    _mm_prefetch((const char*)data, _MM_HINT_T0);
 
     *value = data;
     if (hash_table->notification_callback) {
