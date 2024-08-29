@@ -259,9 +259,6 @@ _net_ebpf_extension_release_rundown_for_clients(
     }
 }
 
-// 1. If we failed to invoke an eBPF program, block the connection.
-// 2. If any eBPF program returned verdict as block, stop processing and return.
-// _Requires_shared_lock_held_(_client_attach_lock)
 ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
     _Inout_ void* program_context,
