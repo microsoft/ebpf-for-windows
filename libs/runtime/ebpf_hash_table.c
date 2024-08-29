@@ -68,6 +68,9 @@ struct _ebpf_hash_table
 
     void* notification_context; //< Context to pass to notification functions.
     ebpf_hash_table_notification_function notification_callback;
+    bool use_integer_hashing; // Use integer hashing if key is integer and is either 1, 2, 4, or 8 bytes.
+                              // Note: The hashing function doesn't support secrets and is prone to hash collision
+                              // attacks so only use when the data is trusted.
     _Field_size_(bucket_count) ebpf_hash_bucket_header_and_lock_t buckets[1]; // Pointer to array of buckets.
 };
 
@@ -152,6 +155,28 @@ _ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t
     hash *= 0xc2b2ae35;
     hash ^= (hash >> 16);
     return hash;
+}
+
+static inline uint32_t
+_ebpf_integer_hash_function_32bit(uint32_t key)
+{
+    key ^= key >> 16;
+    key *= 0x7feb352d;
+    key ^= key >> 15;
+    key *= 0x846ca68b;
+    key ^= key >> 16;
+    return key;
+}
+
+static inline uint64_t
+_ebpf_integer_hash_function_64bit(uint64_t key)
+{
+    key ^= key >> 33;
+    key *= 0xff51afd7ed558ccd;
+    key ^= key >> 33;
+    key *= 0xc4ceb9fe1a85ec53;
+    key ^= key >> 33;
+    return key;
 }
 
 /**
@@ -287,8 +312,23 @@ _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, 
         length = hash_table->key_size * 8;
         data = key;
     }
-    uint32_t hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
-    return hash_value & hash_table->bucket_count_mask;
+    if (hash_table->use_integer_hashing) {
+        switch (length) {
+        case 1:
+            return _ebpf_integer_hash_function_32bit(*(uint8_t*)data) & hash_table->bucket_count_mask;
+        case 2:
+            return _ebpf_integer_hash_function_32bit(*(uint16_t*)data) & hash_table->bucket_count_mask;
+        case 4:
+            return _ebpf_integer_hash_function_32bit(*(uint32_t*)data) & hash_table->bucket_count_mask;
+        case 8:
+            return (uint32_t)(_ebpf_integer_hash_function_64bit(*(uint64_t*)data) & hash_table->bucket_count_mask);
+        default:
+            return _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
+        }
+    } else {
+        uint32_t hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
+        return hash_value & hash_table->bucket_count_mask;
+    }
 }
 
 /**
@@ -692,6 +732,7 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
+    table->use_integer_hashing = options->use_unseeded_integer_hashing;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;

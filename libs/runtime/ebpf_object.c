@@ -153,6 +153,7 @@ ebpf_object_tracking_initiate()
         .value_size = sizeof(ebpf_id_entry_t),
         .max_entries = EBPF_HASH_TABLE_NO_LIMIT,
         .minimum_bucket_count = 1024,
+        .use_unseeded_integer_hashing = true,
     };
 
     memset(_ebpf_object_reference_history, 0, sizeof(_ebpf_object_reference_history));

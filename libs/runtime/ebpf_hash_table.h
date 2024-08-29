@@ -64,7 +64,9 @@ extern "C"
         size_t supplemental_value_size; //< Size of supplemental value to store in each entry - defaults to 0.
         void* notification_context;     //< Context to pass to notification functions.
         ebpf_hash_table_notification_function
-            notification_callback; //< Function to call when value storage is allocated or freed.
+            notification_callback;         //< Function to call when value storage is allocated or freed.
+        bool use_unseeded_integer_hashing; //< Use unseeded integer hashing for this key. Key must be an integer of size
+                                           // 1, 2, 4, or 8 bytes.
     } ebpf_hash_table_creation_options_t;
 
     /**
