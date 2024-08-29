@@ -129,9 +129,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
 
-    size_t client_data_size; ///< Size of client data associated with the filter context.
-    uint8_t* client_data;    ///< Client data associated with the filter context.
-
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
     bool initialized : 1;      ///< True if the filter context has been successfully initialized.

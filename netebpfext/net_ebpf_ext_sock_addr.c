@@ -1243,7 +1243,8 @@ net_ebpf_ext_sock_addr_register_providers()
         status = net_ebpf_extension_hook_provider_register(
             &hook_provider_parameters,
             &dispatch_table,
-            is_cgroup_connect_attach_type ? ATTACH_CAPABILITY_MULTI_ATTACH : ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
+            is_cgroup_connect_attach_type ? ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD
+                                          : ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
             &_ebpf_sock_addr_hook_provider_context[i]);
         if (!NT_SUCCESS(status)) {

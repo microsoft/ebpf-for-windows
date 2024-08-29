@@ -27,7 +27,6 @@ typedef struct _net_ebpf_extension_hook_client
     PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
     net_ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
     uint64_t filter_weight;
-    LONG counter;
 } net_ebpf_extension_hook_client_t;
 
 typedef struct _net_ebpf_extension_hook_provider
@@ -184,66 +183,19 @@ net_ebpf_extension_hook_provider_get_custom_data(_In_ const net_ebpf_extension_h
 }
 
 net_ebpf_extension_hook_attach_capability_t
-net_ebpf_extension_hook_provider_get_attach_calability(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
+net_ebpf_extension_hook_provider_get_attach_capability(_In_ const net_ebpf_extension_hook_provider_t* provider_context)
 {
     return provider_context->attach_capability;
 }
 
 __forceinline _Must_inspect_result_ static ebpf_result_t
-_net_ebpf_extension_hook_invoke_program(
+_net_ebpf_extension_hook_invoke_single_program(
     _In_ const net_ebpf_extension_hook_client_t* client, _Inout_ void* context, _Out_ uint32_t* result)
 {
     ebpf_program_invoke_function_t invoke_program = client->invoke_program;
     const void* client_binding_context = client->client_binding_context;
 
     return invoke_program(client_binding_context, context, result);
-}
-
-_Must_inspect_result_ static ebpf_result_t
-_net_ebpf_extension_hook_invoke_program2(
-    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _Inout_ void* context,
-    _In_opt_ const net_ebpf_extension_hook_process_verdict process_callback,
-    _Out_ uint32_t* result,
-    _Out_ bool* continue_processing)
-{
-    KIRQL old_irql = PASSIVE_LEVEL;
-    ebpf_result_t program_result = EBPF_OBJECT_NOT_FOUND;
-
-    *result = 0;
-    *continue_processing = true;
-
-    // Acquire shared filter context lock.
-    old_irql = ExAcquireSpinLockShared(&filter_context->lock);
-
-    // Iterate over all the programs in the array.
-    for (uint32_t i = 0; i < filter_context->client_context_count; i++) {
-        const net_ebpf_extension_hook_client_t* client = filter_context->client_contexts[i];
-        ASSERT(client != NULL);
-
-        ebpf_program_invoke_function_t invoke_program = client->invoke_program;
-        const void* client_binding_context = client->client_binding_context;
-
-        program_result = invoke_program(client_binding_context, context, result);
-        if (program_result != EBPF_SUCCESS) {
-            // If we failed to invoke an eBPF program, stop processing and return the error code.
-            goto Exit;
-        }
-
-        // Invoke callback to see if we should continue processing.
-        if (process_callback != NULL) {
-            if (!process_callback(context, *result)) {
-                program_result = EBPF_SUCCESS;
-                *continue_processing = false;
-                goto Exit;
-            }
-        }
-    }
-
-Exit:
-    ExReleaseSpinLockShared(&filter_context->lock, old_irql);
-
-    return program_result;
 }
 
 static void
@@ -305,7 +257,7 @@ net_ebpf_extension_hook_invoke_programs(
     for (uint32_t i = 0; i < client_count; i++) {
         ASSERT(clients[i] != NULL);
 
-        program_result = _net_ebpf_extension_hook_invoke_program(clients[i], program_context, result);
+        program_result = _net_ebpf_extension_hook_invoke_single_program(clients[i], program_context, result);
         if (program_result != EBPF_SUCCESS) {
             // If we failed to invoke an eBPF program, stop processing and return the error code.
             goto Exit;
@@ -488,7 +440,7 @@ _net_ebpf_extension_hook_provider_attach_client(
             status = STATUS_ACCESS_DENIED;
             goto Exit;
         }
-    } else if (local_provider_context->attach_capability == ATTACH_CAPABILITY_MULTI_ATTACH) {
+    } else if (local_provider_context->attach_capability == ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD) {
         // Multi attach capability. Multiple clients can be attached.
         // Check if the attach parameter is already present in the list of filter contexts.
         net_ebpf_extension_wfp_filter_context_t* matching_context = NULL;
@@ -551,7 +503,6 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
-    // No matching filter context found. Create a new filter context.
     result = local_provider_context->dispatch.create_filter_context(
         hook_client, local_provider_context, &new_filter_context);
     if (result != EBPF_SUCCESS) {

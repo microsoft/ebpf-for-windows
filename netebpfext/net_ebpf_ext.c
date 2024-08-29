@@ -240,15 +240,14 @@ net_ebpf_extension_wfp_filter_context_create(
 {
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
-    net_ebpf_extension_hook_attach_capability_t capability;
     uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
     *filter_context = NULL;
 
-    capability = net_ebpf_extension_hook_provider_get_attach_calability(provider_context);
-    if (capability == ATTACH_CAPABILITY_MULTI_ATTACH) {
+    if (net_ebpf_extension_hook_provider_get_attach_capability(provider_context) ==
+        ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD) {
         client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH;
     }
 
@@ -908,6 +907,8 @@ net_ebpf_ext_add_client_context(
     ebpf_result_t result = EBPF_SUCCESS;
     KIRQL old_irql;
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
     old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
 
     // Check if we have reached max capacity.
@@ -927,7 +928,7 @@ net_ebpf_ext_add_client_context(
 
 Exit:
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
-    return result;
+    NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 void

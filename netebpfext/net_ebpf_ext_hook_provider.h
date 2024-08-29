@@ -9,7 +9,8 @@
 
 typedef enum _net_ebpf_extension_hook_attach_capability
 {
-    ATTACH_CAPABILITY_MULTI_ATTACH = 0, ///< Multiple clients can attach to the hook, for each attach parameters.
+    ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD =
+        0,                           ///< Multiple clients can attach to the hook, for each attach parameters.
     ATTACH_CAPABILITY_SINGLE_ATTACH, ///< Only one client can attach to the hook, irrespective of the attach parameters.
     ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK, ///< One client can attach to the hook for each attach parameter, but with
                                               ///< wildcard attach parameter, only one client can attach.
@@ -124,7 +125,6 @@ typedef struct _net_ebpf_extension_hook_provider_dispatch_table
 {
     net_ebpf_extension_create_filter_context create_filter_context;
     net_ebpf_extension_delete_filter_context delete_filter_context;
-    // net_ebpf_extension_can_append_client can_append_client;
     net_ebpf_extension_validate_client_data validate_client_data;
 } net_ebpf_extension_hook_provider_dispatch_table_t;
 
@@ -200,4 +200,4 @@ net_ebpf_extension_hook_invoke_programs(
  * @return Attach capability for the hook provider.
  */
 net_ebpf_extension_hook_attach_capability_t
-net_ebpf_extension_hook_provider_get_attach_calability(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
+net_ebpf_extension_hook_provider_get_attach_capability(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
