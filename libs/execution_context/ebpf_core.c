@@ -16,9 +16,11 @@
 #include "ebpf_random.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+#include "ebpf_strings.h"
 #include "ebpf_tracelog.h"
 
 #include <errno.h>
+#include <stdlib.h>
 
 const NPI_MODULEID ebpf_general_helper_function_module_id = {
     sizeof(ebpf_general_helper_function_module_id),
@@ -139,6 +141,9 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_memmove,
     // No default implementation of bpf_get_socket_cookie
     (void*)NULL, // bpf_get_socket_cookie
+    (void*)&_ebpf_core_strncpy_s,
+    (void*)&_ebpf_core_strncat_s,
+    (void*)&_ebpf_core_strlen_s,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {

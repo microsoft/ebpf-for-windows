@@ -33,6 +33,7 @@
     <ClCompile Include="..\ebpf_maps.c" />
     <ClCompile Include="..\ebpf_native.c" />
     <ClCompile Include="..\ebpf_program.c" />
+    <ClCompile Include="..\ebpf_strings.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_core.h" />
@@ -41,6 +42,7 @@
     <ClInclude Include="..\ebpf_native.h" />
     <ClInclude Include="..\ebpf_program.h" />
     <ClInclude Include="..\ebpf_protocol.h" />
+    <ClInclude Include="..\ebpf_strings.h" />
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -119,11 +121,11 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;_AMD64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -133,11 +135,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;_AMD64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -147,11 +149,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_LIB;_AMD64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -164,11 +166,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;_AMD64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -180,11 +182,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_LIB;_AMD64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>

@@ -132,10 +132,6 @@
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
-    </ResourceCompile>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
@@ -157,10 +153,6 @@
     </DriverSign>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
-    </ResourceCompile>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
@@ -182,10 +174,6 @@
     </DriverSign>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
-    </ResourceCompile>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
@@ -207,10 +195,6 @@
     </DriverSign>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
-    </ResourceCompile>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
@@ -232,10 +216,6 @@
     </DriverSign>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH);$(SolutionDir)include</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
-    </ResourceCompile>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\10.0.22621.0\km;$(WindowsSdkDir)Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);_AMD64_;BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS60;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
@@ -294,9 +274,6 @@
   <ItemGroup>
     <ClInclude Include="..\resource.h" />
     <ClInclude Include="ntddk.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\..\resource\ebpf_resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
