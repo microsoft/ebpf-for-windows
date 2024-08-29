@@ -320,7 +320,7 @@ _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, 
         length = hash_table->key_size * 8;
         data = key;
     }
-    if (ebpf_processor_supports_sse42) {
+    if (ebpf_processor_supports_sse42 && (!hash_table->extract)) {
         return _ebpf_compute_crc32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
     } else {
         return _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
