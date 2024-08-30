@@ -25,6 +25,12 @@
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+// Note: The maximum number of clients per hook has been capped to a constant value due to the below reason:
+// When the WFP classify function is invoked, it acquires the corresponding filter context lock and creates a copy of
+// all the clients that are attached to the filter context, as we want to invoke the BPF programs outside the filter
+// context lock. Keeping the max client count dynamic means we will need to allocate memory for every hook invocation
+// (to create a copy of the clients), and that will be expensive. Keeping the max limit fixed allows allocating the
+// required memory on stack.
 #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH 16
 #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH 1
 
@@ -243,7 +249,6 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  * @param[in] parameters Filter parameters.
  * @param[in] condition_count Count of filter conditions.
  * @param[in] conditions Common filter conditions to be applied to each filter.
- * @param[in] filter_weight Weight of the filter. If 0, default weight is used.
  * @param[in, out] filter_context Caller supplied context to be associated with the WFP filter.
  * @param[out] filter_ids Output buffer where the added filter IDs are stored.
  *

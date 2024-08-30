@@ -1376,7 +1376,6 @@ static void
 _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     _In_ const FWPS_INCOMING_VALUES* incoming_fixed_values,
     _In_ const FWPS_INCOMING_METADATA_VALUES* incoming_metadata_values,
-    _In_opt_ const FWPS_CONNECT_REQUEST* connect_request,
     _Out_ net_ebpf_sock_addr_t* sock_addr_ctx)
 {
     net_ebpf_extension_hook_id_t hook_id =
@@ -1399,51 +1398,26 @@ _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
     sock_addr_ctx->hook_id = hook_id;
     sock_addr_ctx->transport_endpoint_handle = incoming_metadata_values->transportEndpointHandle;
 
-    if (connect_request == NULL) {
-        // Copy IP address fields.
-        if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
-            (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
-            sock_addr_ctx->base.family = AF_INET;
-            sock_addr_ctx->base.msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
-            sock_addr_ctx->base.user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
-        } else {
-            sock_addr_ctx->base.family = AF_INET6;
-            RtlCopyMemory(
-                sock_addr_ctx->base.msg_src_ip6,
-                incoming_values[source_ip_address_field].value.byteArray16,
-                sizeof(FWP_BYTE_ARRAY16));
-            RtlCopyMemory(
-                sock_addr_ctx->base.user_ip6,
-                incoming_values[destination_ip_address_field].value.byteArray16,
-                sizeof(FWP_BYTE_ARRAY16));
-        }
-
-        sock_addr_ctx->base.msg_src_port = htons(incoming_values[source_port_field].value.uint16);
-        sock_addr_ctx->base.user_port = htons(incoming_values[destination_port_field].value.uint16);
+    // Copy IP address fields.
+    if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
+        (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
+        sock_addr_ctx->base.family = AF_INET;
+        sock_addr_ctx->base.msg_src_ip4 = htonl(incoming_values[source_ip_address_field].value.uint32);
+        sock_addr_ctx->base.user_ip4 = htonl(incoming_values[destination_ip_address_field].value.uint32);
     } else {
-        // Use connect_request to populate the fields.
-        if ((hook_id == EBPF_HOOK_ALE_AUTH_CONNECT_V4) || (hook_id == EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4) ||
-            (hook_id == EBPF_HOOK_ALE_CONNECT_REDIRECT_V4)) {
-            sock_addr_ctx->base.family = AF_INET;
-            sock_addr_ctx->base.msg_src_ip4 =
-                *(uint32_t*)INETADDR_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort);
-            sock_addr_ctx->base.user_ip4 =
-                *(uint32_t*)INETADDR_ADDRESS((PSOCKADDR)&connect_request->localAddressAndPort);
-        } else {
-            sock_addr_ctx->base.family = AF_INET6;
-            RtlCopyMemory(
-                sock_addr_ctx->base.msg_src_ip6,
-                INETADDR_ADDRESS((PSOCKADDR)&connect_request->localAddressAndPort),
-                sizeof(FWP_BYTE_ARRAY16));
-            RtlCopyMemory(
-                sock_addr_ctx->base.user_ip6,
-                INETADDR_ADDRESS((PSOCKADDR)&connect_request->remoteAddressAndPort),
-                sizeof(FWP_BYTE_ARRAY16));
-        }
-        sock_addr_ctx->base.user_port = INETADDR_PORT((PSOCKADDR)&connect_request->remoteAddressAndPort);
-        sock_addr_ctx->base.msg_src_port = INETADDR_PORT((PSOCKADDR)&connect_request->localAddressAndPort);
+        sock_addr_ctx->base.family = AF_INET6;
+        RtlCopyMemory(
+            sock_addr_ctx->base.msg_src_ip6,
+            incoming_values[source_ip_address_field].value.byteArray16,
+            sizeof(FWP_BYTE_ARRAY16));
+        RtlCopyMemory(
+            sock_addr_ctx->base.user_ip6,
+            incoming_values[destination_ip_address_field].value.byteArray16,
+            sizeof(FWP_BYTE_ARRAY16));
     }
 
+    sock_addr_ctx->base.msg_src_port = htons(incoming_values[source_port_field].value.uint16);
+    sock_addr_ctx->base.user_port = htons(incoming_values[destination_port_field].value.uint16);
     sock_addr_ctx->base.protocol = incoming_values[fields->protocol_field].value.uint8;
     sock_addr_ctx->base.compartment_id = incoming_values[fields->compartment_id_field].value.uint32;
 
@@ -1565,7 +1539,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     // eBPF programs will not be invoked on connection re-authorization.
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
@@ -1641,7 +1615,7 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     }
 
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-        incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         // This is a re-authorization of a connection that was previously authorized by the
@@ -1906,14 +1880,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     }
 
     // Populate the sock_addr context with WFP classify input fields.
-    // If the filter context is wildcard filter context, use layer data to populate context.
-    if (filter_context->base.wildcard) {
-        _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-            incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
-    } else {
-        _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
-            incoming_fixed_values, incoming_metadata_values, NULL, &net_ebpf_sock_addr_ctx);
-    }
+    _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
+        incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
         // In case of re-authorization, the verdict is always to proceed (terminating).

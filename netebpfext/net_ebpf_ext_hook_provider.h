@@ -168,13 +168,6 @@ net_ebpf_extension_hook_provider_register(
  */
 typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_context, int program_verdict);
 
-net_ebpf_extension_hook_client_t*
-net_ebpf_extension_get_matching_client(
-    size_t attach_parameter_size,
-    _In_reads_(attach_parameter_size) const void* attach_parameter,
-    _In_reads_(attach_parameter_size) const void* wild_card_attach_parameter,
-    _In_ net_ebpf_extension_hook_provider_t* provider_context);
-
 /**
  * @brief Invoke all the eBPF programs attached to the specified filter context.
  *
