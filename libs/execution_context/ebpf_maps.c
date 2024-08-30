@@ -1738,7 +1738,7 @@ _next_hash_map_key_and_value(
     return result;
 }
 
-static ebpf_result_t
+static __forceinline ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
