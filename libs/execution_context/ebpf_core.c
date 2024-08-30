@@ -16,9 +16,11 @@
 #include "ebpf_random.h"
 #include "ebpf_serialize.h"
 #include "ebpf_state.h"
+#include "ebpf_strings.h"
 #include "ebpf_tracelog.h"
 
 #include <errno.h>
+#include <stdlib.h>
 
 const NPI_MODULEID ebpf_general_helper_function_module_id = {
     sizeof(ebpf_general_helper_function_module_id),
@@ -139,6 +141,9 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_memmove,
     // No default implementation of bpf_get_socket_cookie
     (void*)NULL, // bpf_get_socket_cookie
+    (void*)&_ebpf_core_strncpy_s,
+    (void*)&_ebpf_core_strncat_s,
+    (void*)&_ebpf_core_strlen_s,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -1166,9 +1171,8 @@ _ebpf_core_protocol_program_test_run_complete(
 {
     ebpf_operation_program_test_run_reply_t* reply = (ebpf_operation_program_test_run_reply_t*)completion_context;
     if (result == EBPF_SUCCESS) {
-        reply->header.length = (uint16_t)(
-            EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) + options->data_size_out +
-            options->context_size_out);
+        reply->header.length = (uint16_t)(EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) +
+                                          options->data_size_out + options->context_size_out);
         reply->return_value = options->return_value;
         reply->context_offset = (uint16_t)options->data_size_out;
         reply->duration = options->duration;
@@ -1762,8 +1766,8 @@ _ebpf_core_protocol_serialize_map_info_reply(
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
-        map_info_reply->header.length = (uint16_t)(
-            required_serialization_length + EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data));
+        map_info_reply->header.length = (uint16_t)(required_serialization_length +
+                                                   EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data));
     } else {
         map_info_reply->map_count = map_count;
     }

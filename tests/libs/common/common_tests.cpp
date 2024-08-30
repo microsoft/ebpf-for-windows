@@ -111,7 +111,8 @@ verify_utility_helper_results(_In_ const bpf_object* object, bool helper_overrid
 
 ring_buffer_test_event_context_t::_ring_buffer_test_event_context()
     : ring_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0), test_event_count(0)
-{}
+{
+}
 ring_buffer_test_event_context_t::~_ring_buffer_test_event_context()
 {
     if (ring_buffer != nullptr) {

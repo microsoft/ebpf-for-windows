@@ -159,12 +159,12 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_ATOMIC64),   ADD_OPCODE(EBPF_OP_ATOMIC)};
 
 #define IS_ATOMIC_OPCODE(_opcode) \
-    (((_opcode)&INST_CLS_MASK) == INST_CLS_STX && ((_opcode)&INST_MODE_MASK) == EBPF_MODE_ATOMIC)
+    (((_opcode) & INST_CLS_MASK) == INST_CLS_STX && ((_opcode) & INST_MODE_MASK) == EBPF_MODE_ATOMIC)
 
 #define IS_JMP_CLASS_OPCODE(_opcode) \
-    (((_opcode)&INST_CLS_MASK) == INST_CLS_JMP || ((_opcode)&INST_CLS_MASK) == INST_CLS_JMP32)
+    (((_opcode) & INST_CLS_MASK) == INST_CLS_JMP || ((_opcode) & INST_CLS_MASK) == INST_CLS_JMP32)
 
-#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode)&INST_CLS_MASK) == INST_CLS_JMP32)
+#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode) & INST_CLS_MASK) == INST_CLS_JMP32)
 
 #define IS_SIGNED_CMP_OPCODE(_opcode)                                                          \
     (((_opcode) >> 4) == (EBPF_MODE_JSGT >> 4) || ((_opcode) >> 4) == (EBPF_MODE_JSGE >> 4) || \

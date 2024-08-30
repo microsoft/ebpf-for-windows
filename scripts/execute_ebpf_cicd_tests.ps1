@@ -9,7 +9,7 @@ param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [parameter(Mandatory = $false)][bool] $Coverage = $false,
        [parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [parameter(Mandatory = $false)][string[]] $Options = @("None"),
-       [parameter(Mandatory = $false)][string] $SelfHostedRunnerName,
+       [parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
        [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
 )

@@ -2738,10 +2738,10 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -2761,10 +2761,10 @@ TEST_CASE("bpf_object__load with .o", "[libbpf]")
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -2811,10 +2811,10 @@ TEST_CASE("bpf_object__load with .o from memory", "[libbpf]")
 
     struct bpf_map* map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
     REQUIRE(bpf_map__fd(map) == ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -2834,10 +2834,10 @@ TEST_CASE("bpf_object__load with .o from memory", "[libbpf]")
     // The maps should now have FDs.
     map = bpf_object__next_map(object, nullptr);
     REQUIRE(map != nullptr);
-    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
-    REQUIRE(strcmp(bpf_map__name(map), "interface_index_map") == 0);
+    REQUIRE(strcmp(bpf_map__name(map), "dropped_packet_map") == 0);
     REQUIRE(bpf_map__fd(map) != ebpf_fd_invalid);
     map = bpf_object__next_map(object, map);
     REQUIRE(map == nullptr);
@@ -3767,7 +3767,49 @@ _utility_test(ebpf_execution_type_t execution_type)
 
     result = bpf_link__destroy(link.release());
     REQUIRE(result == 0);
+
     bpf_object__close(process_object);
 }
 
 DECLARE_ALL_TEST_CASES("utility_test", "[libbf]", _utility_test);
+
+static void
+_strings_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    const char dll_name[] = "strings_um.dll";
+    const char obj_name[] = "strings.o";
+    test_helper.initialize();
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? dll_name : obj_name);
+    struct bpf_object* process_object = bpf_object__open(file_name);
+    REQUIRE(process_object != nullptr);
+
+    // Load the program(s).
+    REQUIRE(bpf_object__load(process_object) == 0);
+
+    struct bpf_program* string_caller = bpf_object__find_program_by_name(process_object, "StringOpsTest");
+    REQUIRE(string_caller != nullptr);
+
+    bpf_link_ptr string_link(bpf_program__attach(string_caller));
+    REQUIRE(string_link != nullptr);
+
+    // Now run the ebpf program.
+    INITIALIZE_BIND_CONTEXT
+    ctx->operation = BIND_OPERATION_BIND;
+
+    uint32_t result{};
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
+
+    REQUIRE(result == 0);
+
+    result = bpf_link__destroy(string_link.release());
+    REQUIRE(result == 0);
+
+    bpf_object__close(process_object);
+}
+DECLARE_ALL_TEST_CASES("strings_test", "[libbpf]", _strings_test);

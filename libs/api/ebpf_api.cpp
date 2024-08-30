@@ -64,7 +64,9 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
 
-#define NO_EXCEPT_TRY noexcept try
+#define NO_EXCEPT_TRY \
+    noexcept          \
+    try
 
 #define CATCH_NO_MEMORY_FD \
     catch (const std::bad_alloc&) { EBPF_RETURN_FD(ebpf_fd_invalid); }
@@ -4183,7 +4185,8 @@ typedef struct _ebpf_ring_buffer_subscription
         : unsubscribed(false), ring_buffer_map_handle(ebpf_handle_invalid), sample_callback_context(nullptr),
           sample_callback(nullptr), buffer(nullptr), reply({}), async_ioctl_completion(nullptr),
           async_ioctl_failed(false)
-    {}
+    {
+    }
     ~_ebpf_ring_buffer_subscription()
     {
         EBPF_LOG_ENTRY();
