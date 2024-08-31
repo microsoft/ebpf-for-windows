@@ -109,7 +109,7 @@ typedef void (*net_ebpf_extension_delete_filter_context)(
     _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
- * @brief Callback function to validate if the attach parameters (i.e. client data) is valid, and to get information
+ * @brief Callback function to validate if the attach parameters (i.e., client data) is valid, and to get information
  *        if the attach parameter is a wildcard attach parameter.
  *
  * @param[in] client_data Pointer to the attach parameters (client data) that is being validated.
