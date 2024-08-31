@@ -59,7 +59,7 @@ xdp_invalid_socket_cookie(void* context)
 
     // EBPF_OP_CALL pc=0 dst=r0 src=r0 offset=0 imm=26
 #line 20 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = xdp_invalid_socket_cookie_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 20 "sample/xdp_invalid_socket_cookie.c"
     if ((xdp_invalid_socket_cookie_helpers[0].tail_call) && (r0 == 0)) {
 #line 20 "sample/xdp_invalid_socket_cookie.c"
@@ -104,7 +104,7 @@ xdp_invalid_socket_cookie(void* context)
     r3 = r0;
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=13
 #line 22 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = xdp_invalid_socket_cookie_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 22 "sample/xdp_invalid_socket_cookie.c"
     if ((xdp_invalid_socket_cookie_helpers[1].tail_call) && (r0 == 0)) {
 #line 22 "sample/xdp_invalid_socket_cookie.c"
@@ -152,7 +152,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 19;
     version->revision = 0;
 }
 

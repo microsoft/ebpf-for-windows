@@ -30,3 +30,4 @@ api-ms-win-core-heap-l1-1-0.dll
 KERNEL32.dll
 ADVAPI32.dll
 dbghelp.dll
+bcrypt.dll

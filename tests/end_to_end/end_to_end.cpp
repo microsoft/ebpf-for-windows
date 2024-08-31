@@ -542,10 +542,10 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     auto packet = prepare_udp_packet(0, ETHERNET_TYPE_IPV4);
 
     // Empty context (not used by the eBPF program).
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT;
 
     uint32_t hook_result;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
     hook.detach_and_close_link(&link);
@@ -626,12 +626,13 @@ emulate_bind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pi
 {
     uint32_t result;
     std::string app_id = appid;
-    bind_md_t ctx{0};
-    ctx.app_id_start = (uint8_t*)app_id.c_str();
-    ctx.app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-    ctx.process_id = pid;
-    ctx.operation = BIND_OPERATION_BIND;
-    REQUIRE(invoke(reinterpret_cast<void*>(&ctx), &result) == EBPF_SUCCESS);
+    INITIALIZE_BIND_CONTEXT
+
+    ctx->app_id_start = (uint8_t*)app_id.c_str();
+    ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+    ctx->process_id = pid;
+    ctx->operation = BIND_OPERATION_BIND;
+    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
     return static_cast<bind_action_t>(result);
 }
 
@@ -640,10 +641,11 @@ emulate_unbind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t 
 {
     uint32_t result;
     std::string app_id = appid;
-    bind_md_t ctx{0};
-    ctx.process_id = pid;
-    ctx.operation = BIND_OPERATION_UNBIND;
-    REQUIRE(invoke(&ctx, &result) == EBPF_SUCCESS);
+    INITIALIZE_BIND_CONTEXT
+
+    ctx->process_id = pid;
+    ctx->operation = BIND_OPERATION_UNBIND;
+    REQUIRE(invoke(ctx, &result) == EBPF_SUCCESS);
 }
 
 void
@@ -879,6 +881,46 @@ bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 }
 
 void
+negative_ring_buffer_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* error_message = nullptr;
+    int result;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "bpf_call_um.dll" : "bpf_call.o");
+
+    // Load eBPF program.
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t map_fd = bpf_object__find_map_fd_by_name(unique_object.get(), "map");
+    REQUIRE(map_fd > 0);
+
+    // Calls to ring buffer APIs on this map (array_map) must fail.
+    REQUIRE(
+        ring_buffer__new(
+            map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr) == nullptr);
+    REQUIRE(libbpf_get_error(nullptr) == EINVAL);
+    uint8_t data = 0;
+    REQUIRE(ebpf_ring_buffer_map_write(map_fd, &data, sizeof(data)) == EBPF_INVALID_ARGUMENT);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
 bindmonitor_ring_buffer_test(ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
@@ -960,10 +1002,10 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     bpf_object* object = program_helper.get_object();
 
     // Dummy context (not used by the eBPF program).
-    sample_program_context_t ctx{};
+    INITIALIZE_SAMPLE_CONTEXT
 
     uint32_t hook_result;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
     verify_utility_helper_results(object, true);
@@ -999,8 +1041,8 @@ map_test(ebpf_execution_type_t execution_type)
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
     uint32_t hook_result;
-    sample_program_context_t ctx = {0};
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    INITIALIZE_SAMPLE_CONTEXT
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     // Program should return 0 if all the map tests pass.
     REQUIRE(hook_result >= 0);
 
@@ -1014,6 +1056,7 @@ DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um)
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
+DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
@@ -1840,11 +1883,11 @@ TEST_CASE("printk", "[end_to_end]")
     // The current bind hook only works with IPv4, so compose a sample IPv4 context.
     SOCKADDR_IN addr = {AF_INET};
     addr.sin_port = htons(80);
-    bind_md_t ctx = {0};
-    ctx.process_id = GetCurrentProcessId();
-    ctx.protocol = 2;
-    ctx.socket_address_length = sizeof(addr);
-    memcpy(&ctx.socket_address, &addr, ctx.socket_address_length);
+    INITIALIZE_BIND_CONTEXT
+    ctx->process_id = GetCurrentProcessId();
+    ctx->protocol = 2;
+    ctx->socket_address_length = sizeof(addr);
+    memcpy(&ctx->socket_address, &addr, ctx->socket_address_length);
 
     capture_helper_t capture;
     std::vector<std::string> output;
@@ -1853,7 +1896,7 @@ TEST_CASE("printk", "[end_to_end]")
     if (error == NO_ERROR) {
         usersim_trace_logging_set_enabled(true, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK);
 #pragma warning(suppress : 28193) // hook_fire_result is examined
-        ebpf_result_t hook_fire_result = hook.fire(&ctx, &hook_result);
+        ebpf_result_t hook_fire_result = hook.fire(ctx, &hook_result);
         usersim_trace_logging_set_enabled(false, 0, 0);
 
         output = capture.buffer_to_printk_vector(capture.get_stdout_contents());
@@ -1862,11 +1905,11 @@ TEST_CASE("printk", "[end_to_end]")
     std::vector<std::string> expected_output = {
         "Hello, world",
         "Hello, world",
-        "PID: " + std::to_string(ctx.process_id) + " using %u",
-        "PID: " + std::to_string(ctx.process_id) + " using %lu",
-        "PID: " + std::to_string(ctx.process_id) + " using %llu",
-        "PID: " + std::to_string(ctx.process_id) + " PROTO: 2",
-        "PID: " + std::to_string(ctx.process_id) + " PROTO: 2 ADDRLEN: 16",
+        "PID: " + std::to_string(ctx->process_id) + " using %u",
+        "PID: " + std::to_string(ctx->process_id) + " using %lu",
+        "PID: " + std::to_string(ctx->process_id) + " using %llu",
+        "PID: " + std::to_string(ctx->process_id) + " PROTO: 2",
+        "PID: " + std::to_string(ctx->process_id) + " PROTO: 2 ADDRLEN: 16",
         "100% done"};
     REQUIRE(output.size() == expected_output.size());
     size_t output_length = 0;
@@ -1965,10 +2008,10 @@ TEST_CASE("link_tests", "[end_to_end]")
         SAMPLE_PATH "bpf.o", BPF_PROG_TYPE_SAMPLE, "func", EBPF_EXECUTION_INTERPRET, nullptr, 0, hook);
 
     // Dummy context (not used by the eBPF program).
-    sample_program_context_t ctx = {0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t result;
 
-    REQUIRE(hook.fire(&ctx, &result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &result) == EBPF_SUCCESS);
     bpf_program* program = bpf_object__find_program_by_name(program_helper.get_object(), "func");
     REQUIRE(program != nullptr);
 
@@ -2035,10 +2078,10 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_obj_get_info_by_fd(outer_map_fd, &info, &info_size) == 0);
     REQUIRE(info.name[0] == 0);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t hook_result;
 
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
 
     key = 0;
@@ -2145,10 +2188,10 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
     fd_t port_map_fd = bpf_obj_get("/ebpf/global/port_map");
     REQUIRE(port_map_fd > 0);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t hook_result;
 
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
 
     key = 0;
@@ -2218,10 +2261,10 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
     fd_t port_map_fd = bpf_obj_get("/custompath/global/port_map");
     REQUIRE(port_map_fd > 0);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t hook_result;
 
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
 
     key = 0;
@@ -2329,10 +2372,10 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     program_load_attach_helper_t program_helper;
     program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t hook_result;
 
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
 
     key = 0;
@@ -2405,10 +2448,10 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     program_load_attach_helper_t program_helper;
     program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
     uint32_t hook_result;
 
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
 
     key = 0;
@@ -2448,6 +2491,62 @@ _create_service_helper(
             HKEY_LOCAL_MACHINE, parameters_path.c_str(), REG_BINARY, NPI_MODULE_ID, provider_module_id, sizeof(GUID)) ==
         ERROR_SUCCESS);
 }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+
+TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    // Try with a valid set of instructions.
+    struct ebpf_inst instructions[] = {
+        {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
+        {INST_OP_EXIT},             // return r0
+    };
+    uint32_t insn_cnt = _countof(instructions);
+    const bpf_prog_type_t prog_type = BPF_PROG_TYPE_SAMPLE;
+    const ebpf_program_type_t* program_type = ebpf_get_ebpf_program_type(prog_type);
+
+    REQUIRE(program_type != nullptr);
+    REQUIRE(insn_cnt != 0);
+
+    fd_t program_fd;
+#pragma warning(suppress : 28193) // result is examined
+    ebpf_result_t result = ebpf_program_load_bytes(
+        program_type,
+        nullptr,
+        EBPF_EXECUTION_ANY,
+        reinterpret_cast<const ebpf_inst*>(instructions),
+        insn_cnt,
+        nullptr,
+        0,
+        &program_fd);
+
+    REQUIRE(result == EBPF_SUCCESS);
+    REQUIRE(program_fd >= 0);
+
+    // Now query the program info and verify it matches what we set.
+    bpf_prog_info program_info = {};
+    uint32_t program_info_size = sizeof(program_info);
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
+    REQUIRE(program_info_size == sizeof(program_info));
+    REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(program_info.map_ids == 0);
+    REQUIRE(program_info.name != NULL);
+    // Name should contain SHA256 hash in hex (minus last char to stay under BPF_OBJ_NAME_LEN).
+    REQUIRE(strlen(program_info.name) == 63);
+
+    REQUIRE(program_info.type == prog_type);
+
+    Platform::_close(program_fd);
+}
+#endif
 
 // Load a native module with non-existing driver.
 TEST_CASE("load_native_program_negative", "[end-to-end]")
@@ -2992,13 +3091,13 @@ TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
 }
 
 static void
-extension_reload_test(ebpf_execution_type_t execution_type)
+extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t execution_type)
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // Empty context (not used by the eBPF program).
-    sample_program_context_t ctx{0};
+    INITIALIZE_SAMPLE_CONTEXT
 
     // Try loading without the extension loaded.
     bpf_object_ptr unique_test_sample_ebpf_object;
@@ -3009,7 +3108,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
     // Should fail.
     REQUIRE(
         ebpf_program_load(
-            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
+            file_name,
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
             &unique_test_sample_ebpf_object,
@@ -3026,7 +3125,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
         REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
         result = ebpf_program_load(
-            execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o",
+            file_name,
             BPF_PROG_TYPE_UNSPEC,
             execution_type,
             &unique_test_sample_ebpf_object,
@@ -3047,7 +3146,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         // Program should run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == 42);
 
         // Unload the extension (sample_program_info and hook will be destroyed).
@@ -3064,7 +3163,7 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         // Program should run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
         REQUIRE(hook_result == 42);
     }
 
@@ -3086,16 +3185,16 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         // Program should not run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != 42);
     }
 
     // Reload the extension provider with changed helper function data.
     {
-        ebpf_helper_function_prototype_t helper_function_prototypes[3];
+        ebpf_helper_function_prototype_t helper_function_prototypes[5];
         std::copy(
             _sample_ebpf_extension_helper_function_prototype,
-            _sample_ebpf_extension_helper_function_prototype + 3,
+            _sample_ebpf_extension_helper_function_prototype + 5,
             helper_function_prototypes);
         // Change the return type of the helper function from EBPF_RETURN_TYPE_INTEGER to
         // EBPF_RETURN_TYPE_PTR_TO_MAP_VALUE_OR_NULL.
@@ -3114,12 +3213,82 @@ extension_reload_test(ebpf_execution_type_t execution_type)
 
         // Program should not run.
         uint32_t hook_result = MAXUINT32;
-        REQUIRE(hook.fire(&ctx, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
         REQUIRE(hook_result != 42);
+    }
+
+    // Reload the extension again with original data.
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 42);
+    }
+
+    // Reload the extension with changed context_header support.
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+        changed_program_data.capabilities.value = 0;
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        // Program should re-attach to the hook.
+
+        // Program should not run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(ctx, &hook_result) != EBPF_SUCCESS);
+        REQUIRE(hook_result != 42);
+    }
+
+    // Reload the extension again with original data
+    {
+        ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
+
+        single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        program_info_provider_t sample_program_info;
+        REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE, &changed_program_data) == EBPF_SUCCESS);
+
+        // Program should re-attach to the hook.
+
+        // Program should run.
+        uint32_t hook_result = MAXUINT32;
+        REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+        REQUIRE(hook_result == 42);
     }
 }
 
+static void
+extension_reload_test(ebpf_execution_type_t execution_type)
+{
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_ebpf_um.dll" : "test_sample_ebpf.o";
+    extension_reload_test_common(file_name, execution_type);
+}
+
 DECLARE_ALL_TEST_CASES("extension_reload_test", "[end_to_end]", extension_reload_test);
+
+static void
+_extension_reload_test_implicit_context(ebpf_execution_type_t execution_type)
+{
+    const char* file_name = execution_type == EBPF_EXECUTION_NATIVE ? "test_sample_implicit_helpers_um.dll"
+                                                                    : "test_sample_implicit_helpers.o";
+    extension_reload_test_common(file_name, execution_type);
+}
+
+DECLARE_ALL_TEST_CASES(
+    "extension_reload_test_implicit_context", "[end_to_end]", _extension_reload_test_implicit_context);
 
 // This test tests resource reclamation and clean-up after a premature/abnormal user mode application exit.
 TEST_CASE("close_unload_test", "[close_cleanup]")
@@ -3436,3 +3605,60 @@ TEST_CASE("invalid_bpf_get_socket_cookie", "[end_to_end]")
 #endif
     test_invalid_bpf_get_socket_cookie(EBPF_EXECUTION_NATIVE);
 }
+
+static void
+_implicit_context_helpers_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+    INITIALIZE_SAMPLE_CONTEXT
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+    uint32_t data1 = 1;
+    uint32_t data2 = 2;
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? "test_sample_implicit_helpers_um.dll"
+                                                                      : "test_sample_implicit_helpers.o";
+
+    ctx->helper_data_1 = data1;
+    ctx->helper_data_2 = data2;
+
+    // Try loading without the extension loaded.
+    bpf_object_ptr unique_test_sample_ebpf_object;
+    int program_fd = -1;
+    const char* error_message = nullptr;
+    int result;
+
+    result = ebpf_program_load(
+        file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_test_sample_ebpf_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    bpf_link* link = nullptr;
+    // Attach only to the single interface being tested.
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+    bpf_link__disconnect(link);
+    bpf_link__destroy(link);
+
+    // Program should run.
+    uint32_t hook_result = MAXUINT32;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == 42);
+
+    // Read the output_map and check the values.
+    fd_t output_map_fd = bpf_object__find_map_fd_by_name(unique_test_sample_ebpf_object.get(), "output_map");
+    REQUIRE(output_map_fd > 0);
+    helper_values_t data = {0};
+    uint32_t key = 0;
+    REQUIRE(bpf_map_lookup_elem(output_map_fd, &key, &data) == 0);
+    REQUIRE(data.value_1 == data1);
+    REQUIRE(data.value_2 == data2 + 10);
+}
+
+DECLARE_ALL_TEST_CASES("implicit_context_helpers_test", "[end_to_end]", _implicit_context_helpers_test);

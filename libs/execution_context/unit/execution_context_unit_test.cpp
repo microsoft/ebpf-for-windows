@@ -1149,7 +1149,7 @@ TEST_CASE("program", "[execution_context]")
     sample_program_context_t ctx{0};
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
-    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), &ctx, &result, &state);
+    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), false, &ctx, &result, &state);
     REQUIRE(ebpf_result == EBPF_SUCCESS);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
@@ -1190,7 +1190,7 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(options.return_value == TEST_FUNCTION_RETURN);
     REQUIRE(options.duration > 0);
 
-    uint64_t addresses[TOTAL_HELPER_COUNT] = {};
+    helper_function_address_t addresses[TOTAL_HELPER_COUNT] = {};
     uint32_t helper_function_ids[] = {1, 3, 2};
     REQUIRE(
         ebpf_program_set_helper_function_ids(program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) ==
@@ -1198,9 +1198,9 @@ TEST_CASE("program", "[execution_context]")
     REQUIRE(
         ebpf_program_get_helper_function_addresses(program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) ==
         EBPF_SUCCESS);
-    REQUIRE(addresses[0] != 0);
-    REQUIRE(addresses[1] != 0);
-    REQUIRE(addresses[2] != 0);
+    REQUIRE(addresses[0].address != 0);
+    REQUIRE(addresses[1].address != 0);
+    REQUIRE(addresses[2].address != 0);
 
     link_ptr link;
 
@@ -1636,7 +1636,8 @@ TEST_CASE("EBPF_OPERATION_RESOLVE_HELPER", "[execution_context][negative]")
     NEGATIVE_TEST_PROLOG();
 
     std::vector<uint8_t> request(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_request_t, helper_id) + sizeof(uint32_t));
-    std::vector<uint8_t> reply(EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(uintptr_t));
+    std::vector<uint8_t> reply(
+        EBPF_OFFSET_OF(ebpf_operation_resolve_helper_reply_t, address) + sizeof(helper_function_address_t));
     auto resolve_helper_request = reinterpret_cast<ebpf_operation_resolve_helper_request_t*>(request.data());
 
     // Invalid handle.
@@ -2251,6 +2252,191 @@ TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context]
             static_cast<uint16_t>(reply_size),
             nullptr,
             completion) == EBPF_ARITHMETIC_OVERFLOW);
+}
+
+#define EBPF_PROGRAM_TYPE_TEST_GUID                                                    \
+    {                                                                                  \
+        0x8ee1b757, 0xc0b2, 0x4c84, { 0xac, 0x07, 0x0c, 0x76, 0x29, 0x8f, 0x1d, 0xc9 } \
+    }
+
+void
+test_register_provider(
+    _In_ const NPI_PROVIDER_CHARACTERISTICS* provider_characteristics, bool expected_to_succeed = false)
+{
+    class provider_deregister_helper
+    {
+      public:
+        void
+        operator()(HANDLE handle)
+        {
+            NmrDeregisterProvider(handle);
+        }
+    };
+
+    typedef std::unique_ptr<void, provider_deregister_helper> provider_ptr;
+    provider_ptr provider;
+    HANDLE nmr_provider_handle;
+
+    REQUIRE(NmrRegisterProvider(provider_characteristics, nullptr, &nmr_provider_handle) == STATUS_SUCCESS);
+    provider.reset(nmr_provider_handle);
+
+    ebpf_program_type_t EBPF_PROGRAM_TYPE_TEST = EBPF_PROGRAM_TYPE_TEST_GUID;
+    const cxplat_utf8_string_t program_name{(uint8_t*)("foo"), 3};
+    const cxplat_utf8_string_t section_name{(uint8_t*)("bar"), 3};
+    const ebpf_program_parameters_t program_parameters{
+        EBPF_PROGRAM_TYPE_TEST, EBPF_ATTACH_TYPE_SAMPLE, program_name, section_name};
+    program_ptr program;
+    {
+        ebpf_program_t* local_program = nullptr;
+        REQUIRE(
+            ebpf_program_create(&program_parameters, &local_program) ==
+            (expected_to_succeed ? EBPF_SUCCESS : EBPF_EXTENSION_FAILED_TO_LOAD));
+        program.reset(local_program);
+        if (expected_to_succeed) {
+            helper_function_address_t addresses[1] = {};
+            uint32_t helper_function_ids[] = {EBPF_MAX_GENERAL_HELPER_FUNCTION + 1};
+            REQUIRE(
+                ebpf_program_set_helper_function_ids(
+                    program.get(), EBPF_COUNT_OF(helper_function_ids), helper_function_ids) == EBPF_SUCCESS);
+            REQUIRE(
+                ebpf_program_get_helper_function_addresses(
+                    program.get(), EBPF_COUNT_OF(helper_function_ids), addresses) == EBPF_SUCCESS);
+            REQUIRE(addresses[0].address != 0);
+        }
+    }
+}
+
+TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+
+    ebpf_context_descriptor_t _test_context_descriptor = {sizeof(ebpf_context_descriptor_t), -1, -1, -1};
+
+    const uint32_t _test_prog_type = 1000;
+    ebpf_program_type_descriptor_t _test_program_type_descriptor = {
+        EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER,
+        "test_program_type",
+        &_test_context_descriptor,
+        EBPF_PROGRAM_TYPE_TEST_GUID,
+        _test_prog_type,
+        0};
+
+    ebpf_helper_function_prototype_t _test_helper_function_prototype[] = {
+        {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+         EBPF_MAX_GENERAL_HELPER_FUNCTION + 1,
+         "test_helper_function",
+         EBPF_RETURN_TYPE_INTEGER,
+         {EBPF_ARGUMENT_TYPE_DONTCARE}}};
+
+    ebpf_program_info_t _test_program_info = {
+        EBPF_PROGRAM_INFORMATION_HEADER,
+        &_test_program_type_descriptor,
+        EBPF_COUNT_OF(_test_helper_function_prototype),
+        _test_helper_function_prototype};
+
+    auto provider_function1 = []() { return (ebpf_result_t)TEST_FUNCTION_RETURN; };
+    ebpf_result_t (*function_pointer1)() = provider_function1;
+    const void* helper_functions[] = {(void*)function_pointer1};
+    ebpf_helper_function_addresses_t helper_function_addresses = {
+        EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
+
+    ebpf_program_data_t _test_program_data = {
+        EBPF_PROGRAM_DATA_HEADER, &_test_program_info, &helper_function_addresses};
+
+    auto provider_attach_client_callback =
+        [](HANDLE, void*, const NPI_REGISTRATION_INSTANCE*, void*, const void*, void**, const void**) -> NTSTATUS {
+        return STATUS_SUCCESS;
+    };
+    auto provider_detach_client_callback = [](void*) -> NTSTATUS { return STATUS_SUCCESS; };
+
+    NPI_MODULEID module_id = {sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_TEST_GUID};
+
+    NPI_PROVIDER_CHARACTERISTICS provider_characteristics{
+        0,
+        sizeof(NPI_PROVIDER_CHARACTERISTICS),
+        provider_attach_client_callback,
+        provider_detach_client_callback,
+        nullptr,
+        {
+            0,
+            sizeof(NPI_REGISTRATION_INSTANCE),
+            &EBPF_PROGRAM_INFO_EXTENSION_IID,
+            &module_id,
+            0,
+            &_test_program_data,
+        },
+    };
+
+    // Register the provider with valid program data. The test is expected to succeed.
+    bool expected_to_succeed = true;
+    test_register_provider(&provider_characteristics, expected_to_succeed);
+
+    // In the next tests, exactly one field of the program data will be invalidated. The tests are expected to fail.
+
+    // Set bad version for program data header.
+    _test_program_data.header.version = 0;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_data.header.version = EBPF_PROGRAM_DATA_CURRENT_VERSION;
+
+    // Set bigger size than supported for the program data header.
+    _test_program_data.header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE + 1;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_data.header.size = EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE;
+
+    // Remove the program data from the provider characteristics struct.
+    provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    provider_characteristics.ProviderRegistrationInstance.NpiSpecificCharacteristics = &_test_program_data;
+
+    // Remove the address from the helper function.
+    helper_function_addresses.helper_function_address = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    helper_function_addresses.helper_function_address = (uint64_t*)helper_functions;
+
+    // Remove the program info struct from the program data.
+    _test_program_data.program_info = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_data.program_info = &_test_program_info;
+
+    // Remove the program type descriptor from the program info.
+    _test_program_info.program_type_descriptor = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_info.program_type_descriptor = &_test_program_type_descriptor;
+
+    // Remove name to the program type descriptor.
+    _test_program_type_descriptor.name = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_type_descriptor.name = "test_program_type";
+
+    // Remove the context descriptor from the program type descriptor.
+    _test_program_type_descriptor.context_descriptor = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_type_descriptor.context_descriptor = &_test_context_descriptor;
+
+    // Invalidate the context descriptor (size = 0).
+    _test_context_descriptor.size = 0;
+    test_register_provider(&provider_characteristics);
+    // Fix up the context descriptor.
+    _test_context_descriptor.size = sizeof(ebpf_context_descriptor_t);
+
+    // Remove the helper function prototype from the program info.
+    _test_program_info.program_type_specific_helper_prototype = nullptr;
+    test_register_provider(&provider_characteristics);
+    // Restore.
+    _test_program_info.program_type_specific_helper_prototype = _test_helper_function_prototype;
+
+    // Invalidate the helper function prototype by removing the name of the helper function.
+    _test_helper_function_prototype[0].name = nullptr;
+    test_register_provider(&provider_characteristics);
 }
 
 // TODO: Add more native module loading IOCTL negative tests.

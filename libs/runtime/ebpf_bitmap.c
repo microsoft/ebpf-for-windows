@@ -33,7 +33,7 @@ typedef struct _ebpf_bitmap_cursor_internal
     uint64_t current_block_copy; // Copy of the current block being searched.
 } ebpf_bitmap_cursor_internal_t;
 
-C_ASSERT(sizeof(ebpf_bitmap_cursor_internal_t) == sizeof(ebpf_bitmap_cursor_t));
+static_assert(sizeof(ebpf_bitmap_cursor_internal_t) == sizeof(ebpf_bitmap_cursor_t), "Size mismatch of cursor types.");
 
 // The number of bits within a block.
 #define BITS_IN_BLOCK (sizeof(uint64_t) * 8)

@@ -39,6 +39,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_BIND_MAP,
     EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
     EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+    EBPF_OPERATION_RING_BUFFER_MAP_WRITE_DATA,
     EBPF_OPERATION_LOAD_NATIVE_MODULE,
     EBPF_OPERATION_LOAD_NATIVE_PROGRAMS,
     EBPF_OPERATION_PROGRAM_TEST_RUN,
@@ -67,6 +68,12 @@ typedef enum _ebpf_ec_function
     EBPF_EC_FUNCTION_LOG
 } ebpf_ec_function_t;
 
+typedef struct _helper_function_address
+{
+    uint64_t address;
+    bool implicit_context;
+} helper_function_address_t;
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 typedef struct _ebpf_operation_resolve_helper_request
 {
@@ -78,7 +85,7 @@ typedef struct _ebpf_operation_resolve_helper_request
 typedef struct _ebpf_operation_resolve_helper_reply
 {
     struct _ebpf_operation_header header;
-    uintptr_t address[1];
+    helper_function_address_t address[1];
 } ebpf_operation_resolve_helper_reply_t;
 
 typedef struct _ebpf_operation_resolve_map_request
@@ -390,6 +397,13 @@ typedef struct _ebpf_operation_ring_buffer_map_async_query_reply
     struct _ebpf_operation_header header;
     ebpf_ring_buffer_map_async_query_result_t async_query_result;
 } ebpf_operation_ring_buffer_map_async_query_reply_t;
+
+typedef struct _ebpf_operation_ring_buffer_map_write_data_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint8_t data[1];
+} ebpf_operation_ring_buffer_map_write_data_request_t;
 
 typedef struct _ebpf_operation_load_native_module_request
 {

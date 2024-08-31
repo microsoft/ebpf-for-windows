@@ -68,6 +68,7 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           echo "##vso[task.setvariable variable=msvc_tools_path;isOutput=true]%VCToolsInstallDir%"
           echo "##vso[task.setvariable variable=msvc_tools_version;isOutput=true]%VCToolsVersion%"
+          echo ##vso[task.setvariable variable=VSINSTALLDIR;isOutput=true]%VSINSTALLDIR%
         name: msvc_variables
         displayName: 'Set MSVC Environment Variables'
 
@@ -88,12 +89,24 @@ jobs:
         workingDirectory: $(Build.SourcesDirectory)
         displayName: 'Dump Environment variables'
 
-      - bash: |
-          choco install -y llvm --version 11.0.1 --allow-downgrade
-          echo '##vso[task.prependpath]C:\Program Files\LLVM\bin'
-          choco install wixtoolset
-        workingDirectory: $(Build.SourcesDirectory)
-        displayName:  'Install tools'
+      - task: PowerShell@2
+        displayName: 'Install Visual Studio LLVM tools'
+        inputs:
+          targetType: 'inline'
+          script: |
+            cd "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer"
+            .\vs_installer.exe modify --installPath "$(msvc_variables.VSINSTALLDIR)" --add Microsoft.VisualStudio.Component.LLVM.Clang --quiet
+
+      - script: |
+            echo ##vso[task.prependpath]$(msvc_variables.VSINSTALLDIR)\vc\tools\llvm\bin
+        displayName: 'Add MSVC LLVM Clang to PATH'
+
+      - task: PowerShell@2
+        displayName: 'Log CLANG version'
+        inputs:
+          targetType: 'inline'
+          script: |
+            clang --version
 
       - powershell: |
           .\scripts\initialize_ebpf_repo.ps1

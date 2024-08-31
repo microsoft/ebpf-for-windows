@@ -92,7 +92,7 @@ func(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 28 "sample/undocked/atomic_instruction_fetch_add.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 28 "sample/undocked/atomic_instruction_fetch_add.c"
     if ((func_helpers[0].tail_call) && (r0 == 0)) {
 #line 28 "sample/undocked/atomic_instruction_fetch_add.c"
@@ -154,7 +154,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 19;
     version->revision = 0;
 }
 

@@ -99,7 +99,8 @@ get_program_info_type_hash(const std::vector<int32_t>& actual_helper_ids, const 
     if (actual_helper_id_count > 0) {
         for (size_t index = 0; index < program_info->count_of_program_type_specific_helpers; index++) {
             uint32_t helper_id = program_info->program_type_specific_helper_prototype[index].helper_id;
-            if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), helper_id) != actual_helper_ids.end()) {
+            if (std::find(actual_helper_ids.begin(), actual_helper_ids.end(), (int32_t)helper_id) !=
+                actual_helper_ids.end()) {
                 helper_id_ordering[helper_id] = index;
             }
         }
@@ -321,8 +322,17 @@ main(int argc, char** argv)
             ebpf_free_string(report);
             ebpf_free_string(error_message);
             error_message = nullptr;
+
+            const ebpf_program_info_t* program_info = nullptr;
+            if (verify_programs) {
+                result = ebpf_get_program_info_from_verifier(&program_info);
+                if (result != EBPF_SUCCESS) {
+                    throw std::runtime_error(std::string("Failed to get program information"));
+                }
+            }
             generator.parse(
                 program,
+                program_info,
                 (global_program_type_set) ? program_type : program->program_type,
                 (global_program_type_set) ? attach_type : program->expected_attach_type,
                 hash_algorithm);

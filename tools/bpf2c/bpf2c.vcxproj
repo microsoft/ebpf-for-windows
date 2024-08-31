@@ -104,7 +104,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;ENABLE_SKIP_VERIFY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -122,7 +122,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;ENABLE_SKIP_VERIFY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -137,7 +137,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;ENABLE_SKIP_VERIFY;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -153,7 +153,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -171,7 +171,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(OutDir);$(OutDir)..\Release;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(OutDir);$(OutDir)..\Release;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -185,7 +185,7 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\tests\libs\util\hash.cpp" />
+    <ClCompile Include="..\..\libs\shared\hash.cpp" />
     <ClCompile Include="bpf2c.cpp" />
     <CustomBuild Include="bpf2c_dll.c">
       <FileType>CppCode</FileType>
@@ -247,7 +247,7 @@
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
     </ClInclude>
-    <ClInclude Include="..\..\tests\libs\util\hash.h" />
+    <ClInclude Include="..\..\libs\shared\hash.h" />
     <ClInclude Include="bpf_code_generator.h" />
   </ItemGroup>
   <ItemGroup>

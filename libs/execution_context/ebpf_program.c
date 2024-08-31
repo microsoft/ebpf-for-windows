@@ -28,6 +28,19 @@ static size_t _ebpf_program_state_index = MAXUINT64;
 // Global flag to disable invoking programs. This is used when fuzzing the IOCTL interface.
 bool ebpf_program_disable_invoke = false;
 
+typedef struct _ebpf_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    uint8_t context[1];
+} ebpf_context_header_t;
+
+typedef enum _context_header_support
+{
+    CONTEXT_HEADER_SUPPORT_NOT_SET = 0,
+    CONTEXT_HEADER_NOT_SUPPORTED = 1,
+    CONTEXT_HEADER_SUPPORTED = 2,
+} context_header_support_t;
+
 typedef struct _ebpf_program
 {
     ebpf_core_object_t object;
@@ -91,6 +104,7 @@ typedef struct _ebpf_program
 
     _Guarded_by_(lock) ebpf_helper_function_addresses_changed_callback_t helper_function_addresses_changed_callback;
     _Guarded_by_(lock) void* helper_function_addresses_changed_context;
+    _Guarded_by_(lock) context_header_support_t context_header_support;
 } ebpf_program_t;
 
 static struct
@@ -140,14 +154,14 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_he
 
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context);
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context);
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context);
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context);
 
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
-    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ uint64_t* address);
+    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ helper_function_address_t* address);
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_initiate()
@@ -157,7 +171,8 @@ ebpf_program_initiate()
 
 void
 ebpf_program_terminate()
-{}
+{
+}
 
 _Requires_lock_not_held_(program->lock) static void _ebpf_program_detach_links(_Inout_ ebpf_program_t* program)
 {
@@ -332,8 +347,7 @@ _ebpf_program_general_program_information_attach_provider(
 
     program->general_helper_program_data = program_data;
 
-    program->global_helper_function_count =
-        program_data->program_type_specific_helper_function_addresses->helper_function_count;
+    program->global_helper_function_count = program_data->global_helper_function_addresses->helper_function_count;
 
     ebpf_lock_unlock(&program->lock, state);
     lock_held = false;
@@ -437,6 +451,28 @@ _ebpf_program_type_specific_program_information_attach_provider(
             "Type specific program information provider attached before global program information provider.");
         status = STATUS_INVALID_PARAMETER;
         goto Done;
+    }
+
+    // Check if the context header support has changed. This check and behavior is needed for the below reasons:
+    // After a program has been loaded and attached, i.e., the program information provider and hook info providers
+    // have loaded and attached, either of them can be detached and reattached in any order. Also the hook info
+    // provider uses this information to determine what version of dispatch table to provide to the hook info provider.
+    // To avoid any race conditions, the context header support should be set only once and should not be changed.
+    context_header_support_t new_value = extension_program_data->capabilities.supports_context_header
+                                             ? CONTEXT_HEADER_SUPPORTED
+                                             : CONTEXT_HEADER_NOT_SUPPORTED;
+    if (program->context_header_support != CONTEXT_HEADER_SUPPORT_NOT_SET) {
+        if (new_value != program->context_header_support) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "Context header support mismatch between previous and new type specific program information "
+                "providers.");
+            status = STATUS_INVALID_PARAMETER;
+            goto Done;
+        }
+    } else {
+        program->context_header_support = new_value;
     }
 
     if (ebpf_duplicate_utf8_string(&hash_algorithm, &program->parameters.program_info_hash_type) != EBPF_SUCCESS) {
@@ -619,6 +655,14 @@ static ebpf_program_type_t
 _ebpf_program_get_program_type(_In_ const ebpf_core_object_t* object)
 {
     return ebpf_program_type_uuid((const ebpf_program_t*)object);
+}
+
+static bool
+_ebpf_program_get_context_header_support(_In_ const ebpf_core_object_t* object)
+{
+    ebpf_program_t* program = (ebpf_program_t*)object;
+    ebpf_assert(program->context_header_support != CONTEXT_HEADER_SUPPORT_NOT_SET);
+    return program->context_header_support == CONTEXT_HEADER_SUPPORTED;
 }
 
 static const bpf_prog_type_t
@@ -873,7 +917,8 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         EBPF_OBJECT_PROGRAM,
         _ebpf_program_free,
         _ebpf_program_zero_ref_count,
-        _ebpf_program_get_program_type);
+        _ebpf_program_get_program_type,
+        _ebpf_program_get_context_header_support);
 
     if (retval != EBPF_SUCCESS) {
         goto Done;
@@ -1065,14 +1110,14 @@ Done:
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    uintptr_t* helper_function_addresses = NULL;
+    helper_function_address_t* helper_function_addresses = NULL;
     if (program->parameters.code_type == EBPF_CODE_NATIVE) {
 
         // We _can_ have instances of ebpf programs that do not need to call any helper functions.
         // Such programs are valid and the 'program->helper_function_count' member for such programs will be 0 (Zero).
         if (program->helper_function_count) {
-            helper_function_addresses =
-                ebpf_allocate_with_tag(program->helper_function_count * sizeof(uintptr_t), EBPF_POOL_TAG_PROGRAM);
+            helper_function_addresses = ebpf_allocate_with_tag(
+                program->helper_function_count * sizeof(helper_function_address_t), EBPF_POOL_TAG_PROGRAM);
             if (helper_function_addresses == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
@@ -1101,7 +1146,7 @@ Done:
 
 static ebpf_result_t
 _ebpf_program_update_interpret_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context)
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(address_count);
@@ -1116,18 +1161,19 @@ _ebpf_program_update_interpret_helpers(
 
     for (index = 0; index < program->helper_function_count; index++) {
         uint32_t helper_function_id = program->helper_function_ids[index];
-        void* helper = NULL;
+        helper_function_address_t address_info = {0};
 
-        result = _ebpf_program_get_helper_function_address(program, helper_function_id, (uint64_t*)&helper);
+        result = _ebpf_program_get_helper_function_address(program, helper_function_id, &address_info);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-        if (helper == NULL) {
+        if (address_info.address == 0) {
             continue;
         }
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-        if (ubpf_register(program->code_or_vm.vm, (unsigned int)index, NULL, (external_function_t)helper) < 0) {
+        if (ubpf_register(
+                program->code_or_vm.vm, (unsigned int)index, NULL, (external_function_t)address_info.address) < 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "ubpf_register failed", index);
             result = EBPF_INVALID_ARGUMENT;
@@ -1142,7 +1188,7 @@ Exit:
 
 static ebpf_result_t
 _ebpf_program_update_jit_helpers(
-    size_t address_count, _In_reads_(address_count) const uintptr_t* addresses, _Inout_ void* context)
+    size_t address_count, _In_reads_(address_count) const helper_function_address_t* addresses, _Inout_ void* context)
 {
     ebpf_result_t return_value;
     UNREFERENCED_PARAMETER(address_count);
@@ -1433,14 +1479,22 @@ ebpf_program_load_code(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_set_tail_call(_In_ const ebpf_program_t* next_program)
+ebpf_program_set_tail_call(_In_ const void* context, _In_ const ebpf_program_t* next_program)
 {
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
     ebpf_execution_context_state_t* state = NULL;
-    result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
-    if (result != EBPF_SUCCESS) {
-        return result;
+
+    // BPF_PROG_ARRAY_MAP validates that either all programs in the map either support a context header,
+    // or none of them do. So, if the next program supports a context header, then the current program
+    // must also support a context header.
+    if (next_program->context_header_support == CONTEXT_HEADER_SUPPORTED) {
+        ebpf_program_get_runtime_state(context, &state);
+    } else {
+        result = ebpf_state_load(_ebpf_program_state_index, (uintptr_t*)&state);
+        if (result != EBPF_SUCCESS) {
+            return result;
+        }
     }
 
     if (state == NULL) {
@@ -1479,6 +1533,7 @@ ebpf_program_dereference_providers(_Inout_ ebpf_program_t* program)
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_invoke(
     _In_ const ebpf_program_t* program,
+    bool use_context_header,
     _Inout_ void* context,
     _Out_ uint32_t* result,
     _Inout_ ebpf_execution_context_state_t* execution_state)
@@ -1503,6 +1558,11 @@ ebpf_program_invoke(
 
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
+
+    // If context header is supported, store the execution state in the context.
+    if (use_context_header) {
+        ebpf_program_set_runtime_state(execution_state, context);
+    }
 
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
@@ -1537,13 +1597,82 @@ ebpf_program_invoke(
     return EBPF_SUCCESS;
 }
 
+_Success_(return == true)
+    _Requires_lock_held_(program->lock) static bool _ebpf_program_get_helper_address_info_from_program_data(
+        _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_t* address)
+{
+    bool found = false;
+    const ebpf_program_data_t* program_data = program->extension_program_data;
+    ebpf_assert_assume(program_data != NULL);
+    const ebpf_program_data_t* general_program_data = program->general_helper_program_data;
+    ebpf_assert_assume(general_program_data != NULL);
+
+    if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
+        // First check the global helper function table of the program type for any helper functions that are
+        // overwritten.
+        ebpf_assert_assume(program_data->program_info != NULL);
+        for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
+            if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
+                ebpf_assert_assume(program_data->global_helper_function_addresses != NULL);
+                address->address = program_data->global_helper_function_addresses->helper_function_address[index];
+                address->implicit_context = program_data->program_info->global_helper_prototype[index].implicit_context;
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            // Next check the general helper function table of the general program type.
+            ebpf_assert_assume(general_program_data->program_info != NULL);
+            for (size_t index = 0; index < general_program_data->program_info->count_of_global_helpers; index++) {
+                if (general_program_data->program_info->global_helper_prototype[index].helper_id ==
+                    helper_function_id) {
+                    ebpf_assert_assume(general_program_data->global_helper_function_addresses != NULL);
+                    address->address =
+                        general_program_data->global_helper_function_addresses->helper_function_address[index];
+                    // In case of helper functions that do not have any default / general implementation, the function
+                    // address will be NULL.
+                    if (address->address != 0) {
+                        address->implicit_context =
+                            general_program_data->program_info->global_helper_prototype[index].implicit_context;
+                        found = true;
+                    } else {
+                        EBPF_LOG_MESSAGE_UINT64(
+                            EBPF_TRACELOG_LEVEL_ERROR,
+                            EBPF_TRACELOG_KEYWORD_PROGRAM,
+                            "No override implementation found for helper ID",
+                            helper_function_id);
+                    }
+                    break;
+                }
+            }
+        }
+    } else {
+        // Check the program type specific helper function table of the program type.
+        ebpf_assert_assume(program_data->program_info != NULL);
+        for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers; index++) {
+            if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
+                helper_function_id) {
+                ebpf_assert_assume(program_data->program_type_specific_helper_function_addresses != NULL);
+                address->address =
+                    program_data->program_type_specific_helper_function_addresses->helper_function_address[index];
+                address->implicit_context =
+                    program_data->program_info->program_type_specific_helper_prototype[index].implicit_context;
+                found = true;
+                break;
+            }
+        }
+    }
+
+    return found;
+}
+
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helper_function_address(
-    _In_ const ebpf_program_t* program, const uint32_t helper_function_id, _Out_ uint64_t* address)
+    _In_ const ebpf_program_t* program, uint32_t helper_function_id, _Out_ helper_function_address_t* address)
 {
     ebpf_result_t return_value;
     uint64_t* function_address = NULL;
-    const ebpf_program_data_t* program_data = NULL;
-    const ebpf_program_data_t* general_program_data = NULL;
+    bool implicit_context = false;
 
     EBPF_LOG_ENTRY();
 
@@ -1562,9 +1691,6 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     }
     provider_data_referenced = true;
 
-    program_data = program->extension_program_data;
-    general_program_data = program->general_helper_program_data;
-
     use_trampoline = program->parameters.code_type == EBPF_CODE_JIT;
     if (use_trampoline && !program->trampoline_table) {
         EBPF_LOG_MESSAGE(
@@ -1579,60 +1705,21 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
     if (use_trampoline) {
         return_value = ebpf_get_trampoline_function(program->trampoline_table, helper_function_id, &function_address);
         if (return_value == EBPF_SUCCESS) {
-            found = true;
+            helper_function_address_t local_address = {0};
+            if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
+                implicit_context = local_address.implicit_context;
+                found = true;
+            }
         }
     }
 
-    if (helper_function_id < EBPF_MAX_GENERAL_HELPER_FUNCTION) {
-        // First check the global helper function table of the program type for any helper functions that are
-        // overwritten.
-        if (!found) {
-            for (size_t index = 0; index < program_data->program_info->count_of_global_helpers; index++) {
-                if (program_data->program_info->global_helper_prototype[index].helper_id == helper_function_id) {
-                    function_address =
-                        (void*)program_data->global_helper_function_addresses->helper_function_address[index];
-                    found = true;
-                    break;
-                }
-            }
-        }
-
-        // Next check the general helper function table of the general program type.
-        if (!found) {
-            for (size_t index = 0; index < general_program_data->program_info->count_of_program_type_specific_helpers;
-                 index++) {
-                if (general_program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
-                    helper_function_id) {
-                    function_address = (void*)general_program_data->program_type_specific_helper_function_addresses
-                                           ->helper_function_address[index];
-                    // In case of helper functions that do not have any default / general implementation, the function
-                    // address will be NULL.
-                    if (function_address != NULL) {
-                        found = true;
-                    } else {
-                        EBPF_LOG_MESSAGE_UINT64(
-                            EBPF_TRACELOG_LEVEL_ERROR,
-                            EBPF_TRACELOG_KEYWORD_PROGRAM,
-                            "No override implementation found for helper ID",
-                            helper_function_id);
-                    }
-                    break;
-                }
-            }
-        }
-    } else {
-        // Check the program type specific helper function table of the program type.
-        if (!found) {
-            for (size_t index = 0; index < program_data->program_info->count_of_program_type_specific_helpers;
-                 index++) {
-                if (program_data->program_info->program_type_specific_helper_prototype[index].helper_id ==
-                    helper_function_id) {
-                    function_address = (void*)program_data->program_type_specific_helper_function_addresses
-                                           ->helper_function_address[index];
-                    found = true;
-                    break;
-                }
-            }
+    if (!found) {
+        // If the helper function is not found in the trampoline table, then get the address from the program data.
+        helper_function_address_t local_address = {0};
+        if (_ebpf_program_get_helper_address_info_from_program_data(program, helper_function_id, &local_address)) {
+            function_address = (uint64_t*)local_address.address;
+            implicit_context = local_address.implicit_context;
+            found = true;
         }
     }
 
@@ -1641,7 +1728,8 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_get_helpe
         goto Done;
     }
 
-    *address = (uint64_t)function_address;
+    address->address = (uint64_t)function_address;
+    address->implicit_context = implicit_context;
 
     return_value = EBPF_SUCCESS;
 
@@ -1654,7 +1742,9 @@ Done:
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_helper_function_addresses(
-    _In_ const ebpf_program_t* program, size_t addresses_count, _Out_writes_(addresses_count) uint64_t* addresses)
+    _In_ const ebpf_program_t* program,
+    size_t addresses_count,
+    _Out_writes_(addresses_count) helper_function_address_t* addresses)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1859,6 +1949,7 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
     }
     provider_data_referenced = true;
     program_data = program->extension_program_data;
+    ebpf_assert_assume(program_data != NULL);
 
     if (!program->general_helper_program_data) {
         EBPF_LOG_MESSAGE_GUID(
@@ -1870,11 +1961,12 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
         goto Exit;
     }
     general_helper_program_data = program->general_helper_program_data;
+    ebpf_assert_assume(general_helper_program_data != NULL);
 
     total_count_of_helpers = program_data->program_info->count_of_program_type_specific_helpers +
-                             general_helper_program_data->program_info->count_of_program_type_specific_helpers;
+                             general_helper_program_data->program_info->count_of_global_helpers;
     if ((total_count_of_helpers < program_data->program_info->count_of_program_type_specific_helpers) ||
-        (total_count_of_helpers < general_helper_program_data->program_info->count_of_program_type_specific_helpers)) {
+        (total_count_of_helpers < general_helper_program_data->program_info->count_of_global_helpers)) {
         result = EBPF_ARITHMETIC_OVERFLOW;
         goto Exit;
     }
@@ -1906,12 +1998,10 @@ ebpf_program_get_program_info(_In_ const ebpf_program_t* program, _Outptr_ ebpf_
                 program_data->program_info->program_type_specific_helper_prototype[index];
         }
 
-        for (uint32_t index = 0;
-             index < general_helper_program_data->program_info->count_of_program_type_specific_helpers;
-             index++) {
+        for (uint32_t index = 0; index < general_helper_program_data->program_info->count_of_global_helpers; index++) {
             __analysis_assume(helper_index < total_count_of_helpers);
             helper_prototype[helper_index++] =
-                general_helper_program_data->program_info->program_type_specific_helper_prototype[index];
+                general_helper_program_data->program_info->global_helper_prototype[index];
         }
     }
 
@@ -2133,14 +2223,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
         }
 
         // Copy global helpers to helper_id_to_index.
-        for (uint32_t index = 0; index < general_program_info->count_of_program_type_specific_helpers; index++) {
-            uint32_t helper_id = general_program_info->program_type_specific_helper_prototype[index].helper_id;
+        for (uint32_t index = 0; index < general_program_info->count_of_global_helpers; index++) {
+            uint32_t helper_id = general_program_info->global_helper_prototype[index].helper_id;
             if (!_ebpf_contains_helper_id(actual_helper_ids, count_of_actual_helper_ids, helper_id)) {
                 continue;
             }
             helper_id_to_index[helper_function_index].helper_id = helper_id;
             helper_id_to_index[helper_function_index].helper_function_prototype =
-                &general_program_info->program_type_specific_helper_prototype[index];
+                &general_program_info->global_helper_prototype[index];
             helper_function_index++;
         }
 
@@ -2255,7 +2345,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static ebpf_result_t _ebpf_program_compute_pr
             }
         }
 
-        // This check for flags is temporary, until https://github.com/microsoft/ebpf-for-windows/issues/3429 is fixed.
         if (helper_function_prototype->flags.reallocate_packet != 0) {
             result = EBPF_CRYPTOGRAPHIC_HASH_APPEND_VALUE(cryptographic_hash, helper_function_prototype->flags);
             if (result != EBPF_SUCCESS) {
@@ -2323,6 +2412,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     bool thread_affinity_set = false;
     bool state_stored = false;
     void* program_context = NULL;
+    bool supports_context_header;
 
     result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
@@ -2346,13 +2436,18 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
 
-    ebpf_get_execution_context_state(&execution_context_state);
-    return_value =
-        ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
+    supports_context_header = context->program_data->capabilities.supports_context_header;
+    if (supports_context_header) {
+        ebpf_program_set_runtime_state(&execution_context_state, program_context);
+    } else {
+        ebpf_get_execution_context_state(&execution_context_state);
+        return_value = ebpf_state_store(
+            ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+        state_stored = true;
     }
-    state_stored = true;
 
     uint64_t start_time = ebpf_query_time_since_boot(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2383,7 +2478,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             }
             ebpf_epoch_enter(&epoch_state);
         }
-        result = ebpf_program_invoke(context->program, program_context, &return_value, &execution_context_state);
+        result = ebpf_program_invoke(
+            context->program, supports_context_header, program_context, &return_value, &execution_context_state);
         if (result != EBPF_SUCCESS) {
             break;
         }
@@ -2565,4 +2661,30 @@ size_t
 ebpf_program_get_state_index()
 {
     return _ebpf_program_state_index;
+}
+
+bool
+ebpf_program_supports_context_header(_In_ const ebpf_program_t* program)
+{
+    bool return_value;
+    ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&program->lock);
+    return_value = program->context_header_support == CONTEXT_HEADER_SUPPORTED ? true : false;
+    ebpf_lock_unlock((ebpf_lock_t*)&program->lock, state);
+    return return_value;
+}
+
+void
+ebpf_program_set_runtime_state(_In_ const ebpf_execution_context_state_t* state, _Inout_ void* program_context)
+{
+    // slot [0] contains the execution context state.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    header->context_header[0] = (uint64_t)state;
+}
+
+void
+ebpf_program_get_runtime_state(_In_ const void* program_context, _Outptr_ const ebpf_execution_context_state_t** state)
+{
+    // slot [0] contains the execution context state.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    *state = (ebpf_execution_context_state_t*)header->context_header[0];
 }

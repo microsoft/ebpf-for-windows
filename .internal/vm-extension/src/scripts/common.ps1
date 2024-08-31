@@ -48,6 +48,7 @@ Set-Variable -Name "EbpfStatusCode_REGISTERING_NETSH_EXTENSION_FAILED" -Value 10
 Set-Variable -Name "EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED" -Value 1019
 Set-Variable -Name "EbpfStatusCode_RESTARTING_SERVICE_FAILED" -Value 1020
 Set-Variable -Name "EbpfStatusCode_COMPONENTS_IN_USE" -Value 1021
+Set-Variable -Name "EbpfStatusCode_UPDATING_EBPF_STORE_FAILED" -Value 1022
 
 # VM Agent-generated environment variables.
 Set-Variable -Name "VmAgentEnvVar_SEQUENCE_NO" -Value "ConfigSequenceNumber"
@@ -556,7 +557,7 @@ function Is-InstallOrUpdate-Supported {
     Write-Log -level $LogLevelInfo -message "Is-InstallOrUpdate-Supported()"
 
     # Retrieve the registry key value
-    $keyValue = (Get-ItemProperty -Path $EbpfRegistryPath -Name $EbpfDisableRuntimeUpdateRegistryKey).EbpfDisableRuntimeUpdate
+    $keyValue = (Get-ItemProperty -Path $EbpfRegistryPath -Name $EbpfDisableRuntimeUpdateRegistryKey -ErrorAction SilentlyContinue).EbpfDisableRuntimeUpdate
     If ($null -eq $keyValue) {
         Write-Log -level $LogLevelWarning -message "The registry key '$EbpfDisableRuntimeUpdateRegistryKey' does not exist -> Install or Update are allowed by default."
     } else {
@@ -744,7 +745,7 @@ function Enable-EbpfTracing {
     return Create-EbpfTracingTasks -installDirectory $installDirectory
 }
 
-function Disable-EbpfTracing {    
+function Disable-EbpfTracing {
     param (
         [string]$installDirectory
     )
@@ -793,6 +794,58 @@ function Unregister-EbpfNetshExtension{
     } else {
         $res = $EbpfStatusCode_UNREGISTERING_NETSH_EXTENSION_FAILED
         Write-Log -level $LogLevelError -message "Failed to unregister '$EbpfNetshExtensionName'. Error message: $installResult"
+    }
+
+    Pop-Location
+    return $res
+}
+
+function Update-EbpfStore{
+    param (
+        [string]$installDirectory
+    )
+
+    Write-Log -level $LogLevelInfo -message "Update-EbpfStore($installDirectory)"
+    $res = $EbpfStatusCode_SUCCESS
+
+    Push-Location -Path $installDirectory
+
+    if (-not (Test-Path "$installDirectory\export_program_info.exe" -PathType Leaf)) {
+        Write-Log -level $LogLevelInfo -message "The 'export_program_info.exe' tool is not found in the installation directory."
+    } else {
+        # Clear the eBPF store.
+        $result = & "$installDirectory\export_program_info.exe" --clear
+        # Populate the eBPF store.
+        $result = & "$installDirectory\export_program_info.exe"
+
+        # Check the exit code to determine the result.
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log -level $LogLevelInfo -message "eBPF store populated successfully."
+        } else {
+            $res = $EbpfStatusCode_UPDATING_EBPF_STORE_FAILED
+            Write-Log -level $LogLevelError -message "Failed to update eBPF store. Error message: $result"
+        }
+    }
+
+    Pop-Location
+    return $res
+}
+
+function Delete-EbpfStore{
+    param (
+        [string]$installDirectory
+    )
+
+    Write-Log -level $LogLevelInfo -message "Delete-EbpfStore($installDirectory)"
+    $res = $EbpfStatusCode_SUCCESS
+
+    Push-Location -Path $installDirectory
+
+    if (-not (Test-Path "$installDirectory\export_program_info.exe" -PathType Leaf)) {
+        Write-Log -level $LogLevelInfo -message "The 'export_program_info.exe' tool is not found in the installation directory."
+    } else {
+        # Clear the eBPF store.
+        & "$installDirectory\export_program_info.exe" --clear
     }
 
     Pop-Location
@@ -1054,8 +1107,11 @@ function Install-eBPF {
             # Add the eBPF installation directory to the system PATH.
             Add-DirectoryToSystemPath -directoryPath $destinationPath | Out-Null 
 
+            # Update the eBPF store.
+            Update-EbpfStore -installDirectory $destinationPath | Out-Null
+
             # Register the netsh extension.
-            Register-EbpfNetshExtension -installDirectory $destinationPath | Out-Null 
+            Register-EbpfNetshExtension -installDirectory $destinationPath | Out-Null
 
             # Register the trace providers.
             Enable-EbpfTracing -installDirectory $destinationPath | Out-Null 
@@ -1098,7 +1154,10 @@ function Uninstall-eBPF {
             Disable-EbpfTracing -installDirectory $installDirectory | Out-Null
 
             # De-register the netsh extension
-            Unregister-EbpfNetshExtension | Out-Null 
+            Unregister-EbpfNetshExtension | Out-Null
+
+            # Clean up eBPF store.
+            Delete-EbpfStore -installDirectory $installDirectory | Out-Null
 
             # Remove the eBPF installation directory from the system PATH
             Remove-DirectoryFromSystemPath -directoryPath $installDirectory | Out-Null 
@@ -1116,6 +1175,7 @@ function Update-eBPF {
         [string]$operationName,
         [string]$currProductVersion,
         [string]$newProductVersion,
+        [string]$sourcePath,
         [string]$installDirectory
     )
 
@@ -1130,7 +1190,7 @@ function Update-eBPF {
         Write-Log -level $LogLevelError -message $statusMessage
     } else {
         Write-Log -level $LogLevelInfo -message "eBPF v$currProductVersion uninstalled successfully."
-        $statusCode = Install-eBPF -sourcePath "$EbpfPackagePath" -destinationPath "$installDirectory"
+        $statusCode = Install-eBPF -sourcePath "$sourcePath" -destinationPath "$installDirectory"
         if ($statusCode -ne $EbpfStatusCode_SUCCESS) {
             $statusMessage = "eBPF $operationName FAILED (Install failed)."
             Write-Log -level $LogLevelError -message $statusMessage
@@ -1184,7 +1244,7 @@ function InstallOrUpdate-eBPF {
         # By default, no rollback is needed.
         $rollback = $false
 
-        # Retrieve the current installation version info.        
+        # Retrieve the current installation version info.
         $versionInfo = Get-EbpfVersionInfo -sourcePath $sourcePath -destinationPath $destinationPath
 
         # If $currProductVersion has a value, then a version of eBPF is already installed, let's check if it needs to (or can) be updated.
@@ -1240,7 +1300,7 @@ function InstallOrUpdate-eBPF {
                                 # If the product version is lower than the version distributed with the VM extension, then upgrade it.
                                 Write-Log -level $LogLevelInfo -message "The installed eBPF version (v$($versionInfo.currProductVersion)) is older than the one in the VM Extension package (v$($versionInfo.newProductVersion)) -> eBPF will be upgraded to (v$($versionInfo.newProductVersion))."
                             }
-                            $statusInfo.StatusCode = Update-eBPF -operationName $operationName -currProductVersion $versionInfo.currProductVersion -newProductVersion $versionInfo.newProductVersion -installDirectory "$($versionInfo.currInstallPath)"
+                            $statusInfo.StatusCode = Update-eBPF -operationName $operationName -currProductVersion $versionInfo.currProductVersion -newProductVersion $versionInfo.newProductVersion -sourcePath "$sourcePath" -installDirectory "$($versionInfo.currInstallPath)"
                         } else {
                             $statusInfo.StatusString = $StatusError
                             $statusInfo.StatusMessage = "eBPF $operationName FAILED (Backing up the current installation failed) -> Nothing changed in the system."

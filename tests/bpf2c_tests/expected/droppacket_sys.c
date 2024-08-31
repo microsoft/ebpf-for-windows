@@ -273,7 +273,7 @@ DropPacket(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 56 "sample/droppacket.c"
-    r0 = DropPacket_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = DropPacket_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 56 "sample/droppacket.c"
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0)) {
 #line 56 "sample/droppacket.c"
@@ -349,12 +349,12 @@ label_1:
         goto label_2;
 #line 72 "sample/droppacket.c"
     }
-    // EBPF_OP_ADD64_IMM pc=24 dst=r1 src=r0 offset=0 imm=14
-#line 72 "sample/droppacket.c"
-    r1 += IMMEDIATE(14);
-    // EBPF_OP_LDXB pc=25 dst=r3 src=r1 offset=0 imm=0
+    // EBPF_OP_LDXB pc=24 dst=r3 src=r1 offset=14 imm=0
 #line 74 "sample/droppacket.c"
-    r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(0));
+    r3 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(14));
+    // EBPF_OP_ADD64_IMM pc=25 dst=r1 src=r0 offset=0 imm=14
+#line 71 "sample/droppacket.c"
+    r1 += IMMEDIATE(14);
     // EBPF_OP_LSH64_IMM pc=26 dst=r3 src=r0 offset=0 imm=2
 #line 74 "sample/droppacket.c"
     r3 <<= (IMMEDIATE(2) & 63);
@@ -396,14 +396,14 @@ label_1:
 #line 79 "sample/droppacket.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=36 dst=r2 src=r0 offset=0 imm=-8
-#line 79 "sample/droppacket.c"
+#line 80 "sample/droppacket.c"
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=37 dst=r1 src=r1 offset=0 imm=2
 #line 80 "sample/droppacket.c"
     r1 = POINTER(_maps[1].address);
     // EBPF_OP_CALL pc=39 dst=r0 src=r0 offset=0 imm=1
 #line 80 "sample/droppacket.c"
-    r0 = DropPacket_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = DropPacket_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 80 "sample/droppacket.c"
     if ((DropPacket_helpers[0].tail_call) && (r0 == 0)) {
 #line 80 "sample/droppacket.c"
@@ -471,7 +471,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 19;
     version->revision = 0;
 }
 
