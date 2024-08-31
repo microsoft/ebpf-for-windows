@@ -913,6 +913,10 @@ net_ebpf_ext_add_client_context(
 
     // Check if we have reached max capacity.
     if (filter_context->client_context_count == filter_context->client_context_count_max) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_add_client_context: Exceeded max client count");
         result = EBPF_NO_MEMORY;
         goto Exit;
     }

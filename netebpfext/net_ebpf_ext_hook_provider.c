@@ -213,16 +213,15 @@ _net_ebpf_extension_release_rundown_for_clients(
 
 ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
-    _Inout_ void* program_context,
-    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _In_opt_ const net_ebpf_extension_hook_process_verdict process_callback,
-    _Out_ uint32_t* result)
+    _Inout_ void* program_context, _In_ net_ebpf_extension_wfp_filter_context_t* filter_context, _Out_ uint32_t* result)
 {
     ebpf_result_t program_result = EBPF_SUCCESS;
     KIRQL old_irql = PASSIVE_LEVEL;
     bool lock_acquired = FALSE;
     uint32_t client_count = 0;
     net_ebpf_extension_hook_client_t* clients[NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH] = {0};
+    const net_ebpf_extension_hook_process_verdict process_verdict =
+        filter_context->provider_context->dispatch.process_verdict;
 
     *result = 0;
 
@@ -264,8 +263,8 @@ net_ebpf_extension_hook_invoke_programs(
         }
 
         // Invoke callback to see if we should continue processing.
-        if (process_callback != NULL) {
-            if (!process_callback(program_context, *result)) {
+        if (process_verdict != NULL) {
+            if (!process_verdict(program_context, *result)) {
                 program_result = EBPF_SUCCESS;
                 goto Exit;
             }

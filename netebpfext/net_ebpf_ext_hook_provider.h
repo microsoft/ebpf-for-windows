@@ -121,11 +121,23 @@ typedef void (*net_ebpf_extension_delete_filter_context)(
 typedef ebpf_result_t (*net_ebpf_extension_validate_client_data)(
     _In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard);
 
+/**
+ * @brief When hook provider supports multiple programs per hook, this callback function is invoked after
+ * every program invocation to determine whether the next program in the list should be invoked.
+ *
+ * @param[in] program_context Pointer to context passed to the eBPF program.
+ * @param[in] progrma_verdict Result returned by the eBPF program.
+ *
+ * @returns TRUE if the next program should be invoked, FALSE otherwise.
+ */
+typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_context, int program_verdict);
+
 typedef struct _net_ebpf_extension_hook_provider_dispatch_table
 {
     net_ebpf_extension_create_filter_context create_filter_context;
     net_ebpf_extension_delete_filter_context delete_filter_context;
     net_ebpf_extension_validate_client_data validate_client_data;
+    net_ebpf_extension_hook_process_verdict process_verdict;
 } net_ebpf_extension_hook_provider_dispatch_table_t;
 
 /**
@@ -158,31 +170,18 @@ net_ebpf_extension_hook_provider_register(
     _Outptr_ net_ebpf_extension_hook_provider_t** provider_context);
 
 /**
- * @brief When hook provider supports multiple programs per hook, this callback function is invoked after
- * every program invocation to determine whether the next program in the list should be invoked.
- *
- * @param[in] program_context Pointer to context passed to the eBPF program.
- * @param[in] progrma_verdict Result returned by the eBPF program.
- *
- * @returns TRUE if the next program should be invoked, FALSE otherwise.
- */
-typedef bool (*net_ebpf_extension_hook_process_verdict)(_Inout_ void* program_context, int program_verdict);
-
-/**
  * @brief Invoke all the eBPF programs attached to the specified filter context.
  *
  * @param[in] program_context Context to pass to eBPF program.
  * @param[in] filter_context Filter context to invoke the programs from.
- * @param[in] process_callback Callback function to determine if the next program should be invoked.
  * @param[out] result Return value from the eBPF programs.
  *
- * @return ebpf_result_t Status of the program invocation.
+ * @retval ebpf_result_t Status of the program invocation.
  */
 ebpf_result_t
 net_ebpf_extension_hook_invoke_programs(
     _Inout_ void* program_context,
     _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
-    _In_opt_ const net_ebpf_extension_hook_process_verdict process_callback,
     _Out_ uint32_t* result);
 
 /**

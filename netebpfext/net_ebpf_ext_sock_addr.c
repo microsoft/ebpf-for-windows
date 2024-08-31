@@ -15,8 +15,6 @@
 #define CONVERT_100NS_UNITS_TO_MS(x) ((x) / 10000)
 #define LOW_MEMORY_CONNECTION_CONTEXT_COUNT 1000
 
-uint32_t debug_break = 0;
-
 #define CLEAN_UP_SOCK_ADDR_FILTER_CONTEXT(filter_context)                 \
     if ((filter_context) != NULL) {                                       \
         if ((filter_context)->redirect_handle != NULL) {                  \
@@ -261,6 +259,9 @@ static net_ebpf_ext_sock_addr_connection_contexts_t _net_ebpf_ext_sock_addr_bloc
 static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
 static ACL* _net_ebpf_ext_dacl_admin = NULL;
 static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
+
+static bool
+_net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict);
 
 //
 // sock_addr helper functions.
@@ -1179,7 +1180,14 @@ net_ebpf_ext_sock_addr_register_providers()
     const net_ebpf_extension_program_info_provider_parameters_t program_info_provider_parameters = {
         &_ebpf_sock_addr_program_info_provider_moduleid, &_ebpf_sock_addr_program_data};
 
-    const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
+    const net_ebpf_extension_hook_provider_dispatch_table_t connect_dispatch_table = {
+        .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
+        .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
+        .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
+        .process_verdict = _net_ebpf_extension_sock_addr_process_verdict,
+    };
+
+    const net_ebpf_extension_hook_provider_dispatch_table_t recv_accept_dispatch_table = {
         .create_filter_context = _net_ebpf_extension_sock_addr_create_filter_context,
         .delete_filter_context = _net_ebpf_extension_sock_addr_delete_filter_context,
         .validate_client_data = _net_ebpf_extension_sock_addr_validate_client_data,
@@ -1238,11 +1246,14 @@ net_ebpf_ext_sock_addr_register_providers()
         is_cgroup_connect_attach_type =
             _net_ebpf_ext_is_cgroup_connect_attach_type(_net_ebpf_extension_sock_addr_attach_types[i]);
 
+        const net_ebpf_extension_hook_provider_dispatch_table_t* dispatch_table =
+            is_cgroup_connect_attach_type ? &connect_dispatch_table : &recv_accept_dispatch_table;
+
         // Register the provider context and pass the pointer to the WFP filter parameters
         // corresponding to this hook type as custom data.
         status = net_ebpf_extension_hook_provider_register(
             &hook_provider_parameters,
-            &dispatch_table,
+            dispatch_table,
             is_cgroup_connect_attach_type ? ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD
                                           : ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
             &_net_ebpf_extension_sock_addr_wfp_filter_parameters[i],
@@ -1559,7 +1570,7 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    program_result = net_ebpf_extension_hook_invoke_programs(sock_addr_ctx, &filter_context->base, NULL, &result);
+    program_result = net_ebpf_extension_hook_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         goto Exit;
@@ -1883,10 +1894,17 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
+    // In case of re-authorization, the eBPF programs have already inspected the connection.
+    // Skip invoking the program(s) again. In this case the verdict is always to proceed (terminating).
     if (net_ebpf_sock_addr_ctx.flags & FWP_CONDITION_FLAG_IS_REAUTHORIZE) {
-        // In case of re-authorization, the verdict is always to proceed (terminating).
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
         reauthorization = TRUE;
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "Reauthorize connection: skip.",
+            filter->filterId,
+            (uint64_t)sock_addr_ctx->compartment_id);
         goto Exit;
     }
 
@@ -1963,8 +1981,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
-    result = net_ebpf_extension_hook_invoke_programs(
-        sock_addr_ctx, &filter_context->base, _net_ebpf_extension_sock_addr_process_verdict, &verdict);
+    result = net_ebpf_extension_hook_invoke_programs(sock_addr_ctx, &filter_context->base, &verdict);
     if (result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
