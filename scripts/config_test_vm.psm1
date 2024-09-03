@@ -542,23 +542,25 @@ function Initialize-NetworkInterfacesOnVMs
     }
 }
 
-function Get-ZipFileFromUrl
-{
-    param([Parameter(Mandatory=$True)][string] $Url,
-          [Parameter(Mandatory=$True)][string] $DownloadFilePath,
-          [Parameter(Mandatory=$True)][string] $OutputFileDir)
+function Get-ZipFileFromUrl {
+    param(
+        [Parameter(Mandatory=$True)][string] $Url,
+        [Parameter(Mandatory=$True)][string] $DownloadFilePath,
+        [Parameter(Mandatory=$True)][string] $OutputFileDir
+    )
 
     for ($i = 0; $i -lt 5; $i++) {
         try {
-            Write-Host "Downloading $Url to $DownloadFilePath"
+            Write-Log "Downloading $Url to $DownloadFilePath"
             Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
 
-            Write-Host "Extracting $DownloadFilePath to $OutputFileDir"
+            Write-Log "Extracting $DownloadFilePath to $OutputFileDir"
             Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputFileDir -Force
             break
         } catch {
-            Write-Log -TraceMessage "Iteration $i failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
+            Write-Log "Iteration $i failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
             Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
+            Start-Sleep -Seconds 5
         }
     }
 }
@@ -598,6 +600,7 @@ function Get-LegacyRegressionTestArtifacts
             } catch {
                 Write-Log -TraceMessage "Iteration $i failed to download $ArtifactUrl. Removing $DownloadPath" -ForegroundColor Red
                 Remove-Item -Path $DownloadPath -Force -ErrorAction Ignore
+                Start-Sleep -Seconds 5
             }
         }
 
