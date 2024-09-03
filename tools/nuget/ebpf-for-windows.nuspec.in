@@ -12,7 +12,7 @@
 		<requireLicenseAcceptance>false</requireLicenseAcceptance>
 		<license type="expression">MIT</license>
 		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
-		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
+		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git" commit="{git_commit_id}"/>
 		<tags>native ebpf</tags>
 		<description>eBPF for Windows SDK</description>
 		<readme>README.md</readme>
