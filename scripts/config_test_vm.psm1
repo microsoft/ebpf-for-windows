@@ -546,7 +546,7 @@ function Get-ZipFileFromUrl {
     param(
         [Parameter(Mandatory=$True)][string] $Url,
         [Parameter(Mandatory=$True)][string] $DownloadFilePath,
-        [Parameter(Mandatory=$True)][string] $OutputFileDir
+        [Parameter(Mandatory=$True)][string] $OutputDir
     )
 
     for ($i = 0; $i -lt 5; $i++) {
@@ -554,8 +554,8 @@ function Get-ZipFileFromUrl {
             Write-Log "Downloading $Url to $DownloadFilePath"
             Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
 
-            Write-Log "Extracting $DownloadFilePath to $OutputFileDir"
-            Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputFileDir -Force
+            Write-Log "Extracting $DownloadFilePath to $OutputDir"
+            Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
             break
         } catch {
             Write-Log "Iteration $i failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
@@ -593,7 +593,7 @@ function Get-LegacyRegressionTestArtifacts
         for ($i = 0; $i -lt 5; $i++) {
             try {
                 # Download and extract the artifact.
-                Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputFileDir $DownloadPath
+                Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputDir $DownloadPath
 
                 # Extract the inner zip file.
                 Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
@@ -637,7 +637,7 @@ function Get-RegressionTestArtifacts
         Remove-Item -Path $DownloadPath\Build-x64.$Configuration -Recurse -Force
     }
 
-    Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputFileDir $DownloadPath
+    Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputDir $DownloadPath
 
     if (!(Test-Path -Path $DownloadedArtifactPath)) {
         throw ("Path ""$DownloadedArtifactPath"" not found.")
@@ -664,7 +664,7 @@ function Get-Duonic {
     $DownloadPath = "$pwd\corenet-ci"
     mkdir $DownloadPath
     Write-Host "Downloading CoreNet-CI to $DownloadPath"
-    Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputFileDir $DownloadPath
+    Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputDir $DownloadPath
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
