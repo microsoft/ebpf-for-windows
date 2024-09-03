@@ -593,7 +593,7 @@ function Get-LegacyRegressionTestArtifacts
         for ($i = 0; $i -lt 5; $i++) {
             try {
                 # Download and extract the artifact.
-                Get-ZipFileFromUrl -Uri $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputFileDir $DownloadPath
+                Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputFileDir $DownloadPath
 
                 # Extract the inner zip file.
                 Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
@@ -637,7 +637,7 @@ function Get-RegressionTestArtifacts
         Remove-Item -Path $DownloadPath\Build-x64.$Configuration -Recurse -Force
     }
 
-    Get-ZipFileFromUrl -Uri $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputFileDir $DownloadPath
+    Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputFileDir $DownloadPath
 
     if (!(Test-Path -Path $DownloadedArtifactPath)) {
         throw ("Path ""$DownloadedArtifactPath"" not found.")
@@ -664,7 +664,7 @@ function Get-Duonic {
     $DownloadPath = "$pwd\corenet-ci"
     mkdir $DownloadPath
     Write-Host "Downloading CoreNet-CI to $DownloadPath"
-    Get-ZipFileFromUrl -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputFileDir $DownloadPath
+    Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputFileDir $DownloadPath
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
