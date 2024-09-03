@@ -25,12 +25,14 @@
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
-// Note: The maximum number of clients per hook has been capped to a constant value due to the below reason:
-// When the WFP classify function is invoked, it acquires the corresponding filter context lock and creates a copy of
-// all the clients that are attached to the filter context, as we want to invoke the BPF programs outside the filter
-// context lock. Keeping the max client count dynamic means we will need to allocate memory for every hook invocation
-// (to create a copy of the clients), and that will be expensive. Keeping the max limit fixed allows allocating the
-// required memory on stack.
+// Note: The maximum number of clients that can attach per-hook in multi-attach case has been currently capped to
+// a constant value to keep the implementation simple. Keeping the max limit constant allows allocating the memory
+// required for creating a copy of list of clients on the stack itself. In future, if there is a need to increase this
+// maximum count, the value can be simply increased as long as the required memory can still be allocated on stack. If
+// the required memory becomes too large, we may need to switch to a different design to handle this. One option is to
+// use epoch based memory management for the list of clients. This eliminates the need to create a copy of programs
+// per-invocation. Another option can be to always invoke the programs while holding the socket context lock, but that
+// comes with a side effect of every program invocation now happening at DISPATCH_LEVEL.
 #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH 16
 #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH 1
 
