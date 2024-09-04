@@ -551,10 +551,8 @@ validate_connection_multi_attach(
     receiver_socket_t* receiver_socket = nullptr;
 
     if (protocol == IPPROTO_UDP) {
-        // sender_socket = new datagram_client_socket_t(SOCK_DGRAM, IPPROTO_UDP, 0);
         receiver_socket = new datagram_server_socket_t(SOCK_DGRAM, IPPROTO_UDP, receiver_port);
     } else if (protocol == IPPROTO_TCP) {
-        // sender_socket = new stream_client_socket_t(SOCK_STREAM, IPPROTO_TCP, 0);
         receiver_socket = new stream_server_socket_t(SOCK_STREAM, IPPROTO_TCP, receiver_port);
     } else {
         REQUIRE(false);
@@ -1041,9 +1039,9 @@ _multi_attach_get_combined_verdict(program_action_t* actions, uint32_t count)
 void
 test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family, uint16_t protocol)
 {
-    // This test case loads and attaches MULTIPLE_ATTACH_PROGRAM_COUNT * 2 programs:
-    // MULTIPLE_ATTACH_PROGRAM_COUNT programs with specific compartment id, and
-    // MULTIPLE_ATTACH_PROGRAM_COUNT programs with wildcard compartment id.
+    // This test case loads and attaches program_count_per_hook * 2 programs:
+    // program_count_per_hook programs with specific compartment id, and
+    // program_count_per_hook programs with wildcard compartment id.
     // Then the test case iterates over all the possible combinations of program actions (allow, redirect, block) for
     // each program, and validates the connection based on the expected result.
 
