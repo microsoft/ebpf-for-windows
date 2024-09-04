@@ -134,21 +134,6 @@ net_ebpf_ext_log_message(
         net_ebpf_ext_log_message(_##trace_level##, _##keyword##, message);                   \
     }
 
-// #define _NET_EBPF_EXT_LOG_MESSAGE_SUCCESS(trace_level, keyword, message) \
-//     TraceLoggingWrite(                                           \
-//         net_ebpf_ext_tracelog_provider,                          \
-//         NET_EBPF_EXT_TRACELOG_EVENT_SUCCESS,             \
-//         TraceLoggingLevel(trace_level),                          \
-//         TraceLoggingKeyword((keyword)),                          \
-//         TraceLoggingString(message, "Message"));
-// void
-// net_ebpf_ext_log_message_success(
-//     net_ebpf_ext_tracelog_level_t trace_level, net_ebpf_ext_tracelog_keyword_t keyword, _In_z_ const char* message);
-// #define NET_EBPF_EXT_LOG_MESSAGE_SUCCESS(trace_level, keyword, message)                              \
-//     if (TraceLoggingProviderEnabled(net_ebpf_ext_tracelog_provider, trace_level, keyword)) { \
-//         net_ebpf_ext_log_message_success(_##trace_level##, _##keyword##, message);                   \
-//     }
-
 #define _NET_EBPF_EXT_LOG_MESSAGE_STRING(trace_level, keyword, message, value) \
     TraceLoggingWrite(                                                         \
         net_ebpf_ext_tracelog_provider,                                        \
