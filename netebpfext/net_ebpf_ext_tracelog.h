@@ -243,7 +243,7 @@ net_ebpf_ext_log_message_pointer(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
-    _In_ const void* value);
+    _In_opt_ const void* value);
 #define NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, keyword, message, value)               \
     if (TraceLoggingProviderEnabled(net_ebpf_ext_tracelog_provider, trace_level, keyword)) { \
         net_ebpf_ext_log_message_pointer(_##trace_level##, _##keyword##, message, value);    \
