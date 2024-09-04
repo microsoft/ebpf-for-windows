@@ -13,7 +13,7 @@
 #include "net/udp.h"
 #include "net_ebpf_ext_xdp_hooks.h"
 
-SEC("xdp")
+SEC("xdp_test")
 int
 xdp_adjust_head_unsafe(xdp_md_t* ctx)
 {

@@ -30,7 +30,7 @@ struct
     __uint(max_entries, 1);
 } port_map SEC(".maps");
 
-SEC("xdp")
+SEC("xdp_test")
 int
 DropPacket(xdp_md_t* ctx)
 {

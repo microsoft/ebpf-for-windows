@@ -13,7 +13,7 @@
 #include "net/udp.h"
 #include "net_ebpf_ext_xdp_hooks.h"
 
-SEC("xdp")
+SEC("xdp_test")
 inline void*
 data_start(xdp_md_t* ctx)
 {
@@ -22,7 +22,7 @@ data_start(xdp_md_t* ctx)
     return ptr;
 }
 
-SEC("xdp")
+SEC("xdp_test")
 int
 unsafe_program(xdp_md_t* ctx)
 {
