@@ -394,7 +394,7 @@ __declspec(noinline) void net_ebpf_ext_log_message_pointer(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
-    const void* value)
+    _In_opt_ const void* value)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:
