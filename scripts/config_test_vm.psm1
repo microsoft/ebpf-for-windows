@@ -597,6 +597,7 @@ function Get-LegacyRegressionTestArtifacts
 
                 # Extract the inner zip file.
                 Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
+                break
             } catch {
                 Write-Log -TraceMessage "Iteration $i failed to download $ArtifactUrl. Removing $DownloadPath" -ForegroundColor Red
                 Remove-Item -Path $DownloadPath -Force -ErrorAction Ignore
