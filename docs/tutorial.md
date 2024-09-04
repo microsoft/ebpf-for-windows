@@ -502,12 +502,12 @@ typedef struct xdp_md
     uint32_t ingress_ifindex; // Ingress interface index.
 } xdp_md_t;
 
-typedef enum _xdp_action_test
+typedef enum _xdp_action
 {
     XDP_PASS = 1, // Allow the packet to pass.
     XDP_DROP,     // Drop the packet.
     XDP_TX        // Bounce the received packet back out the same NIC it arrived on.
-} xdp_action_test_t;
+} xdp_action_t;
 
 typedef xdp_action_test_t xdp_hook_t(xdp_md_t* context);
 ```
