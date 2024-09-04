@@ -888,6 +888,8 @@ extern "C"
     _Ret_notnull_ DEVICE_OBJECT*
     ebpf_driver_get_device_object();
 
+    extern bool ebpf_processor_supports_sse42;
+
 #ifdef __cplusplus
 }
 #endif
