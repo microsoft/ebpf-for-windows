@@ -11,10 +11,11 @@
 #include "net/if_ether.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 SEC("xdp")
 int
-xdp_invalid_socket_cookie(xdp_test_md_t* ctx)
+xdp_invalid_socket_cookie(xdp_md_t* ctx)
 {
     // Try to call the bpf_get_socket_cookie helper function.
     uint64_t socket_cookie = bpf_get_socket_cookie(ctx);

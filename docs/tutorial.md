@@ -491,16 +491,16 @@ structure which contains an arbitrary amount of data.  (Tail calls to
 programs can have more than one argument, but hooks put all the info in a
 hook-specific context structure passed as one argument.)
 
-The "xdp_test" hook point has the following prototype in `ebpf_xdp_test_hooks.h`:
+The "xdp_test" hook point has the following prototype in `net_ebpf_ext_xdp_hooks.h`:
 
 ```c
-typedef struct xdp_test_md
+typedef struct xdp_md
 {
     void* data;               // Pointer to start of packet data.
     void* data_end;           // Pointer to end of packet data.
     uint64_t data_meta;       // Packet metadata.
     uint32_t ingress_ifindex; // Ingress interface index.
-} xdp_test_md_t;
+} xdp_md_t;
 
 typedef enum _xdp_action_test
 {
@@ -509,7 +509,7 @@ typedef enum _xdp_action_test
     XDP_TX        // Bounce the received packet back out the same NIC it arrived on.
 } xdp_action_test_t;
 
-typedef xdp_action_test_t xdp_hook_t(xdp_test_md_t* context);
+typedef xdp_action_test_t xdp_hook_t(xdp_md_t* context);
 ```
 
 A sample eBPF program might look like this:
@@ -517,13 +517,13 @@ A sample eBPF program might look like this:
 ```c
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
-#include "ebpf_xdp_test_hooks.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 // Put "xdp_test" in the section name to specify XDP_TEST as the hook.
 // The SEC macro below has the same effect as the
 // clang pragma used in section 2 of this tutorial.
 SEC("xdp_test")
-int my_xdp_parser(xdp_test_md_t* ctx)
+int my_xdp_parser(xdp_md_t* ctx)
 {
     int length = (char *)ctx->data_end - (char *)ctx->data;
 
@@ -598,7 +598,7 @@ verifier is the same as above but XDP_TEST instead had a different struct
 definition:
 
 ```c
-typedef struct _xdp_test_md_t
+typedef struct _xdp_md_t
 {
     uint64_t more;
     uint64_t stuff;
@@ -606,7 +606,7 @@ typedef struct _xdp_test_md_t
     void* data;
     void* data_end;
     uint64_t data_meta;
-} xdp_test_md_t;
+} xdp_md_t;
 ```
 
 Now our sample program that checks the length would now be looking for
@@ -629,7 +629,7 @@ by r1 (since the first argument is in register R1) past the end of the
 valid buffer of size 32.  This illustrates why ideally the same header
 file (ebpf_nethooks.h in the above example) should be used by the eBPF program,
 the component exposing the hook, and the verifier itself, e.g., so that
-the size of the context struct could be `sizeof(xdp_test_md_t)`
+the size of the context struct could be `sizeof(xdp_md_t)`
 rather than hardcoding the number 32 in the above example.
 
 ## 4.2. Helper functions and arguments

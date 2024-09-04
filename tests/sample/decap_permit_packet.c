@@ -14,7 +14,7 @@
 #include "xdp_common.h"
 
 inline int
-decapsulate_ipv4_reflect_packet(xdp_test_md_t* ctx)
+decapsulate_ipv4_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
@@ -49,7 +49,7 @@ Done:
 }
 
 inline int
-decapsulate_ipv6_reflect_packet(xdp_test_md_t* ctx)
+decapsulate_ipv6_reflect_packet(xdp_md_t* ctx)
 {
     int rc = XDP_DROP;
 
@@ -85,7 +85,7 @@ Done:
 //
 SEC("xdp_test/decapsulate_reflect")
 int
-decapsulate_permit_packet(xdp_test_md_t* ctx)
+decapsulate_permit_packet(xdp_md_t* ctx)
 {
     int rc = XDP_PASS;
 

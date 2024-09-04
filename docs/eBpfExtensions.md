@@ -167,8 +167,8 @@ invoking an eBPF program. The various fields of this struct are as follows.
 
 For example, for the XDP_TEST program types, the context data structure is as follows:
 ```c
-// XDP_TEST hook.  We use "struct xdp_test_md" for cross-platform compatibility.
-typedef struct xdp_test_md
+// XDP_TEST hook.  We use "struct xdp_md" for cross-platform compatibility.
+typedef struct xdp_md
 {
     void* data;         ///< Pointer to start of packet data.
     void* data_end;     ///< Pointer to end of packet data.
@@ -176,14 +176,14 @@ typedef struct xdp_test_md
 
     /* size: 12, cachelines: 1, members: 3 */
     /* last cacheline: 12 bytes */
-} xdp_test_md_t;
+} xdp_md_t;
 ```
 The corresponding context descriptor looks like:
 ```c
-const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_test_md_t),
-                                                            EBPF_OFFSET_OF(xdp_test_md_t, data),
-                                                            EBPF_OFFSET_OF(xdp_test_md_t, data_end),
-                                                            EBPF_OFFSET_OF(xdp_test_md_t, data_meta)};
+const ebpf_context_descriptor_t g_xdp_context_descriptor = {sizeof(xdp_md_t),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data_end),
+                                                            EBPF_OFFSET_OF(xdp_md_t, data_meta)};
 ```
 If any of the data or metadata pointer fields are not present on the context structure, the offset value is set to -1
 in the context descriptor.

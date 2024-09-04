@@ -20,6 +20,7 @@
 #include "bpf_helpers.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 struct
 {
@@ -31,7 +32,7 @@ struct
 
 SEC("xdp")
 int
-DropPacket(xdp_test_md_t* ctx)
+DropPacket(xdp_md_t* ctx)
 {
     IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;
     UDP_HEADER* udp_header = (UDP_HEADER*)(ip_header + 1);

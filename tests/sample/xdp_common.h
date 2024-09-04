@@ -6,6 +6,7 @@
 #include "net/if_ether.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 #include "xdp_tests_common.h"
 
 inline void

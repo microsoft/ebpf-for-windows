@@ -21,6 +21,7 @@
 #include "net/if_ether.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 struct
 {
@@ -40,7 +41,7 @@ struct
 
 SEC("xdp")
 int
-DropPacket(xdp_test_md_t* ctx)
+DropPacket(xdp_md_t* ctx)
 {
     int rc = XDP_PASS;
     ETHERNET_HEADER* ethernet_header = NULL;

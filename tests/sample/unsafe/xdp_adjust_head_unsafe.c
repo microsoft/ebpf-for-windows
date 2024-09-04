@@ -11,10 +11,11 @@
 #include "net/if_ether.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 SEC("xdp")
 int
-xdp_adjust_head_unsafe(xdp_test_md_t* ctx)
+xdp_adjust_head_unsafe(xdp_md_t* ctx)
 {
     int rc = XDP_PASS;
 

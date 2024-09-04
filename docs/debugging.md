@@ -286,7 +286,7 @@ to illustrate some basic steps.  So now let's move on to the real program in the
 
 > netsh ebpf show disassembly droppacket_unsafe.o xdp_test
 ; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:22
-; DropPacket(xdp_test_md_t* ctx)
+; DropPacket(xdp_md_t* ctx)
        0:       r0 = 1
 ; C:\your\path\ebpf-for-windows\tests\sample/unsafe/droppacket_unsafe.c:24
 ;     IPV4_HEADER* ip_header = (IPV4_HEADER*)ctx->data;

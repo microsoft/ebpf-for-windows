@@ -11,19 +11,20 @@
 #include "net/if_ether.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 SEC("xdp")
 inline void*
-data_start(xdp_test_md_t* ctx)
+data_start(xdp_md_t* ctx)
 {
     void* ptr;
-    asm volatile("%0 = *(u32 *)(%1 + %2)" : "=r"(ptr) : "r"(ctx), "i"(__builtin_offsetof(xdp_test_md_t, data)));
+    asm volatile("%0 = *(u32 *)(%1 + %2)" : "=r"(ptr) : "r"(ctx), "i"(__builtin_offsetof(xdp_md_t, data)));
     return ptr;
 }
 
 SEC("xdp")
 int
-unsafe_program(xdp_test_md_t* ctx)
+unsafe_program(xdp_md_t* ctx)
 {
     int rc = XDP_PASS;
 
