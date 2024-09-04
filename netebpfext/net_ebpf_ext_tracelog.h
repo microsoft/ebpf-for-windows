@@ -53,30 +53,6 @@ typedef enum _net_ebpf_ext_tracelog_level
     _NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE
 } net_ebpf_ext_tracelog_level_t;
 
-// #define NET_EBPF_EXT_LOG_FUNCTION_SUCCESS()                                   \
-//     if (TraceLoggingProviderEnabled(                                          \
-//             net_ebpf_ext_tracelog_provider,                                   \
-//             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                              \
-//             NET_EBPF_EXT_TRACELOG_KEYWORD_BASE)) {                            \
-//             NET_EBPF_EXT_LOG_MESSAGE_EVENT(                                         \
-//                 NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                          \
-//                 NET_EBPF_EXT_TRACELOG_EVENT_SUCCESS,                    \
-//                 NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,                           \
-//                 __FUNCTION__ " returned success");                            \
-//     }
-
-// #define NET_EBPF_EXT_LOG_FUNCTION_ERROR(result)                                                                       \
-//     if (TraceLoggingProviderEnabled(                                                                                  \
-//             net_ebpf_ext_tracelog_provider, NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_BASE)) { \
-//         TraceLoggingWrite(                                                                                            \
-//             net_ebpf_ext_tracelog_provider,                                                                           \
-//             NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_ERROR,                                                                \
-//             TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                                                  \
-//             TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE),                                                  \
-//             TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"),                                       \
-//             TraceLoggingLong(result, "Error"));                                                                       \
-//     }
-
 #define NET_EBPF_EXT_LOG_ENTRY()                                                    \
     if (TraceLoggingProviderEnabled(                                                \
             net_ebpf_ext_tracelog_provider,                                         \
