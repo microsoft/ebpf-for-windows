@@ -113,51 +113,51 @@
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
         TraceLoggingUInt64((verdict), "verdict"));
 
-#define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                  \
-    static void _net_ebpf_ext_log_sock_addr_classify_v##family##(       \
-        _In_z_ const char* message,                                     \
-        uint64_t transport_endpoint_handle,                             \
-        _In_ const bpf_sock_addr_t* original_context,                   \
-        _In_opt_ const bpf_sock_addr_t* redirected_context,             \
-        uint32_t verdict)                                               \
-    {                                                                   \
-        if (redirected_context != NULL) {                               \
-            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##( \
-                message,                                                \
-                transport_endpoint_handle,                              \
-                original_context->protocol,                             \
-                original_context->msg_src_ip##family##,                 \
-                ntohs(original_context->msg_src_port),                  \
-                original_context->user_ip##family##,                    \
-                ntohs(original_context->user_port),                     \
-                redirected_context->user_ip##family##,                  \
-                ntohs(redirected_context->user_port),                   \
-                verdict);                                               \
-        } else {                                                        \
-            if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {              \
-                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(      \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                   \
-                    message,                                            \
-                    transport_endpoint_handle,                          \
-                    original_context->protocol,                         \
-                    original_context->msg_src_ip##family##,             \
-                    ntohs(original_context->msg_src_port),              \
-                    original_context->user_ip##family##,                \
-                    ntohs(original_context->user_port),                 \
-                    verdict);                                           \
-            } else {                                                    \
-                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(      \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                \
-                    message,                                            \
-                    transport_endpoint_handle,                          \
-                    original_context->protocol,                         \
-                    original_context->msg_src_ip##family##,             \
-                    ntohs(original_context->msg_src_port),              \
-                    original_context->user_ip##family##,                \
-                    ntohs(original_context->user_port),                 \
-                    verdict);                                           \
-            }                                                           \
-        }                                                               \
+#define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                                 \
+    __declspec(noinline) static void _net_ebpf_ext_log_sock_addr_classify_v##family##( \
+        _In_z_ const char* message,                                                    \
+        uint64_t transport_endpoint_handle,                                            \
+        _In_ const bpf_sock_addr_t* original_context,                                  \
+        _In_opt_ const bpf_sock_addr_t* redirected_context,                            \
+        uint32_t verdict)                                                              \
+    {                                                                                  \
+        if (redirected_context != NULL) {                                              \
+            NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##(                \
+                message,                                                               \
+                transport_endpoint_handle,                                             \
+                original_context->protocol,                                            \
+                original_context->msg_src_ip##family##,                                \
+                ntohs(original_context->msg_src_port),                                 \
+                original_context->user_ip##family##,                                   \
+                ntohs(original_context->user_port),                                    \
+                redirected_context->user_ip##family##,                                 \
+                ntohs(redirected_context->user_port),                                  \
+                verdict);                                                              \
+        } else {                                                                       \
+            if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {                             \
+                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                     \
+                    NET_EBPF_EXT_TRACELOG_LEVEL_INFO,                                  \
+                    message,                                                           \
+                    transport_endpoint_handle,                                         \
+                    original_context->protocol,                                        \
+                    original_context->msg_src_ip##family##,                            \
+                    ntohs(original_context->msg_src_port),                             \
+                    original_context->user_ip##family##,                               \
+                    ntohs(original_context->user_port),                                \
+                    verdict);                                                          \
+            } else {                                                                   \
+                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                     \
+                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                               \
+                    message,                                                           \
+                    transport_endpoint_handle,                                         \
+                    original_context->protocol,                                        \
+                    original_context->msg_src_ip##family##,                            \
+                    ntohs(original_context->msg_src_port),                             \
+                    original_context->user_ip##family##,                               \
+                    ntohs(original_context->user_port),                                \
+                    verdict);                                                          \
+            }                                                                          \
+        }                                                                              \
     }
 
 DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(4)
