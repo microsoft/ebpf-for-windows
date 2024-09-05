@@ -63,8 +63,10 @@
     source_port,                                                      \
     destination_ip,                                                   \
     destination_port,                                                 \
+    compartment_id,                                                   \
     redirected_ip,                                                    \
     redirected_port,                                                  \
+    redirected_compartment_id,                                        \
     verdict)                                                          \
     TraceLoggingWrite(                                                \
         net_ebpf_ext_tracelog_provider,                               \
@@ -78,8 +80,10 @@
         TraceLoggingUInt16((source_port), "source_port"),             \
         TraceLoggingIPv4Address((destination_ip), "destination_ip"),  \
         TraceLoggingUInt16((destination_port), "destination_port"),   \
+        TraceLoggingUInt16((compartment_id), "compartment_id"),       \
         TraceLoggingIPv4Address((redirected_ip), "redirected_ip"),    \
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
+        TraceLoggingUInt32((redirected_compartment_id), "redirected_compartment_id"),       \
         TraceLoggingUInt64((verdict), "verdict"));
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV6(            \
@@ -90,8 +94,10 @@
     source_port,                                                      \
     destination_ip,                                                   \
     destination_port,                                                 \
+    compartment_id,                                                   \
     redirected_ip,                                                    \
     redirected_port,                                                  \
+    redirected_compartment_id,                                        \
     verdict)                                                          \
     TraceLoggingWrite(                                                \
         net_ebpf_ext_tracelog_provider,                               \
@@ -105,8 +111,10 @@
         TraceLoggingUInt16((source_port), "source_port"),             \
         TraceLoggingIPv6Address((destination_ip), "destination_ip"),  \
         TraceLoggingUInt16((destination_port), "destination_port"),   \
+        TraceLoggingUInt16((compartment_id), "compartment_id"),       \
         TraceLoggingIPv6Address((redirected_ip), "redirected_ip"),    \
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
+        TraceLoggingUInt32((redirected_compartment_id), "redirected_compartment_id"),       \
         TraceLoggingUInt64((verdict), "verdict"));
 
 #define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                  \
@@ -128,6 +136,7 @@
                 ntohs(original_context->user_port),                     \
                 redirected_context->user_ip##family##,                  \
                 ntohs(redirected_context->user_port),                   \
+                original_context->compartment_id,                       \
                 verdict);                                               \
         } \
     }
