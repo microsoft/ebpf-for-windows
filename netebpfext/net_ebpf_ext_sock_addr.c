@@ -140,8 +140,8 @@
                     original_context->msg_src_ip##family##,             \
                     ntohs(original_context->msg_src_port),              \
                     original_context->user_ip##family##,                \
-                    original_context->compartement_id,                  \
                     ntohs(original_context->user_port),                 \
+                    original_context->compartement_id,                  \
                     verdict);                                           \
             } else {                                                    \
                 NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(      \
