@@ -18,7 +18,8 @@
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                                                              \
-    trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
+    trace_level, message, handle, protocol, source_ip, source_port, destination_ip,                            \
+    destination_port, compartment_id, verdict)                                                                 \
     TraceLoggingWrite(                                                                                         \
         net_ebpf_ext_tracelog_provider,                                                                        \
         NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                                                               \
@@ -31,10 +32,12 @@
         TraceLoggingUInt16((source_port), "source_port"),                                                      \
         TraceLoggingIPv4Address((destination_ip), "destination_ip"),                                           \
         TraceLoggingUInt16((destination_port), "destination_port"),                                            \
+        TraceLoggingUInt32((compartment_id), "compartment_id"),                                                \
         TraceLoggingUInt32((verdict), "verdict"));
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                                                              \
-    trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
+    trace_level, message, handle, protocol, source_ip, source_port, destination_ip,                            \
+    destination_port, compartment_id, verdict)                                                                 \
     TraceLoggingWrite(                                                                                         \
         net_ebpf_ext_tracelog_provider,                                                                        \
         NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                                                               \
@@ -47,6 +50,7 @@
         TraceLoggingUInt16((source_port), "source_port"),                                                      \
         TraceLoggingIPv6Address((destination_ip), "destination_ip"),                                           \
         TraceLoggingUInt16((destination_port), "destination_port"),                                            \
+        TraceLoggingUInt32((compartment_id), "compartment_id"),                                                \
         TraceLoggingUInt32((verdict), "verdict"));
 
 #define NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE "NetEbpfExtSockAddrRedirect"
@@ -59,6 +63,7 @@
     source_port,                                                      \
     destination_ip,                                                   \
     destination_port,                                                 \
+    compartment_id,                                                   \
     redirected_ip,                                                    \
     redirected_port,                                                  \
     verdict)                                                          \
@@ -135,6 +140,7 @@
                     original_context->msg_src_ip##family##,             \
                     ntohs(original_context->msg_src_port),              \
                     original_context->user_ip##family##,                \
+                    original_context->compartement_id,                  \
                     ntohs(original_context->user_port),                 \
                     verdict);                                           \
             } else {                                                    \
@@ -147,6 +153,7 @@
                     ntohs(original_context->msg_src_port),              \
                     original_context->user_ip##family##,                \
                     ntohs(original_context->user_port),                 \
+                    original_context->compartement_id,                  \
                     verdict);                                           \
             }                                                           \
         }                                                               \
