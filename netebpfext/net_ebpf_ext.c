@@ -235,14 +235,21 @@ _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
     _In_ const net_ebpf_extension_hook_client_t* client_context,
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
+    uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
     *filter_context = NULL;
+
+    if (net_ebpf_extension_hook_provider_get_attach_capability(provider_context) ==
+        ATTACH_CAPABILITY_MULTI_ATTACH_WITH_WILDCARD) {
+        client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH;
+    }
 
     // Allocate buffer for WFP filter context.
     local_filter_context = (net_ebpf_extension_wfp_filter_context_t*)ExAllocatePoolUninitialized(
@@ -251,23 +258,40 @@ net_ebpf_extension_wfp_filter_context_create(
         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_context, "local_filter_context", result);
 
     memset(local_filter_context, 0, filter_context_size);
+
+    local_filter_context->client_contexts = (net_ebpf_extension_hook_client_t**)ExAllocatePoolUninitialized(
+        NonPagedPoolNx,
+        client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*),
+        NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        local_filter_context->client_contexts,
+        "local_filter_context - client_contexts",
+        result);
+
+    memset(
+        local_filter_context->client_contexts, 0, client_context_count_max * sizeof(net_ebpf_extension_hook_client_t*));
+    local_filter_context->client_context_count_max = client_context_count_max;
+    local_filter_context->context_deleting = FALSE;
+    InitializeListHead(&local_filter_context->link);
     local_filter_context->reference_count = 1; // Initial reference.
-    local_filter_context->client_context = client_context;
 
-    if (!net_ebpf_extension_hook_client_enter_rundown(
-            (net_ebpf_extension_hook_client_t*)local_filter_context->client_context)) {
+    // Set the first client context.
+    local_filter_context->client_contexts[0] = (net_ebpf_extension_hook_client_t*)client_context;
+    local_filter_context->client_context_count = 1;
 
-        // We're setting up the filter context here and as this is the very first (and exclusive) attempt to acquire
-        // rundown, it cannot fail. If it does, this is indicative of a fatal system level error.
-        __fastfail(FAST_FAIL_INVALID_ARG);
-    }
+    // Set filter context as provider data in the hook client.
+    net_ebpf_extension_hook_client_set_provider_data(
+        (net_ebpf_extension_hook_client_t*)client_context, local_filter_context);
+
+    // Set the provider context.
+    local_filter_context->provider_context = provider_context;
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
+
 Exit:
-    if (local_filter_context != NULL) {
-        ExFreePool(local_filter_context);
-    }
+    CLEAN_UP_FILTER_CONTEXT(local_filter_context);
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -276,10 +300,10 @@ void
 net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     // Since the hook client is detaching, the eBPF program should not be invoked any further.
-    // The client_detached field in filter_context is set to false for this reason. This way any
+    // The context_deleting field in filter_context is set to false for this reason. This way any
     // lingering WFP classify callbacks will exit as it would not find any hook client associated
     // with the filter context. This is best effort & no locks are held.
-    filter_context->client_detached = TRUE;
+    filter_context->context_deleting = TRUE;
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -362,6 +386,8 @@ net_ebpf_extension_delete_wfp_filters(
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
+            filter_ids[index].error_code = status;
         } else {
             NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -369,6 +395,7 @@ net_ebpf_extension_delete_wfp_filters(
                 "Marked WFP filter for deletion: ",
                 index,
                 filter_ids[index].id);
+            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         }
     }
     NET_EBPF_EXT_LOG_EXIT();
@@ -422,7 +449,8 @@ net_ebpf_extension_add_wfp_filters(
         filter.displayData.name = (wchar_t*)filter_parameter->name;
         filter.displayData.description = (wchar_t*)filter_parameter->description;
         filter.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
-        filter.action.type = FWP_ACTION_CALLOUT_TERMINATING;
+        filter.action.type =
+            filter_parameter->action_type ? filter_parameter->action_type : FWP_ACTION_CALLOUT_TERMINATING;
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
@@ -869,4 +897,72 @@ net_ebpf_ext_unregister_providers()
         net_ebpf_ext_sock_ops_unregister_providers();
         _net_ebpf_sock_ops_providers_registered = false;
     }
+}
+
+ebpf_result_t
+net_ebpf_ext_add_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    KIRQL old_irql;
+
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+
+    // Check if we have reached max capacity.
+    if (filter_context->client_context_count == filter_context->client_context_count_max) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "net_ebpf_ext_add_client_context: Exceeded max client count");
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    // Append the client context to the end.
+    filter_context->client_contexts[filter_context->client_context_count] =
+        (struct _net_ebpf_extension_hook_client*)hook_client;
+    filter_context->client_context_count++;
+
+    // Add filter_context as provider data for the client.
+    net_ebpf_extension_hook_client_set_provider_data(
+        (struct _net_ebpf_extension_hook_client*)hook_client, (void*)filter_context);
+
+Exit:
+    ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
+    NET_EBPF_EXT_RETURN_RESULT(result);
+}
+
+void
+net_ebpf_ext_remove_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client)
+{
+    KIRQL old_irql;
+    uint32_t index;
+    bool found = FALSE;
+
+    old_irql = ExAcquireSpinLockExclusive(&filter_context->lock);
+
+    for (index = 0; index < filter_context->client_context_count; index++) {
+        if (filter_context->client_contexts[index] == hook_client) {
+            filter_context->client_contexts[index] = NULL;
+            filter_context->client_context_count--;
+            found = TRUE;
+            break;
+        }
+    }
+    ASSERT(found == TRUE);
+    if (index != filter_context->client_context_count) {
+        memcpy(
+            &filter_context->client_contexts[index],
+            &filter_context->client_contexts[index + 1],
+            (filter_context->client_context_count - index) * sizeof(net_ebpf_extension_hook_client_t*));
+
+        filter_context->client_contexts[filter_context->client_context_count] = NULL;
+    }
+
+    ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
