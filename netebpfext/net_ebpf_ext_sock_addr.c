@@ -80,7 +80,7 @@
         TraceLoggingUInt16((source_port), "source_port"),             \
         TraceLoggingIPv4Address((destination_ip), "destination_ip"),  \
         TraceLoggingUInt16((destination_port), "destination_port"),   \
-        TraceLoggingUInt16((compartment_id), "compartment_id"),       \
+        TraceLoggingUInt32((compartment_id), "compartment_id"),       \
         TraceLoggingIPv4Address((redirected_ip), "redirected_ip"),    \
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
         TraceLoggingUInt32((redirected_compartment_id), "redirected_compartment_id"),       \
