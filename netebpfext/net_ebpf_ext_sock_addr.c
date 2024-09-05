@@ -134,9 +134,10 @@
                 ntohs(original_context->msg_src_port),                  \
                 original_context->user_ip##family##,                    \
                 ntohs(original_context->user_port),                     \
+                original_contex->compartment_id,                        \
                 redirected_context->user_ip##family##,                  \
                 ntohs(redirected_context->user_port),                   \
-                original_context->compartment_id,                       \
+                redirected_context->compartment_id,                     \
                 verdict);                                               \
         } \
     }
