@@ -509,7 +509,7 @@ typedef enum _xdp_action
     XDP_TX        // Bounce the received packet back out the same NIC it arrived on.
 } xdp_action_t;
 
-typedef xdp_action_test_t xdp_hook_t(xdp_md_t* context);
+typedef xdp_action_t xdp_hook_t(xdp_md_t* context);
 ```
 
 A sample eBPF program might look like this:

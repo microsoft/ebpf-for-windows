@@ -39,7 +39,7 @@ struct
     __uint(max_entries, 1);
 } interface_index_map SEC(".maps");
 
-SEC("xdp_test")
+SEC("xdp")
 int
 DropPacket(xdp_md_t* ctx)
 {
