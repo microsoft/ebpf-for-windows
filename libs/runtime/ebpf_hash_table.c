@@ -5,6 +5,8 @@
 #include "ebpf_hash_table.h"
 #include "ebpf_random.h"
 
+#include <nmmintrin.h>
+
 // Buckets contain an array of pointers to value and keys.
 // Buckets are immutable once inserted in to the hash-table and replaced when
 // modified.
@@ -154,6 +156,33 @@ _ebpf_murmur3_32(_In_reads_((length_in_bits + 7) / 8) const uint8_t* key, size_t
     return hash;
 }
 
+static unsigned long
+_ebpf_compute_crc32(_In_reads_(length_in_bytes) const uint8_t* key, size_t length_in_bytes, uint32_t seed)
+{
+    // First process 8 bytes at a time.
+    uint32_t crc = seed;
+    uint8_t* start = (uint8_t*)key;
+    uint8_t* end = start + length_in_bytes;
+
+    while ((end - start) >= 8) {
+        crc = (uint32_t)_mm_crc32_u64(crc, *(uint64_t*)start);
+        start += 8;
+    }
+
+    // Process 4 bytes at a time.
+    while ((end - start) >= 4) {
+        crc = _mm_crc32_u32(crc, *(uint32_t*)start);
+        start += 4;
+    }
+
+    // Process remaining bytes.
+    while ((end - start) > 0) {
+        crc = _mm_crc32_u8(crc, *start);
+        start++;
+    }
+    return crc;
+}
+
 /**
  * @brief Compare keys assuming they are integers.
  *
@@ -279,16 +308,18 @@ _ebpf_hash_table_compare(_In_ const ebpf_hash_table_t* hash_table, _In_ const ui
 static uint32_t
 _ebpf_hash_table_compute_bucket_index(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key)
 {
-    size_t length;
-    const uint8_t* data;
-    if (hash_table->extract) {
-        hash_table->extract(key, &data, &length);
+    if (!hash_table->extract) {
+        if (ebpf_processor_supports_sse42) {
+            return _ebpf_compute_crc32(key, hash_table->key_size, hash_table->seed) & hash_table->bucket_count_mask;
+        } else {
+            return _ebpf_murmur3_32(key, hash_table->key_size * 8, hash_table->seed) & hash_table->bucket_count_mask;
+        }
     } else {
-        length = hash_table->key_size * 8;
-        data = key;
+        uint8_t* data;
+        size_t length;
+        hash_table->extract(key, &data, &length);
+        return _ebpf_murmur3_32(data, length, hash_table->seed) & hash_table->bucket_count_mask;
     }
-    uint32_t hash_value = _ebpf_murmur3_32(data, length, hash_table->seed);
-    return hash_value & hash_table->bucket_count_mask;
 }
 
 /**
@@ -757,6 +788,9 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
+
+    // Prefetch the data on the assumption that it will be used by the caller soon.
+    _mm_prefetch((const char*)data, _MM_HINT_T0);
 
     *value = data;
     if (hash_table->notification_callback) {

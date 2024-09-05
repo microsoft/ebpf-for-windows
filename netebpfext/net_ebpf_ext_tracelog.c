@@ -309,6 +309,118 @@ __declspec(noinline) void net_ebpf_ext_log_message_ntstatus(
     }
 }
 
+#define NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(trace_level, message, value)       \
+    switch (keyword) {                                                                  \
+    CASE_BASE:                                                                          \
+        _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, KEYWORD_BASE, message, value);      \
+        break;                                                                          \
+    CASE_BIND:                                                                          \
+        _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, KEYWORD_BIND, message, value);      \
+        break;                                                                          \
+    CASE_EXT:                                                                           \
+        _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, KEYWORD_EXT, message, value);       \
+        break;                                                                          \
+    CASE_SOCK_ADDR:                                                                     \
+        _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, KEYWORD_SOCK_ADDR, message, value); \
+        break;                                                                          \
+    CASE_SOCK_OPS:                                                                      \
+        _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, KEYWORD_SOCK_OPS, message, value);  \
+        break;                                                                          \
+    CASE_XDP:                                                                           \
+        _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, KEYWORD_XDP, message, value);       \
+        break;                                                                          \
+    default:                                                                            \
+        ebpf_assert(!"Invalid keyword");                                                \
+        break;                                                                          \
+    }
+
+__declspec(noinline) void net_ebpf_ext_log_message_bool(
+    net_ebpf_ext_tracelog_level_t trace_level,
+    net_ebpf_ext_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    bool value)
+{
+    switch (trace_level) {
+    CASE_LOG_ALWAYS:
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, message, value);
+        break;
+    CASE_CRITICAL:
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(LEVEL_CRITICAL, message, value);
+        break;
+    CASE_LEVEL_ERROR:
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(LEVEL_ERROR, message, value);
+        break;
+    CASE_WARNING:
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(LEVEL_WARNING, message, value);
+        break;
+    CASE_INFO:
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(LEVEL_INFO, message, value);
+        break;
+    CASE_VERBOSE:
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
+    }
+}
+
+#define NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(trace_level, message, value)       \
+    switch (keyword) {                                                                     \
+    CASE_BASE:                                                                             \
+        _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, KEYWORD_BASE, message, value);      \
+        break;                                                                             \
+    CASE_BIND:                                                                             \
+        _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, KEYWORD_BIND, message, value);      \
+        break;                                                                             \
+    CASE_EXT:                                                                              \
+        _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, KEYWORD_EXT, message, value);       \
+        break;                                                                             \
+    CASE_SOCK_ADDR:                                                                        \
+        _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, KEYWORD_SOCK_ADDR, message, value); \
+        break;                                                                             \
+    CASE_SOCK_OPS:                                                                         \
+        _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, KEYWORD_SOCK_OPS, message, value);  \
+        break;                                                                             \
+    CASE_XDP:                                                                              \
+        _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, KEYWORD_XDP, message, value);       \
+        break;                                                                             \
+    default:                                                                               \
+        ebpf_assert(!"Invalid keyword");                                                   \
+        break;                                                                             \
+    }
+
+__declspec(noinline) void net_ebpf_ext_log_message_pointer(
+    net_ebpf_ext_tracelog_level_t trace_level,
+    net_ebpf_ext_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    _In_opt_ const void* value)
+{
+    switch (trace_level) {
+    CASE_LOG_ALWAYS:
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(LEVEL_LOG_ALWAYS, message, value);
+        break;
+    CASE_CRITICAL:
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(LEVEL_CRITICAL, message, value);
+        break;
+    CASE_LEVEL_ERROR:
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(LEVEL_ERROR, message, value);
+        break;
+    CASE_WARNING:
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(LEVEL_WARNING, message, value);
+        break;
+    CASE_INFO:
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(LEVEL_INFO, message, value);
+        break;
+    CASE_VERBOSE:
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER_KEYWORD_SWITCH(LEVEL_VERBOSE, message, value);
+        break;
+    default:
+        ebpf_assert(!"Invalid trace level");
+        break;
+    }
+}
+
 #define NET_EBPF_EXT_LOG_MESSAGE_UINT32_KEYWORD_SWITCH(trace_level, message, status)       \
     switch (keyword) {                                                                     \
     CASE_BASE:                                                                             \

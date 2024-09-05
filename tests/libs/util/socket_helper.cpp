@@ -415,13 +415,13 @@ _server_socket::~_server_socket()
 }
 
 void
-_server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
+_server_socket::complete_async_receive(int timeout_in_ms, receiver_mode mode)
 {
     int error = 0;
     // Wait for the receiver socket to receive the message.
     error = WSAWaitForMultipleEvents(1, &overlapped.hEvent, TRUE, timeout_in_ms, TRUE);
     if (error == WSA_WAIT_EVENT_0) {
-        if (timeout_expected) {
+        if (mode == MODE_TIMEOUT) {
             FAIL("Receiver socket received a message when timeout was expected.");
         }
 
@@ -436,13 +436,19 @@ _server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
         overlapped.hEvent = INVALID_HANDLE_VALUE;
     } else {
         if (error == WSA_WAIT_TIMEOUT) {
-            if (!timeout_expected) {
+            if (mode == MODE_NO_TIMEOUT) {
                 FAIL("Receiver socket did not receive any message in 1 second.");
             }
         } else {
             FAIL("Waiting on receiver socket failed with " << error);
         }
     }
+}
+
+void
+_server_socket::complete_async_receive(int timeout_in_ms, bool timeout_expected)
+{
+    complete_async_receive(timeout_in_ms, timeout_expected ? MODE_TIMEOUT : MODE_NO_TIMEOUT);
 }
 
 void
