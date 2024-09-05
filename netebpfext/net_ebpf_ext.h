@@ -25,7 +25,36 @@
 #define NET_EBPF_EXTENSION_POOL_TAG 'Nfbe'
 #define NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
 
+// Note: The maximum number of clients that can attach per-hook in multi-attach case has been currently capped to
+// a constant value to keep the implementation simple. Keeping the max limit constant allows allocating the memory
+// required for creating a copy of list of clients on the stack itself. In the future, if there is a need to increase this
+// maximum count, the value can be simply increased as long as the required memory can still be allocated on stack. If
+// the required memory becomes too large, we may need to switch to a different design to handle this. One option is to
+// use epoch based memory management for the list of clients. This eliminates the need to create a copy of programs
+// per-invocation. Another option can be to always invoke the programs while holding the socket context lock, but that
+// comes with a side effect of every program invocation now happening at DISPATCH_LEVEL.
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH 16
+#define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH 1
+
 CONST IN6_ADDR DECLSPEC_SELECTANY in6addr_v4mappedprefix = IN6ADDR_V4MAPPEDPREFIX_INIT;
+
+#define _ACQUIRE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        KeEnterCriticalRegion();       \
+        ExAcquirePushLock##mode(lock); \
+    }
+
+#define _RELEASE_PUSH_LOCK(lock, mode) \
+    {                                  \
+        ExReleasePushLock##mode(lock); \
+        KeLeaveCriticalRegion();       \
+    }
+
+#define ACQUIRE_PUSH_LOCK_EXCLUSIVE(lock) _ACQUIRE_PUSH_LOCK(lock, Exclusive)
+#define ACQUIRE_PUSH_LOCK_SHARED(lock) _ACQUIRE_PUSH_LOCK(lock, Shared)
+
+#define RELEASE_PUSH_LOCK_EXCLUSIVE(lock) _RELEASE_PUSH_LOCK(lock, Exclusive)
+#define RELEASE_PUSH_LOCK_SHARED(lock) _RELEASE_PUSH_LOCK(lock, Shared)
 
 #define htonl(x) _byteswap_ulong(x)
 #define htons(x) _byteswap_ushort(x)
@@ -49,11 +78,12 @@ typedef struct _wfp_ale_layer_fields
 
 typedef struct _net_ebpf_extension_wfp_filter_parameters
 {
-    const GUID* layer_guid;     ///< GUID of WFP layer to which this filter is associated.
-    const GUID* sublayer_guid;  ///< GUID of the WFP sublayer to which this filter is associated.
-    const GUID* callout_guid;   ///< GUID of WFP callout to which this filter is associated.
-    const wchar_t* name;        ///< Display name of filter.
-    const wchar_t* description; ///< Description of filter.
+    const GUID* layer_guid;            ///< GUID of WFP layer to which this filter is associated.
+    const GUID* sublayer_guid;         ///< GUID of the WFP sublayer to which this filter is associated.
+    const GUID* callout_guid;          ///< GUID of WFP callout to which this filter is associated.
+    const wchar_t* name;               ///< Display name of filter.
+    const wchar_t* description;        ///< Description of filter.
+    const FWP_ACTION_TYPE action_type; ///< Action type for the filter.
 } net_ebpf_extension_wfp_filter_parameters_t;
 
 typedef struct _net_ebpf_ext_sublayer_info
@@ -79,7 +109,9 @@ typedef struct _net_ebpf_extension_wfp_filter_parameters_array
 typedef enum _net_ebpf_ext_wfp_filter_state
 {
     NET_EBPF_EXT_WFP_FILTER_ADDED = 1,
-    NET_EBPF_EXT_WFP_FILTER_DELETED = 2,
+    NET_EBPF_EXT_WFP_FILTER_DELETING = 2,
+    NET_EBPF_EXT_WFP_FILTER_DELETED = 3,
+    NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED = 4,
 
 } net_ebpf_ext_wfp_filter_state_t;
 
@@ -88,34 +120,51 @@ typedef struct _net_ebpf_ext_wfp_filter_id
     wchar_t* name;
     uint64_t id;
     net_ebpf_ext_wfp_filter_state_t state;
+    NTSTATUS error_code;
 } net_ebpf_ext_wfp_filter_id_t;
 
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
-    volatile long reference_count;                                ///< Reference count.
-    const struct _net_ebpf_extension_hook_client* client_context; ///< Pointer to hook NPI client.
+    LIST_ENTRY link;                   ///< Entry in the list of filter contexts.
+    volatile long reference_count;     ///< Reference count.
+    EX_SPIN_LOCK lock;                 ///< Lock to protect the client context array.
+    uint32_t client_context_count_max; ///< Maximum number of hook NPI clients.
+    _Guarded_by_(
+        lock) struct _net_ebpf_extension_hook_client** client_contexts; ///< Array of pointers to hook NPI clients.
+    _Guarded_by_(lock) uint32_t client_context_count;                   ///< Current number of hook NPI clients.
+    const struct _net_ebpf_extension_hook_provider* provider_context;   ///< Pointer to provider binding context.
 
     net_ebpf_ext_wfp_filter_id_t* filter_ids; ///< Array of WFP filter Ids.
     uint32_t filter_ids_count;                ///< Number of WFP filter Ids.
 
-    bool client_detached : 1; ///< True if client has detached.
+    bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
+    bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
+    bool initialized : 1;      ///< True if the filter context has been successfully initialized.
 } net_ebpf_extension_wfp_filter_context_t;
+
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)            \
+    if ((filter_context) != NULL) {                        \
+        if ((filter_context)->filter_ids != NULL) {        \
+            ExFreePool((filter_context)->filter_ids);      \
+        }                                                  \
+        if ((filter_context)->client_contexts != NULL) {   \
+            ExFreePool((filter_context)->client_contexts); \
+        }                                                  \
+        ExFreePool((filter_context));                      \
+    }
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
     if ((filter_context) != NULL) {                               \
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
-#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                    \
-    if ((filter_context) != NULL) {                                                   \
-        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {          \
-            net_ebpf_extension_hook_client_leave_rundown(                             \
-                (net_ebpf_extension_hook_client_t*)(filter_context)->client_context); \
-            if ((filter_context)->filter_ids != NULL) {                               \
-                ExFreePool((filter_context)->filter_ids);                             \
-            }                                                                         \
-            ExFreePool((filter_context));                                             \
-        }                                                                             \
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
+    if ((filter_context) != NULL) {                                                       \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
+            net_ebpf_extension_hook_provider_leave_rundown(                               \
+                (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
+            CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
+        }                                                                                 \
     }
 
 /**
@@ -123,7 +172,8 @@ typedef struct _net_ebpf_extension_wfp_filter_context
  * the hook client is being attached.
  *
  * @param[in] filter_context_size Size in bytes of the filter context.
- * @param[in] client_context Pointer to hook client being attached. This would be associated with the filter context.
+ * @param[in] client_context Pointer to hook client being attached.
+ * @param[in] provider_context Pointer to hook provider context.
  * @param[out] filter_context Pointer to created filter_context.
  *
  * @retval EBPF_SUCCESS The filter context was created successfully.
@@ -133,6 +183,7 @@ _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
     _In_ const struct _net_ebpf_extension_hook_client* client_context,
+    _In_ const struct _net_ebpf_extension_hook_provider* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context);
 
 /**
@@ -196,11 +247,11 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 /**
  * @brief Add WFP filters with specified conditions at specified layers.
  *
- * @param[in]  filter_count Count of filters to be added.
- * @param[in]  parameters Filter parameters.
- * @param[in]  condition_count Count of filter conditions.
- * @param[in]  conditions Common filter conditions to be applied to each filter.
- * @param[in, out]  filter_context Caller supplied context to be associated with the WFP filter.
+ * @param[in] filter_count Count of filters to be added.
+ * @param[in] parameters Filter parameters.
+ * @param[in] condition_count Count of filter conditions.
+ * @param[in] conditions Common filter conditions to be applied to each filter.
+ * @param[in, out] filter_context Caller supplied context to be associated with the WFP filter.
  * @param[out] filter_ids Output buffer where the added filter IDs are stored.
  *
  * @retval EBPF_SUCCESS The operation completed successfully.
@@ -295,3 +346,28 @@ net_ebpf_ext_unregister_providers();
 NTSTATUS
 net_ebpf_ext_filter_change_notify(
     FWPS_CALLOUT_NOTIFY_TYPE callout_notification_type, _In_ const GUID* filter_key, _Inout_ FWPS_FILTER* filter);
+
+/**
+ * @brief Remove the client context from the filter context.
+ *
+ * @param filter_context Filter context to remove the client from.
+ * @param hook_client Hook client to remove.
+ */
+void
+net_ebpf_ext_remove_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client);
+
+/**
+ * @brief Add a client context to the filter context.
+ *
+ * @param filter_context Filter context to add the client to.
+ * @param hook_client Hook client to add.
+ *
+ * @retval EBPF_SUCCESS The client context was added successfully.
+ * @retval EBPF_NO_MEMORY No more client contexts can be added.
+ */
+ebpf_result_t
+net_ebpf_ext_add_client_context(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _In_ const struct _net_ebpf_extension_hook_client* hook_client);

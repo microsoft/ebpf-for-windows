@@ -2235,11 +2235,6 @@ _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
         return -EBPF_INVALID_ARGUMENT;
     }
 
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
-
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
