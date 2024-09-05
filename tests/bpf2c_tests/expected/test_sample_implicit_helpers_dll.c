@@ -179,22 +179,22 @@ test_program_entry(void* context)
     // EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
     r7 = r0;
-    // EBPF_OP_LDXDW pc=16 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_JEQ_IMM pc=16 dst=r8 src=r0 offset=17 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_LDXDW pc=17 dst=r2 src=r6 offset=8 imm=0
-#line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JGE_REG pc=18 dst=r1 src=r2 offset=15 imm=0
-#line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    if (r1 >= r2) {
+    if (r8 == IMMEDIATE(0)) {
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
         goto label_1;
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_JEQ_IMM pc=19 dst=r8 src=r0 offset=14 imm=0
+    // EBPF_OP_LDXDW pc=17 dst=r1 src=r6 offset=0 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    if (r8 == IMMEDIATE(0)) {
+    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_LDXDW pc=18 dst=r2 src=r6 offset=8 imm=0
+#line 50 "sample/undocked/test_sample_implicit_helpers.c"
+    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_JGE_REG pc=19 dst=r1 src=r2 offset=14 imm=0
+#line 50 "sample/undocked/test_sample_implicit_helpers.c"
+    if (r1 >= r2) {
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
         goto label_1;
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
@@ -293,16 +293,16 @@ label_1:
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=40 dst=r2 src=r0 offset=0 imm=-8
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
+#line 68 "sample/undocked/test_sample_implicit_helpers.c"
     r2 += IMMEDIATE(-8);
     // EBPF_OP_MOV64_REG pc=41 dst=r3 src=r10 offset=0 imm=0
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
+#line 68 "sample/undocked/test_sample_implicit_helpers.c"
     r3 = r10;
     // EBPF_OP_ADD64_IMM pc=42 dst=r3 src=r0 offset=0 imm=-24
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
+#line 68 "sample/undocked/test_sample_implicit_helpers.c"
     r3 += IMMEDIATE(-24);
     // EBPF_OP_MOV64_IMM pc=43 dst=r7 src=r0 offset=0 imm=0
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
+#line 68 "sample/undocked/test_sample_implicit_helpers.c"
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=44 dst=r1 src=r1 offset=0 imm=2
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"

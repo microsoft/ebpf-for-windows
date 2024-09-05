@@ -570,21 +570,21 @@ BindMonitor_Callee1(void* context)
     // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
 #line 164 "sample/unsafe/invalid_helpers.c"
     r7 = r0;
-    // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=86 imm=0
+    // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=89 imm=0
 #line 165 "sample/unsafe/invalid_helpers.c"
     if (r7 == IMMEDIATE(0)) {
 #line 165 "sample/unsafe/invalid_helpers.c"
-        goto label_8;
+        goto label_10;
 #line 165 "sample/unsafe/invalid_helpers.c"
     }
     // EBPF_OP_LDXW pc=10 dst=r1 src=r7 offset=0 imm=0
 #line 165 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
-    // EBPF_OP_JEQ_IMM pc=11 dst=r1 src=r0 offset=84 imm=0
+    // EBPF_OP_JEQ_IMM pc=11 dst=r1 src=r0 offset=87 imm=0
 #line 165 "sample/unsafe/invalid_helpers.c"
     if (r1 == IMMEDIATE(0)) {
 #line 165 "sample/unsafe/invalid_helpers.c"
-        goto label_8;
+        goto label_10;
 #line 165 "sample/unsafe/invalid_helpers.c"
     }
     // EBPF_OP_LDXDW pc=12 dst=r1 src=r6 offset=16 imm=0
@@ -641,23 +641,27 @@ BindMonitor_Callee1(void* context)
         return 0;
 #line 87 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_JNE_IMM pc=29 dst=r0 src=r0 offset=38 imm=0
+    // EBPF_OP_JEQ_IMM pc=29 dst=r0 src=r0 offset=1 imm=0
 #line 88 "sample/unsafe/invalid_helpers.c"
-    if (r0 != IMMEDIATE(0)) {
+    if (r0 == IMMEDIATE(0)) {
 #line 88 "sample/unsafe/invalid_helpers.c"
-        goto label_2;
+        goto label_1;
 #line 88 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_MOV64_REG pc=30 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_JA pc=30 dst=r0 src=r0 offset=40 imm=0
+#line 88 "sample/unsafe/invalid_helpers.c"
+    goto label_4;
+label_1:
+    // EBPF_OP_MOV64_REG pc=31 dst=r2 src=r10 offset=0 imm=0
 #line 88 "sample/unsafe/invalid_helpers.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=31 dst=r2 src=r0 offset=0 imm=-8
-#line 92 "sample/unsafe/invalid_helpers.c"
+    // EBPF_OP_ADD64_IMM pc=32 dst=r2 src=r0 offset=0 imm=-8
+#line 88 "sample/unsafe/invalid_helpers.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=32 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=33 dst=r1 src=r1 offset=0 imm=1
 #line 92 "sample/unsafe/invalid_helpers.c"
     r1 = POINTER(_maps[0].address);
-    // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=999
+    // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=999
 #line 92 "sample/unsafe/invalid_helpers.c"
     r0 = BindMonitor_Callee1_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/unsafe/invalid_helpers.c"
@@ -666,68 +670,72 @@ BindMonitor_Callee1(void* context)
         return 0;
 #line 92 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_JNE_IMM pc=35 dst=r0 src=r0 offset=32 imm=0
+    // EBPF_OP_JEQ_IMM pc=36 dst=r0 src=r0 offset=1 imm=0
 #line 93 "sample/unsafe/invalid_helpers.c"
-    if (r0 != IMMEDIATE(0)) {
+    if (r0 == IMMEDIATE(0)) {
 #line 93 "sample/unsafe/invalid_helpers.c"
         goto label_2;
 #line 93 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_LDXW pc=36 dst=r1 src=r6 offset=44 imm=0
+    // EBPF_OP_JA pc=37 dst=r0 src=r0 offset=33 imm=0
+#line 93 "sample/unsafe/invalid_helpers.c"
+    goto label_4;
+label_2:
+    // EBPF_OP_LDXW pc=38 dst=r1 src=r6 offset=44 imm=0
 #line 97 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
-    // EBPF_OP_JNE_IMM pc=37 dst=r1 src=r0 offset=57 imm=0
+    // EBPF_OP_JNE_IMM pc=39 dst=r1 src=r0 offset=58 imm=0
 #line 97 "sample/unsafe/invalid_helpers.c"
     if (r1 != IMMEDIATE(0)) {
 #line 97 "sample/unsafe/invalid_helpers.c"
-        goto label_7;
+        goto label_9;
 #line 97 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_LDXDW pc=38 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=40 dst=r1 src=r6 offset=0 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_JEQ_IMM pc=39 dst=r1 src=r0 offset=55 imm=0
+    // EBPF_OP_JEQ_IMM pc=41 dst=r1 src=r0 offset=56 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     if (r1 == IMMEDIATE(0)) {
 #line 101 "sample/unsafe/invalid_helpers.c"
-        goto label_7;
+        goto label_9;
 #line 101 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_LDXDW pc=40 dst=r1 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=42 dst=r1 src=r6 offset=8 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JEQ_IMM pc=41 dst=r1 src=r0 offset=53 imm=0
+    // EBPF_OP_JEQ_IMM pc=43 dst=r1 src=r0 offset=54 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     if (r1 == IMMEDIATE(0)) {
 #line 101 "sample/unsafe/invalid_helpers.c"
-        goto label_7;
+        goto label_9;
 #line 101 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_MOV64_REG pc=42 dst=r8 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=44 dst=r8 src=r10 offset=0 imm=0
 #line 101 "sample/unsafe/invalid_helpers.c"
     r8 = r10;
-    // EBPF_OP_ADD64_IMM pc=43 dst=r8 src=r0 offset=0 imm=-8
-#line 105 "sample/unsafe/invalid_helpers.c"
+    // EBPF_OP_ADD64_IMM pc=45 dst=r8 src=r0 offset=0 imm=-8
+#line 101 "sample/unsafe/invalid_helpers.c"
     r8 += IMMEDIATE(-8);
-    // EBPF_OP_MOV64_REG pc=44 dst=r3 src=r10 offset=0 imm=0
-#line 105 "sample/unsafe/invalid_helpers.c"
+    // EBPF_OP_MOV64_REG pc=46 dst=r3 src=r10 offset=0 imm=0
+#line 101 "sample/unsafe/invalid_helpers.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=45 dst=r3 src=r0 offset=0 imm=-80
-#line 105 "sample/unsafe/invalid_helpers.c"
+    // EBPF_OP_ADD64_IMM pc=47 dst=r3 src=r0 offset=0 imm=-80
+#line 101 "sample/unsafe/invalid_helpers.c"
     r3 += IMMEDIATE(-80);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r9 src=r0 offset=0 imm=0
-#line 105 "sample/unsafe/invalid_helpers.c"
+    // EBPF_OP_MOV64_IMM pc=48 dst=r9 src=r0 offset=0 imm=0
+#line 101 "sample/unsafe/invalid_helpers.c"
     r9 = IMMEDIATE(0);
-    // EBPF_OP_LDDW pc=47 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=49 dst=r1 src=r1 offset=0 imm=1
 #line 105 "sample/unsafe/invalid_helpers.c"
     r1 = POINTER(_maps[0].address);
-    // EBPF_OP_MOV64_REG pc=49 dst=r2 src=r8 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=51 dst=r2 src=r8 offset=0 imm=0
 #line 105 "sample/unsafe/invalid_helpers.c"
     r2 = r8;
-    // EBPF_OP_MOV64_IMM pc=50 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=52 dst=r4 src=r0 offset=0 imm=0
 #line 105 "sample/unsafe/invalid_helpers.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=51 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_CALL pc=53 dst=r0 src=r0 offset=0 imm=2
 #line 105 "sample/unsafe/invalid_helpers.c"
     r0 = BindMonitor_Callee1_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 105 "sample/unsafe/invalid_helpers.c"
@@ -736,13 +744,13 @@ BindMonitor_Callee1(void* context)
         return 0;
 #line 105 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_LDDW pc=52 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=54 dst=r1 src=r1 offset=0 imm=1
 #line 106 "sample/unsafe/invalid_helpers.c"
     r1 = POINTER(_maps[0].address);
-    // EBPF_OP_MOV64_REG pc=54 dst=r2 src=r8 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=56 dst=r2 src=r8 offset=0 imm=0
 #line 106 "sample/unsafe/invalid_helpers.c"
     r2 = r8;
-    // EBPF_OP_CALL pc=55 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_CALL pc=57 dst=r0 src=r0 offset=0 imm=1
 #line 106 "sample/unsafe/invalid_helpers.c"
     r0 = BindMonitor_Callee1_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 106 "sample/unsafe/invalid_helpers.c"
@@ -751,156 +759,159 @@ BindMonitor_Callee1(void* context)
         return 0;
 #line 106 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_JEQ_IMM pc=56 dst=r0 src=r0 offset=38 imm=0
+    // EBPF_OP_JEQ_IMM pc=58 dst=r0 src=r0 offset=39 imm=0
 #line 107 "sample/unsafe/invalid_helpers.c"
     if (r0 == IMMEDIATE(0)) {
 #line 107 "sample/unsafe/invalid_helpers.c"
-        goto label_7;
+        goto label_9;
 #line 107 "sample/unsafe/invalid_helpers.c"
     }
-label_1:
-    // EBPF_OP_LDXDW pc=57 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=59 dst=r1 src=r0 offset=0 imm=0
+#line 107 "sample/unsafe/invalid_helpers.c"
+    r1 = r0;
+    // EBPF_OP_ADD64_IMM pc=60 dst=r1 src=r0 offset=0 imm=4
+#line 107 "sample/unsafe/invalid_helpers.c"
+    r1 += IMMEDIATE(4);
+label_3:
+    // EBPF_OP_LDXDW pc=61 dst=r2 src=r6 offset=0 imm=0
 #line 112 "sample/unsafe/invalid_helpers.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_ADD64_REG pc=58 dst=r1 src=r9 offset=0 imm=0
+    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_ADD64_REG pc=62 dst=r2 src=r9 offset=0 imm=0
 #line 112 "sample/unsafe/invalid_helpers.c"
-    r1 += r9;
-    // EBPF_OP_LDXDW pc=59 dst=r2 src=r6 offset=8 imm=0
+    r2 += r9;
+    // EBPF_OP_LDXDW pc=63 dst=r3 src=r6 offset=8 imm=0
 #line 112 "sample/unsafe/invalid_helpers.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JGE_REG pc=60 dst=r1 src=r2 offset=7 imm=0
+    r3 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_JGE_REG pc=64 dst=r2 src=r3 offset=6 imm=0
 #line 112 "sample/unsafe/invalid_helpers.c"
-    if (r1 >= r2) {
+    if (r2 >= r3) {
 #line 112 "sample/unsafe/invalid_helpers.c"
-        goto label_2;
+        goto label_4;
 #line 112 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_MOV64_REG pc=61 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=65 dst=r3 src=r1 offset=0 imm=0
 #line 116 "sample/unsafe/invalid_helpers.c"
-    r2 = r0;
-    // EBPF_OP_ADD64_REG pc=62 dst=r2 src=r9 offset=0 imm=0
+    r3 = r1;
+    // EBPF_OP_ADD64_REG pc=66 dst=r3 src=r9 offset=0 imm=0
 #line 116 "sample/unsafe/invalid_helpers.c"
-    r2 += r9;
-    // EBPF_OP_LDXB pc=63 dst=r1 src=r1 offset=0 imm=0
+    r3 += r9;
+    // EBPF_OP_LDXB pc=67 dst=r2 src=r2 offset=0 imm=0
 #line 116 "sample/unsafe/invalid_helpers.c"
-    r1 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(0));
-    // EBPF_OP_STXB pc=64 dst=r2 src=r1 offset=4 imm=0
+    r2 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(0));
+    // EBPF_OP_STXB pc=68 dst=r3 src=r2 offset=0 imm=0
 #line 116 "sample/unsafe/invalid_helpers.c"
-    *(uint8_t*)(uintptr_t)(r2 + OFFSET(4)) = (uint8_t)r1;
-    // EBPF_OP_ADD64_IMM pc=65 dst=r9 src=r0 offset=0 imm=1
+    *(uint8_t*)(uintptr_t)(r3 + OFFSET(0)) = (uint8_t)r2;
+    // EBPF_OP_ADD64_IMM pc=69 dst=r9 src=r0 offset=0 imm=1
 #line 111 "sample/unsafe/invalid_helpers.c"
     r9 += IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=66 dst=r9 src=r0 offset=1 imm=64
+    // EBPF_OP_JNE_IMM pc=70 dst=r9 src=r0 offset=-10 imm=64
 #line 111 "sample/unsafe/invalid_helpers.c"
-    if (r9 == IMMEDIATE(64)) {
+    if (r9 != IMMEDIATE(64)) {
 #line 111 "sample/unsafe/invalid_helpers.c"
-        goto label_2;
+        goto label_3;
 #line 111 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_JA pc=67 dst=r0 src=r0 offset=-11 imm=0
-#line 111 "sample/unsafe/invalid_helpers.c"
-    goto label_1;
-label_2:
-    // EBPF_OP_LDXW pc=68 dst=r1 src=r6 offset=44 imm=0
+label_4:
+    // EBPF_OP_LDXW pc=71 dst=r1 src=r6 offset=44 imm=0
 #line 175 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
-    // EBPF_OP_JEQ_IMM pc=69 dst=r1 src=r0 offset=8 imm=2
+    // EBPF_OP_JEQ_IMM pc=72 dst=r1 src=r0 offset=3 imm=0
+#line 175 "sample/unsafe/invalid_helpers.c"
+    if (r1 == IMMEDIATE(0)) {
+#line 175 "sample/unsafe/invalid_helpers.c"
+        goto label_5;
+#line 175 "sample/unsafe/invalid_helpers.c"
+    }
+    // EBPF_OP_JEQ_IMM pc=73 dst=r1 src=r0 offset=9 imm=2
 #line 175 "sample/unsafe/invalid_helpers.c"
     if (r1 == IMMEDIATE(2)) {
 #line 175 "sample/unsafe/invalid_helpers.c"
-        goto label_3;
+        goto label_6;
 #line 175 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_JNE_IMM pc=70 dst=r1 src=r0 offset=12 imm=0
-#line 175 "sample/unsafe/invalid_helpers.c"
-    if (r1 != IMMEDIATE(0)) {
-#line 175 "sample/unsafe/invalid_helpers.c"
-        goto label_4;
-#line 175 "sample/unsafe/invalid_helpers.c"
-    }
-    // EBPF_OP_MOV64_IMM pc=71 dst=r8 src=r0 offset=0 imm=1
-#line 175 "sample/unsafe/invalid_helpers.c"
+    // EBPF_OP_LDXW pc=74 dst=r1 src=r0 offset=0 imm=0
+#line 192 "sample/unsafe/invalid_helpers.c"
+    r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
+    // EBPF_OP_JA pc=75 dst=r0 src=r0 offset=11 imm=0
+#line 192 "sample/unsafe/invalid_helpers.c"
+    goto label_7;
+label_5:
+    // EBPF_OP_MOV64_IMM pc=76 dst=r8 src=r0 offset=0 imm=1
+#line 192 "sample/unsafe/invalid_helpers.c"
     r8 = IMMEDIATE(1);
-    // EBPF_OP_LDXW pc=72 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=77 dst=r1 src=r0 offset=0 imm=0
 #line 177 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-    // EBPF_OP_LDXW pc=73 dst=r2 src=r7 offset=0 imm=0
+    // EBPF_OP_LDXW pc=78 dst=r2 src=r7 offset=0 imm=0
 #line 177 "sample/unsafe/invalid_helpers.c"
     r2 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
-    // EBPF_OP_JGE_REG pc=74 dst=r1 src=r2 offset=21 imm=0
+    // EBPF_OP_JGE_REG pc=79 dst=r1 src=r2 offset=19 imm=0
 #line 177 "sample/unsafe/invalid_helpers.c"
     if (r1 >= r2) {
 #line 177 "sample/unsafe/invalid_helpers.c"
-        goto label_8;
+        goto label_10;
 #line 177 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_ADD64_IMM pc=75 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_ADD64_IMM pc=80 dst=r1 src=r0 offset=0 imm=1
 #line 181 "sample/unsafe/invalid_helpers.c"
     r1 += IMMEDIATE(1);
-    // EBPF_OP_STXW pc=76 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_STXW pc=81 dst=r0 src=r1 offset=0 imm=0
 #line 181 "sample/unsafe/invalid_helpers.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
-    // EBPF_OP_JA pc=77 dst=r0 src=r0 offset=17 imm=0
+    // EBPF_OP_JA pc=82 dst=r0 src=r0 offset=15 imm=0
 #line 181 "sample/unsafe/invalid_helpers.c"
-    goto label_7;
-label_3:
-    // EBPF_OP_LDXW pc=78 dst=r1 src=r0 offset=0 imm=0
+    goto label_9;
+label_6:
+    // EBPF_OP_LDXW pc=83 dst=r1 src=r0 offset=0 imm=0
 #line 184 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-    // EBPF_OP_JEQ_IMM pc=79 dst=r1 src=r0 offset=8 imm=0
+    // EBPF_OP_JEQ_IMM pc=84 dst=r1 src=r0 offset=6 imm=0
 #line 184 "sample/unsafe/invalid_helpers.c"
     if (r1 == IMMEDIATE(0)) {
 #line 184 "sample/unsafe/invalid_helpers.c"
-        goto label_6;
+        goto label_8;
 #line 184 "sample/unsafe/invalid_helpers.c"
     }
-    // EBPF_OP_ADD64_IMM pc=80 dst=r1 src=r0 offset=0 imm=-1
+    // EBPF_OP_ADD64_IMM pc=85 dst=r1 src=r0 offset=0 imm=-1
 #line 185 "sample/unsafe/invalid_helpers.c"
     r1 += IMMEDIATE(-1);
-    // EBPF_OP_STXW pc=81 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_STXW pc=86 dst=r0 src=r1 offset=0 imm=0
 #line 185 "sample/unsafe/invalid_helpers.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
-    // EBPF_OP_JA pc=82 dst=r0 src=r0 offset=1 imm=0
+label_7:
+    // EBPF_OP_MOV64_IMM pc=87 dst=r8 src=r0 offset=0 imm=0
 #line 185 "sample/unsafe/invalid_helpers.c"
-    goto label_5;
-label_4:
-    // EBPF_OP_LDXW pc=83 dst=r1 src=r0 offset=0 imm=0
-#line 192 "sample/unsafe/invalid_helpers.c"
-    r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-label_5:
-    // EBPF_OP_MOV64_IMM pc=84 dst=r8 src=r0 offset=0 imm=0
-#line 192 "sample/unsafe/invalid_helpers.c"
     r8 = IMMEDIATE(0);
-    // EBPF_OP_LSH64_IMM pc=85 dst=r1 src=r0 offset=0 imm=32
+    // EBPF_OP_LSH64_IMM pc=88 dst=r1 src=r0 offset=0 imm=32
 #line 192 "sample/unsafe/invalid_helpers.c"
     r1 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_RSH64_IMM pc=86 dst=r1 src=r0 offset=0 imm=32
+    // EBPF_OP_RSH64_IMM pc=89 dst=r1 src=r0 offset=0 imm=32
 #line 192 "sample/unsafe/invalid_helpers.c"
     r1 >>= (IMMEDIATE(32) & 63);
-    // EBPF_OP_JNE_IMM pc=87 dst=r1 src=r0 offset=8 imm=0
+    // EBPF_OP_JNE_IMM pc=90 dst=r1 src=r0 offset=8 imm=0
 #line 192 "sample/unsafe/invalid_helpers.c"
     if (r1 != IMMEDIATE(0)) {
 #line 192 "sample/unsafe/invalid_helpers.c"
-        goto label_8;
+        goto label_10;
 #line 192 "sample/unsafe/invalid_helpers.c"
     }
-label_6:
-    // EBPF_OP_LDXDW pc=88 dst=r1 src=r6 offset=16 imm=0
+label_8:
+    // EBPF_OP_LDXDW pc=91 dst=r1 src=r6 offset=16 imm=0
 #line 193 "sample/unsafe/invalid_helpers.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
-    // EBPF_OP_STXDW pc=89 dst=r10 src=r1 offset=-80 imm=0
+    // EBPF_OP_STXDW pc=92 dst=r10 src=r1 offset=-80 imm=0
 #line 193 "sample/unsafe/invalid_helpers.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-80)) = (uint64_t)r1;
-    // EBPF_OP_MOV64_REG pc=90 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=93 dst=r2 src=r10 offset=0 imm=0
 #line 193 "sample/unsafe/invalid_helpers.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=91 dst=r2 src=r0 offset=0 imm=-80
+    // EBPF_OP_ADD64_IMM pc=94 dst=r2 src=r0 offset=0 imm=-80
 #line 193 "sample/unsafe/invalid_helpers.c"
     r2 += IMMEDIATE(-80);
-    // EBPF_OP_LDDW pc=92 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=95 dst=r1 src=r1 offset=0 imm=1
 #line 194 "sample/unsafe/invalid_helpers.c"
     r1 = POINTER(_maps[0].address);
-    // EBPF_OP_CALL pc=94 dst=r0 src=r0 offset=0 imm=3
+    // EBPF_OP_CALL pc=97 dst=r0 src=r0 offset=0 imm=3
 #line 194 "sample/unsafe/invalid_helpers.c"
     r0 = BindMonitor_Callee1_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 194 "sample/unsafe/invalid_helpers.c"
@@ -909,15 +920,15 @@ label_6:
         return 0;
 #line 194 "sample/unsafe/invalid_helpers.c"
     }
-label_7:
-    // EBPF_OP_MOV64_IMM pc=95 dst=r8 src=r0 offset=0 imm=0
+label_9:
+    // EBPF_OP_MOV64_IMM pc=98 dst=r8 src=r0 offset=0 imm=0
 #line 194 "sample/unsafe/invalid_helpers.c"
     r8 = IMMEDIATE(0);
-label_8:
-    // EBPF_OP_MOV64_REG pc=96 dst=r0 src=r8 offset=0 imm=0
+label_10:
+    // EBPF_OP_MOV64_REG pc=99 dst=r0 src=r8 offset=0 imm=0
 #line 198 "sample/unsafe/invalid_helpers.c"
     r0 = r8;
-    // EBPF_OP_EXIT pc=97 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=100 dst=r0 src=r0 offset=0 imm=0
 #line 198 "sample/unsafe/invalid_helpers.c"
     return r0;
 #line 198 "sample/unsafe/invalid_helpers.c"
@@ -965,7 +976,7 @@ static program_entry_t _programs[] = {
         2,
         BindMonitor_Callee1_helpers,
         4,
-        98,
+        101,
         &BindMonitor_Callee1_program_type_guid,
         &BindMonitor_Callee1_attach_type_guid,
     },
