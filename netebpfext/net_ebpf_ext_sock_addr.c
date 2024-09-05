@@ -141,19 +141,7 @@
                     ntohs(original_context->msg_src_port),              \
                     original_context->user_ip##family##,                \
                     ntohs(original_context->user_port),                 \
-                    0,                   \
-                    verdict);                                           \
-            } else {                                                    \
-                NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(      \
-                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                \
-                    message,                                            \
-                    transport_endpoint_handle,                          \
-                    original_context->protocol,                         \
-                    original_context->msg_src_ip##family##,             \
-                    ntohs(original_context->msg_src_port),              \
-                    original_context->user_ip##family##,                \
-                    ntohs(original_context->user_port),                 \
-                    0,                   \
+                    original_context->compartment_id,                   \
                     verdict);                                           \
             }                                                           \
         }                                                               \
