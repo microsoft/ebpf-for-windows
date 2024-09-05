@@ -63,7 +63,6 @@
     source_port,                                                      \
     destination_ip,                                                   \
     destination_port,                                                 \
-    compartment_id,                                                   \
     redirected_ip,                                                    \
     redirected_port,                                                  \
     verdict)                                                          \
