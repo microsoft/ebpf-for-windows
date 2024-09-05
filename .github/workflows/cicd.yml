@@ -625,7 +625,7 @@ jobs:
 
   upload_perf_results:
     needs: performance
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_perf_results
@@ -637,7 +637,7 @@ jobs:
 
   upload_netperf_results_azure_2022:
     needs: netperf
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
     uses: ./.github/workflows/upload-perf-results.yml
     with:
       name: upload_netperf_results_azure_2022
