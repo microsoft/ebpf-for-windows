@@ -60,11 +60,6 @@
     </Inf>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\resource\ebpf_resource.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="..\net_ebpf_ext.h">
       <Filter>Header Files</Filter>
     </ClInclude>

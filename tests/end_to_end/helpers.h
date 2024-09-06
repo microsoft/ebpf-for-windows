@@ -8,6 +8,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 #include "sample_ext_program_info.h"
 #include "usersim/ke.h"
 
