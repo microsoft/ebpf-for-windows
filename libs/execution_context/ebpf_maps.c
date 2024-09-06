@@ -2452,14 +2452,9 @@ ebpf_map_find_entry(
     uint8_t* return_value = NULL;
 
     if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.key_size != 0) {
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map lookup", &map->name);
         EBPF_LOG_MESSAGE_BINARY(
-            EBPF_TRACELOG_LEVEL_VERBOSE,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Map lookup",
-            _ebpf_map_display_names[map->ebpf_map_definition.type],
-            &map->name,
-            key,
-            map->ebpf_map_definition.key_size);
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
@@ -2618,14 +2613,9 @@ ebpf_map_update_entry(
     }
 
     if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.key_size != 0) {
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map update", &map->name);
         EBPF_LOG_MESSAGE_BINARY(
-            EBPF_TRACELOG_LEVEL_VERBOSE,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Map update",
-            _ebpf_map_display_names[map->ebpf_map_definition.type],
-            &map->name,
-            key,
-            map->ebpf_map_definition.key_size);
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
     }
 
     if ((flags & EBPF_MAP_FLAG_HELPER) &&
@@ -2673,14 +2663,9 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
 {
     // High volume call - Skip entry/exit logging.
     if (flags & EBPF_MAP_FLAG_HELPER && map->ebpf_map_definition.key_size != 0) {
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map delete", &map->name);
         EBPF_LOG_MESSAGE_BINARY(
-            EBPF_TRACELOG_LEVEL_VERBOSE,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "Map delete",
-            _ebpf_map_display_names[map->ebpf_map_definition.type],
-            &map->name,
-            key,
-            map->ebpf_map_definition.key_size);
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
     }
 
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
