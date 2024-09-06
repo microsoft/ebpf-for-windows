@@ -38,7 +38,6 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
  * @retval EBPF_SUCCESS Successfully wrote record ring buffer.
  * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
  */
-EBPF_INLINE_HINT
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring_buffer, _In_reads_bytes_(length) uint8_t* data, size_t length);
 

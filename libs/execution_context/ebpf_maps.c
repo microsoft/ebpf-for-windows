@@ -48,6 +48,14 @@ typedef struct _ebpf_core_object_map
 // Fewer partitions will result in more contention on the lock, but more partitions will consume more memory.
 #define EBPF_LRU_MAXIMUM_PARTITIONS 8
 
+#define ZERO_LENGTH_KEY(type) ((type) == BPF_MAP_TYPE_QUEUE || (type) == BPF_MAP_TYPE_STACK)
+
+#define PER_CPU_MAP(type)                                                         \
+    ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_PERCPU_ARRAY || \
+     (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+
+#define MAP_UPDATE_SUPPORTED(type) ((type) != BPF_MAP_TYPE_RINGBUF)
+
 /**
  * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
  * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
@@ -452,8 +460,7 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     ebpf_epoch_free(map);
 }
 
-EBPF_INLINE_HINT
-ebpf_result_t
+static ebpf_result_t
 _find_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
@@ -473,8 +480,7 @@ _find_array_map_entry(
     return EBPF_SUCCESS;
 }
 
-EBPF_INLINE_HINT
-ebpf_result_t
+static ebpf_result_t
 _update_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -916,7 +922,7 @@ _delete_map_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* ke
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-EBPF_INLINE_HINT _Ret_maybenull_ ebpf_core_object_t*
+static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t index = *(uint32_t*)key;
@@ -1493,8 +1499,7 @@ _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
     }
 }
 
-EBPF_INLINE_HINT
-ebpf_result_t
+static ebpf_result_t
 _find_hash_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
@@ -1528,7 +1533,7 @@ _find_hash_map_entry(
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-EBPF_INLINE_HINT _Ret_maybenull_ ebpf_core_object_t*
+static _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_core_object_t* object = NULL;
@@ -1545,8 +1550,7 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
 
 volatile int32_t reap_attempt_counts[64] = {0};
 
-EBPF_INLINE_HINT
-ebpf_result_t
+static ebpf_result_t
 _update_hash_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -1747,7 +1751,7 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
 
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
+    if (!PER_CPU_MAP(map->ebpf_map_definition.type)) {
         return EBPF_SUCCESS;
     }
 
@@ -1772,7 +1776,6 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
  * @retval EBPF_INVALID_ARGUMENT Unable to perform this operation due to
  * current CPU > allocated value buffer size.
  */
-EBPF_INLINE_HINT
 _Must_inspect_result_ ebpf_result_t
 _update_entry_per_cpu(
     _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
@@ -1887,8 +1890,7 @@ _delete_lpm_map_entry(_In_ ebpf_core_map_t* map, _Inout_ const uint8_t* key)
     return _delete_hash_map_entry(map, key);
 }
 
-EBPF_INLINE_HINT
-ebpf_result_t
+static ebpf_result_t
 _update_lpm_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -1981,8 +1983,7 @@ _find_circular_map_entry(
     return *data == NULL ? EBPF_OBJECT_NOT_FOUND : EBPF_SUCCESS;
 }
 
-EBPF_INLINE_HINT
-ebpf_result_t
+static ebpf_result_t
 _update_circular_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -2671,7 +2672,7 @@ ebpf_map_update_entry(
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].zero_length_key) {
+    if (ZERO_LENGTH_KEY(map->ebpf_map_definition.type)) {
         if (key_size != 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -2702,7 +2703,7 @@ ebpf_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry == NULL) {
+    if (!MAP_UPDATE_SUPPORTED(map->ebpf_map_definition.type)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2712,8 +2713,7 @@ ebpf_map_update_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if ((flags & EBPF_MAP_FLAG_HELPER) &&
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
+    if ((flags & EBPF_MAP_FLAG_HELPER) && PER_CPU_MAP(map->ebpf_map_definition.type)) {
         UPDATE_ENTRY_PER_CPU(map->ebpf_map_definition.type, map, key, value, option, result);
     } else {
         UPDATE_ENTRY(map->ebpf_map_definition.type, map, key, value, option, result);
