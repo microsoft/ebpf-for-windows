@@ -91,8 +91,8 @@ static _Success_(return == 0) int _program_load_helper(
         bpf_program__set_type(program, prog_type);
     }
 
-    int error;
-    for (;;) {
+    int error = -EBUSY;
+    for (size_t retries = 0; retries < 10; retries++) {
         error = bpf_object__load(new_object);
         if (error == -EBUSY) {
             // Wait for the previous driver to be unloaded.
