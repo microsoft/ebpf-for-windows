@@ -137,22 +137,22 @@ test_program_entry(void* context)
     // EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/test_sample_ebpf.c"
     r7 = r0;
-    // EBPF_OP_JEQ_IMM pc=16 dst=r8 src=r0 offset=17 imm=0
+    // EBPF_OP_LDXDW pc=16 dst=r1 src=r6 offset=0 imm=0
 #line 42 "sample/undocked/test_sample_ebpf.c"
-    if (r8 == IMMEDIATE(0)) {
+    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_LDXDW pc=17 dst=r2 src=r6 offset=8 imm=0
+#line 42 "sample/undocked/test_sample_ebpf.c"
+    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_JGE_REG pc=18 dst=r1 src=r2 offset=15 imm=0
+#line 42 "sample/undocked/test_sample_ebpf.c"
+    if (r1 >= r2) {
 #line 42 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
 #line 42 "sample/undocked/test_sample_ebpf.c"
     }
-    // EBPF_OP_LDXDW pc=17 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_JEQ_IMM pc=19 dst=r8 src=r0 offset=14 imm=0
 #line 42 "sample/undocked/test_sample_ebpf.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_LDXDW pc=18 dst=r2 src=r6 offset=8 imm=0
-#line 42 "sample/undocked/test_sample_ebpf.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JGE_REG pc=19 dst=r1 src=r2 offset=14 imm=0
-#line 42 "sample/undocked/test_sample_ebpf.c"
-    if (r1 >= r2) {
+    if (r8 == IMMEDIATE(0)) {
 #line 42 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
 #line 42 "sample/undocked/test_sample_ebpf.c"
