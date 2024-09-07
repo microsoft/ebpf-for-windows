@@ -106,7 +106,7 @@ test_program_entry(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=1
 #line 39 "sample/undocked/test_sample_ebpf.c"
-    r0 = test_program_entry_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_program_entry_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 39 "sample/undocked/test_sample_ebpf.c"
     if ((test_program_entry_helpers[0].tail_call) && (r0 == 0)) {
 #line 39 "sample/undocked/test_sample_ebpf.c"
@@ -127,7 +127,7 @@ test_program_entry(void* context)
     r1 = POINTER(_maps[0].address);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 40 "sample/undocked/test_sample_ebpf.c"
-    r0 = test_program_entry_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = test_program_entry_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 40 "sample/undocked/test_sample_ebpf.c"
     if ((test_program_entry_helpers[0].tail_call) && (r0 == 0)) {
 #line 40 "sample/undocked/test_sample_ebpf.c"
@@ -137,22 +137,22 @@ test_program_entry(void* context)
     // EBPF_OP_MOV64_REG pc=15 dst=r7 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/test_sample_ebpf.c"
     r7 = r0;
-    // EBPF_OP_JEQ_IMM pc=16 dst=r8 src=r0 offset=17 imm=0
+    // EBPF_OP_LDXDW pc=16 dst=r1 src=r6 offset=0 imm=0
 #line 42 "sample/undocked/test_sample_ebpf.c"
-    if (r8 == IMMEDIATE(0)) {
+    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_LDXDW pc=17 dst=r2 src=r6 offset=8 imm=0
+#line 42 "sample/undocked/test_sample_ebpf.c"
+    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_JGE_REG pc=18 dst=r1 src=r2 offset=15 imm=0
+#line 42 "sample/undocked/test_sample_ebpf.c"
+    if (r1 >= r2) {
 #line 42 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
 #line 42 "sample/undocked/test_sample_ebpf.c"
     }
-    // EBPF_OP_LDXDW pc=17 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_JEQ_IMM pc=19 dst=r8 src=r0 offset=14 imm=0
 #line 42 "sample/undocked/test_sample_ebpf.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_LDXDW pc=18 dst=r2 src=r6 offset=8 imm=0
-#line 42 "sample/undocked/test_sample_ebpf.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JGE_REG pc=19 dst=r1 src=r2 offset=14 imm=0
-#line 42 "sample/undocked/test_sample_ebpf.c"
-    if (r1 >= r2) {
+    if (r8 == IMMEDIATE(0)) {
 #line 42 "sample/undocked/test_sample_ebpf.c"
         goto label_1;
 #line 42 "sample/undocked/test_sample_ebpf.c"
@@ -168,7 +168,7 @@ test_program_entry(void* context)
     r4 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=23 dst=r0 src=r0 offset=0 imm=65537
 #line 46 "sample/undocked/test_sample_ebpf.c"
-    r0 = test_program_entry_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = test_program_entry_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 46 "sample/undocked/test_sample_ebpf.c"
     if ((test_program_entry_helpers[1].tail_call) && (r0 == 0)) {
 #line 46 "sample/undocked/test_sample_ebpf.c"
@@ -202,7 +202,7 @@ test_program_entry(void* context)
     r5 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=65538
 #line 49 "sample/undocked/test_sample_ebpf.c"
-    r0 = test_program_entry_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = test_program_entry_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 49 "sample/undocked/test_sample_ebpf.c"
     if ((test_program_entry_helpers[2].tail_call) && (r0 == 0)) {
 #line 49 "sample/undocked/test_sample_ebpf.c"
@@ -225,7 +225,7 @@ label_1:
     r1 = r6;
     // EBPF_OP_CALL pc=35 dst=r0 src=r0 offset=0 imm=65536
 #line 58 "sample/undocked/test_sample_ebpf.c"
-    r0 = test_program_entry_helpers[3].address(r1, r2, r3, r4, r5);
+    r0 = test_program_entry_helpers[3].address(r1, r2, r3, r4, r5, context);
 #line 58 "sample/undocked/test_sample_ebpf.c"
     if ((test_program_entry_helpers[3].tail_call) && (r0 == 0)) {
 #line 58 "sample/undocked/test_sample_ebpf.c"
@@ -284,7 +284,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 20;
     version->revision = 0;
 }
 

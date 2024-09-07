@@ -9,6 +9,12 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_bind.h"
 
+typedef struct _bind_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    bind_md_t context;
+} bind_context_header_t;
+
 //
 // WFP filter related globals for bind hook.
 //
@@ -62,6 +68,7 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
     .required_irql = PASSIVE_LEVEL,
+    .capabilities = {.supports_context_header = true},
 };
 
 // Set the program type as the provider module id.
@@ -86,28 +93,31 @@ static net_ebpf_extension_hook_provider_t* _ebpf_bind_hook_provider_context = NU
 //
 
 static ebpf_result_t
-_net_ebpf_extension_bind_on_client_attach(
+_net_ebpf_ext_bind_validate_client_data(_In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard)
+{
+    // Bind hook does not require any client data.
+    UNREFERENCED_PARAMETER(client_data);
+    *is_wildcard = FALSE;
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_net_ebpf_ext_bind_create_filter_context(
     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
-    _In_ const net_ebpf_extension_hook_provider_t* provider_context)
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context,
+    _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    // Bind hook allows only one client at a time.
-    if (net_ebpf_extension_hook_get_next_attached_client((net_ebpf_extension_hook_provider_t*)provider_context, NULL) !=
-        NULL) {
-        result = EBPF_ACCESS_DENIED;
-        goto Exit;
-    }
-
     result = net_ebpf_extension_wfp_filter_context_create(
-        sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, &filter_context);
+        sizeof(net_ebpf_extension_wfp_filter_context_t), attaching_client, provider_context, &local_filter_context);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    filter_context->filter_ids_count = NET_EBPF_BIND_FILTER_COUNT;
+    local_filter_context->filter_ids_count = NET_EBPF_BIND_FILTER_COUNT;
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
@@ -115,35 +125,37 @@ _net_ebpf_extension_bind_on_client_attach(
         _net_ebpf_extension_bind_wfp_filter_parameters,
         0,
         NULL,
-        filter_context,
-        &filter_context->filter_ids);
+        local_filter_context,
+        &local_filter_context->filter_ids);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
 
-    // Set the filter context as the client context's provider data.
-    net_ebpf_extension_hook_client_set_provider_data(
-        (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
+    *filter_context = (net_ebpf_extension_wfp_filter_context_t*)local_filter_context;
+    local_filter_context = NULL;
 
 Exit:
-    if (result != EBPF_SUCCESS) {
-        if (filter_context != NULL) {
-            ExFreePool(filter_context);
-        }
-    }
+    CLEAN_UP_FILTER_CONTEXT(local_filter_context);
+
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
 
 static void
-_net_ebpf_extension_bind_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
+_net_ebpf_ext_bind_delete_filter_context(
+    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    net_ebpf_extension_wfp_filter_context_t* filter_context =
-        (net_ebpf_extension_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(detaching_client);
-    ASSERT(filter_context != NULL);
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    if (filter_context == NULL) {
+        goto Exit;
+    }
 
     // Delete the WFP filters.
     net_ebpf_extension_delete_wfp_filters(filter_context->filter_ids_count, filter_context->filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+
+Exit:
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 //
@@ -161,6 +173,10 @@ net_ebpf_ext_bind_register_providers()
         &_ebpf_bind_program_info_provider_moduleid, &_ebpf_bind_program_data};
     const net_ebpf_extension_hook_provider_parameters_t hook_provider_parameters = {
         &_ebpf_bind_hook_provider_moduleid, &_net_ebpf_bind_hook_provider_data};
+    const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
+        .create_filter_context = _net_ebpf_ext_bind_create_filter_context,
+        .delete_filter_context = _net_ebpf_ext_bind_delete_filter_context,
+        .validate_client_data = _net_ebpf_ext_bind_validate_client_data};
 
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_bind_program_info_provider_context);
@@ -175,8 +191,8 @@ net_ebpf_ext_bind_register_providers()
 
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
-        _net_ebpf_extension_bind_on_client_attach,
-        _net_ebpf_extension_bind_on_client_detach,
+        &dispatch_table,
+        ATTACH_CAPABILITY_SINGLE_ATTACH,
         NULL,
         &_ebpf_bind_hook_provider_context);
     if (status != EBPF_SUCCESS) {
@@ -239,9 +255,10 @@ net_ebpf_ext_resource_allocation_classify(
 {
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
-    bind_md_t ctx;
+    ebpf_result_t program_result;
+    bind_context_header_t context_header = {0};
+    bind_md_t* ctx = &context_header.context;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
-    net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
@@ -255,23 +272,14 @@ net_ebpf_ext_resource_allocation_classify(
         goto Exit;
     }
 
-    if (filter_context->client_detached) {
+    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the clients have
+    // detached and the filter context is being deleted.
+    if (filter_context->context_deleting) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "net_ebpf_ext_resource_allocation_classify - Client detach detected.",
+            "net_ebpf_ext_resource_allocation_classify - Filter context deleting.",
             STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
-
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "net_ebpf_ext_resource_allocation_classify - Client detach detected.",
-            STATUS_INVALID_PARAMETER);
-        attached_client = NULL;
         goto Exit;
     }
 
@@ -280,20 +288,36 @@ net_ebpf_ext_resource_allocation_classify(
     addr.sin_addr.S_un.S_addr =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    ctx.process_id = incoming_metadata_values->processId;
-    memcpy(&ctx.socket_address, &addr, sizeof(addr));
-    ctx.socket_address_length = sizeof(addr);
-    ctx.operation = BIND_OPERATION_BIND;
-    ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8;
+    ctx->process_id = incoming_metadata_values->processId;
+    memcpy(&ctx->socket_address, &addr, sizeof(addr));
+    ctx->socket_address_length = sizeof(addr);
+    ctx->operation = BIND_OPERATION_BIND;
+    ctx->protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_IP_PROTOCOL].value.uint8;
 
-    ctx.app_id_start =
+    ctx->app_id_start =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->data;
-    ctx.app_id_end =
-        ctx.app_id_start +
+    ctx->app_id_end =
+        ctx->app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
-    _net_ebpf_ext_resource_truncate_appid(&ctx);
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result) == EBPF_SUCCESS) {
+    _net_ebpf_ext_resource_truncate_appid(ctx);
+
+    program_result = net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
+    if (program_result == EBPF_OBJECT_NOT_FOUND) {
+        // No program found.
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_allocation_classify - No programs found.");
+        goto Exit;
+    } else if (program_result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
+            "net_ebpf_ext_resource_allocation_classify - net_ebpf_extension_hook_invoke_programs failed.",
+            program_result);
+        goto Exit;
+    } else {
         switch (result) {
         case BIND_PERMIT:
         case BIND_REDIRECT:
@@ -312,9 +336,6 @@ net_ebpf_ext_resource_allocation_classify(
     }
 
 Exit:
-    if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    }
     return;
 }
 
@@ -330,9 +351,9 @@ net_ebpf_ext_resource_release_classify(
 {
     SOCKADDR_IN addr = {AF_INET};
     uint32_t result;
-    bind_md_t ctx;
+    bind_context_header_t context_header = {0};
+    bind_md_t* ctx = &context_header.context;
     net_ebpf_extension_wfp_filter_context_t* filter_context = NULL;
-    net_ebpf_extension_hook_client_t* attached_client = NULL;
 
     UNREFERENCED_PARAMETER(layer_data);
     UNREFERENCED_PARAMETER(classify_context);
@@ -346,7 +367,9 @@ net_ebpf_ext_resource_release_classify(
         goto Exit;
     }
 
-    if (filter_context->client_detached) {
+    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the clients have
+    // detached and the filter context is being deleted.
+    if (filter_context->context_deleting) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
@@ -355,44 +378,30 @@ net_ebpf_ext_resource_release_classify(
         goto Exit;
     }
 
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->client_context;
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "net_ebpf_ext_resource_release_classify - Rundown already started.",
-            STATUS_INVALID_PARAMETER);
-        attached_client = NULL;
-        goto Exit;
-    }
-
     addr.sin_port = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_PORT].value.uint16;
     addr.sin_addr.S_un.S_addr =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_LOCAL_ADDRESS].value.uint32;
 
-    ctx.process_id = incoming_metadata_values->processId;
-    memcpy(&ctx.socket_address, &addr, sizeof(addr));
-    ctx.socket_address_length = sizeof(addr);
-    ctx.operation = BIND_OPERATION_UNBIND;
-    ctx.protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8;
+    ctx->process_id = incoming_metadata_values->processId;
+    memcpy(&ctx->socket_address, &addr, sizeof(addr));
+    ctx->socket_address_length = sizeof(addr);
+    ctx->operation = BIND_OPERATION_UNBIND;
+    ctx->protocol = incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_IP_PROTOCOL].value.uint8;
 
-    ctx.app_id_start =
+    ctx->app_id_start =
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->data;
-    ctx.app_id_end =
-        ctx.app_id_start +
+    ctx->app_id_end =
+        ctx->app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
-    _net_ebpf_ext_resource_truncate_appid(&ctx);
+    _net_ebpf_ext_resource_truncate_appid(ctx);
 
     // Ignore the result of this call as we don't want to block the unbind.
-    (void)net_ebpf_extension_hook_invoke_program(attached_client, &ctx, &result);
+    (void)net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
 Exit:
-    if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    }
     return;
 }
 
@@ -406,6 +415,7 @@ _ebpf_bind_context_create(
 {
     NET_EBPF_EXT_LOG_ENTRY();
     ebpf_result_t result;
+    bind_context_header_t* context_header = NULL;
     bind_md_t* bind_context = NULL;
 
     *context = NULL;
@@ -417,10 +427,12 @@ _ebpf_bind_context_create(
         goto Exit;
     }
 
-    bind_context =
-        (bind_md_t*)ExAllocatePoolUninitialized(NonPagedPoolNx, sizeof(bind_md_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context, "bind_context", result);
+    context_header = (bind_context_header_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(bind_context_header_t), NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, context_header, "bind_context", result);
 
+    bind_context = &context_header->context;
     // Copy the context from the caller.
     memcpy(bind_context, context_in, sizeof(bind_md_t));
 
@@ -429,13 +441,13 @@ _ebpf_bind_context_create(
     bind_context->app_id_end = (uint8_t*)data_in + data_size_in;
 
     *context = bind_context;
-    bind_context = NULL;
+    context_header = NULL;
     result = EBPF_SUCCESS;
 
 Exit:
-    if (bind_context) {
-        ExFreePool(bind_context);
-        bind_context = NULL;
+    if (context_header) {
+        ExFreePool(context_header);
+        context_header = NULL;
     }
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -452,10 +464,13 @@ _ebpf_bind_context_destroy(
 
     bind_md_t* bind_context = (bind_md_t*)context;
     bind_md_t* bind_context_out = (bind_md_t*)context_out;
+    bind_context_header_t* header = NULL;
 
     if (!bind_context) {
         goto Exit;
     }
+
+    header = CONTAINING_RECORD(bind_context, bind_context_header_t, context);
 
     if (context_out != NULL && *context_size_out >= sizeof(bind_md_t)) {
         // Copy the context to the caller.
@@ -477,7 +492,7 @@ _ebpf_bind_context_destroy(
         *data_size_out = 0;
     }
 
-    ExFreePool(bind_context);
+    ExFreePool(header);
 
 Exit:
     NET_EBPF_EXT_LOG_EXIT();

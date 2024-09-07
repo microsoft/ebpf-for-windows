@@ -14,7 +14,6 @@
 #include "ebpf_program_types.h"
 #include "ebpf_structs.h"
 #include "sample_ext.h"
-#include "sample_ext_helpers.h"
 #include "sample_ext_ioctls.h"
 #include "sample_ext_program_info.h"
 
@@ -39,11 +38,29 @@ _sample_ebpf_extension_find(_In_ const void* buffer, uint32_t size, _In_ const v
 static int64_t
 _sample_ebpf_extension_replace(
     _In_ const void* buffer, uint32_t size, int64_t position, _In_ const void* replace, uint32_t arg_size);
+static int64_t
+_sample_ebpf_extension_helper_implicit_1(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const sample_program_context_t* context);
+static int64_t
+_sample_ebpf_extension_helper_implicit_2(
+    uint32_t arg,
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    _In_ const sample_program_context_t* context);
 
 static const void* _sample_ebpf_extension_helpers[] = {
     (void*)&_sample_ebpf_extension_helper_function1,
     (void*)&_sample_ebpf_extension_find,
-    (void*)&_sample_ebpf_extension_replace};
+    (void*)&_sample_ebpf_extension_replace,
+    (void*)&_sample_ebpf_extension_helper_implicit_1,
+    (void*)&_sample_ebpf_extension_helper_implicit_2};
 
 static const ebpf_helper_function_addresses_t _sample_ebpf_extension_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -77,7 +94,9 @@ static ebpf_program_data_t _sample_ebpf_extension_program_data = {
     .program_type_specific_helper_function_addresses = &_sample_ebpf_extension_helper_function_address_table,
     .global_helper_function_addresses = &_sample_global_helper_function_address_table,
     .context_create = &_sample_context_create,
-    .context_destroy = &_sample_context_destroy};
+    .context_destroy = &_sample_context_destroy,
+    DISPATCH_LEVEL,
+    true};
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_SAMPLE_GUID};
@@ -589,9 +608,10 @@ sample_ebpf_extension_profile_program(
     LARGE_INTEGER end;
     uint32_t result;
     KIRQL old_irql = PASSIVE_LEVEL;
-    sample_program_context_t program_context = {
-        request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
+    sample_program_context_header_t context_header = {
+        {0}, request->data, request->data + request_length - FIELD_OFFSET(sample_ebpf_ext_profile_request_t, data)};
 
+    sample_program_context_t* program_context = (sample_program_context_t*)&context_header.context;
     sample_ebpf_extension_hook_provider_t* hook_provider_context = &_sample_ebpf_extension_hook_provider_context;
 
     sample_ebpf_extension_hook_client_t* hook_client = hook_provider_context->attached_client;
@@ -603,14 +623,14 @@ sample_ebpf_extension_profile_program(
     ebpf_program_invoke_function_t invoke_program = hook_client->invoke_program;
     const void* client_binding_context = hook_client->client_binding_context;
 
-    program_context.uint32_data = KeGetCurrentProcessorNumber();
+    program_context->uint32_data = KeGetCurrentProcessorNumber();
 
     KeQueryPerformanceCounter(&start);
     if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
         KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     for (size_t i = 0; i < request->iterations; i++) {
-        invoke_program(client_binding_context, &program_context, &result);
+        invoke_program(client_binding_context, program_context, &result);
     }
     if (request->flags & SAMPLE_EBPF_EXT_FLAG_DISPATCH) {
         KeLowerIrql(old_irql);
@@ -679,6 +699,43 @@ Exit:
     return result;
 }
 
+static int64_t
+_sample_ebpf_extension_helper_implicit_1(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const sample_program_context_t* context)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+
+    sample_program_context_t* sample_context = (sample_program_context_t*)context;
+    return sample_context->helper_data_1;
+}
+
+static int64_t
+_sample_ebpf_extension_helper_implicit_2(
+    uint32_t arg,
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    _In_ const sample_program_context_t* context)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+
+    sample_program_context_t* sample_context = (sample_program_context_t*)context;
+    return ((uint64_t)sample_context->helper_data_2 + arg);
+}
+
 static ebpf_result_t
 _sample_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
@@ -688,6 +745,7 @@ _sample_context_create(
     _Outptr_ void** context)
 {
     ebpf_result_t result;
+    sample_program_context_header_t* context_header = NULL;
     sample_program_context_t* sample_context = NULL;
 
     *context = NULL;
@@ -704,22 +762,23 @@ _sample_context_create(
         goto Exit;
     }
 
-    sample_context =
-        cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
-    if (sample_context == NULL) {
+    context_header = cxplat_allocate(
+        CXPLAT_POOL_FLAG_NON_PAGED, sizeof(sample_program_context_header_t), SAMPLE_EXT_POOL_TAG_DEFAULT);
+    if (context_header == NULL) {
         result = EBPF_NO_MEMORY;
         goto Exit;
     }
+    sample_context = (sample_program_context_t*)&context_header->context;
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
 
     *context = sample_context;
-    sample_context = NULL;
+    context_header = NULL;
     result = EBPF_SUCCESS;
 
 Exit:
-    if (sample_context != NULL) {
-        CXPLAT_FREE(sample_context);
+    if (context_header != NULL) {
+        CXPLAT_FREE(context_header);
     }
 
     return result;
@@ -734,9 +793,11 @@ _sample_context_destroy(
     _Inout_ size_t* context_size_out)
 {
     UNREFERENCED_PARAMETER(data_out);
+    sample_program_context_header_t* context_header = NULL;
     if (context == NULL) {
         return;
     }
+    context_header = CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
     // This provider doesn't support data.
     *data_size_out = 0;
@@ -748,5 +809,5 @@ _sample_context_destroy(
         *context_size_out = 0;
     }
 
-    CXPLAT_FREE(context);
+    CXPLAT_FREE(context_header);
 }

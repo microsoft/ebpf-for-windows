@@ -311,7 +311,7 @@ authorize_connect4(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r2;
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
-    r0 = authorize_connect4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = authorize_connect4_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
     if ((authorize_connect4_helpers[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr.c"
@@ -344,7 +344,7 @@ authorize_connect4(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
-    r0 = authorize_connect4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = authorize_connect4_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
     if ((authorize_connect4_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr.c"
@@ -359,7 +359,7 @@ authorize_connect4(void* context)
     r2 = r6;
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
-    r0 = authorize_connect4_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = authorize_connect4_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/cgroup_sock_addr.c"
     if ((authorize_connect4_helpers[2].tail_call) && (r0 == 0)) {
 #line 60 "sample/cgroup_sock_addr.c"
@@ -499,7 +499,7 @@ authorize_connect6(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r2;
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
-    r0 = authorize_connect6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = authorize_connect6_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
     if ((authorize_connect6_helpers[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr.c"
@@ -532,7 +532,7 @@ authorize_connect6(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
-    r0 = authorize_connect6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = authorize_connect6_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
     if ((authorize_connect6_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr.c"
@@ -547,7 +547,7 @@ authorize_connect6(void* context)
     r2 = r6;
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
-    r0 = authorize_connect6_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = authorize_connect6_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/cgroup_sock_addr.c"
     if ((authorize_connect6_helpers[2].tail_call) && (r0 == 0)) {
 #line 76 "sample/cgroup_sock_addr.c"
@@ -669,7 +669,7 @@ authorize_recv_accept4(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r2;
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
-    r0 = authorize_recv_accept4_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = authorize_recv_accept4_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
     if ((authorize_recv_accept4_helpers[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr.c"
@@ -702,7 +702,7 @@ authorize_recv_accept4(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
-    r0 = authorize_recv_accept4_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = authorize_recv_accept4_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
     if ((authorize_recv_accept4_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr.c"
@@ -717,7 +717,7 @@ authorize_recv_accept4(void* context)
     r2 = r6;
     // EBPF_OP_CALL pc=28 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
-    r0 = authorize_recv_accept4_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = authorize_recv_accept4_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 60 "sample/cgroup_sock_addr.c"
     if ((authorize_recv_accept4_helpers[2].tail_call) && (r0 == 0)) {
 #line 60 "sample/cgroup_sock_addr.c"
@@ -857,7 +857,7 @@ authorize_recv_accept6(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint32_t)r2;
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=26
 #line 44 "sample/cgroup_sock_addr.c"
-    r0 = authorize_recv_accept6_helpers[0].address(r1, r2, r3, r4, r5);
+    r0 = authorize_recv_accept6_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/cgroup_sock_addr.c"
     if ((authorize_recv_accept6_helpers[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/cgroup_sock_addr.c"
@@ -890,7 +890,7 @@ authorize_recv_accept6(void* context)
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=2
 #line 45 "sample/cgroup_sock_addr.c"
-    r0 = authorize_recv_accept6_helpers[1].address(r1, r2, r3, r4, r5);
+    r0 = authorize_recv_accept6_helpers[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/cgroup_sock_addr.c"
     if ((authorize_recv_accept6_helpers[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/cgroup_sock_addr.c"
@@ -905,7 +905,7 @@ authorize_recv_accept6(void* context)
     r2 = r6;
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
-    r0 = authorize_recv_accept6_helpers[2].address(r1, r2, r3, r4, r5);
+    r0 = authorize_recv_accept6_helpers[2].address(r1, r2, r3, r4, r5, context);
 #line 76 "sample/cgroup_sock_addr.c"
     if ((authorize_recv_accept6_helpers[2].tail_call) && (r0 == 0)) {
 #line 76 "sample/cgroup_sock_addr.c"
@@ -1009,7 +1009,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 17;
+    version->minor = 20;
     version->revision = 0;
 }
 

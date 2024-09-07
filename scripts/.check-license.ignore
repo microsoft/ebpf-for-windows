@@ -19,7 +19,6 @@ tools/netsh/resource.h
 
 # Other Files
 LICENSE.txt
-LICENSE.rtf
 Doxyfile
 \.check-license\.ignore
 \.clang-format
@@ -29,3 +28,4 @@ Doxyfile
 \.gitignore
 \.gitmodules
 packages.config
+installer/LICENSE.rtf

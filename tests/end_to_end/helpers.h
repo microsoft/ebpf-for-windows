@@ -8,6 +8,7 @@
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
 #include "net_ebpf_ext_program_info.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 #include "sample_ext_program_info.h"
 #include "usersim/ke.h"
 
@@ -19,6 +20,26 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
 #include <ndis/nbl.h>
 #endif
 #include <vector>
+
+typedef struct _sample_program_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    sample_program_context_t context;
+} sample_program_context_header_t;
+
+typedef struct _bind_context_header
+{
+    uint64_t context_header[8];
+    bind_md_t context;
+} bind_context_header_t;
+
+#define INITIALIZE_BIND_CONTEXT      \
+    bind_context_header_t header{0}; \
+    bind_md_t* ctx = &header.context;
+
+#define INITIALIZE_SAMPLE_CONTEXT              \
+    sample_program_context_header_t header{0}; \
+    sample_program_context_t* ctx = &header.context;
 
 bpf_attach_type_t
 get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
@@ -534,6 +555,41 @@ typedef class _test_sample_helper
     Exit:
         return result;
     }
+
+    static int64_t
+    _sample_ebpf_extension_helper_implicit_1(
+        uint64_t dummy_param1,
+        uint64_t dummy_param2,
+        uint64_t dummy_param3,
+        uint64_t dummy_param4,
+        uint64_t dummy_param5,
+        _In_ const sample_program_context_t* context)
+    {
+        UNREFERENCED_PARAMETER(dummy_param1);
+        UNREFERENCED_PARAMETER(dummy_param2);
+        UNREFERENCED_PARAMETER(dummy_param3);
+        UNREFERENCED_PARAMETER(dummy_param4);
+        UNREFERENCED_PARAMETER(dummy_param5);
+        sample_program_context_t* sample_context = (sample_program_context_t*)context;
+        return sample_context->helper_data_1;
+    }
+
+    static int64_t
+    _sample_ebpf_extension_helper_implicit_2(
+        uint32_t arg,
+        uint64_t dummy_param1,
+        uint64_t dummy_param2,
+        uint64_t dummy_param3,
+        uint64_t dummy_param4,
+        _In_ const sample_program_context_t* context)
+    {
+        UNREFERENCED_PARAMETER(dummy_param1);
+        UNREFERENCED_PARAMETER(dummy_param2);
+        UNREFERENCED_PARAMETER(dummy_param3);
+        UNREFERENCED_PARAMETER(dummy_param4);
+        sample_program_context_t* sample_context = (sample_program_context_t*)context;
+        return ((uint64_t)sample_context->helper_data_2 + arg);
+    }
 } test_sample_helper_t;
 
 // These are test sample context creation functions.
@@ -546,6 +602,7 @@ _sample_test_context_create(
     _Outptr_ void** context)
 {
     ebpf_result_t retval = EBPF_FAILED;
+    sample_program_context_header_t* context_header = nullptr;
     sample_program_context_t* sample_context = nullptr;
     *context = nullptr;
 
@@ -561,20 +618,22 @@ _sample_test_context_create(
         goto Done;
     }
 
-    sample_context = reinterpret_cast<sample_program_context_t*>(malloc(sizeof(sample_program_context_t)));
-    if (!sample_context) {
+    context_header =
+        reinterpret_cast<sample_program_context_header_t*>(malloc(sizeof(sample_program_context_header_t)));
+    if (!context_header) {
         goto Done;
     }
+    sample_context = &context_header->context;
 
     memcpy(sample_context, context_in, sizeof(sample_program_context_t));
 
     *context = sample_context;
-    sample_context = nullptr;
+    context_header = nullptr;
     retval = EBPF_SUCCESS;
 
 Done:
-    free(sample_context);
-    sample_context = nullptr;
+    free(context_header);
+    context_header = nullptr;
     return retval;
 }
 
@@ -590,6 +649,8 @@ _sample_test_context_destroy(
     if (!context) {
         return;
     }
+    sample_program_context_header_t* context_header =
+        CONTAINING_RECORD(context, sample_program_context_header_t, context);
 
     // Data is not supported.
     *data_size_out = 0;
@@ -601,7 +662,7 @@ _sample_test_context_destroy(
         *context_size_out = 0;
     }
 
-    free(context);
+    free(context_header);
 }
 
 #define TEST_NET_EBPF_EXTENSION_NPI_PROVIDER_VERSION 0
@@ -647,7 +708,8 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     _xdp_context_destroy};
 
 // Bind.
-static ebpf_program_data_t _ebpf_bind_program_data = {EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL};
+static ebpf_program_data_t _ebpf_bind_program_data = {
+    EBPF_PROGRAM_DATA_HEADER, &_ebpf_bind_program_info, NULL, NULL, NULL, NULL, 0, {.supports_context_header = true}};
 
 // SOCK_ADDR.
 static int
@@ -664,6 +726,24 @@ _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void*
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(data_size);
     return -ENOTSUP;
+}
+
+static uint64_t
+_ebpf_sock_addr_get_current_pid_tgid_implicit(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
 }
 
 static int
@@ -761,6 +841,7 @@ static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function
     (uint64_t*)_ebpf_sock_addr_specific_helper_functions};
 
 static const void* _ebpf_sock_addr_global_helper_functions[] = {
+    (void*)_ebpf_sock_addr_get_current_pid_tgid_implicit,
     (void*)_ebpf_sock_addr_get_current_logon_id,
     (void*)_ebpf_sock_addr_is_current_admin,
     (void*)_ebpf_sock_addr_get_socket_cookie};
@@ -781,6 +862,31 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
 };
 
 // SOCK_OPS.
+static uint64_t
+_ebpf_sock_ops_get_current_pid_tgid(
+    uint64_t dummy_param1,
+    uint64_t dummy_param2,
+    uint64_t dummy_param3,
+    uint64_t dummy_param4,
+    uint64_t dummy_param5,
+    _In_ const bpf_sock_addr_t* ctx)
+{
+    UNREFERENCED_PARAMETER(dummy_param1);
+    UNREFERENCED_PARAMETER(dummy_param2);
+    UNREFERENCED_PARAMETER(dummy_param3);
+    UNREFERENCED_PARAMETER(dummy_param4);
+    UNREFERENCED_PARAMETER(dummy_param5);
+    UNREFERENCED_PARAMETER(ctx);
+    return 0;
+}
+
+static const void* _ebpf_sock_ops_global_helper_functions[] = {(void*)_ebpf_sock_ops_get_current_pid_tgid};
+
+static ebpf_helper_function_addresses_t _ebpf_sock_ops_global_helper_function_address_table = {
+    EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
+    EBPF_COUNT_OF(_ebpf_sock_ops_global_helper_functions),
+    (uint64_t*)_ebpf_sock_ops_global_helper_functions};
+
 static ebpf_result_t
 _ebpf_sock_ops_context_create(
     _In_reads_bytes_opt_(data_size_in) const uint8_t* data_in,
@@ -847,6 +953,7 @@ _ebpf_sock_ops_context_destroy(
 static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .header = EBPF_PROGRAM_DATA_HEADER,
     .program_info = &_ebpf_sock_ops_program_info,
+    .global_helper_function_addresses = &_ebpf_sock_ops_global_helper_function_address_table,
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
@@ -856,7 +963,9 @@ static ebpf_program_data_t _ebpf_sock_ops_program_data = {
 static const void* _sample_ebpf_ext_helper_functions[] = {
     test_sample_helper_t::_sample_ebpf_extension_helper_function1,
     test_sample_helper_t::_sample_ebpf_extension_find,
-    test_sample_helper_t::_sample_ebpf_extension_replace};
+    test_sample_helper_t::_sample_ebpf_extension_replace,
+    test_sample_helper_t::_sample_ebpf_extension_helper_implicit_1,
+    test_sample_helper_t::_sample_ebpf_extension_helper_implicit_2};
 
 static ebpf_helper_function_addresses_t _sample_ebpf_ext_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -876,7 +985,9 @@ static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
     &_sample_ebpf_ext_helper_function_address_table,
     &_test_global_helper_function_address_table,
     _sample_test_context_create,
-    _sample_test_context_destroy};
+    _sample_test_context_destroy,
+    0,
+    {.supports_context_header = true}};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 

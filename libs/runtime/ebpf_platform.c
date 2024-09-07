@@ -11,6 +11,8 @@ static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
 static bool _ebpf_platform_is_cxplat_initialized = false;
 
+bool ebpf_processor_supports_sse42 = true;
+
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
 
 void
@@ -37,7 +39,9 @@ ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 }
 
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
-    _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
+    _IRQL_raises_(DISPATCH_LEVEL)
+ebpf_lock_state_t
+ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
     return KeAcquireSpinLockRaiseToDpc(lock);
 }
@@ -511,12 +515,21 @@ ebpf_allocate_preemptible_work_item(
     return ebpf_result_from_cxplat_status(status);
 }
 
+#define CPU_INFO_PROCESSOR_INFO_FUNCTION 1
+#define CPU_INFO_SSE42_BYTE_OFFSET 2
+#define CPU_INFO_SSE32_BIT_OFFSET 20
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_platform_initiate()
 {
     ebpf_result_t result = ebpf_result_from_cxplat_status(cxplat_initialize());
     _ebpf_platform_is_cxplat_initialized = (result == EBPF_SUCCESS);
     ebpf_initialize_cpu_count();
+    // Check if processor supports SSE4.2
+    int cpu_info[4] = {0};
+    __cpuid(cpu_info, CPU_INFO_PROCESSOR_INFO_FUNCTION);
+    ebpf_processor_supports_sse42 = (cpu_info[CPU_INFO_SSE42_BYTE_OFFSET] & (1 << CPU_INFO_SSE32_BIT_OFFSET)) != 0;
+
     return result;
 }
 

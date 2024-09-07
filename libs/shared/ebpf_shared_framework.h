@@ -26,6 +26,10 @@ CXPLAT_EXTERN_C_BEGIN
 #define EBPF_SYMBOLIC_DEVICE_NAME L"\\GLOBAL??\\EbpfIoDevice"
 #define EBPF_DEVICE_WIN32_NAME L"\\\\.\\EbpfIoDevice"
 
+#define ebpf_assert_assume(x) \
+    ebpf_assert(x);           \
+    __analysis_assume(x);
+
 // Macro locally suppresses "Unreferenced variable" warning, which in 'Release' builds is treated as an error.
 #define ebpf_assert_success(x)                                     \
     _Pragma("warning(push)") _Pragma("warning(disable : 4189)") do \

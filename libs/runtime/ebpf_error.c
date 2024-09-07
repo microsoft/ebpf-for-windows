@@ -11,8 +11,8 @@
 
 // Mapping from each eBPF result to NTSTATUS
 // (and also show the Win32 error code that the NTSTATUS maps to).
-// This should be consistent with windows_error_to_ebpf_result()
-// in api_common.hpp
+// This should be consistent with win32_error_code_to_ebpf_result()
+// in include\ebpf_utilities.h.
 static const NTSTATUS _ebpf_result_mapping[] = {
     /* EBPF_SUCCESS */ STATUS_SUCCESS /* ERROR_SUCCESS */,
     /* EBPF_VERIFICATION_FAILED */ STATUS_VERIFIER_STOP /* ERROR_VERIFIER_STOP */,
