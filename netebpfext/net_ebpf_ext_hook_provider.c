@@ -289,8 +289,7 @@ Exit:
     return program_result;
 }
 
-static void
-_net_ebpf_extension_invoke_programs_callout(_Inout_ void* context)
+_Function_class_(EXPAND_STACK_CALLOUT) static void _net_ebpf_extension_invoke_programs_callout(_Inout_ void* context)
 {
     net_ebpf_extension_program_invoke_parameters_t* params = (net_ebpf_extension_program_invoke_parameters_t*)context;
 
