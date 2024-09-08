@@ -311,6 +311,8 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
     invoke_parameters.filter_context = filter_context;
     invoke_parameters.program_context = (void*)program_context;
 
+#pragma warning(push)
+#pragma warning(disable : 28160) //  Error annotation: DISPATCH_LEVEL is only supported on Windows 7 or later.
     // Expand the stack and call the program.
     status = KeExpandKernelStackAndCalloutEx(
         (PEXPAND_STACK_CALLOUT)_net_ebpf_extension_invoke_programs_callout,
@@ -323,6 +325,7 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
             NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "KeExpandKernelStackAndCalloutEx", status);
         return EBPF_FAILED;
     }
+#pragma warning(pop)
 
     *result = invoke_parameters.verdict;
 
