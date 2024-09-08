@@ -43,13 +43,13 @@ typedef struct _net_ebpf_extension_hook_provider
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
 
-typedef struct _net_ebpf_extension_program_invoke_parameters
+typedef struct _net_ebpf_extension_invoke_programs_parameters
 {
     net_ebpf_extension_wfp_filter_context_t* filter_context;
     void* program_context;
     uint32_t verdict;
     ebpf_result_t result;
-} net_ebpf_extension_program_invoke_parameters_t;
+} net_ebpf_extension_invoke_programs_parameters_t;
 
 /**
  * @brief Initialize the hook client rundown state.
@@ -291,20 +291,23 @@ Exit:
 
 _Function_class_(EXPAND_STACK_CALLOUT) static void _net_ebpf_extension_invoke_programs_callout(_Inout_ void* context)
 {
-    net_ebpf_extension_program_invoke_parameters_t* params = (net_ebpf_extension_program_invoke_parameters_t*)context;
+    net_ebpf_extension_invoke_programs_parameters_t* parameters =
+        (net_ebpf_extension_invoke_programs_parameters_t*)context;
 
-    ebpf_result_t result =
-        net_ebpf_extension_hook_invoke_programs(params->program_context, params->filter_context, &params->verdict);
+    ebpf_result_t result = net_ebpf_extension_hook_invoke_programs(
+        parameters->program_context, parameters->filter_context, &parameters->verdict);
 
-    params->result = result;
+    parameters->result = result;
 }
 
 ebpf_result_t
 net_ebpf_extension_hook_expand_stack_and_invoke_programs(
-    _Inout_ void* program_context, _In_ net_ebpf_extension_wfp_filter_context_t* filter_context, _Out_ uint32_t* result)
+    _Inout_ void* program_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Out_ uint32_t* result)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    net_ebpf_extension_program_invoke_parameters_t invoke_parameters = {0};
+    net_ebpf_extension_invoke_programs_parameters_t invoke_parameters = {0};
     invoke_parameters.filter_context = filter_context;
     invoke_parameters.program_context = (void*)program_context;
 

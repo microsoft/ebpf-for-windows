@@ -187,8 +187,8 @@ net_ebpf_extension_hook_invoke_programs(
 /**
  * @brief Expand stack and invoke all the eBPF programs attached to the specified filter context.
  *
- * @param[in] program_context Context to pass to eBPF program.
- * @param[in] filter_context Filter context to invoke the programs from.
+ * @param[in,out] program_context Context to pass to eBPF program.
+ * @param[in,out] filter_context Filter context to invoke the programs from.
  * @param[out] result Return value from the eBPF programs.
  *
  * @retval ebpf_result_t Status of the program invocation.
@@ -196,7 +196,7 @@ net_ebpf_extension_hook_invoke_programs(
 ebpf_result_t
 net_ebpf_extension_hook_expand_stack_and_invoke_programs(
     _Inout_ void* program_context,
-    _In_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _Out_ uint32_t* result);
 
 /**
