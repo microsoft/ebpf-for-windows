@@ -15,13 +15,13 @@ $OneBranchConfig = $env:ONEBRANCH_CONFIG
 # Copy the signed binaries to the output directory
 if ($OneBranchConfig -eq "NativeOnlyDebug" -and $OneBranchArch -eq "x64")
 {
-    xcopy /y build\bin\amd64chk .\x64\Debug
-    Get-ChildItem -Path .\build\bin\amd64chk -Recurse | Remove-Item -Force -Recurse
+    xcopy /y build\bin\x64_NativeOnlyDebug .\x64\NativeOnlyDebug
+    Get-ChildItem -Path .\build\bin\x64_NativeOnlyDebug -Recurse | Remove-Item -Force -Recurse
 }
 elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "x64")
 {
-    xcopy /y build\bin\amd64fre .\x64\NativeOnlyRelease
-    Get-ChildItem -Path .\build\bin\amd64fre -Recurse | Remove-Item -Force -Recurse
+    xcopy /y build\bin\x64_NativeOnlyRelease .\x64\NativeOnlyRelease
+    Get-ChildItem -Path .\build\bin\x64_NativeOnlyRelease -Recurse | Remove-Item -Force -Recurse
 }
 else
 {
@@ -37,18 +37,17 @@ msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platfo
 msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false .\installer\ebpf-for-windows.wixproj
 
 # Copy the nupkg and msi to the output directory
-if ($OneBranchConfig -eq "Release" -and $OneBranchArch -eq "x64")
+if ($OneBranchConfig -eq "NativeOnlyDebug" -and $OneBranchArch -eq "x64")
 {
-    xcopy /y .\x64\Release\*.nupkg .\build\bin\amd64fre
-    xcopy /y .\x64\Release\*.msi .\build\bin\amd64fre
+    xcopy /y .\x64\NativeOnlyDebug\*.nupkg .\build\bin\x64_NativeOnlyDebug
+    xcopy /y .\x64\NativeOnlyDebug\*.msi .\build\bin\x64_NativeOnlyDebug
 }
 elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "x64")
 {
-    xcopy /y .\x64\NativeOnlyRelease\*.nupkg .\build\bin\amd64fre
-    xcopy /y .\x64\NativeOnlyRelease\*.msi .\build\bin\amd64fre
+    xcopy /y .\x64\NativeOnlyRelease\*.nupkg .\build\bin\x64_NativeOnlyRelease
+    xcopy /y .\x64\NativeOnlyRelease\*.msi .\build\bin\x64_NativeOnlyRelease
 }
 else
 {
-    xcopy /y .\x64\Debug\*.nupkg .\build\bin\amd64chk
-    xcopy /y .\x64\Debug\*.msi .\build\bin\amd64chk
+    throw ("Configuration $OneBranchConfig|$OneBranchArch is not supported.")
 }
