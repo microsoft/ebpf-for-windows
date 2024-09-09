@@ -191,7 +191,7 @@ net_ebpf_extension_hook_invoke_programs(
  * @param[in,out] filter_context Filter context to invoke the programs from.
  * @param[out] result Return value from the eBPF programs.
  *
- * @retval ebpf_result_t Status of the program invocation.
+ * @return Status of the program invocation.
  */
 ebpf_result_t
 net_ebpf_extension_hook_expand_stack_and_invoke_programs(
