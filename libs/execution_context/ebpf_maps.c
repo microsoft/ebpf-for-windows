@@ -2451,12 +2451,6 @@ ebpf_map_find_entry(
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
 
-    if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.key_size != 0) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map lookup", &map->name);
-        EBPF_LOG_MESSAGE_BINARY(
-            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
-    }
-
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -2494,6 +2488,13 @@ ebpf_map_find_entry(
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Find not supported on BPF_MAP_TYPE_PROG_ARRAY");
             return EBPF_INVALID_ARGUMENT;
+        }
+
+        if (map->ebpf_map_definition.key_size != 0) {
+            EBPF_LOG_MESSAGE_UTF8_STRING(
+                EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map lookup", &map->name);
+            EBPF_LOG_MESSAGE_BINARY(
+                EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
         }
 
         ebpf_core_object_t* object = ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
@@ -2665,12 +2666,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size) const uint8_t* key, int flags)
 {
     // High volume call - Skip entry/exit logging.
-    if (flags & EBPF_MAP_FLAG_HELPER && map->ebpf_map_definition.key_size != 0) {
-        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map delete", &map->name);
-        EBPF_LOG_MESSAGE_BINARY(
-            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
-    }
-
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -2688,6 +2683,12 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
             "ebpf_map_delete_entry not supported on map",
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+
+    if (flags & EBPF_MAP_FLAG_HELPER && map->ebpf_map_definition.key_size != 0) {
+        EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map delete", &map->name);
+        EBPF_LOG_MESSAGE_BINARY(
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
     }
 
     ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
