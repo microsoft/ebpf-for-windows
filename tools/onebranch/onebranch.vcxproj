@@ -71,22 +71,22 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64chk</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_NativeOnlyDebug</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64fre</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_NativeOnlyRelease</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64chk</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_Debug</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64fre</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_Release</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
