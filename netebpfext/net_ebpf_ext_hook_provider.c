@@ -322,7 +322,7 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
         NULL);
     if (status != STATUS_SUCCESS) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR, "KeExpandKernelStackAndCalloutEx", status);
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "KeExpandKernelStackAndCalloutEx", status);
         return EBPF_FAILED;
     }
 #pragma warning(pop)
