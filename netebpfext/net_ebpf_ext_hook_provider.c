@@ -4,6 +4,8 @@
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
+#define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 10
+
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
@@ -40,6 +42,14 @@ typedef struct _net_ebpf_extension_hook_provider
     _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
+
+typedef struct _net_ebpf_extension_invoke_programs_parameters
+{
+    net_ebpf_extension_wfp_filter_context_t* filter_context;
+    void* program_context;
+    uint32_t verdict;
+    ebpf_result_t result;
+} net_ebpf_extension_invoke_programs_parameters_t;
 
 /**
  * @brief Initialize the hook client rundown state.
@@ -277,6 +287,49 @@ Exit:
 
     _net_ebpf_extension_release_rundown_for_clients(clients, client_count);
     return program_result;
+}
+
+_Function_class_(EXPAND_STACK_CALLOUT) static void _net_ebpf_extension_invoke_programs_callout(_Inout_ void* context)
+{
+    net_ebpf_extension_invoke_programs_parameters_t* parameters =
+        (net_ebpf_extension_invoke_programs_parameters_t*)context;
+
+    ebpf_result_t result = net_ebpf_extension_hook_invoke_programs(
+        parameters->program_context, parameters->filter_context, &parameters->verdict);
+
+    parameters->result = result;
+}
+
+ebpf_result_t
+net_ebpf_extension_hook_expand_stack_and_invoke_programs(
+    _Inout_ void* program_context,
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
+    _Out_ uint32_t* result)
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    net_ebpf_extension_invoke_programs_parameters_t invoke_parameters = {0};
+    invoke_parameters.filter_context = filter_context;
+    invoke_parameters.program_context = (void*)program_context;
+
+#pragma warning(push)
+#pragma warning(disable : 28160) //  Error annotation: DISPATCH_LEVEL is only supported on Windows 7 or later.
+    // Expand the stack and call the program.
+    status = KeExpandKernelStackAndCalloutEx(
+        (PEXPAND_STACK_CALLOUT)_net_ebpf_extension_invoke_programs_callout,
+        &invoke_parameters,
+        NET_EBPF_EXT_STACK_EXPANSION_SIZE,
+        FALSE,
+        NULL);
+    if (status != STATUS_SUCCESS) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "KeExpandKernelStackAndCalloutEx", status);
+        return EBPF_FAILED;
+    }
+#pragma warning(pop)
+
+    *result = invoke_parameters.verdict;
+
+    return invoke_parameters.result;
 }
 
 _Requires_lock_held_(provider_context->lock)

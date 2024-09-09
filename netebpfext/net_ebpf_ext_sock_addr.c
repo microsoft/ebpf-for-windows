@@ -1981,7 +1981,7 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         sock_addr_ctx->user_ip4 = local_v4_ip;
     }
 
-    result = net_ebpf_extension_hook_invoke_programs(sock_addr_ctx, &filter_context->base, &verdict);
+    result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &verdict);
     if (result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
