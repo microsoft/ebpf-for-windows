@@ -2685,7 +2685,7 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if (flags & EBPF_MAP_FLAG_HELPER && map->ebpf_map_definition.key_size != 0) {
+    if ((flags & EBPF_MAP_FLAG_HELPER) && map->ebpf_map_definition.key_size != 0) {
         EBPF_LOG_MESSAGE_UTF8_STRING(EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map delete", &map->name);
         EBPF_LOG_MESSAGE_BINARY(
             EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Key", key, map->ebpf_map_definition.key_size);
