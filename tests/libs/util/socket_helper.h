@@ -166,6 +166,12 @@ typedef class _stream_client_socket : public _client_socket
 typedef class _server_socket : public _base_socket
 {
   public:
+    enum receiver_mode
+    {
+        MODE_TIMEOUT,
+        MODE_NO_TIMEOUT,
+        MODE_DONT_CARE
+    };
     _server_socket(int _sock_type, int _protocol, uint16_t port);
     ~_server_socket();
     void
@@ -174,6 +180,8 @@ typedef class _server_socket : public _base_socket
     complete_async_send(int timeout_in_ms) = 0;
     void
     complete_async_receive(int timeout_in_ms, bool timeout_expected = false);
+    void
+    complete_async_receive(int timeout_in_ms, receiver_mode mode);
 
     virtual void
     post_async_receive() = 0;

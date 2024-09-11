@@ -119,9 +119,10 @@ static net_ebpf_extension_hook_provider_t* _ebpf_xdp_test_hook_provider_context 
 //
 
 static ebpf_result_t
-net_ebpf_extension_xdp_on_client_attach(
+_net_ebpf_extension_xdp_create_filter_context(
     _In_ const net_ebpf_extension_hook_client_t* attaching_client,
-    _In_ const net_ebpf_extension_hook_provider_t* provider_context)
+    _In_ const net_ebpf_extension_hook_provider_t* provider_context,
+    _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
@@ -129,9 +130,74 @@ net_ebpf_extension_xdp_on_client_attach(
     uint32_t wild_card_if_index = 0;
     uint32_t filter_count;
     FWPM_FILTER_CONDITION condition = {0};
-    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
+    net_ebpf_extension_xdp_wfp_filter_context_t* xdp_filter_context = NULL;
 
-    NET_EBPF_EXT_LOG_ENTRY();
+    if (client_data->header.size > 0) {
+        // Note: No need to validate the client data here, as it has already been validated by the caller.
+        if_index = *(uint32_t*)client_data->data;
+    } else {
+        // If the client did not specify any attach parameters, we treat that as a wildcard interface index.
+        if_index = wild_card_if_index;
+    }
+
+    // Set interface index (if non-zero) as WFP filter condition.
+    if (if_index != 0) {
+        condition.fieldKey = FWPM_CONDITION_INTERFACE_INDEX;
+        condition.matchType = FWP_MATCH_EQUAL;
+        condition.conditionValue.type = FWP_UINT32;
+        condition.conditionValue.uint32 = if_index;
+    }
+
+    result = net_ebpf_extension_wfp_filter_context_create(
+        sizeof(net_ebpf_extension_xdp_wfp_filter_context_t),
+        attaching_client,
+        provider_context,
+        (net_ebpf_extension_wfp_filter_context_t**)&xdp_filter_context);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_wfp_filter_context_create failed.",
+            result);
+        goto Exit;
+    }
+    xdp_filter_context->if_index = if_index;
+    xdp_filter_context->base.filter_ids_count = NET_EBPF_XDP_FILTER_COUNT;
+
+    // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
+    filter_count = NET_EBPF_XDP_FILTER_COUNT;
+    result = net_ebpf_extension_add_wfp_filters(
+        filter_count,
+        _net_ebpf_extension_xdp_wfp_filter_parameters,
+        (if_index == 0) ? 0 : 1,
+        (if_index == 0) ? NULL : &condition,
+        (net_ebpf_extension_wfp_filter_context_t*)xdp_filter_context,
+        &xdp_filter_context->base.filter_ids);
+    if (result != EBPF_SUCCESS) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "net_ebpf_extension_add_wfp_filters failed.",
+            result);
+        goto Exit;
+    }
+
+    *filter_context = (net_ebpf_extension_wfp_filter_context_t*)xdp_filter_context;
+    xdp_filter_context = NULL;
+
+Exit:
+    if (xdp_filter_context != NULL) {
+        CLEAN_UP_FILTER_CONTEXT(&xdp_filter_context->base);
+    }
+
+    NET_EBPF_EXT_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_net_ebpf_extension_xdp_validate_client_data(_In_ const ebpf_extension_data_t* client_data, _Out_ bool* is_wildcard)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    *is_wildcard = FALSE;
 
     // XDP hook clients must always provide data.
     if (client_data == NULL) {
@@ -152,95 +218,34 @@ net_ebpf_extension_xdp_on_client_attach(
                 "Attach attempt rejected. Invalid client data.");
             goto Exit;
         }
-        if_index = *(uint32_t*)client_data->data;
     } else {
         // If the client did not specify any attach parameters, we treat that as a wildcard interface index.
-        if_index = wild_card_if_index;
+        *is_wildcard = TRUE;
     }
-
-    result = net_ebpf_extension_hook_check_attach_parameter(
-        sizeof(if_index), &if_index, &wild_card_if_index, (net_ebpf_extension_hook_provider_t*)provider_context);
-    if (result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
-            "net_ebpf_extension_hook_check_attach_parameter failed.",
-            result);
-        goto Exit;
-    }
-
-    if (client_data->data != NULL) {
-        if_index = *(uint32_t*)client_data->data;
-    }
-
-    // Set interface index (if non-zero) as WFP filter condition.
-    if (if_index != 0) {
-        condition.fieldKey = FWPM_CONDITION_INTERFACE_INDEX;
-        condition.matchType = FWP_MATCH_EQUAL;
-        condition.conditionValue.type = FWP_UINT32;
-        condition.conditionValue.uint32 = if_index;
-    }
-
-    result = net_ebpf_extension_wfp_filter_context_create(
-        sizeof(net_ebpf_extension_xdp_wfp_filter_context_t),
-        attaching_client,
-        (net_ebpf_extension_wfp_filter_context_t**)&filter_context);
-    if (result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
-            "net_ebpf_extension_wfp_filter_context_create failed.",
-            result);
-        goto Exit;
-    }
-    filter_context->if_index = if_index;
-    filter_context->base.filter_ids_count = NET_EBPF_XDP_FILTER_COUNT;
-
-    // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
-    filter_count = NET_EBPF_XDP_FILTER_COUNT;
-    result = net_ebpf_extension_add_wfp_filters(
-        filter_count,
-        _net_ebpf_extension_xdp_wfp_filter_parameters,
-        (if_index == 0) ? 0 : 1,
-        (if_index == 0) ? NULL : &condition,
-        (net_ebpf_extension_wfp_filter_context_t*)filter_context,
-        &filter_context->base.filter_ids);
-    if (result != EBPF_SUCCESS) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT32(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
-            "net_ebpf_extension_add_wfp_filters failed.",
-            result);
-        goto Exit;
-    }
-
-    // Set the filter context as the client context's provider data.
-    net_ebpf_extension_hook_client_set_provider_data(
-        (net_ebpf_extension_hook_client_t*)attaching_client, filter_context);
 
 Exit:
-    if (result != EBPF_SUCCESS) {
-        if (filter_context != NULL) {
-            ExFreePool(filter_context);
-        }
-    }
-
-    NET_EBPF_EXT_RETURN_RESULT(result);
+    return result;
 }
 
 static void
-_net_ebpf_extension_xdp_on_client_detach(_In_ const net_ebpf_extension_hook_client_t* detaching_client)
+_net_ebpf_extension_xdp_delete_filter_context(
+    _In_opt_ _Frees_ptr_opt_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    net_ebpf_extension_xdp_wfp_filter_context_t* filter_context =
-        (net_ebpf_extension_xdp_wfp_filter_context_t*)net_ebpf_extension_hook_client_get_provider_data(
-            detaching_client);
+    net_ebpf_extension_xdp_wfp_filter_context_t* xdp_filter_context = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    ASSERT(filter_context != NULL);
-    net_ebpf_extension_delete_wfp_filters(filter_context->base.filter_ids_count, filter_context->base.filter_ids);
-    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
+    if (filter_context == NULL) {
+        goto Exit;
+    }
 
+    xdp_filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter_context;
+
+    net_ebpf_extension_delete_wfp_filters(
+        xdp_filter_context->base.filter_ids_count, xdp_filter_context->base.filter_ids);
+    net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)xdp_filter_context);
+
+Exit:
     NET_EBPF_EXT_LOG_EXIT();
 }
 
@@ -256,6 +261,12 @@ net_ebpf_ext_xdp_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
+    const net_ebpf_extension_hook_provider_dispatch_table_t dispatch_table = {
+        .create_filter_context = _net_ebpf_extension_xdp_create_filter_context,
+        .delete_filter_context = _net_ebpf_extension_xdp_delete_filter_context,
+        .validate_client_data = _net_ebpf_extension_xdp_validate_client_data,
+    };
+
     status = net_ebpf_extension_program_info_provider_register(
         &program_info_provider_parameters, &_ebpf_xdp_test_program_info_provider_context);
     if (!NT_SUCCESS(status)) {
@@ -269,8 +280,8 @@ net_ebpf_ext_xdp_register_providers()
 
     status = net_ebpf_extension_hook_provider_register(
         &hook_provider_parameters,
-        net_ebpf_extension_xdp_on_client_attach,
-        _net_ebpf_extension_xdp_on_client_detach,
+        &dispatch_table,
+        ATTACH_CAPABILITY_SINGLE_ATTACH_PER_HOOK,
         NULL,
         &_ebpf_xdp_test_hook_provider_context);
     if (status != EBPF_SUCCESS) {
@@ -608,6 +619,12 @@ Exit:
     return;
 }
 
+static bool
+_net_ebpf_extension_xdp_process_verdict(int program_verdict)
+{
+    return program_verdict != BPF_SOCK_ADDR_VERDICT_REJECT;
+}
+
 //
 // WFP Classify callback.
 //
@@ -629,8 +646,8 @@ net_ebpf_ext_layer_2_classify(
     uint32_t result = 0;
     net_ebpf_xdp_md_t net_xdp_ctx = {0};
     net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
-    net_ebpf_extension_hook_client_t* attached_client = NULL;
     uint32_t client_if_index;
+    ebpf_result_t program_result;
 
     UNREFERENCED_PARAMETER(incoming_metadata_values);
     UNREFERENCED_PARAMETER(classify_context);
@@ -657,23 +674,12 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
-    if (filter_context->base.client_detached) {
+    if (filter_context->base.context_deleting) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
             "net_ebpf_ext_layer_2_classify - Client detach detected.",
             STATUS_INVALID_PARAMETER);
-        goto Exit;
-    }
-
-    attached_client = (net_ebpf_extension_hook_client_t*)filter_context->base.client_context;
-    if (!net_ebpf_extension_hook_client_enter_rundown(attached_client)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
-            "net_ebpf_ext_layer_2_classify - Rundown already started.",
-            STATUS_INVALID_PARAMETER);
-        attached_client = NULL;
         goto Exit;
     }
 
@@ -719,7 +725,11 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    if (net_ebpf_extension_hook_invoke_program(attached_client, &net_xdp_ctx, &result) != EBPF_SUCCESS) {
+    program_result = net_ebpf_extension_hook_invoke_programs(&net_xdp_ctx, &filter_context->base, &result);
+    if (program_result == EBPF_OBJECT_NOT_FOUND) {
+        // No programs found.
+        goto Exit;
+    } else if (program_result != EBPF_SUCCESS) {
         // Perform a default action if the program fails.
         result = XDP_DROP;
     }
@@ -771,9 +781,7 @@ net_ebpf_ext_layer_2_classify(
     }
 
 Exit:
-    if (attached_client) {
-        net_ebpf_extension_hook_client_leave_rundown(attached_client);
-    }
+    return;
 }
 
 /**

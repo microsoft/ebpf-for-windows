@@ -1738,7 +1738,7 @@ _next_hash_map_key_and_value(
     return result;
 }
 
-static ebpf_result_t
+static __forceinline ebpf_result_t
 _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
@@ -2540,15 +2540,18 @@ ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_re
         return NULL;
     }
     ebpf_map_type_t type = map->ebpf_map_definition.type;
-    if (ebpf_map_metadata_tables[type].get_object_from_entry == NULL) {
+    // This function should be invoked only for BPF_MAP_TYPE_PROG_ARRAY.
+    // We can bypass the metadata table lookup and directly call the function.
+    if (type != BPF_MAP_TYPE_PROG_ARRAY) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_get_program_from_entry not supported on map",
-            map->ebpf_map_definition.type);
+            type);
         return NULL;
     }
-    return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
+
+    return (ebpf_program_t*)_get_object_from_array_map_entry(map, key);
 }
 
 _Must_inspect_result_ ebpf_result_t
