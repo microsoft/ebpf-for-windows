@@ -9,6 +9,7 @@
  */
 
 #include "ebpf_core.h"
+#include "ebpf_etw.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_version.h"
 #include "git_commit_id.h"
@@ -387,6 +388,16 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 
         // Fail silently as there is no other mechanism to indicate this failure. Note that in this case, the
         // EBPF_LOG_EXIT() call at the end will not log anything either.
+        goto Exit;
+    }
+
+    status = EventRegisterEbpfForWindowsProvider();
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_CRITICAL,
+            EBPF_TRACELOG_KEYWORD_ERROR,
+            (char*)"EventRegisterEbpfForWindowsProvider failed",
+            status);
         goto Exit;
     }
 

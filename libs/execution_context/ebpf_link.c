@@ -13,6 +13,7 @@
 #include "ebpf_program.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
+#include "ebpf_etw.h"
 
 /**
  * @brief State of the link between program and provider.
@@ -517,6 +518,9 @@ _ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_siz
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
     ebpf_result_t return_value;
+
+    event_write_ebpf_link_invoke_batch_begin_entry(&ebpf_etw_provider, state);
+
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -537,6 +541,8 @@ Done:
     if (return_value != EBPF_SUCCESS && epoch_entered) {
         ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     }
+
+    event_write_ebpf_link_invoke_batch_begin_exit(&ebpf_etw_provider, return_value);
 
     return return_value;
 }
