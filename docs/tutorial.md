@@ -491,7 +491,7 @@ structure which contains an arbitrary amount of data.  (Tail calls to
 programs can have more than one argument, but hooks put all the info in a
 hook-specific context structure passed as one argument.)
 
-The "xdp_test" hook point has the following prototype in `ebpf_nethooks.h`:
+The "xdp_test" hook point has the following prototype in `net_ebpf_ext_xdp_hooks.h`:
 
 ```c
 typedef struct xdp_md
@@ -517,6 +517,7 @@ A sample eBPF program might look like this:
 ```c
 #include "bpf_helpers.h"
 #include "ebpf_nethooks.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 // Put "xdp_test" in the section name to specify XDP_TEST as the hook.
 // The SEC macro below has the same effect as the

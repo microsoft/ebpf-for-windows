@@ -53,31 +53,6 @@ typedef enum _net_ebpf_ext_tracelog_level
     _NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE
 } net_ebpf_ext_tracelog_level_t;
 
-#define NET_EBPF_EXT_LOG_FUNCTION_SUCCESS()                                   \
-    if (TraceLoggingProviderEnabled(                                          \
-            net_ebpf_ext_tracelog_provider,                                   \
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                              \
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE)) {                            \
-        TraceLoggingWrite(                                                    \
-            net_ebpf_ext_tracelog_provider,                                   \
-            NET_EBPF_EXT_TRACELOG_EVENT_SUCCESS,                              \
-            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),                        \
-            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE),          \
-            TraceLoggingString(__FUNCTION__ " returned success", "Message")); \
-    }
-
-#define NET_EBPF_EXT_LOG_FUNCTION_ERROR(result)                                                                       \
-    if (TraceLoggingProviderEnabled(                                                                                  \
-            net_ebpf_ext_tracelog_provider, NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_BASE)) { \
-        TraceLoggingWrite(                                                                                            \
-            net_ebpf_ext_tracelog_provider,                                                                           \
-            NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_ERROR,                                                                \
-            TraceLoggingLevel(WINEVENT_LEVEL_ERROR),                                                                  \
-            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE),                                                  \
-            TraceLoggingString(__FUNCTION__ " returned error", "ErrorMessage"),                                       \
-            TraceLoggingLong(result, "Error"));                                                                       \
-    }
-
 #define NET_EBPF_EXT_LOG_ENTRY()                                                    \
     if (TraceLoggingProviderEnabled(                                                \
             net_ebpf_ext_tracelog_provider,                                         \
@@ -197,6 +172,44 @@ net_ebpf_ext_log_message_ntstatus(
         net_ebpf_ext_log_message_ntstatus(_##trace_level##, _##keyword##, message, status);  \
     }
 
+#define _NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, keyword, message, value) \
+    TraceLoggingWrite(                                                       \
+        net_ebpf_ext_tracelog_provider,                                      \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                         \
+        TraceLoggingLevel(trace_level),                                      \
+        TraceLoggingKeyword((keyword)),                                      \
+        TraceLoggingString(message, "Message"),                              \
+        TraceLoggingBool((value), (#value)));
+void
+net_ebpf_ext_log_message_bool(
+    net_ebpf_ext_tracelog_level_t trace_level,
+    net_ebpf_ext_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    bool value);
+#define NET_EBPF_EXT_LOG_MESSAGE_BOOL(trace_level, keyword, message, value)                  \
+    if (TraceLoggingProviderEnabled(net_ebpf_ext_tracelog_provider, trace_level, keyword)) { \
+        net_ebpf_ext_log_message_bool(_##trace_level##, _##keyword##, message, value);       \
+    }
+
+#define _NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, keyword, message, value) \
+    TraceLoggingWrite(                                                          \
+        net_ebpf_ext_tracelog_provider,                                         \
+        NET_EBPF_EXT_TRACELOG_EVENT_GENERIC_MESSAGE,                            \
+        TraceLoggingLevel(trace_level),                                         \
+        TraceLoggingKeyword((keyword)),                                         \
+        TraceLoggingString(message, "Message"),                                 \
+        TraceLoggingPointer((value), (#value)));
+void
+net_ebpf_ext_log_message_pointer(
+    net_ebpf_ext_tracelog_level_t trace_level,
+    net_ebpf_ext_tracelog_keyword_t keyword,
+    _In_z_ const char* message,
+    _In_opt_ const void* value);
+#define NET_EBPF_EXT_LOG_MESSAGE_POINTER(trace_level, keyword, message, value)               \
+    if (TraceLoggingProviderEnabled(net_ebpf_ext_tracelog_provider, trace_level, keyword)) { \
+        net_ebpf_ext_log_message_pointer(_##trace_level##, _##keyword##, message, value);    \
+    }
+
 #define _NET_EBPF_EXT_LOG_MESSAGE_UINT32(trace_level, keyword, message, value) \
     TraceLoggingWrite(                                                         \
         net_ebpf_ext_tracelog_provider,                                        \
@@ -301,6 +314,17 @@ net_ebpf_ext_log_message_uint64_uint64_uint64(
 // Macros built on top of the above primary trace macros.
 //
 
+#define NET_EBPF_EXT_LOG_FUNCTION_SUCCESS() \
+    NET_EBPF_EXT_LOG_MESSAGE(               \
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_BASE, __FUNCTION__ " returned success");
+
+#define NET_EBPF_EXT_LOG_FUNCTION_ERROR(result) \
+    NET_EBPF_EXT_LOG_MESSAGE_UINT64(            \
+        NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,      \
+        NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,     \
+        __FUNCTION__ " returned error",         \
+        result);
+
 #define NET_EBPF_EXT_RETURN_RESULT(status)                 \
     do {                                                   \
         ebpf_result_t local_result = (status);             \
@@ -323,30 +347,26 @@ net_ebpf_ext_log_message_uint64_uint64_uint64(
         return local_result;                               \
     } while (false);
 
-#define NET_EBPF_EXT_RETURN_POINTER(type, pointer)                   \
-    do {                                                             \
-        type local_result = (type)(pointer);                         \
-        TraceLoggingWrite(                                           \
-            net_ebpf_ext_tracelog_provider,                          \
-            NET_EBPF_EXT_TRACELOG_EVENT_RETURN,                      \
-            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),               \
-            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ " returned"),            \
-            TraceLoggingPointer(local_result, #pointer));            \
-        return local_result;                                         \
+#define NET_EBPF_EXT_RETURN_POINTER(type, pointer) \
+    do {                                           \
+        type local_result = (type)(pointer);       \
+        NET_EBPF_EXT_LOG_MESSAGE_POINTER(          \
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,   \
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,    \
+            __FUNCTION__ " returned",              \
+            local_result);                         \
+        return local_result;                       \
     } while (false);
 
-#define NET_EBPF_EXT_RETURN_BOOL(flag)                               \
-    do {                                                             \
-        bool local_result = (flag);                                  \
-        TraceLoggingWrite(                                           \
-            net_ebpf_ext_tracelog_provider,                          \
-            NET_EBPF_EXT_TRACELOG_EVENT_RETURN,                      \
-            TraceLoggingLevel(WINEVENT_LEVEL_VERBOSE),               \
-            TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_BASE), \
-            TraceLoggingString(__FUNCTION__ " returned"),            \
-            TraceLoggingBool(!!local_result, #flag));                \
-        return local_result;                                         \
+#define NET_EBPF_EXT_RETURN_BOOL(flag)           \
+    do {                                         \
+        bool local_result = (flag);              \
+        NET_EBPF_EXT_LOG_MESSAGE_BOOL(           \
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, \
+            NET_EBPF_EXT_TRACELOG_KEYWORD_BASE,  \
+            __FUNCTION__ " returned",            \
+            !!local_result);                     \
+        return local_result;                     \
     } while (false);
 
 #define NET_EBPF_EXT_BAIL_ON_ERROR_RESULT(result)          \
