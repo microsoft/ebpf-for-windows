@@ -95,7 +95,6 @@
     compartment_id,                                                   \
     redirected_ip,                                                    \
     redirected_port,                                                  \
-    redirected_compartment_id,                                        \
     verdict)                                                          \
     TraceLoggingWrite(                                                \
         net_ebpf_ext_tracelog_provider,                               \
@@ -112,7 +111,6 @@
         TraceLoggingUInt32((compartment_id), "compartment_id"),       \
         TraceLoggingIPv6Address((redirected_ip), "redirected_ip"),    \
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
-        TraceLoggingUInt32((redirected_compartment_id), "redirected_compartment_id"),       \
         TraceLoggingUInt64((verdict), "verdict"));
 
 #define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                  \
