@@ -52,6 +52,7 @@ SPDX-License-Identifier: MIT
 
 			<Custom Action="eBPFCore_Driver_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
+			<Custom Action="eBPFCore_Driver_man_uninstall_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
 
 			<Custom Action="NetEbpfExt_Driver_stop_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall_rollback" Before="NetEbpfExt_Driver_install">NOT Installed</Custom>
@@ -62,7 +63,8 @@ SPDX-License-Identifier: MIT
 
 			<Custom Action="eBPF_netsh_helper_install" After="Setup_eBPF_store">NOT Installed</Custom>
 
-			<Custom Action="eBPFCore_Driver_install" After="Setup_eBPF_store">NOT Installed</Custom>
+			<Custom Action="eBPFCore_Driver_man_install" After="Setup_eBPF_store">NOT Installed</Custom>
+			<Custom Action="eBPFCore_Driver_install" After="eBPFCore_Driver_man_install">NOT Installed</Custom>
 			<Custom Action="eBPFCore_Driver_start" After="eBPFCore_Driver_install">NOT Installed</Custom>
 
 			<Custom Action="NetEbpfExt_Driver_install" After="Setup_eBPF_store">NOT Installed</Custom>
@@ -73,6 +75,7 @@ SPDX-License-Identifier: MIT
 
 			<Custom Action="eBPFCore_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall" After="eBPFCore_Driver_stop">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFCore_Driver_man_uninstall" After="eBPFCore_Driver_uninstall">REMOVE="ALL"</Custom>
 
 			<Custom Action="NetEbpfExt_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
 			<Custom Action="NetEbpfExt_Driver_uninstall" After="NetEbpfExt_Driver_stop">REMOVE="ALL"</Custom>
@@ -247,7 +250,12 @@ SPDX-License-Identifier: MIT
 			<Component Id="eBPFCore.pdb" Guid="{DDE1BBD0-F440-4D54-97D0-D10DB511BACB}">
 				<File Id="eBPFCore.pdb" Name="eBPFCore.pdb" Source="$(var.EbpfCore.TargetDir)eBPFCore.pdb" KeyPath="yes" />
 			</Component>
+			<Component Id="ebpf_etw.man" Guid="{28F73D15-EE61-4D31-9B2E-8EBE67A4FF98}">
+				<File Id="ebpf_etw.man" Name="ebpf_etw.man" Source="$(var.SolutionDir)\libs\shared\ebpf_etw.man" KeyPath="yes" />
+			</Component>
 		</ComponentGroup>
+		<SetProperty Id="eBPFCore_Driver_man_install" Value='wevtutil.exe im "[#ebpf_etw.man]" /rf:"[#eBPFCore.sys]" /mf:"[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
+		<CustomAction Id="eBPFCore_Driver_man_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<SetProperty Id="eBPFCore_Driver_install" Value='"sc.exe" create eBPFCore type=kernel start=auto binpath="[#eBPFCore.sys]"' Before="eBPFCore_Driver_install" Sequence="execute"/>
 		<CustomAction Id="eBPFCore_Driver_install" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="check" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_start" Value='"net.exe" start eBPFCore' />
@@ -255,12 +263,16 @@ SPDX-License-Identifier: MIT
 		<Property Id="eBPFCore_Driver_stop" Value='"net.exe" stop eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall" Value='"sc.exe" delete eBPFCore' />
+		<CustomAction Id="eBPFCore_Driver_man_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_man_uninstall" Value='wevtutil.exe um "[#ebpf_etw.man]"' />
 		<CustomAction Id="eBPFCore_Driver_uninstall" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 		<CustomAction Id="eBPFCore_Driver_uninstall_flush" Directory="ProgramFiles64Folder" ExeCommand ='"sc.exe" query eBPFCore' Execute ="immediate" Return ="asyncNoWait"/>
 		<Property Id="eBPFCore_Driver_stop_rollback" Value='"net.exe" stop eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
 		<Property Id="eBPFCore_Driver_uninstall_rollback" Value='"sc.exe" delete eBPFCore' />
 		<CustomAction Id="eBPFCore_Driver_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+		<CustomAction Id="eBPFCore_Driver_man_uninstall_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
+		<Property Id="eBPFCore_Driver_man_uninstall_rollback" Value='wevtutil.exe um "[#ebpf_etw.man]"' />
 
 		<!--Install/Uninstall the NetEbpfExt Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
