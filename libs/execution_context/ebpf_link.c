@@ -5,6 +5,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_etw.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -13,7 +14,6 @@
 #include "ebpf_program.h"
 #include "ebpf_state.h"
 #include "ebpf_tracelog.h"
-#include "ebpf_etw.h"
 
 /**
  * @brief State of the link between program and provider.
@@ -519,7 +519,7 @@ _ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_siz
     bool epoch_entered = false;
     ebpf_result_t return_value;
 
-    event_write_ebpf_link_invoke_batch_begin_entry(&ebpf_etw_provider, state);
+    event_write_ebpf_link_invoke_batch_begin_entry(NULL);
 
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -542,7 +542,7 @@ Done:
         ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     }
 
-    event_write_ebpf_link_invoke_batch_begin_exit(&ebpf_etw_provider, return_value);
+    event_write_ebpf_link_invoke_batch_begin_exit(NULL, return_value);
 
     return return_value;
 }

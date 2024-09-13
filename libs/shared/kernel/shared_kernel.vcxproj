@@ -125,9 +125,9 @@
     <IncludePath>$(SolutionDir)libs\store_helper;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemGroup>
-    <MessageCompile Include="..\ebpf.man">
+    <MessageCompile Include="..\ebpf_etw.man">
       <GenerateKernelModeLoggingMacros>true</GenerateKernelModeLoggingMacros>
-      <GeneratedFilesBaseName>ebpf_etw</GeneratedFilesBaseName>
+      <GeneratedFilesBaseName>ebpf_etw_gen</GeneratedFilesBaseName>
       <PrefixMacroName>event_write_</PrefixMacroName>
     </MessageCompile>
   </ItemGroup>

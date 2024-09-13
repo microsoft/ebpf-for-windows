@@ -1,4 +1,6 @@
 <?xml version='1.0' encoding='utf-8' standalone='yes'?>
+<!-- Copyright (c) eBPF for Windows contributors -->
+<!-- SPDX-License-Identifier: MIT -->
 <instrumentationManifest
     xmlns="http://schemas.microsoft.com/win/2004/08/events"
     xmlns:win="http://manifests.microsoft.com/win/2004/08/windows/events"
@@ -90,13 +92,6 @@
                 outType="win:HexInt32"
                 />
           </template>
-          <template tid="tid_link_batch_state">
-            <data
-                inType="win:Pointer"
-                name="state"
-                outType="win:HexInt64"
-                />
-          </template>
         </templates>
         <events>
           <event
@@ -105,7 +100,7 @@
               level="win:Verbose"
               message="$(string.ebpf_link_invoke_batch_begin_entry.EventMessage)"
               symbol="ebpf_link_invoke_batch_begin_entry"
-              template="tid_link_batch_state"
+              template="tid_empty"
               value="1"
               />
           <event
@@ -126,7 +121,7 @@
       <stringTable>
         <string
             id="ebpf_link_invoke_batch_begin_entry.EventMessage"
-            value="ebpf_link_invoke_batch_begin_entry state=%1"
+            value="ebpf_link_invoke_batch_begin_entry"
             />
         <string
             id="ebpf_link_invoke_batch_begin_exit.EventMessage"
