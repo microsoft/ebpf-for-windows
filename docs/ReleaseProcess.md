@@ -13,11 +13,14 @@ Official releases will be production signed using Microsoft certificates.
 An issue with the title `Scheduled eBPF release is due` is automatically created on the first day of every month requesting a new release with the minor
 version incremented every time. When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If
 the decision is to create a new release the release manager must proceed with the following process.
-1. Create a release branch  in the ["upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows). 
+1. Create a release branch  in the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows). 
 **Note:** Only release managers have authority to create new branches. One of the ways to create a release branch is as follows:
    1. Create a topic branch from the "`main`" branch of a forked repo, and name it "`release/X.Y`" (where "`X`" and "`Y`" are the current version number
    that is being released).
-   1. Push the topic branch into ["upstream" `ebpf-for-windows` remote]([https://github.com/microsoft/ebpf-for-windows). For example:
+   1. Add remote called "upstream" pointing to the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows). Run:
+      ```bash
+      git remote add upstream https://github.com/microsoft/ebpf-for-windows.git
+   1. Push the topic branch into upstream. For example:
       ```bash
       git push upstream release/0.12
 1. Once the release branch is created, commits can be cherry-picked from the main branch (including feature work and bug fixes) as deemed necessary
