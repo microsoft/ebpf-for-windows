@@ -15,7 +15,6 @@
 #include <vector>
 
 #define main test_main
-#define ENABLE_SKIP_VERIFY
 #include "bpf2c.cpp"
 #undef main
 
@@ -86,7 +85,6 @@ run_test_main(std::vector<const char*> argv)
 enum class _test_mode
 {
     Verify,
-    NoVerify,
     VerifyFail,
     UseHash,
     UseHashSHA512,
@@ -101,9 +99,6 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
     std::vector<const char*> argv;
     auto name = elf_file.substr(0, elf_file.find('.'));
     argv.push_back("bpf2c.exe");
-    if (test_mode == _test_mode::NoVerify) {
-        argv.push_back("--no-verify");
-    }
     argv.push_back("--bpf");
     argv.push_back(elf_file.c_str());
     if (test_mode == _test_mode::UseHash) {
@@ -137,8 +132,7 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
         auto [out, err, result_value] = run_test_main(argv);
         switch (test_mode) {
         case _test_mode::FileOutput:
-        case _test_mode::Verify:
-        case _test_mode::NoVerify: {
+        case _test_mode::Verify: {
             std::vector<std::string> expected_output = read_contents<std::ifstream>(
                 std::string("expected\\") + name + suffix,
                 {transform_line_directives<'\\'>, transform_line_directives<'/'>, transform_fix_opcode_comment});
@@ -202,7 +196,6 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
     TEST_CASE(FILE "-custom-" #MODE, "[elf_bpf_code_gen]") { run_test_elf(FILE ".o", MODE, TYPE); }
 
 DECLARE_TEST("atomic_instruction_fetch_add", _test_mode::Verify)
-DECLARE_TEST("atomic_instruction_others", _test_mode::NoVerify)
 DECLARE_TEST("bad_map_name", _test_mode::Verify)
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
@@ -216,16 +209,9 @@ DECLARE_TEST("cgroup_sock_addr2", _test_mode::Verify)
 DECLARE_TEST("decap_permit_packet", _test_mode::Verify)
 DECLARE_TEST("divide_by_zero", _test_mode::Verify)
 DECLARE_TEST("droppacket", _test_mode::Verify)
-DECLARE_TEST("droppacket_unsafe", _test_mode::NoVerify)
-DECLARE_TEST("empty", _test_mode::NoVerify)
 DECLARE_TEST("encap_reflect_packet", _test_mode::Verify)
 DECLARE_TEST("hash_of_map", _test_mode::Verify)
 DECLARE_TEST("inner_map", _test_mode::Verify)
-DECLARE_TEST("invalid_helpers", _test_mode::NoVerify);
-DECLARE_TEST("invalid_maps1", _test_mode::NoVerify);
-DECLARE_TEST("invalid_maps2", _test_mode::NoVerify);
-DECLARE_TEST("invalid_maps3", _test_mode::NoVerify);
-DECLARE_TEST("map", _test_mode::NoVerify)
 DECLARE_TEST("map_in_map_btf", _test_mode::Verify)
 DECLARE_TEST("map_in_map_legacy_id", _test_mode::Verify)
 DECLARE_TEST("map_in_map_legacy_idx", _test_mode::Verify)
@@ -234,7 +220,6 @@ DECLARE_TEST("map_reuse_2", _test_mode::Verify)
 DECLARE_TEST("pidtgid", _test_mode::Verify)
 DECLARE_TEST("printk", _test_mode::Verify)
 DECLARE_TEST("printk_legacy", _test_mode::Verify)
-DECLARE_TEST("printk_unsafe", _test_mode::NoVerify)
 DECLARE_TEST("reflect_packet", _test_mode::Verify)
 DECLARE_TEST("sockops", _test_mode::Verify)
 DECLARE_TEST("tail_call", _test_mode::Verify)
@@ -248,8 +233,6 @@ DECLARE_TEST("test_sample_ebpf", _test_mode::Verify)
 DECLARE_TEST("test_utility_helpers", _test_mode::Verify)
 DECLARE_TEST("cgroup_sock_addr", _test_mode::UseHashSHA512)
 DECLARE_TEST("cgroup_sock_addr2", _test_mode::UseHashX)
-DECLARE_TEST("xdp_adjust_head_unsafe", _test_mode::NoVerify)
-DECLARE_TEST("xdp_datasize_unsafe", _test_mode::NoVerify)
 
 DECLARE_TEST("no_such_file", _test_mode::FileNotFound)
 DECLARE_TEST_CUSTOM_PROGRAM_TYPE("bpf", _test_mode::UseHash, std::string("bind"))
@@ -265,7 +248,7 @@ TEST_CASE("help", "[bpf2c_cli]")
 
     auto [out, err, result_value] = run_test_main(argv);
     REQUIRE(result_value != 0);
-    std::vector<std::string> options = {"--sys", "--dll", "--no-verify", "--bpf", "--hash", "--help"};
+    std::vector<std::string> options = {"--sys", "--dll", "--bpf", "--hash", "--help"};
     for (const auto& option : options) {
         REQUIRE(err.find(option) != std::string::npos);
     }

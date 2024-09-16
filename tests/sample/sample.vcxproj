@@ -221,14 +221,8 @@
       <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
-        pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -SkipVerification $true
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
-        popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
@@ -237,14 +231,8 @@
       <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
-        pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -SkipVerification $true
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
-        popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
@@ -253,14 +241,8 @@
       <Command>clang $(ClangFlags) -c %(Filename).c -o $(OutputPath)%(Filename).o</Command>
       <Command>
         clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c unsafe\%(Filename).c -o $(OutputPath)%(Filename).o
-        pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -SkipVerification $true
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false -SkipVerification $true
-        popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
-      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
-      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)'=='Release'">

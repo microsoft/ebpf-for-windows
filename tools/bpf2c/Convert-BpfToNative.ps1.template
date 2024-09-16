@@ -30,9 +30,6 @@
 .PARAMETER Configuration
     Specifies the build configuration. Valid values include "Release", "FuzzerDebug", and "Debug".
 
-.PARAMETER SkipVerification
-    Specifies whether to skip verification of the generated driver. This parameter is only supported for Debug builds.
-
 .PARAMETER KernelMode
     Specifies whether to generate a kernel-mode driver. If this parameter is false, a user DLL will be generated.
 
@@ -75,7 +72,6 @@ param([parameter(Mandatory = $true)] [string] $FileName,
     [parameter(Mandatory = $false)] [string] $OutDir = "$PWD",
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
     [ValidateSet("Release", "NativeOnlyRelease", "FuzzerDebug", "Debug", "NativeOnlyDebug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
-    [parameter(Mandatory = $false)] [bool] $SkipVerification = $false,
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true,
     [parameter(Mandatory = $false)] [string] $ResourceFile = "")
 
@@ -87,11 +83,6 @@ $UserModeProject = '___USER_MODE_VCXPROJ___'
 # If program name ends with .o, remove the suffix
 if ($FileName.EndsWith(".o")) {
     $FileName = $FileName.Substring(0, $FileName.Length - 2)
-}
-
-# SkipVerification is only supported for Debug builds.
-if ($Configuration -eq "Release" -and $SkipVerification) {
-    throw "Invalid parameter. SkipVerification is only supported for Debug builds"
 }
 
 if ((Get-Command 'msbuild.exe' -ErrorAction SilentlyContinue) -eq $null) {
@@ -125,8 +116,6 @@ else {
     $ProjectFile = "$FileName_um.vcxproj"
     Set-Content -Path $ProjectFile -Value $UserModeProject
 }
-
-$AdditionalOptions = If ($SkipVerification) {"--no-verify"} Else {""}
 
 if ($PSBoundParameters.ContainsKey("Type")) {
     $AdditionalOptions += " --type $Type"
