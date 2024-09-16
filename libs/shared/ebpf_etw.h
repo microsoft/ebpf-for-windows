@@ -5,9 +5,9 @@
 
 #pragma once
 
-#ifndef _KERNEL
+#ifndef _KERNEL_MODE
 #define MCGEN_CONTROL_CALLBACK 1
-#define McGenControlCallbackV2 NULL
+#define McGenControlCallbackV2 NULL /* TODO define a dummy fn */
 #endif
 
 #include <ebpf_etw_gen.h>

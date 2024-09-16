@@ -420,6 +420,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 Exit:
     EBPF_LOG_EXIT();
     if (!NT_SUCCESS(status)) {
+        EventUnregisterEbpfForWindowsProvider();
         ebpf_trace_terminate();
     }
     return status;
