@@ -188,6 +188,16 @@
       <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
     </DriverSign>
   </ItemDefinitionGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'NativeOnlyRelease' OR '$(Configuration)' == 'Release'">
+    <ResourceCompile Include="$(SolutionDir)libs\shared\kernel\$(Platform)\Release\ebpf_etw_gen.rc">
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\shared\kernel\$(Platform)\Release;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'NativeOnlyDebug' OR '$(Configuration)' == 'Debug'">
+    <ResourceCompile Include="$(SolutionDir)libs\shared\kernel\$(Platform)\Debug\ebpf_etw_gen.rc">
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\shared\kernel\$(Platform)\Debug;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ebpf_drv.c" />
   </ItemGroup>

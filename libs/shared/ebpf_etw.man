@@ -92,6 +92,13 @@
                 outType="win:HexInt32"
                 />
           </template>
+          <template tid="tid_link">
+            <data
+                inType="win:Pointer"
+                name="link"
+                outType="win:HexInt64"
+                />
+          </template>
         </templates>
         <events>
           <event
@@ -112,6 +119,96 @@
               template="tid_return_value"
               value="2"
               />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_invoke_batch_end_entry.EventMessage)"
+              symbol="ebpf_link_invoke_batch_end_entry"
+              template="tid_empty"
+              value="3"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_invoke_batch_end_exit.EventMessage)"
+              symbol="ebpf_link_invoke_batch_end_exit"
+              template="tid_empty"
+              value="4"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_instance_invoke_batch_entry.EventMessage)"
+              symbol="ebpf_link_instance_invoke_batch_entry"
+              template="tid_link"
+              value="5"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_instance_invoke_batch_exit.EventMessage)"
+              symbol="ebpf_link_instance_invoke_batch_exit"
+              template="tid_return_value"
+              value="6"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_invoke_batch_begin_with_context_header_entry.EventMessage)"
+              symbol="ebpf_link_invoke_batch_begin_with_context_header_entry"
+              template="tid_empty"
+              value="7"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_invoke_batch_begin_with_context_header_exit.EventMessage)"
+              symbol="ebpf_link_invoke_batch_begin_with_context_header_exit"
+              template="tid_return_value"
+              value="8"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_invoke_batch_end_with_context_header_entry.EventMessage)"
+              symbol="ebpf_link_invoke_batch_end_with_context_header_entry"
+              template="tid_empty"
+              value="9"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_invoke_batch_end_with_context_header_exit.EventMessage)"
+              symbol="ebpf_link_invoke_batch_end_with_context_header_exit"
+              template="tid_empty"
+              value="10"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_instance_invoke_batch_with_context_header_entry.EventMessage)"
+              symbol="ebpf_link_instance_invoke_batch_with_context_header_entry"
+              template="tid_link"
+              value="11"
+              />
+          <event
+              channel="CHID_EBPF"
+              keywords="EBPF_ETW_KEYWORD_FUNCTION_ENTRY_EXIT EBPF_ETW_KEYWORD_LINK"
+              level="win:Verbose"
+              message="$(string.ebpf_link_instance_invoke_batch_with_context_header_exit.EventMessage)"
+              symbol="ebpf_link_instance_invoke_batch_with_context_header_exit"
+              template="tid_return_value"
+              value="12"
+              />
         </events>
       </provider>
     </events>
@@ -126,6 +223,46 @@
         <string
             id="ebpf_link_invoke_batch_begin_exit.EventMessage"
             value="ebpf_link_invoke_batch_begin_exit return_value=%1"
+            />
+        <string
+            id="ebpf_link_invoke_batch_end_entry.EventMessage"
+            value="ebpf_link_invoke_batch_end_entry"
+            />
+        <string
+            id="ebpf_link_invoke_batch_end_exit.EventMessage"
+            value="ebpf_link_invoke_batch_end_exit"
+            />
+        <string
+            id="ebpf_link_instance_invoke_batch_entry.EventMessage"
+            value="ebpf_link_instance_invoke_batch_entry link=%1"
+            />
+        <string
+            id="ebpf_link_instance_invoke_batch_exit.EventMessage"
+            value="ebpf_link_instance_invoke_batch_exit return_value=%1"
+            />
+        <string
+            id="ebpf_link_invoke_batch_begin_with_context_header_entry.EventMessage"
+            value="ebpf_link_invoke_batch_begin_with_context_header_entry"
+            />
+        <string
+            id="ebpf_link_invoke_batch_begin_with_context_header_exit.EventMessage"
+            value="ebpf_link_invoke_batch_begin_with_context_header_exit return_value=%1"
+            />
+        <string
+            id="ebpf_link_invoke_batch_end_with_context_header_entry.EventMessage"
+            value="ebpf_link_invoke_batch_end_with_context_header_entry"
+            />
+        <string
+            id="ebpf_link_invoke_batch_end_with_context_header_exit.EventMessage"
+            value="ebpf_link_invoke_batch_end_with_context_header_exit"
+            />
+        <string
+            id="ebpf_link_instance_invoke_batch_with_context_header_entry.EventMessage"
+            value="ebpf_link_instance_invoke_batch_with_context_header_entry link=%1"
+            />
+        <string
+            id="ebpf_link_instance_invoke_batch_with_context_header_exit.EventMessage"
+            value="ebpf_link_instance_invoke_batch_with_context_header_exit return_value=%1"
             />
       </stringTable>
     </resources>

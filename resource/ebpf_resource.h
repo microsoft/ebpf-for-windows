@@ -15,5 +15,3 @@
 #include "ebpf_version.h"
 #include "git_commit_id.h"
 #define EBPF_PRODUCT_NAME "eBPF for Windows"
-
-#include <ebpf_etw_gen.rc>
