@@ -413,7 +413,7 @@ jobs:
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ${{env.DUMP_PATH}}
-        retention-days: 5
+        retention-days: 10
 
     - name: Check for TestLogs
       # Check for test logs even if the workflow failed.
@@ -432,7 +432,7 @@ jobs:
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/TestLogs
-        retention-days: 5
+        retention-days: 10
 
     - name: Check for generated artifacts
       # Check for artifacts even if the workflow failed.
@@ -451,7 +451,7 @@ jobs:
       with:
         name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
-        retention-days: 5
+        retention-days: 10
 
     - name: Mark run as failed if crash dumps are found
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
