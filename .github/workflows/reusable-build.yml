@@ -53,6 +53,14 @@ on:
         required: false
         type: string
         default: 'ebpf-for-windows.sln'
+      architecture:
+        required: false
+        type: string
+        default: 'x64'
+      download_demo_repository:
+        required: false
+        type: boolean
+        default: true
     outputs:
       should_skip:
         description: 'Whether build was skipped due to duplicate action.'
@@ -82,7 +90,7 @@ jobs:
       SOLUTION_FILE_PATH: ${{inputs.solution_file}}
       BUILD_ARTIFACT_NAME: ${{inputs.build_artifact}}
       BUILD_CONFIGURATION: ${{matrix.configurations}}
-      BUILD_PLATFORM: x64
+      BUILD_PLATFORM: ${{inputs.architecture}}
       BUILD_OPTIONS: ${{inputs.build_options}}
       CXX_FLAGS: ${{inputs.cxx_flags}}
       LD_FLAGS: ${{inputs.ld_flags}}
@@ -170,7 +178,7 @@ jobs:
         CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
         LDFLAGS: ${{env.LD_FLAGS}}
       run: |
-        .\scripts\initialize_ebpf_repo.ps1
+        .\scripts\initialize_ebpf_repo.ps1 ${{env.BUILD_PLATFORM}}
 
     - name: Build
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -197,12 +205,12 @@ jobs:
         copy "${{env.msvc_tools_path}}\bin\Hostx64\x64\clang*" .
 
     - name: Download demo Debug repository
-      if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
+      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Debug-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Download demo Release repository
-      if: steps.skip_check.outputs.should_skip != 'true' && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
+      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
@@ -215,7 +223,7 @@ jobs:
         Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.0.6/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
     - name: Extract artifacts to build path
-      if: steps.skip_check.outputs.should_skip != 'true' && matrix.configurations != 'FuzzerDebug'
+      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && matrix.configurations != 'FuzzerDebug'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
@@ -243,12 +251,12 @@ jobs:
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
 
     - name: Build the NuGet package
-      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget
 
     - name: Upload the NuGet package
-      if: inputs.build_nuget == true && matrix.configurations == 'Release' && steps.skip_check.outputs.should_skip != 'true'
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       with:
         name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
