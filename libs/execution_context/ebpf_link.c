@@ -576,7 +576,7 @@ _ebpf_link_instance_invoke_batch(
 
     event_write_ebpf_link_instance_invoke_batch_exit(NULL, return_value);
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 static ebpf_result_t
@@ -657,7 +657,7 @@ _ebpf_link_instance_invoke_batch_with_context_header(
 
     event_write_ebpf_link_instance_invoke_batch_with_context_header_exit(NULL, return_value);
 
-    return return_value;
+    EBPF_RETURN_RESULT(return_value);
 }
 
 _Must_inspect_result_ ebpf_result_t
