@@ -5,6 +5,11 @@
 
 #pragma once
 
+//
+// Resolve fragile eBPF + usersim tracelogging by including it first.
+//
+#include <ebpf_tracelog.h>
+
 #ifndef _KERNEL_MODE
 #define MCGEN_CONTROL_CALLBACK 1
 #endif
