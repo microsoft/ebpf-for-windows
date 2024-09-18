@@ -624,6 +624,46 @@ extern "C"
     ebpf_ring_buffer_map_write(
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
 
+    /**
+     * @brief Get eBPF program type for the specified bpf program type.
+     *
+     * @param[in] program_type Bpf program type.
+     *
+     * @returns Pointer to eBPF program type, or NULL if not found.
+     */
+    _Ret_maybenull_ const ebpf_program_type_t*
+    ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get eBPF attach type for the specified bpf attach type.
+     *
+     * @param[in] program_type Bpf attach type.
+     *
+     * @returns Pointer to eBPF attach type, or NULL if not found.
+     */
+    _Ret_maybenull_ const ebpf_attach_type_t*
+    ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get bpf program type for the specified eBPF program type.
+     *
+     * @param[in] program_type eBPF program type GUID.
+     *
+     * @returns Bpf program type, or BPF_PROG_TYPE_UNSPEC if not found.
+     */
+    bpf_prog_type_t
+    ebpf_get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get bpf attach type for the specified eBPF attach type.
+     *
+     * @param[in] attach_type eBPF attach type GUID.
+     *
+     * @returns Bpf attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
+     */
+    bpf_attach_type_t
+    ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) EBPF_NO_EXCEPT;
+
 #ifdef __cplusplus
 }
 #endif
