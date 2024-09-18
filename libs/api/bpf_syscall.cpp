@@ -3,6 +3,8 @@
 #include "bpf.h"
 #include "libbpf.h"
 
+#include <windows.h>
+#include <WinError.h>
 #include <linux/bpf.h>
 
 #define CHECK_SIZE(last_field_name)                                                         \
@@ -122,6 +124,7 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         return retval;
     }
     default:
+        SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
         return -EINVAL;
     }
 }
