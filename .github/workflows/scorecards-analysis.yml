@@ -71,7 +71,7 @@ jobs:
         with:
           name: SARIF file
           path: results.sarif
-          retention-days: 5
+          retention-days: 10
 
       # Upload the results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
