@@ -140,16 +140,16 @@ typedef uint8_t* ebpf_lru_entry_t;
 #define EBPF_LRU_ENTRY_KEY_PTR(map, entry) \
     ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map->partition_count)))
 
-#define EBPF_LOG_MAP_OPERATION(flags, operation, map, key)                                             \
-    if (((flags) & EBPF_MAP_FLAG_HELPER) && (map)->ebpf_map_definition.key_size != 0) {                \
-        EBPF_LOG_MESSAGE_UTF8_STRING(                                                                  \
-            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map ## operation", &(map)->name); \
-        EBPF_LOG_MESSAGE_BINARY(                                                                       \
-            EBPF_TRACELOG_LEVEL_VERBOSE,                                                               \
-            EBPF_TRACELOG_KEYWORD_MAP,                                                                 \
-            "Key",                                                                                     \
-            (key),                                                                                     \
-            (map)->ebpf_map_definition.key_size);                                                      \
+#define EBPF_LOG_MAP_OPERATION(flags, operation, map, key)                                            \
+    if (((flags) & EBPF_MAP_FLAG_HELPER) && (map)->ebpf_map_definition.key_size != 0) {               \
+        EBPF_LOG_MESSAGE_UTF8_STRING(                                                                 \
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map "##operation, &(map)->name); \
+        EBPF_LOG_MESSAGE_BINARY(                                                                      \
+            EBPF_TRACELOG_LEVEL_VERBOSE,                                                              \
+            EBPF_TRACELOG_KEYWORD_MAP,                                                                \
+            "Key",                                                                                    \
+            (key),                                                                                    \
+            (map)->ebpf_map_definition.key_size);                                                     \
     }
 
 /**
