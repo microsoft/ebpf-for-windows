@@ -58,7 +58,7 @@
 
 #define EBPF_EPOCH_FAIL_FAST(REASON, ASSERTION) \
     if (!(ASSERTION)) {                         \
-        ebpf_assert(!#ASSERTION);               \
+        ebpf_assert(#ASSERTION);                \
         __fastfail(REASON);                     \
     }
 
@@ -827,7 +827,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
                 ebpf_epoch_allocation_header_t* header =
                     CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
                 ebpf_assert(header->freed_epoch == EBPF_EPOCH_UNKNOWN_EPOCH);
-                header->freed_epoch = cpu_entry->current_epoch;
+                header->freed_epoch = message->message.propose_epoch.current_epoch;
             }
         }
 
