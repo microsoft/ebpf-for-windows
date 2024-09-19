@@ -6,7 +6,7 @@ The current ringbuffer uses a pure callback-based approach to reading the ringbu
 Linux also supports memory-mapped polling consumers, which can't be directly supported in the current model.
 
 The new ring buffer will use [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports),
-which is the windows analog to the linux epoll mechanism, and memory map producer+consumer pages into the user process in the same way that linux does.
+which is the windows API closest to the linux epoll mechanism, and memory map producer+consumer pages into the user process in the same way that linux does.
 
 The new API will support 2 access methods: callbacks and mmap/epoll style access.
 
@@ -34,10 +34,10 @@ mmap/epoll consumer:
  *
  * Note newly added flags (to specify wakeup options).
  *
- * Wakeup Options:
- * - auto (default): notify if consumer has caught up
- * - BPF_RB_FORCE_WAKEUP - always notify consumer
- * - BPF_RB_NO_WAKEUP - never notify consumer
+ * Wakeup options:
+ * - auto (default): Notify if consumer has caught up.
+ * - BPF_RB_FORCE_WAKEUP - Always notify consumer.
+ * - BPF_RB_NO_WAKEUP - Never notify consumer.
  *
  */
 ebpf_result_t
@@ -48,8 +48,8 @@ ebpf_ring_buffer_output(ebpf_ring_buffer_t* ring, uint8_t* data, size_t length, 
 
 ```c
 
-//struct ring_buffer;
-//
+struct ring_buffer;
+
 typedef int (*ring_buffer_sample_fn)(void *ctx, void *data, size_t size);
 
 struct ring_buffer_opts {
@@ -63,7 +63,7 @@ struct ring_buffer_opts {
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[in] sample_cb Pointer to ring buffer notification callback function.
- * @param[in] ctx Pointer to callback function context.
+ * @param[in] ctx Pointer to sample_cb callback function context.
  * @param[in] opts Ring buffer options.
  *
  * @returns Pointer to ring buffer manager.
@@ -78,7 +78,7 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void *ctx,
  * @param[in] rb Pointer to ring buffer manager.
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[in] sample_cb Pointer to ring buffer notification callback function.
- * @param[in] ctx Pointer to callback function context.
+ * @param[in] ctx Pointer to sample_cb callback function context.
  */
 int ring_buffer__add(struct ring_buffer *rb, int map_fd,
 		     ring_buffer_sample_fn sample_cb, void *ctx)
@@ -131,8 +131,8 @@ fd_t ring_buffer__epoll_fd(const struct ring_buffer *rb);
 /**
  * get pointers to mapped producer and consumer pages
  *
- * @param[out] producer pointer to start of read-only mapped producer pages
- * @param[out] consumer pointer to start of read-write mapped consumer page
+ * @param[out] producer pointer* to start of read-only mapped producer pages
+ * @param[out] consumer pointer* to start of read-write mapped consumer page
  */
 int ebpf_ring_buffer_get_buffer(void **producer, void **consumer);
 ```
@@ -145,13 +145,15 @@ int ebpf_ring_buffer_get_buffer(void **producer, void **consumer);
 This consumer directly accesses the records from the producer memory and directly updates the consumer offset to show the logic.
 
 ```c++
+
+//
+// == Ringbuf helpers ==
+//
+
 // Ring buffer record is 32bit header + data.
-
-#define BPF_RB_LOCKED
-
 typedef struct _rb_header
 {
-    //NOTE: bit fields are not portable, so this is just for explanation -- the new ringbuffer will use bit masking to perform equivalent operations on the bits of the header.
+    //NOTE: bit fields are not portable, so this is just for simpler example code -- the actual code should use bit masking to perform equivalent operations on the header bits.
     uint8_t locked : 1;
     uint8_t discarded : 1;
     uint32_t length : 30;
@@ -163,11 +165,19 @@ typedef struct _rb_record
     uint8_t data[];
 } rb_record_t;
 
+/**
+ * @brief clear the ringbuffer.
+ */
+void rb_flush(uint64_t *cons_offset, const uint64_t *prod_offset) {
+    *cons_offset = *prod_offset;
+}
+
+
 //
-// == Reading mapped ringbuffer memory ==
+// == mmap/epoll consumer ==
 //
 
-void *rb_cons; // Pointer to read/write mapped consumer page.
+void *rb_cons; // Pointer to read/write mapped consumer page with consumer offset.
 void *rb_prod; // Pointer to start of read-only producer pages.
 
 // Open ringbuffer.
@@ -180,7 +190,7 @@ auto rb = ring_buffer__new(
     nullptr, nullptr);
 if (!rb) return 1;
 
-// get pointers to the prod/cons pages
+// get pointers to the producer/consumer pages
 int err = ebpf_ring_buffer_get_buffer(&rb_prod, &rb_cons, /* &epoll_fd */);
 
 if (err) {
@@ -191,14 +201,13 @@ const uint64_t *prod_offset = (const uint64_t*)rb_prod; // Producer offset ptr (
 uint64_t *cons_offset = (uint64_t*)rb_cons; // Consumer offset ptr (r/w mapped).
 const uint8_t *rb_data = ((const uint8_t*)rb_prod) + PAGESIZE; // Double-mapped rb data ptr (r only).
 
-// have_data used to track whether we should epoll or just keep reading.
+// have_data used to track whether we should wait for notification or just keep reading.
 bool have_data = *prod_offset > *cons_offset;
 
-// initialize iocp wait handle
+// Initialize iocp wait handle.
 epoll_fd = ring_buffer__epoll_fd(rb);
 if (epoll_fd == ebpf_fd_invalid) {
     // … log error …
-    // Close ringbuffer.
     goto Cleanup;
 }
 HANDLE iocp_handle = _get_handle_from_file_descriptor(epoll_fd)
@@ -207,10 +216,10 @@ void           *lp_ctx = NULL;
 OVERLAPPED     *overlapped = NULL;
 DWORD          bytesTransferred = 0;
 
-// Now loop until terminal error.
+// Now loop until error.
 For(;;) {
   if (!have_data) { // Only wait if we have already caught up.
-    // Wait for rb to notify (or we could spin/poll on have_data condition).
+    // Wait for rb to notify -- or we could spin/poll on *prod_offset > *cons_offset.
     BOOL iocp_status = GetQueuedCompletionStatus(iocp_handle, &bytesTransfered, (LPWORD)&lp_ctx, &overlapped, INFINITE);
 
     if (NULL == lp_ctx) {
@@ -220,7 +229,7 @@ For(;;) {
       if (!iocp_status) { // error
         uint32_t iocp_err = GetLastError();
         if (err == /* terminal error */) {
-          LOG_ERROR(...);
+          // … log error …
           break;
         }
       }
@@ -238,13 +247,14 @@ For(;;) {
     have_data = false; // Caught up to producer.
     continue;
   } else if (remaining < sizeof(rb_header_t)) {
-    LOG_ERROR(...); // Bad record or consumer offset out of alignment.
+    // Bad record or consumer offset out of alignment.
+    // … log error …
     break;
   }
 
   // Check header flags first, then read/skip data and update offset.
   rb_header_t header = *(rb_header_t*)(&rb_data[cons % rb_size]);
-  if (header.locked) { // Next record not ready yet, epoll again.
+  if (header.locked) { // Next record not ready yet, wait on iocp.
     have_data = false;
     continue;
     // Or we could spin/poll on ((rb_header_t*)(&rb_data[cons % rb_size]))->locked.
@@ -252,16 +262,12 @@ For(;;) {
   if (!header.discarded) {
     const rb_record_t *record = *(const rb_record_t*)(&rb_data[cons % rb_size]);
     // Read data from record->data[0 ... record->length-1].
-    // ... business logic ...
+    // … business logic …
   } // Else it was discarded, skip and continue.
 
-  // Update consumer offset.
-  cons += sizeof(rb_header_t) + record->length + /*alignment padding*/;
+  // Update consumer offset (and pad record length to multiple of 8).
+  cons += sizeof(rb_header_t) + (record->length + 7 & ~7);
   *cons_offset = cons;
-
-  if (/* We want to flush the ringbuffer */) {
-    *cons_offset = *prod_offset;
-  }
 }
 
 Cleanup:
@@ -272,7 +278,7 @@ ring_buffer__free(rb);
 
 ### Simplified blocking ringbuf consumer
 
-This consumer uses some theoretical helpers to simplify the above logic.
+This consumer uses some possible helpers to simplify the above logic (might also want timeout).
 
 ```c
 //Note: the below theoretical helpers would only need access to producers/consumer pages (offsets and data pages)
