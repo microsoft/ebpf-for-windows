@@ -260,11 +260,9 @@ static _IRQL_requires_(DISPATCH_LEVEL) void _ebpf_epoch_arm_timer_if_needed(ebpf
 static void
 _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_work_item, void* context);
 
-static void
-_ebpf_epoch_activate_cpu(uint32_t cpu_id);
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_activate_cpu(uint32_t cpu_id);
 
-static void
-_ebpf_epoch_deactivate_cpu(uint32_t cpu_id);
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_deactivate_cpu(uint32_t cpu_id);
 
 uint32_t
 _ebpf_epoch_next_active_cpu(uint32_t cpu_id);
@@ -1121,8 +1119,7 @@ _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_
  *
  * @param[in] cpu_id CPU to add.
  */
-static void
-_ebpf_epoch_activate_cpu(uint32_t cpu_id)
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_activate_cpu(uint32_t cpu_id)
 {
     EBPF_LOG_ENTRY();
 
@@ -1159,10 +1156,12 @@ _ebpf_epoch_activate_cpu(uint32_t cpu_id)
  *
  * @param[in] cpu_id CPU to remove.
  */
-static void
-_ebpf_epoch_deactivate_cpu(uint32_t cpu_id)
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_deactivate_cpu(uint32_t cpu_id)
 {
     EBPF_LOG_ENTRY();
+    ebpf_assert(cpu_id == ebpf_get_current_cpu());
+    ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].epoch_state_list));
+    ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list));
 
     EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_EPOCH, "Deactivating CPU", cpu_id);
 
