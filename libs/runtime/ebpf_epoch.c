@@ -428,11 +428,11 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
     epoch_state->epoch = cpu_entry->current_epoch;
     ebpf_list_insert_tail(&cpu_entry->epoch_state_list, &epoch_state->epoch_list_entry);
 
-    _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
-
     if (!cpu_entry->active) {
         _ebpf_epoch_activate_cpu(epoch_state->cpu_id);
     }
+
+    _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
 }
 #pragma warning(pop)
 
@@ -1130,6 +1130,10 @@ _ebpf_epoch_activate_cpu(uint32_t cpu_id)
 
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_active_lock);
+
+    ebpf_assert(!cpu_entry->active);
+    ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
+    ebpf_assert(cpu_id == ebpf_get_current_cpu());
 
     cpu_entry->active = true;
     // When the CPU is activated, the current epoch is not known.
