@@ -542,6 +542,29 @@ function Initialize-NetworkInterfacesOnVMs
     }
 }
 
+function Get-ZipFileFromUrl {
+    param(
+        [Parameter(Mandatory=$True)][string] $Url,
+        [Parameter(Mandatory=$True)][string] $DownloadFilePath,
+        [Parameter(Mandatory=$True)][string] $OutputDir
+    )
+
+    for ($i = 0; $i -lt 5; $i++) {
+        try {
+            Write-Log "Downloading $Url to $DownloadFilePath"
+            Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
+
+            Write-Log "Extracting $DownloadFilePath to $OutputDir"
+            Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
+            break
+        } catch {
+            Write-Log "Iteration $i failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
+            Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
+            Start-Sleep -Seconds 5
+        }
+    }
+}
+
 function Get-LegacyRegressionTestArtifacts
 {
     $ArifactVersionList = @("0.11.0")
@@ -567,12 +590,20 @@ function Get-LegacyRegressionTestArtifacts
         $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
         $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
 
-        $ProgressPreference = 'SilentlyContinue'
-        Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\artifact.zip"
+        for ($i = 0; $i -lt 5; $i++) {
+            try {
+                # Download and extract the artifact.
+                Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputDir $DownloadPath
 
-        Write-Log "Extracting $ArtifactName"
-        Expand-Archive -Path "$DownloadPath\artifact.zip" -DestinationPath $DownloadPath -Force
-        Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
+                # Extract the inner zip file.
+                Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
+                break
+            } catch {
+                Write-Log -TraceMessage "Iteration $i failed to download $ArtifactUrl. Removing $DownloadPath" -ForegroundColor Red
+                Remove-Item -Path $DownloadPath -Force -ErrorAction Ignore
+                Start-Sleep -Seconds 5
+            }
+        }
 
         Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
         Remove-Item -Path $DownloadPath -Force -Recurse
@@ -603,19 +634,12 @@ function Get-RegressionTestArtifacts
     $ArtifactName = "Release-v$ArtifactVersion/Build-x64.$Configuration.zip"
     $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
 
-    Write-Log "Downloading regression test artifacts for version $ArtifactVersion" -ForegroundColor Green
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $ArtifactUrl -OutFile "$DownloadPath\Build-x64.$Configuration.zip"
-
     if (Test-Path -Path $DownloadPath\Build-x64.$Configuration) {
         Remove-Item -Path $DownloadPath\Build-x64.$Configuration -Recurse -Force
     }
 
-    Write-Log "Extracting Build-x64.$Configuration.zip"
-    Expand-Archive -Path "$DownloadPath\Build-x64.$Configuration.zip" -DestinationPath $DownloadPath -Force
-
+    Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputDir $DownloadPath
     $DownloadedArtifactPath = "$DownloadPath\Build-x64 $Configuration"
-
     if (!(Test-Path -Path $DownloadedArtifactPath)) {
         throw ("Path ""$DownloadedArtifactPath"" not found.")
     }
@@ -641,8 +665,7 @@ function Get-Duonic {
     $DownloadPath = "$pwd\corenet-ci"
     mkdir $DownloadPath
     Write-Host "Downloading CoreNet-CI to $DownloadPath"
-    Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile "$DownloadPath\corenet-ci.zip"
-    Expand-Archive -Path "$DownloadPath\corenet-ci.zip" -DestinationPath $DownloadPath -Force
+    Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputDir $DownloadPath
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force

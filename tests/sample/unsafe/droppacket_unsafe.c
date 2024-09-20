@@ -20,6 +20,7 @@
 #include "bpf_helpers.h"
 #include "net/ip.h"
 #include "net/udp.h"
+#include "net_ebpf_ext_xdp_hooks.h"
 
 struct
 {
