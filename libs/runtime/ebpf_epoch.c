@@ -346,8 +346,16 @@ ebpf_epoch_initiate()
         }
     }
 
-    // CPU 0 is always active.
-    _ebpf_epoch_activate_cpu(0);
+    // Set the initial state for CPU 0.
+    // This code can't use _ebpf_epoch_activate_cpu as it may not running on CPU 0.
+    _ebpf_epoch_cpu_table[0].active = true;
+    ebpf_result_t result = ebpf_timed_work_queue_set_cpu_id(_ebpf_epoch_cpu_table[0].work_queue, 0);
+    if (result != EBPF_SUCCESS) {
+        return_value = result;
+        goto Error;
+    }
+
+    _ebpf_epoch_cpu_table[0].work_queue_assigned = 1;
 
     // Set the current epoch for CPU 0.
     _ebpf_epoch_cpu_table[0].current_epoch = EBPF_EPOCH_FIRST_EPOCH;
