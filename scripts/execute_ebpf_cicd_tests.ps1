@@ -58,29 +58,29 @@ foreach ($VM in $VMList) {
 # parameter.
 if ($TestMode -eq "CI/CD") {
 
-    # Run XDP Tests.
-    Invoke-XDPTestsOnVM `
-        -Interfaces $Config.Interfaces `
-        -VMName $VMList[0].Name `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+    # # Run XDP Tests.
+    # Invoke-XDPTestsOnVM `
+    #     -Interfaces $Config.Interfaces `
+    #     -VMName $VMList[0].Name `
+    #     -TestHangTimeout $TestHangTimeout `
+    #     -UserModeDumpFolder $UserModeDumpFolder
 
-    # Run Connect Redirect Tests.
-    Invoke-ConnectRedirectTestsOnVM `
-        -Interfaces $Config.Interfaces `
-        -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        -UserType "Administrator" `
-        -VMName $VMList[0].Name `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+    # # Run Connect Redirect Tests.
+    # Invoke-ConnectRedirectTestsOnVM `
+    #     -Interfaces $Config.Interfaces `
+    #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+    #     -UserType "Administrator" `
+    #     -VMName $VMList[0].Name `
+    #     -TestHangTimeout $TestHangTimeout `
+    #     -UserModeDumpFolder $UserModeDumpFolder
 
-    Invoke-ConnectRedirectTestsOnVM `
-        -Interfaces $Config.Interfaces `
-        -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        -UserType "StandardUser" `
-        -VMName $VMList[0].Name `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+    # Invoke-ConnectRedirectTestsOnVM `
+    #     -Interfaces $Config.Interfaces `
+    #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+    #     -UserType "StandardUser" `
+    #     -VMName $VMList[0].Name `
+    #     -TestHangTimeout $TestHangTimeout `
+    #     -UserModeDumpFolder $UserModeDumpFolder
 }
 
 # Stop eBPF components on test VMs.

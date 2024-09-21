@@ -103,7 +103,7 @@ function Invoke-CICDTests
         "sample_ext_app.exe",
         "socket_tests.exe")
 
-    $SystemTestList = @("api_test.exe ~`"load_native_program_invalid4`"")
+    $SystemTestList = @("api_test.exe")
 
     # foreach ($Test in $TestList) {
     #     Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
@@ -111,7 +111,7 @@ function Invoke-CICDTests
 
     # Now run the system tests. No coverage is needed for these tests.
     foreach ($Test in $SystemTestList) {
-        $TestCommand = "PsExec64.exe /accepteula /nobanner -s -w `"$pwd.Path`" `"($pwd.Path)\unit_tests.exe`" `"-d yes`""
+        $TestCommand = "PsExec64.exe -accepteula -nobanner -s -w `"$pwd`" `"$pwd\$Test`" `"~`"load_native_program_invalid4`" -d yes`""
         # PsExec.exe /accepteula /nobanner -s -w "E:\git\github2\ebpf-for-windows-1\x64\Debug" "E:\git\github2\ebpf-for-windows-1\x64\Debug\unit_tests.exe" "-d yes"
         Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -Coverage $false
     }
