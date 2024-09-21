@@ -682,3 +682,17 @@ function Get-VCRedistributable {
     Move-Item -Path "$DownloadPath\vc_redist.x64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
+
+# Download and extract PSExec to run tests as SYSTEM.
+function Get-PSExec {
+    $url = "https://download.sysinternals.com/files/PSTools.zip"
+    $DownloadPath = "$pwd\psexec"
+    mkdir $DownloadPath
+    Write-Host "Downloading PSExec from $url to $DownloadPath"
+    Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip"
+    cd $DownloadPath
+    Expand-Archive -Path "$DownloadPath\pstools.zip" -Force
+    cd ..
+    Move-Item -Path "$DownloadPath\PSTools\PsExec64.exe" -Destination $pwd -Force
+    Remove-Item -Path $DownloadPath -Force -Recurse
+}
