@@ -312,17 +312,6 @@ function Install-eBPFComponents
         }
     }
 
-    # # Export program info for the sample driver as local system.
-    # Write-Log("Running 'export_program_info_sample.exe as system'...")
-    # if (Test-Path -Path "export_program_info_sample.exe") {
-    #     .\PsExec.exe -accepteula -nobanner -s "$pwd\export_program_info_sample.exe" # 2>&1 | Write-Log
-    #     if ($LASTEXITCODE -ne 0) {
-    #         throw ("Failed to run 'export_program_info_sample.exe'.");
-    #     } else {
-    #         Write-Log "'export_program_info_sample.exe' succeeded." -ForegroundColor Green
-    #     }
-    # }
-
     # Print the status of the eBPF drivers and services after installation.
     Print-eBPFComponentsStatus "Verifying the status of eBPF drivers and services after the installation..." | Out-Null
 
