@@ -225,8 +225,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
     }};
 
 // WFP globals
-static EX_SPIN_LOCK _fwp_engine_lock = {0};
-_Guarded_by_(_fwp_engine_lock) static HANDLE _fwp_engine_handle;
+static HANDLE _fwp_engine_handle;
 
 //
 // WFP component management related utility functions.
@@ -377,35 +376,41 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 }
 void
 net_ebpf_extension_delete_wfp_filters(
-    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
+    _In_ HANDLE wfp_engine_handle,
+    uint32_t filter_count,
+    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids)
 {
     NET_EBPF_EXT_LOG_ENTRY();
     NTSTATUS status = STATUS_SUCCESS;
 
-    KIRQL irql = ExAcquireSpinLockExclusive(&_fwp_engine_lock);
-    for (uint32_t index = 0; index < filter_count; index++) {
-        status = FwpmFilterDeleteById(_fwp_engine_handle, filter_ids[index].id);
-        if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
-            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
-            filter_ids[index].error_code = status;
-        } else {
-            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "Marked WFP filter for deletion: ",
-                index,
-                filter_ids[index].id);
-            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
+    if (!wfp_engine_handle) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "WFP engine handle is NULL");
+    } else {
+        for (uint32_t index = 0; index < filter_count; index++) {
+            status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
+            if (!NT_SUCCESS(status)) {
+                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+                filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
+                filter_ids[index].error_code = status;
+            } else {
+                NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                    "Marked WFP filter for deletion: ",
+                    index,
+                    filter_ids[index].id);
+                filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
+            }
         }
     }
-    ExReleaseSpinLockExclusive(&_fwp_engine_lock, irql);
     NET_EBPF_EXT_LOG_EXIT();
 }
 
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
+    _In_ HANDLE wfp_engine_handle,
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
@@ -418,10 +423,15 @@ net_ebpf_extension_add_wfp_filters(
     bool is_in_transaction = FALSE;
     net_ebpf_ext_wfp_filter_id_t* local_filter_ids = NULL;
     *filter_ids = NULL;
-    KIRQL irql = PASSIVE_LEVEL;
-    bool locked = false;
 
     NET_EBPF_EXT_LOG_ENTRY();
+
+    if (!wfp_engine_handle) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "WFP engine handle is NULL");
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     if (filter_count == 0) {
         NET_EBPF_EXT_LOG_MESSAGE(
@@ -437,10 +447,7 @@ net_ebpf_extension_add_wfp_filters(
 
     memset(local_filter_ids, 0, (sizeof(net_ebpf_ext_wfp_filter_id_t) * filter_count));
 
-    irql = ExAcquireSpinLockExclusive(&_fwp_engine_lock);
-    locked = true;
-
-    status = FwpmTransactionBegin(_fwp_engine_handle, 0);
+    status = FwpmTransactionBegin(wfp_engine_handle, 0);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionBegin", status);
         result = EBPF_INVALID_ARGUMENT;
@@ -471,7 +478,7 @@ net_ebpf_extension_add_wfp_filters(
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
-        status = FwpmFilterAdd(_fwp_engine_handle, &filter, NULL, &local_filter_id);
+        status = FwpmFilterAdd(wfp_engine_handle, &filter, NULL, &local_filter_id);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -494,7 +501,7 @@ net_ebpf_extension_add_wfp_filters(
         }
     }
 
-    status = FwpmTransactionCommit(_fwp_engine_handle);
+    status = FwpmTransactionCommit(wfp_engine_handle);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionCommit", status);
         result = EBPF_INVALID_ARGUMENT;
@@ -510,16 +517,12 @@ Exit:
             ExFreePool(local_filter_ids);
         }
         if (is_in_transaction) {
-            status = FwpmTransactionAbort(_fwp_engine_handle);
+            status = FwpmTransactionAbort(wfp_engine_handle);
             if (!NT_SUCCESS(status)) {
                 NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmTransactionAbort", status);
             }
         }
-    }
-
-    if (locked) {
-        ExReleaseSpinLockExclusive(&_fwp_engine_lock, irql);
     }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
@@ -541,7 +544,6 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
     FWPM_CALLOUT callout_add_state = {0};
     FWPM_DISPLAY_DATA display_data = {0};
     BOOLEAN was_callout_registered = FALSE;
-    KIRQL irql;
 
     callout_register_state.calloutKey = *callout_state->callout_guid;
     callout_register_state.classifyFn = callout_state->classify_fn;
@@ -569,9 +571,7 @@ _net_ebpf_ext_register_wfp_callout(_Inout_ net_ebpf_ext_wfp_callout_state_t* cal
     callout_add_state.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
     callout_add_state.applicableLayer = *callout_state->layer_guid;
 
-    irql = ExAcquireSpinLockExclusive(&_fwp_engine_lock);
     status = FwpmCalloutAdd(_fwp_engine_handle, &callout_add_state, NULL, NULL);
-    ExReleaseSpinLockExclusive(&_fwp_engine_lock, irql);
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -657,6 +657,28 @@ net_ebpf_ext_uninitialize_ndis_handles()
 }
 
 NTSTATUS
+net_ebpf_extension_open_wfp_engine_handle(HANDLE* wfp_engine_handle)
+{
+    FWPM_SESSION session = {0};
+    if (!wfp_engine_handle) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    session.flags = FWPM_SESSION_FLAG_DYNAMIC;
+    return FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, wfp_engine_handle);
+}
+
+NTSTATUS
+net_ebpf_extension_close_wfp_engine_handle(HANDLE wfp_engine_handle)
+{
+    if (!wfp_engine_handle) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    return FwpmEngineClose(wfp_engine_handle);
+}
+
+NTSTATUS
 net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
 /* ++
 
@@ -670,22 +692,18 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     FWPM_SUBLAYER ebpf_hook_sub_layer;
     BOOLEAN is_engine_opened = FALSE;
     BOOLEAN is_in_transaction = FALSE;
-    FWPM_SESSION session = {0};
     size_t index;
-    KIRQL irql = PASSIVE_LEVEL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    irql = ExAcquireSpinLockExclusive(&_fwp_engine_lock);
     if (_fwp_engine_handle != NULL) {
         // already registered
         goto Exit;
     }
 
-    session.flags = FWPM_SESSION_FLAG_DYNAMIC;
-
-    status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, &session, &_fwp_engine_handle);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
+    status = net_ebpf_extension_open_wfp_engine_handle(&_fwp_engine_handle);
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "net_ebpf_extension_open_fwp_engine_handle", status);
     is_engine_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
@@ -751,7 +769,6 @@ Exit:
         }
     }
 
-    ExReleaseSpinLockExclusive(&_fwp_engine_lock, irql);
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
 }
 
@@ -761,9 +778,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     size_t index;
     NTSTATUS status;
 
-    KIRQL irql = ExAcquireSpinLockExclusive(&_fwp_engine_lock);
     if (_fwp_engine_handle != NULL) {
-        status = FwpmEngineClose(_fwp_engine_handle);
+        status = net_ebpf_extension_close_wfp_engine_handle(_fwp_engine_handle);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
         }
@@ -777,7 +793,6 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             }
         }
     }
-    ExReleaseSpinLockExclusive(&_fwp_engine_lock, irql);
 
     // FwpsInjectionHandleCreate can fail. So, check for NULL.
     if (_net_ebpf_ext_l2_injection_handle != NULL) {

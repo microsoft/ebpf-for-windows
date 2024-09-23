@@ -65,6 +65,8 @@ typedef struct _net_ebpf_extension_sock_ops_wfp_filter_context
         flow_context_list; ///< List of flow contexts associated with WFP flows.
 } net_ebpf_extension_sock_ops_wfp_filter_context_t;
 
+static HANDLE _net_ebpf_extension_sock_ops_wfp_engine_handle = NULL;
+
 //
 // SOCK_OPS Global helper function implementation.
 //
@@ -186,6 +188,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
+        _net_ebpf_extension_sock_ops_wfp_engine_handle,
         filter_count,
         _net_ebpf_extension_sock_ops_wfp_filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
@@ -258,7 +261,9 @@ _net_ebpf_extension_sock_ops_delete_filter_context(
 
     InitializeListHead(&local_list_head);
     net_ebpf_extension_delete_wfp_filters(
-        local_filter_context->base.filter_ids_count, local_filter_context->base.filter_ids);
+        _net_ebpf_extension_sock_ops_wfp_engine_handle,
+        local_filter_context->base.filter_ids_count,
+        local_filter_context->base.filter_ids);
 
     KeAcquireSpinLock(&local_filter_context->lock, &irql);
     if (local_filter_context->flow_context_list.count > 0) {
@@ -343,6 +348,16 @@ net_ebpf_ext_sock_ops_register_providers()
         goto Exit;
     }
 
+    status = net_ebpf_extension_open_wfp_engine_handle(&_net_ebpf_extension_sock_ops_wfp_engine_handle);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_OPS,
+            "net_ebpf_ext_sock_opts::net_ebpf_extension_wfp_engine_open failed.",
+            status);
+        goto Exit;
+    }
+
 Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_sock_ops_unregister_providers();
@@ -360,6 +375,11 @@ net_ebpf_ext_sock_ops_unregister_providers()
     if (_ebpf_sock_ops_program_info_provider_context) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_ops_program_info_provider_context);
         _ebpf_sock_ops_program_info_provider_context = NULL;
+    }
+    if (_net_ebpf_extension_sock_ops_wfp_engine_handle) {
+        if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_sock_ops_wfp_engine_handle))) {
+            _net_ebpf_extension_sock_ops_wfp_engine_handle = NULL;
+        }
     }
 }
 

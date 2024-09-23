@@ -260,6 +260,8 @@ static SECURITY_DESCRIPTOR* _net_ebpf_ext_security_descriptor_admin = NULL;
 static ACL* _net_ebpf_ext_dacl_admin = NULL;
 static GENERIC_MAPPING _net_ebpf_ext_generic_mapping = {0};
 
+static HANDLE _net_ebpf_extension_sock_addr_wfp_engine_handle = NULL;
+
 static bool
 _net_ebpf_extension_sock_addr_process_verdict(_Inout_ void* program_context, int program_verdict);
 
@@ -690,6 +692,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
     // Add a single WFP filter at the WFP layer corresponding to the hook type, and set the hook NPI client as the
     // filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
+        _net_ebpf_extension_sock_addr_wfp_engine_handle,
         filter_parameters_array->count, // filter_count
         filter_parameters_array->filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
@@ -720,7 +723,8 @@ _net_ebpf_extension_sock_addr_delete_filter_context(
     }
     sock_addr_filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter_context;
 
-    net_ebpf_extension_delete_wfp_filters(filter_context->filter_ids_count, filter_context->filter_ids);
+    net_ebpf_extension_delete_wfp_filters(
+        _net_ebpf_extension_sock_addr_wfp_engine_handle, filter_context->filter_ids_count, filter_context->filter_ids);
     if (sock_addr_filter_context->redirect_handle != NULL) {
         FwpsRedirectHandleDestroy(sock_addr_filter_context->redirect_handle);
     }
@@ -1267,6 +1271,15 @@ net_ebpf_ext_sock_addr_register_providers()
         }
     }
 
+    status = net_ebpf_extension_open_wfp_engine_handle(&_net_ebpf_extension_sock_addr_wfp_engine_handle);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_ext_sock_addr::net_ebpf_extension_open_wfp_engine_handle failed.",
+            status);
+    }
+
 Exit:
     if (!NT_SUCCESS(status)) {
         if (blocked_connection_contexts_initialized) {
@@ -1293,6 +1306,12 @@ net_ebpf_ext_sock_addr_unregister_providers()
 
     _net_ebpf_ext_uninitialize_blocked_connection_contexts();
     _net_ebpf_sock_addr_clean_up_security_descriptor();
+
+    if (_net_ebpf_extension_sock_addr_wfp_engine_handle) {
+        if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_sock_addr_wfp_engine_handle))) {
+            _net_ebpf_extension_sock_addr_wfp_engine_handle = NULL;
+        }
+    }
 }
 
 typedef enum _net_ebpf_extension_sock_addr_connection_direction
