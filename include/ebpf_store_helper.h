@@ -16,7 +16,8 @@ extern "C"
 
     typedef HKEY ebpf_store_key_t;
 
-    extern ebpf_store_key_t ebpf_store_root_key;
+    extern ebpf_store_key_t ebpf_store_hkcu_root_key;
+    extern ebpf_store_key_t ebpf_store_hklm_root_key;
     extern const wchar_t* ebpf_store_root_sub_key;
 
     /**
