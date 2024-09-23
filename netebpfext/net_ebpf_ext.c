@@ -225,7 +225,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
     }};
 
 // WFP globals
-static EX_SPIN_LOCK _fwp_engine_lock = 0;
+static EX_SPIN_LOCK _fwp_engine_lock = {0};
 _Guarded_by_(_fwp_engine_lock) static HANDLE _fwp_engine_handle;
 
 //
