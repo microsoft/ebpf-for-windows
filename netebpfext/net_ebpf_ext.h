@@ -27,10 +27,10 @@
 
 // Note: The maximum number of clients that can attach per-hook in multi-attach case has been currently capped to
 // a constant value to keep the implementation simple. Keeping the max limit constant allows allocating the memory
-// required for creating a copy of list of clients on the stack itself. In the future, if there is a need to increase
-// this maximum count, the value can be simply increased as long as the required memory can still be allocated on stack.
-// If the required memory becomes too large, we may need to switch to a different design to handle this. One option is
-// to use epoch based memory management for the list of clients. This eliminates the need to create a copy of programs
+// required for creating a copy of list of clients on the stack itself. In the future, if there is a need to increase this
+// maximum count, the value can be simply increased as long as the required memory can still be allocated on stack. If
+// the required memory becomes too large, we may need to switch to a different design to handle this. One option is to
+// use epoch based memory management for the list of clients. This eliminates the need to create a copy of programs
 // per-invocation. Another option can be to always invoke the programs while holding the socket context lock, but that
 // comes with a side effect of every program invocation now happening at DISPATCH_LEVEL.
 #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH 16
