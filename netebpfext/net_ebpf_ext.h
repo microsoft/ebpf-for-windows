@@ -247,7 +247,6 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 /**
  * @brief Add WFP filters with specified conditions at specified layers.
  *
- * @param[in] wfp_filter_handle The WFP filter handle used to add the filters.
  * @param[in] filter_count Count of filters to be added.
  * @param[in] parameters Filter parameters.
  * @param[in] condition_count Count of filter conditions.
@@ -260,7 +259,6 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  */
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
-    _In_ HANDLE wfp_engine_handle,
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
@@ -271,15 +269,12 @@ net_ebpf_extension_add_wfp_filters(
 /**
  * @brief Deletes WFP filters with specified filter IDs.
  *
- * @param[in] wfp_filter_handle The WFP filter handle used to delete the filters.
  * @param[in]  filter_count Count of filters to be added.
  * @param[in]  filter_ids ID of the filter being deleted.
  */
 void
 net_ebpf_extension_delete_wfp_filters(
-    _In_ HANDLE wfp_engine_handle,
-    uint32_t filter_count,
-    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
+    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162
@@ -328,9 +323,10 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object);
 /**
  * @brief Unregister the WFP callouts.
  *
+ * @param locked True if the caller has already acquired the lock, false otherwise.
  */
 void
-net_ebpf_extension_uninitialize_wfp_components(void);
+net_ebpf_extension_uninitialize_wfp_components(bool locked);
 
 /**
  * @brief Register network extension NPI providers with eBPF core.
@@ -376,9 +372,3 @@ ebpf_result_t
 net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
-
-NTSTATUS
-net_ebpf_extension_open_wfp_engine_handle(HANDLE* wfp_engine_handle);
-
-NTSTATUS
-net_ebpf_extension_close_wfp_engine_handle(HANDLE wfp_engine_handle);

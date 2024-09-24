@@ -45,7 +45,7 @@ _net_ebpf_ext_driver_uninitialize_objects()
 
     net_ebpf_ext_unregister_providers();
 
-    net_ebpf_extension_uninitialize_wfp_components();
+    net_ebpf_extension_uninitialize_wfp_components(false);
 
     net_ebpf_ext_uninitialize_ndis_handles();
 
