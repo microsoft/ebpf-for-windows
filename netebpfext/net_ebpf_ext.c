@@ -806,10 +806,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
         // Clean up the sub layers.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
-            status = FwpmSubLayerDeleteByKey0(_fwp_engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
+            status = FwpmSubLayerDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
             if (!NT_SUCCESS(status) && !WFP_ERROR(status, SUBLAYER_NOT_FOUND)) {
                 NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey0", status);
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
             }
         }
 
