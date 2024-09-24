@@ -856,7 +856,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
 
     // Try to load the same native module again, which should fail.
     result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
-    REQUIRE(result == -ENOENT);
+    REQUIRE(result == -EBUSY);
 
     // Close the native module handle. That should result in the module to be unloaded.
     REQUIRE(_close(native_module_fd) == 0);
