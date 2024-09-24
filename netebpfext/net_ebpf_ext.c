@@ -751,7 +751,7 @@ Exit:
         }
 
         if (is_engine_opened) {
-            net_ebpf_extension_uninitialize_wfp_components();
+            net_ebpf_extension_uninitialize_wfp_components(false);
         }
     }
 
@@ -760,12 +760,14 @@ Exit:
 }
 
 void
-net_ebpf_extension_uninitialize_wfp_components(void)
+net_ebpf_extension_uninitialize_wfp_components(bool locked)
 {
     size_t index;
     NTSTATUS status;
 
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_fwp_engine_lock);
+    if (!locked) {
+        ACQUIRE_PUSH_LOCK_EXCLUSIVE(&_fwp_engine_lock);
+    }
 
     if (_fwp_engine_handle != NULL) {
         status = FwpmEngineClose(_fwp_engine_handle);
@@ -783,7 +785,9 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
     }
 
-    RELEASE_PUSH_LOCK_EXCLUSIVE(&_fwp_engine_lock);
+    if (!locked) {
+        RELEASE_PUSH_LOCK_EXCLUSIVE(&_fwp_engine_lock);
+    }
 
     // FwpsInjectionHandleCreate can fail. So, check for NULL.
     if (_net_ebpf_ext_l2_injection_handle != NULL) {
