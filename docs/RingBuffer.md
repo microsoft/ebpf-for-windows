@@ -32,10 +32,10 @@ mmap/epoll consumer:
 /**
  * @brief Output record to ringbuf
  *
- * Note newly added flags (to specify wakeup options).
+ * Note newly added flag values (to specify wakeup options).
  *
- * Wakeup options:
- * - auto (default): Notify if consumer has caught up.
+ * Wakeup options (flags):
+ * - 0 (auto/default): Notify if consumer has caught up.
  * - BPF_RB_FORCE_WAKEUP - Always notify consumer.
  * - BPF_RB_NO_WAKEUP - Never notify consumer.
  *
@@ -44,7 +44,14 @@ ebpf_result_t
 ebpf_ring_buffer_output(ebpf_ring_buffer_t* ring, uint8_t* data, size_t length, size_t flags)
 ```
 
-### Updated libbpf ringbuf API
+### Updated supported libbpf functions
+
+One part to be settled is what epoll_fd should return:
+- On linux epoll_fd returns an int file descriptor.
+- IOCP uses a HANDLE to reference IOCP objects.
+
+Returning an int epoll fd could give complete linux ebpf code compatibility, but would require an epoll wrapper around IOCP calls, if we change the libbpf signature to return a HANDLE then it could be directly waited on with
+[GetQueuedCompletionStatus](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-getqueuedcompletionstatus) or GetQueuedCompletionStatusEx.
 
 ```c
 
