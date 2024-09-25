@@ -46,13 +46,6 @@ ebpf_ring_buffer_output(ebpf_ring_buffer_t* ring, uint8_t* data, size_t length, 
 
 ### Updated supported libbpf functions
 
-One part to be settled is what epoll_fd should return:
-- On linux epoll_fd returns an int file descriptor.
-- IOCP uses a HANDLE to reference IOCP objects.
-
-Returning an int epoll fd could give complete linux ebpf code compatibility, but would require an epoll wrapper around IOCP calls, if we change the libbpf signature to return a HANDLE then it could be directly waited on with
-[GetQueuedCompletionStatus](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-getqueuedcompletionstatus) or GetQueuedCompletionStatusEx.
-
 ```c
 
 struct ring_buffer;
