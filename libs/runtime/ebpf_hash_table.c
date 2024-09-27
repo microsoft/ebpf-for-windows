@@ -53,9 +53,10 @@ typedef struct _ebpf_hash_bucket_header_and_lock
  */
 struct _ebpf_hash_table
 {
-    size_t bucket_count;            // Count of buckets.
-    size_t bucket_count_mask;       // Mask to use to get bucket index from hash.
-    volatile size_t entry_count;    // Count of entries in the hash table.
+    size_t bucket_count;      // Count of buckets.
+    size_t bucket_count_mask; // Mask to use to get bucket index from hash.
+    volatile size_t
+        entry_count; // Count of entries in the hash table. Only valid if max_entry_count != EBPF_HASH_TABLE_NO_LIMIT.
     size_t max_entry_count;         // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
     uint32_t seed;                  // Seed used for hashing.
     size_t key_size;                // Size of key.
@@ -368,10 +369,12 @@ _ebpf_hash_table_bucket_insert(
     ebpf_hash_bucket_header_t* local_new_bucket = NULL;
     ebpf_hash_bucket_header_t* backup_bucket = NULL;
 
-    size_t new_entry_count = ebpf_interlocked_increment_int64((volatile int64_t*)&hash_table->entry_count);
-    if (new_entry_count > hash_table->max_entry_count && hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
-        result = EBPF_OUT_OF_SPACE;
-        goto Done;
+    if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
+        size_t new_entry_count = ebpf_interlocked_increment_int64((volatile int64_t*)&hash_table->entry_count);
+        if (new_entry_count > hash_table->max_entry_count) {
+            result = EBPF_OUT_OF_SPACE;
+            goto Done;
+        }
     }
 
     // Allocate new bucket.
@@ -413,8 +416,10 @@ Done:
     hash_table->free(local_new_bucket);
     hash_table->free(backup_bucket);
 
-    if (result != EBPF_SUCCESS) {
-        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+    if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
+        if (result != EBPF_SUCCESS) {
+            ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+        }
     }
 
     return result;
@@ -482,7 +487,9 @@ _ebpf_hash_table_bucket_delete(
     *new_bucket = backup_bucket;
 
 Done:
-    ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+    if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
+        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+    }
 
     return;
 }
@@ -965,7 +972,20 @@ ebpf_hash_table_next_key(
 size_t
 ebpf_hash_table_key_count(_In_ const ebpf_hash_table_t* hash_table)
 {
-    return hash_table->entry_count;
+    // If max_entry_count is being enforced, return the current count.
+    if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
+        return hash_table->entry_count;
+    } else {
+        // Otherwise, count the keys in the hash table.
+        size_t count = 0;
+        for (size_t i = 0; i < hash_table->bucket_count; i++) {
+            ebpf_hash_bucket_header_t* bucket = hash_table->buckets[i].header;
+            if (bucket) {
+                count += bucket->count;
+            }
+        }
+        return count;
+    }
 }
 
 _Must_inspect_result_ ebpf_result_t
