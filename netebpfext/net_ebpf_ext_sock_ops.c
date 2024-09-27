@@ -512,8 +512,7 @@ net_ebpf_extension_sock_ops_flow_established_classify(
     local_flow_context->parameters.layer_id = incoming_fixed_values->layerId;
     local_flow_context->parameters.callout_id = net_ebpf_extension_get_callout_id_for_hook(hook_id);
 
-    program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_ops_context, &filter_context->base, &result);
+    program_result = net_ebpf_extension_hook_invoke_programs(sock_ops_context, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No program is attached to this hook.
         NET_EBPF_EXT_LOG_MESSAGE(
@@ -608,8 +607,7 @@ net_ebpf_extension_sock_ops_flow_delete(uint16_t layer_id, uint32_t callout_id, 
     // Invoke eBPF program with connection deleted socket event.
     sock_ops_context = &local_flow_context->context.context;
     sock_ops_context->op = BPF_SOCK_OPS_CONNECTION_DELETED_CB;
-    if (net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_ops_context, &filter_context->base, &result) !=
-        EBPF_SUCCESS) {
+    if (net_ebpf_extension_hook_invoke_programs(sock_ops_context, &filter_context->base, &result) != EBPF_SUCCESS) {
         goto Exit;
     }
 

@@ -325,10 +325,10 @@ function ArchiveKernelModeDumpOnVM
             Write-Output `
                 "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
-            # Retry 3 times.
+            # Retry 3 times to ensure compression operation succeeds.
             # Error message: "The process cannot access the file 'C:\Windows\MEMORY.DMP' because it is being used by another process."
-            $retryCount = 3
-            while ($retryCount -gt 0) {
+            $retryCount = 1
+            while ($retryCount -lt 4) {
                 try {
                     Compress-Archive `
                         -Path "$KernelModeDumpFileSourcePath\*.dmp" `
@@ -339,8 +339,8 @@ function ArchiveKernelModeDumpOnVM
                 } catch {
                     $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $_. Retry"
                     Write-Output $ErrorMessage
-                    Start-Sleep -seconds 5
-                    $retryCount--
+                    Start-Sleep -seconds 5 * $retryCount
+                    $retryCount++
                 }
             }
 

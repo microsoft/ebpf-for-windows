@@ -145,7 +145,7 @@ try {
 } catch {
     Write-Log "Error getting available disk space: $_"
     $BeforeTestFreeSpaceGB = "Unknown"
-    // Continue with the test.
+    # Continue with the test.
 }
 Write-Log "Available System disk space (Before test start): $BeforeTestFreeSpaceGB GB"
 
@@ -190,7 +190,7 @@ if (-not $WaitResult) {
     } catch {
         Write-Log "Error getting available disk space: $_"
         $DriveFreeSpaceGB = "Unknown"
-        // Continue with the test.
+        # Continue with the test.
     }
     Write-Log "Current available disk space: $DriveFreeSpaceGB GB`n"
 

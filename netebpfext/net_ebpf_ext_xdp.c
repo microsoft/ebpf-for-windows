@@ -725,8 +725,7 @@ net_ebpf_ext_layer_2_classify(
         net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    program_result =
-        net_ebpf_extension_hook_expand_stack_and_invoke_programs(&net_xdp_ctx, &filter_context->base, &result);
+    program_result = net_ebpf_extension_hook_invoke_programs(&net_xdp_ctx, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No programs found.
         goto Exit;

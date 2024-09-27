@@ -302,7 +302,7 @@ net_ebpf_ext_resource_allocation_classify(
 
     _net_ebpf_ext_resource_truncate_appid(ctx);
 
-    program_result = net_ebpf_extension_hook_expand_stack_and_invoke_programs(ctx, filter_context, &result);
+    program_result = net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No program found.
         NET_EBPF_EXT_LOG_MESSAGE(
@@ -397,7 +397,7 @@ net_ebpf_ext_resource_release_classify(
     _net_ebpf_ext_resource_truncate_appid(ctx);
 
     // Ignore the result of this call as we don't want to block the unbind.
-    (void)net_ebpf_extension_hook_expand_stack_and_invoke_programs(ctx, filter_context, &result);
+    (void)net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
 
     classify_output->actionType = FWP_ACTION_PERMIT;
 
