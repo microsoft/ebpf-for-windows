@@ -33,6 +33,9 @@
   <PropertyGroup Condition="'$(Fuzzer)'!='True' And '$(Configuration)'!='FuzzerDebug'">
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
+  <PropertyGroup>
+    <ClangExec>"$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe"</ClangExec>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
