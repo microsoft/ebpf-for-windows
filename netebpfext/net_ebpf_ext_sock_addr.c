@@ -1570,7 +1570,8 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
         goto Exit;
     }
 
-    program_result = net_ebpf_extension_hook_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
+    program_result =
+        net_ebpf_extension_hook_expand_stack_and_invoke_programs(sock_addr_ctx, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No eBPF program is attached to this filter.
         goto Exit;

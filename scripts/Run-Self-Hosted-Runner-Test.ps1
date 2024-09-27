@@ -152,7 +152,7 @@ Write-Log "Available System disk space (Before test start): $BeforeTestFreeSpace
 # Start the test process using the provided command and arguments.
 $FullTestCommandSpec = Join-Path $Pwd $TestCommand
 Write-Log "`n`n"
-Write-Log "Staring Test command: $FullTestCommandSpec $TestArguments"
+Write-Log "Starting Test command: $FullTestCommandSpec $TestArguments"
 Write-Log "Test hang timeout: $TestHangTimeout (seconds)"
 Write-Log "`n"
 

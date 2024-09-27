@@ -4,11 +4,7 @@
 #include "ebpf_extension_uuids.h"
 #include "net_ebpf_ext_hook_provider.h"
 
-#ifdef _DEBUG
-#define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 32
-#else
 #define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 16
-#endif // _DEBUG
 
 typedef struct _net_ebpf_ext_hook_client_rundown
 {
