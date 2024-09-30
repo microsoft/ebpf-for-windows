@@ -9,8 +9,6 @@
 #include "ebpf_shared_framework.h"
 #include "net_ebpf_ext_xdp.h"
 
-static HANDLE _net_ebpf_extension_xdp_wfp_engine_handle = NULL;
-
 //
 // Utility functions.
 //
@@ -169,7 +167,7 @@ _net_ebpf_extension_xdp_create_filter_context(
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_XDP_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
-        _net_ebpf_extension_xdp_wfp_engine_handle,
+        xdp_filter_context->base.wfp_engine_handle,
         filter_count,
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
@@ -245,7 +243,7 @@ _net_ebpf_extension_xdp_delete_filter_context(
     xdp_filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter_context;
 
     net_ebpf_extension_delete_wfp_filters(
-        _net_ebpf_extension_xdp_wfp_engine_handle,
+        filter_context->wfp_engine_handle,
         xdp_filter_context->base.filter_ids_count,
         xdp_filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)xdp_filter_context);
@@ -298,16 +296,6 @@ net_ebpf_ext_xdp_register_providers()
         goto Exit;
     }
 
-    status = net_ebpf_extension_open_wfp_engine_handle(&_net_ebpf_extension_xdp_wfp_engine_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
-            "net_ebpf_ext_xdp::net_ebpf_extension_open_wfp_engine_handle failed.",
-            status);
-        goto Exit;
-    }
-
 Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_xdp_unregister_providers();
@@ -325,11 +313,6 @@ net_ebpf_ext_xdp_unregister_providers()
     if (_ebpf_xdp_test_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_test_program_info_provider_context);
         _ebpf_xdp_test_program_info_provider_context = NULL;
-    }
-    if (_net_ebpf_extension_xdp_wfp_engine_handle != NULL) {
-        if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_xdp_wfp_engine_handle))) {
-            _net_ebpf_extension_xdp_wfp_engine_handle = NULL;
-        }
     }
 }
 

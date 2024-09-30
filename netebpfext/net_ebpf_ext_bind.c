@@ -19,8 +19,6 @@ typedef struct _bind_context_header
 // WFP filter related globals for bind hook.
 //
 
-static HANDLE _net_ebpf_extension_bind_wfp_engine_handle = NULL;
-
 const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_filter_parameters[] = {
     {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4,
      NULL, // Default sublayer.
@@ -123,7 +121,7 @@ _net_ebpf_ext_bind_create_filter_context(
 
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     result = net_ebpf_extension_add_wfp_filters(
-        _net_ebpf_extension_bind_wfp_engine_handle,
+        local_filter_context->wfp_engine_handle,
         EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters),
         _net_ebpf_extension_bind_wfp_filter_parameters,
         0,
@@ -155,7 +153,7 @@ _net_ebpf_ext_bind_delete_filter_context(
 
     // Delete the WFP filters.
     net_ebpf_extension_delete_wfp_filters(
-        _net_ebpf_extension_bind_wfp_engine_handle, filter_context->filter_ids_count, filter_context->filter_ids);
+        filter_context->wfp_engine_handle, filter_context->filter_ids_count, filter_context->filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)filter_context);
 
 Exit:
@@ -208,16 +206,6 @@ net_ebpf_ext_bind_register_providers()
         goto Exit;
     }
 
-    status = net_ebpf_extension_open_wfp_engine_handle(&_net_ebpf_extension_bind_wfp_engine_handle);
-    if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_BIND,
-            "net_ebpf_ext_bind::net_ebpf_extension_open_fwp_engine_handle",
-            status);
-        goto Exit;
-    }
-
 Exit:
     if (!NT_SUCCESS(status)) {
         net_ebpf_ext_bind_unregister_providers();
@@ -235,11 +223,6 @@ net_ebpf_ext_bind_unregister_providers()
     if (_ebpf_bind_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_bind_program_info_provider_context);
         _ebpf_bind_program_info_provider_context = NULL;
-    }
-    if (_net_ebpf_extension_bind_wfp_engine_handle != NULL) {
-        if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_bind_wfp_engine_handle))) {
-            _net_ebpf_extension_bind_wfp_engine_handle = NULL;
-        }
     }
 }
 

@@ -140,17 +140,21 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
     bool initialized : 1;      ///< True if the filter context has been successfully initialized.
+    HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)            \
-    if ((filter_context) != NULL) {                        \
-        if ((filter_context)->filter_ids != NULL) {        \
-            ExFreePool((filter_context)->filter_ids);      \
-        }                                                  \
-        if ((filter_context)->client_contexts != NULL) {   \
-            ExFreePool((filter_context)->client_contexts); \
-        }                                                  \
-        ExFreePool((filter_context));                      \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                                              \
+    if ((filter_context) != NULL) {                                                          \
+        if ((filter_context)->filter_ids != NULL) {                                          \
+            ExFreePool((filter_context)->filter_ids);                                        \
+        }                                                                                    \
+        if ((filter_context)->client_contexts != NULL) {                                     \
+            ExFreePool((filter_context)->client_contexts);                                   \
+        }                                                                                    \
+        if ((filter_context)->wfp_engine_handle != NULL) {                                   \
+            net_ebpf_extension_close_wfp_engine_handle((filter_context)->wfp_engine_handle); \
+        }                                                                                    \
+        ExFreePool((filter_context));                                                        \
     }
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \

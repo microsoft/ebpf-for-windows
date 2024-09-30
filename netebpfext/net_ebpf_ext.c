@@ -230,6 +230,25 @@ static HANDLE _fwp_engine_handle;
 //
 // WFP component management related utility functions.
 //
+NTSTATUS
+net_ebpf_extension_open_wfp_engine_handle(_Out_ HANDLE* wfp_engine_handle)
+{
+    if (wfp_engine_handle == NULL) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    return FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, wfp_engine_handle);
+}
+
+NTSTATUS
+net_ebpf_extension_close_wfp_engine_handle(_In_ HANDLE wfp_engine_handle)
+{
+    if (wfp_engine_handle == NULL) {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    return FwpmEngineClose(wfp_engine_handle);
+}
 
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
@@ -238,6 +257,7 @@ net_ebpf_extension_wfp_filter_context_create(
     _In_ const net_ebpf_extension_hook_provider_t* provider_context,
     _Outptr_ net_ebpf_extension_wfp_filter_context_t** filter_context)
 {
+    NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
     uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
@@ -286,6 +306,15 @@ net_ebpf_extension_wfp_filter_context_create(
 
     // Set the provider context.
     local_filter_context->provider_context = provider_context;
+
+    // Open the WFP engine handle.
+    status = net_ebpf_extension_open_wfp_engine_handle(&local_filter_context->wfp_engine_handle);
+    if (!NT_SUCCESS(status)) {
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "net_ebpf_extension_open_wfp_engine_handle", status);
+        result = EBPF_FAILED;
+        goto Exit;
+    }
 
     *filter_context = local_filter_context;
     local_filter_context = NULL;
@@ -660,26 +689,6 @@ net_ebpf_ext_uninitialize_ndis_handles()
     if (_net_ebpf_ext_ndis_handle != NULL) {
         NdisFreeGenericObject((NDIS_GENERIC_OBJECT*)_net_ebpf_ext_ndis_handle);
     }
-}
-
-NTSTATUS
-net_ebpf_extension_open_wfp_engine_handle(_Out_ HANDLE* wfp_engine_handle)
-{
-    if (wfp_engine_handle == NULL) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    return FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, wfp_engine_handle);
-}
-
-NTSTATUS
-net_ebpf_extension_close_wfp_engine_handle(_In_ HANDLE wfp_engine_handle)
-{
-    if (wfp_engine_handle == NULL) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    return FwpmEngineClose(wfp_engine_handle);
 }
 
 NTSTATUS
