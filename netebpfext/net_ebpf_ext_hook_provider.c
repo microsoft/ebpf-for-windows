@@ -5,7 +5,7 @@
 #include "net_ebpf_ext_hook_provider.h"
 
 #ifdef _DEBUG
-#define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 20
+#define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 16
 #else
 #define NET_EBPF_EXT_STACK_EXPANSION_SIZE 1024 * 4
 #endif
