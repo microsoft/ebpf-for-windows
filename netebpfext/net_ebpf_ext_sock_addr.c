@@ -1299,7 +1299,7 @@ net_ebpf_ext_sock_addr_unregister_providers()
             _ebpf_sock_addr_hook_provider_context[i] = NULL;
         }
     }
-    if (_ebpf_sock_addr_program_info_provider_context) {
+    if (_ebpf_sock_addr_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_addr_program_info_provider_context);
         _ebpf_sock_addr_program_info_provider_context = NULL;
     }
@@ -1307,7 +1307,7 @@ net_ebpf_ext_sock_addr_unregister_providers()
     _net_ebpf_ext_uninitialize_blocked_connection_contexts();
     _net_ebpf_sock_addr_clean_up_security_descriptor();
 
-    if (_net_ebpf_extension_sock_addr_wfp_engine_handle) {
+    if (_net_ebpf_extension_sock_addr_wfp_engine_handle != NULL) {
         if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_sock_addr_wfp_engine_handle))) {
             _net_ebpf_extension_sock_addr_wfp_engine_handle = NULL;
         }

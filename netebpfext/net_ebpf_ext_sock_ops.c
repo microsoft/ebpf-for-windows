@@ -368,15 +368,15 @@ Exit:
 void
 net_ebpf_ext_sock_ops_unregister_providers()
 {
-    if (_ebpf_sock_ops_hook_provider_context) {
+    if (_ebpf_sock_ops_hook_provider_context != NULL) {
         net_ebpf_extension_hook_provider_unregister(_ebpf_sock_ops_hook_provider_context);
         _ebpf_sock_ops_hook_provider_context = NULL;
     }
-    if (_ebpf_sock_ops_program_info_provider_context) {
+    if (_ebpf_sock_ops_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_ops_program_info_provider_context);
         _ebpf_sock_ops_program_info_provider_context = NULL;
     }
-    if (_net_ebpf_extension_sock_ops_wfp_engine_handle) {
+    if (_net_ebpf_extension_sock_ops_wfp_engine_handle != NULL) {
         if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_sock_ops_wfp_engine_handle))) {
             _net_ebpf_extension_sock_ops_wfp_engine_handle = NULL;
         }

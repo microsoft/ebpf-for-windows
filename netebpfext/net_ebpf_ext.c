@@ -383,7 +383,7 @@ net_ebpf_extension_delete_wfp_filters(
     NET_EBPF_EXT_LOG_ENTRY();
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (!wfp_engine_handle) {
+    if (wfp_engine_handle == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "WFP engine handle is NULL");
     } else {
@@ -426,7 +426,7 @@ net_ebpf_extension_add_wfp_filters(
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    if (!wfp_engine_handle) {
+    if (wfp_engine_handle == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "WFP engine handle is NULL");
         result = EBPF_INVALID_ARGUMENT;
@@ -663,9 +663,9 @@ net_ebpf_ext_uninitialize_ndis_handles()
 }
 
 NTSTATUS
-net_ebpf_extension_open_wfp_engine_handle(HANDLE* wfp_engine_handle)
+net_ebpf_extension_open_wfp_engine_handle(_Out_ HANDLE* wfp_engine_handle)
 {
-    if (!wfp_engine_handle) {
+    if (wfp_engine_handle == NULL) {
         return STATUS_INVALID_PARAMETER;
     }
 
@@ -673,9 +673,9 @@ net_ebpf_extension_open_wfp_engine_handle(HANDLE* wfp_engine_handle)
 }
 
 NTSTATUS
-net_ebpf_extension_close_wfp_engine_handle(HANDLE wfp_engine_handle)
+net_ebpf_extension_close_wfp_engine_handle(_In_ HANDLE wfp_engine_handle)
 {
-    if (!wfp_engine_handle) {
+    if (wfp_engine_handle == NULL) {
         return STATUS_INVALID_PARAMETER;
     }
 

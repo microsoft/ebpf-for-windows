@@ -228,15 +228,15 @@ Exit:
 void
 net_ebpf_ext_bind_unregister_providers()
 {
-    if (_ebpf_bind_hook_provider_context) {
+    if (_ebpf_bind_hook_provider_context != NULL) {
         net_ebpf_extension_hook_provider_unregister(_ebpf_bind_hook_provider_context);
         _ebpf_bind_hook_provider_context = NULL;
     }
-    if (_ebpf_bind_program_info_provider_context) {
+    if (_ebpf_bind_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_bind_program_info_provider_context);
         _ebpf_bind_program_info_provider_context = NULL;
     }
-    if (_net_ebpf_extension_bind_wfp_engine_handle) {
+    if (_net_ebpf_extension_bind_wfp_engine_handle != NULL) {
         if (NT_SUCCESS(net_ebpf_extension_close_wfp_engine_handle(_net_ebpf_extension_bind_wfp_engine_handle))) {
             _net_ebpf_extension_bind_wfp_engine_handle = NULL;
         }
