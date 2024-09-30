@@ -53,6 +53,16 @@ function Invoke-CICDTestsOnVM
                     -Coverage $Coverage `
                     -TestHangTimeout $TestHangTimeout `
                     -UserModeDumpFolder $UserModeDumpFolder `
+                    -ExecuteSystemTests $true `
+                    2>&1 | Write-Log
+            }
+            "regression" {
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -Coverage $Coverage `
+                    -TestHangTimeout $TestHangTimeout `
+                    -UserModeDumpFolder $UserModeDumpFolder `
+                    -ExecuteSystemTests $false `
                     2>&1 | Write-Log
             }
             "stress" {
