@@ -341,6 +341,33 @@ _ebpf_hash_table_bucket_entry(size_t key_size, _In_ const ebpf_hash_bucket_heade
 }
 
 /**
+ * @brief Helper function to ensure correct memory ordering when reading a bucket from the hash table.
+ *
+ * @param[in] hash_table Pointer to the hash table.
+ * @param[in] bucket_index Index of the bucket to read.
+ * @return Pointer to the bucket or NULL if the bucket is empty.
+ */
+static inline ebpf_hash_bucket_header_t*
+_ebpf_hash_table_get_bucket(_In_ const ebpf_hash_table_t* hash_table, size_t bucket_index)
+{
+    return (ebpf_hash_bucket_header_t*)ReadSizeTAcquire((ULONG_PTR*)&(hash_table->buckets[bucket_index].header));
+}
+
+/**
+ * @brief Helper function to ensure correct memory ordering when writing a bucket to the hash table.
+ *
+ * @param[in] hash_table Pointer to the hash table.
+ * @param[in] bucket_index Index of the bucket to write.
+ * @param[in] bucket Bucket pointer to write.
+ */
+static inline void
+_ebpf_hash_table_set_bucket(
+    _In_ ebpf_hash_table_t* hash_table, size_t bucket_index, _In_opt_ ebpf_hash_bucket_header_t* bucket)
+{
+    WriteSizeTRelease((ULONG_PTR*)&(hash_table->buckets[bucket_index].header), (ULONG_PTR)bucket);
+}
+
+/**
  * @brief Build a replacement bucket with the given entry inserted at the end.
  * Caller must free the old bucket.
  * Caller must ensure that the entry is not already in the bucket.
@@ -370,7 +397,7 @@ _ebpf_hash_table_bucket_insert(
     ebpf_hash_bucket_header_t* backup_bucket = NULL;
 
     if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
-        size_t new_entry_count = ebpf_interlocked_increment_int64((volatile int64_t*)&hash_table->entry_count);
+        size_t new_entry_count = ebpf_interlocked_increment_int64_no_fence((volatile int64_t*)&hash_table->entry_count);
         if (new_entry_count > hash_table->max_entry_count) {
             result = EBPF_OUT_OF_SPACE;
             goto Done;
@@ -418,7 +445,7 @@ Done:
 
     if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
         if (result != EBPF_SUCCESS) {
-            ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+            ebpf_interlocked_decrement_int64_no_fence((volatile int64_t*)&hash_table->entry_count);
         }
     }
 
@@ -488,7 +515,7 @@ _ebpf_hash_table_bucket_delete(
 
 Done:
     if (hash_table->max_entry_count != EBPF_HASH_TABLE_NO_LIMIT) {
-        ebpf_interlocked_decrement_int64((volatile int64_t*)&hash_table->entry_count);
+        ebpf_interlocked_decrement_int64_no_fence((volatile int64_t*)&hash_table->entry_count);
     }
 
     return;
@@ -597,7 +624,7 @@ _ebpf_hash_table_replace_bucket(
     }
 
     // Find the old bucket.
-    old_bucket = hash_table->buckets[bucket_index].header;
+    old_bucket = _ebpf_hash_table_get_bucket(hash_table, bucket_index);
     size_t old_bucket_count = old_bucket ? old_bucket->count : 0;
 
     // Find the entry in the bucket, if any.
@@ -653,7 +680,7 @@ _ebpf_hash_table_replace_bucket(
 
     // Update the bucket in the hash table.
     // From this point on the new bucket is immutable.
-    hash_table->buckets[bucket_index].header = new_bucket;
+    _ebpf_hash_table_set_bucket(hash_table, bucket_index, new_bucket);
     new_data = NULL;
     new_bucket = NULL;
 
@@ -777,7 +804,7 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
 
     bucket_index = _ebpf_hash_table_compute_bucket_index(hash_table, key);
-    bucket = hash_table->buckets[bucket_index].header;
+    bucket = _ebpf_hash_table_get_bucket(hash_table, bucket_index);
     if (!bucket) {
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
@@ -883,7 +910,7 @@ ebpf_hash_table_next_key_pointer_and_value(
         (previous_key != NULL) ? _ebpf_hash_table_compute_bucket_index(hash_table, previous_key) : 0;
 
     for (bucket_index = starting_bucket_index; bucket_index < hash_table->bucket_count; bucket_index++) {
-        ebpf_hash_bucket_header_t* bucket = hash_table->buckets[bucket_index].header;
+        ebpf_hash_bucket_header_t* bucket = _ebpf_hash_table_get_bucket(hash_table, bucket_index);
         // Skip empty buckets.
         if (!bucket) {
             continue;
@@ -1008,7 +1035,7 @@ ebpf_hash_table_iterate(
         if (bucket_index >= hash_table->bucket_count) {
             break;
         }
-        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket_index].header;
+        ebpf_hash_bucket_header_t* bucket_header = _ebpf_hash_table_get_bucket(hash_table, bucket_index);
         // Check if the bucket is empty.
         if (!bucket_header) {
             bucket_index++;
@@ -1057,7 +1084,7 @@ ebpf_hash_table_next_key_and_value_sorted(
     uint8_t* next_key_pointer = NULL;
     uint8_t* next_value_pointer = NULL;
     for (size_t bucket_index = 0; bucket_index < hash_table->bucket_count; bucket_index++) {
-        ebpf_hash_bucket_header_t* bucket_header = hash_table->buckets[bucket_index].header;
+        ebpf_hash_bucket_header_t* bucket_header = _ebpf_hash_table_get_bucket(hash_table, bucket_index);
         if (!bucket_header) {
             continue;
         }
