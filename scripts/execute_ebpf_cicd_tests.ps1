@@ -16,11 +16,6 @@ param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
-# For test execution, "Regression" and "CI/CD" have same behavior.
-if ($TestMode -eq "Regression") {
-    $TestMode = "CI/CD"
-}
-
 $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
 $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
@@ -56,7 +51,7 @@ foreach ($VM in $VMList) {
 
 # This script is used to execute the various kernel mode tests. The required behavior is selected by the $TestMode
 # parameter.
-if ($TestMode -eq "CI/CD") {
+if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
 
     # Run XDP Tests.
     Invoke-XDPTestsOnVM `
