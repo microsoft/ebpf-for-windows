@@ -88,7 +88,9 @@ ebpf_random_initiate()
         return EBPF_NO_MEMORY;
     }
     for (uint32_t i = 0; i < cpu_count; i++) {
-        uint32_t seed = (uint32_t)__rdtsc();
+        LARGE_INTEGER time;
+        KeQueryPerformanceCounter(&time);
+        uint32_t seed = time.LowPart;
         ebpf_random_state_t* state = &_ebpf_random_number_generator_state[i];
         init_mt19937_genrand(state, seed);
     }
