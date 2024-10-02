@@ -315,7 +315,7 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
 #pragma warning(disable : 28160) //  Error annotation: DISPATCH_LEVEL is only supported on Windows 7 or later.
     // Expand the stack and call the program.
     status = KeExpandKernelStackAndCalloutEx(
-        (PEXPAND_STACK_CALLOUT)_net_ebpf_extension_invoke_programs_callout,
+        _net_ebpf_extension_invoke_programs_callout,
         &invoke_parameters,
         NET_EBPF_EXT_STACK_EXPANSION_SIZE,
         FALSE,

@@ -66,7 +66,7 @@ function GetDriveFreeSpaceGB
     # Convert drive to single letter (eg. "C:" to "C") for Get-Volume.
     $DriveSpecification = $DriveSpecification -replace ".$"
     $Volume = Get-Volume $DriveSpecification
-    if ($Volume -eq $null) {
+    if ($Volume -eq $Null) {
         ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Drive $DriveSpecification not found."
     }
     $FreeSpaceGB = (($Volume.SizeRemaining) / 1GB).ToString("F2")
