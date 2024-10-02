@@ -3255,7 +3255,7 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
         if (!program->autoload) {
             continue;
         }
-        if (!prog_is_subprog(object, program)) {
+        if (prog_is_subprog(object, program)) {
             continue;
         }
         result = _create_program(
@@ -3816,10 +3816,10 @@ _Ret_maybenull_ struct bpf_program*
 ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_program_t* program = nullptr;
+    const ebpf_program_t* program = previous;
 
     do {
-        program = __bpf_program__iter(previous, object, true);
+        program = __bpf_program__iter(program, object, true);
     } while (program && prog_is_subprog(object, program));
 
     EBPF_RETURN_POINTER(bpf_program*, program);
@@ -3830,10 +3830,10 @@ _Ret_maybenull_ struct bpf_program*
 ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_program_t* program = nullptr;
+    const ebpf_program_t* program = next;
 
     do {
-        program = __bpf_program__iter(next, object, false);
+        program = __bpf_program__iter(program, object, false);
     } while (program && prog_is_subprog(object, program));
 
     EBPF_RETURN_POINTER(bpf_program*, program);
