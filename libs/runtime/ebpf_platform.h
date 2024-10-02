@@ -390,6 +390,46 @@ extern "C"
     ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend);
 
     /**
+     * @brief Atomically increase the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    int32_t
+    ebpf_interlocked_increment_int32_no_fence(_Inout_ volatile int32_t* addend);
+
+    /**
+     * @brief Atomically decrease the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to decrease by 1.
+     * @return The new value.
+     */
+    int32_t
+    ebpf_interlocked_decrement_int32_no_fence(_Inout_ volatile int32_t* addend);
+
+    /**
+     * @brief Atomically increase the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    int64_t
+    ebpf_interlocked_increment_int64_no_fence(_Inout_ volatile int64_t* addend);
+
+    /**
+     * @brief Atomically decrease the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    int64_t
+    ebpf_interlocked_decrement_int64_no_fence(_Inout_ volatile int64_t* addend);
+
+    /**
      * @brief Performs an atomic operation that compares the input value pointed
      *  to by destination with the value of comparand and replaces it with
      *  exchange.
