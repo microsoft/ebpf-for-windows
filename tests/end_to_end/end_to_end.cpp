@@ -757,6 +757,40 @@ bindmonitor_test(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+static void
+_bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+
+    program_info_provider_t bind_program_info;
+    REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "bindmonitor_bpf2bpf_um.dll" : "bindmonitor_bpf2bpf.o");
+    program_load_attach_helper_t program_helper;
+    program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "BindMonitor_Caller", execution_type, nullptr, 0, hook);
+
+    // Dummy context (not used by the eBPF program).
+    bind_md_t ctx{};
+    uint32_t hook_result;
+
+    ctx.protocol = 0;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == BIND_DENY);
+
+    ctx.protocol = 1;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == BIND_REDIRECT);
+
+    ctx.protocol = 2;
+    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook_result == BIND_PERMIT);
+}
+
 void
 bindmonitor_tailcall_test(ebpf_execution_type_t execution_type)
 {
@@ -1054,6 +1088,7 @@ map_test(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
+DECLARE_ALL_TEST_CASES("bindmonitor-bpf2bpf", "[end_to_end]", _bindmonitor_bpf2bpf_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-tailcall", "[end_to_end]", bindmonitor_tailcall_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-ringbuf", "[end_to_end]", bindmonitor_ring_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_ring_buffer_test);
