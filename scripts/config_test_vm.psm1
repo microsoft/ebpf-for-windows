@@ -568,6 +568,7 @@ function Get-ZipFileFromUrl {
     for ($i = 0; $i -lt 5; $i++) {
         try {
             Write-Log "Downloading $Url to $DownloadFilePath"
+            $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
 
             Write-Log "Extracting $DownloadFilePath to $OutputDir"
@@ -694,7 +695,23 @@ function Get-VCRedistributable {
     $DownloadPath = "$pwd\vc-redist"
     mkdir $DownloadPath
     Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
+    $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest -Uri $url -OutFile "$DownloadPath\vc_redist.x64.exe"
     Move-Item -Path "$DownloadPath\vc_redist.x64.exe" -Destination $pwd -Force
+    Remove-Item -Path $DownloadPath -Force -Recurse
+}
+
+# Download and extract PSExec to run tests as SYSTEM.
+function Get-PSExec {
+    $url = "https://download.sysinternals.com/files/PSTools.zip"
+    $DownloadPath = "$pwd\psexec"
+    mkdir $DownloadPath
+    Write-Host "Downloading PSExec from $url to $DownloadPath"
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip"
+    cd $DownloadPath
+    Expand-Archive -Path "$DownloadPath\pstools.zip" -Force
+    cd ..
+    Move-Item -Path "$DownloadPath\PSTools\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
