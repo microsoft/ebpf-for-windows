@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x64</Platform>
-    <ProductVersion>3.10</ProductVersion>
+    <ProductVersion>3.14</ProductVersion>
     <ProjectGuid>fe9b26cd-e885-4881-90d7-a096131c5c4a</ProjectGuid>
     <SchemaVersion>2.0</SchemaVersion>
     <OutputName>ebpf-for-windows</OutputName>
