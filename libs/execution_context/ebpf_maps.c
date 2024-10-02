@@ -1598,7 +1598,6 @@ _update_hash_map_entry_with_handle(
     ebpf_map_option_t option)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t entry_count = 0;
 
     // The 'map' and 'key' arguments cannot be NULL due to caller's prior validations.
     ebpf_assert(map != NULL && key != NULL);
@@ -1634,8 +1633,6 @@ _update_hash_map_entry_with_handle(
     }
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-
-    entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
