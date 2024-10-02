@@ -230,25 +230,6 @@ static HANDLE _fwp_engine_handle;
 //
 // WFP component management related utility functions.
 //
-NTSTATUS
-net_ebpf_extension_open_wfp_engine_handle(_Out_ HANDLE* wfp_engine_handle)
-{
-    if (wfp_engine_handle == NULL) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    return FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, wfp_engine_handle);
-}
-
-NTSTATUS
-net_ebpf_extension_close_wfp_engine_handle(_In_ HANDLE wfp_engine_handle)
-{
-    if (wfp_engine_handle == NULL) {
-        return STATUS_INVALID_PARAMETER;
-    }
-
-    return FwpmEngineClose(wfp_engine_handle);
-}
 
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
@@ -308,10 +289,9 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->provider_context = provider_context;
 
     // Open the WFP engine handle.
-    status = net_ebpf_extension_open_wfp_engine_handle(&local_filter_context->wfp_engine_handle);
+    status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &local_filter_context->wfp_engine_handle);
     if (!NT_SUCCESS(status)) {
-        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "net_ebpf_extension_open_wfp_engine_handle", status);
+        NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
         result = EBPF_FAILED;
         goto Exit;
     }
@@ -412,26 +392,23 @@ net_ebpf_extension_delete_wfp_filters(
     NET_EBPF_EXT_LOG_ENTRY();
     NTSTATUS status = STATUS_SUCCESS;
 
-    if (wfp_engine_handle == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "WFP engine handle is NULL");
-    } else {
-        for (uint32_t index = 0; index < filter_count; index++) {
-            status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
-            if (!NT_SUCCESS(status)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
-                filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
-                filter_ids[index].error_code = status;
-            } else {
-                NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                    NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                    "Marked WFP filter for deletion: ",
-                    index,
-                    filter_ids[index].id);
-                filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
-            }
+    ASSERT(wfp_engine_handle != NULL);
+
+    for (uint32_t index = 0; index < filter_count; index++) {
+        status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
+        if (!NT_SUCCESS(status)) {
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
+            filter_ids[index].error_code = status;
+        } else {
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Marked WFP filter for deletion: ",
+                index,
+                filter_ids[index].id);
+            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         }
     }
     NET_EBPF_EXT_LOG_EXIT();
@@ -455,12 +432,7 @@ net_ebpf_extension_add_wfp_filters(
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    if (wfp_engine_handle == NULL) {
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "WFP engine handle is NULL");
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
+    ASSERT(wfp_engine_handle != NULL);
 
     if (filter_count == 0) {
         NET_EBPF_EXT_LOG_MESSAGE(
@@ -714,9 +686,8 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
-    status = net_ebpf_extension_open_wfp_engine_handle(&_fwp_engine_handle);
-    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "net_ebpf_extension_open_fwp_engine_handle", status);
+    status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
+    NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
 
     status = FwpmTransactionBegin(_fwp_engine_handle, 0);
@@ -830,7 +801,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
 
         // Close the engine handle.
-        status = net_ebpf_extension_close_wfp_engine_handle(_fwp_engine_handle);
+        status = FwpmEngineClose(_fwp_engine_handle);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineClose", status);
         }

@@ -143,18 +143,18 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)                                              \
-    if ((filter_context) != NULL) {                                                          \
-        if ((filter_context)->filter_ids != NULL) {                                          \
-            ExFreePool((filter_context)->filter_ids);                                        \
-        }                                                                                    \
-        if ((filter_context)->client_contexts != NULL) {                                     \
-            ExFreePool((filter_context)->client_contexts);                                   \
-        }                                                                                    \
-        if ((filter_context)->wfp_engine_handle != NULL) {                                   \
-            net_ebpf_extension_close_wfp_engine_handle((filter_context)->wfp_engine_handle); \
-        }                                                                                    \
-        ExFreePool((filter_context));                                                        \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                   \
+    if ((filter_context) != NULL) {                               \
+        if ((filter_context)->filter_ids != NULL) {               \
+            ExFreePool((filter_context)->filter_ids);             \
+        }                                                         \
+        if ((filter_context)->client_contexts != NULL) {          \
+            ExFreePool((filter_context)->client_contexts);        \
+        }                                                         \
+        if ((filter_context)->wfp_engine_handle != NULL) {        \
+            FwpmEngineClose((filter_context)->wfp_engine_handle); \
+        }                                                         \
+        ExFreePool((filter_context));                             \
     }
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -380,9 +380,3 @@ ebpf_result_t
 net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
-
-NTSTATUS
-net_ebpf_extension_open_wfp_engine_handle(_Out_ HANDLE* wfp_engine_handle);
-
-NTSTATUS
-net_ebpf_extension_close_wfp_engine_handle(_In_ HANDLE wfp_engine_handle);
