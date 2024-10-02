@@ -36,6 +36,7 @@
 		<file src="..\..\scripts\ebpf_tracing.cmd" target="package\bin"/>
 		<file src="..\..\scripts\ebpf_tracing_startup_task.xml" target="package\bin"/>
 		<file src="..\..\scripts\ebpf_tracing_periodic_task.xml" target="package\bin"/>
+		<file src="..\..\libs\shared\ebpf_etw.man" target="package\bin"/>
 
 		<!--Temporary inclusion of the VC++ Redist-->
 		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\concrt140.dll" target="package\bin"/>

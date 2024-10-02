@@ -110,6 +110,13 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup>
+    <CustomBuildStep>
+      <Command>mc.exe -um $(ProjectDir)..\ebpf_etw.man -h $(IntDir) -r $(IntDir) -z ebpf_etw_gen -p event_write_</Command>
+      <Outputs>$(IntDir)ebpf_etw.rc;$(IntDir)ebpf_etw.h</Outputs>
+      <Inputs>$(ProjectDir)..\ebpf_etw.man</Inputs>
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>

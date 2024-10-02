@@ -5,6 +5,7 @@
 
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_etw.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -517,6 +518,9 @@ _ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_siz
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
     ebpf_result_t return_value;
+
+    //event_write_ebpf_link_invoke_batch_begin_entry(NULL);
+
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -538,6 +542,8 @@ Done:
         ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     }
 
+    //event_write_ebpf_link_invoke_batch_begin_exit(NULL, return_value);
+
     return return_value;
 }
 
@@ -545,8 +551,10 @@ static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end(_Inout_ void* state)
 {
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
+    //event_write_ebpf_link_invoke_batch_end_entry(NULL);
     ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, execution_context_state));
     ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
+    //event_write_ebpf_link_invoke_batch_end_exit(NULL);
     return EBPF_SUCCESS;
 }
 
@@ -561,8 +569,12 @@ _ebpf_link_instance_invoke_batch(
     ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
 
+    //event_write_ebpf_link_instance_invoke_batch_entry(NULL, link);
+
     return_value =
         ebpf_program_invoke(link->program, false, program_context, result, (ebpf_execution_context_state_t*)state);
+
+    //event_write_ebpf_link_instance_invoke_batch_exit(NULL, return_value);
 
     EBPF_RETURN_RESULT(return_value);
 }
@@ -594,6 +606,9 @@ _ebpf_link_instance_invoke_batch_begin_with_context_header(size_t state_size, _O
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
     ebpf_result_t return_value = EBPF_SUCCESS;
+
+    //event_write_ebpf_link_invoke_batch_begin_with_context_header_entry(NULL);
+
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -609,6 +624,8 @@ Done:
         ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
     }
 
+    //event_write_ebpf_link_invoke_batch_begin_with_context_header_exit(NULL, return_value);
+
     return return_value;
 }
 
@@ -616,7 +633,9 @@ static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state)
 {
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
+    //event_write_ebpf_link_invoke_batch_end_with_context_header_entry(NULL);
     ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
+    //event_write_ebpf_link_invoke_batch_end_with_context_header_exit(NULL);
     return EBPF_SUCCESS;
 }
 
@@ -631,8 +650,12 @@ _ebpf_link_instance_invoke_batch_with_context_header(
     ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
 
+    //event_write_ebpf_link_instance_invoke_batch_with_context_header_entry(NULL, link);
+
     return_value =
         ebpf_program_invoke(link->program, true, program_context, result, (ebpf_execution_context_state_t*)state);
+
+    //event_write_ebpf_link_instance_invoke_batch_with_context_header_exit(NULL, return_value);
 
     EBPF_RETURN_RESULT(return_value);
 }

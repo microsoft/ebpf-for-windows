@@ -6,6 +6,7 @@
 #include "ebpf_async.h"
 #include "ebpf_core.h"
 #include "ebpf_epoch.h"
+#include "ebpf_etw.h"
 #include "ebpf_extension_uuids.h"
 #include "ebpf_handle.h"
 #include "ebpf_link.h"
@@ -318,6 +319,8 @@ ebpf_core_terminate()
     ebpf_native_terminate();
 
     ebpf_trace_terminate();
+
+    EventUnregisterEbpfForWindowsProvider();
 
     ebpf_random_terminate();
 

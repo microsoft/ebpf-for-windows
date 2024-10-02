@@ -124,6 +124,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>$(SolutionDir)libs\store_helper;$(IncludePath)</IncludePath>
   </PropertyGroup>
+  <ItemGroup>
+    <MessageCompile Include="..\ebpf_etw.man">
+      <GenerateKernelModeLoggingMacros>true</GenerateKernelModeLoggingMacros>
+      <GeneratedFilesBaseName>ebpf_etw_gen</GeneratedFilesBaseName>
+      <PrefixMacroName>event_write_</PrefixMacroName>
+    </MessageCompile>
+  </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;WINAPI_FAMILY=WINAPI_FAMILY_DESKTOP_APP;WINAPI_PARTITION_DESKTOP=1;WINAPI_PARTITION_SYSTEM=1;WINAPI_PARTITION_APP=1;WINAPI_PARTITION_PC_APP=1;_KRPCENV_;_NO_CRT_STDIO_INLINE=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>

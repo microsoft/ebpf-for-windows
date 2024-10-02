@@ -9,6 +9,7 @@
  */
 
 #include "ebpf_core.h"
+#include "ebpf_etw.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_version.h"
 #include "git_commit_id.h"
@@ -390,6 +391,16 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
         goto Exit;
     }
 
+    status = EventRegisterEbpfForWindowsProvider();
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_MESSAGE_NTSTATUS(
+            EBPF_TRACELOG_LEVEL_CRITICAL,
+            EBPF_TRACELOG_KEYWORD_ERROR,
+            (char*)"EventRegisterEbpfForWindowsProvider failed",
+            status);
+        goto Exit;
+    }
+
     EBPF_LOG_ENTRY();
 
     // Request NX Non-Paged Pool when available
@@ -409,6 +420,7 @@ DriverEntry(_In_ DRIVER_OBJECT* driver_object, _In_ UNICODE_STRING* registry_pat
 Exit:
     EBPF_LOG_EXIT();
     if (!NT_SUCCESS(status)) {
+        EventUnregisterEbpfForWindowsProvider();
         ebpf_trace_terminate();
     }
     return status;
