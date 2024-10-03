@@ -859,6 +859,10 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
+    result = bpf_map_lookup_elem(-1, &index, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
     // NULL key.
     result = bpf_map_lookup_elem(map_fd, NULL, &value);
     REQUIRE(result < 0);
@@ -892,6 +896,10 @@ TEST_CASE("libbpf map", "[libbpf]")
     index = 0;
     // Invalid fd.
     result = bpf_map_update_elem(nonexistent_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    result = bpf_map_update_elem(-1, &index, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
