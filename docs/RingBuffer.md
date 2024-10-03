@@ -5,24 +5,21 @@
 The current ringbuffer uses a pure callback-based approach to reading the ringbuffer.
 Linux also supports memory-mapped polling consumers, which can't be directly supported in the current model.
 
-The new ring buffer will use [I/O Completion Ports](https://learn.microsoft.com/en-us/windows/win32/fileio/i-o-completion-ports),
-which is the windows API closest to the linux epoll mechanism, and memory map producer+consumer pages into the user process in the same way that linux does.
+The new API will support 2 consumer types: callbacks and direct access to the mapped producer memory (with poll to wait for data).
 
-The new API will support 2 access methods: callbacks and mmap/epoll style access.
+Callback consumer:
 
-callback consumer:
+1. Call `ring_buffer__new` to set up callback
+2. Call `ring_buffer__consume` as needed to invoke the callback on any outsanding data that is ready
 
-1. call `ring_buffer__new` to set up callback
-2. call `ring_buffer__consume` as needed to invoke the callback on any outsanding data that is ready
+Mapped memory consumer:
 
-mmap/epoll consumer:
-
-1. call `ring_buffer__new` to get a ringbuffer manager
-2. call `ebpf_ring_buffer_get_buffer` to get pointers to the mapped producer/consumer pages
-3. directly read records from the producer pages (and update consumer offset as we read)
-4. call `ring_buffer__epoll_fd` to get the iocp handle as a fd_t so we can wait for new data
-5. use `GetQueuedCompletionStatus`/`GetQueuedCompletionStatusEx` to wait for new data to be available
-    - We could provide a wrapper to make the common ebpf use cases simpler
+1. Call `ring_buffer__new` to get a ringbuffer manager.
+2. Call `ebpf_ring_buffer_get_buffer` to get pointers to the mapped producer/consumer pages.
+3. Call `ebpf_ring_buffer_get_buffer` to get pointers to the mapped producer and consumer memory.
+4. Call `ebpf_ring_buffer_get_wait_handle` to get the wait handle.
+5. Directly read records from the producer pages (and update consumer offset as we read).
+6. Call `WaitForSingleObject`/`WaitForMultipleObject` as needed to wait for new data to be available.
 
 ## API Changes
 
@@ -113,16 +110,6 @@ int ring_buffer__poll(struct ring_buffer *rb, int timeout_ms);
  * @param[in] rb Pointer to ring buffer manager.
  */
 int ring_buffer__consume(struct ring_buffer *rb);
-
-/**
- * @brief Get a handle that can be used to sleep until data is available in the ring(s).
- *
- * @param[in] rb Pointer to ring buffer manager.
- *
- * @return ebpf_invalid_fd on error
- * @return fd_t corresponding to I/O Completion port hand on success
- */
-fd_t ring_buffer__epoll_fd(const struct ring_buffer *rb);
 ```
 
 ### New ebpf APIs
@@ -134,7 +121,17 @@ fd_t ring_buffer__epoll_fd(const struct ring_buffer *rb);
  * @param[out] producer pointer* to start of read-only mapped producer pages
  * @param[out] consumer pointer* to start of read-write mapped consumer page
  */
-int ebpf_ring_buffer_get_buffer(void **producer, void **consumer);
+int ebpf_ring_buffer_get_buffer(const ebpf_map_t* map, void **producer, void **consumer);
+
+/**
+ * get the wait handle to use with WaitForSingleObject/WaitForMultipleObject
+ *
+ * @param[out] producer pointer* to start of read-only mapped producer pages
+ * @param[out] consumer pointer* to start of read-write mapped consumer page
+ *
+ * @returns Wait handle
+ */
+HANDLE ebpf_ring_buffer_get_wait_handle(const ebpf_map_t* map);
 ```
 
 ## Ringbuffer consumer
@@ -190,8 +187,15 @@ auto rb = ring_buffer__new(
     nullptr, nullptr);
 if (!rb) return 1;
 
+// Initialize iocp wait handle.
+HANDLE wait_handle = ebpf_ring_buffer_get_wait_handle(rb);
+if (!wait_handle) {
+    // … log error …
+    goto Cleanup;
+}
+
 // get pointers to the producer/consumer pages
-int err = ebpf_ring_buffer_get_buffer(&rb_prod, &rb_cons, /* &epoll_fd */);
+int err = ebpf_ring_buffer_get_buffer(&rb_prod, &rb_cons);
 
 if (err) {
     goto Cleanup;
@@ -204,14 +208,6 @@ const uint8_t *rb_data = ((const uint8_t*)rb_prod) + PAGESIZE; // Double-mapped 
 // have_data used to track whether we should wait for notification or just keep reading.
 bool have_data = *prod_offset > *cons_offset;
 
-// Initialize iocp wait handle.
-epoll_fd = ring_buffer__epoll_fd(rb);
-if (epoll_fd == ebpf_fd_invalid) {
-    // … log error …
-    goto Cleanup;
-}
-HANDLE iocp_handle = _get_handle_from_file_descriptor(epoll_fd)
-
 void           *lp_ctx = NULL;
 OVERLAPPED     *overlapped = NULL;
 DWORD          bytesTransferred = 0;
@@ -220,18 +216,13 @@ DWORD          bytesTransferred = 0;
 For(;;) {
   if (!have_data) { // Only wait if we have already caught up.
     // Wait for rb to notify -- or we could spin/poll on *prod_offset > *cons_offset.
-    BOOL iocp_status = GetQueuedCompletionStatus(iocp_handle, &bytesTransfered, (LPWORD)&lp_ctx, &overlapped, INFINITE);
+    DWORD wait_status = WaitForSingleObject(wait_handle, INFINITE);
 
-    if (NULL == lp_ctx) {
-      //we are shutting down
-      break;
-    } else if (!iocp_status || bytesTransferred <= 0) { // No notification
-      if (!iocp_status) { // error
-        uint32_t iocp_err = GetLastError();
-        if (err == /* terminal error */) {
-          // … log error …
-          break;
-        }
+    if (wait_status != WAIT_OBJECT_0) { // No notification
+      uint32_t wait_err = GetLastError();
+      if (wait_err == /* terminal error */) {
+        // … log error …
+        break;
       }
       have_data = *prod_offset > *cons_offset; // It's possible we still have data.
       if (!have_data) continue;
