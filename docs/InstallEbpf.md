@@ -145,18 +145,21 @@ command prompt:
 
    > Note that "`TEST_VM`" is literal and is used in step 5 below; it need not be the name of any actual test VM.
 1. Enter the `\x64\[Debug|Release]` directory (`cd`) where the build artifacts are stored.
-1. Modify `.\vm_list.json` to specify the name of the test VM under `VMList`, eg:
+1. Modify `.\test_execution.json` to specify the name of the test VM under `VMMap`, eg:
 
     ```json
     {
         ...
 
-        "VMList":
-        [
-            {
-                "Name": "<test-vm-name>"
-            }
-        ]
+        "VMMap":
+        {
+            "<host name>":
+            [
+                {
+                    "Name": "<test-vm-name>"
+                }
+            ]
+        },
     }
     ```
 
