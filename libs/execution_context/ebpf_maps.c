@@ -48,6 +48,14 @@ typedef struct _ebpf_core_object_map
 // Fewer partitions will result in more contention on the lock, but more partitions will consume more memory.
 #define EBPF_LRU_MAXIMUM_PARTITIONS 8
 
+#define ZERO_LENGTH_KEY(type) ((type) == BPF_MAP_TYPE_QUEUE || (type) == BPF_MAP_TYPE_STACK)
+
+#define PER_CPU_MAP(type)                                                         \
+    ((type) == BPF_MAP_TYPE_PERCPU_HASH || (type) == BPF_MAP_TYPE_PERCPU_ARRAY || \
+     (type) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+
+#define MAP_UPDATE_SUPPORTED(type) ((type) != BPF_MAP_TYPE_RINGBUF)
+
 /**
  * @brief The BPF_MAP_TYPE_LRU_HASH is a hash table that stores a limited number of entries. When the map is full, the
  * least recently used entry is removed to make room for a new entry. The map is implemented as a hash table with a pair
@@ -1740,7 +1748,7 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
 {
     uint32_t current_cpu;
 
-    if (!(ebpf_map_metadata_tables[map->ebpf_map_definition.type].per_cpu)) {
+    if (!PER_CPU_MAP(map->ebpf_map_definition.type)) {
         return EBPF_SUCCESS;
     }
 
@@ -2436,6 +2444,56 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+#define FIND_ENTRY(type, map, key, flags, return_value, result)                            \
+    {                                                                                      \
+        switch (type) {                                                                    \
+        case BPF_MAP_TYPE_HASH:                                                            \
+        case BPF_MAP_TYPE_PERCPU_HASH:                                                     \
+        case BPF_MAP_TYPE_LRU_HASH:                                                        \
+        case BPF_MAP_TYPE_LRU_PERCPU_HASH:                                                 \
+        case BPF_MAP_TYPE_HASH_OF_MAPS:                                                    \
+            result = _find_hash_map_entry((ebpf_map_t*)map, key, flags, return_value);     \
+            break;                                                                         \
+        case BPF_MAP_TYPE_LPM_TRIE:                                                        \
+            result = _find_lpm_map_entry((ebpf_map_t*)map, key, flags, return_value);      \
+            break;                                                                         \
+        case BPF_MAP_TYPE_ARRAY:                                                           \
+        case BPF_MAP_TYPE_PERCPU_ARRAY:                                                    \
+        case BPF_MAP_TYPE_PROG_ARRAY:                                                      \
+        case BPF_MAP_TYPE_ARRAY_OF_MAPS:                                                   \
+            result = _find_array_map_entry((ebpf_map_t*)map, key, flags, return_value);    \
+            break;                                                                         \
+        case BPF_MAP_TYPE_QUEUE:                                                           \
+        case BPF_MAP_TYPE_STACK:                                                           \
+            result = _find_circular_map_entry((ebpf_map_t*)map, key, flags, return_value); \
+            break;                                                                         \
+        default:                                                                           \
+            ebpf_assert(false);                                                            \
+            result = EBPF_INVALID_ARGUMENT;                                                \
+            break;                                                                         \
+        }                                                                                  \
+    }
+
+#define FIND_ENTRY_NOT_SUPPORTED(type) ((type) == BPF_MAP_TYPE_RINGBUF)
+
+#define GET_OBJECT_FROM_ENTRY(type, map, key, object)                         \
+    {                                                                         \
+        switch (type) {                                                       \
+        case BPF_MAP_TYPE_PROG_ARRAY:                                         \
+        case BPF_MAP_TYPE_ARRAY_OF_MAPS:                                      \
+            object = _get_object_from_array_map_entry((ebpf_map_t*)map, key); \
+            break;                                                            \
+        case BPF_MAP_TYPE_HASH_OF_MAPS:                                       \
+            object = _get_object_from_hash_map_entry((ebpf_map_t*)map, key);  \
+            break;                                                            \
+        default:                                                              \
+            ebpf_assert(false);                                               \
+        }                                                                     \
+    }
+
+#define GET_OBJECT_FROM_ENTRY_SUPPORTED(type) \
+    ((type) == BPF_MAP_TYPE_PROG_ARRAY || (type) == BPF_MAP_TYPE_HASH_OF_MAPS || (type) == BPF_MAP_TYPE_ARRAY_OF_MAPS)
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_find_entry(
     _Inout_ ebpf_map_t* map,
@@ -2467,7 +2525,9 @@ ebpf_map_find_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry == NULL) {
+    ebpf_map_type_t type = map->ebpf_map_definition.type;
+
+    if (FIND_ENTRY_NOT_SUPPORTED(type)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2476,7 +2536,6 @@ ebpf_map_find_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_map_type_t type = map->ebpf_map_definition.type;
     if ((flags & EBPF_MAP_FLAG_HELPER) && (ebpf_map_metadata_tables[type].get_object_from_entry != NULL)) {
 
         // Disallow reads to prog array maps from this helper call for now.
@@ -2486,13 +2545,14 @@ ebpf_map_find_entry(
             return EBPF_INVALID_ARGUMENT;
         }
 
-        ebpf_core_object_t* object = ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
+        ebpf_core_object_t* object = NULL;
+        GET_OBJECT_FROM_ENTRY(type, map, key, object);
         if (object) {
             return_value = (uint8_t*)object;
         }
     } else {
-        ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(
-            map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value);
+        ebpf_result_t result;
+        FIND_ENTRY(type, map, key, flags & EBPF_MAP_FIND_FLAG_DELETE ? true : false, &return_value, result);
         if (result != EBPF_SUCCESS) {
             return result;
         }
@@ -2548,8 +2608,53 @@ ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_re
         return NULL;
     }
 
+    // This function is invoked only for BPF_MAP_TYPE_PROG_ARRAY. We can bypass the metadata
+    // table lookup and directly call the function.
+    ebpf_assert(type == BPF_MAP_TYPE_PROG_ARRAY);
     return (ebpf_program_t*)_get_object_from_array_map_entry(map, key);
 }
+
+#define UPDATE_ENTRY(type, map, key, value, option, result)               \
+    {                                                                     \
+        switch (type) {                                                   \
+        case BPF_MAP_TYPE_HASH:                                           \
+        case BPF_MAP_TYPE_PERCPU_HASH:                                    \
+        case BPF_MAP_TYPE_LRU_HASH:                                       \
+        case BPF_MAP_TYPE_LRU_PERCPU_HASH:                                \
+            result = _update_hash_map_entry(map, key, value, option);     \
+            break;                                                        \
+        case BPF_MAP_TYPE_LPM_TRIE:                                       \
+            result = _update_lpm_map_entry(map, key, value, option);      \
+            break;                                                        \
+        case BPF_MAP_TYPE_ARRAY:                                          \
+        case BPF_MAP_TYPE_PERCPU_ARRAY:                                   \
+            result = _update_array_map_entry(map, key, value, option);    \
+            break;                                                        \
+        case BPF_MAP_TYPE_QUEUE:                                          \
+        case BPF_MAP_TYPE_STACK:                                          \
+            result = _update_circular_map_entry(map, key, value, option); \
+            break;                                                        \
+        default:                                                          \
+            ebpf_assert(false);                                           \
+            result = EBPF_INVALID_ARGUMENT;                               \
+            break;                                                        \
+        }                                                                 \
+    }
+
+#define UPDATE_ENTRY_PER_CPU(type, map, key, value, option, result)  \
+    {                                                                \
+        switch (type) {                                              \
+        case BPF_MAP_TYPE_PERCPU_HASH:                               \
+        case BPF_MAP_TYPE_LRU_PERCPU_HASH:                           \
+        case BPF_MAP_TYPE_PERCPU_ARRAY:                              \
+            result = _update_entry_per_cpu(map, key, value, option); \
+            break;                                                   \
+        default:                                                     \
+            ebpf_assert(false);                                      \
+            result = EBPF_INVALID_ARGUMENT;                          \
+            break;                                                   \
+        }                                                            \
+    }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_update_entry(
@@ -2564,7 +2669,7 @@ ebpf_map_update_entry(
     // High volume call - Skip entry/exit logging.
     ebpf_result_t result;
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].zero_length_key) {
+    if (ZERO_LENGTH_KEY(map->ebpf_map_definition.type)) {
         if (key_size != 0) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -2595,7 +2700,7 @@ ebpf_map_update_entry(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry == NULL) {
+    if (!MAP_UPDATE_SUPPORTED(map->ebpf_map_definition.type)) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -2605,11 +2710,10 @@ ebpf_map_update_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    if ((flags & EBPF_MAP_FLAG_HELPER) &&
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
-        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value, option);
+    if ((flags & EBPF_MAP_FLAG_HELPER) && PER_CPU_MAP(map->ebpf_map_definition.type)) {
+        UPDATE_ENTRY_PER_CPU(map->ebpf_map_definition.type, map, key, value, option, result);
     } else {
-        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, key, value, option);
+        UPDATE_ENTRY(map->ebpf_map_definition.type, map, key, value, option, result);
     }
     return result;
 }
@@ -2755,13 +2859,16 @@ ebpf_map_push_entry(_Inout_ ebpf_map_t* map, size_t value_size, _In_reads_(value
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    return ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry(map, NULL, value, flags);
+    ebpf_result_t result;
+    UPDATE_ENTRY(map->ebpf_map_definition.type, map, NULL, value, flags, result);
+
+    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
-    uint8_t* return_value;
+    uint8_t* return_value = NULL;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -2775,12 +2882,13 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result =
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, NULL, true, &return_value);
+    ebpf_result_t result;
+    FIND_ENTRY(map->ebpf_map_definition.type, map, NULL, true, &return_value, result);
     if (result != EBPF_SUCCESS) {
         return result;
     }
 
+    __analysis_assume(return_value != NULL);
     memcpy(value, return_value, map->ebpf_map_definition.value_size);
     return EBPF_SUCCESS;
 }
@@ -2788,7 +2896,7 @@ ebpf_map_pop_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(valu
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(value_size) uint8_t* value, int flags)
 {
-    uint8_t* return_value;
+    uint8_t* return_value = NULL;
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (value_size != map->ebpf_map_definition.value_size)) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -2802,12 +2910,13 @@ ebpf_map_peek_entry(_Inout_ ebpf_map_t* map, size_t value_size, _Out_writes_(val
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    ebpf_result_t result =
-        ebpf_map_metadata_tables[map->ebpf_map_definition.type].find_entry(map, NULL, false, &return_value);
+    ebpf_result_t result;
+    FIND_ENTRY(map->ebpf_map_definition.type, map, NULL, false, &return_value, result);
     if (result != EBPF_SUCCESS) {
         return result;
     }
 
+    __analysis_assume(return_value != NULL);
     memcpy(value, return_value, map->ebpf_map_definition.value_size);
     return EBPF_SUCCESS;
 }
