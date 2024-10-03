@@ -147,13 +147,14 @@ This consumer directly accesses the records from the producer memory and directl
 // == Ringbuf helpers ==
 //
 
-// Ring buffer record is 32bit header + data.
+// Ring buffer record is 64 bit header + data.
 typedef struct _rb_header
 {
     //NOTE: bit fields are not portable, so this is just for simpler example code -- the actual code should use bit masking to perform equivalent operations on the header bits.
     uint8_t locked : 1;
     uint8_t discarded : 1;
     uint32_t length : 30;
+    uint32_t offset; // for kernel use (offset of record in pages from start of buffer data area)
 } rb_header_t;
 
 typedef struct _rb_record
