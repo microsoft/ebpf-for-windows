@@ -1609,7 +1609,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
-    // Track count of programs not including subprograms.
+    // Get count of programs not including subprograms.
     size_t program_count = 0;
     for (auto& [name, program] : programs) {
         if (program.output_instructions.size() == 0) {
@@ -1619,6 +1619,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             continue;
         }
         program_count++;
+    }
+
+    for (auto& [name, program] : programs) {
+        if (program.output_instructions.size() == 0) {
+            continue;
+        }
+        if (is_subprogram(program)) {
+            continue;
+        }
         auto program_name = !program.program_name.empty() ? program.program_name : name;
 
         // Emit program-specific helper function array.
@@ -1645,7 +1654,8 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << "// Forward references for local functions." << std::endl;
             for (auto& [_, subprogram] : programs) {
                 if (is_subprogram(subprogram)) {
-                    output_stream << "static uint64_t " << subprogram.program_name.c_identifier()
+                    output_stream << "static uint64_t" << std::endl;
+                    output_stream << subprogram.program_name.c_identifier()
                                   << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10);"
                                   << std::endl;
                 }
