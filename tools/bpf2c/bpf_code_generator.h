@@ -411,6 +411,9 @@ class bpf_code_generator
     bpf_code_generator_program*
     add_program(const unsafe_string& name);
 
+    bool
+    is_subprogram(const bpf_code_generator_program& program) const;
+
     /**
      * @brief Extract the eBPF byte code from the eBPF program.
      *

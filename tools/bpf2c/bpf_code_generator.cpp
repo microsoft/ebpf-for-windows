@@ -389,6 +389,7 @@ bpf_code_generator::extract_program(
                 }
                 if (memcmp(program_info->raw_data + callee_offset, info->raw_data, info->raw_data_size) == 0) {
                     auto subprogram = add_program(info->program_name);
+                    subprogram->elf_section_name = info->section_name;
                     subprogram->program_name = info->program_name;
                     extract_program(info, infos);
                 }
@@ -774,6 +775,12 @@ bpf_code_generator::bpf_code_generator_program*
 bpf_code_generator::add_program(const unsafe_string& name)
 {
     return &programs[name];
+}
+
+bool
+bpf_code_generator::is_subprogram(const bpf_code_generator_program& program) const
+{
+    return (programs.size() > 1 && program.elf_section_name == ".text");
 }
 
 void
@@ -1606,6 +1613,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         if (program.output_instructions.size() == 0) {
             continue;
         }
+        if (is_subprogram(program)) {
+            // Skip subprograms in this pass.
+            continue;
+        }
         auto program_name = !program.program_name.empty() ? program.program_name : name;
 
         // Emit program-specific helper function array.
@@ -1745,10 +1756,17 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
     }
 
+    // Track count of programs not including subprograms.
+    size_t program_count = 0;
+
     if (programs.size() != 0) {
         output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
         output_stream << "static program_entry_t _programs[] = {" << std::endl;
         for (auto& [name, program] : programs) {
+            if (is_subprogram(program)) {
+                continue;
+            }
+            program_count++;
             auto program_name = !program.program_name.empty() ? program.program_name : name;
             size_t map_count = program.referenced_map_indices.size();
             size_t helper_count = program.helper_functions.size();
@@ -1793,12 +1811,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                   << "_get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
                   << std::endl;
     output_stream << "{" << std::endl;
-    if (programs.size() != 0) {
+    if (program_count != 0) {
         output_stream << INDENT "*programs = _programs;" << std::endl;
     } else {
         output_stream << INDENT "*programs = NULL;" << std::endl;
     }
-    output_stream << INDENT "*count = " << std::to_string(programs.size()) << ";" << std::endl;
+    output_stream << INDENT "*count = " << std::to_string(program_count) << ";" << std::endl;
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
