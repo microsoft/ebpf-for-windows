@@ -82,6 +82,8 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
     uint32_t reply_size;
     void* reply_ptr;
     bool variable_reply_size = false;
+    ebpf_handle_t handle;
+    bool success = false;
 
     if constexpr (std::is_same<request_t, nullptr_t>::value) {
         request_size = 0;
@@ -109,8 +111,15 @@ invoke_ioctl(request_t& request, reply_t& reply = _empty_reply, _Inout_opt_ OVER
         reply_ptr = &reply;
     }
 
-    auto success = Platform::DeviceIoControl(
-        overlapped ? get_async_device_handle() : get_sync_device_handle(),
+    handle = overlapped ? get_async_device_handle() : get_sync_device_handle();
+
+    if (handle == ebpf_handle_invalid) {
+        return_value = ERROR_ACCESS_DENIED;
+        goto Exit;
+    }
+
+    success = Platform::DeviceIoControl(
+        handle,
         IOCTL_EBPF_CTL_METHOD_BUFFERED,
         request_ptr,
         request_size,
