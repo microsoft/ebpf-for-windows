@@ -331,7 +331,6 @@ main(int argc, char** argv)
                 (global_program_type_set) ? attach_type : program->expected_attach_type,
                 hash_algorithm,
                 infos);
-            generator.generate(program->program_name);
 
             if (hash_algorithm != "none") {
                 std::vector<int32_t> helper_ids = generator.get_helper_ids(program->program_name);

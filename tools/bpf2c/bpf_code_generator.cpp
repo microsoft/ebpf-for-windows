@@ -313,7 +313,6 @@ bpf_code_generator::parse(
     set_pe_section_name(current_program, program->section_name);
     current_program.set_program_and_attach_type_and_hash_type(program_type, attach_type, program_info_hash_type);
     extract_program(program, infos);
-    extract_relocations_and_maps(program);
 }
 
 void
@@ -341,10 +340,6 @@ bpf_code_generator::generate(const bpf_code_generator::unsafe_string& program_na
 
     program.generate_labels();
     program.build_function_table();
-
-    // Now encode instructions for each subprogram.
-    // TODO
-
     program.encode_instructions(map_definitions);
 }
 
@@ -393,12 +388,17 @@ bpf_code_generator::extract_program(
                     continue;
                 }
                 if (memcmp(program_info->raw_data + callee_offset, info->raw_data, info->raw_data_size) == 0) {
-                    add_program(info->program_name);
+                    auto subprogram = add_program(info->program_name);
+                    subprogram->program_name = info->program_name;
+                    extract_program(info, infos);
                 }
             }
         }
         program.output_instructions.push_back({instruction, offset++});
     }
+
+    extract_relocations_and_maps(program_info);
+    generate(program_info->program_name);
 }
 
 // BTF maps sections are identified as any section called ".maps".
