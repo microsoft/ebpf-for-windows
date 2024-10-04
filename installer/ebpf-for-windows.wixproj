@@ -49,6 +49,7 @@ SPDX-License-Identifier: MIT
     <SuppressValidation>True</SuppressValidation>
     <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
   </PropertyGroup>
+  <!-- ARM64 support for JIT is not yet implemeted, so only declare a NativeOnly version of the installer. -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|ARM64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
