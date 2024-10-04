@@ -88,7 +88,8 @@ function Invoke-CICDTests
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
           [parameter(Mandatory = $false)][bool] $Coverage = $false,
           [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests
     )
 
 
@@ -103,8 +104,18 @@ function Invoke-CICDTests
         "sample_ext_app.exe",
         "socket_tests.exe")
 
+    $SystemTestList = @("api_test.exe")
+
     foreach ($Test in $TestList) {
         Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
+    }
+
+    # Now run the system tests. No coverage is needed for these tests.
+    if ($ExecuteSystemTests) {
+        foreach ($Test in $SystemTestList) {
+            $TestCommand = "PsExec64.exe -accepteula -nobanner -s -w `"$pwd`" `"$pwd\$Test`" `"-d yes`""
+            Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -Coverage $false
+        }
     }
 
     if ($Coverage) {

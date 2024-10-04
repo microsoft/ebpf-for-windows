@@ -1,7 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ($InputFile, $OutputFile, [parameter(Mandatory=$false)]$VCToolsRedistDir)
+param ($InputFile, $OutputFile, [parameter(Mandatory=$false)]$VCToolsRedistDir, [parameter(Mandatory=$false)]$architecture)
 
 # The git commit ID is in the include directory and is in the format:
 # #define GIT_COMMIT_ID "some commit id"
@@ -13,4 +13,5 @@ $content = Get-Content $InputFile
 $content = $content.Replace("{version}", $version)
 $content = $content.Replace("{VCToolsRedistDir}", $VCToolsRedistDir)
 $content = $content.Replace("{git_commit_id}", $git_commit_id)
+$content = $content.Replace("{architecture}", $architecture)
 set-content $OutputFile $content

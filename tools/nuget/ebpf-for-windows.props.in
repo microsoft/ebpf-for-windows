@@ -4,16 +4,28 @@
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"
         ToolsVersion="15.0">
-  <ItemGroup>
+  <!-- Translate processor architecture into the Platform version that VC uses. -->
+  <PropertyGroup Condition="'$(PROCESSOR_ARCHITECTURE)'=='AMD64'">
+    <HostPlatform>x64</HostPlatform>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(PROCESSOR_ARCHITECTURE)'=='ARM64'">
+    <HostPlatform>ARM64</HostPlatform>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Platform)'=='{architecture}'">
     <EbpfLibs Include="$(MSBuildThisFileDirectory)\lib\*.lib" />
   </ItemGroup>
-  <PropertyGroup>
+  <!-- Set the platform dependent variables. -->
+  <PropertyGroup Condition="'$(Platform)'=='{architecture}'">
     <EbpfLibraries>@(EbpfLibs)</EbpfLibraries>
     <ClangIncludes>-I $(MSBuildThisFileDirectory)include -I $(MSBuildThisFileDirectory)include/uapi</ClangIncludes>
     <EbpfBinPath>$(MSBuildThisFileDirectory)bin</EbpfBinPath>
     <EbpfIncludePath>$(MSBuildThisFileDirectory)include</EbpfIncludePath>
   </PropertyGroup>
-  <ItemDefinitionGroup>
+  <!-- Set the host dependent variables. -->
+  <PropertyGroup Condition="'$(HostPlatform)'=='{architecture}'">
+    <EbpfHostBinPath>$(MSBuildThisFileDirectory)bin</EbpfHostBinPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='{architecture}'">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)include;$(MSBuildThisFileDirectory)include/uapi</AdditionalIncludeDirectories>
     </ClCompile>

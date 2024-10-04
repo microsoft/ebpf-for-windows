@@ -12,6 +12,7 @@
 #include "utilities.hpp"
 
 ebpf_store_key_t root_registry_key_current_user = HKEY_CURRENT_USER;
+ebpf_store_key_t root_registry_key_local_machine = HKEY_LOCAL_MACHINE;
 
 static ebpf_result_t
 _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
@@ -21,9 +22,18 @@ _open_ebpf_store_key(_Out_ ebpf_store_key_t* store_key)
     // Open root registry path.
     *store_key = nullptr;
 
-    // Open the HKCU registry key.
+    // First try to open the HKCU registry key.
     ebpf_result_t result =
         ebpf_open_registry_key(root_registry_key_current_user, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
+    if (result != ERROR_SUCCESS) {
+        // Failed to open ebpf store path in HKCU. Fall back to HKLM.
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "_open_ebpf_store_key: Failed to open HKCU registry key. Falling back to HKLM. Error:",
+            result);
+        result = ebpf_open_registry_key(root_registry_key_local_machine, EBPF_STORE_REGISTRY_PATH, KEY_READ, store_key);
+    }
 
     EBPF_RETURN_RESULT(result);
 }
@@ -886,8 +896,9 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-ebpf_result_t
-ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info)
+static ebpf_result_t
+_ebpf_store_delete_global_helper_information(
+    ebpf_store_key_t root_store_key, _In_ ebpf_helper_function_prototype_t* helper_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t root_key = NULL;
@@ -903,7 +914,7 @@ ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_
     }
 
     // Open root registry key.
-    result = ebpf_open_registry_key(ebpf_store_root_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
+    result = ebpf_open_registry_key(root_store_key, EBPF_ROOT_RELATIVE_PATH, REG_CREATE_FLAGS, &root_key);
     if (result != EBPF_SUCCESS) {
         if (result == EBPF_FILE_NOT_FOUND) {
             result = EBPF_SUCCESS;
@@ -939,5 +950,29 @@ Exit:
     ebpf_close_registry_key(helper_info_key);
     ebpf_close_registry_key(provider_key);
 
+    EBPF_RETURN_RESULT(result);
+}
+
+ebpf_result_t
+ebpf_store_delete_global_helper_information(_In_ ebpf_helper_function_prototype_t* helper_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    EBPF_LOG_ENTRY();
+
+    // First delete from HKCU root key.
+    result = _ebpf_store_delete_global_helper_information(root_registry_key_current_user, helper_info);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    // Next delete from HKLM root key. It possible that the user does not have permission to the HKLM root key.
+    // Suppress error in that case.
+    result = _ebpf_store_delete_global_helper_information(root_registry_key_local_machine, helper_info);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
+
+Exit:
     EBPF_RETURN_RESULT(result);
 }

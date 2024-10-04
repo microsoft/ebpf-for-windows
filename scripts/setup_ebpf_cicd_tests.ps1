@@ -49,6 +49,7 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 
 Get-Duonic
 Get-VCRedistributable
+Get-PSExec
 
 # Export build artifacts to the test VMs.
 Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop

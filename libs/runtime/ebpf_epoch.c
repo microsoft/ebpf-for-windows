@@ -58,7 +58,7 @@
 
 #define EBPF_EPOCH_FAIL_FAST(REASON, ASSERTION) \
     if (!(ASSERTION)) {                         \
-        ebpf_assert(!#ASSERTION);               \
+        ebpf_assert(#ASSERTION);                \
         __fastfail(REASON);                     \
     }
 
@@ -260,11 +260,9 @@ static _IRQL_requires_(DISPATCH_LEVEL) void _ebpf_epoch_arm_timer_if_needed(ebpf
 static void
 _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_work_item, void* context);
 
-static void
-_ebpf_epoch_activate_cpu(uint32_t cpu_id);
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_activate_cpu(uint32_t cpu_id);
 
-static void
-_ebpf_epoch_deactivate_cpu(uint32_t cpu_id);
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_deactivate_cpu(uint32_t cpu_id);
 
 uint32_t
 _ebpf_epoch_next_active_cpu(uint32_t cpu_id);
@@ -348,8 +346,16 @@ ebpf_epoch_initiate()
         }
     }
 
-    // CPU 0 is always active.
-    _ebpf_epoch_activate_cpu(0);
+    // Set the initial state for CPU 0.
+    // This code can't use _ebpf_epoch_activate_cpu as it may not running on CPU 0.
+    _ebpf_epoch_cpu_table[0].active = true;
+    ebpf_result_t result = ebpf_timed_work_queue_set_cpu_id(_ebpf_epoch_cpu_table[0].work_queue, 0);
+    if (result != EBPF_SUCCESS) {
+        return_value = result;
+        goto Error;
+    }
+
+    _ebpf_epoch_cpu_table[0].work_queue_assigned = 1;
 
     // Set the current epoch for CPU 0.
     _ebpf_epoch_cpu_table[0].current_epoch = EBPF_EPOCH_FIRST_EPOCH;
@@ -428,11 +434,11 @@ ebpf_epoch_enter(_Out_ ebpf_epoch_state_t* epoch_state)
     epoch_state->epoch = cpu_entry->current_epoch;
     ebpf_list_insert_tail(&cpu_entry->epoch_state_list, &epoch_state->epoch_list_entry);
 
-    _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
-
     if (!cpu_entry->active) {
         _ebpf_epoch_activate_cpu(epoch_state->cpu_id);
     }
+
+    _ebpf_epoch_lower_to_previous_irql(epoch_state->irql_at_enter);
 }
 #pragma warning(pop)
 
@@ -827,7 +833,7 @@ _ebpf_epoch_messenger_propose_release_epoch(
                 ebpf_epoch_allocation_header_t* header =
                     CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
                 ebpf_assert(header->freed_epoch == EBPF_EPOCH_UNKNOWN_EPOCH);
-                header->freed_epoch = cpu_entry->current_epoch;
+                header->freed_epoch = message->message.propose_epoch.current_epoch;
             }
         }
 
@@ -1121,8 +1127,7 @@ _ebpf_epoch_work_item_callback(_In_ cxplat_preemptible_work_item_t* preemptible_
  *
  * @param[in] cpu_id CPU to add.
  */
-static void
-_ebpf_epoch_activate_cpu(uint32_t cpu_id)
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_activate_cpu(uint32_t cpu_id)
 {
     EBPF_LOG_ENTRY();
 
@@ -1130,6 +1135,10 @@ _ebpf_epoch_activate_cpu(uint32_t cpu_id)
 
     ebpf_epoch_cpu_entry_t* cpu_entry = &_ebpf_epoch_cpu_table[cpu_id];
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_epoch_cpu_active_lock);
+
+    ebpf_assert(!cpu_entry->active);
+    ebpf_assert(ebpf_list_is_empty(&cpu_entry->free_list));
+    ebpf_assert(cpu_id == ebpf_get_current_cpu());
 
     cpu_entry->active = true;
     // When the CPU is activated, the current epoch is not known.
@@ -1155,10 +1164,12 @@ _ebpf_epoch_activate_cpu(uint32_t cpu_id)
  *
  * @param[in] cpu_id CPU to remove.
  */
-static void
-_ebpf_epoch_deactivate_cpu(uint32_t cpu_id)
+_IRQL_requires_(DISPATCH_LEVEL) static void _ebpf_epoch_deactivate_cpu(uint32_t cpu_id)
 {
     EBPF_LOG_ENTRY();
+    ebpf_assert(cpu_id == ebpf_get_current_cpu());
+    ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].epoch_state_list));
+    ebpf_assert(ebpf_list_is_empty(&_ebpf_epoch_cpu_table[cpu_id].free_list));
 
     EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_EPOCH, "Deactivating CPU", cpu_id);
 

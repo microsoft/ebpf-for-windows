@@ -5,7 +5,7 @@
 <package>
 	<metadata>
 		<title>eBPF for Windows SDK</title>
-		<id>eBPF-for-Windows</id>
+		<id>eBPF-for-Windows.{architecture}</id>
 		<version>{version}</version>
 		<authors>eBPF for Windows Contributors</authors>
 		<owners>eBPF for Windows Contributors</owners>
@@ -19,7 +19,7 @@
 	</metadata>
 	<files>
 		<file src="..\..\tools\nuget\README.md" target="."/>
-		<file src="..\..\tools\nuget\ebpf-for-windows.props" target="build\native"/>
+		<file src="ebpf-for-windows.{architecture}.props" target="build\native"/>
 		<file src="Convert-BpfToNative.ps1" target="build\native\bin"/>
 		<file src="bpf2c.exe" target="build\native\bin"/>
 		<file src="bpf2c.pdb" target="build\native\bin"/>

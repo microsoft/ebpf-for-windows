@@ -64,6 +64,30 @@ ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend)
 }
 
 int32_t
+ebpf_interlocked_increment_int32_no_fence(_Inout_ volatile int32_t* addend)
+{
+    return InterlockedIncrementNoFence((volatile long*)addend);
+}
+
+int32_t
+ebpf_interlocked_decrement_int32_no_fence(_Inout_ volatile int32_t* addend)
+{
+    return InterlockedDecrementNoFence((volatile long*)addend);
+}
+
+int64_t
+ebpf_interlocked_increment_int64_no_fence(_Inout_ volatile int64_t* addend)
+{
+    return InterlockedIncrementNoFence64(addend);
+}
+
+int64_t
+ebpf_interlocked_decrement_int64_no_fence(_Inout_ volatile int64_t* addend)
+{
+    return InterlockedDecrementNoFence64(addend);
+}
+
+int32_t
 ebpf_interlocked_compare_exchange_int32(_Inout_ volatile int32_t* destination, int32_t exchange, int32_t comparand)
 {
     return InterlockedCompareExchange((long volatile*)destination, exchange, comparand);

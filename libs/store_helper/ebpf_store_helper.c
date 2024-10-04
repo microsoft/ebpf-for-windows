@@ -22,14 +22,14 @@ _ebpf_store_update_extension_header_information(ebpf_store_key_t key, _In_ const
 }
 
 static ebpf_result_t
-_ebpf_store_open_or_create_provider_registry_key(_Out_ ebpf_store_key_t* provider_key)
+_ebpf_store_open_or_create_provider_registry_key(ebpf_store_key_t root_store_key, _Out_ ebpf_store_key_t* provider_key)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t root_key = NULL;
     *provider_key = NULL;
 
     // Open (or create) root eBPF registry path.
-    result = ebpf_create_registry_key(ebpf_store_root_key, ebpf_store_root_sub_key, REG_CREATE_FLAGS, &root_key);
+    result = ebpf_create_registry_key(root_store_key, ebpf_store_root_sub_key, REG_CREATE_FLAGS, &root_key);
 
     if (!IS_SUCCESS(result)) {
         goto Exit;
@@ -106,9 +106,11 @@ Exit:
     return result;
 }
 
-ebpf_result_t
-ebpf_store_update_global_helper_information(
-    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
+static ebpf_result_t
+_ebpf_store_update_global_helper_information(
+    ebpf_store_key_t root_key,
+    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info,
+    uint32_t helper_info_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
@@ -124,7 +126,7 @@ ebpf_store_update_global_helper_information(
     }
 
     // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -151,8 +153,31 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_store_update_section_information(
-    _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
+ebpf_store_update_global_helper_information(
+    _In_reads_(helper_info_count) ebpf_helper_function_prototype_t* helper_info, uint32_t helper_info_count)
+{
+    // First update the HKCU root key.
+    ebpf_result_t result =
+        _ebpf_store_update_global_helper_information(ebpf_store_hkcu_root_key, helper_info, helper_info_count);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    // Next update the HKLM root key. It possible that the user does not have permission to update the HKLM root key.
+    // Suppress error in that case.
+    result = _ebpf_store_update_global_helper_information(ebpf_store_hklm_root_key, helper_info, helper_info_count);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
+
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_store_update_section_information(
+    ebpf_store_key_t root_key,
+    _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info,
+    uint32_t section_info_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
@@ -163,7 +188,7 @@ ebpf_store_update_section_information(
     }
 
     // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -236,6 +261,28 @@ ebpf_store_update_section_information(
 Exit:
     ebpf_close_registry_key(section_info_key);
     ebpf_close_registry_key(provider_key);
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_update_section_information(
+    _In_reads_(section_info_count) const ebpf_program_section_info_t* section_info, uint32_t section_info_count)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // First update the HKCU root key.
+    result = _ebpf_store_update_section_information(ebpf_store_hkcu_root_key, section_info, section_info_count);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    // Next update the HKLM root key. It possible that the user does not have permission to update the HKLM root key.
+    // Suppress error in that case.
+    result = _ebpf_store_update_section_information(ebpf_store_hklm_root_key, section_info, section_info_count);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
 
     return result;
 }
@@ -351,9 +398,11 @@ Exit:
     return result;
 }
 
-ebpf_result_t
-ebpf_store_update_program_information_array(
-    _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
+static ebpf_result_t
+_ebpf_store_update_program_information_array(
+    ebpf_store_key_t root_key,
+    _In_reads_(program_info_count) const ebpf_program_info_t* program_info,
+    uint32_t program_info_count)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
@@ -365,7 +414,7 @@ ebpf_store_update_program_information_array(
     }
 
     // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -428,14 +477,36 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_info)
+ebpf_store_update_program_information_array(
+    _In_reads_(program_info_count) const ebpf_program_info_t* program_info, uint32_t program_info_count)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // First update the HKCU root key.
+    result = _ebpf_store_update_program_information_array(ebpf_store_hkcu_root_key, program_info, program_info_count);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    // Next update the HKLM root key. It possible that the user does not have permission to update the HKLM root key.
+    // Suppress error in that case.
+    result = _ebpf_store_update_program_information_array(ebpf_store_hklm_root_key, program_info, program_info_count);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
+
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_store_delete_program_information(ebpf_store_key_t root_key, _In_ const ebpf_program_info_t* program_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
     ebpf_store_key_t program_info_key = NULL;
 
     // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -467,14 +538,35 @@ Exit:
 }
 
 ebpf_result_t
-ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info)
+ebpf_store_delete_program_information(_In_ const ebpf_program_info_t* program_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // First delete from HKCU root key.
+    result = _ebpf_store_delete_program_information(ebpf_store_hkcu_root_key, program_info);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    // Next delete from HKLM root key. It possible that the user does not have permission to delete from the HKLM root
+    // key. Suppress error in that case.
+    result = _ebpf_store_delete_program_information(ebpf_store_hklm_root_key, program_info);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
+
+    return result;
+}
+
+static ebpf_result_t
+_ebpf_store_delete_section_information(ebpf_store_key_t root_key, _In_ const ebpf_program_section_info_t* section_info)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_store_key_t provider_key = NULL;
     ebpf_store_key_t section_info_key = NULL;
 
     // Open (or create) provider registry path.
-    result = _ebpf_store_open_or_create_provider_registry_key(&provider_key);
+    result = _ebpf_store_open_or_create_provider_registry_key(root_key, &provider_key);
     if (!IS_SUCCESS(result)) {
         goto Exit;
     }
@@ -493,6 +585,27 @@ ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* se
 Exit:
     ebpf_close_registry_key(section_info_key);
     ebpf_close_registry_key(provider_key);
+
+    return result;
+}
+
+ebpf_result_t
+ebpf_store_delete_section_information(_In_ const ebpf_program_section_info_t* section_info)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    // First delete from HKCU root key.
+    result = _ebpf_store_delete_section_information(ebpf_store_hkcu_root_key, section_info);
+    if (!IS_SUCCESS(result)) {
+        return result;
+    }
+
+    // Next delete from HKLM root key. It possible that the user does not have permission to delete from the HKLM root
+    // key. Suppress error in that case.
+    result = _ebpf_store_delete_section_information(ebpf_store_hklm_root_key, section_info);
+    if (result == EBPF_ACCESS_DENIED) {
+        result = EBPF_SUCCESS;
+    }
 
     return result;
 }
