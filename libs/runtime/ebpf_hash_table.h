@@ -65,6 +65,7 @@ extern "C"
         void* notification_context;     //< Context to pass to notification functions.
         ebpf_hash_table_notification_function
             notification_callback; //< Function to call when value storage is allocated or freed.
+        bool assert_key_present;   // Assert that the key is present in the hash table when calling find or delete.
     } ebpf_hash_table_creation_options_t;
 
     /**

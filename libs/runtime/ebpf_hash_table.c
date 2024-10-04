@@ -57,8 +57,12 @@ struct _ebpf_hash_table
     size_t bucket_count_mask; // Mask to use to get bucket index from hash.
     volatile size_t
         entry_count; // Count of entries in the hash table. Only valid if max_entry_count != EBPF_HASH_TABLE_NO_LIMIT.
-    size_t max_entry_count;         // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
-    uint32_t seed;                  // Seed used for hashing.
+    size_t max_entry_count; // Maximum number of entries allowed or EBPF_HASH_TABLE_NO_LIMIT if no maximum.
+    uint32_t seed;          // Seed used for hashing.
+    struct
+    {
+        uint64_t assert_key_is_present : 1; // Assert that key is present in the hash table on find or delete.
+    } flags;
     size_t key_size;                // Size of key.
     size_t value_size;              // Size of value.
     size_t supplemental_value_size; // Size of supplemental value.
@@ -819,6 +823,8 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
 
     if (!data) {
+        // Assert if the key should be present but isn't.
+        ebpf_assert(!hash_table->flags.assert_key_is_present);
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
@@ -882,6 +888,10 @@ ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t
     }
 
     retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
+
+    if (retval == EBPF_KEY_NOT_FOUND) {
+        ebpf_assert(!hash_table->flags.assert_key_is_present);
+    }
 
 Done:
     return retval;

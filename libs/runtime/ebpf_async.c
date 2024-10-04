@@ -23,6 +23,7 @@ ebpf_async_initiate()
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(ebpf_handle_t),
         .value_size = sizeof(ebpf_async_tracker_t),
+        .assert_key_present = true,
     };
 
     EBPF_RETURN_RESULT(ebpf_hash_table_create(&_ebpf_async_tracker_table, &options));

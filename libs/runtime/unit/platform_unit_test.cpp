@@ -381,7 +381,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
         .key_size = sizeof(uint32_t),
         .value_size = sizeof(uint64_t),
         .minimum_bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
-    };
+        .assert_key_present = true};
     REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
