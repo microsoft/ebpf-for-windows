@@ -1609,14 +1609,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
+    // Track count of programs not including subprograms.
+    size_t program_count = 0;
     for (auto& [name, program] : programs) {
         if (program.output_instructions.size() == 0) {
             continue;
         }
         if (is_subprogram(program)) {
-            // Skip subprograms in this pass.
             continue;
         }
+        program_count++;
         auto program_name = !program.program_name.empty() ? program.program_name : name;
 
         // Emit program-specific helper function array.
@@ -1639,10 +1641,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << std::endl;
         }
 
-        if (programs.size() > 1) {
+        if (programs.size() > program_count) {
             output_stream << "// Forward references for local functions." << std::endl;
             for (auto& [_, subprogram] : programs) {
-                if (subprogram.program_name != program_name) {
+                if (is_subprogram(subprogram)) {
                     output_stream << "static uint64_t " << subprogram.program_name.c_identifier()
                                   << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10);"
                                   << std::endl;
@@ -1750,23 +1752,19 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         // Emit subprograms.
         for (auto& [_, subprogram] : programs) {
-            if (subprogram.program_name != program_name) {
+            if (is_subprogram(subprogram)) {
                 emit_subprogram(output_stream, subprogram);
             }
         }
     }
 
-    // Track count of programs not including subprograms.
-    size_t program_count = 0;
-
-    if (programs.size() != 0) {
+    if (program_count != 0) {
         output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
         output_stream << "static program_entry_t _programs[] = {" << std::endl;
         for (auto& [name, program] : programs) {
             if (is_subprogram(program)) {
                 continue;
             }
-            program_count++;
             auto program_name = !program.program_name.empty() ? program.program_name : name;
             size_t map_count = program.referenced_map_indices.size();
             size_t helper_count = program.helper_functions.size();
