@@ -52,13 +52,13 @@ SPDX-License-Identifier: MIT
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|ARM64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|ARM64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
