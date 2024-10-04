@@ -1368,8 +1368,7 @@ bpf_code_generator::encode_instructions(program_t& program)
 }
 
 void
-bpf_code_generator::emit_subprogram(
-    std::ostream& output_stream, const unsafe_string& section_name, const program_t& program)
+bpf_code_generator::emit_subprogram(std::ostream& output_stream, const program_t& program)
 {
     std::string prolog_line_info;
 
@@ -1397,18 +1396,17 @@ bpf_code_generator::emit_subprogram(
     }
     output_stream << std::endl;
 
-    emit_instructions(output_stream, section_name, program);
+    emit_instructions(output_stream, program);
 
     // Emit epilogue.
     output_stream << prolog_line_info << "}" << std::endl;
 }
 
 void
-bpf_code_generator::emit_instructions(
-    std::ostream& output_stream, const unsafe_string& section_name, const program_t& program)
+bpf_code_generator::emit_instructions(std::ostream& output_stream, const program_t& program)
 {
     std::string prolog_line_info;
-    auto& line_info = section_line_info[section_name];
+    auto& line_info = section_line_info[program.elf_section_name];
 
     for (const auto& output : program.output) {
         if (output.lines.empty()) {
@@ -1478,6 +1476,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
         size_t map_size = map_definitions.size();
+
         // Sort maps by index.
         std::vector<std::tuple<bpf_code_generator::unsafe_string, map_entry_t>> maps_by_index(map_size);
         for (const auto& pair : map_definitions) {
@@ -1486,6 +1485,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
             maps_by_index[pair.second.index] = pair;
         }
+
         // Emit maps by index.
         for (const auto& [name, entry] : maps_by_index) {
             std::string map_type;
@@ -1562,11 +1562,11 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
-    for (auto& [section_name, program] : programs) {
+    for (auto& [name, program] : programs) {
         if (program.output.size() == 0) {
             continue;
         }
-        auto program_name = !program.program_name.empty() ? program.program_name : section_name;
+        auto program_name = !program.program_name.empty() ? program.program_name : name;
 
         // Emit program-specific helper function array.
         if (program.helper_functions.size() > 0) {
@@ -1590,7 +1590,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         if (programs.size() > 1) {
             output_stream << "// Forward references for local functions." << std::endl;
-            for (auto& [name, subprogram] : programs) {
+            for (auto& [_, subprogram] : programs) {
                 if (subprogram.program_name != program_name) {
                     output_stream << "static uint64_t " << subprogram.program_name.c_identifier()
                                   << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10);"
@@ -1690,7 +1690,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
 
         // Emit encoded instructions.
-        emit_instructions(output_stream, section_name, program);
+        emit_instructions(output_stream, program);
 
         // Emit epilogue.
         output_stream << prolog_line_info << "}" << std::endl;
@@ -1698,9 +1698,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
 
         // Emit subprograms.
-        for (auto& [name, subprogram] : programs) {
+        for (auto& [_, subprogram] : programs) {
             if (subprogram.program_name != program_name) {
-                emit_subprogram(output_stream, section_name, subprogram);
+                emit_subprogram(output_stream, subprogram);
             }
         }
     }

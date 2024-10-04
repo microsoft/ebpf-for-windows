@@ -406,21 +406,19 @@ class bpf_code_generator
      * @brief Emit encoded instructions.
      *
      * @param[in] output Output stream to write code to.
-     * @param[in] section_name Name of section.
      * @param[in] program Program to emit instructions for.
      */
     void
-    emit_instructions(std::ostream& output_stream, const unsafe_string& section_name, const program_t& program);
+    emit_instructions(std::ostream& output_stream, const program_t& program);
 
     /**
      * @brief Emit the C code for a subprogram.
      *
      * @param[in] output Output stream to write code to.
-     * @param[in] section_name Name of section.
      * @param[in] program Subprogram to emit code for.
      */
     void
-    emit_subprogram(std::ostream& output, const unsafe_string& section_name, const program_t& program);
+    emit_subprogram(std::ostream& output, const program_t& program);
 
 #if defined(_MSC_VER)
     /**
