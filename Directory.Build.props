@@ -4,6 +4,12 @@
   SPDX-License-Identifier: MIT
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <PropertyGroup Label="Version">
+    <EbpfVersion_Major>0</EbpfVersion_Major>
+    <EbpfVersion_Minor>20</EbpfVersion_Minor>
+    <EbpfVersion_Revision>0</EbpfVersion_Revision>
+    <EbpfVersion>$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
+  </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -70,7 +76,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(OutDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>
@@ -109,7 +115,7 @@
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->
   <ItemGroup Condition="('$(ConfigurationType)'=='Application' Or '$(ConfigurationType)'=='DynamicLibrary' Or '$(ConfigurationType)'=='Driver') And Exists('$(SolutionDir)resource\ebpf_resource.rc')">
     <ResourceCompile  Include="$(SolutionDir)resource\ebpf_resource.rc">
-      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
