@@ -27,15 +27,15 @@
     </ProjectConfiguration>
     <ProjectConfiguration Include="NativeOnlyDebug|ARM64">
       <Configuration>NativeOnlyDebug</Configuration>
-      <Platform>x64</Platform>
+      <Platform>ARM64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="FuzzerDebug|ARM64">
       <Configuration>FuzzerDebug</Configuration>
-      <Platform>x64</Platform>
+      <Platform>ARM64</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="NativeOnlyRelease|ARM64">
       <Configuration>NativeOnlyRelease</Configuration>
-      <Platform>x64</Platform>
+      <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>

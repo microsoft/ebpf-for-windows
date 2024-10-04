@@ -12,30 +12,38 @@ Set-Location $scriptPath\..\..
 $OneBranchArch = $env:ONEBRANCH_ARCH
 $OneBranchConfig = $env:ONEBRANCH_CONFIG
 
-# Copy the signed binaries to the output directory
-if ($OneBranchConfig -eq "NativeOnlyDebug" -and $OneBranchArch -eq "x64")
-{
-    xcopy /y build\bin\x64_NativeOnlyDebug .\x64\NativeOnlyDebug
-    Get-ChildItem -Path .\build\bin\x64_NativeOnlyDebug -Recurse | Remove-Item -Force -Recurse
+function CopySignedBinaries {
+    param (
+        [string]$Config,
+        [string]$Arch
+    )
+    xcopy /y "build\bin\$Arch\_$Config" ".\$Arch\$Config"
+    Get-ChildItem -Path "build\bin\$Arch\_$Config" -Recurse | Remove-Item -Force -Recurse
 }
-elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "x64")
-{
-    xcopy /y build\bin\x64_NativeOnlyRelease .\x64\NativeOnlyRelease
-    Get-ChildItem -Path .\build\bin\x64_NativeOnlyRelease -Recurse | Remove-Item -Force -Recurse
+
+function CopyPackages {
+    param (
+        [string]$Config,
+        [string]$Arch
+    )
+    xcopy /y ".\$Arch\$Config\*.nupkg" "build\bin\$Arch\_$Config"
+    xcopy /y ".\$Arch\$Config\*.msi" "build\bin\$Arch\_$Config"
 }
-elseif ($OneBranchConfig -eq "NativeOnlyDebug" -and $OneBranchArch -eq "arm64")
+
+if ($OneBranchConfig -eq "NativeOnlyDebug" -or $OneBranchConfig -eq "NativeOnlyRelease")
 {
-    xcopy /y build\bin\x64_NativeOnlyDebug .\x64\NativeOnlyDebug
-    Get-ChildItem -Path .\build\bin\x64_NativeOnlyDebug -Recurse | Remove-Item -Force -Recurse
-}
-elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "arm64")
-{
-    xcopy /y build\bin\arm64_NativeOnlyRelease .\arm64\NativeOnlyRelease
-    Get-ChildItem -Path .\build\bin\arm64_NativeOnlyRelease -Recurse | Remove-Item -Force -Recurse
+    if ($OneBranchArch -eq "x64" -or $OneBranchArch -eq "arm64")
+    {
+        CopySignedBinaries -Config $OneBranchConfig -Arch $OneBranchArch
+    }
+    else
+    {
+        throw ("Architecture $OneBranchArch is not supported.")
+    }
 }
 else
 {
-    throw ("Configuration $OneBranchConfig|$OneBranchArch is not supported.")
+    throw ("Configuration $OneBranchConfig is not supported.")
 }
 
 Import-Module "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\Microsoft.VisualStudio.DevShell.dll"
@@ -46,28 +54,20 @@ msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platfo
 msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false .\tools\redist-package\redist-package.vcxproj
 msbuild /p:SolutionDir=$SolutionDir\ /p:Configuration=$OneBranchConfig /p:Platform=$OneBranchArch /p:BuildProjectReferences=false .\installer\ebpf-for-windows.wixproj
 
+# After building the packages
 # Copy the nupkg and msi to the output directory
-if ($OneBranchConfig -eq "NativeOnlyDebug" -and $OneBranchArch -eq "x64")
+if ($OneBranchConfig -eq "NativeOnlyDebug" -or $OneBranchConfig -eq "NativeOnlyRelease")
 {
-    xcopy /y .\x64\NativeOnlyDebug\*.nupkg .\build\bin\x64_NativeOnlyDebug
-    xcopy /y .\x64\NativeOnlyDebug\*.msi .\build\bin\x64_NativeOnlyDebug
-}
-elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "x64")
-{
-    xcopy /y .\x64\NativeOnlyRelease\*.nupkg .\build\bin\x64_NativeOnlyRelease
-    xcopy /y .\x64\NativeOnlyRelease\*.msi .\build\bin\x64_NativeOnlyRelease
-}
-elseif ($OneBranchConfig -eq "NativeOnlyDebug" -and $OneBranchArch -eq "arm64")
-{
-    xcopy /y .\arm64\NativeOnlyDebug\*.nupkg .\build\bin\arm64_NativeOnlyDebug
-    xcopy /y .\arm64\NativeOnlyDebug\*.msi .\build\bin\arm64_NativeOnlyDebug
-}
-elseif ($OneBranchConfig -eq "NativeOnlyRelease" -and $OneBranchArch -eq "arm64")
-{
-    xcopy /y .\arm64\NativeOnlyRelease\*.nupkg .\build\bin\arm64_NativeOnlyRelease
-    xcopy /y .\arm64\NativeOnlyRelease\*.msi .\build\bin\xarm4_NativeOnlyRelease
+    if ($OneBranchArch -eq "x64" -or $OneBranchArch -eq "arm64")
+    {
+        CopyPackages -Config $OneBranchConfig -Arch $OneBranchArch
+    }
+    else
+    {
+        throw ("Architecture $OneBranchArch is not supported.")
+    }
 }
 else
 {
-    throw ("Configuration $OneBranchConfig|$OneBranchArch is not supported.")
+    throw ("Configuration $OneBranchConfig is not supported.")
 }

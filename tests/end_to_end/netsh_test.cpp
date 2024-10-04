@@ -232,6 +232,8 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     const int code_size = 1120;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size = 5984;
+#else
+#error "Unsupported architecture"
 #endif
 
     // Expected output is a format string with the code size filled in.
@@ -266,6 +268,8 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size = 1020;
+#else
+#error "Unsupported architecture"
 #endif
 
     const std::string expected_output = "\n"
@@ -307,6 +311,8 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size_old[] = {400, 184, 400};
     const int code_size_new[] = {400, 184, 400};
+#else
+#error "Unsupported architecture"
 #endif
 
     // Issue #3610: Different MSVC versions expect different numbers of bytes for the same program.
@@ -350,6 +356,8 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     const int code_size[] = {308, 324, 308, 324};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size[] = {1044, 1176, 1044, 1176};
+#else
+#error "Unsupported architecture"
 #endif
 
     const std::string expected_output = "\n"
