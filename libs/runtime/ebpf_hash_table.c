@@ -690,7 +690,7 @@ _ebpf_hash_table_replace_bucket(
 
 Done:
     if (result == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
-        ebpf_assert("!Key not found in hash table.");
+        ebpf_assert(!"Key should have been present (based on configuration) but was not found.");
     }
 
     ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
@@ -828,8 +828,6 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
 
     if (!data) {
-        // Assert if the key is expected to be present (based on the flag) but isn't found.
-        ebpf_assert(!hash_table->flags.assert_key_is_present);
         retval = EBPF_KEY_NOT_FOUND;
         goto Done;
     }
@@ -845,7 +843,8 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     retval = EBPF_SUCCESS;
 Done:
     if (result == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
-        ebpf_assert("!Key not found in hash table.");
+        // Assert if the key is expected to be present (based on the flag) but isn't found.
+        ebpf_assert(!"Key should have been present (based on configuration) but was not found.");
     }
     return retval;
 }
