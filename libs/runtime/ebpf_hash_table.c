@@ -842,7 +842,7 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
     retval = EBPF_SUCCESS;
 Done:
-    if (result == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
+    if (retval == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
         // Assert if the key is expected to be present (based on the flag) but isn't found.
         ebpf_assert(!"Key should have been present (based on configuration) but was not found.");
     }
