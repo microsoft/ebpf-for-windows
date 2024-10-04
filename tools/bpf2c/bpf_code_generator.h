@@ -186,12 +186,11 @@ class bpf_code_generator
          */
         bpf_code_generator_exception(const unsafe_string& what, size_t offset)
             : std::runtime_error(what.raw() + " at offset " + std::to_string(offset))
-        {
-        }
+        {}
     };
 
     /**
-     * @brief Construct a new bpf code generator object.
+     * @brief Construct a new bpf code generator object from an ELF file.
      *
      * @param[in] stream Input stream containing the eBPF file to parse.
      * @param[in] c_name C compatible name to export this as.
@@ -216,7 +215,7 @@ class bpf_code_generator
      * @return Vector of section names.
      */
     std::vector<unsafe_string>
-    program_sections();
+    program_sections() const;
 
     /**
      * @brief Parse the eBPF file.
@@ -261,11 +260,10 @@ class bpf_code_generator
     /**
      * @brief Generate C code from the parsed eBPF file.
      *
-     * @param[in] section_name Section in the ELF file to generate C code for.
-     * @param[in] program_name Section in the ELF file to generate C code for.
+     * @param[in] program_name Program in the ELF file to generate C code for.
      */
     void
-    generate(const unsafe_string& section_name, const bpf_code_generator::unsafe_string& program_name);
+    generate(const bpf_code_generator::unsafe_string& program_name);
 
     /**
      * @brief Emit the C code to a given output stream.
@@ -281,7 +279,7 @@ class bpf_code_generator
      * @return Vector of helper ids.
      */
     std::vector<int32_t>
-    get_helper_ids();
+    get_helper_ids() const;
 
     /**
      * @brief Set the program hash info object
@@ -399,9 +397,30 @@ class bpf_code_generator
     /**
      * @brief Generate the C code for each eBPF instruction.
      *
+     * @param[in] program Program to encode instructions for.
      */
     void
-    encode_instructions(const unsafe_string& program_name);
+    encode_instructions(program_t& program);
+
+    /**
+     * @brief Emit encoded instructions.
+     *
+     * @param[in] output Output stream to write code to.
+     * @param[in] section_name Name of section.
+     * @param[in] program Program to emit instructions for.
+     */
+    void
+    emit_instructions(std::ostream& output_stream, const unsafe_string& section_name, const program_t& program);
+
+    /**
+     * @brief Emit the C code for a subprogram.
+     *
+     * @param[in] output Output stream to write code to.
+     * @param[in] section_name Name of section.
+     * @param[in] program Subprogram to emit code for.
+     */
+    void
+    emit_subprogram(std::ostream& output, const unsafe_string& section_name, const program_t& program);
 
 #if defined(_MSC_VER)
     /**
@@ -412,7 +431,7 @@ class bpf_code_generator
      * @return The formatted string.
      */
     std::string
-    format_guid(const GUID* guid, bool split);
+    format_guid(const GUID* guid, bool split) const;
 #endif
 
     /**
@@ -426,20 +445,21 @@ class bpf_code_generator
     /**
      * @brief Get the name of a register from its index.
      *
+     * @param[in] program Program using the register.
      * @param[in] id Register index.
      * @return Register name
      */
     std::string
-    get_register_name(uint8_t id);
+    get_register_name(program_t& program, uint8_t id);
 
     ELFIO::section*
-    get_required_section(const unsafe_string& name);
+    get_required_section(const unsafe_string& name) const;
 
     ELFIO::section*
-    get_optional_section(const unsafe_string& name);
+    get_optional_section(const unsafe_string& name) const;
 
     bool
-    is_section_valid(const ELFIO::section* section);
+    is_section_valid(const ELFIO::section* section) const;
 
     /**
      * @brief Invoke the visitor for each symbol in the ELF file section.

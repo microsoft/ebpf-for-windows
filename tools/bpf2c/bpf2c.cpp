@@ -291,6 +291,12 @@ main(int argc, char** argv)
 
         // Parse per-program data.
         for (const ebpf_api_program_info_t* program = infos; program; program = program->next) {
+            // Skip if a subprogram.  A subprogram is defined by libbpf as any
+            // program in the .text section when multiple programs exist.
+            if (!strcmp(program->section_name, ".text") && infos->next != nullptr) {
+                continue;
+            }
+
             const char* report = nullptr;
             ebpf_api_verifier_stats_t stats;
             std::optional<std::vector<uint8_t>> program_info_hash;
@@ -325,7 +331,7 @@ main(int argc, char** argv)
                 (global_program_type_set) ? program_type : program->program_type,
                 (global_program_type_set) ? attach_type : program->expected_attach_type,
                 hash_algorithm);
-            generator.generate(program->section_name, program->program_name);
+            generator.generate(program->program_name);
 
             if (hash_algorithm != "none") {
                 std::vector<int32_t> helper_ids = generator.get_helper_ids();
