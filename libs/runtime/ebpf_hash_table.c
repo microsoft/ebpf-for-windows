@@ -765,7 +765,6 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
-    table->flags.assert_key_is_present = options->assert_key_present ? 1 : 0;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
@@ -799,13 +798,14 @@ ebpf_hash_table_destroy(_In_opt_ _Post_ptr_invalid_ ebpf_hash_table_t* hash_tabl
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+_ebpf_hash_table_find_internal(
+    _In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value, bool must_succeed)
 {
     ebpf_result_t retval;
     uint32_t bucket_index;
     uint8_t* data = NULL;
-    size_t index;
-    ebpf_hash_bucket_header_t* bucket;
+    size_t index = 0;
+    ebpf_hash_bucket_header_t* bucket = NULL;
 
     if (!hash_table || !key) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -842,11 +842,28 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
     retval = EBPF_SUCCESS;
 Done:
-    if (retval == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
-        // Assert if the key is expected to be present (based on the flag) but isn't found.
-        ebpf_assert(!"Key should have been present (based on configuration) but was not found.");
+    if (retval == EBPF_KEY_NOT_FOUND && must_succeed) {
+        // Ensure that the values are present in the dump for debugging.
+        static volatile ebpf_hash_bucket_header_t* last_bucket;
+        static volatile size_t last_index;
+        last_bucket = bucket;
+        last_index = index;
+        __fastfail(0);
     }
     return retval;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+{
+    return _ebpf_hash_table_find_internal(hash_table, key, value, false);
+}
+
+void
+ebpf_hash_table_find_must_succeed(
+    _In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value)
+{
+    (void)_ebpf_hash_table_find_internal(hash_table, key, value, true);
 }
 
 _Must_inspect_result_ ebpf_result_t

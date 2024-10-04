@@ -23,7 +23,6 @@ ebpf_async_initiate()
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(ebpf_handle_t),
         .value_size = sizeof(ebpf_async_tracker_t),
-        .assert_key_present = true,
     };
 
     EBPF_RETURN_RESULT(ebpf_hash_table_create(&_ebpf_async_tracker_table, &options));
@@ -52,15 +51,20 @@ ebpf_async_set_completion_callback(
 }
 
 static ebpf_async_tracker_t*
-_tracker_from_context(_In_ const void* context)
+_tracker_from_context(_In_ const void* context, bool must_succeed)
 {
     uint8_t* key = (uint8_t*)&context;
     ebpf_async_tracker_t* tracker = NULL;
-    ebpf_result_t result = ebpf_hash_table_find(_ebpf_async_tracker_table, key, (uint8_t**)&tracker);
-    if (result != EBPF_SUCCESS) {
-        return NULL;
-    } else {
+    if (must_succeed) {
+        ebpf_hash_table_find_must_succeed(_ebpf_async_tracker_table, key, (uint8_t**)&tracker);
         return tracker;
+    } else {
+        ebpf_result_t result = ebpf_hash_table_find(_ebpf_async_tracker_table, key, (uint8_t**)&tracker);
+        if (result != EBPF_SUCCESS) {
+            return NULL;
+        } else {
+            return tracker;
+        }
     }
 }
 
@@ -78,7 +82,8 @@ ebpf_async_set_cancel_callback(
     _In_ void (*on_cancel)(_Inout_opt_ void* cancellation_context))
 {
     EBPF_LOG_ENTRY();
-    ebpf_async_tracker_t* tracker = _tracker_from_context(context);
+    // Must be called while the contex is still valid.
+    ebpf_async_tracker_t* tracker = _tracker_from_context(context, true);
     if (!tracker) {
         return EBPF_INVALID_ARGUMENT;
     }
@@ -91,7 +96,8 @@ bool
 ebpf_async_cancel(_Inout_ void* context)
 {
     EBPF_LOG_ENTRY();
-    ebpf_async_tracker_t* tracker = _tracker_from_context(context);
+    // Can be called after the context has been completed.
+    ebpf_async_tracker_t* tracker = _tracker_from_context(context, false);
     if (!tracker) {
         EBPF_RETURN_BOOL(false);
     }
@@ -109,9 +115,9 @@ void
 ebpf_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     EBPF_LOG_ENTRY();
-    ebpf_async_tracker_t* tracker = _tracker_from_context(context);
+    // Must be called before the context is compeleted.
+    ebpf_async_tracker_t* tracker = _tracker_from_context(context, true);
     if (!tracker) {
-        ebpf_assert(!"Async action was double completed");
         EBPF_RETURN_VOID();
     }
     void (*on_complete)(_Inout_ void*, size_t, ebpf_result_t) = tracker->on_complete;

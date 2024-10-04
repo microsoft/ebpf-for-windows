@@ -65,7 +65,6 @@ extern "C"
         void* notification_context;     //< Context to pass to notification functions.
         ebpf_hash_table_notification_function
             notification_callback; //< Function to call when value storage is allocated or freed.
-        bool assert_key_present;   // Assert that the key is present in the hash table when calling find or delete.
     } ebpf_hash_table_creation_options_t;
 
     /**
@@ -92,7 +91,6 @@ extern "C"
 
     /**
      * @brief Find an element in the hash table.
-     * Will assert if the assert_key_present flag is set and the key is not found.
      *
      * @param[in] hash_table Hash-table to search.
      * @param[in] key Key to find in hash table.
@@ -104,8 +102,18 @@ extern "C"
     ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
 
     /**
+     * @brief Variant of ebpf_hash_table_find that calls __failfast if the key is not found.
+     *
+     * @param[in] hash_table Hash-table to search.
+     * @param[in] key Key to find in hash table.
+     * @param[out] value Pointer to value if found.
+     */
+    void
+    ebpf_hash_table_find_must_succeed(
+        _In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_t* key, _Outptr_ uint8_t** value);
+
+    /**
      * @brief Insert or update an entry in the hash table.
-     * Will assert if the assert_key_present flag is set, the key is not found, and the operation is replace.
      *
      * @param[in, out] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
@@ -125,7 +133,6 @@ extern "C"
 
     /**
      * @brief Remove an entry from the hash table.
-     * Will assert if the assert_key_present flag is set and the key is not found.
      *
      * @param[in, out] hash_table Hash-table to update.
      * @param[in] key Key to find and remove.

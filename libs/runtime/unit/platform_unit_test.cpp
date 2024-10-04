@@ -380,8 +380,7 @@ TEST_CASE("hash_table_stress_test", "[platform]")
     const ebpf_hash_table_creation_options_t options = {
         .key_size = sizeof(uint32_t),
         .value_size = sizeof(uint64_t),
-        .minimum_bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count),
-        .assert_key_present = true};
+        .minimum_bucket_count = static_cast<size_t>(worker_threads) * static_cast<size_t>(key_count)};
     REQUIRE(ebpf_hash_table_create(&table, &options) == EBPF_SUCCESS);
     auto worker = [table, iterations, key_count, load_factor, &cpu_id]() {
         uint32_t next_key = 0;
@@ -1007,6 +1006,87 @@ TEST_CASE("async", "[platform]")
 
     // Run the test with cancel before complete.
     test(false);
+}
+
+TEST_CASE("async_stress", "[platform]")
+{
+    typedef struct _async_context
+    {
+        ebpf_result_t result = EBPF_PENDING;
+    } async_context_t;
+
+    typedef struct _cancellation_context
+    {
+        bool canceled = false;
+    } cancellation_context_t;
+
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    const size_t iterations = 10000;
+    const uint32_t worker_threads = ebpf_get_cpu_count();
+    const uint32_t key_count = 64;
+    std::atomic<int32_t> cpu_id = 0;
+
+    auto worker = [&] {
+        uint32_t local_cpu_id = cpu_id++;
+        uintptr_t thread_mask = local_cpu_id;
+        thread_mask = static_cast<uintptr_t>(1) << thread_mask;
+        SetThreadAffinityMask(GetCurrentThread(), thread_mask);
+
+        std::vector<async_context_t> async_contexts(key_count);
+        std::vector<cancellation_context_t> cancellation_contexts(key_count);
+
+        for (size_t i = 0; i < iterations; i++) {
+            ebpf_epoch_scope_t epoch_scope;
+            for (auto& async_context : async_contexts) {
+                async_context.result = EBPF_PENDING;
+            }
+            for (auto& cancellation_context : cancellation_contexts) {
+                cancellation_context.canceled = false;
+            }
+
+            for (size_t j = 0; j < key_count; j++) {
+                if (ebpf_async_set_completion_callback(
+                        &async_contexts[j], [](void* context, size_t output_buffer_length, ebpf_result_t result) {
+                            UNREFERENCED_PARAMETER(output_buffer_length);
+                            auto async_context = reinterpret_cast<async_context_t*>(context);
+                            async_context->result = result;
+                        }) != EBPF_SUCCESS) {
+                    break;
+                }
+                if (ebpf_async_set_cancel_callback(&async_contexts[j], &cancellation_contexts[j], [](void* context) {
+                        auto cancellation_context = reinterpret_cast<cancellation_context_t*>(context);
+                        cancellation_context->canceled = true;
+                    }) != EBPF_SUCCESS) {
+                    throw std::runtime_error("ebpf_async_set_cancel_callback failed");
+                }
+            }
+
+            for (size_t j = 0; j < key_count; j++) {
+                ebpf_async_cancel(&async_contexts[j]);
+                if (!cancellation_contexts[j].canceled) {
+                    throw std::runtime_error("Cancel callback not called");
+                }
+            }
+
+            for (auto& async_context : async_contexts) {
+                ebpf_async_complete(&async_context, 0, EBPF_CANCELED);
+                if (async_context.result != EBPF_CANCELED) {
+                    throw std::runtime_error("Completion callback not called");
+                }
+            }
+        }
+    };
+
+    std::vector<std::thread> threads;
+    for (size_t i = 0; i < worker_threads; i++) {
+        threads.emplace_back(std::thread(worker));
+    }
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
 }
 
 TEST_CASE("ring_buffer_output", "[platform]")
