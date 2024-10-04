@@ -92,6 +92,7 @@ extern "C"
 
     /**
      * @brief Find an element in the hash table.
+     * Will assert if the assert_key_present flag is set and the key is not found.
      *
      * @param[in] hash_table Hash-table to search.
      * @param[in] key Key to find in hash table.
@@ -104,6 +105,7 @@ extern "C"
 
     /**
      * @brief Insert or update an entry in the hash table.
+     * Will assert if the assert_key_present flag is set, the key is not found, and the operation is replace.
      *
      * @param[in, out] hash_table Hash-table to update.
      * @param[in] key Key to find and insert or update.
@@ -123,6 +125,7 @@ extern "C"
 
     /**
      * @brief Remove an entry from the hash table.
+     * Will assert if the assert_key_present flag is set and the key is not found.
      *
      * @param[in, out] hash_table Hash-table to update.
      * @param[in] key Key to find and remove.

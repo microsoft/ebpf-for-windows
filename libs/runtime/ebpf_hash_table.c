@@ -689,6 +689,10 @@ _ebpf_hash_table_replace_bucket(
     new_bucket = NULL;
 
 Done:
+    if (result == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
+        ebpf_assert("!Key not found in hash table.");
+    }
+
     ebpf_lock_unlock(&hash_table->buckets[bucket_index].lock, state);
 
     if (hash_table->notification_callback) {
@@ -761,6 +765,7 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
+    table->flags.assert_key_is_present = options->assert_key_present ? 1 : 0;
 
     *hash_table = table;
     retval = EBPF_SUCCESS;
@@ -839,6 +844,9 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
     }
     retval = EBPF_SUCCESS;
 Done:
+    if (result == EBPF_KEY_NOT_FOUND && hash_table->flags.assert_key_is_present) {
+        ebpf_assert("!Key not found in hash table.");
+    }
     return retval;
 }
 
@@ -888,11 +896,6 @@ ebpf_hash_table_delete(_Inout_ ebpf_hash_table_t* hash_table, _In_ const uint8_t
     }
 
     retval = _ebpf_hash_table_replace_bucket(hash_table, key, NULL, EBPF_HASH_BUCKET_OPERATION_DELETE);
-
-    if (retval == EBPF_KEY_NOT_FOUND) {
-        ebpf_assert(!hash_table->flags.assert_key_is_present);
-    }
-
 Done:
     return retval;
 }
