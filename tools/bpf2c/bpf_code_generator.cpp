@@ -255,7 +255,7 @@ bpf_code_generator::bpf_code_generator(
     const bpf_code_generator::unsafe_string& c_name, const std::vector<ebpf_inst>& instructions)
     : c_name(c_name)
 {
-    bpf_code_generator_program* current_program = add_program(c_name);
+    bpf_code_generator_program* current_program = add_program(c_name, c_name);
     uint32_t offset = 0;
     for (const auto& instruction : instructions) {
         current_program->output_instructions.push_back({instruction, offset++});
@@ -264,7 +264,7 @@ bpf_code_generator::bpf_code_generator(
             size_t subprogram_offset = ((size_t)offset) + instruction.imm;
             std::string unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
             unsafe_string name(unsafe_name);
-            add_program(name);
+            add_program(name, name);
             current_program->output_instructions.back().relocation = name;
         }
     }
@@ -388,9 +388,7 @@ bpf_code_generator::extract_program(
                     continue;
                 }
                 if (memcmp(program_info->raw_data + callee_offset, info->raw_data, info->raw_data_size) == 0) {
-                    auto subprogram = add_program(info->program_name);
-                    subprogram->elf_section_name = info->section_name;
-                    subprogram->program_name = info->program_name;
+                    add_program(info->program_name, info->section_name);
                     extract_program(info, infos);
                 }
             }
@@ -772,9 +770,13 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
 }
 
 bpf_code_generator::bpf_code_generator_program*
-bpf_code_generator::add_program(const unsafe_string& name)
+bpf_code_generator::add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name)
 {
-    return &programs[name];
+    bpf_code_generator::bpf_code_generator_program* program = &programs[program_name];
+    program->program_name = program_name;
+    program->elf_section_name = elf_section_name;
+    set_pe_section_name(*program, elf_section_name);
+    return program;
 }
 
 bool

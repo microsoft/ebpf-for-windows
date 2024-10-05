@@ -409,8 +409,13 @@ class bpf_code_generator
      * @param[in] name Program name.
      */
     bpf_code_generator_program*
-    add_program(const unsafe_string& name);
+    add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name);
 
+    /**
+     * @brief Check whether a progam is just a subprogram.
+     *
+     * @param[in] program Program to check.
+     */
     bool
     is_subprogram(const bpf_code_generator_program& program) const;
 
