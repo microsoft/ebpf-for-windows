@@ -600,7 +600,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     REQUIRE(obj_fd != ebpf_fd_invalid);
     REQUIRE(errno == EEXIST);
     obj_fd = bpf_obj_get(bad_pin_path);
-    REQUIRE(obj_fd == ebpf_fd_invalid);
+    REQUIRE(obj_fd == -ENOENT);
     REQUIRE(errno == ENOENT);
 
     result = bpf_program__unpin(program, pin_path);
