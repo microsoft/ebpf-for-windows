@@ -20,17 +20,17 @@
 #include "ebpf_nethooks.h"
 
 bind_action_t
-BindMonitor_Callee(uint8_t* protocol);
+BindMonitor_Callee(uint64_t* pid);
 
 SEC("bind")
 bind_action_t
 BindMonitor_Caller(bind_md_t* ctx)
 {
-    int protocol = ctx->protocol;
-    if (BindMonitor_Callee(&ctx->protocol) == BIND_DENY) {
+    uint64_t pid = ctx->process_id;
+    if (BindMonitor_Callee(&ctx->process_id) == BIND_DENY) {
         return BIND_DENY;
     }
-    if (protocol == 1) {
+    if (pid == 1) {
         // The variable should have been preserved across the call.
         return BIND_REDIRECT;
     }
@@ -38,7 +38,7 @@ BindMonitor_Caller(bind_md_t* ctx)
 }
 
 __attribute__((noinline)) bind_action_t
-BindMonitor_Callee(uint8_t* protocol)
+BindMonitor_Callee(uint64_t* pid)
 {
-    return (*protocol == 0) ? BIND_DENY : BIND_PERMIT;
+    return (*pid == 0) ? BIND_DENY : BIND_PERMIT;
 }

@@ -774,21 +774,12 @@ _bindmonitor_bpf2bpf_test(ebpf_execution_type_t execution_type)
     program_load_attach_helper_t program_helper;
     program_helper.initialize(file_name, BPF_PROG_TYPE_BIND, "BindMonitor_Caller", execution_type, nullptr, 0, hook);
 
-    // Dummy context (not used by the eBPF program).
-    bind_md_t ctx{};
-    uint32_t hook_result;
+    std::function<ebpf_result_t(void*, uint32_t*)> invoke =
+        [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    ctx.protocol = 0;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == BIND_DENY);
-
-    ctx.protocol = 1;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == BIND_REDIRECT);
-
-    ctx.protocol = 2;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
-    REQUIRE(hook_result == BIND_PERMIT);
+    REQUIRE(emulate_bind(invoke, 0, "fake_app_0") == BIND_DENY);
+    REQUIRE(emulate_bind(invoke, 1, "fake_app_1") == BIND_REDIRECT);
+    REQUIRE(emulate_bind(invoke, 2, "fake_app_2") == BIND_PERMIT);
 }
 
 void
