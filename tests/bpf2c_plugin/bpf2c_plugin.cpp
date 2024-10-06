@@ -96,7 +96,6 @@ generate_c_file(const std::vector<ebpf_inst>& program, const std::filesystem::pa
     std::ofstream c_file(c_file_path);
     emit_skeleton("test", bpf2c_plugin, c_file);
     bpf_code_generator code("test", program);
-    code.generate("test");
     code.emit_c_code(c_file);
     c_file.flush();
     c_file.close();

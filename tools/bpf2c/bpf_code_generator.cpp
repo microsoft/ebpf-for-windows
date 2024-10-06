@@ -258,16 +258,24 @@ bpf_code_generator::bpf_code_generator(
     bpf_code_generator_program* current_program = add_program(c_name, c_name);
     uint32_t offset = 0;
     for (const auto& instruction : instructions) {
+        std::string unsafe_name = "local_subprogram" + std::to_string(offset);
+        if (programs.contains(unsafe_name)) {
+            // This instruction is the start of a subprogram, so generate the
+            // one we just finished and start a new one.
+            generate(current_program->program_name);
+            current_program = &programs[unsafe_name];
+        }
         current_program->output_instructions.push_back({instruction, offset++});
         if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
             // Local function call, so we need a subprogram that starts at the indicated offset.
             size_t subprogram_offset = ((size_t)offset) + instruction.imm;
-            std::string unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
+            unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
             unsafe_string name(unsafe_name);
-            add_program(name, name);
+            add_program(name, ".text");
             current_program->output_instructions.back().relocation = name;
         }
     }
+    generate(current_program->program_name);
 }
 
 std::vector<bpf_code_generator::unsafe_string>
