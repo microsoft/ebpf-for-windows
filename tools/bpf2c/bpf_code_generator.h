@@ -260,14 +260,6 @@ class bpf_code_generator
     parse_legacy_maps_section(const unsafe_string& name);
 
     /**
-     * @brief Generate C code from the parsed eBPF file.
-     *
-     * @param[in] program_name Program in the ELF file to generate C code for.
-     */
-    void
-    generate(const bpf_code_generator::unsafe_string& program_name);
-
-    /**
      * @brief Emit the C code to a given output stream.
      *
      * @param[in] output Output stream to write code to.
@@ -410,6 +402,14 @@ class bpf_code_generator
      */
     bpf_code_generator_program*
     add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name);
+
+    /**
+     * @brief Generate C code from the parsed eBPF file.
+     *
+     * @param[in] program_name Program in the ELF file to generate C code for.
+     */
+    void
+    generate(const bpf_code_generator::unsafe_string& program_name);
 
     /**
      * @brief Check whether a progam is just a subprogram.
