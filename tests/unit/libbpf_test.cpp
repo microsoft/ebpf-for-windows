@@ -846,7 +846,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     int result = bpf_map_lookup_elem(map_fd, &index, &value);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == ENOENT);
 
     // Wrong fd type.
     int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
