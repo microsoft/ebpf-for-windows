@@ -235,22 +235,6 @@
       <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
-    <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-    </ClCompile>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
-    <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-    </ClCompile>
-  </ItemDefinitionGroup>
   <ItemGroup Condition="$(ResourceFile)!=''">
     <ResourceCompile Include="$(ResourceFile)" />
   </ItemGroup>
