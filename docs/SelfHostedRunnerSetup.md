@@ -17,15 +17,11 @@ Since these runners only run jobs for PRs in the official `eBPF for Windows` rep
    administrator privilege. So, the credentials of an account with administrator privilege must be supplied in
    `windowslogonaccount` and `windowslogonpassword` parameters.
 6) Follow the [VM Installation Instructions](vm-setup.md) to set up **one test VM** and perform one-time setup steps. Then create a snapshot named **baseline** for the VMs.
-7) Edit test configuration JSON files.
-   1) Edit the `test_execution.json` file. Update the name of your VM and runner in the `VMMap` section. You only need one entry in this map.
-8) Store the VM administrator and standard user credentials on the runner machine:
-   1) `Install-Module CredentialManager -force`
-   2) `New-StoredCredential -Target `**`TEST_VM`**` -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine`
-   3) `New-StoredCredential -Target `**`TEST_VM_STANDARD`**` -Username <VM Standard User Name> -Password <VM Standard User account password> -Persist LocalMachine`
-
-9) Modify the environment of the VM as needed. Create a new checkpoint using **Hyper-V**. Rename the new checkpoint to `baseline`, and remove the old baseline.
-10) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VM with the following commands.
+7) Follow the [Method 3 in InstallEbpf.md](InstallEbpf.md#L122) instructions:
+   - Create a [new checkpoint](InstallEbpf.md#L130).
+   - Store the [VM administrator and standard user credentials](InstallEbpf.md#L137) on the runner machine.
+   - Edit the [`test_execution.json`](InstallEbpf.md#L153) file.
+8) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VM with the following commands.
     ```New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue```
     ```New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue```
     ```New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps" -PropertyType ExpandString -ErrorAction SilentlyContinue -Force```

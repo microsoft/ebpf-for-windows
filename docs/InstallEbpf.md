@@ -127,11 +127,12 @@ has already built the binaries for `x64/Debug` or `x64/Release`.
 Copy the build output in `\x64\[Debug|Release]` to the host of the test VM and run the following in a Powershell
 command prompt:
 
-1. Create a snapshot of the test VM named **baseline**, by running:
+1. Modify the environment of the VM as needed. Create a snapshot of the test VM named **baseline**, by running:
 
     ```ps
     Checkpoint-VM -Name <test-vm-name> -CheckpointName baseline
     ```
+    Note: Rename the new checkpoint to `baseline`, and remove the old baseline, if present.
 
 1. Store the VM administrator credential, by running the following commands:
 
@@ -143,9 +144,13 @@ command prompt:
    New-StoredCredential -Target TEST_VM -Username <VM Administrator> -Password <VM Administrator account password> -Persist LocalMachine
    ```
 
-   > Note that "`TEST_VM`" is literal and is used in step 5 below; it need not be the name of any actual test VM.
+   ```ps
+   New-StoredCredential -Target `**`TEST_VM_STANDARD`**` -Username <VM Standard User Name> -Password <VM Standard User account password> -Persist LocalMachine
+   ```
+
+   > Note that "`TEST_VM` and `TEST_VM_STANDARD` " are literal and is used in step 5 below. It need not be the name of any actual test VM.
 1. Enter the `\x64\[Debug|Release]` directory (`cd`) where the build artifacts are stored.
-1. Modify `.\test_execution.json` to specify the name of the test VM under `VMMap`, eg:
+1. Modify `.\test_execution.json` to specify the name of the test VM under `VMMap`. You only need one entry in this map. eg:
 
     ```json
     {
@@ -164,7 +169,7 @@ command prompt:
     ```
 
 1. Run the following commands to setup to use the credentials saved with `TEST_VM` in step 2,
- for logging into each of the VMs named in `vm_list.json`:
+ for logging into each of the VMs named in `test_execution.json`:
 
     ```ps
     Set-ExecutionPolicy unrestricted -Force
