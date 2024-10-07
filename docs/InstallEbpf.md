@@ -168,7 +168,7 @@ command prompt:
     }
     ```
 
-1. Run the following commands to setup to use the credentials saved with `TEST_VM` in step 2,
+1. Run the following commands to use the credentials saved with `TEST_VM` and `TEST_VM_STANDARD` in step 2,
  for logging into each of the VMs named in `test_execution.json`:
 
     ```ps

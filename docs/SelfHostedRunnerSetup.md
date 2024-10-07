@@ -17,10 +17,7 @@ Since these runners only run jobs for PRs in the official `eBPF for Windows` rep
    administrator privilege. So, the credentials of an account with administrator privilege must be supplied in
    `windowslogonaccount` and `windowslogonpassword` parameters.
 6) Follow the [VM Installation Instructions](vm-setup.md) to set up **one test VM** and perform one-time setup steps. Then create a snapshot named **baseline** for the VMs.
-7) Follow the [Method 3 in InstallEbpf.md](InstallEbpf.md#L122) instructions:
-   - Create a [new checkpoint](InstallEbpf.md#L130).
-   - Store the [VM administrator and standard user credentials](InstallEbpf.md#L137) on the runner machine.
-   - Edit the [`test_execution.json`](InstallEbpf.md#L153) file.
+7) Follow the [Method 3 in InstallEbpf.md](InstallEbpf.md#method-3-install-files-you-built-yourself-with-a-vm-checkpoint) instructions.
 8) Set up Windows Error Reporting [Local Dump Collection](https://docs.microsoft.com/en-us/windows/win32/wer/collecting-user-mode-dumps) on the VM with the following commands.
     ```New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue```
     ```New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue```
