@@ -51,20 +51,6 @@ ebpf_timed_work_queue_create(
     KeInitializeTimer(&local_work_queue->timer);
     KeInitializeDpc(&local_work_queue->dpc, _ebpf_timed_work_queue_timer_callback, local_work_queue);
 
-    *work_queue = local_work_queue;
-    local_work_queue = NULL;
-    return_value = EBPF_SUCCESS;
-
-Done:
-    ebpf_timed_work_queue_destroy(local_work_queue);
-
-    return return_value;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_timed_work_queue_set_cpu_id(_Inout_ ebpf_timed_work_queue_t* work_queue, uint32_t cpu_id)
-{
-    ebpf_result_t return_value;
     PROCESSOR_NUMBER processor_number;
     NTSTATUS status = KeGetProcessorNumberFromIndex(cpu_id, &processor_number);
     if (!NT_SUCCESS(status)) {
@@ -72,16 +58,19 @@ ebpf_timed_work_queue_set_cpu_id(_Inout_ ebpf_timed_work_queue_t* work_queue, ui
         goto Done;
     }
 
-    status = KeSetTargetProcessorDpcEx(&work_queue->dpc, &processor_number);
+    status = KeSetTargetProcessorDpcEx(&local_work_queue->dpc, &processor_number);
     if (!NT_SUCCESS(status)) {
         return_value = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
 
-    work_queue->cpu_id = cpu_id;
-
+    *work_queue = local_work_queue;
+    local_work_queue = NULL;
     return_value = EBPF_SUCCESS;
+
 Done:
+    ebpf_timed_work_queue_destroy(local_work_queue);
+
     return return_value;
 }
 
