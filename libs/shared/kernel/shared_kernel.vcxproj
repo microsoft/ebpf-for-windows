@@ -7,7 +7,11 @@
   <ItemGroup>
     <ClCompile Include="..\ebpf_serialize.c" />
     <ClCompile Include="..\shared_common.c" />
-    <ClCompile Include="..\tracelog.c" />
+    <ClCompile Include="..\tracelog.c" >
+      <Optimization>Full</Optimization>
+        <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+        <WholeProgramOptimization>true</WholeProgramOptimization>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ebpf_ring_buffer.h" />
