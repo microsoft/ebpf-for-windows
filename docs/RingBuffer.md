@@ -16,10 +16,9 @@ Mapped memory consumer:
 
 1. Call `ring_buffer__new` to get a ringbuffer manager.
 2. Call `ebpf_ring_buffer_get_buffer` to get pointers to the mapped producer/consumer pages.
-3. Call `ebpf_ring_buffer_get_buffer` to get pointers to the mapped producer and consumer memory.
-4. Call `ebpf_ring_buffer_get_wait_handle` to get the wait handle.
-5. Directly read records from the producer pages (and update consumer offset as we read).
-6. Call `WaitForSingleObject`/`WaitForMultipleObject` as needed to wait for new data to be available.
+3. Call `ebpf_ring_buffer_get_wait_handle` to get the wait handle.
+4. Directly read records from the producer pages (and update consumer offset as we read).
+5. Call `WaitForSingleObject`/`WaitForMultipleObject` as needed to wait for new data to be available.
 
 ## API Changes
 
@@ -121,7 +120,7 @@ int ring_buffer__consume(struct ring_buffer *rb);
  * @param[out] producer pointer* to start of read-only mapped producer pages
  * @param[out] consumer pointer* to start of read-write mapped consumer page
  */
-int ebpf_ring_buffer_get_buffer(const ebpf_map_t* map, void **producer, void **consumer);
+ebpf_result_t ebpf_ring_buffer_get_buffer(const ebpf_map_t* map, void **producer, void **consumer);
 
 /**
  * get the wait handle to use with WaitForSingleObject/WaitForMultipleObject
