@@ -24,13 +24,13 @@ SPDX-License-Identifier: MIT
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=True;IncludeVCRedist=False;Platform=x64</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=True;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=False;IncludeVCRedist=False;Platform=x64</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
@@ -39,7 +39,7 @@ SPDX-License-Identifier: MIT
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
-    <DefineConstants>$(DefineConstants);IncludeVCRedist=True;Platform=x64</DefineConstants>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
@@ -47,7 +47,7 @@ SPDX-License-Identifier: MIT
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
-    <DefineConstants>$(DefineConstants);IncludeVCRedist=True;Platform=x64</DefineConstants>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
   </PropertyGroup>
   <!-- ARM64 support for JIT is not yet implemeted, so only declare a NativeOnly version of the installer. -->
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|ARM64' ">
@@ -55,7 +55,7 @@ SPDX-License-Identifier: MIT
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
-    <DefineConstants>$(DefineConstants);Debug;IncludeVCRedist=False;Platform=x64</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|ARM64' ">
@@ -63,7 +63,7 @@ SPDX-License-Identifier: MIT
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
-    <DefineConstants>$(DefineConstants);IncludeVCRedist=True;Platform=x64</DefineConstants>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
