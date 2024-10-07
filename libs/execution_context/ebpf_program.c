@@ -1556,6 +1556,11 @@ ebpf_program_invoke(
 
         if (current_program->parameters.code_type == EBPF_CODE_JIT ||
             current_program->parameters.code_type == EBPF_CODE_NATIVE) {
+            EBPF_LOG_MESSAGE_UTF8_STRING(
+                EBPF_TRACELOG_LEVEL_VERBOSE,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "Tail call program",
+                &current_program->parameters.program_name);
             ebpf_program_entry_point_t function_pointer;
             function_pointer = (ebpf_program_entry_point_t)(current_program->code_or_vm.code.code_pointer);
             *result = (function_pointer)(context);
