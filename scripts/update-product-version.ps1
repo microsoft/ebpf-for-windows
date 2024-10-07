@@ -8,20 +8,17 @@ if ("$majorVersion.$minorVersion.$revisionNumber" -match '^\d+\.\d+\.\d+$') {
 
     if (Test-Path -Path ".\ebpf-for-windows.sln") {
         # Set the new version number in the ebpf_version.h file.
-        $ebpf_version_file = "$PSScriptRoot\..\resource\ebpf_version.h"
+        $ebpf_version_file = "$PSScriptRoot\..\Directory.Build.props"
         Write-Host -ForegroundColor DarkGreen "Updating the version number in the '$ebpf_version_file' file..."
+        # Replace <EbpfVersion_Major>0</EbpfVersion_Major> with <EbpfVersion_Major>$majorVersion</EbpfVersion_Major>
+
         $newcontent = (Get-Content $ebpf_version_file -Raw -Encoding UTF8) `
-                        -replace '(?<=#define EBPF_VERSION_MAJOR )\d+', $majorVersion `
-                        -replace '(?<=#define EBPF_VERSION_MINOR )\d+', $minorVersion `
-		                -replace '(?<=#define EBPF_VERSION_REVISION )\d+', $revisionNumber
+                        -replace '(?<=<EbpfVersion_Major>)\d+', $majorVersion `
+                        -replace '(?<=<EbpfVersion_Minor>)\d+', $minorVersion `
+                        -replace '(?<=<EbpfVersion_Revision>)\d+', $revisionNumber
+
         $newcontent | Set-Content $ebpf_version_file -NoNewline
         Write-Host -ForegroundColor DarkGreen "Version number updated to '$majorVersion.$minorVersion.$revisionNumber' in $ebpf_version_file"
-
-        # Update the version number in the Wix installer file.
-        $ebpf_installer_file = "$PSScriptRoot\..\installer\Product.wxs"
-        Write-Host -ForegroundColor DarkGreen "Updating the version number in the '$ebpf_installer_file' file..."
-        (Get-Content $ebpf_installer_file -Raw -Encoding UTF8) -replace 'Version="\d+\.\d+\.\d+"', "Version=`"$majorVersion.$minorVersion.$revisionNumber`"" | Set-Content $ebpf_installer_file -NoNewline
-        Write-Host -ForegroundColor DarkGreen "Version number updated to '$majorVersion.$minorVersion.$revisionNumber' in $ebpf_installer_file"
 
         # Rebuild the solution, so to regenerate the NuGet packages and the '.o' files with the new version number.
         Write-Host -ForegroundColor DarkGreen "Rebuilding the solution, please wait..."

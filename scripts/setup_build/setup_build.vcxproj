@@ -4,6 +4,36 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|x64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyDebug|x64">
+      <Configuration>NativeOnlyDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyRelease|x64">
+      <Configuration>NativeOnlyRelease</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <Target Name="SetVersion" BeforeTargets="PreBuildEvent">
+    <Exec Command='
+      echo #define EBPF_VERSION_MAJOR $(EbpfVersion_Major) &gt; $(OutDir)ebpf_version.h
+      echo #define EBPF_VERSION_MINOR $(EbpfVersion_Minor) &gt;&gt; $(OutDir)ebpf_version.h
+      echo #define EBPF_VERSION_REVISION $(EbpfVersion_Revision) &gt;&gt; $(OutDir)ebpf_version.h
+      echo #define EBPF_VERSION "$(EbpfVersion)" &gt;&gt; $(OutDir)ebpf_version.h
+    '/>
+  </Target>
   <ItemGroup>
     <CustomBuild Include="..\deploy-ebpf.ps1.in">
       <FileType>Document</FileType>

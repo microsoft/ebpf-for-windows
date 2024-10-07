@@ -304,6 +304,18 @@ extern "C"
     }
 
     void
+    ebpf_log_message_binary(
+        ebpf_tracelog_level_t trace_level,
+        ebpf_tracelog_keyword_t keyword,
+        _In_z_ const char* message,
+        _In_reads_bytes_(data_size) const void* data,
+        uint32_t data_size);
+#define EBPF_LOG_MESSAGE_BINARY(trace_level, keyword, message, data, data_size)            \
+    if (TraceLoggingProviderEnabled(ebpf_tracelog_provider, trace_level, keyword)) {       \
+        ebpf_log_message_binary(_##trace_level##, _##keyword##, message, data, data_size); \
+    }
+
+    void
     ebpf_log_message_error(
         ebpf_tracelog_level_t trace_level,
         ebpf_tracelog_keyword_t keyword,

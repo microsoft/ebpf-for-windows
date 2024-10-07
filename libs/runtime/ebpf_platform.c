@@ -11,7 +11,7 @@ static uint32_t _ebpf_platform_maximum_processor_count = 0;
 
 static bool _ebpf_platform_is_cxplat_initialized = false;
 
-bool ebpf_processor_supports_sse42 = true;
+bool ebpf_processor_supports_sse42 = false;
 
 _Ret_range_(>, 0) uint32_t ebpf_get_cpu_count() { return _ebpf_platform_maximum_processor_count; }
 
@@ -525,10 +525,12 @@ ebpf_platform_initiate()
     ebpf_result_t result = ebpf_result_from_cxplat_status(cxplat_initialize());
     _ebpf_platform_is_cxplat_initialized = (result == EBPF_SUCCESS);
     ebpf_initialize_cpu_count();
+#if defined(_M_X64)
     // Check if processor supports SSE4.2
     int cpu_info[4] = {0};
     __cpuid(cpu_info, CPU_INFO_PROCESSOR_INFO_FUNCTION);
     ebpf_processor_supports_sse42 = (cpu_info[CPU_INFO_SSE42_BYTE_OFFSET] & (1 << CPU_INFO_SSE32_BIT_OFFSET)) != 0;
+#endif
 
     return result;
 }
