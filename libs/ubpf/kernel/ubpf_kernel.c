@@ -89,6 +89,37 @@ ubpf_jit_update_helper_x86_64(
     return false;
 }
 
+// Thunk out JIT related calls.
+// Workaround until https://github.com/iovisor/ubpf/issues/185 is fixed.
+struct ubpf_jit_result
+ubpf_translate_arm64(struct ubpf_vm* vm, uint8_t* buffer, size_t* size, enum JitMode jit_mode)
+{
+    __fastfail(0);
+    struct ubpf_jit_result result = {0};
+    return result;
+}
+
+bool
+ubpf_jit_update_dispatcher_arm64(
+    struct ubpf_vm* vm, external_function_dispatcher_t new_dispatcher, uint8_t* buffer, size_t size, uint32_t offset)
+{
+    __fastfail(0);
+    return false;
+}
+
+bool
+ubpf_jit_update_helper_arm64(
+    struct ubpf_vm* vm,
+    extended_external_helper_t new_helper,
+    unsigned int idx,
+    uint8_t* buffer,
+    size_t size,
+    uint32_t offset)
+{
+    __fastfail(0);
+    return false;
+}
+
 #pragma warning(push)
 #pragma warning(disable : 28159) // Don't use KeBugCheck
 void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
