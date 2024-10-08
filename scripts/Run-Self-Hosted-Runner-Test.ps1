@@ -74,6 +74,34 @@ function GetDriveFreeSpaceGB
     return $FreeSpaceGB
 }
 
+$timer = $null
+
+function StartWatchDogTimer
+{
+    param(
+        [Parameter(Mandatory = $true)] [string] $ActionOnTimeout,
+        [Parameter(Mandatory = $false)] [int] $Timeout = 3600
+    )
+    $timer = New-Object System.Timers.Timer
+    $timer.Interval = $Timeout * 1000 # Convert seconds to milliseconds.
+    $timer.AutoReset = $false
+
+    $timer.add_Elapsed({
+        Write-Log "Watchdog timer expired. Killing the test process."
+        & $ActionOnTimeout
+    })
+
+    $timer.Start()
+}
+
+function StopWatchDogTimer
+{
+    if ($timer -ne $null) {
+        $timer.Stop()
+        $timer.Dispose()
+    }
+}
+
 if ($VerbosePreference -eq 'Continue') {
     Write-Log "Command               : $TestCommand"
     Write-Log "Arguments             : $TestArguments"
@@ -138,6 +166,8 @@ if ($VerbosePreference -eq 'Continue') {
     }
     Write-Log "`n"
 }
+
+StartWatchDogTimer -ActionOnTimeout "$NotMyFaultBinaryPath /crash" -Timeout ($TestHangTimeout * 1.1)
 
 # Get the available free space before test start (useful in investigating dump file creation failures)
 try {
@@ -279,3 +309,5 @@ if (-not $WaitResult) {
         ThrowWithErrorMessage -ErrorMessage $ErrorMessage
     }
 }
+
+StopWatchDogTimer
