@@ -572,24 +572,26 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
     for (size_t test_iteration = 0; test_iteration < test_iterations; test_iteration++) {
 
         auto t1 = [&]() {
-            uintptr_t old_thread_affinity;
-            ebpf_assert_success(ebpf_set_current_thread_affinity(1, &old_thread_affinity));
+            GROUP_AFFINITY old_thread_affinity;
+            ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(0, &old_thread_affinity));
             ebpf_epoch_scope_t epoch_scope;
             void* memory = ebpf_epoch_allocate(10);
             signal_2.signal();
             signal_1.wait();
             ebpf_epoch_free(memory);
             epoch_scope.exit();
+            ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
         };
         auto t2 = [&]() {
-            uintptr_t old_thread_affinity;
-            ebpf_assert_success(ebpf_set_current_thread_affinity(2, &old_thread_affinity));
+            GROUP_AFFINITY old_thread_affinity;
+            ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(1, &old_thread_affinity));
             signal_2.wait();
             ebpf_epoch_scope_t epoch_scope;
             void* memory = ebpf_epoch_allocate(10);
             ebpf_epoch_free(memory);
             epoch_scope.exit();
             signal_1.signal();
+            ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
         };
 
         std::thread thread_1(t1);
