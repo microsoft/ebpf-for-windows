@@ -39,7 +39,8 @@ _resolve_helper_functions(
     // Build a table to map [1, MAXUINT32] -> [0,63]
     for (size_t index = 0; index < instruction_count; index++) {
         ebpf_inst& instruction = instructions[index];
-        if (instruction.opcode != INST_OP_CALL) {
+        // Check if this is an CALL instruction with instruction source as 0 (helper function).
+        if (!(instruction.opcode == INST_OP_CALL && instruction.src == 0)) {
             continue;
         }
         helper_id_to_address[instruction.imm] = {0};
