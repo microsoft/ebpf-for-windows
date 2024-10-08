@@ -49,6 +49,17 @@ extern "C"
         _In_ void* context);
 
     /**
+     * @brief Set the CPU ID for the timed work queue.
+     *
+     * @param[in,out] work_queue Work queue to set the CPU ID for.
+     * @param[in] cpu_id Which CPU to run the work queue on.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The CPU ID is invalid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_timed_work_queue_set_cpu_id(_Inout_ ebpf_timed_work_queue_t* work_queue, uint32_t cpu_id);
+
+    /**
      * @brief Destroy a timed work queue.
      *
      * @param[in] work_queue The timed work queue to destroy.
