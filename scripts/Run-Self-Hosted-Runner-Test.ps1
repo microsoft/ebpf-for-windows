@@ -79,17 +79,14 @@ $timer = $null
 function StartWatchDogTimer
 {
     param(
-        [Parameter(Mandatory = $true)] [string] $ActionOnTimeout,
+        [Parameter(Mandatory = $true)] [scriptblock] $ActionOnTimeout,
         [Parameter(Mandatory = $false)] [int] $Timeout = 3600
     )
     $timer = New-Object System.Timers.Timer
     $timer.Interval = $Timeout * 1000 # Convert seconds to milliseconds.
     $timer.AutoReset = $false
 
-    $timer.add_Elapsed({
-        Write-Log "Watchdog timer expired. Killing the test process."
-        & $ActionOnTimeout
-    })
+    $timer.add_Elapsed($ActionOnTimeout)
 
     $timer.Start()
 }
@@ -167,7 +164,9 @@ if ($VerbosePreference -eq 'Continue') {
     Write-Log "`n"
 }
 
-StartWatchDogTimer -ActionOnTimeout "$NotMyFaultBinaryPath /crash" -Timeout ($TestHangTimeout * 1.1)
+StartWatchDogTimer -ActionOnTimeout {
+    Start-Process -NoNewWindow -Wait -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
+} -Timeout $TestHangTimeout
 
 # Get the available free space before test start (useful in investigating dump file creation failures)
 try {
