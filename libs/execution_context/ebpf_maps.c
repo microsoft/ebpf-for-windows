@@ -476,7 +476,7 @@ _find_array_map_entry(
     key_value = *(uint32_t*)key;
 
     if (key_value >= map->ebpf_map_definition.max_entries) {
-        return EBPF_INVALID_ARGUMENT;
+        return EBPF_OBJECT_NOT_FOUND;
     }
 
     *data = &map->data[key_value * map->ebpf_map_definition.value_size];
