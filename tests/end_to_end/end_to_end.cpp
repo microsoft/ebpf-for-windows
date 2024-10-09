@@ -1381,9 +1381,9 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
         bpf_map__unpin(bpf_object__find_map_by_name(unique_object.get(), "limits_map"), limit_maps_name.c_str()) ==
         EBPF_SUCCESS);
 
-    REQUIRE(bpf_obj_get(limit_maps_name.c_str()) == ebpf_fd_invalid);
+    REQUIRE(bpf_obj_get(limit_maps_name.c_str()) == -ENOENT);
 
-    REQUIRE(bpf_obj_get(process_maps_name.c_str()) == ebpf_fd_invalid);
+    REQUIRE(bpf_obj_get(process_maps_name.c_str()) == -ENOENT);
 
     bpf_object__close(unique_object.release());
 }
