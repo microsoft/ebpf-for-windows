@@ -414,7 +414,7 @@ ebpf_set_current_thread_cpu_affinity(uint32_t cpu_index, _Out_ GROUP_AFFINITY* o
     }
 
     new_affinity.Group = processor.Group;
-    new_affinity.Mask = (ULONG_PTR)1 << processor.Number;
+    new_affinity.Mask = AFFINITY_MASK(processor.Number);
 
     KeSetSystemGroupAffinityThread(&new_affinity, old_cpu_affinity);
 

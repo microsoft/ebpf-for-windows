@@ -29,6 +29,10 @@ extern "C"
 #define EBPF_INLINE_HINT
 #endif
 
+#if !defined(AFFINITY_MASK)
+#define AFFINITY_MASK(n) ((ULONG_PTR)1 << (n))
+#endif
+
 #define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
     {                                         \
         ((uint8_t*)(x)), sizeof((x)) - 1      \
