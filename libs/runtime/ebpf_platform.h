@@ -30,7 +30,7 @@ extern "C"
 #endif
 
 #if !defined(AFFINITY_MASK)
-#define AFFINITY_MASK(n) ((ULONG_PTR)1 << (n))
+#define AFFINITY_MASK(n) ((ULONG_PTR)(1) << (n))
 #endif
 
 #define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
