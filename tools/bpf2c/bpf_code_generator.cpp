@@ -1400,7 +1400,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back(
                     get_register_name(0) + " = " + function_name + "(" + get_register_name(1) + ", " +
                     get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
-                    get_register_name(5) + ", " + get_register_name(10) + ");");
+                    get_register_name(5) + ", " + get_register_name(10) + ", context);");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -1431,7 +1431,8 @@ bpf_code_generator::emit_subprogram(std::ostream& output_stream, const bpf_code_
     // Emit entry point.
     output_stream << prolog_line_info << "static uint64_t\n"
                   << subprogram.program_name.c_identifier()
-                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10)" << std::endl;
+                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)"
+                  << std::endl;
     output_stream << prolog_line_info << "{" << std::endl;
 
     // Emit prologue.
@@ -1449,6 +1450,10 @@ bpf_code_generator::emit_subprogram(std::ostream& output_stream, const bpf_code_
             continue;
         }
         output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
+    }
+    if (subprogram.helper_functions.size() == 0) {
+        // Avoid unused parameter warning.
+        output_stream << prolog_line_info << INDENT "(void)context;" << std::endl;
     }
     output_stream << std::endl;
 
@@ -1635,9 +1640,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         if (program.output_instructions.size() == 0) {
             continue;
         }
-        if (is_subprogram(program)) {
-            continue;
-        }
+
         auto program_name = !program.program_name.empty() ? program.program_name : name;
 
         // Emit program-specific helper function array.
@@ -1660,13 +1663,18 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << std::endl;
         }
 
+        if (is_subprogram(program)) {
+            continue;
+        }
+
         if (programs.size() > program_count) {
             output_stream << "// Forward references for local functions." << std::endl;
             for (auto& [_, subprogram] : programs) {
                 if (is_subprogram(subprogram)) {
                     output_stream << "static uint64_t" << std::endl;
                     output_stream << subprogram.program_name.c_identifier()
-                                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10);"
+                                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, "
+                                     "void* context);"
                                   << std::endl;
                 }
             }

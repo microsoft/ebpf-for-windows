@@ -30,6 +30,7 @@ BindMonitor_Caller(bind_md_t* ctx)
     if (BindMonitor_Callee(&ctx->process_id) == BIND_DENY) {
         return BIND_DENY;
     }
+
     if (pid == 1) {
         // The variable should have been preserved across the call.
         return BIND_REDIRECT;
