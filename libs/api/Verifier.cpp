@@ -431,7 +431,7 @@ load_byte_code(
     } catch (std::runtime_error& err) {
         auto message = err.what();
         auto message_length = strlen(message) + 1;
-        char* error = reinterpret_cast<char*>(ebpf_allocate(message_length + 1));
+        char* error = static_cast<char*>(ebpf_allocate(message_length + 1));
         if (error) {
             strcpy_s(error, message_length, message);
         }

@@ -1189,7 +1189,7 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
             socket_handle = WSASocket(remote_endpoint.ss_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
             REQUIRE(socket_handle != INVALID_SOCKET);
 
-            INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
+            INETADDR_SETANY(static_cast<PSOCKADDR>(&remote_endpoint));
             SS_PORT(&remote_endpoint) = htons(remote_port);
 
             // Forcefully bind to the same port in use using socket option SO_REUSEADDR.

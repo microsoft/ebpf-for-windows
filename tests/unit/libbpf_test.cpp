@@ -3398,7 +3398,7 @@ emulate_bind_tail_call(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, u
     ctx->process_id = pid;
     ctx->operation = BIND_OPERATION_BIND;
 
-    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(static_cast<void*>(ctx), &result) == EBPF_SUCCESS);
 
     return static_cast<bind_action_t>(result);
 }

@@ -306,7 +306,7 @@ static void
 _complete_overlapped(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
 {
     UNREFERENCED_PARAMETER(output_buffer_length);
-    auto overlapped = reinterpret_cast<OVERLAPPED*>(context);
+    auto overlapped = static_cast<OVERLAPPED*>(context);
 
     // Copy the output buffer to the user buffer.
     if (overlapped) {
@@ -463,7 +463,7 @@ GlueDeviceIoControl(
     UNREFERENCED_PARAMETER(io_control_code);
 
     ebpf_result_t result;
-    const ebpf_operation_header_t* user_request = reinterpret_cast<decltype(user_request)>(input_buffer);
+    const ebpf_operation_header_t* user_request = static_cast<decltype(user_request)>(input_buffer);
     ebpf_operation_header_t* user_reply = nullptr;
     *bytes_returned = 0;
     auto request_id = user_request->id;
@@ -499,7 +499,7 @@ GlueDeviceIoControl(
     }
 
     if (minimum_reply_size > 0) {
-        user_reply = reinterpret_cast<decltype(user_reply)>(output_buffer);
+        user_reply = static_cast<decltype(user_reply)>(output_buffer);
         if (!user_reply) {
             result = EBPF_INVALID_ARGUMENT;
             goto Fail;

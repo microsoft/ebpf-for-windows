@@ -131,7 +131,7 @@ ring_buffer_test_event_context_t::unsubscribe()
 int
 ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, size_t size)
 {
-    ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
+    ring_buffer_test_event_context_t* event_context = static_cast<ring_buffer_test_event_context_t*>(ctx);
 
     if ((data == nullptr) || (size == 0)) {
         // eBPF ring buffer invokes callback with NULL data indicating that the subscription is canceled.
@@ -151,7 +151,7 @@ ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, siz
         return 0;
     }
 
-    std::vector<char> event_record(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size);
+    std::vector<char> event_record(static_cast<const char*>(data), static_cast<const char*>(data) + size);
 
     // Check if indicated event record matches an entry in the context records
     // that has not been matched yet.

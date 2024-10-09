@@ -34,7 +34,7 @@ _memfrob(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
 
-    uint8_t* p = reinterpret_cast<uint8_t*>(a);
+    uint8_t* p = static_cast<uint8_t*>(a);
     for (uint64_t i = 0; i < b; i++) {
         p[i] ^= 42;
     }
@@ -70,7 +70,7 @@ _strcmp_ext(uint64_t a, uint64_t b, uint64_t c, uint64_t d, uint64_t e)
     UNREFERENCED_PARAMETER(c);
     UNREFERENCED_PARAMETER(d);
     UNREFERENCED_PARAMETER(e);
-    return strcmp(reinterpret_cast<char*>(a), reinterpret_cast<char*>(b));
+    return strcmp(static_cast<char*>(a), static_cast<char*>(b));
 }
 
 static uint64_t
@@ -167,8 +167,8 @@ main(int argc, char** argv)
                 return -1;
             } else {
                 helper_function_entries[j].address =
-                    reinterpret_cast<helper_function_t>(_helper_functions[helper_function_entries[j].helper_id]);
-                if (helper_function_entries[j].address == reinterpret_cast<helper_function_t>(_unwind)) {
+                    static_cast<helper_function_t>(_helper_functions[helper_function_entries[j].helper_id]);
+                if (helper_function_entries[j].address == static_cast<helper_function_t>(_unwind)) {
                     helper_function_entries[j].tail_call = true;
                 }
             }

@@ -291,7 +291,7 @@ typedef class _single_instance_hook : public _hook_helper
         _Out_ void** provider_binding_context,
         _Out_ const void** provider_dispatch)
     {
-        auto hook = reinterpret_cast<_single_instance_hook*>(provider_context);
+        auto hook = static_cast<_single_instance_hook*>(provider_context);
 
         if (hook->client_binding_context != nullptr) {
             // Can't attach a single-instance provider to a second client.
@@ -310,7 +310,7 @@ typedef class _single_instance_hook : public _hook_helper
     static NTSTATUS
     provider_detach_client_callback(_Inout_ void* provider_binding_context)
     {
-        auto hook = reinterpret_cast<_single_instance_hook*>(provider_binding_context);
+        auto hook = static_cast<_single_instance_hook*>(provider_binding_context);
         hook->client_binding_context = nullptr;
         hook->client_data = nullptr;
         hook->client_dispatch_table = nullptr;
@@ -437,7 +437,7 @@ _xdp_context_create(
     ebpf_result_t retval = EBPF_FAILED;
     *context = nullptr;
 
-    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
+    xdp_md_t* xdp_context = static_cast<xdp_md_t*>(malloc(sizeof(xdp_md_t)));
     if (xdp_context == nullptr) {
         goto Done;
     }
@@ -475,9 +475,9 @@ _xdp_context_destroy(
         return;
     }
 
-    xdp_md_t* xdp_context = reinterpret_cast<xdp_md_t*>(context);
-    uint8_t* data = reinterpret_cast<uint8_t*>(xdp_context->data);
-    uint8_t* data_end = reinterpret_cast<uint8_t*>(xdp_context->data_end);
+    xdp_md_t* xdp_context = static_cast<xdp_md_t*>(context);
+    uint8_t* data = static_cast<uint8_t*>(xdp_context->data);
+    uint8_t* data_end = static_cast<uint8_t*>(xdp_context->data_end);
     size_t data_length = data_end - data;
     if (data_length <= *data_size_out) {
         memmove(data_out, data, data_length);
@@ -618,8 +618,7 @@ _sample_test_context_create(
         goto Done;
     }
 
-    context_header =
-        reinterpret_cast<sample_program_context_header_t*>(malloc(sizeof(sample_program_context_header_t)));
+    context_header = static_cast<sample_program_context_header_t*>(malloc(sizeof(sample_program_context_header_t)));
     if (!context_header) {
         goto Done;
     }
@@ -781,7 +780,7 @@ _ebpf_sock_addr_context_create(
     ebpf_result_t retval;
     *context = nullptr;
 
-    bpf_sock_addr_t* sock_addr_context = reinterpret_cast<bpf_sock_addr_t*>(ebpf_allocate(sizeof(bpf_sock_addr_t)));
+    bpf_sock_addr_t* sock_addr_context = static_cast<bpf_sock_addr_t*>(ebpf_allocate(sizeof(bpf_sock_addr_t)));
     if (sock_addr_context == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -818,7 +817,7 @@ _ebpf_sock_addr_context_destroy(
         return;
     }
 
-    bpf_sock_addr_t* sock_addr_context = reinterpret_cast<bpf_sock_addr_t*>(context);
+    bpf_sock_addr_t* sock_addr_context = static_cast<bpf_sock_addr_t*>(context);
     if (context_out && *context_size_out >= sizeof(bpf_sock_addr_t)) {
         bpf_sock_addr_t* provided_context = (bpf_sock_addr_t*)context_out;
         *provided_context = *sock_addr_context;
@@ -900,7 +899,7 @@ _ebpf_sock_ops_context_create(
     ebpf_result_t retval;
     *context = nullptr;
 
-    bpf_sock_ops_t* sock_ops_context = reinterpret_cast<bpf_sock_ops_t*>(ebpf_allocate(sizeof(bpf_sock_ops_t)));
+    bpf_sock_ops_t* sock_ops_context = static_cast<bpf_sock_ops_t*>(ebpf_allocate(sizeof(bpf_sock_ops_t)));
     if (sock_ops_context == nullptr) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -937,7 +936,7 @@ _ebpf_sock_ops_context_destroy(
         return;
     }
 
-    bpf_sock_ops_t* sock_ops_context = reinterpret_cast<bpf_sock_ops_t*>(context);
+    bpf_sock_ops_t* sock_ops_context = static_cast<bpf_sock_ops_t*>(context);
     if (context_out && *context_size_out >= sizeof(bpf_sock_ops_t)) {
         bpf_sock_ops_t* provided_context = (bpf_sock_ops_t*)context_out;
         *provided_context = *sock_ops_context;
@@ -1052,7 +1051,7 @@ typedef class _program_info_provider
         _Out_ void** provider_binding_context,
         _Out_ const void** provider_dispatch)
     {
-        auto hook = reinterpret_cast<_program_info_provider*>(provider_context);
+        auto hook = static_cast<_program_info_provider*>(provider_context);
         UNREFERENCED_PARAMETER(nmr_binding_handle);
         UNREFERENCED_PARAMETER(client_dispatch);
         UNREFERENCED_PARAMETER(client_binding_context);
@@ -1066,7 +1065,7 @@ typedef class _program_info_provider
     static NTSTATUS
     provider_detach_client_callback(_Inout_ void* provider_binding_context)
     {
-        auto hook = reinterpret_cast<_program_info_provider*>(provider_binding_context);
+        auto hook = static_cast<_program_info_provider*>(provider_binding_context);
         UNREFERENCED_PARAMETER(hook);
 
         // There should be no in-progress calls to any client functions,

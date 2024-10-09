@@ -144,7 +144,7 @@ run_ubpf_jit_test(const std::string& data_file)
     char* error = nullptr;
     ubpf_vm* vm = prepare_ubpf_vm(instructions);
     size_t code_size = UBPF_CODE_SIZE;
-    uint8_t* code = reinterpret_cast<uint8_t*>(VirtualAlloc2(
+    uint8_t* code = static_cast<uint8_t*>(VirtualAlloc2(
         GetCurrentProcess(), nullptr, code_size, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE, nullptr, 0));
     REQUIRE(code != nullptr);
 

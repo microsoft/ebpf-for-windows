@@ -125,7 +125,7 @@ bpf_object__open_mem(const void* buffer, size_t buffer_size, const struct bpf_ob
     struct bpf_object* object = nullptr;
     const char* error_message;
     ebpf_result_t result = ebpf_object_open_memory(
-        reinterpret_cast<const uint8_t*>(buffer),
+        static_cast<const uint8_t*>(buffer),
         buffer_size,
         ((opts) ? opts->object_name : nullptr),
         ((opts) ? opts->pin_root_path : nullptr),

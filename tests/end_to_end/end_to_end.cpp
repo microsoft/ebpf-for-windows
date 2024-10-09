@@ -185,13 +185,13 @@ typedef class _ip_packet
         if (_address_family == AF_INET) {
             (ip_addresses == nullptr) ? set_ipv4_addresses(&_test_ipv4_addrs.source, &_test_ipv4_addrs.destination)
                                       : set_ipv4_addresses(
-                                            &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->source,
-                                            &(reinterpret_cast<const _ipv4_address_pair*>(ip_addresses))->destination);
+                                            &(static_cast<const _ipv4_address_pair*>(ip_addresses))->source,
+                                            &(static_cast<const _ipv4_address_pair*>(ip_addresses))->destination);
         } else {
             (ip_addresses == nullptr) ? set_ipv6_addresses(&_test_ipv6_addrs.source, &_test_ipv6_addrs.destination)
                                       : set_ipv6_addresses(
-                                            &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->source,
-                                            &(reinterpret_cast<const _ipv6_address_pair*>(ip_addresses))->destination);
+                                            &(static_cast<const _ipv6_address_pair*>(ip_addresses))->source,
+                                            &(static_cast<const _ipv6_address_pair*>(ip_addresses))->destination);
         }
     }
     uint8_t*
@@ -305,16 +305,16 @@ typedef class _ip_in_ip_packet : public ip_packet_t
             (inner_ip_addresses == nullptr)
                 ? set_inner_ipv4_addresses(&_test2_ipv4_addrs.source, &_test2_ipv4_addrs.destination)
                 : set_inner_ipv4_addresses(
-                      &(reinterpret_cast<const _ipv4_address_pair*>(inner_ip_addresses))->source,
-                      &(reinterpret_cast<const _ipv4_address_pair*>(inner_ip_addresses))->destination);
+                      &(static_cast<const _ipv4_address_pair*>(inner_ip_addresses))->source,
+                      &(static_cast<const _ipv4_address_pair*>(inner_ip_addresses))->destination);
         } else {
             _packet.resize(_packet.size() + sizeof(ebpf::IPV6_HEADER));
 
             (inner_ip_addresses == nullptr)
                 ? set_inner_ipv6_addresses(&_test2_ipv6_addrs.source, &_test2_ipv6_addrs.destination)
                 : set_inner_ipv6_addresses(
-                      &(reinterpret_cast<const _ipv6_address_pair*>(inner_ip_addresses))->source,
-                      &(reinterpret_cast<const _ipv6_address_pair*>(inner_ip_addresses))->destination);
+                      &(static_cast<const _ipv6_address_pair*>(inner_ip_addresses))->source,
+                      &(static_cast<const _ipv6_address_pair*>(inner_ip_addresses))->destination);
         }
     }
 
@@ -632,7 +632,7 @@ emulate_bind(std::function<ebpf_result_t(void*, uint32_t*)>& invoke, uint64_t pi
     ctx->app_id_end = (uint8_t*)(app_id.c_str()) + app_id.size();
     ctx->process_id = pid;
     ctx->operation = BIND_OPERATION_BIND;
-    REQUIRE(invoke(reinterpret_cast<void*>(ctx), &result) == EBPF_SUCCESS);
+    REQUIRE(invoke(static_cast<void*>(ctx), &result) == EBPF_SUCCESS);
     return static_cast<bind_action_t>(result);
 }
 
@@ -1776,7 +1776,7 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    ebpf::ETHERNET_HEADER* ethernet_header = static_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
     REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
     REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
 
@@ -1830,7 +1830,7 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    ebpf::ETHERNET_HEADER* ethernet_header = static_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
     REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
     REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
 
@@ -1963,7 +1963,7 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
 
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    ebpf::ETHERNET_HEADER* ethernet_header = static_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
 
     if (address_family == AF_INET) {
         ebpf::IPV4_HEADER* ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
@@ -2522,7 +2522,7 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
         program_type,
         nullptr,
         EBPF_EXECUTION_ANY,
-        reinterpret_cast<const ebpf_inst*>(instructions),
+        static_cast<const ebpf_inst*>(instructions),
         insn_cnt,
         nullptr,
         0,

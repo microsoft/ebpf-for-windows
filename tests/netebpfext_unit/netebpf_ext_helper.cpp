@@ -152,12 +152,12 @@ _netebpf_ext_helper::_program_info_client_attach_provider(
     _Inout_ void* client_context,
     _In_ const NPI_REGISTRATION_INSTANCE* provider_registration_instance)
 {
-    auto& helper = *reinterpret_cast<_netebpf_ext_helper*>(client_context);
+    auto& helper = *static_cast<_netebpf_ext_helper*>(client_context);
     auto client_binding_context = std::make_unique<program_info_provider_t>();
     client_binding_context->module_id = *provider_registration_instance->ModuleId;
     client_binding_context->parent = &helper;
     client_binding_context->program_data =
-        reinterpret_cast<const ebpf_program_data_t*>(provider_registration_instance->NpiSpecificCharacteristics);
+        static_cast<const ebpf_program_data_t*>(provider_registration_instance->NpiSpecificCharacteristics);
 
     NTSTATUS status = NmrClientAttachProvider(
         nmr_binding_handle,
@@ -194,7 +194,7 @@ _netebpf_ext_helper::_hook_client_attach_provider(
 {
     UNREFERENCED_PARAMETER(provider_registration_instance);
     const void* provider_dispatch_table;
-    auto base_client_context = reinterpret_cast<netebpfext_helper_base_client_context_t*>(client_context);
+    auto base_client_context = static_cast<netebpfext_helper_base_client_context_t*>(client_context);
     if (base_client_context == nullptr) {
         return STATUS_INVALID_PARAMETER;
     }

@@ -520,7 +520,7 @@ _ebpf_map_lookup_element_batch_helper(
     size_t key_size = 0;
     size_t value_size = 0;
 
-    const uint8_t* previous_key = reinterpret_cast<const uint8_t*>(in_batch);
+    const uint8_t* previous_key = static_cast<const uint8_t*>(in_batch);
 
     ebpf_assert(keys);
     ebpf_assert(values);
@@ -947,8 +947,8 @@ ebpf_map_update_element_batch(
     if ((type == BPF_MAP_TYPE_PROG_ARRAY) || (type == BPF_MAP_TYPE_HASH_OF_MAPS) ||
         (type == BPF_MAP_TYPE_ARRAY_OF_MAPS)) {
         for (size_t index = 0; index < input_count; index++) {
-            fd_t fd = reinterpret_cast<const fd_t*>(values)[index];
-            const uint8_t* key = reinterpret_cast<const uint8_t*>(keys) + index * key_size;
+            fd_t fd = static_cast<const fd_t*>(values)[index];
+            const uint8_t* key = static_cast<const uint8_t*>(keys) + index * key_size;
             ebpf_handle_t handle = ebpf_handle_invalid;
             // If the fd is valid, resolve it to a handle, else pass ebpf_handle_invalid to the IOCTL.
             if (fd != ebpf_fd_invalid) {
@@ -1450,8 +1450,8 @@ ebpf_program_query_info(
 
     size_t file_name_length = reply->section_name_offset - reply->file_name_offset;
     size_t section_name_length = reply->header.length - reply->section_name_offset;
-    char* local_file_name = reinterpret_cast<char*>(ebpf_allocate(file_name_length + 1));
-    char* local_section_name = reinterpret_cast<char*>(ebpf_allocate(section_name_length + 1));
+    char* local_file_name = static_cast<char*>(ebpf_allocate(file_name_length + 1));
+    char* local_section_name = static_cast<char*>(ebpf_allocate(section_name_length + 1));
 
     if (!local_file_name || !local_section_name) {
         ebpf_free(local_file_name);
@@ -4188,8 +4188,7 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
     EBPF_LOG_ENTRY();
     ebpf_assert(completion_context);
 
-    ebpf_ring_buffer_subscription_t* subscription =
-        reinterpret_cast<ebpf_ring_buffer_subscription_t*>(completion_context);
+    ebpf_ring_buffer_subscription_t* subscription = static_cast<ebpf_ring_buffer_subscription_t*>(completion_context);
 
     size_t consumer = 0;
     size_t producer = 0;

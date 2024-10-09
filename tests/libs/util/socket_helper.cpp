@@ -152,7 +152,7 @@ _client_socket::post_async_receive(bool error_expected)
     int error = 0;
     int wsaerr = 0;
 
-    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), static_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -251,7 +251,7 @@ _datagram_client_socket::send_message_to_remote_host(
 
     // Send a message to the remote host using the sender socket.
     std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), static_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;
     uint32_t send_flags = 0;
     error = WSASendTo(
@@ -471,7 +471,7 @@ _datagram_server_socket::post_async_receive()
 {
     int error = 0;
 
-    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), static_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -512,7 +512,7 @@ _datagram_server_socket::send_async_response(_In_z_ const char* message)
 
     // Send a response to the sender.
     std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), static_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;
     uint32_t send_flags = 0;
     error = WSASendTo(
@@ -617,7 +617,7 @@ _stream_server_socket::post_async_receive()
 {
     initialize_accept_socket();
 
-    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), static_cast<char*>(recv_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -647,7 +647,7 @@ _stream_server_socket::send_async_response(_In_z_ const char* message)
 {
     // Send a message to the remote host using the sender socket.
     std::vector<char> send_buffer(message, message + strlen(message));
-    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), reinterpret_cast<char*>(send_buffer.data())};
+    WSABUF wsa_send_buffer{static_cast<unsigned long>(send_buffer.size()), static_cast<char*>(send_buffer.data())};
     uint32_t bytes_sent = 0;
     overlapped.hEvent = WSACreateEvent();
     int32_t error = WSASend(

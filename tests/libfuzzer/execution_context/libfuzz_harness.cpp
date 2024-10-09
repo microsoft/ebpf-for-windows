@@ -184,9 +184,9 @@ class fuzz_wrapper
             ebpf_program_parameters_t params{
                 type,
                 type,
-                {reinterpret_cast<uint8_t*>(name.data()), name.size()},
-                {reinterpret_cast<uint8_t*>(section.data()), section.size()},
-                {reinterpret_cast<uint8_t*>(file.data()), file.size()},
+                {static_cast<uint8_t*>(name.data()), name.size()},
+                {static_cast<uint8_t*>(section.data()), section.size()},
+                {static_cast<uint8_t*>(file.data()), file.size()},
                 EBPF_CODE_JIT};
             ebpf_handle_t handle;
             if (ebpf_program_create_and_initialize(&params, &handle) == EBPF_SUCCESS) {
@@ -194,7 +194,7 @@ class fuzz_wrapper
             }
         }
         for (const auto& [name, def] : _map_definitions) {
-            cxplat_utf8_string_t utf8_name{reinterpret_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
+            cxplat_utf8_string_t utf8_name{static_cast<uint8_t*>(const_cast<char*>(name.data())), name.size()};
             ebpf_handle_t handle;
             if (ebpf_core_create_map(&utf8_name, &def, ebpf_handle_invalid, &handle) == EBPF_SUCCESS) {
                 handles.push_back(handle);
@@ -236,10 +236,10 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     }
 
     // Use first 2 bytes of random buffer to determine reply buffer length.
-    reply_buffer_length = reinterpret_cast<uint16_t*>(random_buffer.data())[0];
+    reply_buffer_length = static_cast<uint16_t*>(random_buffer.data())[0];
     reply.resize(reply_buffer_length);
 
-    auto header = reinterpret_cast<ebpf_operation_header_t*>(random_buffer.data());
+    auto header = static_cast<ebpf_operation_header_t*>(random_buffer.data());
     auto operation_id = header->id;
     header->length = static_cast<uint16_t>(random_buffer.size());
 
