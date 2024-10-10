@@ -238,6 +238,8 @@ bpf_code_generator::is_section_valid(const ELFIO::section* section) const
     return true;
 }
 
+// This constructor is called when we are starting from an ELF file,
+// and so have function names we can use when generating code.
 bpf_code_generator::bpf_code_generator(
     std::istream& stream,
     const bpf_code_generator::unsafe_string& file_name,
@@ -251,6 +253,9 @@ bpf_code_generator::bpf_code_generator(
     extract_btf_information();
 }
 
+// This constructor is called when we just have raw byte code, rather than an ELF file,
+// and so have no function names or symbols. We manufacture function names for
+// code generation purposes.
 bpf_code_generator::bpf_code_generator(
     const bpf_code_generator::unsafe_string& c_name, const std::vector<ebpf_inst>& instructions)
     : c_name(c_name)
@@ -378,9 +383,10 @@ bpf_code_generator::extract_program(
     for (size_t index = 0; index < end_index; index++) {
         const auto& instruction = instructions[index];
 
-        // At this point, instructions will contain all subprograms appended.
+        // At this point, instructions will contain all subprograms appended by the loader.
         // However, we want only the main program instructions under the main program
-        // function, and subprograms to be under their own function.
+        // function, and subprograms to be under their own function.  Note that there may
+        // have been multiple subprograms in the same .text section.
         if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
             size_t callee_index = index + 1 + instruction.imm;
             if (end_index > callee_index) {
@@ -391,6 +397,12 @@ bpf_code_generator::extract_program(
             // Add subprogram to the list to be parsed.  First we have to find what
             // the original function name was.  We do this by looking through all other
             // programs to see which one matches the content at that offset, modulo relocations.
+            // That is, besides having its own entry in the infos list, a subprogram's
+            // byte code will have been appended by the loader to the end of the caller's
+            // byte code and so will also appear there.  Thus we can detect a subprogram
+            // by seeing if another entry's byte code is identical to what appears starting
+            // at the current index.  If so, we can get the symbol name from the matching
+            // info.
             for (const ebpf_api_program_info_t* info = infos; info; info = info->next) {
                 if (program_info->raw_data_size < callee_offset + info->raw_data_size) {
                     continue;
