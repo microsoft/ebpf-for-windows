@@ -2389,7 +2389,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     ebpf_result_t result;
     uint32_t return_value = 0;
     uint8_t old_irql = 0;
-    uintptr_t old_thread_affinity;
+    GROUP_AFFINITY old_thread_affinity;
     size_t batch_size = options->batch_size ? options->batch_size : 1024;
     ebpf_execution_context_state_t execution_context_state = {0};
     ebpf_epoch_state_t epoch_state = {0};
@@ -2400,7 +2400,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     void* program_context = NULL;
     bool supports_context_header;
 
-    result = ebpf_set_current_thread_affinity((uintptr_t)1 << options->cpu, &old_thread_affinity);
+    result = ebpf_set_current_thread_cpu_affinity(options->cpu, &old_thread_affinity);
     if (result != EBPF_SUCCESS) {
         goto Done;
     }
@@ -2501,7 +2501,7 @@ Done:
     }
 
     if (thread_affinity_set) {
-        ebpf_restore_current_thread_affinity(old_thread_affinity);
+        ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity);
     }
 
     context->completion_callback(
