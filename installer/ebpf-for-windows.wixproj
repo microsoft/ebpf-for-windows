@@ -14,7 +14,7 @@ SPDX-License-Identifier: MIT
     <SchemaVersion>2.0</SchemaVersion>
     <OutputName>ebpf-for-windows</OutputName>
     <OutputType>Package</OutputType>
-    <InstallerPlatform>x64</InstallerPlatform>
+    <InstallerPlatform>$(Platform)</InstallerPlatform>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
   </PropertyGroup>
@@ -48,6 +48,23 @@ SPDX-License-Identifier: MIT
     <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
     <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
+  </PropertyGroup>
+  <!-- ARM64 support for JIT is not yet implemeted, so only declare a NativeOnly version of the installer. -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|ARM64' ">
+    <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeVCRedist=False</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|ARM64' ">
+    <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
   <ItemGroup Condition="'$(Analysis)'==''">

@@ -224,21 +224,30 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"bpf.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
+#if defined(_M_X64) && defined(NDEBUG)
+    const int code_size = 1064;
+#elif defined(_M_X64) && !defined(NDEBUG)
+    const int code_size = 1768;
+#elif defined(_M_ARM64) && defined(NDEBUG)
+    const int code_size = 1120;
+#elif defined(_M_ARM64) && !defined(NDEBUG)
+    const int code_size = 5984;
+#else
+#error "Unsupported architecture"
+#endif
+
+    // Expected output is a format string with the code size filled in.
     const std::string expected_output = "\n"
                                         "                                                            Size\n"
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
-#if defined(NDEBUG)
-                                        "               .text                    func       bind     1064\n"
-#else
-                                        "               .text                    func       bind     1768\n"
-#endif
+                                        "               .text                    func       bind  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
                                         "==================  ====  =====  =======  ========\n";
 
-    REQUIRE(output == expected_output);
+    REQUIRE(output == std::vformat(expected_output, std::make_format_args(code_size)));
 }
 
 // Test a DLL with multiple maps in the map section.
@@ -250,15 +259,24 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     int result;
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
+
+#if defined(_M_X64) && defined(NDEBUG)
+    const int code_size = 311;
+#elif defined(_M_X64) && !defined(NDEBUG)
+    const int code_size = 1114;
+#elif defined(_M_ARM64) && defined(NDEBUG)
+    const int code_size = 316;
+#elif defined(_M_ARM64) && !defined(NDEBUG)
+    const int code_size = 1020;
+#else
+#error "Unsupported architecture"
+#endif
+
     const std::string expected_output = "\n"
                                         "                                                            Size\n"
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
-#if defined(NDEBUG)
-                                        "          sample_ext           lookup_update     sample      311\n"
-#else
-                                        "          sample_ext           lookup_update     sample     1114\n"
-#endif
+                                        "          sample_ext           lookup_update     sample  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
@@ -267,7 +285,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             array     4      4        1  port_map\n"
                                         "             array     4      4        1  inner_map\n";
 
-    REQUIRE(output == expected_output);
+    REQUIRE(output == std::vformat(expected_output, std::make_format_args(code_size)));
 }
 
 // Test a .dll file with multiple programs.
@@ -281,47 +299,42 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
         _run_netsh_command(handle_ebpf_show_sections, L"tail_call_multiple_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
+#if defined(_M_X64) && defined(NDEBUG)
+    const int code_size_old[] = {73, 6, 73};
+    const int code_size_new[] = {80, 6, 78};
+#elif defined(_M_X64) && !defined(NDEBUG)
+    const int code_size_old[] = {413, 190, 413};
+    const int code_size_new[] = {426, 190, 426};
+#elif defined(_M_ARM64) && defined(NDEBUG)
+    const int code_size_old[] = {116, 8, 112};
+    const int code_size_new[] = {116, 8, 112};
+#elif defined(_M_ARM64) && !defined(NDEBUG)
+    const int code_size_old[] = {400, 184, 400};
+    const int code_size_new[] = {400, 184, 400};
+#else
+#error "Unsupported architecture"
+#endif
+
     // Issue #3610: Different MSVC versions expect different numbers of bytes for the same program.
     // As a workaround, check for both the expected outputs.
-    const std::string expected_output_old = "\n"
-                                            "                                                            Size\n"
-                                            "             Section                 Program       Type  (bytes)\n"
-                                            "====================  ======================  =========  =======\n"
-#if defined(NDEBUG)
-                                            "        sample_ext/0                 callee0     sample       73\n"
-                                            "        sample_ext/1                 callee1     sample        6\n"
-                                            "          sample_ext                  caller     sample       73\n"
-#else
-                                            "        sample_ext/0                 callee0     sample      413\n"
-                                            "        sample_ext/1                 callee1     sample      190\n"
-                                            "          sample_ext                  caller     sample      413\n"
-#endif
-                                            "\n"
-                                            "                     Key  Value      Max\n"
-                                            "          Map Type  Size   Size  Entries  Name\n"
-                                            "==================  ====  =====  =======  ========\n"
-                                            "        prog_array     4      4       10  map\n";
+    const std::string expected_output = "\n"
+                                        "                                                            Size\n"
+                                        "             Section                 Program       Type  (bytes)\n"
+                                        "====================  ======================  =========  =======\n"
+                                        "        sample_ext/0                 callee0     sample  {:7}\n"
+                                        "        sample_ext/1                 callee1     sample  {:7}\n"
+                                        "          sample_ext                  caller     sample  {:7}\n"
+                                        "\n"
+                                        "                     Key  Value      Max\n"
+                                        "          Map Type  Size   Size  Entries  Name\n"
+                                        "==================  ====  =====  =======  ========\n"
+                                        "        prog_array     4      4       10  map\n";
 
-    const std::string expected_output_new = "\n"
-                                            "                                                            Size\n"
-                                            "             Section                 Program       Type  (bytes)\n"
-                                            "====================  ======================  =========  =======\n"
-#if defined(NDEBUG)
-                                            "        sample_ext/0                 callee0     sample       80\n"
-                                            "        sample_ext/1                 callee1     sample        6\n"
-                                            "          sample_ext                  caller     sample       78\n"
-#else
-                                            "        sample_ext/0                 callee0     sample      426\n"
-                                            "        sample_ext/1                 callee1     sample      190\n"
-                                            "          sample_ext                  caller     sample      426\n"
-#endif
-                                            "\n"
-                                            "                     Key  Value      Max\n"
-                                            "          Map Type  Size   Size  Entries  Name\n"
-                                            "==================  ====  =====  =======  ========\n"
-                                            "        prog_array     4      4       10  map\n";
-
-    REQUIRE((output == expected_output_old || output == expected_output_new));
+    REQUIRE(
+        (output == std::vformat(
+                       expected_output, std::make_format_args(code_size_old[0], code_size_old[1], code_size_old[2])) ||
+         output == std::vformat(
+                       expected_output, std::make_format_args(code_size_new[0], code_size_new[1], code_size_new[2]))));
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -334,21 +347,27 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
+
+#if defined(_M_X64) && defined(NDEBUG)
+    const int code_size[] = {322, 339, 322, 339};
+#elif defined(_M_X64) && !defined(NDEBUG)
+    const int code_size[] = {911, 986, 911, 986};
+#elif defined(_M_ARM64) && defined(NDEBUG)
+    const int code_size[] = {308, 324, 308, 324};
+#elif defined(_M_ARM64) && !defined(NDEBUG)
+    const int code_size[] = {1044, 1176, 1044, 1176};
+#else
+#error "Unsupported architecture"
+#endif
+
     const std::string expected_output = "\n"
                                         "                                                            Size\n"
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
-#if defined(NDEBUG)
-                                        "     cgroup/connect4      authorize_connect4  sock_addr      322\n"
-                                        "     cgroup/connect6      authorize_connect6  sock_addr      339\n"
-                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      322\n"
-                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      339\n"
-#else
-                                        "     cgroup/connect4      authorize_connect4  sock_addr      911\n"
-                                        "     cgroup/connect6      authorize_connect6  sock_addr      986\n"
-                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr      911\n"
-                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr      986\n"
-#endif
+                                        "     cgroup/connect4      authorize_connect4  sock_addr  {:7}\n"
+                                        "     cgroup/connect6      authorize_connect6  sock_addr  {:7}\n"
+                                        " cgroup/recv_accept4  authorize_recv_accept4  sock_addr  {:7}\n"
+                                        " cgroup/recv_accept6  authorize_recv_accept6  sock_addr  {:7}\n"
                                         "\n"
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
@@ -356,7 +375,9 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "              hash    56      4        1  egress_connection_policy_map\n"
                                         "              hash    56      4        1  ingress_connection_policy_map\n"
                                         "              hash    56      8     1000  socket_cookie_map\n";
-    REQUIRE(output == expected_output);
+    REQUIRE(
+        output ==
+        std::vformat(expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])));
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")
