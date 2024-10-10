@@ -59,19 +59,24 @@ jobs:
 
 
   onebranch:
+    strategy:
+      matrix:
+        Architecture: ['x64', 'ARM64']
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
       repository: ${{ github.repository }}
-      build_artifact: Build-x64-onebranch
+      build_artifact: Build-${{ matrix.Architecture }}-onebranch
       generate_release_package: true
       build_msi: true
       build_nuget: true
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
-      build_options: /p:BuildOneBranch='True' /t:tools\onebranch
+      build_options: /p:BuildOneBranch='True' /t:tools\onebranch /t:installer\ebpf-for-windows
       solution_file: "ebpf-for-windows.sln"
+      architecture: ${{ matrix.Architecture }}
+      download_demo_repository: false
 
   # Perform the native-only build.
   regular_native-only:

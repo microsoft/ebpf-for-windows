@@ -7,7 +7,8 @@ SPDX-License-Identifier: MIT
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
 	<Product Id="$(var.ProductVersion)" Name="eBPF for Windows" Language="1033" Version="$(var.EbpfVersion)" Manufacturer="Microsoft" UpgradeCode="$(var.UpgradeCode)">
-		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64" />
+		<!-- Platform should be $(var.Platform) but the current installer doesn't support ARM64. Fortunately ARM64 can emulate x64, so setting it to x64 works. -->
+		<Package Description="eBPF for Windows" InstallerVersion="301" Compressed="yes" InstallScope="perMachine" Manufacturer="Microsoft" Platform="x64"/>
 		<MajorUpgrade AllowSameVersionUpgrades="yes"
 					  Disallow="yes" DisallowUpgradeErrorMessage="An older version of [ProductName] is already installed. Please remove it first."
 					  AllowDowngrades="no" DowngradeErrorMessage="A newer version of [ProductName] is already installed. Please remove it first." Schedule="afterInstallFinalize" />
@@ -117,31 +118,31 @@ SPDX-License-Identifier: MIT
         <?if $(var.IncludeVCRedist) = True ?>
         <ComponentGroup Id="VCRedist" Directory="INSTALLFOLDER">
 			<Component Id="concrt140" Guid="{BA96F793-1D16-4277-B12B-7588BC2E647A}">
-				<File Id="concrt140.dll" Name="concrt140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\concrt140.dll" />
+				<File Id="concrt140.dll" Name="concrt140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\concrt140.dll" />
 			</Component>
             <Component Id="msvcp140" Guid="{225C690D-C9B9-4F6C-B422-6579380E3A41}">
-				<File Id="msvcp140.dll" Name="msvcp140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\msvcp140.dll" />
+				<File Id="msvcp140.dll" Name="msvcp140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\msvcp140.dll" />
 			</Component>
             <Component Id="msvcp140_1" Guid="{32C5D7C0-43CA-469E-A712-5A7ED0C18F68}">
-				<File Id="msvcp140_1.dll" Name="msvcp140_1.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\msvcp140_1.dll" />
+				<File Id="msvcp140_1.dll" Name="msvcp140_1.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\msvcp140_1.dll" />
 			</Component>
             <Component Id="msvcp140_2" Guid="{CD0CB411-69A8-427F-B775-B1C0BB269D2A}">
-				<File Id="msvcp140_2.dll" Name="msvcp140_2.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\msvcp140_2.dll" />
+				<File Id="msvcp140_2.dll" Name="msvcp140_2.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\msvcp140_2.dll" />
 			</Component>
             <Component Id="msvcp140_atomic_wait" Guid="{EDD2FCE1-0A0C-4DF0-A935-6A917BEC8FD2}">
-				<File Id="msvcp140_atomic_wait.dll" Name="msvcp140_atomic_wait.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\msvcp140_atomic_wait.dll" />
+				<File Id="msvcp140_atomic_wait.dll" Name="msvcp140_atomic_wait.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\msvcp140_atomic_wait.dll" />
 			</Component>
             <Component Id="msvcp140_codecvt_ids" Guid="{ED0E8435-4D52-4801-81A5-E4EF0DFA9CA7}">
-				<File Id="msvcp140_codecvt_ids.dll" Name="msvcp140_codecvt_ids.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\msvcp140_codecvt_ids.dll" />
+				<File Id="msvcp140_codecvt_ids.dll" Name="msvcp140_codecvt_ids.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\msvcp140_codecvt_ids.dll" />
 			</Component>
             <Component Id="vccorlib140" Guid="{D1B5ADB1-10BB-491C-B10E-8B5445D71484}">
-				<File Id="vccorlib140.dll" Name="vccorlib140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\vccorlib140.dll" />
+				<File Id="vccorlib140.dll" Name="vccorlib140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\vccorlib140.dll" />
 			</Component>
             <Component Id="vcruntime140" Guid="{96C01CAE-A895-463D-B090-7E15DD03724E}">
-				<File Id="vcruntime140.dll" Name="vcruntime140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\vcruntime140.dll" />
+				<File Id="vcruntime140.dll" Name="vcruntime140.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\vcruntime140.dll" />
 			</Component>
             <Component Id="vcruntime140_1" Guid="{2EC40012-1B68-4DAB-91B9-6B4190B4EB6D}">
-				<File Id="vcruntime140_1.dll" Name="vcruntime140_1.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)x64\$(var.Configuration)\vcruntime140_1.dll" />
+				<File Id="vcruntime140_1.dll" Name="vcruntime140_1.dll" DiskId="1" KeyPath="yes" Source="$(var.SolutionDir)$(var.Platform)\$(var.Configuration)\vcruntime140_1.dll" />
 			</Component>
 		</ComponentGroup>
         <?endif?>
