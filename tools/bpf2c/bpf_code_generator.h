@@ -220,7 +220,7 @@ class bpf_code_generator
     /**
      * @brief Parse the eBPF file.
      *
-     * @param[in, out] program Program to parse.
+     * @param[in] program Program to parse.
      * @param[in] program_info Program information object.
      * @param[in] program_type Program type GUID for the program.
      * @param[in] attach_type Expected attach type GUID for the program.
