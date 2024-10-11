@@ -16,6 +16,7 @@
 #include <optional>
 #include <set>
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 typedef struct _free_trampoline_table
 {
     void
@@ -28,6 +29,7 @@ typedef struct _free_trampoline_table
 } free_trampoline_table_t;
 
 typedef std::unique_ptr<ebpf_trampoline_table_t, free_trampoline_table_t> ebpf_trampoline_table_ptr;
+#endif
 
 typedef class _ebpf_async_wrapper
 {
@@ -755,6 +757,7 @@ test_function()
     return TEST_FUNCTION_RETURN;
 }
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("program", "[execution_context]")
 {
     // single_instance_hook_t call ebpapi functions, which requires calling ebpf_api_initiate/ebpf_api_terminate.
@@ -931,6 +934,7 @@ TEST_CASE("program", "[execution_context]")
 
     ebpf_free_trampoline_table(table.release());
 }
+#endif
 
 TEST_CASE("name size", "[execution_context]")
 {

@@ -3,32 +3,6 @@
      SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="NativeOnlyDebug|x64">
-      <Configuration>NativeOnlyDebug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="NativeOnlyRelease|x64">
-      <Configuration>NativeOnlyRelease</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -37,26 +11,26 @@
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyDebug'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyRelease'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -69,24 +43,24 @@
   <ImportGroup Label="Shared">
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64' And '$(BuildOneBranch)'=='True'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64chk</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_NativeOnlyDebug</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64' And '$(BuildOneBranch)'=='True'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64fre</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_NativeOnlyRelease</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' And '$(BuildOneBranch)'=='True'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64chk</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_Debug</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' And '$(BuildOneBranch)'=='True'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\amd64fre</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_Release</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

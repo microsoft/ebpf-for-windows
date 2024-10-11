@@ -13,11 +13,14 @@ Official releases will be production signed using Microsoft certificates.
 An issue with the title `Scheduled eBPF release is due` is automatically created on the first day of every month requesting a new release with the minor
 version incremented every time. When this issue is triaged, a decision must be taken by the maintainers on whether to go ahead with the new monthly release. If
 the decision is to create a new release the release manager must proceed with the following process.
-1. Create a release branch  in the ["upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows). 
+1. Create a release branch  in the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows).
 **Note:** Only release managers have authority to create new branches. One of the ways to create a release branch is as follows:
    1. Create a topic branch from the "`main`" branch of a forked repo, and name it "`release/X.Y`" (where "`X`" and "`Y`" are the current version number
    that is being released).
-   1. Push the topic branch into ["upstream" `ebpf-for-windows` remote]([https://github.com/microsoft/ebpf-for-windows). For example:
+   1. Add remote called "upstream" pointing to the [Microsoft ebpf-for-windows repo]([https://github.com/microsoft/ebpf-for-windows). Run:
+      ```bash
+      git remote add upstream https://github.com/microsoft/ebpf-for-windows.git
+   1. Push the topic branch into upstream. For example:
       ```bash
       git push upstream release/0.12
 1. Once the release branch is created, commits can be cherry-picked from the main branch (including feature work and bug fixes) as deemed necessary
@@ -25,16 +28,16 @@ the decision is to create a new release the release manager must proceed with th
 1. Follow the process in the [Release Branch Validation](ReleaseProcess.md#release-branch-validation) to ensure the quality of the release branch.
 1. If the release validation process finds a bug that is present only in the release branch (but not in the main branch), a fix can be committed directly
    into the release branch instead of cherry-picking from the main branch.
-1. In the triage meeting after the successful validation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release. If 
+1. In the triage meeting after the successful validation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release. If
    not, move on to the following steps.
 1. The `sign-off` label will be added to the issue created in step 1 of the [Creating a new release](ReleaseProcess.md#creating-a-new-release) process.
 1. Create a tag "`Release-vX.Y.0`" on the *latest commit on the `release/X.Y` branch*.
-1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the `release/X.Y` branch. In case of failure, Follow the process in 
+1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the `release/X.Y` branch. In case of failure, Follow the process in
    the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
 2. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
 3. Follow the process in the [Updating the Product Version](ReleaseProcess.md#updating-the-product-version) to update the version of the product in the main branch,
    for the next release.
- 
+
 ## Release Branch Validation
 
 The `CI/CD - Release validation` workflow(`cicd-release-validation.yml`) is used to validate a release branch. It contains more tests than the regular CI/CD
@@ -132,10 +135,8 @@ releasing process), but if you are a contributor and have been asked to do this,
 
     ```ps
     PS D:\work\ebpf-for-windows> .\scripts\update-product-version.ps1 0 12 0
-    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h' file...
-    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\resource\ebpf_version.h
-    Updating the version number in the 'D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs' file...
-    Version number updated to '0.12.0' in D:\work\ebpf-for-windows\scripts\..\installer\Product.wxs
+    Updating the version number in the 'E:\ebpf-for-windows\scripts\..\Directory.Build.props' file...
+    Version number updated to '0.12.0' in E:\ebpf-for-windows\scripts\..\Directory.Build.props
     Rebuilding the solution, please wait...
     Regenerating the expected 'bpf2c' output...
     ...

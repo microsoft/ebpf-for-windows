@@ -29,6 +29,10 @@ extern "C"
 #define EBPF_INLINE_HINT
 #endif
 
+#if !defined(AFFINITY_MASK)
+#define AFFINITY_MASK(n) ((ULONG_PTR)(1) << (n))
+#endif
+
 #define EBPF_UTF8_STRING_FROM_CONST_STRING(x) \
     {                                         \
         ((uint8_t*)(x)), sizeof((x)) - 1      \
@@ -272,33 +276,6 @@ extern "C"
     ebpf_get_current_thread_id();
 
     /**
-     * @brief Create a non-preemptible work item.
-     *
-     * @param[out] work_item Pointer to memory that will contain the pointer to
-     *  the non-preemptible work item on success.
-     * @param[in] cpu_id Associate the work item with this CPU.
-     * @param[in] work_item_routine Routine to execute as a work item.
-     * @param[in, out] work_item_context Context to pass to the routine.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Unable to allocate resources for this
-     *  work item.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_allocate_non_preemptible_work_item(
-        _Outptr_ KDPC** work_item,
-        uint32_t cpu_id,
-        _In_ PKDEFERRED_ROUTINE work_item_routine,
-        _Inout_opt_ void* work_item_context);
-
-    /**
-     * @brief Free a non-preemptible work item.
-     *
-     * @param[in] work_item Pointer to the work item to free.
-     */
-    void
-    ebpf_free_non_preemptible_work_item(_In_opt_ _Frees_ptr_opt_ KDPC* work_item);
-
-    /**
      * @brief Create a preemptible work item.
      *
      * @param[out] work_item Pointer to memory that will contain the pointer to
@@ -388,6 +365,46 @@ extern "C"
      */
     int64_t
     ebpf_interlocked_decrement_int64(_Inout_ volatile int64_t* addend);
+
+    /**
+     * @brief Atomically increase the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    int32_t
+    ebpf_interlocked_increment_int32_no_fence(_Inout_ volatile int32_t* addend);
+
+    /**
+     * @brief Atomically decrease the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to decrease by 1.
+     * @return The new value.
+     */
+    int32_t
+    ebpf_interlocked_decrement_int32_no_fence(_Inout_ volatile int32_t* addend);
+
+    /**
+     * @brief Atomically increase the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    int64_t
+    ebpf_interlocked_increment_int64_no_fence(_Inout_ volatile int64_t* addend);
+
+    /**
+     * @brief Atomically decrease the value of addend by 1 and return the new
+     *  value.
+     *
+     * @param[in, out] addend Value to increase by 1.
+     * @return The new value.
+     */
+    int64_t
+    ebpf_interlocked_decrement_int64_no_fence(_Inout_ volatile int64_t* addend);
 
     /**
      * @brief Performs an atomic operation that compares the input value pointed
@@ -622,11 +639,24 @@ extern "C"
     uint64_t
     ebpf_query_time_since_boot(bool include_suspended_time);
 
+    /**
+     * @brief Affinitize the current thread to a specific CPU by index and return the old affinity.
+     *
+     * @param[in] cpu_index The index of the CPU to affinitize to.
+     * @param[out] old_cpu_affinity The old CPU affinity.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The CPU index is invalid.
+     */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask);
+    ebpf_set_current_thread_cpu_affinity(uint32_t cpu_index, _Out_ GROUP_AFFINITY* old_cpu_affinity);
 
+    /**
+     * @brief Restore the CPU affinity of the current thread to the previous affinity.
+     *
+     * @param[in] old_cpu_affinity The previous CPU affinity.
+     */
     void
-    ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask);
+    ebpf_restore_current_thread_cpu_affinity(_In_ GROUP_AFFINITY* old_cpu_affinity);
 
     typedef _Return_type_success_(return >= 0) LONG NTSTATUS;
 

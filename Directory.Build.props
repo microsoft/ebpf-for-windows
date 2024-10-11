@@ -4,6 +4,34 @@
   SPDX-License-Identifier: MIT
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <PropertyGroup Label="Version">
+    <EbpfVersion_Major>0</EbpfVersion_Major>
+    <EbpfVersion_Minor>20</EbpfVersion_Minor>
+    <EbpfVersion_Revision>0</EbpfVersion_Revision>
+    <EbpfVersion>$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyDebug|x64">
+      <Configuration>NativeOnlyDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|x64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyRelease|x64">
+      <Configuration>NativeOnlyRelease</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
   <PropertyGroup Condition="'$(Analysis)'=='True'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
@@ -33,6 +61,9 @@
   <PropertyGroup Condition="'$(Fuzzer)'!='True' And '$(Configuration)'!='FuzzerDebug'">
     <SpectreMitigation>Spectre</SpectreMitigation>
   </PropertyGroup>
+  <PropertyGroup>
+    <ClangExec>"$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe"</ClangExec>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -45,11 +76,11 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(OutDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <CETCompat>true</CETCompat>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>
+      <AdditionalLibraryDirectories Condition="'$(Platform)'=='x64'">$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(DisableJIT)'=='True'">
@@ -84,7 +115,12 @@
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->
   <ItemGroup Condition="('$(ConfigurationType)'=='Application' Or '$(ConfigurationType)'=='DynamicLibrary' Or '$(ConfigurationType)'=='Driver') And Exists('$(SolutionDir)resource\ebpf_resource.rc')">
     <ResourceCompile  Include="$(SolutionDir)resource\ebpf_resource.rc">
-      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_AMD64_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
 </Project>

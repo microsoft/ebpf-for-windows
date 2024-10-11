@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+      uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
       with:
         egress-policy: audit
 
@@ -65,13 +65,13 @@ jobs:
 
     # Grab the output from the results directory and upload it as an artifact to debug failures.
     - name: Upload data as artifacts for debugging
-      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9
       with:
         name: Test-Results-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results
 
     - name: Log into Azure
-      uses: azure/login@6c251865b4e6290e7b78be643ea2d005bc51f69a
+      uses: azure/login@a65d910e8af852a8061c627c456678983e180302
       with:
         client-id: ${{ secrets.AZURE_CLIENT_ID }}
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}

@@ -33,18 +33,18 @@ jobs:
     steps:
     # Check out the main repo.
     - name: Harden Runner
-      uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde # v2.9.1
+      uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
       with:
         egress-policy: audit
 
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+    - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
 
 
     - name: Cache nuget packages
-      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+      uses: actions/cache@2cdf405574d6ef1f33a1d12acccd3ae82f47b3f2
       env:
         cache-name: cache-nuget-modules
       with:
@@ -61,7 +61,7 @@ jobs:
         nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@c5a7806660adbe173f04e3e038b0ccdcd758773c
+      uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: Update NuGet packages

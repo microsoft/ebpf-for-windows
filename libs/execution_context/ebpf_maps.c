@@ -140,6 +140,18 @@ typedef uint8_t* ebpf_lru_entry_t;
 #define EBPF_LRU_ENTRY_KEY_PTR(map, entry) \
     ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map->partition_count)))
 
+#define EBPF_LOG_MAP_OPERATION(flags, operation, map, key)                                            \
+    if (((flags) & EBPF_MAP_FLAG_HELPER) && (map)->ebpf_map_definition.key_size != 0) {               \
+        EBPF_LOG_MESSAGE_UTF8_STRING(                                                                 \
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map "##operation, &(map)->name); \
+        EBPF_LOG_MESSAGE_BINARY(                                                                      \
+            EBPF_TRACELOG_LEVEL_VERBOSE,                                                              \
+            EBPF_TRACELOG_KEYWORD_MAP,                                                                \
+            "Key",                                                                                    \
+            (key),                                                                                    \
+            (map)->ebpf_map_definition.key_size);                                                     \
+    }
+
 /**
  * @brief The partition of the LRU map key history.
  */
@@ -464,7 +476,7 @@ _find_array_map_entry(
     key_value = *(uint32_t*)key;
 
     if (key_value >= map->ebpf_map_definition.max_entries) {
-        return EBPF_INVALID_ARGUMENT;
+        return EBPF_OBJECT_NOT_FOUND;
     }
 
     *data = &map->data[key_value * map->ebpf_map_definition.value_size];
@@ -1598,7 +1610,6 @@ _update_hash_map_entry_with_handle(
     ebpf_map_option_t option)
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    size_t entry_count = 0;
 
     // The 'map' and 'key' arguments cannot be NULL due to caller's prior validations.
     ebpf_assert(map != NULL && key != NULL);
@@ -1634,8 +1645,6 @@ _update_hash_map_entry_with_handle(
     }
 
     ebpf_lock_state_t lock_state = ebpf_lock_lock(&object_map->lock);
-
-    entry_count = ebpf_hash_table_key_count((ebpf_hash_table_t*)map->data);
 
     uint8_t* old_value = NULL;
     ebpf_result_t found_result = ebpf_hash_table_find((ebpf_hash_table_t*)map->data, key, &old_value);
@@ -2450,6 +2459,7 @@ ebpf_map_find_entry(
 {
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
+
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -2488,6 +2498,8 @@ ebpf_map_find_entry(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Find not supported on BPF_MAP_TYPE_PROG_ARRAY");
             return EBPF_INVALID_ARGUMENT;
         }
+
+        EBPF_LOG_MAP_OPERATION(flags, "lookup", map, key);
 
         ebpf_core_object_t* object = ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
         if (object) {
@@ -2540,15 +2552,18 @@ ebpf_map_get_program_from_entry(_Inout_ ebpf_map_t* map, size_t key_size, _In_re
         return NULL;
     }
     ebpf_map_type_t type = map->ebpf_map_definition.type;
-    if (ebpf_map_metadata_tables[type].get_object_from_entry == NULL) {
+    // This function should be invoked only for BPF_MAP_TYPE_PROG_ARRAY.
+    // We can bypass the metadata table lookup and directly call the function.
+    if (type != BPF_MAP_TYPE_PROG_ARRAY) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_map_get_program_from_entry not supported on map",
-            map->ebpf_map_definition.type);
+            type);
         return NULL;
     }
-    return (ebpf_program_t*)ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
+
+    return (ebpf_program_t*)_get_object_from_array_map_entry(map, key);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -2604,6 +2619,8 @@ ebpf_map_update_entry(
 
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+
+    EBPF_LOG_MAP_OPERATION(flags, "update", map, key);
 
     if ((flags & EBPF_MAP_FLAG_HELPER) &&
         ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
@@ -2667,6 +2684,8 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+
+    EBPF_LOG_MAP_OPERATION(flags, "delete", map, key);
 
     ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
     return result;

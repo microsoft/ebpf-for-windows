@@ -26,164 +26,172 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <Target Name="SetVersion" BeforeTargets="PreBuildEvent">
+    <Exec Command='
+      echo #define EBPF_VERSION_MAJOR $(EbpfVersion_Major) &gt; $(OutDir)ebpf_version.h
+      echo #define EBPF_VERSION_MINOR $(EbpfVersion_Minor) &gt;&gt; $(OutDir)ebpf_version.h
+      echo #define EBPF_VERSION_REVISION $(EbpfVersion_Revision) &gt;&gt; $(OutDir)ebpf_version.h
+      echo #define EBPF_VERSION "$(EbpfVersion)" &gt;&gt; $(OutDir)ebpf_version.h
+    '/>
+  </Target>
   <ItemGroup>
     <CustomBuild Include="..\deploy-ebpf.ps1.in">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pushd $(SolutionDir)
+      <Command Condition="'$(Configuration)'=='Debug'">pushd $(SolutionDir)
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionRoot)scripts\deploy-ebpf.ps1.in -OutputFile $(OutDir)deploy-ebpf.ps1
 popd
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">pushd $(SolutionDir)
+      <Command Condition="'$(Configuration)'=='FuzzerDebug'">pushd $(SolutionDir)
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionRoot)scripts\deploy-ebpf.ps1.in -OutputFile $(OutDir)deploy-ebpf.ps1
 popd
 </Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">pushd $(SolutionDir)
+      <Command Condition="'$(Configuration)'=='NativeOnlyDebug'">pushd $(SolutionDir)
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionRoot)scripts\deploy-ebpf.ps1.in -OutputFile $(OutDir)deploy-ebpf.ps1
 popd
 </Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(OutDir)deploy-ebpf.ps1</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(OutDir)deploy-ebpf.ps1</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(OutDir)deploy-ebpf.ps1</Outputs>
+      <Outputs Condition="'$(Configuration)'=='Debug'">$(OutDir)deploy-ebpf.ps1</Outputs>
+      <Outputs Condition="'$(Configuration)'=='FuzzerDebug'">$(OutDir)deploy-ebpf.ps1</Outputs>
+      <Outputs Condition="'$(Configuration)'=='NativeOnlyDebug'">$(OutDir)deploy-ebpf.ps1</Outputs>
     </CustomBuild>
     <None Include="..\pre-commit">
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir).git\hooks</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">$(SolutionDir).git\hooks</DestinationFolders>
-      <DestinationFolders Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">$(SolutionDir).git\hooks</DestinationFolders>
+      <Command Condition="'$(Configuration)'=='Debug'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
+      <Command Condition="'$(Configuration)'=='FuzzerDebug'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
+      <Command Condition="'$(Configuration)'=='NativeOnlyDebug'">echo copy %(FullPath) $(SolutionDir).git\hooks</Command>
+      <Outputs Condition="'$(Configuration)'=='Debug'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
+      <Outputs Condition="'$(Configuration)'=='FuzzerDebug'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
+      <Outputs Condition="'$(Configuration)'=='NativeOnlyDebug'">$(SolutionDir).git\hooks\%(Filename)</Outputs>
+      <DestinationFolders Condition="'$(Configuration)'=='Debug'">$(SolutionDir).git\hooks</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)'=='FuzzerDebug'">$(SolutionDir).git\hooks</DestinationFolders>
+      <DestinationFolders Condition="'$(Configuration)'=='NativeOnlyDebug'">$(SolutionDir).git\hooks</DestinationFolders>
     </None>
   </ItemGroup>
   <ItemGroup>
     <CopyFileToFolders Include="..\setup-ebpf.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\run_tests.bat">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\common.psm1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\config_test_vm.psm1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\setup_ebpf_cicd_tests.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\execute_ebpf_cicd_tests.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\cleanup_ebpf_cicd_tests.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\install_ebpf.psm1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\run_driver_tests.psm1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\test_execution.json">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\vm_run_tests.psm1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpfforwindows.wprp">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpf-all.guid">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\ebpf-printk.guid">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\net-ebpf-ext.guid">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\..\external\usersim\scripts\Test-FaultInjection.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\Run-Test.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
     <CopyFileToFolders Include="..\Run-Self-Hosted-Runner-Test.ps1">
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
-      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Debug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='FuzzerDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyDebug'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='Release'">true</DeploymentContent>
+      <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -194,31 +202,31 @@ popd
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='FuzzerDebug'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyDebug'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="Configuration">
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyRelease'" Label="Configuration">
     <ConfigurationType>Utility</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
@@ -229,38 +237,38 @@ popd
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)'=='Debug'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)'=='FuzzerDebug'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)'=='NativeOnlyDebug'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)'=='Release'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'" Label="PropertySheets">
+  <ImportGroup Condition="'$(Configuration)'=='NativeOnlyRelease'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+  <PropertyGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -270,13 +278,13 @@ popd
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+      <Command Condition="'$(Platform)'=='x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC143.DebugCRT\*" "$(OutDir)"
 copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -286,13 +294,13 @@ copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Comman
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+      <Command Condition="'$(Platform)'=='x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC143.DebugCRT\*" "$(OutDir)"
 copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -302,13 +310,13 @@ copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Comman
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+      <Command Condition="'$(Platform)'=='x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_DebugCppRuntimeFilesPath_x64)\Microsoft.VC143.DebugCRT\*" "$(OutDir)"
 copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -320,12 +328,12 @@ copy "$(UniversalDebugCRT_ExecutablePath_x64)\ucrtbased.dll" "$(OutDir)"</Comman
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+      <Command Condition="'$(Platform)'=='x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC143.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
@@ -337,7 +345,7 @@ copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC143.CRT" "$(OutDir)"</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <PreBuildEvent>
-      <Command>powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
+      <Command Condition="'$(Platform)'=='x64'">powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\copy_pre_commit.ps1 $(SolutionDir)scripts\pre-commit
 powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\generate-commitid.ps1 $(SolutionDir)\include
 copy "$(VC_CppRuntimeFilesPath_x64)\Microsoft.VC143.CRT" "$(OutDir)"</Command>
     </PreBuildEvent>

@@ -91,7 +91,7 @@ static uint64_t _ebpf_file_descriptor_counter = 0;
 _Guarded_by_(_fd_to_handle_mutex) static std::map<fd_t, ebpf_handle_t> _fd_to_handle_map;
 
 static std::mutex _service_path_to_context_mutex;
-static uint32_t _ebpf_service_handle_counter = 0;
+static volatile int64_t _ebpf_service_handle_counter = 0;
 _Guarded_by_(
     _service_path_to_context_mutex) static std::map<std::wstring, service_context_t*> _service_path_to_context_map;
 
@@ -623,7 +623,7 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) uint32_t Glue_create_se
 
         std::unique_lock lock(_service_path_to_context_mutex);
         _service_path_to_context_map.insert(std::pair<std::wstring, service_context_t*>(service_path, context));
-        context->handle = InterlockedIncrement64((int64_t*)&_ebpf_service_handle_counter);
+        context->handle = InterlockedIncrement64(&_ebpf_service_handle_counter);
 
         *service_handle = (SC_HANDLE)context->handle;
     } catch (...) {

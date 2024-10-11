@@ -74,7 +74,7 @@ ebpf_update_trampoline_table(
     _In_ const ebpf_helper_function_addresses_t* helper_function_addresses)
 {
     EBPF_LOG_ENTRY();
-#if defined(_AMD64_)
+#if defined(_M_X64)
 
     size_t function_count = helper_function_addresses->helper_function_count;
     ebpf_trampoline_entry_t* local_entries;
@@ -130,9 +130,11 @@ ebpf_update_trampoline_table(
 Exit:
     return_value = ebpf_protect_memory(trampoline_table->memory_descriptor, EBPF_PAGE_PROTECT_READ_EXECUTE);
     EBPF_RETURN_RESULT(return_value);
-#elif
+#else
     UNREFERENCED_PARAMETER(trampoline_table);
-    UNREFERENCED_PARAMETER(dispatch_table);
+    UNREFERENCED_PARAMETER(helper_function_count);
+    UNREFERENCED_PARAMETER(helper_function_ids);
+    UNREFERENCED_PARAMETER(helper_function_addresses);
     EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
 #endif
 }

@@ -9,3 +9,5 @@
 #pragma warning(disable : 4201) // unnamed struct/union
 #include <fwpsk.h>
 #pragma warning(pop)
+
+#define WFP_ERROR(status, error) ((status) == (STATUS_FWP_##error))
