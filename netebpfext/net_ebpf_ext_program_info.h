@@ -110,7 +110,7 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_addr_global_helper_func
      .helper_id = BPF_FUNC_get_current_pid_tgid,
      .name = "bpf_get_current_pid_tgid",
      .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {},
+     .arguments = {0},
      .implicit_context = true},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_get_current_logon_id,
@@ -204,7 +204,7 @@ static const ebpf_helper_function_prototype_t _ebpf_sock_ops_global_helper_funct
      .helper_id = BPF_FUNC_get_current_pid_tgid,
      .name = "bpf_get_current_pid_tgid",
      .return_type = EBPF_RETURN_TYPE_INTEGER,
-     .arguments = {},
+     .arguments = {0},
      .implicit_context = true}};
 static const ebpf_program_info_t _ebpf_sock_ops_program_info = {
     EBPF_PROGRAM_INFORMATION_HEADER,
