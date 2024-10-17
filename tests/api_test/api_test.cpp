@@ -91,7 +91,17 @@ static _Success_(return == 0) int _program_load_helper(
         bpf_program__set_type(program, prog_type);
     }
 
-    int error = bpf_object__load(new_object);
+    int error = -EBUSY;
+    for (size_t retries = 0; retries < 10; retries++) {
+        error = bpf_object__load(new_object);
+        if (error == -EBUSY) {
+            // Wait for the previous driver to be unloaded.
+            Sleep(1);
+        } else {
+            break;
+        }
+    }
+
     if (error < 0) {
         bpf_object__close(new_object);
         return error;
@@ -846,7 +856,7 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
 
     // Try to load the same native module again, which should fail.
     result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object2, &program_fd);
-    REQUIRE(result == -ENOENT);
+    REQUIRE(result == -EBUSY);
 
     // Close the native module handle. That should result in the module to be unloaded.
     REQUIRE(_close(native_module_fd) == 0);
@@ -1317,4 +1327,32 @@ TEST_CASE("Test program order", "[native_tests]")
 
     // Clean up.
     bpf_object__close(object);
+}
+
+TEST_CASE("Program load/attach/detach/unload cycle")
+{
+    bpf_object_ptr object = nullptr;
+
+    // Load the program, attach, detach, and then unload it multiple times.
+
+    for (size_t i = 0; i < 10; i++) {
+        fd_t program_fd;
+        bpf_object* temp_object = nullptr;
+        REQUIRE(
+            _program_load_helper(
+                "bindmonitor.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_NATIVE, &temp_object, &program_fd) == 0);
+        object.reset(temp_object);
+        temp_object = nullptr;
+        REQUIRE(program_fd != ebpf_fd_invalid);
+
+        bpf_program* program = bpf_object__find_program_by_name(object.get(), "BindMonitor");
+        REQUIRE(program != nullptr);
+
+        bpf_link* link = bpf_program__attach(program);
+        REQUIRE(link != nullptr);
+
+        REQUIRE(bpf_link__destroy(link) == 0);
+
+        bpf_object__close(object.release());
+    }
 }

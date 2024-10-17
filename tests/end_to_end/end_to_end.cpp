@@ -2734,7 +2734,7 @@ TEST_CASE("load_native_program_negative5", "[end_to_end]")
     set_native_module_failures(true);
     result = ebpf_program_load(
         "map.sys", BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &unique_object, &program_fd, &error_message);
-    REQUIRE(result == -ENOENT);
+    REQUIRE(result == -EBUSY);
 }
 
 // Load native module twice.
