@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -56,7 +57,7 @@ callee(void* context)
 #line 49 "sample/undocked/tail_call_bad.c"
 {
 #line 49 "sample/undocked/tail_call_bad.c"
-    // Prologue
+    // Prologue.
 #line 49 "sample/undocked/tail_call_bad.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 49 "sample/undocked/tail_call_bad.c"
@@ -100,7 +101,7 @@ caller(void* context)
 #line 33 "sample/undocked/tail_call_bad.c"
 {
 #line 33 "sample/undocked/tail_call_bad.c"
-    // Prologue
+    // Prologue.
 #line 33 "sample/undocked/tail_call_bad.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 33 "sample/undocked/tail_call_bad.c"
@@ -187,7 +188,7 @@ label_1:
     // EBPF_OP_EXIT pc=16 dst=r0 src=r0 offset=0 imm=0
 #line 46 "sample/undocked/tail_call_bad.c"
     return r0;
-#line 46 "sample/undocked/tail_call_bad.c"
+#line 33 "sample/undocked/tail_call_bad.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

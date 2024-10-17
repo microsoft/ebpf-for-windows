@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -78,7 +79,7 @@ callee0(void* context)
 #line 41 "sample/undocked/tail_call_multiple.c"
 {
 #line 41 "sample/undocked/tail_call_multiple.c"
-    // Prologue
+    // Prologue.
 #line 41 "sample/undocked/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 41 "sample/undocked/tail_call_multiple.c"
@@ -122,7 +123,7 @@ callee0(void* context)
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
 #line 44 "sample/undocked/tail_call_multiple.c"
     return r0;
-#line 44 "sample/undocked/tail_call_multiple.c"
+#line 41 "sample/undocked/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -135,7 +136,7 @@ callee1(void* context)
 #line 47 "sample/undocked/tail_call_multiple.c"
 {
 #line 47 "sample/undocked/tail_call_multiple.c"
-    // Prologue
+    // Prologue.
 #line 47 "sample/undocked/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 47 "sample/undocked/tail_call_multiple.c"
@@ -177,7 +178,7 @@ caller(void* context)
 #line 30 "sample/undocked/tail_call_multiple.c"
 {
 #line 30 "sample/undocked/tail_call_multiple.c"
-    // Prologue
+    // Prologue.
 #line 30 "sample/undocked/tail_call_multiple.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 30 "sample/undocked/tail_call_multiple.c"
@@ -221,7 +222,7 @@ caller(void* context)
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/tail_call_multiple.c"
     return r0;
-#line 33 "sample/undocked/tail_call_multiple.c"
+#line 30 "sample/undocked/tail_call_multiple.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

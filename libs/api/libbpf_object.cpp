@@ -49,6 +49,9 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
 
     bpf_object__for_each_program(prog, obj)
     {
+        if (prog_is_subprog(obj, prog)) {
+            continue;
+        }
         if (!strcmp(prog->program_name, name)) {
             return prog;
         }

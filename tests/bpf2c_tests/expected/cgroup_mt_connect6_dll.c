@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -55,7 +56,7 @@ tcp_mt_connect6(void* context)
 #line 27 "sample/cgroup_mt_connect6.c"
 {
 #line 27 "sample/cgroup_mt_connect6.c"
-    // Prologue
+    // Prologue.
 #line 27 "sample/cgroup_mt_connect6.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 27 "sample/cgroup_mt_connect6.c"
@@ -149,7 +150,7 @@ label_1:
     // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 58 "sample/cgroup_mt_connect6.c"
     return r0;
-#line 58 "sample/cgroup_mt_connect6.c"
+#line 27 "sample/cgroup_mt_connect6.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
