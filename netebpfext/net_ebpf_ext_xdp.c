@@ -210,8 +210,17 @@ _net_ebpf_extension_xdp_validate_client_data(_In_ const ebpf_extension_data_t* c
         goto Exit;
     }
 
-    if (client_data->header.size > 0) {
-        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->header.version < EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION) {
+        result = EBPF_INVALID_ARGUMENT;
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "Attach attempt rejected. Invalid client data version.");
+        goto Exit;
+    }
+
+    if (client_data->data_size != 0) {
+        if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,

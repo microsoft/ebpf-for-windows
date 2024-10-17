@@ -158,7 +158,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
     FWPM_FILTER_CONDITION condition = {0};
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
 
-    if (client_data->header.size > 0) {
+    if (client_data->data != NULL) {
         // Note: No need to validate the client data here, as it has already been validated by the caller.
         compartment_id = *(uint32_t*)client_data->data;
     }
