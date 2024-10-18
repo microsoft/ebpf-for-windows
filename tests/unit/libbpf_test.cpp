@@ -3655,6 +3655,8 @@ _test_maps_batch(bpf_map_type map_type)
     REQUIRE(fetched_batch_size == batch_size);
 
     next_key = 0;
+    fetched_keys.clear();
+    fetched_values.clear();
     REQUIRE(
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==

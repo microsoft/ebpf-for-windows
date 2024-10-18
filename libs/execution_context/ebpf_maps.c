@@ -2849,13 +2849,8 @@ ebpf_map_get_next_key_and_value_batch(
     ebpf_result_t result = EBPF_SUCCESS;
     size_t key_size = map->ebpf_map_definition.key_size;
     size_t value_size = map->ebpf_map_definition.value_size;
-    ebpf_map_type_t type = map->ebpf_map_definition.type;
     size_t output_length = 0;
     size_t maximum_output_length = *key_and_value_length;
-
-    if (BPF_MAP_TYPE_PER_CPU(type)) {
-        value_size = EBPF_PAD_8(value_size) * ebpf_get_cpu_count();
-    }
 
     if (ebpf_map_metadata_tables[map->ebpf_map_definition.type].next_key_and_value == NULL) {
         EBPF_LOG_MESSAGE_UINT64(
@@ -2903,23 +2898,19 @@ ebpf_map_get_next_key_and_value_batch(
             break;
         }
 
-        uint8_t* key = key_and_value + output_length;
-        memcpy(key + key_size, next_value, value_size);
+        memcpy(key_and_value + output_length + key_size, next_value, value_size);
 
-        if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
+        if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL)) {
             // If the caller requested deletion, delete the entry.
-            result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
+            result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_UINT64(
-                    EBPF_TRACELOG_LEVEL_ERROR,
-                    EBPF_TRACELOG_KEYWORD_MAP,
-                    "Failed to delete entry.",
-                    result);
+                    EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete entry.", result);
                 break;
             }
         }
 
-        previous_key = key;
+        previous_key = key_and_value + output_length;
 
         // Advance the output buffer pointer.
         output_length += key_size + value_size;
@@ -2931,5 +2922,15 @@ ebpf_map_get_next_key_and_value_batch(
     }
 
     *key_and_value_length = output_length;
+
+    if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL) && (output_length != 0)) {
+        // If the caller requested deletion, delete the last entry.
+        result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
+        if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete last entry.", result);
+        }
+    }
+
     return result;
 }
