@@ -485,6 +485,28 @@ _find_array_map_entry(
 }
 
 static ebpf_result_t
+_find_array_map_entry_with_reference(
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+{
+    ebpf_assert(map->ebpf_map_definition.value_size == sizeof(ebpf_id_t));
+
+    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, data);
+
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    ebpf_id_t *id = (ebpf_id_t*)(*data);
+    if (id != NULL && *id == 0) {
+        // Turn zero ID into EBPF_OBJECT_NOT_FOUND.
+        *data = NULL;
+        return EBPF_OBJECT_NOT_FOUND;
+    }
+
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
 _update_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -2245,7 +2267,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_object_array_map,
         .delete_map = _delete_program_array_map,
         .associate_program = _associate_program_with_prog_array_map,
-        .find_entry = _find_array_map_entry,
+        .find_entry = _find_array_map_entry_with_reference,
         .get_object_from_entry = _get_object_from_array_map_entry,
         .update_entry_with_handle = _update_prog_array_map_entry_with_handle,
         .delete_entry = _delete_program_array_map_entry,
@@ -2287,7 +2309,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
         .create_map = _create_object_array_map,
         .delete_map = _delete_map_array_map,
-        .find_entry = _find_array_map_entry,
+        .find_entry = _find_array_map_entry_with_reference,
         .get_object_from_entry = _get_object_from_array_map_entry,
         .update_entry_with_handle = _update_map_array_map_entry_with_handle,
         .delete_entry = _delete_map_array_map_entry,

@@ -1806,8 +1806,13 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     int outer_map_fd = bpf_map_create(type, "array_map_of_maps", sizeof(__u32), sizeof(fd_t), 2, &opts);
     REQUIRE(outer_map_fd > 0);
 
-    // Verify we can insert the inner map into the outer map.
+    // Verify that lookup of an empty slot in the map returns ENOENT.
+    ebpf_id_t inner_map_id;
     __u32 outer_key = 0;
+    REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == -ENOENT);
+    REQUIRE(errno == ENOENT);
+
+    // Verify we can insert the inner map into the outer map.
     int error = bpf_map_update_elem(outer_map_fd, &outer_key, &inner_map_fd, 0);
     REQUIRE(error == 0);
 
@@ -1821,7 +1826,6 @@ _ebpf_test_map_in_map(ebpf_map_type_t type)
     }
 
     // Verify that we can read it back.
-    ebpf_id_t inner_map_id;
     REQUIRE(bpf_map_lookup_elem(outer_map_fd, &outer_key, &inner_map_id) == 0);
 
     // Verify that we can convert the ID to a new fd, so we know it is actually
