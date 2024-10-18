@@ -3632,6 +3632,36 @@ _test_maps_batch(bpf_map_type map_type)
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
         -ENOENT);
 
+    // Lookup and Delete batch operation.
+    opts.elem_flags = BPF_NOEXIST;
+    update_batch_size = batch_size;
+
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == 0);
+    REQUIRE(update_batch_size == batch_size);
+
+    next_key = 0;
+    opts.elem_flags = BPF_ANY;
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
+
+    next_key = 0;
+    REQUIRE(
+        bpf_map_lookup_and_delete_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+
+    next_key = 0;
+    fetched_keys.clear();
+    fetched_values.clear();
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -ENOENT);
+
     // Negative tests.
     // Batch size 0
 
