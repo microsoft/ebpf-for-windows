@@ -3649,12 +3649,14 @@ _test_maps_batch(bpf_map_type map_type)
     _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
 
     next_key = 0;
+    fetched_keys.clear();
+    fetched_values.clear();
     REQUIRE(
         bpf_map_lookup_and_delete_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
     REQUIRE(fetched_batch_size == batch_size);
+    REQUIRE(next_key == 0);
 
-    next_key = 0;
     fetched_keys.clear();
     fetched_values.clear();
     REQUIRE(
