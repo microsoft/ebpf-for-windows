@@ -393,6 +393,12 @@ ebpf_extension_data_t* extension_data = (ebpf_extension_data_t*)ClientRegistrati
 attach_parameter = extension_data->data;
 ```
 
+### `ebpf_extension_data_t` Struct
+This structure contains the additional data passed from the application to the attach provider. It contains the following fields:
+* `data` Attach type specific data. See documentation for the attach type provider for the format of this data.
+* `data_size` The length of the attach type specific data.
+* `prog_attach_flags` A collection of attach type specific flags passed from the application to the attach provider.
+
 The per-client data structure should be returned as the `ProviderBindingContext` output parameter.
 
 Upon

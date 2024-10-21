@@ -79,6 +79,7 @@ EXPORTS
     bpf_program__attach_xdp
     bpf_program__autoload
     bpf_program__fd
+    bpf_program__flags
     bpf_program__get_expected_attach_type
     bpf_program__get_type=bpf_program__type
     bpf_program__insn_cnt
@@ -90,6 +91,7 @@ EXPORTS
     bpf_program__section_name
     bpf_program__set_autoload
     bpf_program__set_expected_attach_type
+    bpf_program__set_flags
     bpf_program__set_type
     bpf_program__type
     bpf_program__unload
