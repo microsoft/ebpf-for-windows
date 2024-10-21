@@ -39,7 +39,7 @@ ebpf_result_t
 ebpf_ring_buffer_output(ebpf_ring_buffer_t* ring, uint8_t* data, size_t length, size_t flags)
 ```
 
-### Existing libbpf functions for callback consumer
+### Updated libbpf API for callback consumer
 
 The behaviour of these functions will be unchanged.
 
@@ -54,6 +54,11 @@ typedef int (*ring_buffer_sample_fn)(void *ctx, void *data, size_t size);
 
 struct ring_buffer_opts {
 	size_t sz; /* size of this struct, for forward/backward compatiblity */
+  uint64_t flags; /* ring buffer option flags */
+};
+
+enum ring_buffer_flags {
+  RINGBUF_FLAG_NO_AUTO_CALLBACK = (uint64_t)1 << 0 /* Don't automatically invoke callback for each record */
 };
 
 #define ring_buffer_opts__last_field sz
@@ -71,6 +76,18 @@ struct ring_buffer_opts {
 struct ring_buffer *
 ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void *ctx,
 		 const struct ring_buffer_opts *opts);
+
+/**
+ * @brief poll ringbuf for new data (NOT CURRENTLY SUPPORTED)
+ * Poll for available data and consume records, if any are available.
+ * Returns number of records consumed (or INT_MAX, whichever is less), or
+ * negative number, if any of the registered callbacks returned error.
+ *
+ * @param[in] rb Pointer to ring buffer manager.
+ * @param[in] timeout_ms maximum time to wait for (in milliseconds).
+ *
+ */
+int ring_buffer__poll(struct ring_buffer *rb, int timeout_ms);
 
 /**
  * @brief Frees a ring buffer manager.
