@@ -97,7 +97,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(OutDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include\;$(OutDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>
