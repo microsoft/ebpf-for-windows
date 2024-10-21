@@ -25,37 +25,57 @@
 
 #define NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE "NetEbpfExtSockAddrClassify"
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                                                              \
-    trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
-    TraceLoggingWrite(                                                                                         \
-        net_ebpf_ext_tracelog_provider,                                                                        \
-        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                                                               \
-        TraceLoggingLevel(trace_level),                                                                        \
-        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),                                          \
-        TraceLoggingString((message), "message"),                                                              \
-        TraceLoggingUInt64((handle), "transport_endpoint_handle"),                                             \
-        TraceLoggingUInt64((protocol), "protocol"),                                                            \
-        TraceLoggingIPv4Address((source_ip), "source_ip"),                                                     \
-        TraceLoggingUInt16((source_port), "source_port"),                                                      \
-        TraceLoggingIPv4Address((destination_ip), "destination_ip"),                                           \
-        TraceLoggingUInt16((destination_port), "destination_port"),                                            \
-        TraceLoggingUInt32((verdict), "verdict"));
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV4(                     \
+    trace_level,                                                      \
+    message,                                                          \
+    handle,                                                           \
+    protocol,                                                         \
+    source_ip,                                                        \
+    source_port,                                                      \
+    destination_ip,                                                   \
+    destination_port,                                                 \
+    verdict,                                                          \
+    compartment_id)                                                   \
+    TraceLoggingWrite(                                                \
+        net_ebpf_ext_tracelog_provider,                               \
+        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                      \
+        TraceLoggingLevel(trace_level),                               \
+        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
+        TraceLoggingString((message), "message"),                     \
+        TraceLoggingUInt64((handle), "transport_endpoint_handle"),    \
+        TraceLoggingUInt64((protocol), "protocol"),                   \
+        TraceLoggingIPv4Address((source_ip), "source_ip"),            \
+        TraceLoggingUInt16((source_port), "source_port"),             \
+        TraceLoggingIPv4Address((destination_ip), "destination_ip"),  \
+        TraceLoggingUInt16((destination_port), "destination_port"),   \
+        TraceLoggingUInt32((verdict), "verdict"),                     \
+        TraceLoggingUInt32((compartment_id), "compartment_id"));
 
-#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                                                              \
-    trace_level, message, handle, protocol, source_ip, source_port, destination_ip, destination_port, verdict) \
-    TraceLoggingWrite(                                                                                         \
-        net_ebpf_ext_tracelog_provider,                                                                        \
-        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                                                               \
-        TraceLoggingLevel(trace_level),                                                                        \
-        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR),                                          \
-        TraceLoggingString((message), "message"),                                                              \
-        TraceLoggingUInt64((handle), "transport_endpoint_handle"),                                             \
-        TraceLoggingUInt64((protocol), "protocol"),                                                            \
-        TraceLoggingIPv6Address((source_ip), "source_ip"),                                                     \
-        TraceLoggingUInt16((source_port), "source_port"),                                                      \
-        TraceLoggingIPv6Address((destination_ip), "destination_ip"),                                           \
-        TraceLoggingUInt16((destination_port), "destination_port"),                                            \
-        TraceLoggingUInt32((verdict), "verdict"));
+#define NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV6(                     \
+    trace_level,                                                      \
+    message,                                                          \
+    handle,                                                           \
+    protocol,                                                         \
+    source_ip,                                                        \
+    source_port,                                                      \
+    destination_ip,                                                   \
+    destination_port,                                                 \
+    verdict,                                                          \
+    compartment_id)                                                   \
+    TraceLoggingWrite(                                                \
+        net_ebpf_ext_tracelog_provider,                               \
+        NET_EBPF_EXT_SOCK_ADDR_CLASSIFY_MESSAGE,                      \
+        TraceLoggingLevel(trace_level),                               \
+        TraceLoggingKeyword(NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR), \
+        TraceLoggingString((message), "message"),                     \
+        TraceLoggingUInt64((handle), "transport_endpoint_handle"),    \
+        TraceLoggingUInt64((protocol), "protocol"),                   \
+        TraceLoggingIPv6Address((source_ip), "source_ip"),            \
+        TraceLoggingUInt16((source_port), "source_port"),             \
+        TraceLoggingIPv6Address((destination_ip), "destination_ip"),  \
+        TraceLoggingUInt16((destination_port), "destination_port"),   \
+        TraceLoggingUInt32((verdict), "verdict"),                     \
+        TraceLoggingUInt32((compartment_id), "compartment_id"));
 
 #define NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE "NetEbpfExtSockAddrRedirect"
 
@@ -69,7 +89,8 @@
     destination_port,                                                 \
     redirected_ip,                                                    \
     redirected_port,                                                  \
-    verdict)                                                          \
+    verdict,                                                          \
+    compartment_id)                                                   \
     TraceLoggingWrite(                                                \
         net_ebpf_ext_tracelog_provider,                               \
         NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE,                      \
@@ -84,7 +105,8 @@
         TraceLoggingUInt16((destination_port), "destination_port"),   \
         TraceLoggingIPv4Address((redirected_ip), "redirected_ip"),    \
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
-        TraceLoggingUInt64((verdict), "verdict"));
+        TraceLoggingUInt64((verdict), "verdict"),                     \
+        TraceLoggingUInt32((compartment_id), "compartment_id"));
 
 #define NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV6(            \
     message,                                                          \
@@ -96,7 +118,8 @@
     destination_port,                                                 \
     redirected_ip,                                                    \
     redirected_port,                                                  \
-    verdict)                                                          \
+    verdict,                                                          \
+    compartment_id)                                                   \
     TraceLoggingWrite(                                                \
         net_ebpf_ext_tracelog_provider,                               \
         NET_EBPF_EXT_SOCK_ADDR_REDIRECT_MESSAGE,                      \
@@ -111,7 +134,8 @@
         TraceLoggingUInt16((destination_port), "destination_port"),   \
         TraceLoggingIPv6Address((redirected_ip), "redirected_ip"),    \
         TraceLoggingUInt16((redirected_port), "redirected_port"),     \
-        TraceLoggingUInt64((verdict), "verdict"));
+        TraceLoggingUInt64((verdict), "verdict"),                     \
+        TraceLoggingUInt32((compartment_id), "compartment_id"));
 
 #define DEFINE_SOCK_ADDR_CLASSIFY_LOG_FUNCTION(family)                                 \
     __declspec(noinline) static void _net_ebpf_ext_log_sock_addr_classify_v##family##( \
@@ -119,7 +143,8 @@
         uint64_t transport_endpoint_handle,                                            \
         _In_ const bpf_sock_addr_t* original_context,                                  \
         _In_opt_ const bpf_sock_addr_t* redirected_context,                            \
-        uint32_t verdict)                                                              \
+        uint32_t verdict,                                                              \
+        uint32_t compartment_id)                                                       \
     {                                                                                  \
         if (redirected_context != NULL) {                                              \
             NET_EBPF_EXT_LOG_SOCK_ADDR_REDIRECT_CLASSIFY_IPV##family##(                \
@@ -132,7 +157,8 @@
                 ntohs(original_context->user_port),                                    \
                 redirected_context->user_ip##family##,                                 \
                 ntohs(redirected_context->user_port),                                  \
-                verdict);                                                              \
+                verdict,                                                               \
+                compartment_id);                                                       \
         } else {                                                                       \
             if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {                             \
                 NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                     \
@@ -144,7 +170,8 @@
                     ntohs(original_context->msg_src_port),                             \
                     original_context->user_ip##family##,                               \
                     ntohs(original_context->user_port),                                \
-                    verdict);                                                          \
+                    verdict,                                                           \
+                    compartment_id);                                                   \
             } else {                                                                   \
                 NET_EBPF_EXT_LOG_SOCK_ADDR_CLASSIFY_IPV##family##(                     \
                     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,                               \
@@ -155,7 +182,8 @@
                     ntohs(original_context->msg_src_port),                             \
                     original_context->user_ip##family##,                               \
                     ntohs(original_context->user_port),                                \
-                    verdict);                                                          \
+                    verdict,                                                           \
+                    compartment_id);                                                   \
             }                                                                          \
         }                                                                              \
     }
@@ -169,15 +197,16 @@ _net_ebpf_ext_log_sock_addr_classify(
     uint64_t transport_endpoint_handle,
     _In_ const bpf_sock_addr_t* original_context,
     _In_opt_ const bpf_sock_addr_t* redirected_context,
-    uint32_t verdict)
+    uint32_t verdict,
+    uint32_t compartment_id)
 {
     if (TraceLoggingProviderEnabled(net_ebpf_ext_tracelog_provider, 0, NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR)) {
         if (original_context->family == AF_INET) {
             _net_ebpf_ext_log_sock_addr_classify_v4(
-                message, transport_endpoint_handle, original_context, redirected_context, verdict);
+                message, transport_endpoint_handle, original_context, redirected_context, verdict, compartment_id);
         } else {
             _net_ebpf_ext_log_sock_addr_classify_v6(
-                message, transport_endpoint_handle, original_context, redirected_context, verdict);
+                message, transport_endpoint_handle, original_context, redirected_context, verdict, compartment_id);
         }
     }
 }
@@ -1589,7 +1618,12 @@ net_ebpf_extension_sock_addr_authorize_recv_accept_classify(
     }
 
     _net_ebpf_ext_log_sock_addr_classify(
-        "recv_accept_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, result);
+        "recv_accept_classify",
+        incoming_metadata_values->transportEndpointHandle,
+        sock_addr_ctx,
+        NULL,
+        result,
+        compartment_id);
 
 Exit:
     NET_EBPF_EXT_LOG_EXIT();
@@ -1668,7 +1702,12 @@ Exit:
     }
 
     _net_ebpf_ext_log_sock_addr_classify(
-        "auth_classify", incoming_metadata_values->transportEndpointHandle, sock_addr_ctx, NULL, verdict);
+        "auth_classify",
+        incoming_metadata_values->transportEndpointHandle,
+        sock_addr_ctx,
+        NULL,
+        verdict,
+        compartment_id);
 
     NET_EBPF_EXT_LOG_EXIT();
     return;
@@ -2023,7 +2062,8 @@ net_ebpf_extension_sock_addr_redirect_connection_classify(
         incoming_metadata_values->transportEndpointHandle,
         &sock_addr_ctx_original,
         redirected ? sock_addr_ctx : NULL,
-        verdict);
+        verdict,
+        compartment_id);
 
 Exit:
     if (verdict == BPF_SOCK_ADDR_VERDICT_REJECT) {
