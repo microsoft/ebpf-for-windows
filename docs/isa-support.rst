@@ -103,7 +103,7 @@ opcode  src_reg  offset  imm   description                                      
 0x7f    any      0       0x00  dst >>= src                                             Y        Y     Y      rsh-reg
 0x84    0x0      0       0x00  dst = (u32)-dst                                         Y        Y     Y      neg
 0x85    0x0      0       any   call helper function by static ID                       Y        Y     Y      call_unwind_fail
-0x85    0x1      0       any   call PC += imm                                          no       no    no     call_local
+0x85    0x1      0       any   call PC += imm                                          Y        part  Y      call_local
 0x85    0x2      0       any   call helper function by BTF ID                          no       no    no     ???
 0x87    0x0      0       0x00  dst = -dst                                              Y        Y     Y      neg64
 0x8d    0x0      0       0x00  call helper function by static ID in register           Y        Y     no     callx

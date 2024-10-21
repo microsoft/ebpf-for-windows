@@ -513,6 +513,34 @@ TEST_CASE("libbpf program", "[libbpf]")
     bpf_object__close(object);
 }
 
+TEST_CASE("libbpf subprogram", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct bpf_object* object = bpf_object__open("bindmonitor_bpf2bpf.o");
+    REQUIRE(object != nullptr);
+
+    // Test bpf_object__find_program_by_name().
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor_Callee");
+    REQUIRE(program == nullptr);
+    program = bpf_object__find_program_by_name(object, "BindMonitor_Caller");
+    REQUIRE(program != nullptr);
+
+    // Test bpf_object__next_program().
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+
+    // Test bpf_object__next_program().
+    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
+    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_object__close(object);
+}
+
 static void
 _test_program_autoload(ebpf_execution_type_t execution_type)
 {
