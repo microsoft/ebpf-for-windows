@@ -14,7 +14,7 @@ extern "C"
     typedef struct _ebpf_epoch_state
     {
         LIST_ENTRY epoch_list_entry; /// List entry for the epoch list.
-        uint64_t epoch;              /// The epoch when this entry was added to the list.
+        int64_t epoch;               /// The epoch when this entry was added to the list.
         uint32_t cpu_id;             /// The CPU on which this entry was added to the list.
         KIRQL irql_at_enter;         /// The IRQL when this entry was added to the list.
     } ebpf_epoch_state_t;
