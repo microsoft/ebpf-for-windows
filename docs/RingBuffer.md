@@ -166,7 +166,7 @@ uint64_t *cons_offset = (uint64_t*)rb_cons; // Consumer offset ptr (r/w mapped).
 const uint8_t *rb_data = ((const uint8_t*)rb_prod) + PAGESIZE; // Double-mapped rb data ptr (r only).
 
 uint64_t producer_offset = ReadAcquire64(prod_offset);
-uint64_t consumer_offset = ReadAcquire64(cons_offset);
+uint64_t consumer_offset = *cons_offset;
 // have_data used to track whether we should wait for notification or just keep reading.
 bool have_data = producer_offset > consumer_offset;
 
@@ -219,7 +219,7 @@ For(;;) {
 
   // Update consumer offset (and pad record length to multiple of 8).
   consumer_offset += sizeof(rb_header_t) + (record->length + 7 & ~7);
-  WriteRelease64(cons_offset, consumer_offset);
+  *cons_offset = consumer_offset;
 }
 
 Exit:
