@@ -59,16 +59,6 @@ ebpf_is_preemptible()
     return irql < DISPATCH_LEVEL;
 }
 
-uint32_t
-ebpf_get_current_cpu()
-{
-    PROCESSOR_NUMBER processor_number;
-
-    KeGetCurrentProcessorNumberEx(&processor_number);
-
-    return KeGetProcessorIndexFromNumber(&processor_number);
-}
-
 uint64_t
 ebpf_get_current_thread_id()
 {

@@ -262,3 +262,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
 
     return EBPF_SUCCESS;
 }
+
+uint32_t
+ebpf_get_current_cpu()
+{
+    return KeGetCurrentProcessorIndex();
+}

@@ -281,3 +281,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     NTSTATUS status = usersim_platform_get_authentication_id(authentication_id);
     return ntstatus_to_ebpf_result(status);
 }
+
+uint32_t
+ebpf_get_current_cpu()
+{
+    PROCESSOR_NUMBER processor_number;
+
+    KeGetCurrentProcessorNumberEx(&processor_number);
+
+    return KeGetProcessorIndexFromNumber(&processor_number);
+}
