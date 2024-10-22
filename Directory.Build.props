@@ -4,6 +4,54 @@
   SPDX-License-Identifier: MIT
 -->
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
+  <PropertyGroup Label="Version">
+    <EbpfVersion_Major>0</EbpfVersion_Major>
+    <EbpfVersion_Minor>20</EbpfVersion_Minor>
+    <EbpfVersion_Revision>0</EbpfVersion_Revision>
+    <EbpfVersion>$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
+  </PropertyGroup>
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyDebug|x64">
+      <Configuration>NativeOnlyDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|x64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyRelease|x64">
+      <Configuration>NativeOnlyRelease</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyDebug|ARM64">
+      <Configuration>NativeOnlyDebug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="FuzzerDebug|ARM64">
+      <Configuration>FuzzerDebug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="NativeOnlyRelease|ARM64">
+      <Configuration>NativeOnlyRelease</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
   <PropertyGroup Condition="'$(Analysis)'=='True'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <DisableAnalyzeExternal>true</DisableAnalyzeExternal>
@@ -16,10 +64,11 @@
     <DisableJIT>true</DisableJIT>
     <DisableInterpreter>true</DisableInterpreter>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='NativeOnlyRelease'">
+  <!-- Libsancov.lib not supported on arm64 -->
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
     <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='FuzzerDebug' Or '$(Configuration)'=='NativeOnlyDebug'">
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' Or '$(Configuration)|$(Platform)'=='FuzzerDebug|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
@@ -48,11 +97,12 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(OutDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <CETCompat>true</CETCompat>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>
+      <AdditionalLibraryDirectories Condition="'$(Platform)'=='x64'">$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories Condition="'$(Platform)'=='ARM64'">$(VC_LibraryPath_VC_ARM64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(DisableJIT)'=='True'">
@@ -87,7 +137,25 @@
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->
   <ItemGroup Condition="('$(ConfigurationType)'=='Application' Or '$(ConfigurationType)'=='DynamicLibrary' Or '$(ConfigurationType)'=='Driver') And Exists('$(SolutionDir)resource\ebpf_resource.rc')">
     <ResourceCompile  Include="$(SolutionDir)resource\ebpf_resource.rc">
-      <AdditionalIncludeDirectories>$(SolutionDir)include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(OutDir)</AdditionalIncludeDirectories>
     </ResourceCompile>
   </ItemGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
+    <ClCompile>
+      <PreprocessorDefinitions>_AMD64_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
+    <ClCompile>
+      <PreprocessorDefinitions>_X86_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
+    <ClCompile>
+      <!-- Set the _ARM64_ as it is required by winnt.h for correct compilation rather than the standard _M_ARM64 -->
+      <PreprocessorDefinitions>_ARM64_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- Set the option to emit both armv8.0 atomics and armv8.1 atomics with processor detection to select the best performing one.-->
+      <AdditionalOptions>/d2overrideInterlockedIntrinsArm64 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
 </Project>

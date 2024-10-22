@@ -17,11 +17,6 @@
     <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
     <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
-  <ItemDefinitionGroup>
-    <Link>
-      <AdditionalLibraryDirectories>$(VC_LibraryPath_VC_x64_Desktop);%(Link.AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-    </Link>
-  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

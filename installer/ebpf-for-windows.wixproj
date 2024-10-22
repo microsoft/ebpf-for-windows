@@ -4,6 +4,7 @@ Copyright (c) eBPF for Windows contributors
 SPDX-License-Identifier: MIT
 -->
 <Project ToolsVersion="4.0" DefaultTargets="Build" InitialTargets="EnsureWixToolsetInstalled" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\Directory.Build.props" />
   <Import Project="..\packages\wix.3.14.1\build\wix.props" Condition="Exists('..\packages\wix.3.14.1\build\wix.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -13,37 +14,57 @@ SPDX-License-Identifier: MIT
     <SchemaVersion>2.0</SchemaVersion>
     <OutputName>ebpf-for-windows</OutputName>
     <OutputType>Package</OutputType>
-    <InstallerPlatform>x64</InstallerPlatform>
+    <InstallerPlatform>$(Platform)</InstallerPlatform>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);EbpfVersion=$(EbpfVersion)</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;IncludeJIT=True;IncludeVCRedist=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=True;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants>Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeJIT=False;IncludeVCRedist=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">IncludeJIT=True</DefineConstants>
-    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">IncludeJIT=False</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
     <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|x64' ">
     <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
     <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
-    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">IncludeJIT=True</DefineConstants>
-    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">IncludeJIT=False</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
     <SuppressValidation>True</SuppressValidation>
     <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
+  </PropertyGroup>
+  <!-- ARM64 support for JIT is not yet implemeted, so only declare a NativeOnly version of the installer. -->
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyDebug|ARM64' ">
+    <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);Debug;IncludeVCRedist=False</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'NativeOnlyRelease|ARM64' ">
+    <OutputPath>$(SolutionDir)$(Platform)\$(Configuration)\</OutputPath>
+    <IntermediateOutputPath>obj\$(Configuration)\</IntermediateOutputPath>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'True' ">$(DefineConstants);IncludeJIT=True</DefineConstants>
+    <DefineConstants Condition=" '$(ReleaseJIT)' == 'False' OR '$(ReleaseJIT)' == '' ">$(DefineConstants);IncludeJIT=False</DefineConstants>
+    <DefineConstants>$(DefineConstants);IncludeVCRedist=True</DefineConstants>
+    <SuppressValidation>True</SuppressValidation>
   </PropertyGroup>
   <!-- In accordance to what defined in sample.vcxproj, the MSI build is disabled for the 'Analysis' CI/CD build, as it  does not generate the *.o artifacts. -->
   <ItemGroup Condition="'$(Analysis)'==''">

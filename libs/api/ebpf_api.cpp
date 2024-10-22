@@ -464,10 +464,6 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
     uint32_t type;
 
     ebpf_assert(value);
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
     *((uint8_t*)value) = 0;
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
@@ -529,11 +525,6 @@ _ebpf_map_lookup_element_batch_helper(
     ebpf_assert(keys);
     ebpf_assert(values);
     ebpf_assert(count);
-
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     if (*count == 0) {
         result = EBPF_INVALID_ARGUMENT;
@@ -850,9 +841,6 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     uint32_t type;
 
     ebpf_assert(value);
-    if (map_fd <= 0) {
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
 
     switch (flags) {
     case EBPF_ANY:
@@ -922,9 +910,6 @@ ebpf_map_update_element_batch(
     uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
     ebpf_assert(values);
-    if (map_fd <= 0) {
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
 
     switch (flags) {
     case EBPF_ANY:
@@ -1001,10 +986,6 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
     ebpf_operation_map_delete_element_request_t* request;
 
     ebpf_assert(key);
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -1073,10 +1054,6 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     }
 
     ebpf_assert(keys);
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -1166,11 +1143,6 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
     ebpf_handle_t map_handle = ebpf_handle_invalid;
 
     ebpf_assert(next_key);
-
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {

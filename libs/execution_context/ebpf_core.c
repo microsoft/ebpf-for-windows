@@ -2312,9 +2312,9 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
 
     if ((*p == 0) && (arg_count == specifier_count)) {
         va_list arg_list;
-        __va_start(&arg_list, arg_count);
+        va_start(arg_list, arg_count);
         bytes_written = ebpf_platform_printk(output, arg_list);
-        __va_end(&arg_list);
+        va_end(arg_list);
     }
 
     ebpf_free(output);

@@ -27,10 +27,10 @@
 
 // Note: The maximum number of clients that can attach per-hook in multi-attach case has been currently capped to
 // a constant value to keep the implementation simple. Keeping the max limit constant allows allocating the memory
-// required for creating a copy of list of clients on the stack itself. In the future, if there is a need to increase this
-// maximum count, the value can be simply increased as long as the required memory can still be allocated on stack. If
-// the required memory becomes too large, we may need to switch to a different design to handle this. One option is to
-// use epoch based memory management for the list of clients. This eliminates the need to create a copy of programs
+// required for creating a copy of list of clients on the stack itself. In the future, if there is a need to increase
+// this maximum count, the value can be simply increased as long as the required memory can still be allocated on stack.
+// If the required memory becomes too large, we may need to switch to a different design to handle this. One option is
+// to use epoch based memory management for the list of clients. This eliminates the need to create a copy of programs
 // per-invocation. Another option can be to always invoke the programs while holding the socket context lock, but that
 // comes with a side effect of every program invocation now happening at DISPATCH_LEVEL.
 #define NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH 16
@@ -140,17 +140,21 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
     bool initialized : 1;      ///< True if the filter context has been successfully initialized.
+    HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)            \
-    if ((filter_context) != NULL) {                        \
-        if ((filter_context)->filter_ids != NULL) {        \
-            ExFreePool((filter_context)->filter_ids);      \
-        }                                                  \
-        if ((filter_context)->client_contexts != NULL) {   \
-            ExFreePool((filter_context)->client_contexts); \
-        }                                                  \
-        ExFreePool((filter_context));                      \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                   \
+    if ((filter_context) != NULL) {                               \
+        if ((filter_context)->filter_ids != NULL) {               \
+            ExFreePool((filter_context)->filter_ids);             \
+        }                                                         \
+        if ((filter_context)->client_contexts != NULL) {          \
+            ExFreePool((filter_context)->client_contexts);        \
+        }                                                         \
+        if ((filter_context)->wfp_engine_handle != NULL) {        \
+            FwpmEngineClose((filter_context)->wfp_engine_handle); \
+        }                                                         \
+        ExFreePool((filter_context));                             \
     }
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -247,6 +251,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 /**
  * @brief Add WFP filters with specified conditions at specified layers.
  *
+ * @param[in] wfp_filter_handle The WFP filter handle used to add the filters.
  * @param[in] filter_count Count of filters to be added.
  * @param[in] parameters Filter parameters.
  * @param[in] condition_count Count of filter conditions.
@@ -259,6 +264,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
  */
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_add_wfp_filters(
+    _In_ HANDLE wfp_engine_handle,
     uint32_t filter_count,
     _In_count_(filter_count) const net_ebpf_extension_wfp_filter_parameters_t* parameters,
     uint32_t condition_count,
@@ -269,12 +275,15 @@ net_ebpf_extension_add_wfp_filters(
 /**
  * @brief Deletes WFP filters with specified filter IDs.
  *
+ * @param[in] wfp_filter_handle The WFP filter handle used to delete the filters.
  * @param[in]  filter_count Count of filters to be added.
  * @param[in]  filter_ids ID of the filter being deleted.
  */
 void
 net_ebpf_extension_delete_wfp_filters(
-    uint32_t filter_count, _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
+    _In_ HANDLE wfp_engine_handle,
+    uint32_t filter_count,
+    _Frees_ptr_ _In_count_(filter_count) net_ebpf_ext_wfp_filter_id_t* filter_ids);
 
 // eBPF WFP Provider GUID.
 // ddb851f5-841a-4b77-8a46-bb7063e9f162
