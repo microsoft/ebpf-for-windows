@@ -167,6 +167,7 @@ _net_ebpf_extension_xdp_create_filter_context(
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_XDP_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
+        xdp_filter_context->base.wfp_engine_handle,
         filter_count,
         _net_ebpf_extension_xdp_wfp_filter_parameters,
         (if_index == 0) ? 0 : 1,
@@ -242,7 +243,9 @@ _net_ebpf_extension_xdp_delete_filter_context(
     xdp_filter_context = (net_ebpf_extension_xdp_wfp_filter_context_t*)filter_context;
 
     net_ebpf_extension_delete_wfp_filters(
-        xdp_filter_context->base.filter_ids_count, xdp_filter_context->base.filter_ids);
+        filter_context->wfp_engine_handle,
+        xdp_filter_context->base.filter_ids_count,
+        xdp_filter_context->base.filter_ids);
     net_ebpf_extension_wfp_filter_context_cleanup((net_ebpf_extension_wfp_filter_context_t*)xdp_filter_context);
 
 Exit:
@@ -303,11 +306,11 @@ Exit:
 void
 net_ebpf_ext_xdp_unregister_providers()
 {
-    if (_ebpf_xdp_test_hook_provider_context) {
+    if (_ebpf_xdp_test_hook_provider_context != NULL) {
         net_ebpf_extension_hook_provider_unregister(_ebpf_xdp_test_hook_provider_context);
         _ebpf_xdp_test_hook_provider_context = NULL;
     }
-    if (_ebpf_xdp_test_program_info_provider_context) {
+    if (_ebpf_xdp_test_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_xdp_test_program_info_provider_context);
         _ebpf_xdp_test_program_info_provider_context = NULL;
     }

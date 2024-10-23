@@ -65,7 +65,11 @@ function GetDriveFreeSpaceGB
 
     # Convert drive to single letter (eg. "C:" to "C") for Get-Volume.
     $DriveSpecification = $DriveSpecification -replace ".$"
-    $FreeSpaceGB = (((Get-Volume $DriveSpecification).SizeRemaining) / 1GB).ToString("F2")
+    $Volume = Get-Volume $DriveSpecification
+    if ($Volume -eq $Null) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Drive $DriveSpecification not found."
+    }
+    $FreeSpaceGB = (($Volume.SizeRemaining) / 1GB).ToString("F2")
 
     return $FreeSpaceGB
 }
@@ -136,13 +140,19 @@ if ($VerbosePreference -eq 'Continue') {
 }
 
 # Get the available free space before test start (useful in investigating dump file creation failures)
-$BeforeTestFreeSpaceGB = GetDriveFreeSpaceGB -DriveSpecification $Env:SystemDrive
+try {
+    $BeforeTestFreeSpaceGB = GetDriveFreeSpaceGB -DriveSpecification $Env:SystemDrive
+} catch {
+    Write-Log "Error getting available disk space: $_"
+    $BeforeTestFreeSpaceGB = "Unknown"
+    # Continue with the test.
+}
 Write-Log "Available System disk space (Before test start): $BeforeTestFreeSpaceGB GB"
 
 # Start the test process using the provided command and arguments.
 $FullTestCommandSpec = Join-Path $Pwd $TestCommand
 Write-Log "`n`n"
-Write-Log "Staring Test command: $FullTestCommandSpec $TestArguments"
+Write-Log "Starting Test command: $FullTestCommandSpec $TestArguments"
 Write-Log "Test hang timeout: $TestHangTimeout (seconds)"
 Write-Log "`n"
 
@@ -175,7 +185,13 @@ if (-not $WaitResult) {
 
     # Get the available free space at this point in case the test creates its own files.
     # (useful in investigating user and/or kernel dump file creation failures).
-    $DriveFreeSpaceGB = GetDriveFreeSpaceGB -DriveSpecification $Env:SystemDrive
+    try {
+        $DriveFreeSpaceGB = GetDriveFreeSpaceGB -DriveSpecification $Env:SystemDrive
+    } catch {
+        Write-Log "Error getting available disk space: $_"
+        $DriveFreeSpaceGB = "Unknown"
+        # Continue with the test.
+    }
     Write-Log "Current available disk space: $DriveFreeSpaceGB GB`n"
 
     # $TestProcess refers to 'cmd.exe' which ends up running the real test application.

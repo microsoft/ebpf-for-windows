@@ -600,7 +600,7 @@ TEST_CASE("libbpf program pinning", "[libbpf]")
     REQUIRE(obj_fd != ebpf_fd_invalid);
     REQUIRE(errno == EEXIST);
     obj_fd = bpf_obj_get(bad_pin_path);
-    REQUIRE(obj_fd == ebpf_fd_invalid);
+    REQUIRE(obj_fd == -ENOENT);
     REQUIRE(errno == ENOENT);
 
     result = bpf_program__unpin(program, pin_path);
@@ -846,7 +846,7 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     int result = bpf_map_lookup_elem(map_fd, &index, &value);
     REQUIRE(result < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(errno == ENOENT);
 
     // Wrong fd type.
     int program_fd = bpf_program__fd(const_cast<const bpf_program*>(program));
@@ -856,6 +856,10 @@ TEST_CASE("libbpf map", "[libbpf]")
 
     // Invalid fd.
     result = bpf_map_lookup_elem(nonexistent_fd, &index, &value);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    result = bpf_map_lookup_elem(-1, &index, &value);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -892,6 +896,10 @@ TEST_CASE("libbpf map", "[libbpf]")
     index = 0;
     // Invalid fd.
     result = bpf_map_update_elem(nonexistent_fd, &index, &value, 0);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EBADF);
+
+    result = bpf_map_update_elem(-1, &index, &value, 0);
     REQUIRE(result < 0);
     REQUIRE(errno == EBADF);
 
@@ -2136,13 +2144,11 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     // Verify the enumeration is empty.
     union bpf_attr attr;
     memset(&attr, 0, sizeof(attr));
-    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
 
     memset(&attr, 0, sizeof(attr));
     attr.link_id = EBPF_ID_NONE;
-    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
 
     // Load and attach some programs.
     program_load_attach_helper_t sample_helper;
@@ -2170,8 +2176,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     fd_t fd2 = bpf(BPF_LINK_GET_FD_BY_ID, &attr, sizeof(attr));
     REQUIRE(fd2 >= 0);
 
-    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == ENOENT);
+    REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == -ENOENT);
 
     // Get info on the first link.
     memset(&attr, 0, sizeof(attr));
@@ -2202,8 +2207,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
-    REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) == -EINVAL);
 
     // Retrieve a new fd from the pin path.
     attr.bpf_fd = 0;
@@ -2219,8 +2223,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(info.id == id1);
 
     // And for completeness, try an invalid bpf() call.
-    REQUIRE(bpf(-1, &attr, sizeof(attr)) < 0);
-    REQUIRE(errno == EINVAL);
+    REQUIRE(bpf(-1, &attr, sizeof(attr)) == -EINVAL);
 
     // Unpin the link.
     REQUIRE(ebpf_object_unpin("MyPath") == EBPF_SUCCESS);
@@ -2844,6 +2847,41 @@ TEST_CASE("bpf_object__load with .o from memory", "[libbpf]")
 
     REQUIRE(bpf_link__destroy(link.release()) == 0);
     bpf_object__close(object);
+}
+
+// Test that bpf() accepts a smaller and a larger bpf_attr.
+TEST_CASE("bpf() backwards compatibility", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct
+    {
+        union bpf_attr attr;
+        char pad[3];
+    } tmp = {};
+    union bpf_attr* attr = &tmp.attr;
+
+    attr->map_type = BPF_MAP_TYPE_ARRAY;
+    attr->key_size = sizeof(uint32_t);
+    attr->value_size = sizeof(uint32_t);
+    attr->max_entries = 2;
+    attr->map_flags = 0;
+
+    // Truncate bpf_attr before map_flags.
+    int map_fd = bpf(BPF_MAP_CREATE, attr, offsetof(union bpf_attr, map_flags));
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+
+    // Pass extra trailing bytes.
+    map_fd = bpf(BPF_MAP_CREATE, attr, sizeof(tmp));
+    REQUIRE(map_fd > 0);
+    Platform::_close(map_fd);
+
+    // Ensure that non-zero trailing bytes are rejected.
+    tmp.pad[0] = 1;
+    map_fd = bpf(BPF_MAP_CREATE, attr, sizeof(tmp));
+    REQUIRE(map_fd == -EINVAL);
 }
 
 // Test bpf() with the following command ids:
