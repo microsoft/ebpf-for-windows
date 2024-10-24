@@ -1,0 +1,139 @@
+{
+    "license": "Copyright (c) eBPF for Windows contributors\nSPDX-License-Identifier: MIT",
+    "maps": [
+        {
+        "map_type": "BPF_MAP_TYPE_UNSPEC",
+        "create_map": null,
+        "delete_map": null,
+        "find_entry": null,
+        "update_entry": null,
+        "delete_entry": null,
+        "next_key_and_value": null
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_HASH",
+        "create_map": "_create_hash_map",
+        "delete_map": "_delete_hash_map",
+        "find_entry": "_find_hash_map_entry",
+        "update_entry": "_update_hash_map_entry",
+        "delete_entry": "_delete_hash_map_entry",
+        "next_key_and_value": "_next_hash_map_key_and_value"
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_ARRAY",
+        "create_map": "_create_array_map",
+        "delete_map": "_delete_array_map",
+        "find_entry": "_find_array_map_entry",
+        "update_entry": "_update_array_map_entry",
+        "delete_entry": "_delete_array_map_entry",
+        "next_key_and_value": "_next_array_map_key_and_value"
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_PROG_ARRAY",
+        "create_map": "_create_object_array_map",
+        "delete_map": "_delete_program_array_map",
+        "associate_program": "_associate_program_with_prog_array_map",
+        "find_entry": "_find_array_map_entry",
+        "get_object_from_entry": "_get_object_from_array_map_entry",
+        "update_entry_with_handle": "_update_prog_array_map_entry_with_handle",
+        "delete_entry": "_delete_program_array_map_entry",
+        "next_key_and_value": "_next_array_map_key_and_value"
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_PERCPU_HASH",
+        "create_map": "_create_hash_map",
+        "delete_map": "_delete_hash_map",
+        "find_entry": "_find_hash_map_entry",
+        "update_entry": "_update_hash_map_entry",
+        "update_entry_per_cpu": "_update_entry_per_cpu",
+        "delete_entry": "_delete_hash_map_entry",
+        "next_key_and_value": "_next_hash_map_key_and_value",
+        "per_cpu": true
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_PERCPU_ARRAY",
+        "create_map": "_create_array_map",
+        "delete_map": "_delete_array_map",
+        "find_entry": "_find_array_map_entry",
+        "update_entry": "_update_array_map_entry",
+        "update_entry_per_cpu": "_update_entry_per_cpu",
+        "delete_entry": "_delete_array_map_entry",
+        "next_key_and_value": "_next_array_map_key_and_value",
+        "per_cpu": true
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_HASH_OF_MAPS",
+        "create_map": "_create_object_hash_map",
+        "delete_map": "_delete_object_hash_map",
+        "find_entry": "_find_hash_map_entry",
+        "get_object_from_entry": "_get_object_from_hash_map_entry",
+        "update_entry_with_handle": "_update_map_hash_map_entry_with_handle",
+        "delete_entry": "_delete_map_hash_map_entry",
+        "next_key_and_value": "_next_hash_map_key_and_value"
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_ARRAY_OF_MAPS",
+        "create_map": "_create_object_array_map",
+        "delete_map": "_delete_map_array_map",
+        "find_entry": "_find_array_map_entry",
+        "get_object_from_entry": "_get_object_from_array_map_entry",
+        "update_entry_with_handle": "_update_map_array_map_entry_with_handle",
+        "delete_entry": "_delete_map_array_map_entry",
+        "next_key_and_value": "_next_array_map_key_and_value"
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_LRU_HASH",
+        "create_map": "_create_lru_hash_map",
+        "delete_map": "_delete_hash_map",
+        "find_entry": "_find_hash_map_entry",
+        "update_entry": "_update_hash_map_entry",
+        "delete_entry": "_delete_hash_map_entry",
+        "next_key_and_value": "_next_hash_map_key_and_value",
+        "key_history": true
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_LPM_TRIE",
+        "create_map": "_create_lpm_map",
+        "delete_map": "_delete_hash_map",
+        "find_entry": "_find_lpm_map_entry",
+        "update_entry": "_update_lpm_map_entry",
+        "delete_entry": "_delete_lpm_map_entry",
+        "next_key_and_value": "_next_hash_map_key_and_value"
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_QUEUE",
+        "create_map": "_create_queue_map",
+        "delete_map": "_delete_circular_map",
+        "find_entry": "_find_circular_map_entry",
+        "update_entry": "_update_circular_map_entry",
+        "zero_length_key": true
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_LRU_PERCPU_HASH",
+        "create_map": "_create_lru_hash_map",
+        "delete_map": "_delete_hash_map",
+        "find_entry": "_find_hash_map_entry",
+        "update_entry": "_update_hash_map_entry",
+        "update_entry_per_cpu": "_update_entry_per_cpu",
+        "delete_entry": "_delete_hash_map_entry",
+        "next_key_and_value": "_next_hash_map_key_and_value",
+        "per_cpu": true,
+        "key_history": true
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_STACK",
+        "create_map": "_create_stack_map",
+        "delete_map": "_delete_circular_map",
+        "find_entry": "_find_circular_map_entry",
+        "update_entry": "_update_circular_map_entry",
+        "zero_length_key": true
+        },
+        {
+        "map_type": "BPF_MAP_TYPE_RINGBUF",
+        "create_map": "_create_ring_buffer_map",
+        "delete_map": "_delete_ring_buffer_map",
+        "zero_length_key": true,
+        "zero_length_value": true
+        }
+    ]
+}
