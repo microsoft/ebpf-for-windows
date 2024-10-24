@@ -188,9 +188,24 @@ function Export-BuildArtifactsToVMs
             throw "Failed to create PowerShell session on $VMName."
         } else {
             Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+                # Create working directory c:\eBPF.
                 if(!(Test-Path "$Env:SystemDrive\eBPF")) {
                     New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
                 }
+                # Enable EULA for all SysInternals tools.
+                $RegistryPath = 'HKCU:\Software\Sysinternals'
+                if (-not (Test-Path $RegistryPath)) {
+                    # Create the registry key if it doesn't exist
+                    New-Item -Path $RegistryPath -Force
+                }
+                Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
+                
+                # Enables full memory dump.
+                # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
+                # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
+                # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
+                Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
+
                 return $Env:SystemDrive
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
@@ -223,7 +238,6 @@ function Install-eBPFComponentsOnVM
 
     Write-Log "Installing eBPF components on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
               [Parameter(Mandatory=$True)] [string] $LogFileName,
@@ -435,15 +449,6 @@ function Import-ResultsFromVM
             -Force `
             -ErrorAction Ignore 2>&1 | Write-Log
 
-        Write-Log ("Copy CodeCoverage from eBPF on $VMName to $pwd\..\..")
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\eBPF\ebpf_for_windows.xml" `
-            -Destination "$pwd\..\.." `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
-
         # Copy kernel mode traces, if enabled.
         if ($KmTracing) {
             $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
@@ -525,7 +530,7 @@ function Import-ResultsFromVM
             -ErrorAction Ignore 2>&1 | Write-Log
     }
     # Move runner test logs to TestLogs folder.
-    Write-Host ("Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs")
+    Write-Log "Copy $LogFileName from $env:TEMP on host runner to $pwd\TestLogs"
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
@@ -544,17 +549,19 @@ function Initialize-NetworkInterfacesOnVMs
         $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
         Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+            param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
+                  [Parameter(Mandatory = $true)][string] $LogFileName)
 
             Push-Location "$env:SystemDrive\$WorkingDirectory"
+            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
-            Write-Host "Installing DuoNic driver"
+            Write-Log "Installing DuoNic driver"
             .\duonic.ps1 -Install -NumNicPairs 2
             # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
             Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
 
             Pop-Location
-        } -ArgumentList ("eBPF") -ErrorAction Stop
+        } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     }
 }
 
@@ -677,27 +684,18 @@ function Get-RegressionTestArtifacts
 }
 
 # Copied from https://github.com/microsoft/msquic/blob/main/scripts/prepare-machine.ps1
-function Get-Duonic {
+function Get-CoreNetTools {
     # Download and extract https://github.com/microsoft/corenet-ci.
     $DownloadPath = "$pwd\corenet-ci"
     mkdir $DownloadPath
-    Write-Host "Downloading CoreNet-CI to $DownloadPath"
+    Write-Log "Downloading CoreNet-CI to $DownloadPath"
     Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputDir $DownloadPath
+    #DuoNic.
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
+    # Procdump.
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
+    # NotMyFault.
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
-    Remove-Item -Path $DownloadPath -Force -Recurse
-}
-
-# Download the Visual C++ Redistributable.
-function Get-VCRedistributable {
-    $url = "https://aka.ms/vs/17/release/vc_redist.x64.exe"
-    $DownloadPath = "$pwd\vc-redist"
-    mkdir $DownloadPath
-    Write-Host "Downloading Visual C++ Redistributable from $url to $DownloadPath"
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -Uri $url -OutFile "$DownloadPath\vc_redist.x64.exe"
-    Move-Item -Path "$DownloadPath\vc_redist.x64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
 
@@ -706,7 +704,7 @@ function Get-PSExec {
     $url = "https://download.sysinternals.com/files/PSTools.zip"
     $DownloadPath = "$pwd\psexec"
     mkdir $DownloadPath
-    Write-Host "Downloading PSExec from $url to $DownloadPath"
+    Write-Log "Downloading PSExec from $url to $DownloadPath"
     $ProgressPreference = 'SilentlyContinue'
     Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip"
     cd $DownloadPath

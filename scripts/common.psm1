@@ -3,7 +3,6 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
-
 #
 # Common helper functions.
 #
@@ -22,6 +21,17 @@ function Write-Log
             Write-Output "[$timestamp] :: $TraceMessage" | Out-File "$env:TEMP\$LogFileName" -Append
         }
     }
+}
+
+function ThrowWithErrorMessage
+{
+    Param(
+        [Parameter(Mandatory = $True)] [string] $ErrorMessage
+    )
+
+    Write-Log $ErrorMessage -ForegroundColor Red
+    Start-Sleep -Milliseconds 100
+    throw $ErrorMessage
 }
 
 function New-Credential
