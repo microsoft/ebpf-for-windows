@@ -47,8 +47,7 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
     Get-LegacyRegressionTestArtifacts
 }
 
-Get-Duonic
-Get-VCRedistributable
+Get-CoreNetTools
 Get-PSExec
 
 # Export build artifacts to the test VMs.
