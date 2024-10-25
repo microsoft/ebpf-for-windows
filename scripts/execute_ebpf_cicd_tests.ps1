@@ -100,6 +100,7 @@ while ($Job.State -eq 'Running') {
             $CheckpointName = "$TestVMName-Checkpoint-$Timestamp"
             Write-Log "Taking snapshot $CheckpointName of $TestVMName"
             Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
+            break
         }
     }
 }
