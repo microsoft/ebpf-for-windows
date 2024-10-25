@@ -47,7 +47,8 @@ enum bpf_stats_type
 };
 
 // All types below must be ABI compatible with the Linux bpf() syscalls. This means
-// that the order, size and alignment of the types must match uapi/linux/bpf.h.
+// that the order, size and alignment of the types must match uapi/linux/bpf.h in
+// a tagged release of https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/.
 // Constants must also match.
 //
 // Names do not have to match, but try to keep them the same as much as possible.
@@ -100,7 +101,7 @@ typedef struct
     uint32_t _pad0;
     uint64_t key;   ///< Pointer to key to look up.
     uint64_t value; ///< Pointer to value.
-    uint64_t flags; ///< Not supported.
+    uint64_t flags; ///< Not supported, must be zero.
 } sys_bpf_map_lookup_attr_t;
 
 typedef struct
@@ -128,13 +129,13 @@ typedef struct
 {
     enum bpf_prog_type prog_type; ///< Program type to use for loading the program.
     uint32_t insn_cnt;            ///< Number of instructions in the array.
-    uint64_t insns;               ///< Array of instructions
+    uint64_t insns;               ///< Array of instructions.
     uint64_t license;      ///< Optional pointer to a string specifying the license (currently ignored on Windows).
     uint32_t log_level;    ///< Logging level (currently ignored on Windows).
     uint32_t log_size;     ///< Size in bytes of the log buffer.
     uint64_t log_buf;      ///< Pointer to a buffer in which log info can be written.
     uint32_t kern_version; ///< Kernel version (currently ignored on Windows).
-    uint32_t prog_flags;   ///< Not supported.
+    uint32_t prog_flags;   ///< Not supported, must be zero.
 } sys_bpf_prog_load_attr_t;
 
 typedef struct
@@ -169,7 +170,7 @@ typedef struct
 {
     uint64_t pathname; ///< Path name for pinning.
     uint32_t bpf_fd;   ///< File descriptor referring to the program or map.
-    uint32_t flags;    ///< Not supported.
+    uint32_t flags;    ///< Not supported, must be zero.
 } sys_bpf_obj_pin_attr_t;
 
 /// Attributes used by BPF_OBJ_GET_INFO_BY_FD.

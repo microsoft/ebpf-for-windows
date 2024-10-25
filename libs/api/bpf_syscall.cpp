@@ -6,18 +6,19 @@
 #include <windows.h>
 #include <WinError.h>
 #include <linux/bpf.h>
+#include <sal.h>
 #include <stdexcept>
 
 template <typename T> class ExtensibleStruct
 {
   private:
-    void* _orig;
-    size_t _orig_size;
+    void* _source;
+    size_t _copy_size;
     T _tmp;
-    T* _p;
+    T* _ptr;
 
     static void
-    check_tail(const void* buf, size_t start, size_t end)
+    check_tail(_In_reads_bytes_(end) const void* buf, size_t start, size_t end)
     {
         const unsigned char* p = (const unsigned char*)buf + start;
         const unsigned char* e = (const unsigned char*)buf + end;
@@ -30,41 +31,41 @@ template <typename T> class ExtensibleStruct
     }
 
   public:
-    ExtensibleStruct(void* ptr, size_t ptr_size) : _orig(ptr)
+    ExtensibleStruct(_In_reads_bytes_(ptr_size) void* ptr, size_t ptr_size) : _source(ptr)
     {
         if (ptr_size >= sizeof(T)) {
             // Forward compatibility: allow a larger input as long as the
             // unknown fields are all zero.
             check_tail(ptr, sizeof(T), ptr_size);
-            _orig_size = 0;
-            _p = (T*)ptr;
+            _copy_size = 0;
+            _ptr = (T*)ptr;
         } else {
             // Backwards compatibility: allow a smaller input by implicitly zeroing all
             // missing fields.
             memcpy(&_tmp, ptr, ptr_size);
-            _orig_size = ptr_size;
-            _p = &_tmp;
+            _copy_size = ptr_size;
+            _ptr = &_tmp;
         }
     }
 
-    ~ExtensibleStruct() { memcpy(_orig, &_tmp, _orig_size); }
+    ~ExtensibleStruct() { memcpy(_source, &_tmp, _copy_size); }
 
     T*
     operator->()
     {
-        return _p;
+        return _ptr;
     }
 
     T*
     operator&()
     {
-        return _p;
+        return _ptr;
     }
 
     T
     operator*()
     {
-        return *_p;
+        return *_ptr;
     }
 };
 
