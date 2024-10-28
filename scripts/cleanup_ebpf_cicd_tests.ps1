@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
-       [parameter(Mandatory=$true)][bool] $KmTracing,
+       [parameter(Mandatory=$false)][bool] $KmTracing = $true,
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
@@ -40,7 +40,7 @@ foreach ($VM in $VMList) {
         }
 
     if ($DumpFound -eq $True) {
-        Write-Host "`n=== Post-crash reboot detected on VM $VMName ===`n"
+        Write-Log "Post-crash reboot detected on VM $VMName"
     } else {
         # Stop eBPF Components on the test VM. (Un-install is not necessary.)
         # We *MUST* be able to stop all drivers cleanly after a test.  Failure to do so indicates a fatal bug in

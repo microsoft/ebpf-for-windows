@@ -27,8 +27,9 @@ $VCDebugRuntime = @(
     "ucrtbased.dll"
 )
 
+$InstallPath = Join-Path $env:ProgramFiles "ebpf-for-windows"
+$EbpfSvcPath = Join-Path $InstallPath "JIT"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
-$System32Path = Join-Path $env:SystemRoot "System32"
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 
 Push-Location $WorkingDirectory
@@ -60,18 +61,21 @@ if ($Uninstall) {
         Write-Host("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
     }
 
-    # Move the Visual C++ Redistributable Debug DLLs to the system32 directory,
-    # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
-    Write-Host("Copying Visual C++ Redistributable debug runtime DLLs to the $System32Path directory...")
+    # Move the Visual C++ Redistributable Debug DLLs to the JIT directory, so that ebpfsvc.exe
+    # does not fail to start with error 1053.
+    Write-Host("Copying Visual C++ Redistributable debug runtime DLLs to the $EbpfSvcPath directory...")
     # Test if the VC debug runtime DLLs are present in the working directory (indicating a debug build).
     $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
     if (-not $VCDebugRuntime) {
         Write-Host("Visual C++ Redistributable debug runtime DLLs not found in the working directory (i.e., release build or already installed). Skipping this step.") -ForegroundColor Yellow
     } else {
-        $System32Path = Join-Path $env:SystemRoot "System32"
+        if (-not (Test-Path $EbpfSvcPath)) {
+            New-Item -Path $EbpfSvcPath -ItemType Directory
+        }
+
         $VCDebugRuntime | ForEach-Object {
             $sourcePath = Join-Path $WorkingDirectory $_
-            $destinationPath = Join-Path $System32Path $_
+            $destinationPath = Join-Path $EbpfSvcPath $_
             Move-Item -Path $sourcePath -Destination $destinationPath -Force
         }
         Write-Host("Visual C++ Redistributable debug runtime DLLs copied successfully!") -ForegroundColor Green
