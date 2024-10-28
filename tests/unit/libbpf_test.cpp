@@ -2165,7 +2165,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     // Now enumerate the IDs.
     memset(&attr, 0, sizeof(attr));
     REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
-    uint32_t id1 = attr.next_id;
+    uint32_t id1 = attr.link_get_next_id.next_id;
 
     memset(&attr, 0, sizeof(attr));
     attr.link_id = id1;
@@ -2173,7 +2173,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(fd1 >= 0);
 
     REQUIRE(bpf(BPF_LINK_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
-    uint32_t id2 = attr.next_id;
+    uint32_t id2 = attr.link_get_next_id.next_id;
 
     memset(&attr, 0, sizeof(attr));
     attr.link_id = id2;
@@ -2206,15 +2206,15 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
 
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
-    attr.bpf_fd = fd1;
-    attr.pathname = (uintptr_t) "MyPath";
+    attr.obj_pin.bpf_fd = fd1;
+    attr.obj_pin.pathname = (uintptr_t) "MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
     REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) == -EINVAL);
 
     // Retrieve a new fd from the pin path.
-    attr.bpf_fd = 0;
+    attr.obj_pin.bpf_fd = 0;
     fd_t fd3 = bpf(BPF_OBJ_GET, &attr, sizeof(attr));
     REQUIRE(fd3 > 0);
 
@@ -2866,14 +2866,14 @@ TEST_CASE("bpf() backwards compatibility", "[libbpf]")
     } tmp = {};
     union bpf_attr* attr = &tmp.attr;
 
-    attr->map_type = BPF_MAP_TYPE_ARRAY;
-    attr->key_size = sizeof(uint32_t);
-    attr->value_size = sizeof(uint32_t);
-    attr->max_entries = 2;
-    attr->map_flags = 0;
+    attr->map_create.map_type = BPF_MAP_TYPE_ARRAY;
+    attr->map_create.key_size = sizeof(uint32_t);
+    attr->map_create.value_size = sizeof(uint32_t);
+    attr->map_create.max_entries = 2;
+    attr->map_create.map_flags = 0;
 
     // Truncate bpf_attr before map_flags.
-    int map_fd = bpf(BPF_MAP_CREATE, attr, offsetof(union bpf_attr, map_flags));
+    int map_fd = bpf(BPF_MAP_CREATE, attr, offsetof(union bpf_attr, map_create.map_flags));
     REQUIRE(map_fd > 0);
     Platform::_close(map_fd);
 
@@ -2904,9 +2904,9 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 
     // Load and verify the eBPF program.
     union bpf_attr attr = {};
-    attr.prog_type = BPF_PROG_TYPE_SAMPLE;
-    attr.insns = (uintptr_t)instructions;
-    attr.insn_cnt = _countof(instructions);
+    attr.prog_load.prog_type = BPF_PROG_TYPE_SAMPLE;
+    attr.prog_load.insns = (uintptr_t)instructions;
+    attr.prog_load.insn_cnt = _countof(instructions);
     int program_fd = bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
     REQUIRE(program_fd >= 0);
 
@@ -2923,9 +2923,9 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 
     // Verify we can enumerate the program id.
     memset(&attr, 0, sizeof(attr));
-    attr.start_id = 0;
+    attr.prog_get_next_id.start_id = 0;
     REQUIRE(bpf(BPF_PROG_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.next_id == program_info.id);
+    REQUIRE(attr.prog_get_next_id.next_id == program_info.id);
 
     // Verify we can convert the program id to an fd.
     memset(&attr, 0, sizeof(attr));
@@ -2936,11 +2936,11 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 
     // Create a map.
     memset(&attr, 0, sizeof(attr));
-    attr.map_type = BPF_MAP_TYPE_ARRAY;
-    attr.key_size = sizeof(uint32_t);
-    attr.value_size = sizeof(uint32_t);
-    attr.max_entries = 2;
-    attr.map_flags = 0;
+    attr.map_create.map_type = BPF_MAP_TYPE_ARRAY;
+    attr.map_create.key_size = sizeof(uint32_t);
+    attr.map_create.value_size = sizeof(uint32_t);
+    attr.map_create.max_entries = 2;
+    attr.map_create.map_flags = 0;
     int map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
     REQUIRE(map_fd > 0);
 
@@ -2955,9 +2955,9 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 
     // Verify we can enumerate the map id.
     memset(&attr, 0, sizeof(attr));
-    attr.start_id = 0;
+    attr.map_get_next_id.start_id = 0;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_ID, &attr, sizeof(attr)) == 0);
-    REQUIRE(attr.next_id == map_id);
+    REQUIRE(attr.map_get_next_id.next_id == map_id);
 
     // Verify we can convert the map id to an fd.
     memset(&attr, 0, sizeof(attr));
@@ -3000,31 +3000,31 @@ TEST_CASE("BPF_PROG_ATTACH", "[libbpf]")
 
     // Verify we can't attach the program using an attach type that doesn't work with this API.
     memset(&attr, 0, sizeof(attr));
-    attr.attach_bpf_fd = program_fd;
-    attr.target_fd = program_fd;
-    attr.attach_flags = 0;
-    attr.attach_type = BPF_ATTACH_TYPE_SAMPLE;
+    attr.prog_attach.attach_bpf_fd = program_fd;
+    attr.prog_attach.target_fd = program_fd;
+    attr.prog_attach.attach_flags = 0;
+    attr.prog_attach.attach_type = BPF_ATTACH_TYPE_SAMPLE;
     REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == -ENOTSUP);
 
     // Verify we can attach the program.
     memset(&attr, 0, sizeof(attr));
-    attr.attach_bpf_fd = program_fd;
+    attr.prog_attach.attach_bpf_fd = program_fd;
     // TODO (issue #1028): Currently the target_fd is treated as a compartment id.
-    attr.target_fd = program_fd;
-    attr.attach_flags = 0;
-    attr.attach_type = BPF_CGROUP_INET4_CONNECT;
+    attr.prog_attach.target_fd = program_fd;
+    attr.prog_attach.attach_flags = 0;
+    attr.prog_attach.attach_type = BPF_CGROUP_INET4_CONNECT;
     REQUIRE(bpf(BPF_PROG_ATTACH, &attr, sizeof(attr)) == 0);
 
     // Verify we can detach the program.
     memset(&attr, 0, sizeof(attr));
-    attr.target_fd = program_fd;
-    attr.attach_type = BPF_CGROUP_INET4_CONNECT;
+    attr.prog_detach.target_fd = program_fd;
+    attr.prog_detach.attach_type = BPF_CGROUP_INET4_CONNECT;
     REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == 0);
 
     // Verify we can't detach the program using a type that doesn't work with this API.
     memset(&attr, 0, sizeof(attr));
-    attr.target_fd = program_fd;
-    attr.attach_type = BPF_ATTACH_TYPE_SAMPLE;
+    attr.prog_detach.target_fd = program_fd;
+    attr.prog_detach.attach_type = BPF_ATTACH_TYPE_SAMPLE;
     REQUIRE(bpf(BPF_PROG_DETACH, &attr, sizeof(attr)) == -ENOTSUP);
 }
 #endif
@@ -3039,11 +3039,11 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 
     // Create a hash map.
     union bpf_attr attr = {};
-    attr.map_type = BPF_MAP_TYPE_HASH;
-    attr.key_size = sizeof(uint32_t);
-    attr.value_size = sizeof(uint32_t);
-    attr.max_entries = 3;
-    attr.map_flags = 0;
+    attr.map_create.map_type = BPF_MAP_TYPE_HASH;
+    attr.map_create.key_size = sizeof(uint32_t);
+    attr.map_create.value_size = sizeof(uint32_t);
+    attr.map_create.max_entries = 3;
+    attr.map_create.map_flags = 0;
     int map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
     REQUIRE(map_fd > 0);
 
@@ -3051,51 +3051,51 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     uint64_t value = 12345;
     uint32_t key = 42;
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = (uintptr_t)&key;
-    attr.value = (uintptr_t)&value;
-    attr.flags = 0;
+    attr.map_update.map_fd = map_fd;
+    attr.map_update.key = (uintptr_t)&key;
+    attr.map_update.value = (uintptr_t)&value;
+    attr.map_update.flags = 0;
     REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr)) == 0);
 
     // Look up the entry.
     value = 0;
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = (uintptr_t)&key;
-    attr.value = (uintptr_t)&value;
+    attr.map_lookup.map_fd = map_fd;
+    attr.map_lookup.key = (uintptr_t)&key;
+    attr.map_lookup.value = (uintptr_t)&value;
     REQUIRE(bpf(BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr)) == 0);
     REQUIRE(value == 12345);
 
     // Enumerate the entry.
     uint32_t next_key;
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = 0;
-    attr.next_key = (uintptr_t)&next_key;
+    attr.map_get_next_key.map_fd = map_fd;
+    attr.map_get_next_key.key = 0;
+    attr.map_get_next_key.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) == 0);
     REQUIRE(next_key == key);
 
     // Verify the entry is the last entry.
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = (uintptr_t)&key;
-    attr.next_key = (uintptr_t)&next_key;
+    attr.map_get_next_key.map_fd = map_fd;
+    attr.map_get_next_key.key = (uintptr_t)&key;
+    attr.map_get_next_key.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
 
     // Delete the entry.
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = (uintptr_t)&key;
+    attr.map_delete.map_fd = map_fd;
+    attr.map_delete.key = (uintptr_t)&key;
     REQUIRE(bpf(BPF_MAP_DELETE_ELEM, &attr, sizeof(attr)) == 0);
 
     // Look up and delete the entry.
     memset(&attr, 0, sizeof(attr));
     value = 0;
     key = 42;
-    attr.map_fd = map_fd;
-    attr.key = (uintptr_t)&key;
-    attr.value = (uintptr_t)&value;
+    attr.map_lookup.map_fd = map_fd;
+    attr.map_lookup.key = (uintptr_t)&key;
+    attr.map_lookup.value = (uintptr_t)&value;
 
     // Add the element back to the entry after the previous test entry deletion.
     bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
@@ -3107,9 +3107,9 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
 
     // Verify that no entries exist.
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = 0;
-    attr.next_key = (uintptr_t)&next_key;
+    attr.map_get_next_key.map_fd = map_fd;
+    attr.map_get_next_key.key = 0;
+    attr.map_get_next_key.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) < 0);
     REQUIRE(errno == ENOENT);
 
@@ -3118,26 +3118,26 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     for (key = 100; key < 400; key += 100) {
         value = 0;
         memset(&attr, 0, sizeof(attr));
-        attr.map_fd = map_fd;
-        attr.key = (uintptr_t)&key;
-        attr.value = (uintptr_t)&value;
+        attr.map_update.map_fd = map_fd;
+        attr.map_update.key = (uintptr_t)&key;
+        attr.map_update.value = (uintptr_t)&value;
         REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr)) == 0);
     }
 
     // Look up the first key in the map, so we can check that it's returned later.
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = NULL;
-    attr.next_key = (uintptr_t)&next_key;
+    attr.map_get_next_key.map_fd = map_fd;
+    attr.map_get_next_key.key = NULL;
+    attr.map_get_next_key.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) == 0);
     uint64_t first_key = next_key;
 
     // Look up a key that is not present in the map, and check that the first key is returned.
     key = 123;
     memset(&attr, 0, sizeof(attr));
-    attr.map_fd = map_fd;
-    attr.key = (uintptr_t)&key;
-    attr.next_key = (uintptr_t)&next_key;
+    attr.map_get_next_key.map_fd = map_fd;
+    attr.map_get_next_key.key = (uintptr_t)&key;
+    attr.map_get_next_key.next_key = (uintptr_t)&next_key;
     REQUIRE(bpf(BPF_MAP_GET_NEXT_KEY, &attr, sizeof(attr)) == 0);
     REQUIRE(next_key == first_key);
 
@@ -3559,10 +3559,10 @@ _test_maps_batch(bpf_map_type map_type)
 
     // Create a hash map.
     union bpf_attr attr = {};
-    attr.map_type = map_type;
-    attr.key_size = sizeof(uint32_t);
-    attr.value_size = sizeof(uint64_t);
-    attr.max_entries = 1024 * 1024;
+    attr.map_create.map_type = map_type;
+    attr.map_create.key_size = sizeof(uint32_t);
+    attr.map_create.value_size = sizeof(uint64_t);
+    attr.map_create.max_entries = 1024 * 1024;
 
     fd_t map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
     REQUIRE(map_fd > 0);
