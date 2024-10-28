@@ -264,6 +264,7 @@ extern "C"
      *   running on. Only valid if ebpf_is_preemptible() == true.
      * @retval Zero based index of CPUs.
      */
+    EBPF_INLINE_HINT
     uint32_t
     ebpf_get_current_cpu();
 

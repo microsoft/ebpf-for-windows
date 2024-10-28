@@ -62,11 +62,7 @@ ebpf_is_preemptible()
 uint32_t
 ebpf_get_current_cpu()
 {
-    PROCESSOR_NUMBER processor_number;
-
-    KeGetCurrentProcessorNumberEx(&processor_number);
-
-    return KeGetProcessorIndexFromNumber(&processor_number);
+    return cxplat_get_current_processor_number();
 }
 
 uint64_t
