@@ -75,111 +75,40 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:a6f909ed6404023575657468834884b93"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:af1f1b4720187d497e35582d18f62414e"><td class="memItemLeft" >&#160;&#160;&#160;enum <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a>&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ae8009f878a49a0053c7064e5f883a80f">map_type</a></td></tr>
-<tr class="memdesc:af1f1b4720187d497e35582d18f62414e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of map to create.  <a href="structbpf__attr_1_1_0d30.html#af1f1b4720187d497e35582d18f62414e">More...</a><br /></td></tr>
-<tr class="separator:af1f1b4720187d497e35582d18f62414e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6bfe29cd9520a4d3af4cb44f5cf695ff"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a9b6dae0c5e5c8c15a529f7ec93d1ce92">key_size</a></td></tr>
-<tr class="memdesc:a6bfe29cd9520a4d3af4cb44f5cf695ff"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of keys.  <a href="structbpf__attr_1_1_0d30.html#a6bfe29cd9520a4d3af4cb44f5cf695ff">More...</a><br /></td></tr>
-<tr class="separator:a6bfe29cd9520a4d3af4cb44f5cf695ff"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a752c102ef0686c1c0045967ed9673ec8"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#aa5a4922cd66e373dad23163014c2ef7c">value_size</a></td></tr>
-<tr class="memdesc:a752c102ef0686c1c0045967ed9673ec8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of values.  <a href="structbpf__attr_1_1_0d30.html#a752c102ef0686c1c0045967ed9673ec8">More...</a><br /></td></tr>
-<tr class="separator:a752c102ef0686c1c0045967ed9673ec8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afbbe094247c9054281c291cbcab0d2ea"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#aefd617ff69e03e11ae9e08979c48d212">max_entries</a></td></tr>
-<tr class="memdesc:afbbe094247c9054281c291cbcab0d2ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">Maximum number of entries in the map.  <a href="structbpf__attr_1_1_0d30.html#afbbe094247c9054281c291cbcab0d2ea">More...</a><br /></td></tr>
-<tr class="separator:afbbe094247c9054281c291cbcab0d2ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a15deda70d436a103599e93f594068d0f"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ab4497e4fb88641516d8b15edcc1873b8">map_flags</a></td></tr>
-<tr class="memdesc:a15deda70d436a103599e93f594068d0f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags (currently 0).  <a href="structbpf__attr_1_1_0d30.html#a15deda70d436a103599e93f594068d0f">More...</a><br /></td></tr>
-<tr class="separator:a15deda70d436a103599e93f594068d0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6f909ed6404023575657468834884b93"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memdesc:a6f909ed6404023575657468834884b93"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_MAP_CREATE.  <a href="unionbpf__attr.html#a6f909ed6404023575657468834884b93">More...</a><br /></td></tr>
-<tr class="separator:a6f909ed6404023575657468834884b93"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a31f8a1d7b7a80b09a41f457cc778b684"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:a1489cb08655fbd2bb5295282b122af91"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a86dcea0ed146554375fe1f1041b22ef3">map_fd</a></td></tr>
-<tr class="memdesc:a1489cb08655fbd2bb5295282b122af91"><td class="mdescLeft">&#160;</td><td class="mdescRight">File descriptor of map.  <a href="structbpf__attr_1_1_0d32.html#a1489cb08655fbd2bb5295282b122af91">More...</a><br /></td></tr>
-<tr class="separator:a1489cb08655fbd2bb5295282b122af91"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a59cc26ac06a2a6a8dc26fee36576d18c"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a7260a58d9ee514dac13f7d7ad16fa5e0">key</a></td></tr>
-<tr class="memdesc:a59cc26ac06a2a6a8dc26fee36576d18c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to key to look up.  <a href="structbpf__attr_1_1_0d32.html#a59cc26ac06a2a6a8dc26fee36576d18c">More...</a><br /></td></tr>
-<tr class="separator:a59cc26ac06a2a6a8dc26fee36576d18c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a752020295ba18c75a9adf22390b760ea"><td class="memItemLeft" >&#160;&#160;&#160;union {</td></tr>
-<tr class="memitem:a6b979030651c9f38763a78d86e5033c7"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ac259def2ef0f55384c3250b00fb313aa">value</a></td></tr>
-<tr class="memdesc:a6b979030651c9f38763a78d86e5033c7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to value.  <a href="unionbpf__attr_1_1_0d32_1_1_0d43.html#a6b979030651c9f38763a78d86e5033c7">More...</a><br /></td></tr>
-<tr class="separator:a6b979030651c9f38763a78d86e5033c7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a93160460565cae881c78230b8be409d1"><td class="memItemLeft" >&#160;&#160;&#160;&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a9f5cbc94b29edcbf51700d126a64fceb">next_key</a></td></tr>
-<tr class="memdesc:a93160460565cae881c78230b8be409d1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to next key.  <a href="unionbpf__attr_1_1_0d32_1_1_0d43.html#a93160460565cae881c78230b8be409d1">More...</a><br /></td></tr>
-<tr class="separator:a93160460565cae881c78230b8be409d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a752020295ba18c75a9adf22390b760ea"><td class="memItemLeft" valign="top">&#160;&#160;&#160;}&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:a752020295ba18c75a9adf22390b760ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac546e2bde0a46fd253e798cf8fb324cb"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ab7dc186a160bce87046af6eda93a214b">flags</a></td></tr>
-<tr class="memdesc:ac546e2bde0a46fd253e798cf8fb324cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags (currently 0).  <a href="structbpf__attr_1_1_0d32.html#ac546e2bde0a46fd253e798cf8fb324cb">More...</a><br /></td></tr>
-<tr class="separator:ac546e2bde0a46fd253e798cf8fb324cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a31f8a1d7b7a80b09a41f457cc778b684"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memdesc:a31f8a1d7b7a80b09a41f457cc778b684"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_MAP_LOOKUP_ELEM, BPF_MAP_UPDATE_ELEM, BPF_MAP_DELETE_ELEM, and BPF_MAP_GET_NEXT_KEY.  <a href="unionbpf__attr.html#a31f8a1d7b7a80b09a41f457cc778b684">More...</a><br /></td></tr>
-<tr class="separator:a31f8a1d7b7a80b09a41f457cc778b684"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f23350f7b9257aa60fff28a05345302"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:aa46b23c2a5e01936d6d782d538d4d4eb"><td class="memItemLeft" >&#160;&#160;&#160;enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ac01a39c25565a7c5fddc79ae8e3e5e81">prog_type</a></td></tr>
-<tr class="memdesc:aa46b23c2a5e01936d6d782d538d4d4eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program type to use for loading the program.  <a href="structbpf__attr_1_1_0d34.html#aa46b23c2a5e01936d6d782d538d4d4eb">More...</a><br /></td></tr>
-<tr class="separator:aa46b23c2a5e01936d6d782d538d4d4eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab16a8fa38c3c750db164cafb47b14b76"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a710ff83ea658eb8bede97bc8baa7981c">insns</a></td></tr>
-<tr class="memdesc:ab16a8fa38c3c750db164cafb47b14b76"><td class="mdescLeft">&#160;</td><td class="mdescRight">Array of instructions.  <a href="structbpf__attr_1_1_0d34.html#ab16a8fa38c3c750db164cafb47b14b76">More...</a><br /></td></tr>
-<tr class="separator:ab16a8fa38c3c750db164cafb47b14b76"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a44560198b16a65526a9a11637da99350"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a05b01ad0d596faa1988d6c213c301e8c">insn_cnt</a></td></tr>
-<tr class="memdesc:a44560198b16a65526a9a11637da99350"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of instructions in the array.  <a href="structbpf__attr_1_1_0d34.html#a44560198b16a65526a9a11637da99350">More...</a><br /></td></tr>
-<tr class="separator:a44560198b16a65526a9a11637da99350"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acfef88cfed27b46e010f212d1509da5c"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a891ef2b1c5b123bfe2b653a8428f8194">license</a></td></tr>
-<tr class="memdesc:acfef88cfed27b46e010f212d1509da5c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Optional pointer to a string specifying the license (currently ignored on Windows).  <a href="structbpf__attr_1_1_0d34.html#acfef88cfed27b46e010f212d1509da5c">More...</a><br /></td></tr>
-<tr class="separator:acfef88cfed27b46e010f212d1509da5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3b41296167db690eef46f8804c4d9e37"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a0c723c456fc334d67aad179bad08a374">log_level</a></td></tr>
-<tr class="memdesc:a3b41296167db690eef46f8804c4d9e37"><td class="mdescLeft">&#160;</td><td class="mdescRight">Logging level (currently ignored on Windows).  <a href="structbpf__attr_1_1_0d34.html#a3b41296167db690eef46f8804c4d9e37">More...</a><br /></td></tr>
-<tr class="separator:a3b41296167db690eef46f8804c4d9e37"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1195e0f4ad4884e9eb8256d95841ea88"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a92033b0f4a185adcaecbf222c8aa9007">log_buf</a></td></tr>
-<tr class="memdesc:a1195e0f4ad4884e9eb8256d95841ea88"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to a buffer in which log info can be written.  <a href="structbpf__attr_1_1_0d34.html#a1195e0f4ad4884e9eb8256d95841ea88">More...</a><br /></td></tr>
-<tr class="separator:a1195e0f4ad4884e9eb8256d95841ea88"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa212f3701f90b758943f2c507a309c53"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a32f3c9fe0a5b07c99f98d7a7d1a6167f">log_size</a></td></tr>
-<tr class="memdesc:aa212f3701f90b758943f2c507a309c53"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of the log buffer.  <a href="structbpf__attr_1_1_0d34.html#aa212f3701f90b758943f2c507a309c53">More...</a><br /></td></tr>
-<tr class="separator:aa212f3701f90b758943f2c507a309c53"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acc4e1049c5f75a69d4261137fe0e38c2"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#abf7fc80cbc0f38ee22b53ecef983c476">kern_version</a></td></tr>
-<tr class="memdesc:acc4e1049c5f75a69d4261137fe0e38c2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Kernel version (currently ignored on Windows).  <a href="structbpf__attr_1_1_0d34.html#acc4e1049c5f75a69d4261137fe0e38c2">More...</a><br /></td></tr>
-<tr class="separator:acc4e1049c5f75a69d4261137fe0e38c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9f23350f7b9257aa60fff28a05345302"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memdesc:a9f23350f7b9257aa60fff28a05345302"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_LOAD.  <a href="unionbpf__attr.html#a9f23350f7b9257aa60fff28a05345302">More...</a><br /></td></tr>
-<tr class="separator:a9f23350f7b9257aa60fff28a05345302"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09ecc189212df4953f617b825589bc21"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:a049fd9cded0dfe8fe9811d8c7e7037c4"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#acb4baffb64f2d5797038e933a80c5c7c">target_fd</a></td></tr>
-<tr class="memdesc:a049fd9cded0dfe8fe9811d8c7e7037c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF target to attach/detach to/from.  <a href="structbpf__attr_1_1_0d36.html#a049fd9cded0dfe8fe9811d8c7e7037c4">More...</a><br /></td></tr>
-<tr class="separator:a049fd9cded0dfe8fe9811d8c7e7037c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ade27182694d7badbe01001ce73493336"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#afc2b03c4530ef2b57955c788c57b9cc7">attach_bpf_fd</a></td></tr>
-<tr class="memdesc:ade27182694d7badbe01001ce73493336"><td class="mdescLeft">&#160;</td><td class="mdescRight">File descriptor of program to attach to.  <a href="structbpf__attr_1_1_0d36.html#ade27182694d7badbe01001ce73493336">More...</a><br /></td></tr>
-<tr class="separator:ade27182694d7badbe01001ce73493336"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a53e2c7a5a38d0ada3b7b258547077d39"><td class="memItemLeft" >&#160;&#160;&#160;enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a14d0c6c04cfcbe1cb67d3e0976085988">attach_type</a></td></tr>
-<tr class="memdesc:a53e2c7a5a38d0ada3b7b258547077d39"><td class="mdescLeft">&#160;</td><td class="mdescRight">Type of program to attach/detach to/from.  <a href="structbpf__attr_1_1_0d36.html#a53e2c7a5a38d0ada3b7b258547077d39">More...</a><br /></td></tr>
-<tr class="separator:a53e2c7a5a38d0ada3b7b258547077d39"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0d8cc7e5a71c5aef8dacc63c4e112da9"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#aa208cd1dc7f0fb9abd38f4ed1112437f">attach_flags</a></td></tr>
-<tr class="memdesc:a0d8cc7e5a71c5aef8dacc63c4e112da9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags affecting the attach operation.  <a href="structbpf__attr_1_1_0d36.html#a0d8cc7e5a71c5aef8dacc63c4e112da9">More...</a><br /></td></tr>
-<tr class="separator:a0d8cc7e5a71c5aef8dacc63c4e112da9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09ecc189212df4953f617b825589bc21"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memdesc:a09ecc189212df4953f617b825589bc21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_ATTACH/DETACH.  <a href="unionbpf__attr.html#a09ecc189212df4953f617b825589bc21">More...</a><br /></td></tr>
-<tr class="separator:a09ecc189212df4953f617b825589bc21"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac7461517acf5891dd6ad395bddda2c85"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:a2029f818ea1f79f8c727ae7733ff56ba"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a1c3006de7b211b7ade5d48549af8bd34">pathname</a></td></tr>
-<tr class="memdesc:a2029f818ea1f79f8c727ae7733ff56ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Path name for pinning.  <a href="structbpf__attr_1_1_0d38.html#a2029f818ea1f79f8c727ae7733ff56ba">More...</a><br /></td></tr>
-<tr class="separator:a2029f818ea1f79f8c727ae7733ff56ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acd1b9eb24147c3494e69b4632c3c8f3b"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a3f2153fd2e65dc7af961da00860a4187">bpf_fd</a></td></tr>
-<tr class="memdesc:acd1b9eb24147c3494e69b4632c3c8f3b"><td class="mdescLeft">&#160;</td><td class="mdescRight">File descriptor referring to the program or map.  <a href="structbpf__attr_1_1_0d38.html#acd1b9eb24147c3494e69b4632c3c8f3b">More...</a><br /></td></tr>
-<tr class="separator:acd1b9eb24147c3494e69b4632c3c8f3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac7461517acf5891dd6ad395bddda2c85"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memdesc:ac7461517acf5891dd6ad395bddda2c85"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_OBJ_PIN and BPF_OBJ_GET.  <a href="unionbpf__attr.html#ac7461517acf5891dd6ad395bddda2c85">More...</a><br /></td></tr>
-<tr class="separator:ac7461517acf5891dd6ad395bddda2c85"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a876c55ae7a6b60b1685a53b790e5a88d"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:a06c6d1ef7f3a2016730d9e7bc19e4996"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a5d5f66dac9e6ade3f6e4d532d6e1e899">start_id</a></td></tr>
-<tr class="memdesc:a06c6d1ef7f3a2016730d9e7bc19e4996"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID to look for an ID after. The start_id need not exist.  <a href="structbpf__attr_1_1_0d40.html#a06c6d1ef7f3a2016730d9e7bc19e4996">More...</a><br /></td></tr>
-<tr class="separator:a06c6d1ef7f3a2016730d9e7bc19e4996"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aaba52a3d227d02ba14c9525a9d53a5b1"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a0de98bd862a75a822063ca9581971d54">next_id</a></td></tr>
-<tr class="memdesc:aaba52a3d227d02ba14c9525a9d53a5b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">On return, contains the next ID.  <a href="structbpf__attr_1_1_0d40.html#aaba52a3d227d02ba14c9525a9d53a5b1">More...</a><br /></td></tr>
-<tr class="separator:aaba52a3d227d02ba14c9525a9d53a5b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a876c55ae7a6b60b1685a53b790e5a88d"><td class="memItemLeft" valign="top">};&#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="memdesc:a876c55ae7a6b60b1685a53b790e5a88d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_GET_NEXT_ID, BPF_MAP_GET_NEXT_ID, and BPF_LINK_GET_NEXT_ID.  <a href="unionbpf__attr.html#a876c55ae7a6b60b1685a53b790e5a88d">More...</a><br /></td></tr>
-<tr class="separator:a876c55ae7a6b60b1685a53b790e5a88d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adcd18bab6e0a24bd7379104a66a76731"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__create__attr__t.html">sys_bpf_map_create_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#adcd18bab6e0a24bd7379104a66a76731">map_create</a></td></tr>
+<tr class="memdesc:adcd18bab6e0a24bd7379104a66a76731"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_MAP_CREATE.  <a href="unionbpf__attr.html#adcd18bab6e0a24bd7379104a66a76731">More...</a><br /></td></tr>
+<tr class="separator:adcd18bab6e0a24bd7379104a66a76731"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a603bdc055e1f60bdaaa6de5ec2d12b66"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__lookup__attr__t.html">sys_bpf_map_lookup_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a603bdc055e1f60bdaaa6de5ec2d12b66">map_lookup</a></td></tr>
+<tr class="separator:a603bdc055e1f60bdaaa6de5ec2d12b66"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1012512407f5544da0366a14dbbd91d7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__lookup__attr__t.html">sys_bpf_map_lookup_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a1012512407f5544da0366a14dbbd91d7">map_update</a></td></tr>
+<tr class="memdesc:a1012512407f5544da0366a14dbbd91d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_MAP_LOOKUP_ELEM, BPF_MAP_UPDATE_ELEM and.  <a href="unionbpf__attr.html#a1012512407f5544da0366a14dbbd91d7">More...</a><br /></td></tr>
+<tr class="separator:a1012512407f5544da0366a14dbbd91d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac978cf3dcc6aeee3ded3e8cc10b3530b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__next__key__attr__t.html">sys_bpf_map_next_key_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#ac978cf3dcc6aeee3ded3e8cc10b3530b">map_get_next_key</a></td></tr>
+<tr class="memdesc:ac978cf3dcc6aeee3ded3e8cc10b3530b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_MAP_GET_NEXT_KEY.  <a href="unionbpf__attr.html#ac978cf3dcc6aeee3ded3e8cc10b3530b">More...</a><br /></td></tr>
+<tr class="separator:ac978cf3dcc6aeee3ded3e8cc10b3530b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8888dbe2f49c168cf7bb7ce3af2b7909"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__delete__attr__t.html">sys_bpf_map_delete_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a8888dbe2f49c168cf7bb7ce3af2b7909">map_delete</a></td></tr>
+<tr class="memdesc:a8888dbe2f49c168cf7bb7ce3af2b7909"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_MAP_DELETE_ELEM.  <a href="unionbpf__attr.html#a8888dbe2f49c168cf7bb7ce3af2b7909">More...</a><br /></td></tr>
+<tr class="separator:a8888dbe2f49c168cf7bb7ce3af2b7909"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a014641a789a5b5d6c4afcfe9148f66b8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__prog__load__attr__t.html">sys_bpf_prog_load_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a014641a789a5b5d6c4afcfe9148f66b8">prog_load</a></td></tr>
+<tr class="memdesc:a014641a789a5b5d6c4afcfe9148f66b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_LOAD.  <a href="unionbpf__attr.html#a014641a789a5b5d6c4afcfe9148f66b8">More...</a><br /></td></tr>
+<tr class="separator:a014641a789a5b5d6c4afcfe9148f66b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa649df93b66dc500202329d420e64882"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__prog__attach__attr__t.html">sys_bpf_prog_attach_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#aa649df93b66dc500202329d420e64882">prog_attach</a></td></tr>
+<tr class="separator:aa649df93b66dc500202329d420e64882"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab1a380dce7bf93cb9a237d6e2558795e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__prog__attach__attr__t.html">sys_bpf_prog_attach_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#ab1a380dce7bf93cb9a237d6e2558795e">prog_detach</a></td></tr>
+<tr class="memdesc:ab1a380dce7bf93cb9a237d6e2558795e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_ATTACH/DETACH.  <a href="unionbpf__attr.html#ab1a380dce7bf93cb9a237d6e2558795e">More...</a><br /></td></tr>
+<tr class="separator:ab1a380dce7bf93cb9a237d6e2558795e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0f1491193086b4f03e9d6576d14e8a83"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__obj__pin__attr__t.html">sys_bpf_obj_pin_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a0f1491193086b4f03e9d6576d14e8a83">obj_pin</a></td></tr>
+<tr class="separator:a0f1491193086b4f03e9d6576d14e8a83"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a41f3afbc8449db4e0e51931c23350b8a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__obj__pin__attr__t.html">sys_bpf_obj_pin_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a41f3afbc8449db4e0e51931c23350b8a">obj_get</a></td></tr>
+<tr class="memdesc:a41f3afbc8449db4e0e51931c23350b8a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_OBJ_PIN and BPF_OBJ_GET.  <a href="unionbpf__attr.html#a41f3afbc8449db4e0e51931c23350b8a">More...</a><br /></td></tr>
+<tr class="separator:a41f3afbc8449db4e0e51931c23350b8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6430a3cbb4a5bdbbd95dd7e38f882284"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__next__id__attr__t.html">sys_bpf_map_next_id_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a6430a3cbb4a5bdbbd95dd7e38f882284">map_get_next_id</a></td></tr>
+<tr class="separator:a6430a3cbb4a5bdbbd95dd7e38f882284"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a43c1b53f0b6d9cf9df9e36d9a8dc7c68"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__next__id__attr__t.html">sys_bpf_map_next_id_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a43c1b53f0b6d9cf9df9e36d9a8dc7c68">prog_get_next_id</a></td></tr>
+<tr class="separator:a43c1b53f0b6d9cf9df9e36d9a8dc7c68"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6cde35a77115006e3a25a53a6ac5eb4d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__map__next__id__attr__t.html">sys_bpf_map_next_id_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a6cde35a77115006e3a25a53a6ac5eb4d">link_get_next_id</a></td></tr>
+<tr class="memdesc:a6cde35a77115006e3a25a53a6ac5eb4d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_GET_NEXT_ID, BPF_MAP_GET_NEXT_ID, and BPF_LINK_GET_NEXT_ID.  <a href="unionbpf__attr.html#a6cde35a77115006e3a25a53a6ac5eb4d">More...</a><br /></td></tr>
+<tr class="separator:a6cde35a77115006e3a25a53a6ac5eb4d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a070d808e64fe40239aa61f5f7f540905"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a070d808e64fe40239aa61f5f7f540905">map_id</a></td></tr>
 <tr class="memdesc:a070d808e64fe40239aa61f5f7f540905"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID of map for BPF_MAP_GET_FD_BY_ID to find.  <a href="unionbpf__attr.html#a070d808e64fe40239aa61f5f7f540905">More...</a><br /></td></tr>
 <tr class="separator:a070d808e64fe40239aa61f5f7f540905"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -189,444 +118,30 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a590a04762b69a0274c8544db33383799"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a590a04762b69a0274c8544db33383799">link_id</a></td></tr>
 <tr class="memdesc:a590a04762b69a0274c8544db33383799"><td class="mdescLeft">&#160;</td><td class="mdescRight">ID of link for BPF_LINK_GET_FD_BY_ID to find.  <a href="unionbpf__attr.html#a590a04762b69a0274c8544db33383799">More...</a><br /></td></tr>
 <tr class="separator:a590a04762b69a0274c8544db33383799"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab55018c05b15b605d48ae9f55ab8c060"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structbpf__obj__info__attr__t.html">bpf_obj_info_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#ab55018c05b15b605d48ae9f55ab8c060">info</a></td></tr>
-<tr class="memdesc:ab55018c05b15b605d48ae9f55ab8c060"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_OBJ_GET_INFO_BY_FD.  <a href="unionbpf__attr.html#ab55018c05b15b605d48ae9f55ab8c060">More...</a><br /></td></tr>
-<tr class="separator:ab55018c05b15b605d48ae9f55ab8c060"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4ac3ac07510b73400dc54e55f379784b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structbpf__link__detach__attr__t.html">bpf_link_detach_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a4ac3ac07510b73400dc54e55f379784b">link_detach</a></td></tr>
-<tr class="memdesc:a4ac3ac07510b73400dc54e55f379784b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_LINK_DETACH.  <a href="unionbpf__attr.html#a4ac3ac07510b73400dc54e55f379784b">More...</a><br /></td></tr>
-<tr class="separator:a4ac3ac07510b73400dc54e55f379784b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a71d9d16218501c53bf36232889a57749"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structbpf__prog__bind__map__attr__t.html">bpf_prog_bind_map_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a71d9d16218501c53bf36232889a57749">prog_bind_map</a></td></tr>
-<tr class="memdesc:a71d9d16218501c53bf36232889a57749"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_BIND_MAP.  <a href="unionbpf__attr.html#a71d9d16218501c53bf36232889a57749">More...</a><br /></td></tr>
-<tr class="separator:a71d9d16218501c53bf36232889a57749"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd1cb3988862e43cbfb904466475ddc5"><td class="memItemLeft" >struct {</td></tr>
-<tr class="memitem:a980e26c14254f756b19b84baf3555a4f"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ad39f05fdd04d41f36d532f72dcecf50b">prog_fd</a></td></tr>
-<tr class="memdesc:a980e26c14254f756b19b84baf3555a4f"><td class="mdescLeft">&#160;</td><td class="mdescRight">File descriptor of program to run.  <a href="structbpf__attr_1_1_0d42.html#a980e26c14254f756b19b84baf3555a4f">More...</a><br /></td></tr>
-<tr class="separator:a980e26c14254f756b19b84baf3555a4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa61ea4fbd86dad58d54f87ca45a1f76a"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a84295187533c48184643c0642009f8ba">retval</a></td></tr>
-<tr class="memdesc:aa61ea4fbd86dad58d54f87ca45a1f76a"><td class="mdescLeft">&#160;</td><td class="mdescRight">On return, contains the return value of the program.  <a href="structbpf__attr_1_1_0d42.html#aa61ea4fbd86dad58d54f87ca45a1f76a">More...</a><br /></td></tr>
-<tr class="separator:aa61ea4fbd86dad58d54f87ca45a1f76a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a533c161a425836f38564b0a597314a21"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a6a160b8da886ca1d5961b2df5ff62e44">data_size_in</a></td></tr>
-<tr class="memdesc:a533c161a425836f38564b0a597314a21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of input data.  <a href="structbpf__attr_1_1_0d42.html#a533c161a425836f38564b0a597314a21">More...</a><br /></td></tr>
-<tr class="separator:a533c161a425836f38564b0a597314a21"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a011cd13640bb1f6553022d2ec81ea250"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a2c0dc054c4a97b94fc12a80e179baa4d">data_size_out</a></td></tr>
-<tr class="memdesc:a011cd13640bb1f6553022d2ec81ea250"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of output data.  <a href="structbpf__attr_1_1_0d42.html#a011cd13640bb1f6553022d2ec81ea250">More...</a><br /></td></tr>
-<tr class="separator:a011cd13640bb1f6553022d2ec81ea250"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a29b822d6113b48c2ec2a9052e07dfa38"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ad4e88e020fd563010cf12dfae3eaeb5d">data_in</a></td></tr>
-<tr class="memdesc:a29b822d6113b48c2ec2a9052e07dfa38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to input data.  <a href="structbpf__attr_1_1_0d42.html#a29b822d6113b48c2ec2a9052e07dfa38">More...</a><br /></td></tr>
-<tr class="separator:a29b822d6113b48c2ec2a9052e07dfa38"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a09afb7ed750a783aa178d7aab8239167"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a2c29abe7aa6ed3420b98d3ebe19ab8c7">data_out</a></td></tr>
-<tr class="memdesc:a09afb7ed750a783aa178d7aab8239167"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to output data.  <a href="structbpf__attr_1_1_0d42.html#a09afb7ed750a783aa178d7aab8239167">More...</a><br /></td></tr>
-<tr class="separator:a09afb7ed750a783aa178d7aab8239167"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2fab30fd1583bba98bdaf0d9b1b6553"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a49dabd630780fd0309b689ec19c4eadd">repeat</a></td></tr>
-<tr class="memdesc:ac2fab30fd1583bba98bdaf0d9b1b6553"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of times to repeat the program.  <a href="structbpf__attr_1_1_0d42.html#ac2fab30fd1583bba98bdaf0d9b1b6553">More...</a><br /></td></tr>
-<tr class="separator:ac2fab30fd1583bba98bdaf0d9b1b6553"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac991bbc56a032ba8421a7f9b9f28b44e"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a8906a25e0a0bd5c7f0a8e73c4a29ac75">duration</a></td></tr>
-<tr class="memdesc:ac991bbc56a032ba8421a7f9b9f28b44e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Duration in milliseconds to run the program.  <a href="structbpf__attr_1_1_0d42.html#ac991bbc56a032ba8421a7f9b9f28b44e">More...</a><br /></td></tr>
-<tr class="separator:ac991bbc56a032ba8421a7f9b9f28b44e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae24bdcb2afc68ea6023a5dc8d9c23f22"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#afb87bcc6a7495efcc8e20390df07a1c9">ctx_size_in</a></td></tr>
-<tr class="memdesc:ae24bdcb2afc68ea6023a5dc8d9c23f22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of input context.  <a href="structbpf__attr_1_1_0d42.html#ae24bdcb2afc68ea6023a5dc8d9c23f22">More...</a><br /></td></tr>
-<tr class="separator:ae24bdcb2afc68ea6023a5dc8d9c23f22"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a91a584d2acfd16f8cf6f17798747c607"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ac9cedb4debfcd3d1612cf30477d70514">ctx_size_out</a></td></tr>
-<tr class="memdesc:a91a584d2acfd16f8cf6f17798747c607"><td class="mdescLeft">&#160;</td><td class="mdescRight">Size in bytes of output context.  <a href="structbpf__attr_1_1_0d42.html#a91a584d2acfd16f8cf6f17798747c607">More...</a><br /></td></tr>
-<tr class="separator:a91a584d2acfd16f8cf6f17798747c607"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0a8fae5663eef9a1f528e5471918f9f8"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#aa7a5da2d9783296ed985d64a99d621b4">ctx_in</a></td></tr>
-<tr class="memdesc:a0a8fae5663eef9a1f528e5471918f9f8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to input context.  <a href="structbpf__attr_1_1_0d42.html#a0a8fae5663eef9a1f528e5471918f9f8">More...</a><br /></td></tr>
-<tr class="separator:a0a8fae5663eef9a1f528e5471918f9f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8f55c5f2d7ed11a9a90f754fc448c10c"><td class="memItemLeft" >&#160;&#160;&#160;uint64_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#a6e4c9f76e24c8b0124d4d96aa525923d">ctx_out</a></td></tr>
-<tr class="memdesc:a8f55c5f2d7ed11a9a90f754fc448c10c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pointer to output context.  <a href="structbpf__attr_1_1_0d42.html#a8f55c5f2d7ed11a9a90f754fc448c10c">More...</a><br /></td></tr>
-<tr class="separator:a8f55c5f2d7ed11a9a90f754fc448c10c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a014d4d11234fc1a72f65691d50c16c33"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#af3bd053a5f6a61c756f5f09db7d867f4">flags</a></td></tr>
-<tr class="memdesc:a014d4d11234fc1a72f65691d50c16c33"><td class="mdescLeft">&#160;</td><td class="mdescRight">Flags (currently 0).  <a href="structbpf__attr_1_1_0d42.html#a014d4d11234fc1a72f65691d50c16c33">More...</a><br /></td></tr>
-<tr class="separator:a014d4d11234fc1a72f65691d50c16c33"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8b774333365d70896b14b61ce7226469"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#ad8b46a0b3e6a79334eb1fddf6e912775">cpu</a></td></tr>
-<tr class="memdesc:a8b774333365d70896b14b61ce7226469"><td class="mdescLeft">&#160;</td><td class="mdescRight">CPU to run the program on.  <a href="structbpf__attr_1_1_0d42.html#a8b774333365d70896b14b61ce7226469">More...</a><br /></td></tr>
-<tr class="separator:a8b774333365d70896b14b61ce7226469"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5cf14d40191ac5b4acc593fe00763df2"><td class="memItemLeft" >&#160;&#160;&#160;uint32_t&#160;&#160;&#160;<a class="el" href="unionbpf__attr.html#afc9b1ff3f7aed3dde122b2e1d3a2417c">batch_size</a></td></tr>
-<tr class="memdesc:a5cf14d40191ac5b4acc593fe00763df2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of times to run the program in a batch.  <a href="structbpf__attr_1_1_0d42.html#a5cf14d40191ac5b4acc593fe00763df2">More...</a><br /></td></tr>
-<tr class="separator:a5cf14d40191ac5b4acc593fe00763df2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abd1cb3988862e43cbfb904466475ddc5"><td class="memItemLeft" valign="top">}&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#abd1cb3988862e43cbfb904466475ddc5">test</a></td></tr>
-<tr class="memdesc:abd1cb3988862e43cbfb904466475ddc5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_TEST_RUN.  <a href="unionbpf__attr.html#abd1cb3988862e43cbfb904466475ddc5">More...</a><br /></td></tr>
-<tr class="separator:abd1cb3988862e43cbfb904466475ddc5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5167d394f58d878bde46fa44599a779d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__obj__info__attr__t.html">sys_bpf_obj_info_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a5167d394f58d878bde46fa44599a779d">info</a></td></tr>
+<tr class="memdesc:a5167d394f58d878bde46fa44599a779d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_OBJ_GET_INFO_BY_FD.  <a href="unionbpf__attr.html#a5167d394f58d878bde46fa44599a779d">More...</a><br /></td></tr>
+<tr class="separator:a5167d394f58d878bde46fa44599a779d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa80d4da3bce1db5134c67cf59772773d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__link__detach__attr__t.html">sys_bpf_link_detach_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#aa80d4da3bce1db5134c67cf59772773d">link_detach</a></td></tr>
+<tr class="memdesc:aa80d4da3bce1db5134c67cf59772773d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_LINK_DETACH.  <a href="unionbpf__attr.html#aa80d4da3bce1db5134c67cf59772773d">More...</a><br /></td></tr>
+<tr class="separator:aa80d4da3bce1db5134c67cf59772773d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a493c06a5facc4d5acbb67b2a9543e8bb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__prog__bind__map__attr__t.html">sys_bpf_prog_bind_map_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#a493c06a5facc4d5acbb67b2a9543e8bb">prog_bind_map</a></td></tr>
+<tr class="memdesc:a493c06a5facc4d5acbb67b2a9543e8bb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_BIND_MAP.  <a href="unionbpf__attr.html#a493c06a5facc4d5acbb67b2a9543e8bb">More...</a><br /></td></tr>
+<tr class="separator:a493c06a5facc4d5acbb67b2a9543e8bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af38c2c2556ac69f6c568fc9fa1c5403b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structsys__bpf__prog__run__attr__t.html">sys_bpf_prog_run_attr_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="unionbpf__attr.html#af38c2c2556ac69f6c568fc9fa1c5403b">test</a></td></tr>
+<tr class="memdesc:af38c2c2556ac69f6c568fc9fa1c5403b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attributes used by BPF_PROG_TEST_RUN.  <a href="unionbpf__attr.html#af38c2c2556ac69f6c568fc9fa1c5403b">More...</a><br /></td></tr>
+<tr class="separator:af38c2c2556ac69f6c568fc9fa1c5403b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Parameters used by the <a class="el" href="linux_2bpf_8h.html#ae2efe8134c5d52b7bfd982014f5d80c4">bpf()</a> API. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
-<a id="a6f909ed6404023575657468834884b93"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6f909ed6404023575657468834884b93">&#9670;&nbsp;</a></span></h2>
+<a id="a5167d394f58d878bde46fa44599a779d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5167d394f58d878bde46fa44599a779d">&#9670;&nbsp;</a></span>info</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">struct { ... } </td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attributes used by BPF_MAP_CREATE. </p>
-
-</div>
-</div>
-<a id="a31f8a1d7b7a80b09a41f457cc778b684"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a31f8a1d7b7a80b09a41f457cc778b684">&#9670;&nbsp;</a></span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... } </td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attributes used by BPF_MAP_LOOKUP_ELEM, BPF_MAP_UPDATE_ELEM, BPF_MAP_DELETE_ELEM, and BPF_MAP_GET_NEXT_KEY. </p>
-
-</div>
-</div>
-<a id="a9f23350f7b9257aa60fff28a05345302"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9f23350f7b9257aa60fff28a05345302">&#9670;&nbsp;</a></span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... } </td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attributes used by BPF_PROG_LOAD. </p>
-
-</div>
-</div>
-<a id="a09ecc189212df4953f617b825589bc21"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a09ecc189212df4953f617b825589bc21">&#9670;&nbsp;</a></span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... } </td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attributes used by BPF_PROG_ATTACH/DETACH. </p>
-
-</div>
-</div>
-<a id="ac7461517acf5891dd6ad395bddda2c85"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac7461517acf5891dd6ad395bddda2c85">&#9670;&nbsp;</a></span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... } </td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attributes used by BPF_OBJ_PIN and BPF_OBJ_GET. </p>
-
-</div>
-</div>
-<a id="a876c55ae7a6b60b1685a53b790e5a88d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a876c55ae7a6b60b1685a53b790e5a88d">&#9670;&nbsp;</a></span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... } </td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Attributes used by BPF_PROG_GET_NEXT_ID, BPF_MAP_GET_NEXT_ID, and BPF_LINK_GET_NEXT_ID. </p>
-
-</div>
-</div>
-<a id="afc2b03c4530ef2b57955c788c57b9cc7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afc2b03c4530ef2b57955c788c57b9cc7">&#9670;&nbsp;</a></span>attach_bpf_fd</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::attach_bpf_fd</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>File descriptor of program to attach to. </p>
-
-</div>
-</div>
-<a id="aa208cd1dc7f0fb9abd38f4ed1112437f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa208cd1dc7f0fb9abd38f4ed1112437f">&#9670;&nbsp;</a></span>attach_flags</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::attach_flags</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flags affecting the attach operation. </p>
-
-</div>
-</div>
-<a id="a14d0c6c04cfcbe1cb67d3e0976085988"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a14d0c6c04cfcbe1cb67d3e0976085988">&#9670;&nbsp;</a></span>attach_type</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> bpf_attr::attach_type</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Type of program to attach/detach to/from. </p>
-
-</div>
-</div>
-<a id="afc9b1ff3f7aed3dde122b2e1d3a2417c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afc9b1ff3f7aed3dde122b2e1d3a2417c">&#9670;&nbsp;</a></span>batch_size</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::batch_size</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Number of times to run the program in a batch. </p>
-
-</div>
-</div>
-<a id="a3f2153fd2e65dc7af961da00860a4187"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a3f2153fd2e65dc7af961da00860a4187">&#9670;&nbsp;</a></span>bpf_fd</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::bpf_fd</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>File descriptor referring to the program or map. </p>
-
-</div>
-</div>
-<a id="ad8b46a0b3e6a79334eb1fddf6e912775"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad8b46a0b3e6a79334eb1fddf6e912775">&#9670;&nbsp;</a></span>cpu</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::cpu</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>CPU to run the program on. </p>
-
-</div>
-</div>
-<a id="aa7a5da2d9783296ed985d64a99d621b4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa7a5da2d9783296ed985d64a99d621b4">&#9670;&nbsp;</a></span>ctx_in</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::ctx_in</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pointer to input context. </p>
-
-</div>
-</div>
-<a id="a6e4c9f76e24c8b0124d4d96aa525923d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6e4c9f76e24c8b0124d4d96aa525923d">&#9670;&nbsp;</a></span>ctx_out</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::ctx_out</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pointer to output context. </p>
-
-</div>
-</div>
-<a id="afb87bcc6a7495efcc8e20390df07a1c9"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#afb87bcc6a7495efcc8e20390df07a1c9">&#9670;&nbsp;</a></span>ctx_size_in</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::ctx_size_in</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Size in bytes of input context. </p>
-
-</div>
-</div>
-<a id="ac9cedb4debfcd3d1612cf30477d70514"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac9cedb4debfcd3d1612cf30477d70514">&#9670;&nbsp;</a></span>ctx_size_out</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::ctx_size_out</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Size in bytes of output context. </p>
-
-</div>
-</div>
-<a id="ad4e88e020fd563010cf12dfae3eaeb5d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad4e88e020fd563010cf12dfae3eaeb5d">&#9670;&nbsp;</a></span>data_in</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::data_in</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pointer to input data. </p>
-
-</div>
-</div>
-<a id="a2c29abe7aa6ed3420b98d3ebe19ab8c7"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2c29abe7aa6ed3420b98d3ebe19ab8c7">&#9670;&nbsp;</a></span>data_out</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::data_out</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pointer to output data. </p>
-
-</div>
-</div>
-<a id="a6a160b8da886ca1d5961b2df5ff62e44"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a160b8da886ca1d5961b2df5ff62e44">&#9670;&nbsp;</a></span>data_size_in</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::data_size_in</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Size in bytes of input data. </p>
-
-</div>
-</div>
-<a id="a2c0dc054c4a97b94fc12a80e179baa4d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2c0dc054c4a97b94fc12a80e179baa4d">&#9670;&nbsp;</a></span>data_size_out</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::data_size_out</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Size in bytes of output data. </p>
-
-</div>
-</div>
-<a id="a8906a25e0a0bd5c7f0a8e73c4a29ac75"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a8906a25e0a0bd5c7f0a8e73c4a29ac75">&#9670;&nbsp;</a></span>duration</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::duration</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Duration in milliseconds to run the program. </p>
-
-</div>
-</div>
-<a id="ab7dc186a160bce87046af6eda93a214b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab7dc186a160bce87046af6eda93a214b">&#9670;&nbsp;</a></span>flags <span class="overload">[1/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::flags</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flags (currently 0). </p>
-
-</div>
-</div>
-<a id="af3bd053a5f6a61c756f5f09db7d867f4"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af3bd053a5f6a61c756f5f09db7d867f4">&#9670;&nbsp;</a></span>flags <span class="overload">[2/2]</span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::flags</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flags (currently 0). </p>
-
-</div>
-</div>
-<a id="ab55018c05b15b605d48ae9f55ab8c060"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab55018c05b15b605d48ae9f55ab8c060">&#9670;&nbsp;</a></span>info</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="structbpf__obj__info__attr__t.html">bpf_obj_info_attr_t</a> bpf_attr::info</td>
+          <td class="memname"><a class="el" href="structsys__bpf__obj__info__attr__t.html">sys_bpf_obj_info_attr_t</a> bpf_attr::info</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -635,115 +150,35 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
-<a id="a05b01ad0d596faa1988d6c213c301e8c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a05b01ad0d596faa1988d6c213c301e8c">&#9670;&nbsp;</a></span>insn_cnt</h2>
+<a id="aa80d4da3bce1db5134c67cf59772773d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa80d4da3bce1db5134c67cf59772773d">&#9670;&nbsp;</a></span>link_detach</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::insn_cnt</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Number of instructions in the array. </p>
-
-</div>
-</div>
-<a id="a710ff83ea658eb8bede97bc8baa7981c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a710ff83ea658eb8bede97bc8baa7981c">&#9670;&nbsp;</a></span>insns</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::insns</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Array of instructions. </p>
-
-</div>
-</div>
-<a id="abf7fc80cbc0f38ee22b53ecef983c476"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abf7fc80cbc0f38ee22b53ecef983c476">&#9670;&nbsp;</a></span>kern_version</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::kern_version</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Kernel version (currently ignored on Windows). </p>
-
-</div>
-</div>
-<a id="a7260a58d9ee514dac13f7d7ad16fa5e0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a7260a58d9ee514dac13f7d7ad16fa5e0">&#9670;&nbsp;</a></span>key</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::key</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pointer to key to look up. </p>
-
-</div>
-</div>
-<a id="a9b6dae0c5e5c8c15a529f7ec93d1ce92"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9b6dae0c5e5c8c15a529f7ec93d1ce92">&#9670;&nbsp;</a></span>key_size</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::key_size</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Size in bytes of keys. </p>
-
-</div>
-</div>
-<a id="a891ef2b1c5b123bfe2b653a8428f8194"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a891ef2b1c5b123bfe2b653a8428f8194">&#9670;&nbsp;</a></span>license</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::license</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Optional pointer to a string specifying the license (currently ignored on Windows). </p>
-
-</div>
-</div>
-<a id="a4ac3ac07510b73400dc54e55f379784b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a4ac3ac07510b73400dc54e55f379784b">&#9670;&nbsp;</a></span>link_detach</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="structbpf__link__detach__attr__t.html">bpf_link_detach_attr_t</a> bpf_attr::link_detach</td>
+          <td class="memname"><a class="el" href="structsys__bpf__link__detach__attr__t.html">sys_bpf_link_detach_attr_t</a> bpf_attr::link_detach</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Attributes used by BPF_LINK_DETACH. </p>
+
+</div>
+</div>
+<a id="a6cde35a77115006e3a25a53a6ac5eb4d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6cde35a77115006e3a25a53a6ac5eb4d">&#9670;&nbsp;</a></span>link_get_next_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structsys__bpf__map__next__id__attr__t.html">sys_bpf_map_next_id_attr_t</a> bpf_attr::link_get_next_id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Attributes used by BPF_PROG_GET_NEXT_ID, BPF_MAP_GET_NEXT_ID, and BPF_LINK_GET_NEXT_ID. </p>
 
 </div>
 </div>
@@ -763,83 +198,65 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
-<a id="a92033b0f4a185adcaecbf222c8aa9007"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a92033b0f4a185adcaecbf222c8aa9007">&#9670;&nbsp;</a></span>log_buf</h2>
+<a id="adcd18bab6e0a24bd7379104a66a76731"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adcd18bab6e0a24bd7379104a66a76731">&#9670;&nbsp;</a></span>map_create</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint64_t bpf_attr::log_buf</td>
+          <td class="memname"><a class="el" href="structsys__bpf__map__create__attr__t.html">sys_bpf_map_create_attr_t</a> bpf_attr::map_create</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Pointer to a buffer in which log info can be written. </p>
+<p>Attributes used by BPF_MAP_CREATE. </p>
 
 </div>
 </div>
-<a id="a0c723c456fc334d67aad179bad08a374"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0c723c456fc334d67aad179bad08a374">&#9670;&nbsp;</a></span>log_level</h2>
+<a id="a8888dbe2f49c168cf7bb7ce3af2b7909"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8888dbe2f49c168cf7bb7ce3af2b7909">&#9670;&nbsp;</a></span>map_delete</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::log_level</td>
+          <td class="memname"><a class="el" href="structsys__bpf__map__delete__attr__t.html">sys_bpf_map_delete_attr_t</a> bpf_attr::map_delete</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Logging level (currently ignored on Windows). </p>
+<p>Attributes used by BPF_MAP_DELETE_ELEM. </p>
 
 </div>
 </div>
-<a id="a32f3c9fe0a5b07c99f98d7a7d1a6167f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a32f3c9fe0a5b07c99f98d7a7d1a6167f">&#9670;&nbsp;</a></span>log_size</h2>
+<a id="a6430a3cbb4a5bdbbd95dd7e38f882284"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6430a3cbb4a5bdbbd95dd7e38f882284">&#9670;&nbsp;</a></span>map_get_next_id</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::log_size</td>
+          <td class="memname"><a class="el" href="structsys__bpf__map__next__id__attr__t.html">sys_bpf_map_next_id_attr_t</a> bpf_attr::map_get_next_id</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Size in bytes of the log buffer. </p>
-
 </div>
 </div>
-<a id="a86dcea0ed146554375fe1f1041b22ef3"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a86dcea0ed146554375fe1f1041b22ef3">&#9670;&nbsp;</a></span>map_fd</h2>
+<a id="ac978cf3dcc6aeee3ded3e8cc10b3530b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac978cf3dcc6aeee3ded3e8cc10b3530b">&#9670;&nbsp;</a></span>map_get_next_key</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::map_fd</td>
+          <td class="memname"><a class="el" href="structsys__bpf__map__next__key__attr__t.html">sys_bpf_map_next_key_attr_t</a> bpf_attr::map_get_next_key</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>File descriptor of map. </p>
-
-</div>
-</div>
-<a id="ab4497e4fb88641516d8b15edcc1873b8"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ab4497e4fb88641516d8b15edcc1873b8">&#9670;&nbsp;</a></span>map_flags</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::map_flags</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Flags (currently 0). </p>
+<p>Attributes used by BPF_MAP_GET_NEXT_KEY. </p>
 
 </div>
 </div>
@@ -859,94 +276,88 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
-<a id="ae8009f878a49a0053c7064e5f883a80f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ae8009f878a49a0053c7064e5f883a80f">&#9670;&nbsp;</a></span>map_type</h2>
+<a id="a603bdc055e1f60bdaaa6de5ec2d12b66"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a603bdc055e1f60bdaaa6de5ec2d12b66">&#9670;&nbsp;</a></span>map_lookup</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1">bpf_map_type</a> bpf_attr::map_type</td>
+          <td class="memname"><a class="el" href="structsys__bpf__map__lookup__attr__t.html">sys_bpf_map_lookup_attr_t</a> bpf_attr::map_lookup</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Type of map to create. </p>
-
 </div>
 </div>
-<a id="aefd617ff69e03e11ae9e08979c48d212"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aefd617ff69e03e11ae9e08979c48d212">&#9670;&nbsp;</a></span>max_entries</h2>
+<a id="a1012512407f5544da0366a14dbbd91d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1012512407f5544da0366a14dbbd91d7">&#9670;&nbsp;</a></span>map_update</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::max_entries</td>
+          <td class="memname"><a class="el" href="structsys__bpf__map__lookup__attr__t.html">sys_bpf_map_lookup_attr_t</a> bpf_attr::map_update</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Maximum number of entries in the map. </p>
+<p>Attributes used by BPF_MAP_LOOKUP_ELEM, BPF_MAP_UPDATE_ELEM and. </p>
 
 </div>
 </div>
-<a id="a0de98bd862a75a822063ca9581971d54"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a0de98bd862a75a822063ca9581971d54">&#9670;&nbsp;</a></span>next_id</h2>
+<a id="a41f3afbc8449db4e0e51931c23350b8a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a41f3afbc8449db4e0e51931c23350b8a">&#9670;&nbsp;</a></span>obj_get</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::next_id</td>
+          <td class="memname"><a class="el" href="structsys__bpf__obj__pin__attr__t.html">sys_bpf_obj_pin_attr_t</a> bpf_attr::obj_get</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>On return, contains the next ID. </p>
+<p>Attributes used by BPF_OBJ_PIN and BPF_OBJ_GET. </p>
 
 </div>
 </div>
-<a id="a9f5cbc94b29edcbf51700d126a64fceb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9f5cbc94b29edcbf51700d126a64fceb">&#9670;&nbsp;</a></span>next_key</h2>
+<a id="a0f1491193086b4f03e9d6576d14e8a83"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0f1491193086b4f03e9d6576d14e8a83">&#9670;&nbsp;</a></span>obj_pin</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint64_t bpf_attr::next_key</td>
+          <td class="memname"><a class="el" href="structsys__bpf__obj__pin__attr__t.html">sys_bpf_obj_pin_attr_t</a> bpf_attr::obj_pin</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Pointer to next key. </p>
-
 </div>
 </div>
-<a id="a1c3006de7b211b7ade5d48549af8bd34"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1c3006de7b211b7ade5d48549af8bd34">&#9670;&nbsp;</a></span>pathname</h2>
+<a id="aa649df93b66dc500202329d420e64882"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa649df93b66dc500202329d420e64882">&#9670;&nbsp;</a></span>prog_attach</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint64_t bpf_attr::pathname</td>
+          <td class="memname"><a class="el" href="structsys__bpf__prog__attach__attr__t.html">sys_bpf_prog_attach_attr_t</a> bpf_attr::prog_attach</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Path name for pinning. </p>
-
 </div>
 </div>
-<a id="a71d9d16218501c53bf36232889a57749"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a71d9d16218501c53bf36232889a57749">&#9670;&nbsp;</a></span>prog_bind_map</h2>
+<a id="a493c06a5facc4d5acbb67b2a9543e8bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a493c06a5facc4d5acbb67b2a9543e8bb">&#9670;&nbsp;</a></span>prog_bind_map</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structbpf__prog__bind__map__attr__t.html">bpf_prog_bind_map_attr_t</a> bpf_attr::prog_bind_map</td>
+          <td class="memname"><a class="el" href="structsys__bpf__prog__bind__map__attr__t.html">sys_bpf_prog_bind_map_attr_t</a> bpf_attr::prog_bind_map</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -955,19 +366,33 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
-<a id="ad39f05fdd04d41f36d532f72dcecf50b"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ad39f05fdd04d41f36d532f72dcecf50b">&#9670;&nbsp;</a></span>prog_fd</h2>
+<a id="ab1a380dce7bf93cb9a237d6e2558795e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab1a380dce7bf93cb9a237d6e2558795e">&#9670;&nbsp;</a></span>prog_detach</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::prog_fd</td>
+          <td class="memname"><a class="el" href="structsys__bpf__prog__attach__attr__t.html">sys_bpf_prog_attach_attr_t</a> bpf_attr::prog_detach</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>File descriptor of program to run. </p>
+<p>Attributes used by BPF_PROG_ATTACH/DETACH. </p>
+
+</div>
+</div>
+<a id="a43c1b53f0b6d9cf9df9e36d9a8dc7c68"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a43c1b53f0b6d9cf9df9e36d9a8dc7c68">&#9670;&nbsp;</a></span>prog_get_next_id</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structsys__bpf__map__next__id__attr__t.html">sys_bpf_map_next_id_attr_t</a> bpf_attr::prog_get_next_id</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
@@ -987,131 +412,35 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
-<a id="ac01a39c25565a7c5fddc79ae8e3e5e81"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac01a39c25565a7c5fddc79ae8e3e5e81">&#9670;&nbsp;</a></span>prog_type</h2>
+<a id="a014641a789a5b5d6c4afcfe9148f66b8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a014641a789a5b5d6c4afcfe9148f66b8">&#9670;&nbsp;</a></span>prog_load</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> bpf_attr::prog_type</td>
+          <td class="memname"><a class="el" href="structsys__bpf__prog__load__attr__t.html">sys_bpf_prog_load_attr_t</a> bpf_attr::prog_load</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
-<p>Program type to use for loading the program. </p>
+<p>Attributes used by BPF_PROG_LOAD. </p>
 
 </div>
 </div>
-<a id="a49dabd630780fd0309b689ec19c4eadd"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a49dabd630780fd0309b689ec19c4eadd">&#9670;&nbsp;</a></span>repeat</h2>
+<a id="af38c2c2556ac69f6c568fc9fa1c5403b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af38c2c2556ac69f6c568fc9fa1c5403b">&#9670;&nbsp;</a></span>test</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint32_t bpf_attr::repeat</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Number of times to repeat the program. </p>
-
-</div>
-</div>
-<a id="a84295187533c48184643c0642009f8ba"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a84295187533c48184643c0642009f8ba">&#9670;&nbsp;</a></span>retval</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::retval</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>On return, contains the return value of the program. </p>
-
-</div>
-</div>
-<a id="a5d5f66dac9e6ade3f6e4d532d6e1e899"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5d5f66dac9e6ade3f6e4d532d6e1e899">&#9670;&nbsp;</a></span>start_id</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::start_id</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>ID to look for an ID after. The start_id need not exist. </p>
-
-</div>
-</div>
-<a id="acb4baffb64f2d5797038e933a80c5c7c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acb4baffb64f2d5797038e933a80c5c7c">&#9670;&nbsp;</a></span>target_fd</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::target_fd</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>eBPF target to attach/detach to/from. </p>
-
-</div>
-</div>
-<a id="abd1cb3988862e43cbfb904466475ddc5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abd1cb3988862e43cbfb904466475ddc5">&#9670;&nbsp;</a></span></h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">struct { ... }  bpf_attr::test</td>
+          <td class="memname"><a class="el" href="structsys__bpf__prog__run__attr__t.html">sys_bpf_prog_run_attr_t</a> bpf_attr::test</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 <p>Attributes used by BPF_PROG_TEST_RUN. </p>
-
-</div>
-</div>
-<a id="ac259def2ef0f55384c3250b00fb313aa"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac259def2ef0f55384c3250b00fb313aa">&#9670;&nbsp;</a></span>value</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_attr::value</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Pointer to value. </p>
-
-</div>
-</div>
-<a id="aa5a4922cd66e373dad23163014c2ef7c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aa5a4922cd66e373dad23163014c2ef7c">&#9670;&nbsp;</a></span>value_size</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint32_t bpf_attr::value_size</td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Size in bytes of values. </p>
 
 </div>
 </div>
