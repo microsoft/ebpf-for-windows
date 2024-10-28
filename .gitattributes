@@ -16,3 +16,7 @@
 
 # Mark generated corpus files as binary.
 **/corpus/**        -text
+
+# Ensure that all compilable files are checked out as UTF-8
+*.c* text encoding=utf-8
+*.h* text encoding=utf-8
