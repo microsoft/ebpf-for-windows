@@ -1126,7 +1126,7 @@ Exit:
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) NO_EXCEPT_TRY
+ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_opt_ void* next_key) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1140,7 +1140,10 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
     uint32_t type;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
 
-    ebpf_assert(next_key);
+    if (next_key == NULL) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
