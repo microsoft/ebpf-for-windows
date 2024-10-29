@@ -1005,6 +1005,11 @@ TEST_CASE("libbpf map", "[libbpf]")
     REQUIRE(result < 0);
     REQUIRE(errno == EINVAL);
 
+    // next_key is NULL.
+    result = bpf_map_get_next_key(map_fd, NULL, NULL);
+    REQUIRE(result < 0);
+    REQUIRE(errno == EINVAL);
+
     bpf_object__close(object);
 }
 #endif
