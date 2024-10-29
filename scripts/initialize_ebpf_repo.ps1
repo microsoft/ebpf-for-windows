@@ -18,7 +18,8 @@ Set-Location $scriptPath\..
 # Define the commands to run
 $cmakeCommonArgs = "-G 'Visual Studio 17 2022' -A $Architecture"
 $commands = @(
-    "git submodule update --init --recursive",
+    # Update all submodules except the Catch2 within usersim
+    "git submodule update --init --recursive -- ':(exclude)external/usersim/external/Catch2'",
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build",
     "cmake $cmakeCommonArgs -S external\usersim\external\catch2 -B external\usersim\external\catch2\build -DBUILD_TESTING=OFF",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build",
