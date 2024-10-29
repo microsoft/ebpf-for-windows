@@ -207,8 +207,8 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winkernel\cxplat_winkernel.vcxproj">
-      <Project>{1ebe3966-7dc4-49b4-b840-3d33d63415ec}</Project>
+    <ProjectReference Include="..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
+      <Project>{f2ca70ab-af9a-47d1-9da9-94d5ab573ac2}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\external\usersim\src\usersim.vcxproj">
       <Project>{030a7ac6-14dc-45cf-af34-891057ab1402}</Project>

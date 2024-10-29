@@ -2,17 +2,224 @@
 # SPDX-License-Identifier: MIT
 
 param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
-       [Parameter(Mandatory=$True)] [string] $LogFileName)
+       [Parameter(Mandatory=$True)] [string] $LogFileName,
+       [parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
+       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-$CodeCoverage = "$env:ProgramFiles\OpenCppCoverage\OpenCppCoverage.exe"
 
 #
-# Execute tests on VM.
+# Utility functions.
+#
+
+# Finds and returns the specified tool's location under the current directory. If not found, throws an exception.
+function GetToolLocationPath
+{
+    param(
+        [Parameter(Mandatory = $True)] [string] $ToolName
+    )
+
+    $ToolLocationPath = Get-ChildItem -Path "$Pwd" `
+        -Recurse -Filter "$ToolName" -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($ToolLocationPath -eq $null) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** $ToolName not found under $Pwd."
+    }
+
+    return $ToolLocationPath.FullName
+}
+
+function GetDriveFreeSpaceGB
+{
+    Param(
+        # Drive Specification in the form of a single alphabet string. (eg. "C:")
+        [Parameter(Mandatory = $True)] [string] $DriveSpecification
+    )
+
+    if (($DriveSpecification.Length -eq $Null) -or ($DriveSpecification.Length -ne 2)) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** No drive or Invalid drive specified."
+    }
+
+    # Convert drive to single letter (eg. "C:" to "C") for Get-Volume.
+    $DriveSpecification = $DriveSpecification -replace ".$"
+    $Volume = Get-Volume $DriveSpecification
+    if ($Volume -eq $Null) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Drive $DriveSpecification not found."
+    }
+    $FreeSpaceGB = (($Volume.SizeRemaining) / 1GB).ToString("F2")
+
+    return $FreeSpaceGB
+}
+
+function Generate-KernelDump
+{
+    Push-Location $WorkingDirectory
+    $NotMyFaultBinary = "NotMyFault64.exe"
+    Write-Log "Verifying $NotMyFaultBinary presence in $Pwd..."
+    $NotMyFaultBinaryPath = GetToolLocationPath -ToolName $NotMyFaultBinary
+    Write-Log "$NotMyFaultBinary location: $NotMyFaultBinaryPath"
+    Write-Log "`n"
+
+    Write-Log "Creating kernel dump...`n"
+    # Wait a bit for the above message to show up in the log.
+    Start-Sleep -seconds 5
+
+    # This will/should not return (test system will/should bluescreen and reboot).
+    $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
+    # wait for 30 minutes to generate the kernel dump.
+    $NotMyFaultProc.WaitForExit(30*60*1000)
+
+    # If we get here, notmyfault64.exe failed for some reason. Kill the hung process, throw error.
+    ThrowWithErrorMessage `
+        -ErrorMessage "*** ERROR *** $($PSCommandPath): kernel mode dump creation FAILED"
+}
+
+function Generate-ProcessDump
+{
+    param([Parameter(Mandatory = $true)] [int] $TestProcessId,
+          [Parameter(Mandatory = $true)] [string] $TestCommand,
+          [Parameter(Mandatory = $false)] [string] $UserModeDumpFolder = "C:\Dumps")
+
+    # Check if procdump64.exe and notmyfault64.exe are present on the system.
+    $ProcDumpBinary = "ProcDump64.exe"
+    Write-Log "Verifying $ProcDumpBinary presence in $Pwd..."
+    $ProcDumpBinaryPath = GetToolLocationPath -ToolName $ProcDumpBinary
+    Write-Log "$ProcDumpBinary location: $ProcDumpBinaryPath"
+    Write-Log "`n"
+
+    # Create dump folder if not present.
+    if (-not (Test-Path -Path $UserModeDumpFolder)) {
+        Write-Log "$UserModeDumpFolder created."
+        New-Item -Path $UserModeDumpFolder -ItemType Directory -Force -ErrorAction Stop
+    }
+    $UserModeDumpFileName = "$($TestCommand)_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').dmp"
+    $UserModeDumpFilePath = Join-Path $UserModeDumpFolder $UserModeDumpFileName
+
+    if ($VerbosePreference -eq 'Continue') {
+        Write-Log "User mode Dumpfile name: $UserModeDumpFileName"
+        Write-Log "User mode Dumpfile Path: $UserModeDumpFilePath"
+    }
+
+    # Get the available free space at this point in case the test creates its own files.
+    # (useful in investigating user and/or kernel dump file creation failures).
+    try {
+        $DriveFreeSpaceGB = GetDriveFreeSpaceGB -DriveSpecification $Env:SystemDrive
+    } catch {
+        Write-Log "Error getting available disk space: $_" -ForegroundColor Red
+        $DriveFreeSpaceGB = "Unknown"
+        # Continue with the test.
+    }
+    Write-Log "Current available disk space: $DriveFreeSpaceGB GB`n"
+
+    Write-Log "Creating User mode dump @ $UserModeDumpFilePath"
+    $ProcDumpArguments = "-r -ma $($TestProcessId) $UserModeDumpFilePath"
+    Write-Log "Dump Command: $ProcDumpBinaryPath $ProcDumpArguments"
+    $ProcDumpProcess = Start-Process -NoNewWindow `
+        -FilePath $ProcDumpBinaryPath `
+        -ArgumentList $ProcDumpArguments `
+        -Wait -PassThru
+    Write-Log "Waiting for user mode dump to complete..."
+    $ProcDumpProcess.WaitForExit()
+
+    # Get procdump64.exe's exit code.
+    $ExitCode = $($ProcDumpProcess.ExitCode)
+    Write-Log "$ProcDumpBinaryPath completed with exit code: $ExitCode`n"
+
+    # Flush disk buffers to ensure user mode dump data is completely written to disk.
+    Write-Log "User mode dump completed. Flushing disk buffers..."
+    Write-VolumeCache -DriveLetter C
+
+    # Wait for a bit for things to settle down to ensure the user mode dump is completely flushed.
+    Start-Sleep -seconds 10
+
+    # Make sure a valid dump file is created.
+    $UserModeDumpSizeMB =
+        (((Get-ItemProperty -Path $UserModeDumpFilePath).Length) /1MB).ToString("F2")
+    if ($UserModeDumpSizeMB -eq 0) {
+        Write-Log "* WARNING * User mode dump $UserModeDumpFilePath NOT CREATED"
+    } else {
+        Write-Log "`n Created $UserModeDumpFilePath, size: $UserModeDumpSizeMB MB `n"
+    }
+}
+
+#
+# Test Completion processing
+#
+
+function Process-TestCompletion
+{
+    param([Parameter(Mandatory = $true)] [Object] $TestProcess,
+          [Parameter(Mandatory = $true)] [string] $TestCommand,
+          [Parameter(Mandatory = $false)] [bool] $NestedProcess,
+          [Parameter(Mandatory = $false)] [int] $TestHangTimeout = (10*60), # 10 minutes default timeout.
+          [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
+
+    # Use Wait-Process for the process to terminate or timeout.
+    # See https://stackoverflow.com/a/23797762
+    Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
+    if (-not $TestProcess.HasExited) {
+        Write-Log "`n*** ERROR *** Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.`n"
+
+        # Find the test process Id.
+        if ($NestedProcess) {
+            # The TestCommand is running nested inside another TestProcess.
+            $TestNameNoExt = [System.IO.Path]::GetFileNameWithoutExtension($TestCommand)
+            $TestProcessId = (Get-Process -Name $TestNameNoExt).Id
+        } else {
+            $TestProcessId = $TestProcess.Id
+        }
+        Write-Log "Potentially hung process PID:$TestProcessId running $TestCommand"
+
+        # Generate a user mode dump.
+        Generate-ProcessDump -TestProcessId $TestProcessId -TestCommand $TestCommand
+
+        # Next, kill the test process, if kernel dumps are not enabled.
+        if (-not $NeedKernelDump) {
+            Write-Log "Kernel dump not needed, killing process with PID:$TestProcessId..."
+            Stop-Process -Id $TestProcessId
+            ThrowWithErrorMessage -ErrorMessage "Test $TestCommand Hung!"
+        }
+
+        #finally, throw a new TestHung exception.
+        Write-Log "Throwing TestHungException for $TestCommand" -ForegroundColor Red
+        throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
+    } else {
+        # Ensure the process has completely exited.
+        Wait-Process -InputObject $TestProcess
+
+        # Read and display the output (if any) from the temporary output file.
+        $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
+        # Process the log file line-by-line
+        if ((Test-Path $TempOutputFile) -and (Get-Item $TempOutputFile).Length -gt 0) {
+            Write-Log "$TestCommand Output:`n" -ForegroundColor Green
+            Get-Content -Path $TempOutputFile | ForEach-Object {
+                Write-Log -TraceMessage $_
+            }
+            Remove-Item -Path $TempOutputFile -Force -ErrorAction Ignore
+        }
+
+        $TestExitCode = $TestProcess.ExitCode
+        if ($TestExitCode -ne 0) {
+            $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
+            if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
+                Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
+                Get-Content -Path $TempErrorFile | ForEach-Object {
+                    Write-Log -TraceMessage $_ -ForegroundColor Red
+                }
+                Remove-Item -Path $TempErrorFile -Force -ErrorAction Ignore
+            }
+
+            $ErrorMessage = "*** ERROR *** $TestCommand failed with $TestExitCode."
+            ThrowWithErrorMessage -ErrorMessage $ErrorMessage
+        }
+    }
+}
+
+#
+# Execute tests.
 #
 
 function Invoke-NetshEbpfCommand
@@ -48,92 +255,91 @@ function Invoke-NetshEbpfCommand
 function Invoke-Test
 {
     param([Parameter(Mandatory = $True)][string] $TestName,
+          [Parameter(Mandatory = $False)][string] $TestArgs = "",
+          [Parameter(Mandatory = $False)][string] $InnerTestName = "",
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
-          [Parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [Parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps",
-          [Parameter(Mandatory = $False)][bool] $Coverage)
+          [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
-    Write-Log "Preparing to run $Testname"
-
-    $LASTEXITCODE = 0
-
-    $OriginalTestName = $TestName
-    $ArgumentsList = @()
-
-    if ($Coverage) {
-        $ArgumentsList += @('-q', '--modules=C:\eBPF', '--export_type', ('binary:' + $TestName + '.cov'), '--', $TestName)
-        $TestName = $CodeCoverage
+    # Initialize arguments.
+    if ($TestArgs -ne "") {
+        $ArgumentsList = @($TestArgs)
     }
-    # Execute Test.
+
     if ($VerboseLogs -eq $true) {
         $ArgumentsList += '-s'
     }
 
-    $JoinedArgumentsList = $ArgumentsList -join " "
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
-    & $TestRunScript `
-        -TestCommand $TestName `
-        -TestArguments $JoinedArgumentsList `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -NeedKernelDump $True `
-        -Verbose
+    # Execute Test.
+    Write-Log "Executing $TestName $TestArgs"
+    $TestFilePath = "$pwd\$TestName"
+    $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
+    $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
+    if ($ArgumentsList) {
+        $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
+    } else {
+        $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
+    }
+    if ($InnerTestName -ne "") {
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
+    } else {
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestName -TestHangTimeout $TestHangTimeout
+    }
 
-    Write-Log "$TestName Passed" -ForegroundColor Green
-    Write-Log "`n`n"
+    Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
+    Write-Log "`n==============================`n"
 }
+
+# Function to create a tuple with default values for Arguments and Timeout
+function New-TestTuple {
+    param (
+        [string]$Test,
+        [string]$Arguments = "",    # Default value: ""
+        [int]$Timeout = 300         # Default value: 5 minutes
+    )
+
+    # Return a custom object (tuple)
+    [pscustomobject]@{
+        Test      = $Test
+        Arguments = $Arguments
+        Timeout   = $Timeout
+    }
+}
+
 
 function Invoke-CICDTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][bool] $Coverage = $false,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests
-    )
+          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests)
 
 
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
+    # Now create an array of test tuples, overriding only the necessary values
     # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
     # That causes the regression test to fail. So, we are skipping this test for now.
-    $TestList = @(
-        "api_test.exe ~`"load_native_program_invalid4`"",
-        "bpftool_tests.exe",
-        "sample_ext_app.exe",
-        "socket_tests.exe")
 
-    $SystemTestList = @("api_test.exe")
+    $TestList = @(
+        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`""),
+        (New-TestTuple -Test "bpftool_tests.exe"),
+        (New-TestTuple -Test "sample_ext_app.exe"),
+        (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
+    )
+
 
     foreach ($Test in $TestList) {
-        Invoke-Test -TestName $Test -VerboseLogs $VerboseLogs -Coverage $Coverage
+        Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
     }
 
-    # Now run the system tests. No coverage is needed for these tests.
+    # Now run the system tests.
+
+    $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
     if ($ExecuteSystemTests) {
         foreach ($Test in $SystemTestList) {
-            $TestCommand = "PsExec64.exe -accepteula -nobanner -s -w `"$pwd`" `"$pwd\$Test`" `"-d yes`""
-            Invoke-Test -TestName $TestCommand -VerboseLogs $VerboseLogs -Coverage $false
+            $TestCommand = "PsExec64.exe"
+            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
+            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
         }
-    }
-
-    if ($Coverage) {
-        # Combine code coverage reports
-        $ArgumentsList += @()
-        foreach ($Test in $TestList) {
-            $ArgumentsList += @('--input_coverage', ($Test + '.cov'))
-        }
-        $ArgumentsList += @('--export_type', 'cobertura:c:\eBPF\ebpf_for_windows.xml', '--')
-
-        $JoinedArgumentsList = $ArgumentsList -join " "
-        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
-        & $TestRunScript `
-            -TestCommand $CodeCoverage `
-            -TestArguments $JoinedArgumentsList `
-            -TestHangTimeout = $TestHangTimeout `
-            -UserModeDumpFolder $UserModeDumpFolder `
-            -Verbose
     }
 
     if ($Env:BUILD_CONFIGURATION -eq "Release") {
@@ -148,10 +354,7 @@ function Invoke-XDPTest
     param([parameter(Mandatory = $true)][string] $RemoteIPV4Address,
           [parameter(Mandatory = $true)][string] $RemoteIPV6Address,
           [parameter(Mandatory = $true)][string] $XDPTestName,
-          [parameter(Mandatory = $true)][string] $WorkingDirectory,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
-    )
+          [parameter(Mandatory = $true)][string] $WorkingDirectory)
 
     Push-Location $WorkingDirectory
 
@@ -159,26 +362,15 @@ function Invoke-XDPTest
     $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
+    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    & $TestRunScript `
-        -TestCommand $TestCommand `
-        -TestArguments $TestArguments `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -Verbose
-
-    Start-Sleep -seconds 5
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
     $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
-
-    & $TestRunScript `
-        -TestCommand $TestCommand `
-        -TestArguments $TestArguments `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -Verbose
+    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
     Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
     Write-Log "`n`n"
@@ -199,9 +391,7 @@ function Invoke-ConnectRedirectTest
           [parameter(Mandatory = $true)][string] $StandardUserName,
           [parameter(Mandatory = $true)][string] $StandardUserPassword,
           [parameter(Mandatory = $true)][string] $UserType,
-          [parameter(Mandatory = $true)][string] $WorkingDirectory,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
+          [parameter(Mandatory = $true)][string] $WorkingDirectory)
 
     Push-Location $WorkingDirectory
 
@@ -223,13 +413,9 @@ function Invoke-ConnectRedirectTest
         " --user-type $UserType"
 
     Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
+    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    & $TestRunScript `
-        -TestCommand $TestCommand `
-        -TestArguments $TestArguments `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -Verbose
 
     ## Run test with only v4 program attached.
     $TestArguments =
@@ -244,13 +430,9 @@ function Invoke-ConnectRedirectTest
         " [connect_authorize_redirect_tests_v4]"
 
     Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
+    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    & $TestRunScript `
-        -TestCommand $TestCommand `
-        -TestArguments $TestArguments `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -Verbose
 
     ## Run tests with only v6 program attached.
     $TestArguments =
@@ -265,13 +447,9 @@ function Invoke-ConnectRedirectTest
         " [connect_authorize_redirect_tests_v6]"
 
     Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
+    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    & $TestRunScript `
-        -TestCommand $TestCommand `
-        -TestArguments $TestArguments `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -Verbose
 
     Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
 
@@ -281,7 +459,6 @@ function Invoke-ConnectRedirectTest
 function Invoke-CICDStressTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][bool] $Coverage = $false,
           [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
@@ -301,15 +478,9 @@ function Invoke-CICDStressTests
     } else {
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
+    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
-    & $TestRunScript `
-        -TestCommand $TestCommand `
-        -TestArguments $TestArguments `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -NeedKernelDump $True `
-        -Verbose
 
     Pop-Location
 }
