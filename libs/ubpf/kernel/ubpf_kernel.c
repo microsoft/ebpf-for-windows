@@ -34,6 +34,13 @@
 #define strerror place_holder_strerror
 #define errno (place_holder_errno())
 
+#undef assert
+#if defined(NDEBUG)
+#define assert(x) ((void)0)
+#else
+#define assert(x) ((x) ? (void)0 : __fastfail(0))
+#endif
+
 inline int
 fprintf(void* stream, const char* format, ...)
 {
