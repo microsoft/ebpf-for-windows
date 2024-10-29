@@ -69,7 +69,9 @@ jobs:
     strategy:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
-    runs-on: ${{inputs.environment}}
+    runs-on:
+      - self-hosted
+      - "1ES.Pool=ebpf-cicd-runner-pool-server-2019"
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
