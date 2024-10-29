@@ -233,6 +233,16 @@ jobs:
         .\export_program_info_sample.exe --clear
         .\export_program_info_sample.exe
 
+    - name: 1ES TEST
+      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests_ws2019' && inputs.environment != 'ebpf_cicd_tests_ws2022' && inputs.environment != 'ebpf_cicd_perf_ws2022')
+      id: run_pre_test_command
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        hostname
+        whoami
+        powershell.exe Get-VM
+        dir /s
+
     - name: Run pre test command
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests_ws2019' && inputs.environment != 'ebpf_cicd_tests_ws2022' && inputs.environment != 'ebpf_cicd_perf_ws2022')
       id: run_pre_test_command
