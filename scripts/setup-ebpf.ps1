@@ -12,21 +12,6 @@ $WorkingDirectory = "$PSScriptRoot"
 Write-Host "PSScriptRoot is $PSScriptRoot"
 Write-Host "WorkingDirectory is $WorkingDirectory"
 
-# VC++ Redistributable Debug Runtime DLLs.
-$VCDebugRuntime = @(
-    "concrt140d.dll",
-    "msvcp140d.dll",
-    "msvcp140d_atomic_wait.dll",
-    "msvcp140d_codecvt_ids.dll",
-    "msvcp140_1d.dll",
-    "msvcp140_2d.dll",
-    "vccorlib140d.dll",
-    "vcruntime140d.dll",
-    "vcruntime140_1d.dll",
-    "vcruntime140_threadsd.dll",
-    "ucrtbased.dll"
-)
-
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 $System32Path = Join-Path $env:SystemRoot "System32"
 $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
@@ -58,23 +43,6 @@ if ($Uninstall) {
         Write-Host("Cleaning up...")
         Remove-Item $VcRedistPath -Force
         Write-Host("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
-    }
-
-    # Move the Visual C++ Redistributable Debug DLLs to the system32 directory,
-    # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
-    Write-Host("Copying Visual C++ Redistributable debug runtime DLLs to the $System32Path directory...")
-    # Test if the VC debug runtime DLLs are present in the working directory (indicating a debug build).
-    $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
-    if (-not $VCDebugRuntime) {
-        Write-Host("Visual C++ Redistributable debug runtime DLLs not found in the working directory (i.e., release build or already installed). Skipping this step.") -ForegroundColor Yellow
-    } else {
-        $System32Path = Join-Path $env:SystemRoot "System32"
-        $VCDebugRuntime | ForEach-Object {
-            $sourcePath = Join-Path $WorkingDirectory $_
-            $destinationPath = Join-Path $System32Path $_
-            Move-Item -Path $sourcePath -Destination $destinationPath -Force
-        }
-        Write-Host("Visual C++ Redistributable debug runtime DLLs copied successfully!") -ForegroundColor Green
     }
 
     # Install the MSI package.
