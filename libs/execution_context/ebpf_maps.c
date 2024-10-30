@@ -2926,12 +2926,8 @@ ebpf_map_get_next_key_and_value_batch(
             // If the caller requested deletion, delete the previous entry.
             result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {
-                EBPF_LOG_MESSAGE_UINT64_UINT64(
-                    EBPF_TRACELOG_LEVEL_ERROR,
-                    EBPF_TRACELOG_KEYWORD_MAP,
-                    "Failed to delete entry with key",
-                    *(uint64_t*)previous_key,
-                    result);
+                EBPF_LOG_MESSAGE_UINT64(
+                    EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete entry", result);
                 break;
             }
         }
@@ -2954,12 +2950,8 @@ ebpf_map_get_next_key_and_value_batch(
         ebpf_result_t delete_result =
             ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
         if (delete_result != EBPF_SUCCESS) {
-            EBPF_LOG_MESSAGE_UINT64_UINT64(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_MAP,
-                "Failed to delete last entry with key",
-                *(uint64_t*)previous_key,
-                result);
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete last entry", delete_result);
             result = delete_result;
         }
     }
