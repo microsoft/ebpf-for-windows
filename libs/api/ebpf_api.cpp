@@ -604,8 +604,9 @@ _ebpf_map_lookup_element_batch_helper(
         count_returned += entries_returned;
 
         // Set the previous_key for the next batch.
-        if (find_and_delete) {
+        if (find_and_delete || count_returned == 0) {
             // If find_and_delete is set to true, the entries are already deleted.
+            // If no more entries are returned, there is no need to fetch more.
             // Hence the previous_key is set to null.
             previous_key = nullptr;
         } else {
