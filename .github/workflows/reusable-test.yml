@@ -96,7 +96,7 @@ jobs:
       run: |
         powershell.exe "Get-NetAdapter"
         powershell.exe "Get-VMSwitch"
-        powershell.exe "cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup.ps1"
+        powershell.exe "cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
         powershell.exe "Get-NetAdapter"
         powershell.exe "Get-VMSwitch"
         powershell.exe "Get-VM"
