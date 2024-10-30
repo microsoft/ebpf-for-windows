@@ -7,7 +7,6 @@ param ([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
 Push-Location $WorkingDirectory
 Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-$VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 $MsiPath = Join-Path $WorkingDirectory "ebpf-for-windows.msi"
 
 # eBPF drivers and services.
@@ -158,7 +157,6 @@ function Print-eBPFComponentsStatus([string] $message = "")
         sc.exe query $_.Key  2>&1 | Write-Log
     }
 }
-
 function Install-eBPFComponents
 {
     param([parameter(Mandatory=$true)] [bool] $KmTracing,
@@ -169,17 +167,6 @@ function Install-eBPFComponents
     # Print the status of the eBPF drivers and services before installation.
     # This is useful for detecting issues with the runner baselines.
     Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (none should be present)..." | Out-Null
-
-    # Install the Visual C++ Redistributable (Release version, which is required for the MSI installation).
-    Write-Log("Installing Visual C++ Redistributable from '$VcRedistPath'...")
-    $process = Start-Process -FilePath $VcRedistPath -ArgumentList "/quiet", "/norestart" -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        Write-Log("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode).") -ForegroundColor Red
-        throw ("Visual C++ Redistributable installation FAILED. Exit code: $($process.ExitCode).")
-    }
-    Write-Log("Cleaning up...")
-    Remove-Item $VcRedistPath -Force
-    Write-Log("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
 
     # Copy the VC debug runtime DLLs to the system32 directory,
     # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
