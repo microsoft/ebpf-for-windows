@@ -92,7 +92,8 @@ typedef struct
     uint32_t key_size;          ///< Size in bytes of keys.
     uint32_t value_size;        ///< Size in bytes of values.
     uint32_t max_entries;       ///< Maximum number of entries in the map.
-    uint32_t map_flags;         ///< Flags (currently 0).
+    uint32_t map_flags;         ///< Not supported, must be zero.
+    uint32_t inner_map_fd;      ///< File descriptor of inner map.
 } sys_bpf_map_create_attr_t;
 
 typedef struct

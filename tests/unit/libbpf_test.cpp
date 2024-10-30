@@ -2978,6 +2978,17 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     attr.prog_bind_map.flags = 0;
     REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
 
+    // Verify we can create a nested map.
+    attr.map_create = {};
+    attr.map_create.map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS;
+    attr.map_create.key_size = 4;
+    attr.map_create.value_size = 4;
+    attr.map_create.max_entries = 1;
+    attr.map_create.inner_map_fd = map_fd;
+    int nested_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr.map_create));
+    REQUIRE(nested_map_fd >= 0);
+    Platform::_close(nested_map_fd);
+
     // Release our own references on the map and program.
     Platform::_close(map_fd);
     Platform::_close(program_fd);
