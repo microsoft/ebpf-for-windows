@@ -9,13 +9,24 @@ install or update the eBPF installation in the VM.
 Do the following from within the VM:
 
 1. Download the `eBPF-for-Windows.x.x.x.msi` file from the [latest release on GitHub](https://github.com/microsoft/ebpf-for-windows/releases).
-1. Execute the MSI file you downloaded.
-1. After accepting the License and selecting the desired installation folder (default will be "`C:\Program Files\ebpf-for-windows`"), the following components will be selectable from the *Installation Wizard*:
+2. For Debug EBPF variant with JIT, below debug DLL are required to be present on test system on a location included in %PATH% so that they can be loaded. These debug DLL are provided along with Visual Studio under C:\Windows\System32 -
+    "concrt140d.dll",
+    "msvcp140d.dll",
+    "msvcp140d_atomic_wait.dll",
+    "msvcp140d_codecvt_ids.dll",
+    "msvcp140_1d.dll",
+    "msvcp140_2d.dll",
+    "vccorlib140d.dll",
+    "vcruntime140d.dll",
+    "vcruntime140_1d.dll",
+    "vcruntime140_threadsd.dll",
+    "ucrtbased.dll"
+3. Execute the MSI file you downloaded.
+4. After accepting the License and selecting the desired installation folder (default will be "`C:\Program Files\ebpf-for-windows`"), the following components will be selectable from the *Installation Wizard*:
 
     * **Runtime Components** (mandatory): this feature adds the eBPF runtime and core components, which are also required by the other components. If you select only this
       feature, only [native code generation](NativeCodeGeneration.md) is enabled.
         * **JIT** (optional): this sub-feature adds support for JIT-compiled eBPF programs and (in a Debug build only) interpreted eBPF programs.
-
 An **command line install/uninstall** is also supported, through the direct use of `C:\Windows\system32\msiexec.exe` from an *administrative Command Prompt*:
 
 * The installation folder can be customized by assigning the desired path to the `INSTALLFOLDER` parameter (path with spaces must be put between double quotes), i.e.:
