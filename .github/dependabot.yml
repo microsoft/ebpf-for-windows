@@ -28,7 +28,7 @@ updates:
       generic:
         patterns:
           - "external/win-c"
-          - "external/usersim/external/Catch2"
+          - "external/Catch2"
           - "external/pe-parse"
           - "tests/external/kissfft"
 
