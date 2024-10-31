@@ -759,3 +759,9 @@ ebpf_api_thread_local_cleanup() noexcept;
  */
 void
 ebpf_api_thread_local_initialize() noexcept;
+
+static inline bool
+prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
+{
+    return (strcmp(prog->section_name, ".text") == 0) && (obj->programs.size() > 1);
+}

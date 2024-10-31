@@ -42,12 +42,7 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         std::stringstream output;
         auto stream = std::stringstream(random_buffer);
         bpf_code_generator code_gen(stream, "c_name");
-        code_gen.parse();
-        auto sections = code_gen.program_sections();
-        for (auto& section : sections) {
-            code_gen.generate(section, "c_name");
-        }
-
+        code_gen.parse_global_data();
         code_gen.emit_c_code(output);
     } catch (std::runtime_error&) {
     }

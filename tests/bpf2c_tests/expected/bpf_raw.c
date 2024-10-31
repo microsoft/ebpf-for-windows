@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -27,7 +28,7 @@ func(void* context)
 #line 17 "sample/custom_program_type/bpf.c"
 {
 #line 17 "sample/custom_program_type/bpf.c"
-    // Prologue
+    // Prologue.
 #line 17 "sample/custom_program_type/bpf.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 17 "sample/custom_program_type/bpf.c"

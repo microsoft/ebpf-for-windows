@@ -273,7 +273,7 @@ main(int argc, char** argv)
         bpf_code_generator generator(stream, c_name, {hash_value});
 
         // Parse global data.
-        generator.parse();
+        generator.parse_global_data();
 
         // Get global program and attach types, if any.
         ebpf_program_type_t program_type;
@@ -291,9 +291,14 @@ main(int argc, char** argv)
 
         // Parse per-program data.
         for (const ebpf_api_program_info_t* program = infos; program; program = program->next) {
+            // Skip if a subprogram.  A subprogram is defined by libbpf as any
+            // program in the .text section when multiple programs exist.
+            if (!strcmp(program->section_name, ".text") && infos->next != nullptr) {
+                continue;
+            }
+
             const char* report = nullptr;
             ebpf_api_verifier_stats_t stats;
-            std::optional<std::vector<uint8_t>> program_info_hash;
             if (ebpf_api_elf_verify_program_from_memory(
                     data.c_str(),
                     data.size(),
@@ -324,13 +329,14 @@ main(int argc, char** argv)
                 program_info,
                 (global_program_type_set) ? program_type : program->program_type,
                 (global_program_type_set) ? attach_type : program->expected_attach_type,
-                hash_algorithm);
-            generator.generate(program->section_name, program->program_name);
+                hash_algorithm,
+                infos);
 
             if (hash_algorithm != "none") {
-                std::vector<int32_t> helper_ids = generator.get_helper_ids();
-                program_info_hash = get_program_info_type_hash(helper_ids, hash_algorithm);
-                generator.set_program_hash_info(program_info_hash);
+                std::vector<int32_t> helper_ids = generator.get_helper_ids(program->program_name);
+                std::optional<std::vector<uint8_t>> program_info_hash =
+                    get_program_info_type_hash(helper_ids, hash_algorithm);
+                generator.set_program_hash_info(program->program_name, program_info_hash);
             }
         }
 

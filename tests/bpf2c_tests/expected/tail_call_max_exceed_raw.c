@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -56,7 +57,7 @@ bind_test_callee0(void* context)
 #line 85 "sample/tail_call_max_exceed.c"
 {
 #line 85 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 85 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 85 "sample/tail_call_max_exceed.c"
@@ -257,7 +258,7 @@ bind_test_callee1(void* context)
 #line 86 "sample/tail_call_max_exceed.c"
 {
 #line 86 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 86 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 86 "sample/tail_call_max_exceed.c"
@@ -458,7 +459,7 @@ bind_test_callee10(void* context)
 #line 95 "sample/tail_call_max_exceed.c"
 {
 #line 95 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 95 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 95 "sample/tail_call_max_exceed.c"
@@ -659,7 +660,7 @@ bind_test_callee11(void* context)
 #line 96 "sample/tail_call_max_exceed.c"
 {
 #line 96 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 96 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 96 "sample/tail_call_max_exceed.c"
@@ -860,7 +861,7 @@ bind_test_callee12(void* context)
 #line 97 "sample/tail_call_max_exceed.c"
 {
 #line 97 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 97 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 97 "sample/tail_call_max_exceed.c"
@@ -1061,7 +1062,7 @@ bind_test_callee13(void* context)
 #line 98 "sample/tail_call_max_exceed.c"
 {
 #line 98 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 98 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 98 "sample/tail_call_max_exceed.c"
@@ -1262,7 +1263,7 @@ bind_test_callee14(void* context)
 #line 99 "sample/tail_call_max_exceed.c"
 {
 #line 99 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 99 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 99 "sample/tail_call_max_exceed.c"
@@ -1463,7 +1464,7 @@ bind_test_callee15(void* context)
 #line 100 "sample/tail_call_max_exceed.c"
 {
 #line 100 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 100 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 100 "sample/tail_call_max_exceed.c"
@@ -1664,7 +1665,7 @@ bind_test_callee16(void* context)
 #line 101 "sample/tail_call_max_exceed.c"
 {
 #line 101 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 101 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 101 "sample/tail_call_max_exceed.c"
@@ -1865,7 +1866,7 @@ bind_test_callee17(void* context)
 #line 102 "sample/tail_call_max_exceed.c"
 {
 #line 102 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 102 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 102 "sample/tail_call_max_exceed.c"
@@ -2066,7 +2067,7 @@ bind_test_callee18(void* context)
 #line 103 "sample/tail_call_max_exceed.c"
 {
 #line 103 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 103 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 103 "sample/tail_call_max_exceed.c"
@@ -2267,7 +2268,7 @@ bind_test_callee19(void* context)
 #line 104 "sample/tail_call_max_exceed.c"
 {
 #line 104 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 104 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 104 "sample/tail_call_max_exceed.c"
@@ -2468,7 +2469,7 @@ bind_test_callee2(void* context)
 #line 87 "sample/tail_call_max_exceed.c"
 {
 #line 87 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 87 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 87 "sample/tail_call_max_exceed.c"
@@ -2669,7 +2670,7 @@ bind_test_callee20(void* context)
 #line 105 "sample/tail_call_max_exceed.c"
 {
 #line 105 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 105 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 105 "sample/tail_call_max_exceed.c"
@@ -2870,7 +2871,7 @@ bind_test_callee21(void* context)
 #line 106 "sample/tail_call_max_exceed.c"
 {
 #line 106 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 106 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 106 "sample/tail_call_max_exceed.c"
@@ -3071,7 +3072,7 @@ bind_test_callee22(void* context)
 #line 107 "sample/tail_call_max_exceed.c"
 {
 #line 107 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 107 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 107 "sample/tail_call_max_exceed.c"
@@ -3272,7 +3273,7 @@ bind_test_callee23(void* context)
 #line 108 "sample/tail_call_max_exceed.c"
 {
 #line 108 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 108 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 108 "sample/tail_call_max_exceed.c"
@@ -3473,7 +3474,7 @@ bind_test_callee24(void* context)
 #line 109 "sample/tail_call_max_exceed.c"
 {
 #line 109 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 109 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 109 "sample/tail_call_max_exceed.c"
@@ -3674,7 +3675,7 @@ bind_test_callee25(void* context)
 #line 110 "sample/tail_call_max_exceed.c"
 {
 #line 110 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 110 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 110 "sample/tail_call_max_exceed.c"
@@ -3875,7 +3876,7 @@ bind_test_callee26(void* context)
 #line 111 "sample/tail_call_max_exceed.c"
 {
 #line 111 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 111 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 111 "sample/tail_call_max_exceed.c"
@@ -4076,7 +4077,7 @@ bind_test_callee27(void* context)
 #line 112 "sample/tail_call_max_exceed.c"
 {
 #line 112 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 112 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 112 "sample/tail_call_max_exceed.c"
@@ -4277,7 +4278,7 @@ bind_test_callee28(void* context)
 #line 113 "sample/tail_call_max_exceed.c"
 {
 #line 113 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 113 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 113 "sample/tail_call_max_exceed.c"
@@ -4478,7 +4479,7 @@ bind_test_callee29(void* context)
 #line 114 "sample/tail_call_max_exceed.c"
 {
 #line 114 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 114 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 114 "sample/tail_call_max_exceed.c"
@@ -4679,7 +4680,7 @@ bind_test_callee3(void* context)
 #line 88 "sample/tail_call_max_exceed.c"
 {
 #line 88 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 88 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 88 "sample/tail_call_max_exceed.c"
@@ -4880,7 +4881,7 @@ bind_test_callee30(void* context)
 #line 115 "sample/tail_call_max_exceed.c"
 {
 #line 115 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 115 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 115 "sample/tail_call_max_exceed.c"
@@ -5081,7 +5082,7 @@ bind_test_callee31(void* context)
 #line 116 "sample/tail_call_max_exceed.c"
 {
 #line 116 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 116 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 116 "sample/tail_call_max_exceed.c"
@@ -5282,7 +5283,7 @@ bind_test_callee32(void* context)
 #line 117 "sample/tail_call_max_exceed.c"
 {
 #line 117 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 117 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 117 "sample/tail_call_max_exceed.c"
@@ -5483,7 +5484,7 @@ bind_test_callee33(void* context)
 #line 118 "sample/tail_call_max_exceed.c"
 {
 #line 118 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 118 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 118 "sample/tail_call_max_exceed.c"
@@ -5678,7 +5679,7 @@ bind_test_callee34(void* context)
 #line 136 "sample/tail_call_max_exceed.c"
 {
 #line 136 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 136 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 136 "sample/tail_call_max_exceed.c"
@@ -5761,7 +5762,7 @@ bind_test_callee34(void* context)
     // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 141 "sample/tail_call_max_exceed.c"
     return r0;
-#line 141 "sample/tail_call_max_exceed.c"
+#line 136 "sample/tail_call_max_exceed.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -5786,7 +5787,7 @@ bind_test_callee4(void* context)
 #line 89 "sample/tail_call_max_exceed.c"
 {
 #line 89 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 89 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 89 "sample/tail_call_max_exceed.c"
@@ -5987,7 +5988,7 @@ bind_test_callee5(void* context)
 #line 90 "sample/tail_call_max_exceed.c"
 {
 #line 90 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 90 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 90 "sample/tail_call_max_exceed.c"
@@ -6188,7 +6189,7 @@ bind_test_callee6(void* context)
 #line 91 "sample/tail_call_max_exceed.c"
 {
 #line 91 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 91 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 91 "sample/tail_call_max_exceed.c"
@@ -6389,7 +6390,7 @@ bind_test_callee7(void* context)
 #line 92 "sample/tail_call_max_exceed.c"
 {
 #line 92 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 92 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 92 "sample/tail_call_max_exceed.c"
@@ -6590,7 +6591,7 @@ bind_test_callee8(void* context)
 #line 93 "sample/tail_call_max_exceed.c"
 {
 #line 93 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 93 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 93 "sample/tail_call_max_exceed.c"
@@ -6791,7 +6792,7 @@ bind_test_callee9(void* context)
 #line 94 "sample/tail_call_max_exceed.c"
 {
 #line 94 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 94 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 94 "sample/tail_call_max_exceed.c"
@@ -6992,7 +6993,7 @@ bind_test_caller(void* context)
 #line 124 "sample/tail_call_max_exceed.c"
 {
 #line 124 "sample/tail_call_max_exceed.c"
-    // Prologue
+    // Prologue.
 #line 124 "sample/tail_call_max_exceed.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 124 "sample/tail_call_max_exceed.c"
@@ -7159,7 +7160,7 @@ label_1:
     // EBPF_OP_EXIT pc=46 dst=r0 src=r0 offset=0 imm=0
 #line 131 "sample/tail_call_max_exceed.c"
     return r0;
-#line 131 "sample/tail_call_max_exceed.c"
+#line 124 "sample/tail_call_max_exceed.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

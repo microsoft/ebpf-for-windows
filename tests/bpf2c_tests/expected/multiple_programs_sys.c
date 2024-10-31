@@ -173,6 +173,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -188,7 +189,7 @@ program1(void* context)
 #line 28 "sample/multiple_programs.c"
 {
 #line 28 "sample/multiple_programs.c"
-    // Prologue
+    // Prologue.
 #line 28 "sample/multiple_programs.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 28 "sample/multiple_programs.c"
@@ -222,7 +223,7 @@ program2(void* context)
 #line 35 "sample/multiple_programs.c"
 {
 #line 35 "sample/multiple_programs.c"
-    // Prologue
+    // Prologue.
 #line 35 "sample/multiple_programs.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 35 "sample/multiple_programs.c"
@@ -256,7 +257,7 @@ program3(void* context)
 #line 21 "sample/multiple_programs.c"
 {
 #line 21 "sample/multiple_programs.c"
-    // Prologue
+    // Prologue.
 #line 21 "sample/multiple_programs.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 21 "sample/multiple_programs.c"
@@ -290,7 +291,7 @@ program4(void* context)
 #line 42 "sample/multiple_programs.c"
 {
 #line 42 "sample/multiple_programs.c"
-    // Prologue
+    // Prologue.
 #line 42 "sample/multiple_programs.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 42 "sample/multiple_programs.c"

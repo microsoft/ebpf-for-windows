@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -74,7 +75,7 @@ connect_redirect4(void* context)
 #line 140 "sample/cgroup_sock_addr2.c"
 {
 #line 140 "sample/cgroup_sock_addr2.c"
-    // Prologue
+    // Prologue.
 #line 140 "sample/cgroup_sock_addr2.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 140 "sample/cgroup_sock_addr2.c"
@@ -448,7 +449,7 @@ label_4:
     // EBPF_OP_EXIT pc=97 dst=r0 src=r0 offset=0 imm=0
 #line 142 "sample/cgroup_sock_addr2.c"
     return r0;
-#line 142 "sample/cgroup_sock_addr2.c"
+#line 140 "sample/cgroup_sock_addr2.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -479,7 +480,7 @@ connect_redirect6(void* context)
 #line 147 "sample/cgroup_sock_addr2.c"
 {
 #line 147 "sample/cgroup_sock_addr2.c"
-    // Prologue
+    // Prologue.
 #line 147 "sample/cgroup_sock_addr2.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 147 "sample/cgroup_sock_addr2.c"
@@ -880,7 +881,7 @@ label_4:
     // EBPF_OP_EXIT pc=105 dst=r0 src=r0 offset=0 imm=0
 #line 149 "sample/cgroup_sock_addr2.c"
     return r0;
-#line 149 "sample/cgroup_sock_addr2.c"
+#line 147 "sample/cgroup_sock_addr2.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

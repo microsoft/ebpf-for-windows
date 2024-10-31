@@ -173,6 +173,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -289,7 +290,7 @@ BindMonitor(void* context)
 #line 120 "sample/bindmonitor_tailcall.c"
 {
 #line 120 "sample/bindmonitor_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 120 "sample/bindmonitor_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 120 "sample/bindmonitor_tailcall.c"
@@ -373,7 +374,7 @@ label_1:
     // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
 #line 131 "sample/bindmonitor_tailcall.c"
     return r0;
-#line 131 "sample/bindmonitor_tailcall.c"
+#line 120 "sample/bindmonitor_tailcall.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -398,7 +399,7 @@ BindMonitor_Callee0(void* context)
 #line 136 "sample/bindmonitor_tailcall.c"
 {
 #line 136 "sample/bindmonitor_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 136 "sample/bindmonitor_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 136 "sample/bindmonitor_tailcall.c"
@@ -482,7 +483,7 @@ label_1:
     // EBPF_OP_EXIT pc=15 dst=r0 src=r0 offset=0 imm=0
 #line 147 "sample/bindmonitor_tailcall.c"
     return r0;
-#line 147 "sample/bindmonitor_tailcall.c"
+#line 136 "sample/bindmonitor_tailcall.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -509,7 +510,7 @@ BindMonitor_Callee1(void* context)
 #line 152 "sample/bindmonitor_tailcall.c"
 {
 #line 152 "sample/bindmonitor_tailcall.c"
-    // Prologue
+    // Prologue.
 #line 152 "sample/bindmonitor_tailcall.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 152 "sample/bindmonitor_tailcall.c"
@@ -879,7 +880,7 @@ label_6:
     // EBPF_OP_EXIT pc=87 dst=r0 src=r0 offset=0 imm=0
 #line 190 "sample/bindmonitor_tailcall.c"
     return r0;
-#line 190 "sample/bindmonitor_tailcall.c"
+#line 152 "sample/bindmonitor_tailcall.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
