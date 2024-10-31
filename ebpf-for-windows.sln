@@ -198,12 +198,12 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bpf2c_tests", "tests\bpf2c_
 		{B4AD72E3-754E-40CA-9CEA-D3F2C9170E51} = {B4AD72E3-754E-40CA-9CEA-D3F2C9170E51}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2WithMain", "external\Catch2\build\src\Catch2WithMain.vcxproj", "{8BD3552A-2CFB-4A59-AB15-2031B97ADA1E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2WithMain", "external\usersim\external\Catch2\build\src\Catch2WithMain.vcxproj", "{8BD3552A-2CFB-4A59-AB15-2031B97ADA1E}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2", "external\Catch2\build\src\Catch2.vcxproj", "{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Catch2", "external\usersim\external\Catch2\build\src\Catch2.vcxproj", "{8D538CBE-01BF-4A2E-A98A-6C368FDF13D7}"
 	ProjectSection(ProjectDependencies) = postProject
 		{231EE32B-EBA4-4FE5-A55B-DB18F539D403} = {231EE32B-EBA4-4FE5-A55B-DB18F539D403}
 	EndProjectSection
