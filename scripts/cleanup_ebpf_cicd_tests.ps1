@@ -51,11 +51,6 @@ $Job = Start-Job -ScriptBlock {
 
         if ($DumpFound -eq $True) {
             Write-Log "Post-crash reboot detected on VM $VMName"
-        } else {
-            # Stop eBPF Components on the test VM. (Un-install is not necessary.)
-            # We *MUST* be able to stop all drivers cleanly after a test.  Failure to do so indicates a fatal bug in
-            # one/some of the ebpf driver-set.
-            Stop-eBPFComponentsOnVM -VMName $VMname -ErrorAction Stop
         }
     }
 
@@ -89,7 +84,7 @@ while ($Job.State -eq 'Running') {
 
     if ($TimeElapsed -gt $TestJobTimeout) {
         if ($Job.State -eq "Running") {
-            $VMList = $Config.VMMap.$SelfHostedRunnerName
+            $VMList = $TestExecutionConfig.VMMap.$SelfHostedRunnerName
             # currently one VM is used per runner.
             $TestVMName = $VMList[0].Name
             Write-Host "Cleaning up VM $TestVMName for Kernel Tests has timed out after one hour" -ForegroundColor Yellow

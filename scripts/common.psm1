@@ -42,3 +42,34 @@ function New-Credential
     $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($UserName, $AdminPassword)
     return $Credential
 }
+
+
+function Compress-File
+{
+    param ([Parameter(Mandatory = $True)] [string] $SourcePath,
+           [Parameter(Mandatory = $True)] [string] $DestinationPath
+    )
+
+    Write-Log "Compressing $SourcePath -> $DestinationPath"
+
+    # Retry 3 times to ensure compression operation succeeds.
+    # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
+    $retryCount = 1
+    while ($retryCount -lt 4) {
+        $error.clear()
+        Compress-Archive `
+            -Path $SourcePath `
+            -DestinationPath $DestinationPath `
+            -CompressionLevel Fastest `
+            -Force
+        if ($error[0] -ne $null) {
+            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+            Write-Output $ErrorMessage
+            Start-Sleep -seconds (5 * $retryCount)
+            $retryCount++
+        } else {
+            # Compression succeeded.
+            break;
+        }
+    }
+}
