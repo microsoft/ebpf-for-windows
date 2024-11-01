@@ -67,6 +67,15 @@ static const std::string _register_names[11] = {
     "r10",
 };
 
+static const std::set<std::string> _callee_register_args = {
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r10",
+};
+
 enum class AluOperations
 {
     Add,
@@ -159,12 +168,12 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_ATOMIC64),   ADD_OPCODE(EBPF_OP_ATOMIC)};
 
 #define IS_ATOMIC_OPCODE(_opcode) \
-    (((_opcode) & INST_CLS_MASK) == INST_CLS_STX && ((_opcode) & INST_MODE_MASK) == EBPF_MODE_ATOMIC)
+    (((_opcode)&INST_CLS_MASK) == INST_CLS_STX && ((_opcode)&INST_MODE_MASK) == EBPF_MODE_ATOMIC)
 
 #define IS_JMP_CLASS_OPCODE(_opcode) \
-    (((_opcode) & INST_CLS_MASK) == INST_CLS_JMP || ((_opcode) & INST_CLS_MASK) == INST_CLS_JMP32)
+    (((_opcode)&INST_CLS_MASK) == INST_CLS_JMP || ((_opcode)&INST_CLS_MASK) == INST_CLS_JMP32)
 
-#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode) & INST_CLS_MASK) == INST_CLS_JMP32)
+#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode)&INST_CLS_MASK) == INST_CLS_JMP32)
 
 #define IS_SIGNED_CMP_OPCODE(_opcode)                                                          \
     (((_opcode) >> 4) == (EBPF_MODE_JSGT >> 4) || ((_opcode) >> 4) == (EBPF_MODE_JSGE >> 4) || \
@@ -184,18 +193,18 @@ operator+(const std::string& lhs, const bpf_code_generator::unsafe_string& rhs)
 }
 
 std::string
-bpf_code_generator::get_register_name(uint8_t id)
+bpf_code_generator::bpf_code_generator_program::get_register_name(uint8_t id)
 {
     if (id >= _countof(_register_names)) {
-        throw bpf_code_generator_exception("invalid register id");
+        throw bpf_code_generator::bpf_code_generator_exception("invalid register id");
     } else {
-        current_program->referenced_registers.insert(_register_names[id]);
+        referenced_registers.insert(_register_names[id]);
         return _register_names[id];
     }
 }
 
 ELFIO::section*
-bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string& name)
+bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string& name) const
 {
     auto section = get_optional_section(name);
     if (!section) {
@@ -205,7 +214,7 @@ bpf_code_generator::get_required_section(const bpf_code_generator::unsafe_string
 }
 
 ELFIO::section*
-bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string& name)
+bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string& name) const
 {
     auto section = reader.sections[name.raw()];
     if (!is_section_valid(section)) {
@@ -215,7 +224,7 @@ bpf_code_generator::get_optional_section(const bpf_code_generator::unsafe_string
 }
 
 bool
-bpf_code_generator::is_section_valid(const ELFIO::section* section)
+bpf_code_generator::is_section_valid(const ELFIO::section* section) const
 {
     if (!section) {
         return false;
@@ -229,35 +238,53 @@ bpf_code_generator::is_section_valid(const ELFIO::section* section)
     return true;
 }
 
+// This constructor is called when we are starting from an ELF file,
+// and so have function names we can use when generating code.
 bpf_code_generator::bpf_code_generator(
     std::istream& stream,
-    const bpf_code_generator::unsafe_string& c_name,
+    const bpf_code_generator::unsafe_string& file_name,
     const std::optional<std::vector<uint8_t>>& elf_file_hash)
-    : current_program(nullptr), c_name(c_name), path(path), elf_file_hash(elf_file_hash)
+    : c_name(file_name), path(path), elf_file_hash(elf_file_hash)
 {
     if (!reader.load(stream)) {
-        throw bpf_code_generator_exception("can't process ELF file " + c_name);
+        throw bpf_code_generator_exception("can't process ELF file " + file_name);
     }
 
     extract_btf_information();
 }
 
+// This constructor is called when we just have raw byte code, rather than an ELF file,
+// and so have no function names or symbols. We manufacture function names for
+// code generation purposes.
 bpf_code_generator::bpf_code_generator(
     const bpf_code_generator::unsafe_string& c_name, const std::vector<ebpf_inst>& instructions)
     : c_name(c_name)
 {
-    current_program = &programs[c_name];
-    get_register_name(0);
-    get_register_name(1);
-    get_register_name(10);
+    bpf_code_generator_program* current_program = add_program(c_name, c_name);
     uint32_t offset = 0;
     for (const auto& instruction : instructions) {
-        current_program->output.push_back({instruction, offset++});
+        std::string unsafe_name = "local_subprogram" + std::to_string(offset);
+        if (programs.contains(unsafe_name)) {
+            // This instruction is the start of a subprogram, so generate the
+            // one we just finished and start a new one.
+            generate(current_program->program_name);
+            current_program = &programs[unsafe_name];
+        }
+        current_program->output_instructions.push_back({instruction, offset++});
+        if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
+            // Local function call, so we need a subprogram that starts at the indicated offset.
+            size_t subprogram_offset = ((size_t)offset) + instruction.imm;
+            unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
+            unsafe_string name(unsafe_name);
+            add_program(name, ".text");
+            current_program->output_instructions.back().relocation = name;
+        }
     }
+    generate(current_program->program_name);
 }
 
 std::vector<bpf_code_generator::unsafe_string>
-bpf_code_generator::program_sections()
+bpf_code_generator::program_sections() const
 {
     std::vector<bpf_code_generator::unsafe_string> section_names;
     for (const auto& section : reader.sections) {
@@ -282,68 +309,59 @@ bpf_code_generator::program_sections()
 }
 
 void
-bpf_code_generator::set_program_information(_In_ const ebpf_program_info_t* program_info)
-{
-    current_program->program_info = program_info;
-}
-
-void
 bpf_code_generator::parse(
-    const ebpf_api_program_info_t* program,
-    _In_opt_ const ebpf_program_info_t* program_info,
+    _In_ const ebpf_api_program_info_t* program,
+    _In_ const ebpf_program_info_t* program_info,
     const GUID& program_type,
     const GUID& attach_type,
-    const std::string& program_info_hash_type)
+    const std::string& program_info_hash_type,
+    _In_ const ebpf_api_program_info_t* infos)
 {
-    current_program = &programs[program->program_name];
-    get_register_name(0);
-    get_register_name(1);
-    get_register_name(10);
+    bpf_code_generator_program& current_program = programs[program->program_name];
 
-    if (program_info != nullptr) {
-        set_program_information(program_info);
-    }
-
-    current_program->elf_section_name = program->section_name;
-    current_program->program_name = program->program_name;
-    current_program->offset_in_section = program->offset_in_section;
-    set_pe_section_name(program->section_name);
-    set_program_and_attach_type_and_hash_type(program_type, attach_type, program_info_hash_type);
-    extract_program(program);
-    extract_relocations_and_maps(program->section_name);
+    current_program.program_info = program_info;
+    current_program.elf_section_name = program->section_name;
+    current_program.program_name = program->program_name;
+    current_program.offset_in_section = program->offset_in_section;
+    set_pe_section_name(current_program, program->section_name);
+    current_program.set_program_and_attach_type_and_hash_type(program_type, attach_type, program_info_hash_type);
+    extract_program(program, infos);
 }
 
 void
-bpf_code_generator::set_program_and_attach_type_and_hash_type(
-    const GUID& program_type, const GUID& attach_type, const std::string& program_info_hash_type)
+bpf_code_generator::bpf_code_generator_program::set_program_and_attach_type_and_hash_type(
+    const GUID& ptype, const GUID& attach_type, const std::string& hash_type)
 {
-    memcpy(&current_program->program_type, &program_type, sizeof(GUID));
-    memcpy(&current_program->expected_attach_type, &attach_type, sizeof(GUID));
-    current_program->program_info_hash_type = program_info_hash_type;
+    memcpy(&this->program_type, &ptype, sizeof(GUID));
+    memcpy(&this->expected_attach_type, &attach_type, sizeof(GUID));
+    this->program_info_hash_type = hash_type;
 }
 
 void
-bpf_code_generator::set_program_hash_info(const std::optional<std::vector<uint8_t>>& program_info_hash)
+bpf_code_generator::set_program_hash_info(
+    const unsafe_string& program_name, const std::optional<std::vector<uint8_t>>& program_info_hash)
 {
-    current_program->program_info_hash = program_info_hash;
+    bpf_code_generator_program& program = programs[program_name];
+
+    program.program_info_hash = program_info_hash;
 }
 
 void
-bpf_code_generator::generate(
-    const bpf_code_generator::unsafe_string& section_name, const bpf_code_generator::unsafe_string& program_name)
+bpf_code_generator::generate(const bpf_code_generator::unsafe_string& program_name)
 {
-    current_program = &programs[program_name];
+    bpf_code_generator_program& program = programs[program_name];
 
-    generate_labels();
-    build_function_table();
-    encode_instructions(section_name);
+    program.generate_labels();
+    program.build_function_table();
+    program.encode_instructions(map_definitions);
 }
 
 std::vector<int32_t>
-bpf_code_generator::get_helper_ids()
+bpf_code_generator::get_helper_ids(const bpf_code_generator::unsafe_string& program_name)
 {
+    bpf_code_generator_program& program = programs[program_name];
     std::vector<int32_t> helper_ids;
-    for (const auto& [name, helper] : current_program->helper_functions) {
+    for (const auto& [name, helper] : program.helper_functions) {
         helper_ids.push_back(helper.id);
     }
 
@@ -351,16 +369,55 @@ bpf_code_generator::get_helper_ids()
 }
 
 void
-bpf_code_generator::extract_program(const ebpf_api_program_info_t* program_info)
+bpf_code_generator::extract_program(
+    const ebpf_api_program_info_t* program_info, _In_ const ebpf_api_program_info_t* infos)
 {
-    std::vector<ebpf_inst> program{
+    std::vector<ebpf_inst> instructions{
         reinterpret_cast<const ebpf_inst*>(program_info->raw_data),
         reinterpret_cast<const ebpf_inst*>(program_info->raw_data + program_info->raw_data_size)};
 
+    bpf_code_generator_program& program = programs[program_info->program_name];
+
     uint32_t offset = 0;
-    for (const auto& instruction : program) {
-        current_program->output.push_back({instruction, offset++});
+    size_t end_index = instructions.size();
+    for (size_t index = 0; index < end_index; index++) {
+        const auto& instruction = instructions[index];
+
+        // At this point, instructions will contain all subprograms appended by the loader.
+        // However, we want only the main program instructions under the main program
+        // function, and subprograms to be under their own function.  Note that there may
+        // have been multiple subprograms in the same .text section.
+        if (instruction.opcode == INST_OP_CALL && instruction.src == INST_CALL_LOCAL) {
+            size_t callee_index = index + 1 + instruction.imm;
+            if (end_index > callee_index) {
+                end_index = callee_index;
+            }
+            size_t callee_offset = callee_index * sizeof(ebpf_inst);
+
+            // Add subprogram to the list to be parsed.  First we have to find what
+            // the original function name was.  We do this by looking through all other
+            // programs to see which one matches the content at that offset, modulo relocations.
+            // That is, besides having its own entry in the infos list, a subprogram's
+            // byte code will have been appended by the loader to the end of the caller's
+            // byte code and so will also appear there.  Thus we can detect a subprogram
+            // by seeing if another entry's byte code is identical to what appears starting
+            // at the current index.  If so, we can get the symbol name from the matching
+            // info.
+            for (const ebpf_api_program_info_t* info = infos; info; info = info->next) {
+                if (program_info->raw_data_size < callee_offset + info->raw_data_size) {
+                    continue;
+                }
+                if (memcmp(program_info->raw_data + callee_offset, info->raw_data, info->raw_data_size) == 0) {
+                    add_program(info->program_name, info->section_name);
+                    extract_program(info, infos);
+                }
+            }
+        }
+        program.output_instructions.push_back({instruction, offset++});
     }
+
+    extract_relocations_and_maps(program_info);
+    generate(program_info->program_name);
 }
 
 // BTF maps sections are identified as any section called ".maps".
@@ -624,7 +681,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
 
 // Parse global data (currently map information) in the eBPF file.
 void
-bpf_code_generator::parse()
+bpf_code_generator::parse_global_data()
 {
     for (auto& section : reader.sections) {
         std::string name = section->get_name();
@@ -732,12 +789,34 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
     }
 }
 
-void
-bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsafe_string& section_name)
+bpf_code_generator::bpf_code_generator_program*
+bpf_code_generator::add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name)
 {
+    bpf_code_generator::bpf_code_generator_program* program = &programs[program_name];
+    program->program_name = program_name;
+    program->elf_section_name = elf_section_name;
+    set_pe_section_name(*program, elf_section_name);
+    return program;
+}
+
+bool
+bpf_code_generator::is_subprogram(const bpf_code_generator_program& program) const
+{
+    return (programs.size() > 1 && program.elf_section_name == ".text");
+}
+
+void
+bpf_code_generator::extract_relocations_and_maps(_In_ const struct _ebpf_api_program_info* program)
+{
+    bpf_code_generator_program* current_program = &programs[program->program_name];
+
     auto map_section = get_optional_section("maps");
+    if (map_section == nullptr) {
+        map_section = get_optional_section(".maps");
+    }
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
 
+    unsafe_string section_name(program->section_name);
     auto relocations = get_optional_section(".rel" + section_name);
     if (!relocations) {
         relocations = get_optional_section(".rela" + section_name);
@@ -764,12 +843,13 @@ bpf_code_generator::extract_relocations_and_maps(const bpf_code_generator::unsaf
                     throw bpf_code_generator_exception("Can't perform relocation at offset ", offset);
                 }
                 if (offset < current_program->offset_in_section ||
-                    offset >= current_program->offset_in_section + current_program->output.size() * sizeof(ebpf_inst)) {
+                    offset >= current_program->offset_in_section +
+                                  current_program->output_instructions.size() * sizeof(ebpf_inst)) {
                     // Relocation is for a different program.
                     continue;
                 }
-                current_program->output[(offset - current_program->offset_in_section) / sizeof(ebpf_inst)].relocation =
-                    unsafe_name;
+                current_program->output_instructions[(offset - current_program->offset_in_section) / sizeof(ebpf_inst)]
+                    .relocation = unsafe_name;
                 if (map_section && section_index == map_section->get_index()) {
                     // Check that the map exists in the list of map definitions.
                     if (map_definitions.find(unsafe_name) == map_definitions.end()) {
@@ -814,49 +894,50 @@ bpf_code_generator::extract_btf_information()
 }
 
 void
-bpf_code_generator::generate_labels()
+bpf_code_generator::bpf_code_generator_program::generate_labels()
 {
-    std::vector<output_instruction_t>& program_output = current_program->output;
+    std::vector<output_instruction_t>& program_output = output_instructions;
 
-    // Tag jump targets
+    // Tag jump targets.
     for (size_t i = 0; i < program_output.size(); i++) {
-        auto& output = program_output[i];
-        if (!IS_JMP_CLASS_OPCODE(output.instruction.opcode)) {
+        auto& output_instruction = program_output[i];
+        if (!IS_JMP_CLASS_OPCODE(output_instruction.instruction.opcode)) {
             continue;
         }
-        if (output.instruction.opcode == INST_OP_CALL) {
+        if (output_instruction.instruction.opcode == INST_OP_CALL) {
             continue;
         }
-        if (output.instruction.opcode == INST_OP_EXIT) {
+        if (output_instruction.instruction.opcode == INST_OP_EXIT) {
             continue;
         }
         int32_t offset =
-            ((output.instruction.opcode == INST_OP_JA32) ? output.instruction.imm : output.instruction.offset);
+            ((output_instruction.instruction.opcode == INST_OP_JA32) ? output_instruction.instruction.imm
+                                                                     : output_instruction.instruction.offset);
         if ((i + offset + 1) >= program_output.size()) {
             throw bpf_code_generator_exception("invalid jump target", i);
         }
         program_output[i + offset + 1].jump_target = true;
     }
 
-    // Add labels to instructions that are targets of jumps
+    // Add labels to instructions that are targets of jumps.
     size_t label_index = 1;
-    for (auto& output : program_output) {
-        if (!output.jump_target) {
+    for (auto& output_instruction : program_output) {
+        if (!output_instruction.jump_target) {
             continue;
         }
-        output.label = "label_" + std::to_string(label_index++);
+        output_instruction.label = "label_" + std::to_string(label_index++);
     }
 }
 
 void
-bpf_code_generator::build_function_table()
+bpf_code_generator::bpf_code_generator_program::build_function_table()
 {
-    std::vector<output_instruction_t>& program_output = current_program->output;
+    std::vector<output_instruction_t>& program_output = output_instructions;
 
-    // Gather helper_functions
+    // Gather helper_functions.
     size_t index = 0;
     for (auto& output : program_output) {
-        if (output.instruction.opcode != INST_OP_CALL) {
+        if (output.instruction.opcode != INST_OP_CALL || output.instruction.src != INST_CALL_STATIC_HELPER) {
             continue;
         }
         bpf_code_generator::unsafe_string name;
@@ -867,19 +948,20 @@ bpf_code_generator::build_function_table()
             name += std::to_string(output.instruction.imm);
         }
 
-        if (current_program->helper_functions.find(name) == current_program->helper_functions.end()) {
+        if (helper_functions.find(name) == helper_functions.end()) {
             int32_t helper_id = output.instruction.imm;
-            current_program->helper_functions[name] = {helper_id, index++};
+            helper_functions[name] = {helper_id, index++};
         }
     }
 }
 
 void
-bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string& section_name)
+bpf_code_generator::bpf_code_generator_program::encode_instructions(
+    std::map<unsafe_string, map_entry_t>& map_definitions)
 {
-    std::vector<output_instruction_t>& program_output = current_program->output;
-    auto program_name = !current_program->program_name.empty() ? current_program->program_name : section_name;
-    auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
+    std::vector<output_instruction_t>& program_output = output_instructions;
+    auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
+    auto helper_array_prefix = effective_program_name.c_identifier() + "_helpers[{}]";
 
     // Encode instructions
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -1127,7 +1209,7 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                 }
                 source = std::format("_maps[{}].address", std::to_string(map_definition->second.index));
                 output.lines.push_back(std::format("{} = POINTER({});", destination, source));
-                current_program->referenced_map_indices.insert(map_definitions[output.relocation].index);
+                referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
         } break;
         case INST_CLS_LDX: {
@@ -1303,16 +1385,16 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
             } else if (inst.opcode == INST_OP_JA32) {
                 std::string target = program_output[i + inst.imm + 1].label;
                 output.lines.push_back("goto " + target + ";");
-            } else if (inst.opcode == INST_OP_CALL) {
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_STATIC_HELPER) {
                 std::string function_name;
                 if (output.relocation.empty()) {
-                    auto str = std::to_string(
-                        current_program->helper_functions["helper_id_" + std::to_string(output.instruction.imm)].index);
+                    auto str =
+                        std::to_string(helper_functions["helper_id_" + std::to_string(output.instruction.imm)].index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 } else {
-                    auto helper_function = current_program->helper_functions.find(output.relocation);
-                    assert(helper_function != current_program->helper_functions.end());
-                    auto str = std::to_string(current_program->helper_functions[output.relocation].index);
+                    auto helper_function = helper_functions.find(output.relocation);
+                    assert(helper_function != helper_functions.end());
+                    auto str = std::to_string(helper_functions[output.relocation].index);
                     function_name = std::vformat(helper_array_prefix, make_format_args(str));
                 }
 
@@ -1325,7 +1407,12 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
                     std::format("if (({}.tail_call) && ({} == 0)) {{", function_name, get_register_name(0)));
                 output.lines.push_back(INDENT "return 0;");
                 output.lines.push_back("}");
-
+            } else if (inst.opcode == INST_OP_CALL && inst.src == INST_CALL_LOCAL) {
+                std::string function_name = output.relocation.c_identifier();
+                output.lines.push_back(
+                    get_register_name(0) + " = " + function_name + "(" + get_register_name(1) + ", " +
+                    get_register_name(2) + ", " + get_register_name(3) + ", " + get_register_name(4) + ", " +
+                    get_register_name(5) + ", " + get_register_name(10) + ", context);");
             } else if (inst.opcode == INST_OP_EXIT) {
                 output.lines.push_back("return " + get_register_name(0) + ";");
             } else {
@@ -1344,6 +1431,85 @@ bpf_code_generator::encode_instructions(const bpf_code_generator::unsafe_string&
 
         default:
             throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
+        }
+    }
+}
+
+void
+bpf_code_generator::emit_subprogram(std::ostream& output_stream, const bpf_code_generator_program& subprogram)
+{
+    std::string prolog_line_info;
+
+    // Emit entry point.
+    output_stream << prolog_line_info << "static uint64_t\n"
+                  << subprogram.program_name.c_identifier()
+                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context)"
+                  << std::endl;
+    output_stream << prolog_line_info << "{" << std::endl;
+
+    // Emit prologue.
+    for (const auto& r : _register_names) {
+        // Skip args.
+        if (_callee_register_args.find(r) != _callee_register_args.end()) {
+            if (subprogram.referenced_registers.find(r) == subprogram.referenced_registers.end()) {
+                output_stream << prolog_line_info << INDENT "(void)" << r.c_str() << ";" << std::endl;
+            }
+            continue;
+        }
+
+        // Skip unused registers.
+        if (subprogram.referenced_registers.find(r) == subprogram.referenced_registers.end()) {
+            continue;
+        }
+        output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
+    }
+    if (subprogram.helper_functions.size() == 0) {
+        // Avoid unused parameter warning.
+        output_stream << prolog_line_info << INDENT "(void)context;" << std::endl;
+    }
+    output_stream << std::endl;
+
+    auto& line_info = section_line_info[subprogram.elf_section_name];
+    subprogram.emit_instructions(output_stream, line_info);
+
+    // Emit epilogue.
+    output_stream << prolog_line_info << "}" << std::endl;
+}
+
+void
+bpf_code_generator::bpf_code_generator_program::emit_instructions(
+    std::ostream& output_stream, std::map<size_t, line_info_t>& line_info) const
+{
+    std::string prolog_line_info;
+
+    for (const auto& output : output_instructions) {
+        if (output.lines.empty()) {
+            continue;
+        }
+        if (!output.label.empty()) {
+            output_stream << output.label << ":" << std::endl;
+        }
+        auto current_line = line_info.find(output.instruction_offset);
+        if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
+            current_line->second.line_number != 0) {
+            prolog_line_info = std::format(
+                "#line {} {}\n",
+                std::to_string(current_line->second.line_number),
+                current_line->second.file_name.quoted_filename());
+        }
+#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
+        output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
+        if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
+            output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
+        }
+        output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
+                      << " src=r" << std::to_string(output.instruction.src)
+                      << " offset=" << std::to_string(output.instruction.offset)
+                      << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+
+#endif
+        for (const auto& line : output.lines) {
+            output_stream << prolog_line_info << INDENT "" << line << std::endl;
         }
     }
 }
@@ -1377,12 +1543,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << INDENT "*size = 0;" << std::endl;
     }
     output_stream << "}" << std::endl;
+    output_stream << std::endl;
 
     // Emit import tables.
     if (map_definitions.size() > 0) {
         output_stream << "#pragma data_seg(push, \"maps\")" << std::endl;
         output_stream << "static map_entry_t _maps[] = {" << std::endl;
         size_t map_size = map_definitions.size();
+
         // Sort maps by index.
         std::vector<std::tuple<bpf_code_generator::unsafe_string, map_entry_t>> maps_by_index(map_size);
         for (const auto& pair : map_definitions) {
@@ -1391,6 +1559,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
             maps_by_index[pair.second.index] = pair;
         }
+
         // Emit maps by index.
         for (const auto& [name, entry] : maps_by_index) {
             std::string map_type;
@@ -1467,12 +1636,24 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
+    // Get count of programs not including subprograms.
+    size_t program_count = 0;
     for (auto& [name, program] : programs) {
-        auto program_name = !program.program_name.empty() ? program.program_name : name;
-
-        if (program.output.size() == 0) {
+        if (program.output_instructions.size() == 0) {
             continue;
         }
+        if (is_subprogram(program)) {
+            continue;
+        }
+        program_count++;
+    }
+
+    for (auto& [name, program] : programs) {
+        if (program.output_instructions.size() == 0) {
+            continue;
+        }
+
+        auto program_name = !program.program_name.empty() ? program.program_name : name;
 
         // Emit program-specific helper function array.
         if (program.helper_functions.size() > 0) {
@@ -1491,6 +1672,24 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             output_stream << "};" << std::endl;
+            output_stream << std::endl;
+        }
+
+        if (is_subprogram(program)) {
+            continue;
+        }
+
+        if (programs.size() > program_count) {
+            output_stream << "// Forward references for local functions." << std::endl;
+            for (auto& [_, subprogram] : programs) {
+                if (is_subprogram(subprogram)) {
+                    output_stream << "static uint64_t" << std::endl;
+                    output_stream << subprogram.program_name.c_identifier()
+                                  << "(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, "
+                                     "void* context);"
+                                  << std::endl;
+                }
+            }
             output_stream << std::endl;
         }
 
@@ -1546,7 +1745,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
 
         auto& line_info = section_line_info[program.elf_section_name];
-        auto first_line_info = line_info.find(program.output.front().instruction_offset);
+        auto first_line_info = line_info.find(program.output_instructions.front().instruction_offset);
         std::string prolog_line_info;
 
         auto result = std::find_if(line_info.begin(), line_info.end(), [&prolog_line_info](const auto& pair) {
@@ -1558,13 +1757,16 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             return true;
         });
 
-        // Emit entry point
+        // Emit entry point.
         output_stream << "#pragma code_seg(push, " << program.pe_section_name.quoted() << ")" << std::endl;
         output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue.
-        output_stream << prolog_line_info << INDENT "// Prologue" << std::endl;
+        program.get_register_name(0);
+        program.get_register_name(1);
+        program.get_register_name(10);
+        output_stream << prolog_line_info << INDENT "// Prologue." << std::endl;
         output_stream << prolog_line_info << INDENT "uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];" << std::endl;
         for (const auto& r : _register_names) {
             // Skip unused registers.
@@ -1574,53 +1776,35 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << prolog_line_info << INDENT "register uint64_t " << r.c_str() << " = 0;" << std::endl;
         }
         output_stream << std::endl;
-        output_stream << prolog_line_info << INDENT "" << get_register_name(1) << " = (uintptr_t)context;" << std::endl;
-        output_stream << prolog_line_info << INDENT "" << get_register_name(10)
+        output_stream << prolog_line_info << INDENT "" << program.get_register_name(1) << " = (uintptr_t)context;"
+                      << std::endl;
+        output_stream << prolog_line_info << INDENT "" << program.get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
         output_stream << std::endl;
 
         // Emit encoded instructions.
-        for (const auto& output : program.output) {
-            if (output.lines.empty()) {
-                continue;
-            }
-            if (!output.label.empty()) {
-                output_stream << output.label << ":" << std::endl;
-            }
-            auto current_line = line_info.find(output.instruction_offset);
-            if (current_line != line_info.end() && !current_line->second.file_name.empty() &&
-                current_line->second.line_number != 0) {
-                prolog_line_info = std::format(
-                    "#line {} {}\n",
-                    std::to_string(current_line->second.line_number),
-                    current_line->second.file_name.quoted_filename());
-            }
-#if defined(_DEBUG) || defined(BPF2C_VERBOSE)
-            output_stream << INDENT "// " << _opcode_name_strings[output.instruction.opcode];
-            if (IS_ATOMIC_OPCODE(output.instruction.opcode)) {
-                output_stream << "_" << _atomic_opcode_name_strings[output.instruction.imm];
-            }
-            output_stream << " pc=" << output.instruction_offset << " dst=r" << std::to_string(output.instruction.dst)
-                          << " src=r" << std::to_string(output.instruction.src)
-                          << " offset=" << std::to_string(output.instruction.offset)
-                          << " imm=" << std::to_string(output.instruction.imm) << std::endl;
+        program.emit_instructions(output_stream, line_info);
 
-#endif
-            for (const auto& line : output.lines) {
-                output_stream << prolog_line_info << INDENT "" << line << std::endl;
-            }
-        }
-        // Emit epilogue
+        // Emit epilogue.
         output_stream << prolog_line_info << "}" << std::endl;
         output_stream << "#pragma code_seg(pop)" << std::endl;
         output_stream << "#line __LINE__ __FILE__" << std::endl << std::endl;
+
+        // Emit subprograms.
+        for (auto& [_, subprogram] : programs) {
+            if (is_subprogram(subprogram)) {
+                emit_subprogram(output_stream, subprogram);
+            }
+        }
     }
 
-    if (programs.size() != 0) {
-
+    if (program_count != 0) {
         output_stream << "#pragma data_seg(push, \"programs\")" << std::endl;
         output_stream << "static program_entry_t _programs[] = {" << std::endl;
         for (auto& [name, program] : programs) {
+            if (is_subprogram(program)) {
+                continue;
+            }
             auto program_name = !program.program_name.empty() ? program.program_name : name;
             size_t map_count = program.referenced_map_indices.size();
             size_t helper_count = program.helper_functions.size();
@@ -1639,13 +1823,13 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT << program.referenced_map_indices.size() << "," << std::endl;
             output_stream << INDENT INDENT << helper_array_name.c_str() << "," << std::endl;
             output_stream << INDENT INDENT << program.helper_functions.size() << "," << std::endl;
-            output_stream << INDENT INDENT << program.output.size() << "," << std::endl;
+            output_stream << INDENT INDENT << program.output_instructions.size() << "," << std::endl;
             output_stream << INDENT INDENT "&" << program_type_guid_name << "," << std::endl;
             output_stream << INDENT INDENT "&" << attach_type_guid_name << "," << std::endl;
             if (program.program_info_hash.has_value()) {
                 output_stream << INDENT INDENT << program_info_hash_name << "," << std::endl;
                 output_stream << INDENT INDENT << program.program_info_hash.value().size() << "," << std::endl;
-                // Append the hash type
+                // Append the hash type.
                 std::string hash_string = program.program_info_hash_type;
                 if (hash_string.empty()) {
                     // If the hash type is not known, use the default hash type.
@@ -1665,12 +1849,12 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                   << "_get_programs(_Outptr_result_buffer_(*count) program_entry_t** programs, _Out_ size_t* count)"
                   << std::endl;
     output_stream << "{" << std::endl;
-    if (programs.size() != 0) {
+    if (program_count != 0) {
         output_stream << INDENT "*programs = _programs;" << std::endl;
     } else {
         output_stream << INDENT "*programs = NULL;" << std::endl;
     }
-    output_stream << INDENT "*count = " << std::to_string(programs.size()) << ";" << std::endl;
+    output_stream << INDENT "*count = " << std::to_string(program_count) << ";" << std::endl;
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
@@ -1749,7 +1933,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 }
 
 std::string
-bpf_code_generator::format_guid(const GUID* guid, bool split)
+bpf_code_generator::format_guid(const GUID* guid, bool split) const
 {
     std::string output(120, '\0');
     std::string format_string;
@@ -1783,10 +1967,11 @@ bpf_code_generator::format_guid(const GUID* guid, bool split)
 }
 
 void
-bpf_code_generator::set_pe_section_name(const bpf_code_generator::unsafe_string& elf_section_name)
+bpf_code_generator::set_pe_section_name(
+    _Inout_ bpf_code_generator_program& program, const bpf_code_generator::unsafe_string& elf_section_name)
 {
     if (elf_section_name.length() <= 8) {
-        current_program->pe_section_name = elf_section_name;
+        program.pe_section_name = elf_section_name;
         return;
     }
 
@@ -1798,5 +1983,5 @@ bpf_code_generator::set_pe_section_name(const bpf_code_generator::unsafe_string&
     int prefix_length = sizeof(shortname) - 3 - (int)(log10(pe_section_name_counter));
     strncpy_s(shortname, sizeof(shortname), elf_section_name.raw().c_str(), prefix_length);
     sprintf_s(shortname + prefix_length, sizeof(shortname) - prefix_length, "~%d", pe_section_name_counter);
-    current_program->pe_section_name = shortname;
+    program.pe_section_name = shortname;
 }

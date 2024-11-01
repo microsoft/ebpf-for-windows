@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -60,7 +61,7 @@ encap_reflect_packet(void* context)
 #line 167 "sample/encap_reflect_packet.c"
 {
 #line 167 "sample/encap_reflect_packet.c"
-    // Prologue
+    // Prologue.
 #line 167 "sample/encap_reflect_packet.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 167 "sample/encap_reflect_packet.c"
@@ -1180,7 +1181,7 @@ label_5:
     // EBPF_OP_EXIT pc=321 dst=r0 src=r0 offset=0 imm=0
 #line 216 "sample/encap_reflect_packet.c"
     return r0;
-#line 216 "sample/encap_reflect_packet.c"
+#line 167 "sample/encap_reflect_packet.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
