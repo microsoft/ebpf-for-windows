@@ -496,7 +496,7 @@ _find_array_map_entry_with_reference(
         return result;
     }
 
-    ebpf_id_t *id = (ebpf_id_t*)(*data);
+    ebpf_id_t* id = (ebpf_id_t*)(*data);
     if (id != NULL && *id == 0) {
         // Turn zero ID into EBPF_OBJECT_NOT_FOUND.
         *data = NULL;
@@ -2922,10 +2922,12 @@ ebpf_map_get_next_key_and_value_batch(
 
         memcpy(key_and_value + output_length + key_size, next_value, value_size);
 
-        if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
-            // If the caller requested deletion, delete the entry.
+        if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL)) {
+            // If the caller requested deletion, delete the previous entry.
             result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_UINT64(
+                    EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete entry", result);
                 break;
             }
         }
@@ -2942,6 +2944,17 @@ ebpf_map_get_next_key_and_value_batch(
     }
 
     *key_and_value_length = output_length;
+
+    if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL) && (output_length != 0)) {
+        // If the caller requested deletion, delete the last entry.
+        ebpf_result_t delete_result =
+            ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
+        if (delete_result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete last entry", delete_result);
+            result = delete_result;
+        }
+    }
 
     return result;
 }

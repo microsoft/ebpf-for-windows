@@ -3632,6 +3632,7 @@ _test_maps_batch(bpf_map_type map_type)
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
     REQUIRE(fetched_batch_size == batch_size);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
 
     // Request more keys than present.
     uint32_t large_fetched_batch_size = fetched_batch_size * 2;
@@ -3639,7 +3640,7 @@ _test_maps_batch(bpf_map_type map_type)
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &large_fetched_batch_size, &opts) ==
         0);
-    REQUIRE(fetched_batch_size == batch_size);
+    REQUIRE(large_fetched_batch_size == batch_size);
 
     // Search at end of map.
     REQUIRE(
@@ -3652,18 +3653,56 @@ _test_maps_batch(bpf_map_type map_type)
             &large_fetched_batch_size,
             &opts) == -ENOENT);
 
-    // Fetch all keys in batches.
+    // Verify all keys and values in batches.
     _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
 
-    // Delete the batch.
+    // Delete all keys in one batch.
     uint32_t delete_batch_size = batch_size;
     opts.elem_flags = 0;
-
-    // Delete all keys in one batch.
     REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == 0);
     REQUIRE(delete_batch_size == batch_size);
 
-    // Fetch all keys in one batch.
+    // Verify there are no entries, after deletion.
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -ENOENT);
+
+    // Lookup and Delete batch operation.
+    opts.elem_flags = BPF_NOEXIST;
+    update_batch_size = batch_size;
+
+    // Populate the map with the keys and values.
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == 0);
+    REQUIRE(update_batch_size == batch_size);
+
+    next_key = 0;
+    opts.elem_flags = BPF_ANY;
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
+    // Verify the fetched_keys and fetched_values are returned correctly.
+    std::sort(fetched_keys.begin(), fetched_keys.end());
+    REQUIRE(fetched_keys == keys);
+    std::sort(fetched_values.begin(), fetched_values.end());
+    REQUIRE(fetched_values == values);
+
+    next_key = 0;
+    REQUIRE(
+        bpf_map_lookup_and_delete_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+    REQUIRE(next_key == 0);
+    // Verify the fetched_keys and fetched_values are returned correctly.
+    std::sort(fetched_keys.begin(), fetched_keys.end());
+    REQUIRE(fetched_keys == keys);
+    std::sort(fetched_values.begin(), fetched_values.end());
+    REQUIRE(fetched_values == values);
+
+    // Verify there are no entries, after deletion.
     REQUIRE(
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==

@@ -601,8 +601,16 @@ _ebpf_map_lookup_element_batch_helper(
         }
         count_returned += entries_returned;
 
-        // Point previous_key to the last key in the batch.
-        previous_key = (uint8_t*)keys + (count_returned - 1) * key_size;
+        // Set the previous_key for the next batch.
+        if (find_and_delete || count_returned == 0) {
+            // If find_and_delete is set to true, the entries are already deleted.
+            // If no more entries are returned, there is no need to fetch more.
+            // Hence the previous_key is set to null.
+            previous_key = nullptr;
+        } else {
+            // Point previous_key to the last key in the batch.
+            previous_key = (uint8_t*)keys + (count_returned - 1) * key_size;
+        }
 
         // Partial return signals last no more entries.
         if (entries_returned != entries_to_fetch) {
@@ -610,8 +618,11 @@ _ebpf_map_lookup_element_batch_helper(
         }
     }
 
-    // Copy previous key into out_batch.
-    std::copy(previous_key, previous_key + key_size, (uint8_t*)out_batch);
+    memset((uint8_t*)out_batch, 0, key_size);
+    // Copy previous key into out_batch, if find_and_delete is false.
+    if (!find_and_delete && (previous_key != nullptr)) {
+        std::copy(previous_key, previous_key + key_size, (uint8_t*)out_batch);
+    }
 
     *count = static_cast<uint32_t>(count_returned);
 
