@@ -979,6 +979,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 source = "IMMEDIATE(" + std::to_string(inst.imm) + ")";
             }
             bool is64bit = (inst.opcode & INST_CLS_MASK) == INST_CLS_ALU64;
+            int bits = is64bit ? 64 : 32;
             AluOperations operation = static_cast<AluOperations>(inst.opcode >> 4);
             std::string swap_function;
             std::string type;
@@ -993,14 +994,30 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back(std::format("{} *= {};", destination, source));
                 break;
             case AluOperations::Div:
-                if (is64bit) {
-                    type = (inst.offset == 1) ? "(int64_t)" : "";
+                type = (is64bit) ? "" : "(uint32_t)";
+                if (inst.offset == 1) {
+                    // Signed division.
                     output.lines.push_back(std::format(
-                        "{} = {} ? ({}{} / {}{}) : 0;", destination, source, type, destination, type, source));
+                        "if (!((int{}_t){} == INT{}_MIN && (int{}_t){} == -1)) {{",
+                        bits,
+                        destination,
+                        bits,
+                        bits,
+                        source));
+                    output.lines.push_back(std::format(
+                        INDENT "{} = {}{} ? ((int{}_t){} / (int{}_t){}) : 0;",
+                        destination,
+                        type,
+                        source,
+                        bits,
+                        destination,
+                        bits,
+                        source));
+                    output.lines.push_back("}");
                 } else {
-                    type = (inst.offset == 1) ? "(int32_t)" : "(uint32_t)";
+                    // Unsigned division.
                     output.lines.push_back(std::format(
-                        "{} = (uint32_t){} ? {}{} / {}{} : 0;", destination, source, type, destination, type, source));
+                        "{} = {}{} ? ({}{} / {}{}) : 0;", destination, type, source, type, destination, type, source));
                 }
                 break;
             case AluOperations::Or:
@@ -1052,23 +1069,36 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 output.lines.push_back(std::format("{} = -(int64_t){};", destination, destination));
                 break;
             case AluOperations::Mod:
-                if (is64bit) {
-                    type = (inst.offset == 1) ? "(int64_t)" : "";
+                type = (is64bit) ? "" : "(uint32_t)";
+                if (inst.offset == 1) {
+                    // Signed modulo.
                     output.lines.push_back(std::format(
-                        "{} = {} ? ({}{} % {}{}) : {}{};",
+                        "if ((int{}_t){} == INT{}_MIN && (int{}_t){} == -1) {{",
+                        bits,
                         destination,
-                        source,
-                        type,
+                        bits,
+                        bits,
+                        source));
+                    output.lines.push_back(std::format(INDENT "{} = 0;", destination));
+                    output.lines.push_back("} else {");
+                    output.lines.push_back(std::format(
+                        INDENT "{} = {}{} ? ((int{}_t){} % (int{}_t){}) : (int{}_t){};",
                         destination,
                         type,
                         source,
-                        type,
+                        bits,
+                        destination,
+                        bits,
+                        source,
+                        bits,
                         destination));
+                    output.lines.push_back("}");
                 } else {
-                    type = (inst.offset == 1) ? "(int32_t)" : "(uint32_t)";
+                    // Unsigned modulo.
                     output.lines.push_back(std::format(
-                        "{} = (uint32_t){} ? ({}{} % {}{}) : {}{};",
+                        "{} = {}{} ? ({}{} % {}{}) : {}{};",
                         destination,
+                        type,
                         source,
                         type,
                         destination,

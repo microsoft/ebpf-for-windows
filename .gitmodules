@@ -1,6 +1,6 @@
 [submodule "external/ebpf-verifier"]
 	path = external/ebpf-verifier
-	url = https://github.com/dthaler/ebpf-verifier.git
+	url = https://github.com/vbpf/ebpf-verifier.git
 [submodule "external/ubpf"]
 	path = external/ubpf
 	url = https://github.com/iovisor/ubpf.git
