@@ -3681,6 +3681,11 @@ _test_maps_batch(bpf_map_type map_type)
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
     REQUIRE(fetched_batch_size == batch_size);
     _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
+    // Verify the fetched_keys and fetched_values are returned correctly.
+    std::sort(fetched_keys.begin(), fetched_keys.end());
+    REQUIRE(fetched_keys == keys);
+    std::sort(fetched_values.begin(), fetched_values.end());
+    REQUIRE(fetched_values == values);
 
     next_key = 0;
     REQUIRE(
