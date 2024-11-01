@@ -1,1 +1,0 @@
-powershell.exe  -File ".\scripts\install.ps1"

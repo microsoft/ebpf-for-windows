@@ -1,1 +1,0 @@
-powershell.exe -File ".\scripts\reset.ps1"

@@ -1,4 +1,0 @@
-src/tests/bin/
-src/tests/package/
-_ebpf-redist/
-!src/tests/logs/ebpf_handler.log
