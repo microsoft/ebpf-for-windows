@@ -3653,6 +3653,9 @@ _test_maps_batch(bpf_map_type map_type)
             &large_fetched_batch_size,
             &opts) == -ENOENT);
 
+    // Verify all keys and values in batches.
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
+
     // Delete all keys in one batch.
     uint32_t delete_batch_size = batch_size;
     opts.elem_flags = 0;
