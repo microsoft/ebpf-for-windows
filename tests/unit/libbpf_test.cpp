@@ -2978,15 +2978,62 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     attr.prog_bind_map.flags = 0;
     REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
 
-    // Verify we can create a nested map.
+    // Verify we can create a nested array map.
+    uint32_t key = 0;
+    fd_t value = map_fd;
     attr.map_create = {};
     attr.map_create.map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS;
-    attr.map_create.key_size = 4;
-    attr.map_create.value_size = 4;
+    attr.map_create.key_size = sizeof(key);
+    attr.map_create.value_size = sizeof(value);
     attr.map_create.max_entries = 1;
     attr.map_create.inner_map_fd = map_fd;
     int nested_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr.map_create));
     REQUIRE(nested_map_fd >= 0);
+
+    // Ensure we can insert map_fd into the outer map.
+    attr.map_update = {};
+    attr.map_update.map_fd = nested_map_fd;
+    attr.map_update.key = (uintptr_t)&key;
+    attr.map_update.value = (uintptr_t)&value;
+    REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr.map_update)) == 0);
+
+    // Ensure that looking up the same key gives the ID of the inner map.
+    ebpf_id_t value_id = 0;
+    attr.map_lookup = {};
+    attr.map_lookup.map_fd = nested_map_fd;
+    attr.map_lookup.key = (uintptr_t)&key;
+    attr.map_lookup.value = (uintptr_t)&value_id;
+    REQUIRE(bpf(BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr.map_lookup)) == 0);
+    REQUIRE(value_id == map_id);
+
+    Platform::_close(nested_map_fd);
+
+    // Verify we can create a nested hash map.
+    attr.map_create = {};
+    attr.map_create.map_type = BPF_MAP_TYPE_HASH_OF_MAPS;
+    attr.map_create.key_size = sizeof(key);
+    attr.map_create.value_size = sizeof(value);
+    attr.map_create.max_entries = 1;
+    attr.map_create.inner_map_fd = map_fd;
+    nested_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr.map_create));
+    REQUIRE(nested_map_fd >= 0);
+
+    // Ensure we can insert map_fd into the outer map.
+    attr.map_update = {};
+    attr.map_update.map_fd = nested_map_fd;
+    attr.map_update.key = (uintptr_t)&key;
+    attr.map_update.value = (uintptr_t)&value;
+    REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr.map_update)) == 0);
+
+    // Ensure that looking up the same key gives the ID of the inner map.
+    value_id = 0;
+    attr.map_lookup = {};
+    attr.map_lookup.map_fd = nested_map_fd;
+    attr.map_lookup.key = (uintptr_t)&key;
+    attr.map_lookup.value = (uintptr_t)&value_id;
+    REQUIRE(bpf(BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr.map_lookup)) == 0);
+    REQUIRE(value_id == map_id);
+
     Platform::_close(nested_map_fd);
 
     // Release our own references on the map and program.
