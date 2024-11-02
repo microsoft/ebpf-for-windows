@@ -8,7 +8,7 @@ var searchData=
   ['info_1353',['info',['../structsys__bpf__obj__info__attr__t.html#ae4ee847e68a7c715cfe712d694f18041',1,'sys_bpf_obj_info_attr_t::info()'],['../unionbpf__attr.html#a5167d394f58d878bde46fa44599a779d',1,'bpf_attr::info()']]],
   ['info_5flen_1354',['info_len',['../structsys__bpf__obj__info__attr__t.html#a0e2e5d0ddbff16ee01fa9a5d38097a18',1,'sys_bpf_obj_info_attr_t']]],
   ['inner_5fid_1355',['inner_id',['../struct__ebpf__map__definition__in__file.html#a0bb84e3cada95d12d3cc0a1c24061aa6',1,'_ebpf_map_definition_in_file']]],
-  ['inner_5fmap_5ffd_1356',['inner_map_fd',['../structbpf__create__map__attr.html#a1dd086f9bf6e270211fbdf8fb1708e1f',1,'bpf_create_map_attr']]],
+  ['inner_5fmap_5ffd_1356',['inner_map_fd',['../structbpf__create__map__attr.html#a1dd086f9bf6e270211fbdf8fb1708e1f',1,'bpf_create_map_attr::inner_map_fd()'],['../structsys__bpf__map__create__attr__t.html#acd91f40f3d8485a1399f7de3ab1f4346',1,'sys_bpf_map_create_attr_t::inner_map_fd()']]],
   ['inner_5fmap_5fid_1357',['inner_map_id',['../struct__ebpf__map__definition__in__memory.html#a3b8e470365252209c395e43a6f6268e5',1,'_ebpf_map_definition_in_memory::inner_map_id()'],['../structbpf__map__info.html#aefd5ad96b9dac363133f7eec528241d9',1,'bpf_map_info::inner_map_id()']]],
   ['inner_5fmap_5fidx_1358',['inner_map_idx',['../struct__ebpf__map__definition__in__file.html#a1bc0c265be49ca02958cad64cd952a46',1,'_ebpf_map_definition_in_file']]],
   ['insn_5fcnt_1359',['insn_cnt',['../structsys__bpf__prog__load__attr__t.html#a112446abde01a2c37c5d33a334db37af',1,'sys_bpf_prog_load_attr_t']]],
