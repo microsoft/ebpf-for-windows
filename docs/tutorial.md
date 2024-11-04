@@ -800,7 +800,7 @@ into the `maps` section as follows:
 ```
 # Replace X.Y.Z with the actual version of eBPF being used.
 > clang -I -I .\eBPF-for-Windows.X.Y.Z\build\native\include\ -target bpf -Werror -g -O2 -c maponly.c -o maponly.o
-> llvm-objdump -s -section maps maponly.o
+> llvm-objdump -s --section maps maponly.o
 
 maponly.o:      file format ELF64-BPF
 
@@ -832,7 +832,7 @@ int func1()
 
 This program results in the following disassembly:
 ```
-> llvm-objdump -S -section=myprog map.o
+> llvm-objdump -S --section=myprog map.o
 
 map.o:  file format ELF64-BPF
 
@@ -900,7 +900,7 @@ a program is in a section with the ".rel" prefix followed by the
 program section name ("myprog" in this example):
 
 ```
-> llvm-objdump --triple bpf -section=.relmyprog -r map.o
+> llvm-objdump --triple bpf --section=.relmyprog -r map.o
 
 map.o:  file format ELF64-BPF
 
@@ -913,7 +913,7 @@ offset 0x40, but where is that?  llvm-objdump and check both gave us
 instruction numbers not offsets, but we can see the raw bytes as follows:
 
 ```
-> llvm-objdump -s -section=myprog map.o
+> llvm-objdump -s --section=myprog map.o
 
 map.o:  file format ELF64-BPF
 
