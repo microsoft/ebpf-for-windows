@@ -73,3 +73,42 @@ function Compress-File
         }
     }
 }
+
+function Wait-TestJobToComplete
+{
+    param([Parameter(Mandatory = $true)] [System.Management.Automation.Job] $Job,
+           [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
+           [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
+           [Parameter(Mandatory = $true)] [int] $TestJobTimeout,
+           [Parameter(Mandatory = $true)] [string] $CheckpointPrefix)
+    $TimeElapsed = 0
+    # Loop to fetch and print job output in near real-time
+    while ($Job.State -eq 'Running') {
+        $JobOutput = Receive-Job -Job $job
+        $JobOutput | ForEach-Object { Write-Host $_ }
+
+        Start-Sleep -Seconds 2
+        $TimeElapsed += 2
+
+        if ($TimeElapsed -gt $TestJobTimeout) {
+            if ($Job.State -eq "Running") {
+                $VMList = $Config.VMMap.$SelfHostedRunnerName
+                # currently one VM runs per runner.
+                $TestVMName = $VMList[0].Name            
+                Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
+                $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
+                $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
+                Write-Log "Taking snapshot $CheckpointName of $TestVMName"
+                Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
+                $JobTimedOut = $true
+                break
+            }
+        }
+    }
+
+    # Print any remaining output after the job completes
+    $JobOutput = Receive-Job -Job $job
+    $JobOutput | ForEach-Object { Write-Host $_ }
+
+    return $JobTimedOut
+}

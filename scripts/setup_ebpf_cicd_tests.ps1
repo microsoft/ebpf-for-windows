@@ -22,7 +22,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.
-$TestExecutionConfig = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
+$Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 $VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Delete old log files if any.
@@ -84,7 +84,7 @@ $Job = Start-Job -ScriptBlock {
     Pop-Location
 }  -ArgumentList (
     $TestVMCredential,
-    $TestExecutionConfig,
+    $Config,
     $SelfHostedRunnerName,
     $TestMode,
     $LogFileName,
@@ -92,37 +92,13 @@ $Job = Start-Job -ScriptBlock {
     $KmTracing,
     $KmTraceType)
 
-# Keep track of the last received output count
-$TimeElapsed = 0
-$JobTimedOut = $false
-
-# Loop to fetch and print job output in near real-time
-while ($Job.State -eq 'Running') {
-    $JobOutput = Receive-Job -Job $job
-	$JobOutput | ForEach-Object { Write-Host $_ }
-
-    Start-Sleep -Seconds 2
-    $TimeElapsed += 2
-
-    if ($TimeElapsed -gt $TestJobTimeout) {
-        if ($Job.State -eq "Running") {
-            $VMList = $Config.VMMap.$SelfHostedRunnerName
-            # currently one VM is used per runner.
-            $TestVMName = $VMList[0].Name
-            Write-Host "Setting up VM $TestVMName for Kernel Tests has timed out after one hour" -ForegroundColor Yellow
-            $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-            $CheckpointName = "Setup-Hang-$TestVMName-Checkpoint-$Timestamp"
-            Write-Log "Taking snapshot $CheckpointName of $TestVMName"
-            Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
-            $JobTimedOut = $true
-            break
-        }
-    }
-}
-
-# Print any remaining output after the job completes
-$JobOutput = Receive-Job -Job $job
-$JobOutput | ForEach-Object { Write-Host $_ }
+# wait for the job to complete
+$JobTimedOut = `
+    Wait-TestJobToComplete -Job $Job `
+    -Config $Config `
+    -SelfHostedRunnerName $SelfHostedRunnerName `
+    -TestJobTimeout $TestJobTimeout `
+    -CheckpointPrefix "Setup"
 
 # Clean up
 Remove-Job -Job $Job -Force

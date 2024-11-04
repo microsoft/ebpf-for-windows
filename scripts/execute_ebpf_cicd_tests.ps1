@@ -80,36 +80,12 @@ $Job = Start-Job -ScriptBlock {
     $UserModeDumpFolder)
 
 # Keep track of the last received output count
-$TimeElapsed = 0
-$JobTimedOut = $false
-
-# Loop to fetch and print job output in near real-time
-while ($Job.State -eq 'Running') {
-    $JobOutput = Receive-Job -Job $job
-	$JobOutput | ForEach-Object { Write-Host $_ }
-
-    Start-Sleep -Seconds 2
-    $TimeElapsed += 2
-
-    if ($TimeElapsed -gt $TestJobTimeout) {
-        if ($Job.State -eq "Running") {
-            $VMList = $Config.VMMap.$SelfHostedRunnerName
-            # currently one VM runs per runner.
-            $TestVMName = $VMList[0].Name            
-            Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
-            $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-            $CheckpointName = "Execution-Hang-$TestVMName-Checkpoint-$Timestamp"
-            Write-Log "Taking snapshot $CheckpointName of $TestVMName"
-            Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
-            $JobTimedOut = $true
-            break
-        }
-    }
-}
-
-# Print any remaining output after the job completes
-$JobOutput = Receive-Job -Job $job
-$JobOutput | ForEach-Object { Write-Host $_ }
+$JobTimedOut = `
+    Wait-TestJobToComplete -Job $Job `
+    -Config $Config `
+    -SelfHostedRunnerName $SelfHostedRunnerName `
+    -TestJobTimeout $TestJobTimeout `
+    -CheckpointPrefix "Execute"
 
 # Clean up
 Remove-Job -Job $Job -Force
