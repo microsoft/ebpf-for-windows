@@ -67,7 +67,8 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#define-members">Macros</a> &#124;
-<a href="#typedef-members">Typedefs</a>  </div>
+<a href="#typedef-members">Typedefs</a> &#124;
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle">
 <div class="title">bpf_helpers_platform.h File Reference</div>  </div>
 </div><!--header-->
@@ -75,7 +76,8 @@ $(function() {
 
 <p>This file contains platform specific defines used by eBPF programs.  
 <a href="#details">More...</a></p>
-<div class="textblock"><code>#include &lt;stdint.h&gt;</code><br />
+<div class="textblock"><code>#include &lt;stdbool.h&gt;</code><br />
+<code>#include &lt;stdint.h&gt;</code><br />
 </div>
 <p><a href="bpf__helpers__platform_8h_source.html">Go to the source code of this file.</a></p>
 <table class="memberdecls">
@@ -102,6 +104,11 @@ Typedefs</h2></td></tr>
 <tr class="separator:ac491bd6047648581bd31da93cf180a4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac2a2bfb32105ffe8e74b67670b7ec440"><td class="memItemLeft" align="right" valign="top">typedef uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helpers__platform_8h.html#ac2a2bfb32105ffe8e74b67670b7ec440">__u64</a></td></tr>
 <tr class="separator:ac2a2bfb32105ffe8e74b67670b7ec440"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
+Functions</h2></td></tr>
+<tr class="memitem:a363af6c2149e1230f8ce232bf4f90756"><td class="memItemLeft" align="right" valign="top">const bool __ebpf_for_windows_tag&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helpers__platform_8h.html#a363af6c2149e1230f8ce232bf4f90756">__attribute__</a> ((section(&quot;.ebpf_for_windows&quot;)))</td></tr>
+<tr class="separator:a363af6c2149e1230f8ce232bf4f90756"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>This file contains platform specific defines used by eBPF programs. </p>
@@ -227,6 +234,25 @@ Typedefs</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef uint32_t <a class="el" href="bpf__helpers__platform_8h.html#ac491bd6047648581bd31da93cf180a4b">__wsum</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<h2 class="groupheader">Function Documentation</h2>
+<a id="a363af6c2149e1230f8ce232bf4f90756"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a363af6c2149e1230f8ce232bf4f90756">&#9670;&nbsp;</a></span>__attribute__()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">const bool __ebpf_for_windows_tag __attribute__ </td>
+          <td>(</td>
+          <td class="paramtype">(section(&quot;.ebpf_for_windows&quot;))&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
