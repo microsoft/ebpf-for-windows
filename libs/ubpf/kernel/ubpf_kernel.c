@@ -34,11 +34,15 @@
 #define strerror place_holder_strerror
 #define errno (place_holder_errno())
 
-#undef assert
-#if defined(NDEBUG)
-#define assert(x) ((void)0)
-#else
-#define assert(x) ((x) ? (void)0 : __fastfail(0))
+#if !defined(NDEBUG)
+void
+_assert(const char* message, const char* file, unsigned line)
+{
+    UNREFERENCED_PARAMETER(message);
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    __fastfail(0);
+}
 #endif
 
 inline int
