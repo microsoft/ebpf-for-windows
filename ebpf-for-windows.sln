@@ -407,8 +407,15 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "win-c", "external\ubpf\build_fuzzer\vm\compat\libraries\win-c\win-c.vcxproj", "{B2D709A5-F2BF-3D81-8E8D-79659CB79AEE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ubpf_fuzzer", "external\ubpf\build_fuzzer\libfuzzer\ubpf_fuzzer.vcxproj", "{F3BDF8B8-0F87-3291-9173-BC70340ADC22}"
+	ProjectSection(ProjectDependencies) = postProject
+		{474F7E06-BEB9-3B0E-AA71-8FFA27CEA5BF} = {474F7E06-BEB9-3B0E-AA71-8FFA27CEA5BF}
+		{55FF9B28-F3A2-465B-9E35-D154F2380581} = {55FF9B28-F3A2-465B-9E35-D154F2380581}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ubpf_fuzzer_post_build", "scripts\ubpf_fuzzer_post_build\ubpf_fuzzer_post_build.vcxproj", "{3D563E44-B7D0-499C-A15C-C1C1B9A73B6F}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F3BDF8B8-0F87-3291-9173-BC70340ADC22} = {F3BDF8B8-0F87-3291-9173-BC70340ADC22}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
