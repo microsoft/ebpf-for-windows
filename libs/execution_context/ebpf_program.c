@@ -1368,6 +1368,11 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte
         goto Done;
     }
 
+    if (instruction_count == 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {
         return_value = EBPF_NO_MEMORY;
@@ -1427,6 +1432,15 @@ ebpf_program_load_code(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+
+    // If the program is already loaded, return an error.
+    if (program->parameters.code_type != EBPF_CODE_NONE) {
+        ebpf_lock_unlock(&program->lock, state);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_assert(code_type > EBPF_CODE_NONE && code_type <= EBPF_CODE_MAX);
+
     program->parameters.code_type = code_type;
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
@@ -2056,15 +2070,20 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_info(
     _In_ const ebpf_program_t* program,
-    _In_reads_(*info_size) const uint8_t* input_buffer,
-    _Out_writes_to_(*info_size, *info_size) uint8_t* output_buffer,
-    _Inout_ uint16_t* info_size)
+    _In_reads_(input_buffer_size) const uint8_t* input_buffer,
+    uint16_t input_buffer_size,
+    _Out_writes_to_(*output_buffer_size, *output_buffer_size) uint8_t* output_buffer,
+    _Inout_ uint16_t* output_buffer_size)
 {
     EBPF_LOG_ENTRY();
     const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
     struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
-    if (*info_size < sizeof(*output_info)) {
+    if (*output_buffer_size < sizeof(*output_info)) {
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+    }
+
+    if (input_buffer_size < sizeof(*input_info)) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2106,7 +2125,7 @@ ebpf_program_get_info(
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 
-    *info_size = sizeof(*output_info);
+    *output_buffer_size = sizeof(*output_info);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2568,6 +2587,11 @@ ebpf_program_execute_test_run(
     test_run_context->async_context = async_context;
     test_run_context->completion_context = completion_context;
     test_run_context->completion_callback = callback;
+
+    // Limit maximum test runs to 1024 while fuzzing to prevent timeouts.
+#if defined(FUZZER_BUILD)
+    test_run_context->options->repeat_count = min(test_run_context->options->repeat_count, 1024);
+#endif
 
     // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
     // The work item will signal the completion event when it is done.

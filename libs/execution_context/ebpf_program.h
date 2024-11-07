@@ -294,19 +294,22 @@ extern "C"
      *
      * @param[in] program The program to get info about.
      * @param[in] input_buffer Buffer to read bpf_prog_info from.
+     * @param[in] input_buffer_size Size of the input buffer.
      * @param[out] output_buffer Buffer to write bpf_prog_info into.
-     * @param[in, out] info_size On input, the size in bytes of the buffer.
+     * @param[in, out] output_buffer_size On input, the size in bytes of the output buffer.
      * On output, the number of bytes actually written.
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_INSUFFICIENT_BUFFER The buffer was too small to hold bpf_prog_info.
+     * @retval EBPF_INVALID_ARGUMENT The input buffer is invalid.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_get_info(
         _In_ const ebpf_program_t* program,
-        _In_reads_(*info_size) const uint8_t* input_buffer,
-        _Out_writes_to_(*info_size, *info_size) uint8_t* output_buffer,
-        _Inout_ uint16_t* info_size);
+        _In_reads_(input_buffer_size) const uint8_t* input_buffer,
+        uint16_t input_buffer_size,
+        _Out_writes_to_(*output_buffer_size, *output_buffer_size) uint8_t* output_buffer,
+        _Inout_ uint16_t* output_buffer_size);
 
     /**
      * @brief Create a new program instance and initialize the instance from
