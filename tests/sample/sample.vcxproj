@@ -228,7 +228,7 @@
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
       <Command>
-        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c %(Filename).c -o $(OutputPath)%(Filename).o
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
@@ -363,7 +363,7 @@
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
-        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->

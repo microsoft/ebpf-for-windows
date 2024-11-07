@@ -185,33 +185,6 @@ _ebpf_compute_crc32(_In_reads_(length_in_bytes) const uint8_t* key, size_t lengt
 }
 #endif
 
-static unsigned long
-_ebpf_compute_crc32(_In_reads_(length_in_bytes) const uint8_t* key, size_t length_in_bytes, uint32_t seed)
-{
-    // First process 8 bytes at a time.
-    uint32_t crc = seed;
-    uint8_t* start = (uint8_t*)key;
-    uint8_t* end = start + length_in_bytes;
-
-    while ((end - start) >= 8) {
-        crc = (uint32_t)_mm_crc32_u64(crc, *(uint64_t*)start);
-        start += 8;
-    }
-
-    // Process 4 bytes at a time.
-    while ((end - start) >= 4) {
-        crc = _mm_crc32_u32(crc, *(uint32_t*)start);
-        start += 4;
-    }
-
-    // Process remaining bytes.
-    while ((end - start) > 0) {
-        crc = _mm_crc32_u8(crc, *start);
-        start++;
-    }
-    return crc;
-}
-
 /**
  * @brief Compare keys assuming they are integers.
  *
