@@ -5,6 +5,8 @@
 #include "ebpf_api.h"
 #include "ebpf_execution_context.h"
 #include "ebpf_utilities.h"
+#undef min // don't interfere with C++ min/max definitions required inside platform.hpp.
+#undef max
 #include "platform.hpp"
 #include "windows_platform_common.hpp"
 
