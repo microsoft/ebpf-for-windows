@@ -146,7 +146,7 @@ $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>mincore.lib;$(FuzzerLibs);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <CustomBuildStep Condition="'$(Platform)'=='x64'">
       <Command>cd /d $(OutputPath)
