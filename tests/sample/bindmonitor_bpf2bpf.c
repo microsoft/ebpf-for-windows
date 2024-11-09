@@ -20,7 +20,10 @@
 #include "ebpf_nethooks.h"
 
 bind_action_t
-BindMonitor_Callee(uint64_t* pid);
+BindMonitor_Callee2(uint64_t* pid);
+
+bind_action_t
+BindMonitor_Callee1(uint64_t* pid);
 
 SEC("bind")
 __attribute__((optnone)) bind_action_t
@@ -32,7 +35,7 @@ BindMonitor_Caller(bind_md_t* ctx)
     outer_cookie[1] = 0xcc;
 
     uint64_t pid = ctx->process_id;
-    if (BindMonitor_Callee(&ctx->process_id) == BIND_DENY) {
+    if (BindMonitor_Callee1(&ctx->process_id) == BIND_DENY) {
         return BIND_DENY;
     }
 
@@ -48,12 +51,24 @@ BindMonitor_Caller(bind_md_t* ctx)
     return BIND_PERMIT;
 }
 
-__attribute__((noinline)) bind_action_t __attribute__((optnone)) BindMonitor_Callee(uint64_t* pid)
+__attribute__((noinline)) bind_action_t __attribute__((optnone))
+BindMonitor_Callee1(uint64_t* pid)
 {
     // Use some stack space.
-    volatile uint8_t inner_cookie[2];
-    inner_cookie[0] = 0xbb;
-    inner_cookie[1] = 0xbb;
+    volatile uint8_t inner_cookie1[2];
+    inner_cookie1[0] = 0xbb;
+    inner_cookie1[1] = 0xbb;
+
+    return BindMonitor_Callee2(pid);
+}
+
+__attribute__((noinline)) bind_action_t __attribute__((optnone))
+BindMonitor_Callee2(uint64_t* pid)
+{
+    // Use some stack space.
+    volatile uint8_t inner_cookie2[2];
+    inner_cookie2[0] = 0xbb;
+    inner_cookie2[1] = 0xbb;
 
     return (*pid == 0) ? BIND_DENY : BIND_PERMIT;
 }
