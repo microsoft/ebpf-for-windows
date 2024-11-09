@@ -513,9 +513,7 @@ ebpf_api_elf_enumerate_programs(
                     return 1;
                 }
                 auto& program = std::get<InstructionSeq>(programOrError);
-                prepare_cfg_options options = verifier_options.cfg_opts;
-                options.must_have_exit = true;
-                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, options);
+                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, verifier_options.cfg_opts);
                 std::map<std::string, int> stats = collect_stats(controlFlowGraph);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
