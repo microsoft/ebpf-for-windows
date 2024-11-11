@@ -59,7 +59,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c --bpf $(FileName).o --sys $(FileName)_driver.c  $(AdditionalOptions)</Command>
+      <Command>$(BinDir)bpf2c --bpf $(FileName).o --sys $(FileName)_driver.c  $(AdditionalBpf2cOptions)</Command>
     </PreBuildEvent>
     <ClCompile>
       <AdditionalIncludeDirectories>$(IncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
