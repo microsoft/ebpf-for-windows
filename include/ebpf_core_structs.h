@@ -31,3 +31,11 @@ typedef struct _ebpf_ring_buffer_map_async_query_result
     size_t producer;
     size_t consumer;
 } ebpf_ring_buffer_map_async_query_result_t;
+
+typedef enum _ebpf_object_type
+{
+    EBPF_OBJECT_UNKNOWN,
+    EBPF_OBJECT_MAP,
+    EBPF_OBJECT_LINK,
+    EBPF_OBJECT_PROGRAM,
+} ebpf_object_type_t;
