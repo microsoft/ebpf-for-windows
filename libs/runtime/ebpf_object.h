@@ -111,14 +111,6 @@ extern "C"
         EBPF_FILE_ID,                          \
         __LINE__)
 
-    typedef enum _ebpf_object_type
-    {
-        EBPF_OBJECT_UNKNOWN,
-        EBPF_OBJECT_MAP,
-        EBPF_OBJECT_LINK,
-        EBPF_OBJECT_PROGRAM,
-    } ebpf_object_type_t;
-
     typedef struct _ebpf_base_object ebpf_base_object_t;
     typedef void (*ebpf_base_release_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
     typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
