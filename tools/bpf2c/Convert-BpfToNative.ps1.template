@@ -118,10 +118,10 @@ else {
 }
 
 if ($PSBoundParameters.ContainsKey("Type")) {
-    $AdditionalOptions += " --type $Type"
+    $AdditionalBpf2cOptions += " --type $Type"
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalBpf2cOptions="$AdditionalBpf2cOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $FileName.o"

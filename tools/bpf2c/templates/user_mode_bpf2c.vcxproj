@@ -84,7 +84,7 @@
       <EnableUAC>false</EnableUAC>
     </Link>
     <PreBuildEvent>
-      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalOptions)</Command>
+      <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalBpf2cOptions)</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
