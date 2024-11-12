@@ -1203,7 +1203,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
     switch (key_state) {
     case EBPF_LRU_KEY_UNINITIALIZED:
         EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
-        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = KeQueryInterruptTime();
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot_approximate(false);
         ebpf_list_insert_tail(
             &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
         map->partitions[partition].hot_list_size++;
@@ -1211,7 +1211,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
     case EBPF_LRU_KEY_COLD:
         // Remove from cold list.
         EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
-        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = KeQueryInterruptTime();
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot_approximate(false);
         ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
         ebpf_list_insert_tail(
             &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);

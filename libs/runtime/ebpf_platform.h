@@ -641,6 +641,19 @@ extern "C"
     ebpf_query_time_since_boot(bool include_suspended_time);
 
     /**
+     * @brief Return time elapsed since boot in units of 100 nanoseconds.
+     * This function is faster than ebpf_query_time_since_boot() but may not
+     * be as accurate.
+     *
+     * @param[in] include_suspended_time Include time the system spent in a suspended state.
+     *
+     * @return Time elapsed since boot in 100 nanosecond units.
+     */
+    EBPF_INLINE_HINT
+    uint64_t
+    ebpf_query_time_since_boot_approximate(bool include_suspended_time);
+
+    /**
      * @brief Affinitize the current thread to a specific CPU by index and return the old affinity.
      *
      * @param[in] cpu_index The index of the CPU to affinitize to.

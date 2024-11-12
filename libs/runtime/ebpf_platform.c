@@ -225,6 +225,17 @@ ebpf_query_time_since_boot(bool include_suspended_time)
     }
 }
 
+uint64_t
+ebpf_query_time_since_boot_approximate(bool include_suspend_time)
+{
+    if (include_suspend_time) {
+        ebpf_assert(!"Include suspend time not supported on this platform.");
+        return 0;
+    } else {
+        return KeQueryInterruptTime();
+    }
+}
+
 MDL*
 ebpf_map_memory(size_t length)
 {
