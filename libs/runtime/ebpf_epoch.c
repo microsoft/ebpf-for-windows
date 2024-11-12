@@ -162,9 +162,10 @@ static KDPC _ebpf_epoch_timer_dpc;
  */
 typedef enum _ebpf_epoch_allocation_type
 {
-    EBPF_EPOCH_ALLOCATION_MEMORY,          ///< Memory allocation.
-    EBPF_EPOCH_ALLOCATION_WORK_ITEM,       ///< Work item.
-    EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION, ///< Synchronization object.
+    EBPF_EPOCH_ALLOCATION_MEMORY,               ///< Memory allocation.
+    EBPF_EPOCH_ALLOCATION_WORK_ITEM,            ///< Work item.
+    EBPF_EPOCH_ALLOCATION_SYNCHRONIZATION,      ///< Synchronization object.
+    EBPF_EPOCH_ALLOCATION_MEMORY_CACHE_ALIGNED, ///< Memory allocation that is cache aligned.
 } ebpf_epoch_allocation_type_t;
 
 /**
@@ -455,6 +456,21 @@ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
     return ebpf_epoch_allocate_with_tag(size, EBPF_POOL_TAG_EPOCH);
 }
 
+_Must_inspect_result_
+_Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
+{
+    ebpf_assert(size);
+    ebpf_epoch_allocation_header_t* header;
+
+    size += EBPF_CACHE_LINE_SIZE;
+    header = (ebpf_epoch_allocation_header_t*)ebpf_allocate_cache_aligned_with_tag(size, tag);
+    if (header) {
+        header = (ebpf_epoch_allocation_header_t*)((uint8_t*)header + EBPF_CACHE_LINE_SIZE);
+    }
+
+    return header;
+}
+
 void
 ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
 {
@@ -469,6 +485,24 @@ ebpf_epoch_free(_Frees_ptr_opt_ void* memory)
     // Pool corruption or double free.
     EBPF_EPOCH_FAIL_FAST(FAST_FAIL_HEAP_METADATA_CORRUPTION, header->freed_epoch == 0);
     header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY;
+
+    _ebpf_epoch_insert_in_free_list(header);
+}
+
+void
+ebpf_epoch_free_cache_aligned(_Frees_ptr_opt_ void* memory)
+{
+    ebpf_epoch_allocation_header_t* header = (ebpf_epoch_allocation_header_t*)memory;
+
+    if (!memory) {
+        return;
+    }
+
+    header = (ebpf_epoch_allocation_header_t*)((uint8_t*)header - EBPF_CACHE_LINE_SIZE);
+
+    // Pool corruption or double free.
+    EBPF_EPOCH_FAIL_FAST(FAST_FAIL_HEAP_METADATA_CORRUPTION, header->freed_epoch == 0);
+    header->entry_type = EBPF_EPOCH_ALLOCATION_MEMORY_CACHE_ALIGNED;
 
     _ebpf_epoch_insert_in_free_list(header);
 }
@@ -591,6 +625,9 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
                 KeSetEvent(&synchronization->event, 0, false);
                 break;
             }
+            case EBPF_EPOCH_ALLOCATION_MEMORY_CACHE_ALIGNED:
+                ebpf_free_cache_aligned(header);
+                break;
             default:
                 // Pool corruption or internal error.
                 EBPF_EPOCH_FAIL_FAST(FAST_FAIL_CORRUPT_LIST_ENTRY, !"Invalid entry type");

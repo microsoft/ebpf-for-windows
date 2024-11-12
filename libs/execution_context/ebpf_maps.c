@@ -984,7 +984,7 @@ _create_hash_map_internal(
     ebpf_core_map_t* local_map = NULL;
     *map = NULL;
 
-    local_map = ebpf_epoch_allocate_with_tag(map_struct_size, EBPF_POOL_TAG_MAP);
+    local_map = ebpf_epoch_allocate_cache_aligned_with_tag(map_struct_size, EBPF_POOL_TAG_MAP);
     if (local_map == NULL) {
         retval = EBPF_NO_MEMORY;
         goto Done;
@@ -1022,7 +1022,7 @@ Done:
         if (local_map && local_map->data) {
             ebpf_hash_table_destroy((ebpf_hash_table_t*)local_map->data);
         }
-        ebpf_epoch_free(local_map);
+        ebpf_epoch_free_cache_aligned(local_map);
         local_map = NULL;
     }
     return retval;
@@ -1044,7 +1044,7 @@ static void
 _delete_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_hash_table_destroy((ebpf_hash_table_t*)map->data);
-    ebpf_epoch_free(map);
+    ebpf_epoch_free_cache_aligned(map);
 }
 
 static void
@@ -1404,7 +1404,7 @@ Exit:
         if (lru_map && lru_map->core_map.data) {
             ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
         }
-        ebpf_epoch_free(lru_map);
+        ebpf_epoch_free_cache_aligned(lru_map);
         lru_map = NULL;
     }
 
@@ -1416,7 +1416,7 @@ _delete_lru_hash_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
 {
     ebpf_core_lru_map_t* lru_map = EBPF_FROM_FIELD(ebpf_core_lru_map_t, core_map, map);
     ebpf_hash_table_destroy((ebpf_hash_table_t*)lru_map->core_map.data);
-    ebpf_epoch_free(map);
+    ebpf_epoch_free_cache_aligned(map);
 }
 
 static ebpf_result_t

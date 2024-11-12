@@ -531,6 +531,21 @@ TEST_CASE("epoch_test_single_epoch", "[platform]")
     ebpf_epoch_synchronize();
 }
 
+TEST_CASE("epoch_test_single_epoch_cache_aligned", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    ebpf_epoch_scope_t epoch_scope;
+    void* memory = ebpf_epoch_allocate_cache_aligned_with_tag(10, 0);
+    if (memory) {
+        memset(memory, 0, 10);
+    }
+    ebpf_epoch_free_cache_aligned(memory);
+    epoch_scope.exit();
+    ebpf_epoch_synchronize();
+}
+
 TEST_CASE("epoch_test_two_threads", "[platform]")
 {
     _test_helper test_helper;
