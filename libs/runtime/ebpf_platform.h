@@ -638,11 +638,11 @@ extern "C"
      */
     EBPF_INLINE_HINT
     uint64_t
-    ebpf_query_time_since_boot(bool include_suspended_time);
+    ebpf_query_time_since_boot_precise(bool include_suspended_time);
 
     /**
      * @brief Return time elapsed since boot in units of 100 nanoseconds.
-     * This function is faster than ebpf_query_time_since_boot() but may not
+     * This function is faster than ebpf_query_time_since_boot_precise() but may not
      * be as accurate.
      *
      * @param[in] include_suspended_time Include time the system spent in a suspended state.

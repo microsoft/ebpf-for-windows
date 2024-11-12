@@ -209,7 +209,7 @@ ebpf_allocate_process_state()
 }
 
 uint64_t
-ebpf_query_time_since_boot(bool include_suspended_time)
+ebpf_query_time_since_boot_precise(bool include_suspended_time)
 {
     uint64_t qpc_time;
     if (include_suspended_time) {
