@@ -118,6 +118,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>$(FuzzerLibs);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalBpf2cOptions)</Command>
@@ -210,6 +211,7 @@
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
+      <AdditionalDependencies>$(FuzzerLibs);%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>$(BinDir)bpf2c.exe --bpf $(FileName).o --dll $(FileName)_dll.c $(AdditionalBpf2cOptions)</Command>
