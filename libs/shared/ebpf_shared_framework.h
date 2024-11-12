@@ -74,6 +74,12 @@ ebpf_free(_Frees_ptr_opt_ void* pointer)
     cxplat_free(pointer, CXPLAT_POOL_FLAG_NON_PAGED, 0);
 }
 
+__forceinline void
+ebpf_free_cache_aligned(_Frees_ptr_opt_ void* pointer)
+{
+    cxplat_free(pointer, (cxplat_pool_flags_t)(CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED), 0);
+}
+
 #define ebpf_reallocate cxplat_reallocate
 
 /**
@@ -86,6 +92,13 @@ __forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
     _Ret_writes_maybenull_(size) void* ebpf_allocate_with_tag(size_t size, uint32_t tag)
 {
     return cxplat_allocate(CXPLAT_POOL_FLAG_NON_PAGED, size, tag);
+}
+
+__forceinline __drv_allocatesMem(Mem) _Must_inspect_result_
+    _Ret_writes_maybenull_(size) void* ebpf_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
+{
+    return cxplat_allocate(
+        (cxplat_pool_flags_t)(CXPLAT_POOL_FLAG_NON_PAGED | CXPLAT_POOL_FLAG_CACHE_ALIGNED), size, tag);
 }
 
 #define ebpf_safe_size_t_add(augend, addend, result) \
