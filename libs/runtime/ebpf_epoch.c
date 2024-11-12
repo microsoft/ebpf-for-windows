@@ -178,6 +178,9 @@ typedef struct _ebpf_epoch_allocation_header
     ebpf_epoch_allocation_type_t entry_type; ///< Type of entry.
 } ebpf_epoch_allocation_header_t;
 
+static_assert(
+    sizeof(ebpf_epoch_allocation_header_t) < EBPF_CACHE_LINE_SIZE, "Header size must be less than cache line");
+
 /**
  * @brief This structure is used as a place holder when a custom action needs
  * to be performed on epoch end. Typically this is releasing memory that can't
