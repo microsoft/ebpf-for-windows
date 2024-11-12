@@ -541,6 +541,8 @@ TEST_CASE("epoch_test_single_epoch_cache_aligned", "[platform]")
     if (memory) {
         memset(memory, 0, 10);
     }
+
+    REQUIRE(memory == EBPF_CACHE_ALIGN_POINTER(memory));
     ebpf_epoch_free_cache_aligned(memory);
     epoch_scope.exit();
     ebpf_epoch_synchronize();
