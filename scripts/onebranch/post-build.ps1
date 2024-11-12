@@ -12,13 +12,21 @@ Set-Location $scriptPath\..\..
 $OneBranchArch = $env:ONEBRANCH_ARCH
 $OneBranchConfig = $env:ONEBRANCH_CONFIG
 
+function FormatBinDir($Config, $Arch) {
+    $BinDir = "build\bin\$Arch"
+    $BinDir += "_"
+    $BinDir += $Config
+    return $BinDir
+}
+
 function CopySignedBinaries {
     param (
         [string]$Config,
         [string]$Arch
     )
-    xcopy /y "build\bin\$Arch\_$Config" ".\$Arch\$Config"
-    Get-ChildItem -Path "build\bin\$Arch\_$Config" -Recurse | Remove-Item -Force -Recurse
+    $BinDir = FormatBinDir $Config $Arch
+    xcopy /y $BinDir ".\$Arch\$Config"
+    Get-ChildItem -Path $BinDir -Recurse | Remove-Item -Force -Recurse
 }
 
 function CopyPackages {
@@ -26,8 +34,9 @@ function CopyPackages {
         [string]$Config,
         [string]$Arch
     )
-    xcopy /y ".\$Arch\$Config\*.nupkg" "build\bin\$Arch\_$Config"
-    xcopy /y ".\$Arch\$Config\*.msi" "build\bin\$Arch\_$Config"
+    $BinDir = FormatBinDir $Config $Arch
+    xcopy /y ".\$Arch\$Config\*.nupkg" $BinDir
+    xcopy /y ".\$Arch\$Config\*.msi" $BinDir
 }
 
 if ($OneBranchConfig -eq "NativeOnlyDebug" -or $OneBranchConfig -eq "NativeOnlyRelease")
