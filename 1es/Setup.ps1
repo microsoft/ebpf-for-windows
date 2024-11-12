@@ -27,3 +27,7 @@ Log-Message -Message "Network adapters: $names"
 
 $switches = Get-VMSwitch
 Log-Message -Message "VM switches: $switches"
+
+
+
+# TODO - eventually, setup_orig will become setup.ps1

@@ -97,12 +97,13 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Na
 # Enable driver verifier on the eBPF platform drivers.
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 
-# Install duonic and configure it.
-Get-Duonic
-Initialize-NetworkInterfacesOnVMs
+# TODO - this will either need to be done post VM creation, or run on the host and copied into the VM
+# # Install duonic and configure it.
+# Get-Duonic
+# Initialize-NetworkInterfacesOnVMs
 
-# Get PSExec to run tests as SYSTEM.
-Get-PSExec
+# # Get PSExec to run tests as SYSTEM.
+# Get-PSExec
 
 # Reboot the machine to apply the changes.
 Restart-Computer -Force

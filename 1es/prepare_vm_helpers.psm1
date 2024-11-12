@@ -121,26 +121,26 @@ function Wait-ForVMReady {
     throw "Failed to connect to $VMName after timeout..."
 }
 
-function Update-VM {
-    param (
-        [Parameter(Mandatory=$True)][string]$VMName,
-        [Parameter(Mandatory=$True)][System.Management.Automation.PSCredential]$VmCredential
-    )
+# function Update-VM {
+#     param (
+#         [Parameter(Mandatory=$True)][string]$VMName,
+#         [Parameter(Mandatory=$True)][System.Management.Automation.PSCredential]$VmCredential
+#     )
 
-# TODO debugging output - remove later
-    Get-VMNetworkAdapter -All
-    try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "ipconfig /all" } catch { Log-Message -Message "Failed to query IP config: $_" -ForegroundColor Red }
+# # TODO debugging output - remove later
+#     Get-VMNetworkAdapter -All
+#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "ipconfig /all" } catch { Log-Message -Message "Failed to query IP config: $_" -ForegroundColor Red }
 
-    try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Invoke-WebRequest bing.com" } catch { Log-Message -Message "Failed to connect to the internet: $_" -ForegroundColor Red }
+#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Invoke-WebRequest bing.com" } catch { Log-Message -Message "Failed to connect to the internet: $_" -ForegroundColor Red }
 
-    try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Install-PackageProvider -Name NuGet -Force" } catch { Log-Message -Message "Failed to install NuGet provider: $_" -ForegroundColor Red }
-    try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Install-Module -Name PSWindowsUpdate -Force" } catch { Log-Message -Message "Failed to install PSWindowsUpdate module: $_" -ForegroundColor Red }
-    try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Get-WindowsUpdate -Install -AcceptAll -AutoReboot" } catch { Log-Message -Message "Failed to install updates: $_" -ForegroundColor Red }
+#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Install-PackageProvider -Name NuGet -Force" } catch { Log-Message -Message "Failed to install NuGet provider: $_" -ForegroundColor Red }
+#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Install-Module -Name PSWindowsUpdate -Force" } catch { Log-Message -Message "Failed to install PSWindowsUpdate module: $_" -ForegroundColor Red }
+#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Get-WindowsUpdate -Install -AcceptAll -AutoReboot" } catch { Log-Message -Message "Failed to install updates: $_" -ForegroundColor Red }
 
-    Sleep -Seconds 300 # Sleep for 5 minutes to let the VM start fetching updates, etc...
-    Wait-ForVMReady -VMName $VMName -VmCredential $VmCredential
-    Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
-}
+#     Sleep -Seconds 300 # Sleep for 5 minutes to let the VM start fetching updates, etc...
+#     Wait-ForVMReady -VMName $VMName -VmCredential $VmCredential
+#     Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
+# }
 
 function Create-VM {
     param(
@@ -157,10 +157,10 @@ function Create-VM {
     try {
         ## Check for any pre-requisites
         # Check that the External Switch exists
-        $externalSwitches = Get-VMSwitch -SwitchType External
-        if ($externalSwitches -eq $null) {
-            throw "No external switches found"
-        }
+        # $externalSwitches = Get-VMSwitch -SwitchType External
+        # if ($externalSwitches -eq $null) {
+        #     throw "No external switches found"
+        # }
 
         # Check that the VHD exists
         if (-not (Test-Path -Path $VhdPath)) {
@@ -197,10 +197,10 @@ function Create-VM {
         # Create the VM
         Log-Message "Creating the VM"
         New-VM -Name $VmName -MemoryStartupBytes $MemoryStartupBytes -VhdPath $VmVhdPath # -SwitchName $ExternalVMSwitchName
-        foreach ($switch in $externalSwitches) {
-            Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
-            Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
-        }
+        # foreach ($switch in $externalSwitches) {
+        #     Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
+        #     Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
+        # }
 
         if ((Get-VM -VMName $vmName) -eq $null) {
             throw "Failed to create VM: $VMName"
@@ -244,7 +244,7 @@ function Configure-VM {
 
         # Fetch all updates on the VM
         Log-Message "Fetching Updates on the VM"
-        Update-VM -VMName $VmName -VmCredential $VmCredential
+        # Update-VM -VMName $VmName -VmCredential $VmCredential
         Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
 
         # Copy setup script to the VM and execute it.

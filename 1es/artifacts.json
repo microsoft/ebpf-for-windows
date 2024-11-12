@@ -2,40 +2,7 @@
     "license":["Copyright (c) eBPF for Windows contributors", "SPDX-License-Identifier: MIT"],
     "artifacts": [
         {
-            "name": "windows-bcdedit-testsigning",
-            "parameters": {
-                "TestSigningOption": "On"
-            }
-        },
-        {
             "name": "windows-server-install-feature-hyperv"
-        },
-        {
-            "name": "windows-HyperV-NewVMSwitch",
-            "parameters" : {
-                "VMSwitchName": "VMExternalSwitch"
-            }
-        },
-        {
-            "name": "windows-gitinstall",
-            "parameters": {
-                "SetCredHelper": "false"
-            }
         }
     ]
 }
-
-
-        {
-            "name": "windows-vcredist-x64"
-        }
-
-https://dev.azure.com/devdiv/XlabImageFactory/_git/XlabImageFactory?path=%2Fartifacts
-/artifacts/windows-server-install-feature-hyperv/windows-server-install-feature-hyperv.ps1
-\
-
-/artifacts/windows-HyperV-NewVMSwitch/windows-HyperV-NewVMSwitch.ps1
-
-
-
-/artifacts/Windows-NestedVirtualization/Windows-NestedVirtualization.ps1

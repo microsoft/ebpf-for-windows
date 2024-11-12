@@ -19,15 +19,15 @@ $ErrorActionPreference = "Stop"
 # Import helper functions
 Import-Module .\prepare_vm_helpers.psm1 -Force
 
-Create-ExternalSwitchIfNeeded -ExternalSwitchName $ExternalSwitchName
-$ExternalSwitches = Get-VMSwitch -SwitchType External
-if (-not $ExternalSwitches) {
-    throw "No external switches found"
-}
-foreach ($switch in $ExternalSwitches) {
-    Log-Message "External switch: $switch"
-    Log-Message "External switch: $($switch.Name)"
-}
+# Create-ExternalSwitchIfNeeded -ExternalSwitchName $ExternalSwitchName
+# $ExternalSwitches = Get-VMSwitch -SwitchType External
+# if (-not $ExternalSwitches) {
+#     throw "No external switches found"
+# }
+# foreach ($switch in $ExternalSwitches) {
+#     Log-Message "External switch: $switch"
+#     Log-Message "External switch: $($switch.Name)"
+# }
 
 if (-not (Test-Path -Path $BaseUnattendPath)) {
     throw "Unattend file not found at $BaseUnattendPath"
