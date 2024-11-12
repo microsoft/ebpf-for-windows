@@ -911,7 +911,6 @@ net_ebpf_ext_register_providers()
 
 #ifdef _DEBUG
     if (!_net_ebpf_filter_zombie_list_initialized) {
-        KeInitializeSpinLock(&_net_ebpf_filter_zombie_list_lock);
         InitializeListHead(&_net_ebpf_filter_zombie_list);
         _net_ebpf_filter_zombie_list_initialized = true;
     }
