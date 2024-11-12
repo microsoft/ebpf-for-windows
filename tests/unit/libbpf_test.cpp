@@ -3294,8 +3294,8 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(strncmp(map_info.name, map_create.map_name, sizeof(map_info.name)) == 0);
 
     struct ebpf_inst instructions[] = {
-        {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
-        {INST_OP_EXIT},             // return r0
+        {INST_ALU_OP_MOV | INST_CLS_ALU64, R0_RETURN_VALUE, 0}, // r0 = 0
+        {INST_OP_EXIT},                                         // return r0
     };
 
     // Load and verify the eBPF program.
