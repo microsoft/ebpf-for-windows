@@ -143,6 +143,22 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
+#ifdef _DEBUG
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                                \
+    if ((filter_context) != NULL) {                                            \
+        if ((filter_context)->filter_ids != NULL) {                            \
+            ExFreePool((filter_context)->filter_ids);                          \
+        }                                                                      \
+        if ((filter_context)->client_contexts != NULL) {                       \
+            ExFreePool((filter_context)->client_contexts);                     \
+        }                                                                      \
+        if ((filter_context)->wfp_engine_handle != NULL) {                     \
+            FwpmEngineClose((filter_context)->wfp_engine_handle);              \
+        }                                                                      \
+        net_ebpf_ext_remove_filter_context_from_zombie_list((filter_context)); \
+        ExFreePool((filter_context));                                          \
+    }
+#else
 #define CLEAN_UP_FILTER_CONTEXT(filter_context)                   \
     if ((filter_context) != NULL) {                               \
         if ((filter_context)->filter_ids != NULL) {               \
@@ -156,6 +172,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         }                                                         \
         ExFreePool((filter_context));                             \
     }
+#endif
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
     if ((filter_context) != NULL) {                               \
@@ -380,3 +397,21 @@ ebpf_result_t
 net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
+
+#ifdef _DEBUG
+/**
+ * @brief Add the filter context to the zombie list.
+ *
+ * @param filter_context Filter context to add to the zombie list.
+ */
+void
+net_ebpf_ext_add_filter_context_to_zombie_list(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+
+/**
+ * @brief Remove the filter context from the zombie list.
+ *
+ * @param filter_context Filter context to remove from the zombie list.
+ */
+void
+net_ebpf_ext_remove_filter_context_from_zombie_list(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+#endif // _DEBUG
