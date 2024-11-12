@@ -2237,7 +2237,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.info.info = (uintptr_t)&info;
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(info.type == BPF_LINK_TYPE_PLAIN);
+    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
     REQUIRE(info.id == id1);
     REQUIRE(info.prog_id == 0);
 
