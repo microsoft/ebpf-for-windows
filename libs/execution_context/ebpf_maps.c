@@ -1177,10 +1177,9 @@ _Requires_lock_held_(map->partitions[partition].lock) static void _merge_hot_int
 static void
 _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout_ ebpf_lru_entry_t* entry)
 {
-    bool lock_held = false;
-
     ebpf_lru_key_state_t key_state = _get_key_state(map, partition, entry);
     ebpf_lock_state_t state = 0;
+    bool is_preemptible = ebpf_is_preemptible();
 
     switch (key_state) {
     case EBPF_LRU_KEY_UNINITIALIZED:
@@ -1193,8 +1192,11 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
         return;
     }
 
-    state = ebpf_lock_lock(&map->partitions[partition].lock);
-    lock_held = true;
+    if (!is_preemptible) {
+        ebpf_lock_lock_at_dispatch(&map->partitions[partition].lock);
+    } else {
+        state = ebpf_lock_lock(&map->partitions[partition].lock);
+    }
 
     key_state = _get_key_state(map, partition, entry);
 
@@ -1223,7 +1225,9 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
 
     _merge_hot_into_cold_list_if_needed(map, partition);
 
-    if (lock_held) {
+    if (!is_preemptible) {
+        ebpf_lock_unlock_at_dispatch(&map->partitions[partition].lock);
+    } else {
         ebpf_lock_unlock(&map->partitions[partition].lock, state);
     }
 }

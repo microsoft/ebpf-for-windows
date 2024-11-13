@@ -52,6 +52,18 @@ _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVE
     KeReleaseSpinLock(lock, state);
 }
 
+_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL)
+    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_lock_at_dispatch(_Inout_ ebpf_lock_t* lock)
+{
+    KeAcquireSpinLockAtDpcLevel(lock);
+}
+
+_Requires_lock_held_(*lock) _Releases_lock_(*lock)
+    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock_at_dispatch(_Inout_ ebpf_lock_t* lock)
+{
+    KeReleaseSpinLockFromDpcLevel(lock);
+}
+
 bool
 ebpf_is_preemptible()
 {
