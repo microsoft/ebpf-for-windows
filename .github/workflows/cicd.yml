@@ -640,19 +640,6 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-  upload_netperf_results_azure_2022:
-    needs: netperf
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/upload-perf-results.yml
-    with:
-      name: upload_netperf_results_azure_2022
-      result_artifact: netperf_azure_2022_x64
-      platform: Azure Windows 2022
-    secrets:
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
   upload_netperf_results_lab_2022:
     needs: netperf
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
