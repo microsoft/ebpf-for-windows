@@ -2178,17 +2178,17 @@ _ebpf_core_random_uint32()
 static uint64_t
 _ebpf_core_get_time_since_boot_ns()
 {
-    // ebpf_query_time_since_boot returns time elapsed since
+    // ebpf_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot(true) * EBPF_NS_PER_FILETIME;
+    return ebpf_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
 _ebpf_core_get_time_ns()
 {
-    // ebpf_query_time_since_boot returns time elapsed since
+    // ebpf_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot(false) * EBPF_NS_PER_FILETIME;
+    return ebpf_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
