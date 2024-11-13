@@ -38,7 +38,6 @@ static bool _net_ebpf_sock_ops_providers_registered = false;
 // Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
 // contexts.
 EX_SPIN_LOCK _net_ebpf_filter_zombie_list_lock = {0};
-static bool _net_ebpf_filter_zombie_list_initialized = false;
 static LIST_ENTRY _net_ebpf_filter_zombie_list = {0};
 #endif // _DEBUG
 
@@ -910,10 +909,7 @@ net_ebpf_ext_register_providers()
     _net_ebpf_sock_ops_providers_registered = true;
 
 #ifdef _DEBUG
-    if (!_net_ebpf_filter_zombie_list_initialized) {
-        InitializeListHead(&_net_ebpf_filter_zombie_list);
-        _net_ebpf_filter_zombie_list_initialized = true;
-    }
+    InitializeListHead(&_net_ebpf_filter_zombie_list);
 #endif // _DEBUG
 
 Exit:
@@ -1014,7 +1010,7 @@ net_ebpf_ext_remove_client_context(
 
 #ifdef _DEBUG
 void
-net_ebpf_ext_add_filter_context_to_zombie_list(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_filter_zombie_list_lock);
     InsertHeadList(&_net_ebpf_filter_zombie_list, &filter_context->link);
@@ -1022,7 +1018,7 @@ net_ebpf_ext_add_filter_context_to_zombie_list(_In_ net_ebpf_extension_wfp_filte
 }
 
 void
-net_ebpf_ext_remove_filter_context_from_zombie_list(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     if (!IsListEmpty(&filter_context->link)) {
         KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_filter_zombie_list_lock);

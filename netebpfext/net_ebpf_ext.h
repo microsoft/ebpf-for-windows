@@ -405,7 +405,7 @@ net_ebpf_ext_add_client_context(
  * @param filter_context Filter context to add to the zombie list.
  */
 void
-net_ebpf_ext_add_filter_context_to_zombie_list(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 
 /**
  * @brief Remove the filter context from the zombie list.
@@ -413,5 +413,5 @@ net_ebpf_ext_add_filter_context_to_zombie_list(_In_ net_ebpf_extension_wfp_filte
  * @param filter_context Filter context to remove from the zombie list.
  */
 void
-net_ebpf_ext_remove_filter_context_from_zombie_list(_In_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
 #endif // _DEBUG
