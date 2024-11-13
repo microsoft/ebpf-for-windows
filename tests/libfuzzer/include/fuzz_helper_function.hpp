@@ -95,8 +95,8 @@ template <typename context_type> class fuzz_helper_function
      *
      * @param[in] data_left The data to use when fuzzing the helper function.
      * @param[in] data_left_size The size of the data to use when fuzzing the helper function.
-     * @return 0 - Add this to the corpus.
-     * @return -1 - Discard this input.
+     * @return 0 Add this to the corpus.
+     * @return -1 Discard this input.
      */
     int
     fuzz(_In_reads_(data_left_size) const uint8_t* data_left, size_t data_left_size)
@@ -264,7 +264,6 @@ template <typename context_type> class fuzz_helper_function
         case 1:
             ((function1_t)helper_function_address)(argument[0]);
             break;
-
         case 2:
             ((function2_t)helper_function_address)(argument[0], argument[1]);
             break;
@@ -452,7 +451,11 @@ template <typename context_type> class fuzz_helper_function
     // Consume the next output_size bytes from the input data and save them in the supplied output buffer.
     bool
     consume_data(
-        const uint8_t** input, size_t* input_size, _Out_writes_(output_size) uint8_t* output, size_t output_size)
+        _Inout_ _At_(*input, _Pre_readable_byte_size_(output_size) _Post_readable_byte_size_(*input_size))
+            const uint8_t** input,
+        _Inout_ _Pre_satisfies_(*input_size >= output_size) size_t* input_size,
+        _Out_writes_bytes_(output_size) uint8_t* output,
+        size_t output_size)
     {
         if (*input_size < output_size) {
             return false;
@@ -515,7 +518,7 @@ template <typename context_type> class fuzz_helper_function
     }
 
     static NTSTATUS
-    _program_information_detach_provider(void* client_binding_context)
+    _program_information_detach_provider(_In_ void* client_binding_context)
     {
         UNREFERENCED_PARAMETER(client_binding_context);
         return STATUS_SUCCESS;

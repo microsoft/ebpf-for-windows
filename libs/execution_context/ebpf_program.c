@@ -381,7 +381,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_program_general_program_information_detach_provider(void* client_binding_context)
+_ebpf_program_general_program_information_detach_provider(_In_ void* client_binding_context)
 {
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
@@ -593,7 +593,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_program_type_specific_program_information_detach_provider(void* client_binding_context)
+_ebpf_program_type_specific_program_information_detach_provider(_In_ void* client_binding_context)
 {
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
 
@@ -2587,11 +2587,6 @@ ebpf_program_execute_test_run(
     test_run_context->async_context = async_context;
     test_run_context->completion_context = completion_context;
     test_run_context->completion_callback = callback;
-
-    // Limit maximum test runs to 1024 while fuzzing to prevent timeouts.
-#if defined(FUZZER_BUILD)
-    test_run_context->options->repeat_count = min(test_run_context->options->repeat_count, 1024);
-#endif
 
     // Queue the work item so that it can be executed on the target CPU and at the target dispatch level.
     // The work item will signal the completion event when it is done.

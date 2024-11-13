@@ -104,26 +104,6 @@ ebpf_bitmap_start_forward_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bi
 }
 
 void
-ebpf_bitmap_start_forward_search_at(
-    _In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor, _In_ size_t start_bit)
-{
-    ebpf_bitmap_cursor_internal_t* internal_cursor = (ebpf_bitmap_cursor_internal_t*)cursor;
-    internal_cursor->bitmap = bitmap;
-    if (start_bit >= bitmap->bit_count) {
-        // If the start bit is beyond the end of the bitmap, don't return any bits (start past end).
-        internal_cursor->next_bit_offset = bitmap->bit_count;
-        internal_cursor->current_block_copy = 0;
-    } else {
-        internal_cursor->next_bit_offset = start_bit;
-        internal_cursor->current_block_copy = bitmap->data[BIT_TO_BLOCK(internal_cursor->next_bit_offset)];
-        // Clear bits in this block before start_bit if we aren't starting at the start of a block.
-        if (OFFSET_IN_BLOCK(start_bit) != 0) {
-            internal_cursor->current_block_copy &= ~BIT_COUNT_MASK(OFFSET_IN_BLOCK(start_bit));
-        }
-    }
-}
-
-void
 ebpf_bitmap_start_reverse_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor)
 {
     ebpf_bitmap_cursor_internal_t* internal_cursor = (ebpf_bitmap_cursor_internal_t*)cursor;

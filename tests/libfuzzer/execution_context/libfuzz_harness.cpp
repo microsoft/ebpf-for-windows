@@ -513,6 +513,15 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
         }
     }
 
+    // Limit maximum test runs to 1024 while fuzzing to prevent timeouts.
+    if (operation_id == EBPF_OPERATION_PROGRAM_TEST_RUN) {
+        ebpf_operation_program_test_run_request_t* test_request =
+            reinterpret_cast<ebpf_operation_program_test_run_request_t*>(random_buffer.data());
+        if (test_request->repeat_count > 1024) {
+            test_request->repeat_count = 1024;
+        }
+    }
+
     // Intentionally ignoring minimum_request_size and minimum_reply_size.
     result = ebpf_core_invoke_protocol_handler(
         operation_id,

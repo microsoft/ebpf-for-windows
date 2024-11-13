@@ -2176,7 +2176,8 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
     ebpf_result_t retval;
     uint8_t* value;
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return NULL;
     }
@@ -2192,7 +2193,8 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
@@ -2202,7 +2204,8 @@ _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t
 static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
@@ -2214,7 +2217,8 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 {
     ebpf_result_t retval;
     uint8_t* value;
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return NULL;
     }
@@ -2230,7 +2234,8 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
@@ -2461,7 +2466,8 @@ static int
 _ebpf_core_ring_buffer_output(
     _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
@@ -2474,7 +2480,8 @@ _ebpf_core_ring_buffer_output(
 static int
 _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
@@ -2484,7 +2491,8 @@ _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uin
 static int
 _ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
@@ -2494,7 +2502,8 @@ _ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 static int
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
-    // Workaround for bug in ebpf-verifier that permits NULL map. Remove when fixed.
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
     if (map == NULL) {
         return -EBPF_INVALID_ARGUMENT;
     }
