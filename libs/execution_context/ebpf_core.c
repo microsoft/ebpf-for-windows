@@ -1171,8 +1171,9 @@ _ebpf_core_protocol_program_test_run_complete(
 {
     ebpf_operation_program_test_run_reply_t* reply = (ebpf_operation_program_test_run_reply_t*)completion_context;
     if (result == EBPF_SUCCESS) {
-        reply->header.length = (uint16_t)(EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) +
-                                          options->data_size_out + options->context_size_out);
+        reply->header.length = (uint16_t)(
+            EBPF_OFFSET_OF(ebpf_operation_program_test_run_reply_t, data) + options->data_size_out +
+            options->context_size_out);
         reply->return_value = options->return_value;
         reply->context_offset = (uint16_t)options->data_size_out;
         reply->duration = options->duration;
@@ -1766,8 +1767,8 @@ _ebpf_core_protocol_serialize_map_info_reply(
         &required_serialization_length);
 
     if (result != EBPF_SUCCESS) {
-        map_info_reply->header.length = (uint16_t)(required_serialization_length +
-                                                   EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data));
+        map_info_reply->header.length = (uint16_t)(
+            required_serialization_length + EBPF_OFFSET_OF(ebpf_operation_get_pinned_map_info_reply_t, data));
     } else {
         map_info_reply->map_count = map_count;
     }
@@ -2178,17 +2179,17 @@ _ebpf_core_random_uint32()
 static uint64_t
 _ebpf_core_get_time_since_boot_ns()
 {
-    // ebpf_query_time_since_boot returns time elapsed since
+    // ebpf_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot(true) * EBPF_NS_PER_FILETIME;
+    return ebpf_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
 _ebpf_core_get_time_ns()
 {
-    // ebpf_query_time_since_boot returns time elapsed since
+    // ebpf_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot(false) * EBPF_NS_PER_FILETIME;
+    return ebpf_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t

@@ -58,6 +58,15 @@ extern "C"
     _Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size);
 
     /**
+     * @brief Allocate cache aligned memory under epoch control.
+     * @param[in] size Size of memory to allocate
+     * @param[in] tag Pool tag to use.
+     * @returns Pointer to memory block allocated, or null on failure.
+     */
+    _Must_inspect_result_
+        _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_cache_aligned_with_tag(size_t size, uint32_t tag);
+
+    /**
      * @brief Allocate memory under epoch control with tag.
      * @param[in] size Size of memory to allocate
      * @param[in] tag Pool tag to use.
@@ -72,6 +81,13 @@ extern "C"
      */
     void
     ebpf_epoch_free(_Frees_ptr_opt_ void* memory);
+
+    /**
+     * @brief Free memory under epoch control.
+     * @param[in] memory Allocation to be freed once epoch ends.
+     */
+    void
+    ebpf_epoch_free_cache_aligned(_Frees_ptr_opt_ void* memory);
 
     /**
      * @brief Wait for the current epoch to end.
