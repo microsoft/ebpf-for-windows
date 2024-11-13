@@ -224,6 +224,22 @@ extern "C"
         _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
 
     /**
+     * @brief Acquire exclusive access to the lock.
+     * @param[in, out] lock Pointer to memory location that contains the lock.
+     * @returns The previous lock_state required for unlock.
+     */
+    _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL)
+        _IRQL_requires_max_(DISPATCH_LEVEL) void ebpf_lock_lock_at_dispatch(_Inout_ ebpf_lock_t* lock);
+
+    /**
+     * @brief Release exclusive access to the lock.
+     * @param[in, out] lock Pointer to memory location that contains the lock.
+     * @param[in] state The state returned from ebpf_lock_lock.
+     */
+    _Requires_lock_held_(*lock) _Releases_lock_(*lock)
+        _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock_at_dispatch(_Inout_ ebpf_lock_t* lock);
+
+    /**
      * @brief Raise the IRQL to new_irql.
      *
      * @param[in] new_irql The new IRQL.
@@ -638,7 +654,20 @@ extern "C"
      */
     EBPF_INLINE_HINT
     uint64_t
-    ebpf_query_time_since_boot(bool include_suspended_time);
+    ebpf_query_time_since_boot_precise(bool include_suspended_time);
+
+    /**
+     * @brief Return time elapsed since boot in units of 100 nanoseconds.
+     * This function is faster than ebpf_query_time_since_boot_precise() but may not
+     * be as accurate.
+     *
+     * @param[in] include_suspended_time Include time the system spent in a suspended state.
+     *
+     * @return Time elapsed since boot in 100 nanosecond units.
+     */
+    EBPF_INLINE_HINT
+    uint64_t
+    ebpf_query_time_since_boot_approximate(bool include_suspended_time);
 
     /**
      * @brief Affinitize the current thread to a specific CPU by index and return the old affinity.
