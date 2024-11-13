@@ -652,7 +652,7 @@ ebpf_link_get_info(
 
     memset(info, 0, sizeof(*info));
     info->id = link->object.id;
-    info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : EBPF_ID_NONE;
+    info->prog_id = (link->program) ? ((ebpf_core_object_t*)link->program)->id : 0;
     info->type = link->link_type;
     info->program_type_uuid = link->program_type;
     info->attach_type_uuid = link->attach_type;
