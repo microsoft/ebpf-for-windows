@@ -49,6 +49,9 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
 
     bpf_object__for_each_program(prog, obj)
     {
+        if (prog_is_subprog(obj, prog)) {
+            continue;
+        }
         if (!strcmp(prog->program_name, name)) {
             return prog;
         }
@@ -83,8 +86,8 @@ int
 bpf_obj_get(const char* pathname)
 {
     fd_t fd = -1;
-    libbpf_result_err(ebpf_object_get(pathname, &fd)); // set the errno
-    return fd;
+    int result = libbpf_result_err(ebpf_object_get(pathname, &fd));
+    return result ? result : fd;
 }
 
 struct bpf_object*

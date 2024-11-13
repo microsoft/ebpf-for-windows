@@ -415,7 +415,7 @@ ebpf_map_lookup_and_delete_element_batch(
  * @retval EBPF_NO_MORE_KEYS previous_key was the last key.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) noexcept;
+ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_opt_ void* next_key) noexcept;
 
 /**
  * @brief Detach a link given a file descriptor.
@@ -759,3 +759,9 @@ ebpf_api_thread_local_cleanup() noexcept;
  */
 void
 ebpf_api_thread_local_initialize() noexcept;
+
+static inline bool
+prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
+{
+    return (strcmp(prog->section_name, ".text") == 0) && (obj->programs.size() > 1);
+}

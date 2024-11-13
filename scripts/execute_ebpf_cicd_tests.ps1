@@ -1,86 +1,97 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-param ([parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
-       [parameter(Mandatory = $false)][string] $StandardUserTarget = "TEST_VM_STANDARD",
-       [parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
-       [parameter(Mandatory = $false)][string] $WorkingDirectory = $pwd.ToString(),
-       [parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory = $false)][bool] $Coverage = $false,
-       [parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
-       [parameter(Mandatory = $false)][string[]] $Options = @("None"),
-       [parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
+       [Parameter(Mandatory = $false)][string] $StandardUserTarget = "TEST_VM_STANDARD",
+       [Parameter(Mandatory = $false)][string] $LogFileName = "TestLog.log",
+       [Parameter(Mandatory = $false)][string] $WorkingDirectory = $pwd.ToString(),
+       [Parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
+       [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
+       [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
+       [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
+       [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
+       [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60)
 )
 
 Push-Location $WorkingDirectory
 
+Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
+
 $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
 $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
-# Load other utility modules.
-Import-Module $PSScriptRoot\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module $PSScriptRoot\vm_run_tests.psm1 `
-    -Force `
-    -ArgumentList (
-        $AdminTestVMCredential.UserName,
-        $AdminTestVMCredential.Password,
-        $StandardUserTestVMCredential.UserName,
-        $StandardUserTestVMCredential.Password,
-        $WorkingDirectory,
-        $LogFileName,
-        $TestHangTimeout,
-        $UserModeDumpFolder) `
-    -WarningAction SilentlyContinue
-
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
-$VMList = $Config.VMMap.$SelfHostedRunnerName
 
-# Run tests on test VMs.
-foreach ($VM in $VMList) {
-    Invoke-CICDTestsOnVM `
-        -VMName $VM.Name `
-        -Coverage $Coverage `
-        -TestMode $TestMode `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder `
-        -Options $Options
-}
+$Job = Start-Job -ScriptBlock {
+    param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
+           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential, 
+           [Parameter(Mandatory = $true)] [PSCustomObject] $Config, 
+           [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
+           [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
+           [Parameter(Mandatory = $True)] [string] $LogFileName,
+           [Parameter(Mandatory = $True)] [string] $TestMode,
+           [Parameter(Mandatory = $True)] [string[]] $Options,
+           [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
+           [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
 
-# This script is used to execute the various kernel mode tests. The required behavior is selected by the $TestMode
-# parameter.
-if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
+    Push-Location $WorkingDirectory
 
-    # Run XDP Tests.
-    Invoke-XDPTestsOnVM `
-        -Interfaces $Config.Interfaces `
-        -VMName $VMList[0].Name `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+    # Load other utility modules.
+    Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+    Import-Module $WorkingDirectory\vm_run_tests.psm1 `
+        -Force `
+        -ArgumentList (
+            $AdminTestVMCredential.UserName,
+            $AdminTestVMCredential.Password,
+            $StandardUserTestVMCredential.UserName,
+            $StandardUserTestVMCredential.Password,
+            $WorkingDirectory,
+            $LogFileName,
+            $TestMode,
+            $Options,
+            $TestHangTimeout,
+            $UserModeDumpFolder) `
+        -WarningAction SilentlyContinue
 
-    # Run Connect Redirect Tests.
-    Invoke-ConnectRedirectTestsOnVM `
-        -Interfaces $Config.Interfaces `
-        -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        -UserType "Administrator" `
-        -VMName $VMList[0].Name `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+    $VMList = $Config.VMMap.$SelfHostedRunnerName
+    # currently one VM runs per runner.
+    $TestVMName = $VMList[0].Name
 
-    Invoke-ConnectRedirectTestsOnVM `
-        -Interfaces $Config.Interfaces `
-        -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        -UserType "StandardUser" `
-        -VMName $VMList[0].Name `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
-}
+    # Run Kernel tests on test VM.
+    Write-Log "Running kernel tests on $TestVMName"
+    Run-KernelTestsOnVM -VMName $TestVMName -Config $Config
 
-# Stop eBPF components on test VMs.
-foreach ($VM in $VMList) {
-    Stop-eBPFComponentsOnVM -VMName $VM.Name
-}
+    # Stop eBPF components on test VMs.
+    Stop-eBPFComponentsOnVM -VMName $TestVMName
+
+    Pop-Location
+} -ArgumentList (
+    $AdminTestVMCredential,
+    $StandardUserTestVMCredential,
+    $Config,
+    $SelfHostedRunnerName,
+    $WorkingDirectory,
+    $LogFileName,
+    $TestMode,
+    $Options,
+    $TestHangTimeout,
+    $UserModeDumpFolder)
+
+# Keep track of the last received output count
+$JobTimedOut = `
+    Wait-TestJobToComplete -Job $Job `
+    -Config $Config `
+    -SelfHostedRunnerName $SelfHostedRunnerName `
+    -TestJobTimeout $TestJobTimeout `
+    -CheckpointPrefix "Execute"
+
+# Clean up
+Remove-Job -Job $Job -Force
 
 Pop-Location
+
+if ($JobTimedOut) {
+    exit 1
+}

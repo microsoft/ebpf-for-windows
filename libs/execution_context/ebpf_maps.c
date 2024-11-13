@@ -140,6 +140,18 @@ typedef uint8_t* ebpf_lru_entry_t;
 #define EBPF_LRU_ENTRY_KEY_PTR(map, entry) \
     ((uint8_t*)(((uint8_t*)entry) + EBPF_LRU_ENTRY_KEY_OFFSET(map->partition_count)))
 
+#define EBPF_LOG_MAP_OPERATION(flags, operation, map, key)                                            \
+    if (((flags) & EBPF_MAP_FLAG_HELPER) && (map)->ebpf_map_definition.key_size != 0) {               \
+        EBPF_LOG_MESSAGE_UTF8_STRING(                                                                 \
+            EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_MAP, "Map "##operation, &(map)->name); \
+        EBPF_LOG_MESSAGE_BINARY(                                                                      \
+            EBPF_TRACELOG_LEVEL_VERBOSE,                                                              \
+            EBPF_TRACELOG_KEYWORD_MAP,                                                                \
+            "Key",                                                                                    \
+            (key),                                                                                    \
+            (map)->ebpf_map_definition.key_size);                                                     \
+    }
+
 /**
  * @brief The partition of the LRU map key history.
  */
@@ -464,10 +476,32 @@ _find_array_map_entry(
     key_value = *(uint32_t*)key;
 
     if (key_value >= map->ebpf_map_definition.max_entries) {
-        return EBPF_INVALID_ARGUMENT;
+        return EBPF_OBJECT_NOT_FOUND;
     }
 
     *data = &map->data[key_value * map->ebpf_map_definition.value_size];
+
+    return EBPF_SUCCESS;
+}
+
+static ebpf_result_t
+_find_array_map_entry_with_reference(
+    _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
+{
+    ebpf_assert(map->ebpf_map_definition.value_size == sizeof(ebpf_id_t));
+
+    ebpf_result_t result = _find_array_map_entry(map, key, delete_on_success, data);
+
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    ebpf_id_t* id = (ebpf_id_t*)(*data);
+    if (id != NULL && *id == 0) {
+        // Turn zero ID into EBPF_OBJECT_NOT_FOUND.
+        *data = NULL;
+        return EBPF_OBJECT_NOT_FOUND;
+    }
 
     return EBPF_SUCCESS;
 }
@@ -2233,7 +2267,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_object_array_map,
         .delete_map = _delete_program_array_map,
         .associate_program = _associate_program_with_prog_array_map,
-        .find_entry = _find_array_map_entry,
+        .find_entry = _find_array_map_entry_with_reference,
         .get_object_from_entry = _get_object_from_array_map_entry,
         .update_entry_with_handle = _update_prog_array_map_entry_with_handle,
         .delete_entry = _delete_program_array_map_entry,
@@ -2275,7 +2309,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS,
         .create_map = _create_object_array_map,
         .delete_map = _delete_map_array_map,
-        .find_entry = _find_array_map_entry,
+        .find_entry = _find_array_map_entry_with_reference,
         .get_object_from_entry = _get_object_from_array_map_entry,
         .update_entry_with_handle = _update_map_array_map_entry_with_handle,
         .delete_entry = _delete_map_array_map_entry,
@@ -2447,6 +2481,7 @@ ebpf_map_find_entry(
 {
     // High volume call - Skip entry/exit logging.
     uint8_t* return_value = NULL;
+
     if (!(flags & EBPF_MAP_FLAG_HELPER) && (key_size != map->ebpf_map_definition.key_size)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -2485,6 +2520,8 @@ ebpf_map_find_entry(
                 EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Find not supported on BPF_MAP_TYPE_PROG_ARRAY");
             return EBPF_INVALID_ARGUMENT;
         }
+
+        EBPF_LOG_MAP_OPERATION(flags, "lookup", map, key);
 
         ebpf_core_object_t* object = ebpf_map_metadata_tables[type].get_object_from_entry(map, key);
         if (object) {
@@ -2605,6 +2642,8 @@ ebpf_map_update_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
+    EBPF_LOG_MAP_OPERATION(flags, "update", map, key);
+
     if ((flags & EBPF_MAP_FLAG_HELPER) &&
         ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu) {
         result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].update_entry_per_cpu(map, key, value, option);
@@ -2667,6 +2706,8 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+
+    EBPF_LOG_MAP_OPERATION(flags, "delete", map, key);
 
     ebpf_result_t result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, key);
     return result;
@@ -2881,10 +2922,12 @@ ebpf_map_get_next_key_and_value_batch(
 
         memcpy(key_and_value + output_length + key_size, next_value, value_size);
 
-        if (flags & EBPF_MAP_FIND_FLAG_DELETE) {
-            // If the caller requested deletion, delete the entry.
+        if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL)) {
+            // If the caller requested deletion, delete the previous entry.
             result = ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
             if (result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_UINT64(
+                    EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete entry", result);
                 break;
             }
         }
@@ -2901,6 +2944,17 @@ ebpf_map_get_next_key_and_value_batch(
     }
 
     *key_and_value_length = output_length;
+
+    if ((flags & EBPF_MAP_FIND_FLAG_DELETE) && (previous_key != NULL) && (output_length != 0)) {
+        // If the caller requested deletion, delete the last entry.
+        ebpf_result_t delete_result =
+            ebpf_map_metadata_tables[map->ebpf_map_definition.type].delete_entry(map, previous_key);
+        if (delete_result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Failed to delete last entry", delete_result);
+            result = delete_result;
+        }
+    }
 
     return result;
 }

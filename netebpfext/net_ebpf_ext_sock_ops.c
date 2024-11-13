@@ -186,6 +186,7 @@ _net_ebpf_extension_sock_ops_create_filter_context(
     // Add WFP filters at appropriate layers and set the hook NPI client as the filter's raw context.
     filter_count = NET_EBPF_SOCK_OPS_FILTER_COUNT;
     result = net_ebpf_extension_add_wfp_filters(
+        local_filter_context->base.wfp_engine_handle,
         filter_count,
         _net_ebpf_extension_sock_ops_wfp_filter_parameters,
         (compartment_id == UNSPECIFIED_COMPARTMENT_ID) ? 0 : 1,
@@ -258,7 +259,9 @@ _net_ebpf_extension_sock_ops_delete_filter_context(
 
     InitializeListHead(&local_list_head);
     net_ebpf_extension_delete_wfp_filters(
-        local_filter_context->base.filter_ids_count, local_filter_context->base.filter_ids);
+        filter_context->wfp_engine_handle,
+        local_filter_context->base.filter_ids_count,
+        local_filter_context->base.filter_ids);
 
     KeAcquireSpinLock(&local_filter_context->lock, &irql);
     if (local_filter_context->flow_context_list.count > 0) {
@@ -353,11 +356,11 @@ Exit:
 void
 net_ebpf_ext_sock_ops_unregister_providers()
 {
-    if (_ebpf_sock_ops_hook_provider_context) {
+    if (_ebpf_sock_ops_hook_provider_context != NULL) {
         net_ebpf_extension_hook_provider_unregister(_ebpf_sock_ops_hook_provider_context);
         _ebpf_sock_ops_hook_provider_context = NULL;
     }
-    if (_ebpf_sock_ops_program_info_provider_context) {
+    if (_ebpf_sock_ops_program_info_provider_context != NULL) {
         net_ebpf_extension_program_info_provider_unregister(_ebpf_sock_ops_program_info_provider_context);
         _ebpf_sock_ops_program_info_provider_context = NULL;
     }

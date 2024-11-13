@@ -37,14 +37,14 @@ jobs:
       with:
         egress-policy: audit
 
-    - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         # Only check out main repo, not submodules.
         ref: ${{ github.event.workflow_run.head_branch }}
 
 
     - name: Cache nuget packages
-      uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9
+      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
       env:
         cache-name: cache-nuget-modules
       with:

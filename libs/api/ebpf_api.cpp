@@ -64,9 +64,7 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
 
-#define NO_EXCEPT_TRY \
-    noexcept          \
-    try
+#define NO_EXCEPT_TRY noexcept try
 
 #define CATCH_NO_MEMORY_FD \
     catch (const std::bad_alloc&) { EBPF_RETURN_FD(ebpf_fd_invalid); }
@@ -464,10 +462,6 @@ _ebpf_map_lookup_element_helper(fd_t map_fd, bool find_and_delete, _In_opt_ cons
     uint32_t type;
 
     ebpf_assert(value);
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
     *((uint8_t*)value) = 0;
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
@@ -529,11 +523,6 @@ _ebpf_map_lookup_element_batch_helper(
     ebpf_assert(keys);
     ebpf_assert(values);
     ebpf_assert(count);
-
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     if (*count == 0) {
         result = EBPF_INVALID_ARGUMENT;
@@ -612,8 +601,16 @@ _ebpf_map_lookup_element_batch_helper(
         }
         count_returned += entries_returned;
 
-        // Point previous_key to the last key in the batch.
-        previous_key = (uint8_t*)keys + (count_returned - 1) * key_size;
+        // Set the previous_key for the next batch.
+        if (find_and_delete || count_returned == 0) {
+            // If find_and_delete is set to true, the entries are already deleted.
+            // If no more entries are returned, there is no need to fetch more.
+            // Hence the previous_key is set to null.
+            previous_key = nullptr;
+        } else {
+            // Point previous_key to the last key in the batch.
+            previous_key = (uint8_t*)keys + (count_returned - 1) * key_size;
+        }
 
         // Partial return signals last no more entries.
         if (entries_returned != entries_to_fetch) {
@@ -621,8 +618,11 @@ _ebpf_map_lookup_element_batch_helper(
         }
     }
 
-    // Copy previous key into out_batch.
-    std::copy(previous_key, previous_key + key_size, (uint8_t*)out_batch);
+    memset((uint8_t*)out_batch, 0, key_size);
+    // Copy previous key into out_batch, if find_and_delete is false.
+    if (!find_and_delete && (previous_key != nullptr)) {
+        std::copy(previous_key, previous_key + key_size, (uint8_t*)out_batch);
+    }
 
     *count = static_cast<uint32_t>(count_returned);
 
@@ -850,9 +850,6 @@ ebpf_map_update_element(fd_t map_fd, _In_opt_ const void* key, _In_ const void* 
     uint32_t type;
 
     ebpf_assert(value);
-    if (map_fd <= 0) {
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
 
     switch (flags) {
     case EBPF_ANY:
@@ -922,9 +919,6 @@ ebpf_map_update_element_batch(
     uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
     ebpf_assert(values);
-    if (map_fd <= 0) {
-        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
-    }
 
     switch (flags) {
     case EBPF_ANY:
@@ -1001,10 +995,6 @@ ebpf_map_delete_element(fd_t map_fd, _In_ const void* key) NO_EXCEPT_TRY
     ebpf_operation_map_delete_element_request_t* request;
 
     ebpf_assert(key);
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -1073,10 +1063,6 @@ ebpf_map_delete_element_batch(fd_t map_fd, _In_ const void* keys, _Inout_ uint32
     }
 
     ebpf_assert(keys);
-    if (map_fd <= 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
 
     map_handle = _get_handle_from_file_descriptor(map_fd);
     if (map_handle == ebpf_handle_invalid) {
@@ -1151,7 +1137,7 @@ Exit:
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void* next_key) NO_EXCEPT_TRY
+ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_opt_ void* next_key) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
@@ -1165,9 +1151,7 @@ ebpf_map_get_next_key(fd_t map_fd, _In_opt_ const void* previous_key, _Out_ void
     uint32_t type;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
 
-    ebpf_assert(next_key);
-
-    if (map_fd <= 0) {
+    if (next_key == NULL) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -3281,8 +3265,11 @@ _Requires_lock_not_held_(_ebpf_state_mutex) static ebpf_result_t
     ebpf_result_t result = EBPF_SUCCESS;
     std::vector<original_fd_handle_map_t> handle_map;
 
-    for (auto& program : object->programs) {
+    for (ebpf_program_t* program : object->programs) {
         if (!program->autoload) {
+            continue;
+        }
+        if (prog_is_subprog(object, program)) {
             continue;
         }
         result = _create_program(
@@ -3818,28 +3805,42 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Ret_maybenull_
 }
 CATCH_NO_MEMORY_PTR(struct bpf_object*)
 
+// This function is derived from libbpf's function of the same name.
+static _Ret_maybenull_ struct bpf_program*
+__bpf_program__iter(_In_opt_ const struct bpf_program* program, _In_ const struct bpf_object* object, bool forward)
+{
+    ebpf_assert(object);
+    size_t nr_programs = object->programs.size();
+
+    if (nr_programs == 0) {
+        return nullptr;
+    }
+    if (program == nullptr) {
+        // Iterate from the beginning.
+        return forward ? object->programs[0] : object->programs[nr_programs - 1];
+    }
+    if (program->object != object) {
+        errno = EINVAL;
+        return nullptr;
+    }
+    auto iterator = std::find(object->programs.begin(), object->programs.end(), program);
+    ptrdiff_t idx = std::distance(object->programs.begin(), iterator) + (forward ? 1 : -1);
+    if ((size_t)idx >= nr_programs || idx < 0) {
+        return nullptr;
+    }
+    return object->programs[idx];
+}
+
 _Ret_maybenull_ struct bpf_program*
 ebpf_program_next(_In_opt_ const struct bpf_program* previous, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_program_t* program = nullptr;
-    ebpf_assert(object);
-    if (previous != nullptr && previous->object != object) {
-        goto Exit;
-    }
-    if (previous == nullptr) {
-        program = (object->programs.size() > 0) ? object->programs[0] : nullptr;
-    } else {
-        size_t programs_count = object->programs.size();
-        for (size_t i = 0; i < programs_count; i++) {
-            if (object->programs[i] == previous && i < programs_count - 1) {
-                program = object->programs[i + 1];
-                break;
-            }
-        }
-    }
+    const ebpf_program_t* program = previous;
 
-Exit:
+    do {
+        program = __bpf_program__iter(program, object, true);
+    } while (program && prog_is_subprog(object, program));
+
     EBPF_RETURN_POINTER(bpf_program*, program);
 }
 CATCH_NO_MEMORY_PTR(bpf_program*)
@@ -3848,24 +3849,12 @@ _Ret_maybenull_ struct bpf_program*
 ebpf_program_previous(_In_opt_ const struct bpf_program* next, _In_ const struct bpf_object* object) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_program_t* program = nullptr;
-    ebpf_assert(object);
-    if (next != nullptr && next->object != object) {
-        goto Exit;
-    }
-    if (next == nullptr) {
-        program = object->programs[object->programs.size() - 1];
-    } else {
-        size_t programs_count = object->programs.size();
-        for (auto i = programs_count - 1; i > 0; i--) {
-            if (object->programs[i] == next) {
-                program = object->programs[i - 1];
-                break;
-            }
-        }
-    }
+    const ebpf_program_t* program = next;
 
-Exit:
+    do {
+        program = __bpf_program__iter(program, object, false);
+    } while (program && prog_is_subprog(object, program));
+
     EBPF_RETURN_POINTER(bpf_program*, program);
 }
 CATCH_NO_MEMORY_PTR(struct bpf_program*)
@@ -4190,8 +4179,7 @@ typedef struct _ebpf_ring_buffer_subscription
         : unsubscribed(false), ring_buffer_map_handle(ebpf_handle_invalid), sample_callback_context(nullptr),
           sample_callback(nullptr), buffer(nullptr), reply({}), async_ioctl_completion(nullptr),
           async_ioctl_failed(false)
-    {
-    }
+    {}
     ~_ebpf_ring_buffer_subscription()
     {
         EBPF_LOG_ENTRY();

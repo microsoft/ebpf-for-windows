@@ -7,25 +7,49 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
        [Parameter(Mandatory = $True)] [SecureString] $StandardUserPassword,
        [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
        [Parameter(Mandatory = $True)] [string] $LogFileName,
-       [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
-       [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps")
+       [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
+       [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
+       [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
+       [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+)
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 #
+# Generate kernel dump.
+#
+function Generate-KernelDumpOnVM
+{
+    param([Parameter(Mandatory = $true)] [string] $VMName,
+          [Parameter(Mandatory = $False)] [bool] $VerboseLogs)
+
+    Write-Log "Generating kernel dump on $VMName."
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        param([Parameter(Mandatory = $True)] [string] $WorkingDirectory,
+              [Parameter(Mandatory = $True)] [string] $LogFileName,
+              [Parameter(Mandatory = $True)] [bool] $VerboseLogs)
+
+        $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+
+        Generate-KernelDump
+    } -ArgumentList("eBPF", $LogFileName, $VerboseLogs) -ErrorAction Stop
+}
+
+#
 # Execute tests on VM.
 #
 function Invoke-CICDTestsOnVM
 {
-    param([parameter(Mandatory = $True)] [string] $VMName,
-          [parameter(Mandatory = $False)] [bool] $VerboseLogs = $false,
-          [parameter(Mandatory = $False)] [bool] $Coverage = $false,
-          [parameter(Mandatory = $False)][string] $TestMode = "CI/CD",
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps",
-          [parameter(Mandatory = $False)][string[]] $Options = @())
+    param([Parameter(Mandatory = $True)] [string] $VMName,
+          [Parameter(Mandatory = $False)] [bool] $VerboseLogs = $false,
+          [Parameter(Mandatory = $False)][string] $TestMode = "CI/CD",
+          [Parameter(Mandatory = $False)][string[]] $Options = @())
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -34,15 +58,14 @@ function Invoke-CICDTestsOnVM
         param([Parameter(Mandatory = $True)] [string] $WorkingDirectory,
               [Parameter(Mandatory = $True)] [string] $LogFileName,
               [Parameter(Mandatory = $True)] [bool] $VerboseLogs,
-              [Parameter(Mandatory = $True)] [bool] $Coverage,
-              [parameter(Mandatory = $True)][string] $TestMode,
-              [parameter(Mandatory = $true)][int] $TestHangTimeout,
-              [parameter(Mandatory = $true)][string] $UserModeDumpFolder,
-              [parameter(Mandatory = $True)][string[]] $Options)
+              [Parameter(Mandatory = $True)][string] $TestMode,
+              [Parameter(Mandatory = $true)][int] $TestHangTimeout,
+              [Parameter(Mandatory = $true)][string] $UserModeDumpFolder,
+              [Parameter(Mandatory = $True)][string[]] $Options)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
         $TestMode = $TestMode.ToLower()
         switch ($TestMode)
@@ -50,18 +73,12 @@ function Invoke-CICDTestsOnVM
             "ci/cd" {
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
-                    -Coverage $Coverage `
-                    -TestHangTimeout $TestHangTimeout `
-                    -UserModeDumpFolder $UserModeDumpFolder `
                     -ExecuteSystemTests $true `
                     2>&1 | Write-Log
             }
             "regression" {
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
-                    -Coverage $Coverage `
-                    -TestHangTimeout $TestHangTimeout `
-                    -UserModeDumpFolder $UserModeDumpFolder `
                     -ExecuteSystemTests $false `
                     2>&1 | Write-Log
             }
@@ -70,10 +87,7 @@ function Invoke-CICDTestsOnVM
                 $RestartExtension = $Options -contains "RestartExtension"
                 Invoke-CICDStressTests `
                     -VerboseLogs $VerboseLogs `
-                    -Coverage $Coverage `
                     -RestartExtension $RestartExtension `
-                    -TestHangTimeout $TestHangTimeout `
-                    -UserModeDumpFolder $UserModeDumpFolder `
                     2>&1 | Write-Log
             }
             "performance" {
@@ -90,7 +104,6 @@ function Invoke-CICDTestsOnVM
             "eBPF",
             $LogFileName,
             $VerboseLogs,
-            $Coverage,
             $TestMode,
             $TestHangTimeout,
             $UserModeDumpFolder,
@@ -99,9 +112,9 @@ function Invoke-CICDTestsOnVM
 
 function Add-eBPFProgramOnVM
 {
-    param ([parameter(Mandatory = $true)] [string] $VM,
-           [parameter(Mandatory = $true)] [string] $Program,
-           [string] $Interface,
+    param ([Parameter(Mandatory = $true)] [string] $VM,
+           [Parameter(Mandatory = $true)] [string] $Program,
+           [Parameter(Mandatory = $false)] [string] $Interface = "",
            [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -109,8 +122,8 @@ function Add-eBPFProgramOnVM
     # Load program on VM.
     $ProgId = Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)] [string] $VM,
-              [parameter(Mandatory = $true)] [string] $Program,
-              [string] $Interface,
+              [Parameter(Mandatory = $true)] [string] $Program,
+              [Parameter(Mandatory = $false)] [string] $Interface,
               [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
               [Parameter(Mandatory = $True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
@@ -133,9 +146,9 @@ function Add-eBPFProgramOnVM
 
 function Set-eBPFProgramOnVM
 {
-    param ([parameter(Mandatory = $true)] [string] $VM,
-           [parameter(Mandatory = $true)] $ProgId,
-           [parameter(Mandatory = $true)] [string] $Interface,
+    param ([Parameter(Mandatory = $true)] [string] $VM,
+           [Parameter(Mandatory = $true)] $ProgId,
+           [Parameter(Mandatory = $true)] [string] $Interface,
            [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -143,8 +156,8 @@ function Set-eBPFProgramOnVM
     # Set program on VM.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)] [string] $VM,
-              [parameter(Mandatory = $true)] $ProgId,
-              [parameter(Mandatory = $true)] [string] $Interface,
+              [Parameter(Mandatory = $true)] $ProgId,
+              [Parameter(Mandatory = $true)] [string] $Interface,
               [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
               [Parameter(Mandatory = $True)] [string] $LogFileName)
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
@@ -157,8 +170,8 @@ function Set-eBPFProgramOnVM
 }
 function Remove-eBPFProgramFromVM
 {
-    param ([parameter(Mandatory = $true)] [string] $VM,
-           [parameter(Mandatory = $true)] $ProgId,
+    param ([Parameter(Mandatory = $true)] [string] $VM,
+           [Parameter(Mandatory = $true)] $ProgId,
            [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -181,8 +194,8 @@ function Remove-eBPFProgramFromVM
 
 function Start-ProcessOnVM
 {
-    param ([parameter(Mandatory = $true)] [string] $VM,
-           [parameter(Mandatory = $true)] [string] $ProgramName,
+    param ([Parameter(Mandatory = $true)] [string] $VM,
+           [Parameter(Mandatory = $true)] [string] $ProgramName,
            [string] $Parameters)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -190,7 +203,7 @@ function Start-ProcessOnVM
     # Start process on VM.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory= $True)] [string] $VM,
-              [parameter(Mandatory= $true)] [string] $ProgramName,
+              [Parameter(Mandatory= $true)] [string] $ProgramName,
               [string] $Parameters,
               [Parameter(Mandatory = $True)] [string] $WorkingDirectory)
 
@@ -203,15 +216,15 @@ function Start-ProcessOnVM
 
 function Stop-ProcessOnVM
 {
-    param ([parameter(Mandatory = $true)] [string] $VM,
-           [parameter(Mandatory = $true)] [string] $ProgramName)
+    param ([Parameter(Mandatory = $true)] [string] $VM,
+           [Parameter(Mandatory = $true)] [string] $ProgramName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     # Stop process on VM.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)] [string] $VM,
-              [parameter(Mandatory = $true)] [string] $ProgramName)
+              [Parameter(Mandatory = $true)] [string] $ProgramName)
 
         $ProgramName = [io.path]::GetFileNameWithoutExtension($ProgramName)
         Stop-Process -Name $ProgramName
@@ -220,16 +233,16 @@ function Stop-ProcessOnVM
 
 function Add-StandardUserOnVM
 {
-    param ([parameter(Mandatory = $true)] [string] $VM,
-           [parameter(Mandatory = $true)] [string] $UserName,
-           [parameter(Mandatory = $true)] [string] $Password)
+    param ([Parameter(Mandatory = $true)] [string] $VM,
+           [Parameter(Mandatory = $true)] [string] $UserName,
+           [Parameter(Mandatory = $true)] [string] $Password)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     # Create standard user.
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
-        param([parameter(Mandatory = $true)] [string] $UserName,
-              [parameter(Mandatory = $true)] [string] $Password)
+        param([Parameter(Mandatory = $true)] [string] $UserName,
+              [Parameter(Mandatory = $true)] [string] $Password)
 
         $SecurePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
         New-LocalUser -Name $UserName -Password $SecurePassword
@@ -238,13 +251,13 @@ function Add-StandardUserOnVM
 
 function Remove-StandardUserOnVM
 {
-    param ([parameter(Mandatory = $True)] [string] $VM,
-           [parameter(Mandatory = $True)] [string] $UserName)
+    param ([Parameter(Mandatory = $True)] [string] $VM,
+           [Parameter(Mandatory = $True)] [string] $UserName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
-        param([parameter(Mandatory = $true)] [string] $UserName)
+        param([Parameter(Mandatory = $true)] [string] $UserName)
 
         Remove-LocalUser -Name $UserName
     } -ArgumentList ($UserName, $Password) -ErrorAction Stop
@@ -252,40 +265,34 @@ function Remove-StandardUserOnVM
 
 function Invoke-XDPTestOnVM
 {
-    param ([parameter(Mandatory = $True)] [string] $VM,
-           [parameter(Mandatory = $True)] [string] $XDPTestName,
+    param ([Parameter(Mandatory = $True)] [string] $VM,
+           [Parameter(Mandatory = $True)] [string] $XDPTestName,
            [Parameter(Mandatory = $True)] [string] $RemoteIPV4Address,
            [Parameter(Mandatory = $True)] [string] $RemoteIPV6Address,
-           [Parameter(Mandatory = $True)] [string] $LogFileName,
-           [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-           [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+           [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-
     Invoke-Command -VMName $VM -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)] [string] $VM,
-              [parameter(Mandatory = $true)] [string] $XDPTestName,
+              [Parameter(Mandatory = $true)] [string] $XDPTestName,
               [Parameter(Mandatory = $True)] [string] $RemoteIPV4Address,
               [Parameter(Mandatory = $True)] [string] $RemoteIPV6Address,
               [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
               [Parameter(Mandatory = $True)] [string] $LogFileName,
-              [parameter(Mandatory = $True)][int] $TestHangTimeout,
-              [parameter(Mandatory = $True)][string] $UserModeDumpFolder)
+              [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
+              [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
 
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking $XDPTestName on $VM"
         Invoke-XDPTest `
             -RemoteIPV4Address $RemoteIPV4Address `
             -RemoteIPV6Address $RemoteIPV6Address `
             -XDPTestName $XDPTestName `
-            -WorkingDirectory $WorkingDirectory `
-            -TestHangTimeout $TestHangTimeout `
-            -UserModeDumpFolder $UserModeDumpFolder
-
+            -WorkingDirectory $WorkingDirectory
     } -ArgumentList (
         $VM,
         $XDPTestName,
@@ -298,9 +305,9 @@ function Invoke-XDPTestOnVM
 }
 
 function Add-FirewallRuleOnVM {
-    param ([parameter(Mandatory = $True)] [string] $VM,
-           [parameter(Mandatory = $True)] [string] $ProgramName,
-           [parameter(Mandatory = $True)] [string] $RuleName,
+    param ([Parameter(Mandatory = $True)] [string] $VM,
+           [Parameter(Mandatory = $True)] [string] $ProgramName,
+           [Parameter(Mandatory = $True)] [string] $RuleName,
            [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -327,9 +334,7 @@ function Invoke-XDPTest1
           [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface2V4Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface2V6Address,
-          [Parameter(Mandatory = $True)] [string] $LogFileName,
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+          [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     Write-Log "Running XDP Test1 on $VM ..."
 
@@ -342,18 +347,13 @@ function Invoke-XDPTest1
         -XDPTestName "xdp_reflect_test" `
         -RemoteIPV4Address $VM1Interface1V4Address `
         -RemoteIPV6Address $VM1Interface1V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
-
+        -LogFileName $LogFileName
     Invoke-XDPTestOnVM `
         -VM $VM `
         -XDPTestName "xdp_reflect_test" `
         -RemoteIPV4Address $VM1Interface2V4Address `
         -RemoteIPV6Address $VM1Interface2V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     # Unload program from VM.
     Remove-eBPFProgramFromVM $VM $ProgId $LogFileName
@@ -370,9 +370,7 @@ function Invoke-XDPTest2
           [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface2V4Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface2V6Address,
-          [Parameter(Mandatory = $True)] [string] $LogFileName,
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+          [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     Write-Log "Running XDP Test2 ..."
 
@@ -388,18 +386,14 @@ function Invoke-XDPTest2
         -XDPTestName "xdp_reflect_test" `
         -RemoteIPV4Address $VM1Interface1V4Address `
         -RemoteIPV6Address $VM1Interface1V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     Invoke-XDPTestOnVM `
         -VM $VM `
         -XDPTestName "xdp_reflect_test" `
         -RemoteIPV4Address $VM1Interface2V4Address `
         -RemoteIPV6Address $VM1Interface2V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     # Unload program from VM1.
     Remove-eBPFProgramFromVM $VM $ProgId $LogFileName
@@ -416,9 +410,7 @@ function Invoke-XDPTest3
           [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface2V4Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface2V6Address,
-          [Parameter(Mandatory = $True)] [string] $LogFileName,
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+          [Parameter(Mandatory = $True)] [string] $LogFileName)
 
 
     Write-Log "Running XDP Test3 ..."
@@ -435,9 +427,7 @@ function Invoke-XDPTest3
         -XDPTestName "xdp_reflect_test" `
         -RemoteIPV4Address $VM1Interface1V4Address `
         -RemoteIPV6Address $VM1Interface1V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     # Run XDP encap reflect test from VM2 targeting second interface of VM1.
     Invoke-XDPTestOnVM `
@@ -445,9 +435,7 @@ function Invoke-XDPTest3
         -XDPTestName "xdp_encap_reflect_test" `
         -RemoteIPV4Address $VM1Interface2V4Address `
         -RemoteIPV6Address $VM1Interface2V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     # Unload programs from VM1.
     Remove-eBPFProgramFromVM $VM $ProgId1 $LogFileName
@@ -463,9 +451,7 @@ function Invoke-XDPTest4
           [Parameter(Mandatory = $True)] [string] $VM1Interface1V6Address,
           [Parameter(Mandatory = $True)] [string] $VM1Interface1Alias,
           [Parameter(Mandatory = $True)] [string] $VM2Interface1Alias,
-          [Parameter(Mandatory = $True)] [string] $LogFileName,
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+          [Parameter(Mandatory = $True)] [string] $LogFileName)
 
     Write-Log "Running XDP Test4 ..."
 
@@ -481,9 +467,7 @@ function Invoke-XDPTest4
         -XDPTestName "xdp_reflect_test" `
         -RemoteIPV4Address $VM1Interface1V4Address `
         -RemoteIPV6Address $VM1Interface1V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     # Unload program from VM1.
     Remove-eBPFProgramFromVM $VM $ProgId1 $LogFileName
@@ -495,10 +479,8 @@ function Invoke-XDPTest4
 
 function Invoke-XDPTestsOnVM
 {
-    param([parameter(Mandatory = $True)] $Interfaces,
-          [parameter(Mandatory = $True)] [string] $VMName,
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+    param([Parameter(Mandatory = $True)] $Interfaces,
+          [Parameter(Mandatory = $True)] [string] $VMName)
 
     # NIC pairs are duo1-duo2 and duo3-duo4.
     # VM1 is interfaces duo1 and duo3.
@@ -527,9 +509,7 @@ function Invoke-XDPTestsOnVM
         -VM1Interface1V6Address $VM1Interface1V6Address `
         -VM1Interface2V4Address $VM1Interface2V4Address `
         -VM1Interface2V6Address $VM1Interface3V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     Invoke-XDPTest2 `
         -VM $VMName `
@@ -539,9 +519,7 @@ function Invoke-XDPTestsOnVM
         -VM1Interface1V6Address $VM1Interface1V6Address `
         -VM1Interface2V4Address $VM1Interface2V4Address `
         -VM1Interface2V6Address $VM1Interface3V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     Invoke-XDPTest3 `
         -VM $VMName `
@@ -551,9 +529,7 @@ function Invoke-XDPTestsOnVM
         -VM1Interface1V6Address $VM1Interface1V6Address `
         -VM1Interface2V4Address $VM1Interface2V4Address `
         -VM1Interface2V6Address $VM1Interface3V6Address `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 
     Invoke-XDPTest4 `
         -VM $VMName `
@@ -561,19 +537,15 @@ function Invoke-XDPTestsOnVM
         -VM1Interface1V6Address $VM1Interface1V6Address `
         -VM1Interface1Alias $VM1Interface1Alias `
         -VM2Interface1Alias $VM2Interface1Alias `
-        -LogFileName $LogFileName `
-        -TestHangTimeout $TestHangTimeout `
-        -UserModeDumpFolder $UserModeDumpFolder
+        -LogFileName $LogFileName
 }
 
 function Invoke-ConnectRedirectTestsOnVM
 {
-    param([parameter(Mandatory = $true)] $Interfaces,
-          [parameter(Mandatory = $true)] $ConnectRedirectTestConfig,
-          [parameter(Mandatory = $true)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator",
-          [parameter(Mandatory = $true)] [string] $VMName,
-          [parameter(Mandatory = $False)][int] $TestHangTimeout = 3600,
-          [parameter(Mandatory = $False)][string] $UserModeDumpFolder = "C:\Dumps")
+    param([Parameter(Mandatory = $true)] $Interfaces,
+          [Parameter(Mandatory = $true)] $ConnectRedirectTestConfig,
+          [Parameter(Mandatory = $true)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator",
+          [Parameter(Mandatory = $true)] [string] $VMName)
 
     $VM1Interface = $Interfaces[0]
     $VM1V4Address = $VM1Interface.V4Address
@@ -620,7 +592,7 @@ function Invoke-ConnectRedirectTestsOnVM
            -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
            -Argumentlist $StandardUser -ErrorAction SilentlyContinue
     if($UserId) {
-        Write-Host "Deleting existing standard user:" $StandardUser "on" $VMName
+        Write-Log "Deleting existing standard user: $StandardUser on $VMName"
         Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
     }
 
@@ -629,25 +601,26 @@ function Invoke-ConnectRedirectTestsOnVM
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)][string] $VM,
-              [parameter(Mandatory = $true)][string] $LocalIPv4Address,
-              [parameter(Mandatory = $true)][string] $LocalIPv6Address,
-              [parameter(Mandatory = $true)][string] $RemoteIPv4Address,
-              [parameter(Mandatory = $true)][string] $RemoteIPv6Address,
-              [parameter(Mandatory = $true)][string] $VirtualIPv4Address,
-              [parameter(Mandatory = $true)][string] $VirtualIPv6Address,
-              [parameter(Mandatory = $true)][int] $DestinationPort,
-              [parameter(Mandatory = $true)][int] $ProxyPort,
-              [parameter(Mandatory = $true)][string] $StandardUserName,
-              [parameter(Mandatory = $true)][string] $StandardUserPassword,
-              [parameter(Mandatory = $true)][string] $UserType,
-              [parameter(Mandatory = $true)][string] $WorkingDirectory,
+              [Parameter(Mandatory = $true)][string] $LocalIPv4Address,
+              [Parameter(Mandatory = $true)][string] $LocalIPv6Address,
+              [Parameter(Mandatory = $true)][string] $RemoteIPv4Address,
+              [Parameter(Mandatory = $true)][string] $RemoteIPv6Address,
+              [Parameter(Mandatory = $true)][string] $VirtualIPv4Address,
+              [Parameter(Mandatory = $true)][string] $VirtualIPv6Address,
+              [Parameter(Mandatory = $true)][int] $DestinationPort,
+              [Parameter(Mandatory = $true)][int] $ProxyPort,
+              [Parameter(Mandatory = $true)][string] $StandardUserName,
+              [Parameter(Mandatory = $true)][string] $StandardUserPassword,
+              [Parameter(Mandatory = $true)][string] $UserType,
+              [Parameter(Mandatory = $true)][string] $WorkingDirectory,
               [Parameter(Mandatory = $true)][string] $LogFileName,
-              [parameter(Mandatory = $false)][int] $TestHangTimeout,
-              [parameter(Mandatory = $false)][string] $UserModeDumpFolder)
+              [Parameter(Mandatory = $false)][int] $TestHangTimeout,
+              [Parameter(Mandatory = $false)][string] $UserModeDumpFolder)
+
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking connect redirect tests [Mode=$UserType] on $VM"
         Invoke-ConnectRedirectTest `
@@ -662,9 +635,7 @@ function Invoke-ConnectRedirectTestsOnVM
             -StandardUserName $StandardUserName `
             -StandardUserPassword $StandardUserPassword `
             -UserType $UserType `
-            -WorkingDirectory $WorkingDirectory `
-            -TestHangTimeout $TestHangTimeout `
-            -UserModeDumpFolder $UserModeDumpFolder
+            -WorkingDirectory $WorkingDirectory
         Write-Log "Invoke-ConnectRedirectTest finished on $VM"
 
     } -ArgumentList (
@@ -692,8 +663,8 @@ function Invoke-ConnectRedirectTestsOnVM
 
 function Stop-eBPFComponentsOnVM
 {
-    param([parameter(Mandatory = $true)] [string] $VMName,
-          [parameter(Mandatory = $false)] [bool] $VerboseLogs = $false)
+    param([Parameter(Mandatory = $true)] [string] $VMName,
+          [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false)
     # Stop the components, so that Driver Verifier can catch memory leaks etc.
     Write-Log "Stopping eBPF components on $VMName"
 
@@ -708,6 +679,51 @@ function Stop-eBPFComponentsOnVM
 
         Stop-eBPFComponents
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
+}
+
+function Run-KernelTestsOnVM
+{
+    param([Parameter(Mandatory = $true)] [string] $VMName,
+          [Parameter(Mandatory = $true)] [PSCustomObject] $Config)
+
+    try {
+
+        # Run CICD tests on test VM.
+        Invoke-CICDTestsOnVM `
+            -VMName $VMName `
+            -TestMode $TestMode `
+            -Options $Options
+
+        # The required behavior is selected by the $TestMode
+        # parameter.
+        if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
+
+            # Run XDP Tests.
+            Invoke-XDPTestsOnVM `
+                -Interfaces $Config.Interfaces `
+                -VMName $VMName
+
+            # Run Connect Redirect Tests.
+            Invoke-ConnectRedirectTestsOnVM `
+                -Interfaces $Config.Interfaces `
+                -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+                -UserType "Administrator" `
+                -VMName $VMName
+
+            Invoke-ConnectRedirectTestsOnVM `
+                -Interfaces $Config.Interfaces `
+                -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+                -UserType "StandardUser" `
+                -VMName $VMName
+        }
+    } catch [System.Management.Automation.RemoteException] {
+        # Next, generate kernel dump.
+        Write-Log $_.Exception.Message
+        Write-Log $_.ScriptStackTrace
+        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
+            Generate-KernelDumpOnVM($VMName)
+        }
+    }
 }
 
 Pop-Location

@@ -52,12 +52,6 @@ _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVE
     KeReleaseSpinLock(lock, state);
 }
 
-void
-ebpf_restore_current_thread_affinity(uintptr_t old_thread_affinity_mask)
-{
-    KeRevertToUserAffinityThreadEx(old_thread_affinity_mask);
-}
-
 bool
 ebpf_is_preemptible()
 {
@@ -68,7 +62,7 @@ ebpf_is_preemptible()
 uint32_t
 ebpf_get_current_cpu()
 {
-    return KeGetCurrentProcessorNumberEx(NULL);
+    return cxplat_get_current_processor_number();
 }
 
 uint64_t
@@ -397,43 +391,36 @@ ebpf_log_function(_In_ void* context, _In_z_ const char* format_string, ...)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_set_current_thread_affinity(uintptr_t new_thread_affinity_mask, _Out_ uintptr_t* old_thread_affinity_mask)
+ebpf_set_current_thread_cpu_affinity(uint32_t cpu_index, _Out_ GROUP_AFFINITY* old_cpu_affinity)
 {
     if (KeGetCurrentIrql() >= DISPATCH_LEVEL) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
-    KAFFINITY old_affinity = KeSetSystemAffinityThreadEx(new_thread_affinity_mask);
-    *old_thread_affinity_mask = old_affinity;
-    return EBPF_SUCCESS;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_allocate_non_preemptible_work_item(
-    _Outptr_ KDPC** dpc,
-    uint32_t cpu_id,
-    _In_ PKDEFERRED_ROUTINE work_item_routine,
-    _Inout_opt_ void* work_item_context)
-{
-    *dpc = ebpf_allocate(sizeof(KDPC));
-    if (*dpc == NULL) {
-        return EBPF_NO_MEMORY;
+    if (cpu_index >= ebpf_get_cpu_count()) {
+        return EBPF_INVALID_ARGUMENT;
     }
 
-    KeInitializeDpc(*dpc, work_item_routine, work_item_context);
-    KeSetTargetProcessorDpc(*dpc, (uint8_t)cpu_id);
+    PROCESSOR_NUMBER processor;
+    GROUP_AFFINITY new_affinity = {0};
+
+    NTSTATUS status = KeGetProcessorNumberFromIndex(cpu_index, &processor);
+    if (!NT_SUCCESS(status)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    new_affinity.Group = processor.Group;
+    new_affinity.Mask = AFFINITY_MASK(processor.Number);
+
+    KeSetSystemGroupAffinityThread(&new_affinity, old_cpu_affinity);
+
     return EBPF_SUCCESS;
 }
 
 void
-ebpf_free_non_preemptible_work_item(_In_opt_ _Frees_ptr_opt_ KDPC* dpc)
+ebpf_restore_current_thread_cpu_affinity(_In_ GROUP_AFFINITY* old_cpu_affinity)
 {
-    if (!dpc) {
-        return;
-    }
-
-    KeRemoveQueueDpc(dpc);
-    ebpf_free(dpc);
+    KeRevertToUserGroupAffinityThread(old_cpu_affinity);
 }
 
 typedef struct _ebpf_timer_work_item

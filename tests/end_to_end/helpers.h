@@ -76,19 +76,18 @@ typedef class _emulate_dpc
   public:
     _emulate_dpc(uint32_t cpu_id)
     {
-        uintptr_t new_thread_affinity_mask = 1ull << cpu_id;
-        ebpf_assert_success(ebpf_set_current_thread_affinity(new_thread_affinity_mask, &old_thread_affinity_mask));
+        ebpf_assert_success(ebpf_set_current_thread_cpu_affinity(cpu_id, &old_thread_affinity_mask));
         KeRaiseIrql(DISPATCH_LEVEL, &old_irql);
     }
     ~_emulate_dpc()
     {
         KeLowerIrql(old_irql);
 
-        ebpf_restore_current_thread_affinity(old_thread_affinity_mask);
+        ebpf_restore_current_thread_cpu_affinity(&old_thread_affinity_mask);
     }
 
   private:
-    uintptr_t old_thread_affinity_mask;
+    GROUP_AFFINITY old_thread_affinity_mask;
     KIRQL old_irql;
 
 } emulate_dpc_t;

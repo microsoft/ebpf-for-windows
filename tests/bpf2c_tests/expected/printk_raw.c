@@ -12,6 +12,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
@@ -35,7 +36,7 @@ func(void* context)
 #line 18 "sample/printk.c"
 {
 #line 18 "sample/printk.c"
-    // Prologue
+    // Prologue.
 #line 18 "sample/printk.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 18 "sample/printk.c"
@@ -621,7 +622,7 @@ func(void* context)
     // EBPF_OP_EXIT pc=169 dst=r0 src=r0 offset=0 imm=0
 #line 50 "sample/printk.c"
     return r0;
-#line 50 "sample/printk.c"
+#line 18 "sample/printk.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

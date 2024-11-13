@@ -53,11 +53,11 @@ Alternative install steps (for *basic* Visual Studio Community edition):
    Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
    ```
 
-1. Run the following command to automatically setup the dev environment:
+1. Run the following command to automatically set up the dev environment:
 
    ```ps
    Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/scripts/Setup-DevEnv.ps1' -OutFile $env:TEMP\Setup-DeveEnv.ps1
-   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '0E8733AC82CFDEC93A3606AEA586A6BD08980D2301754EC165230FBA353E7B4C') { &"$env:TEMP\Setup-DeveEnv.ps1" }
+   if ((get-filehash -Algorithm SHA256 $env:TEMP\Setup-DeveEnv.ps1).Hash -eq '36C16D8455E8867E64EFA1D1AF5223CEF9CDB4394C3B76B6AA09B46F3F26E7A8') { &"$env:TEMP\Setup-DeveEnv.ps1" }
    ```
 
    >**Note**: the WDK for Windows 11 is [not currently available on Chocolatey](https://community.chocolatey.org/packages?q=windowsdriverkit),
