@@ -409,7 +409,8 @@
       "RebootAfterSetup": null,
       "Tags": {},
       "TargetEnv": {
-        "ASAN_OPTIONS": "allocator_may_return_null=1"
+        "ASAN_OPTIONS": "allocator_may_return_null=1",
+        "UBPF_FUZZER_CONSTRAINT_CHECK": "1"
       },
       "OneFuzzJobs": [
         {
