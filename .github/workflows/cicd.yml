@@ -55,7 +55,7 @@ jobs:
       build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
-      configurations: '["Release"]'
+      configurations: '["Debug", "Release"]'
 
   # Run the driver tests on self-hosted runners.
   driver_ws2019:
