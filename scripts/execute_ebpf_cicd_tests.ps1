@@ -21,8 +21,14 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 # TODO - figure out admin vs standard user
 $SelfHostedRunnerName = "runner_host"
 Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, AdminTarget: $AdminTarget, StandardUserTarget: $StandardUserTarget"
-$AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-$StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+try {
+    $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+    $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+} catch {
+    Write-Host "Failed to get credentials for $AdminTarget or $StandardUserTarget. Using default credentials."
+    $AdminTestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword 'P@ssw0rd'
+    $StandardUserTestVMCredential = New-Credential -UserName 'VMStandardUser' -AdminPassword 'P@ssw0rd'
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json

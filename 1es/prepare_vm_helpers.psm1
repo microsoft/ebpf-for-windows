@@ -344,8 +344,9 @@ function Create-VMStoredCredential {
         Install-Module -Name CredentialManager -Scope AllUsers -Force
         Import-Module CredentialManager -Force
 
-        New-StoredCredential -Target $CredentialName -UserName $Username -Password $Password
+        New-StoredCredential -Target $CredentialName -UserName $Username -Password $Password -Type Generic -Persist LocalMachine
     } catch {
-        throw "Failed to create stored credential: $_"
+        Log-Message "Failed to create stored credential: $_" -ForegroundColor Red
+        # throw "Failed to create stored credential: $_"
     }
 }

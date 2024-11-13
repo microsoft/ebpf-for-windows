@@ -14,7 +14,12 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 $SelfHostedRunnerName = "runner_host"
 Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, Target: $Target"
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+try {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+} catch {
+    Write-Host "Failed to get credentials for $Target. Using default credentials."
+    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword 'P@ssw0rd'
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json

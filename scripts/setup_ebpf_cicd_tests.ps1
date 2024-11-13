@@ -16,7 +16,12 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 Push-Location $WorkingDirectory
 
 $SelfHostedRunnerName = "runner_host"
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+try {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+} catch {
+    Write-Host "Failed to get credentials for $Target. Using default credentials."
+    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword 'P@ssw0rd'
+}
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
