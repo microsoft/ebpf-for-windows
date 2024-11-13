@@ -112,3 +112,17 @@ function Wait-TestJobToComplete
 
     return $JobTimedOut
 }
+
+function Create-VMCredential {
+    param (
+        [Parameter(Mandatory=$True)][string]$VmUsername,
+        [Parameter(Mandatory=$True)][string]$VmPassword
+    )
+
+    try {
+        $secureVmPassword = ConvertTo-SecureString $VmPassword -AsPlainText -Force
+        return New-Object System.Management.Automation.PSCredential($VmUsername, $secureVmPassword)
+    } catch {
+        throw "Failed to create VM credential: $_"
+    }
+}

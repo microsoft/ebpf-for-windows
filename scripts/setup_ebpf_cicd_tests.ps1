@@ -10,15 +10,18 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsVersion = "",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = "runner_host"
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
+       [Parameter(Mandatory = $false)][string] $VMUserName="Administrator",
+       [Parameter(Mandatory = $false)][string] $VMPassword="P@ssw0rd"
+    )
 
 Push-Location $WorkingDirectory
 
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+$SelfHostedRunnerName = "runner_host"
+$TestVMCredential = Create-VMCredential -VmUsername $VMUserName -VmPassword $VMPassword
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.
@@ -27,10 +30,10 @@ $VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Delete old log files if any.
 Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
-foreach($VM in $VMList) {
-    $VMName = $VM.Name
-    Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
-}
+# foreach($VM in $VMList) {
+#     $VMName = $VM.Name
+#     Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
+# }
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
