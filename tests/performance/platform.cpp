@@ -46,7 +46,7 @@ _perf_bpf_ktime_get_boot_ns()
     uint64_t time;
     ebpf_epoch_state_t epoch_state;
     ebpf_epoch_enter(&epoch_state);
-    time = ebpf_query_time_since_boot(true) * EBPF_NS_PER_FILETIME;
+    time = ebpf_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
     ebpf_epoch_exit(&epoch_state);
 }
 
@@ -56,7 +56,7 @@ _perf_bpf_ktime_get_ns()
     uint64_t time;
     ebpf_epoch_state_t epoch_state;
     ebpf_epoch_enter(&epoch_state);
-    time = ebpf_query_time_since_boot(false) * EBPF_NS_PER_FILETIME;
+    time = ebpf_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
     ebpf_epoch_exit(&epoch_state);
 }
 

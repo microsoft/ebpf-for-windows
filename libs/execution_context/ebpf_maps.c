@@ -166,6 +166,8 @@ __declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_lru_partition
     size_t hot_list_limit;     //< Maximum size of the hot list.
 } ebpf_lru_partition_t;
 
+static_assert(sizeof(ebpf_lru_partition_t) % EBPF_CACHE_LINE_SIZE == 0, "ebpf_core_lru_map_t is not cache aligned.");
+
 /**
  * @brief The map definition for an LRU map.
  */
@@ -1203,7 +1205,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
     switch (key_state) {
     case EBPF_LRU_KEY_UNINITIALIZED:
         EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
-        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot_approximate(false);
         ebpf_list_insert_tail(
             &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
         map->partitions[partition].hot_list_size++;
@@ -1211,7 +1213,7 @@ _insert_into_hot_list(_Inout_ ebpf_core_lru_map_t* map, size_t partition, _Inout
     case EBPF_LRU_KEY_COLD:
         // Remove from cold list.
         EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
-        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+        EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot_approximate(false);
         ebpf_list_remove_entry(&EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
         ebpf_list_insert_tail(
             &map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
@@ -1255,7 +1257,7 @@ _initialize_lru_entry(
     // Only insert into the current partition's hot list.
     ebpf_lock_state_t state = ebpf_lock_lock(&map->partitions[partition].lock);
     EBPF_LRU_ENTRY_GENERATION_PTR(map, entry)[partition] = map->partitions[partition].current_generation;
-    EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot(false);
+    EBPF_LRU_ENTRY_LAST_USED_TIME_PTR(map, entry)[partition] = ebpf_query_time_since_boot_approximate(false);
     ebpf_list_insert_tail(&map->partitions[partition].hot_list, &EBPF_LRU_ENTRY_LIST_ENTRY_PTR(map, entry)[partition]);
     map->partitions[partition].hot_list_size++;
 
