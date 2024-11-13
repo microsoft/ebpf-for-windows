@@ -344,9 +344,7 @@ function Create-VMStoredCredential {
         Install-Module -Name CredentialManager -Scope AllUsers -Force
         Import-Module CredentialManager -Force
 
-        $secureVmPassword = ConvertTo-SecureString $Password -AsPlainText -Force
-        $vmCredential = New-Object System.Management.Automation.PSCredential($Username, $secureVmPassword)
-        New-StoredCredential -Target $CredentialName -Credential $vmCredential -Type Generic -Persist LocalMachine
+        New-StoredCredential -Target $CredentialName -UserName $Username -Password $Password
     } catch {
         throw "Failed to create stored credential: $_"
     }
