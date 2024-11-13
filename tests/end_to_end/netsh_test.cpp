@@ -204,7 +204,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "load         : 0\n"
                   "load_store   : 0\n"
                   "map_in_map   : 0\n"
-                  "other        : 2\n"
+                  "other        : 1\n"
                   "packet_access: 0\n"
                   "reallocate   : 0\n"
                   "store        : 0\n"
