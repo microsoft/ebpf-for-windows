@@ -39,7 +39,7 @@ _resolve_helper_functions(
     // Build a table to map [1, MAXUINT32] -> [0,63]
     for (size_t index = 0; index < instruction_count; index++) {
         ebpf_inst& instruction = instructions[index];
-        if (instruction.opcode != INST_OP_CALL) {
+        if (instruction.opcode != INST_OP_CALL || instruction.src != INST_CALL_STATIC_HELPER) {
             continue;
         }
         helper_id_to_address[instruction.imm] = {0};
@@ -364,7 +364,7 @@ ebpf_verify_and_load_program(
             }
 
             ubpf_set_error_print(
-                vm, reinterpret_cast<int (*)(FILE* stream, const char* format, ...)>(log_function_address));
+                vm, reinterpret_cast<int (*)(FILE * stream, const char* format, ...)>(log_function_address));
 
             if (ubpf_load(
                     vm, byte_code_data, static_cast<uint32_t>(byte_code_size), const_cast<char**>(error_message)) < 0) {

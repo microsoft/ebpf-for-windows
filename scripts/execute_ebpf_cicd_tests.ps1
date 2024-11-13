@@ -23,24 +23,18 @@ $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
-$VMList = $Config.VMMap.$SelfHostedRunnerName
-# currently one VM runs per runner.
-$TestVMName = $VMList[0].Name
 
 $Job = Start-Job -ScriptBlock {
-    param (
-           [Parameter(Mandatory = $True)][string] $TestVMName,
+    param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
+           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
-           [Parameter(Mandatory = $True)] [string] $Admin,
-           [Parameter(Mandatory = $True)] [SecureString] $AdminPassword,
-           [Parameter(Mandatory = $True)] [string] $StandardUser,
-           [Parameter(Mandatory = $True)] [SecureString] $StandardUserPassword,
+           [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
            [Parameter(Mandatory = $True)] [string] $LogFileName,
-           [Parameter(Mandatory = $True)][string] $TestMode,
-           [Parameter(Mandatory = $True)][string[]] $Options,
-           [Parameter(Mandatory = $True)][int] $TestHangTimeout,
-           [Parameter(Mandatory = $True)][string] $UserModeDumpFolder)
+           [Parameter(Mandatory = $True)] [string] $TestMode,
+           [Parameter(Mandatory = $True)] [string[]] $Options,
+           [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
+           [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
 
     Push-Location $WorkingDirectory
 
@@ -49,10 +43,10 @@ $Job = Start-Job -ScriptBlock {
     Import-Module $WorkingDirectory\vm_run_tests.psm1 `
         -Force `
         -ArgumentList (
-            $Admin,
-            $AdminPassword,
-            $StandardUser,
-            $StandardUserPassword,
+            $AdminTestVMCredential.UserName,
+            $AdminTestVMCredential.Password,
+            $StandardUserTestVMCredential.UserName,
+            $StandardUserTestVMCredential.Password,
             $WorkingDirectory,
             $LogFileName,
             $TestMode,
@@ -61,19 +55,23 @@ $Job = Start-Job -ScriptBlock {
             $UserModeDumpFolder) `
         -WarningAction SilentlyContinue
 
+    $VMList = $Config.VMMap.$SelfHostedRunnerName
+    # currently one VM runs per runner.
+    $TestVMName = $VMList[0].Name
+
     # Run Kernel tests on test VM.
     Write-Log "Running kernel tests on $TestVMName"
     Run-KernelTestsOnVM -VMName $TestVMName -Config $Config
 
     # Stop eBPF components on test VMs.
     Stop-eBPFComponentsOnVM -VMName $TestVMName
+
+    Pop-Location
 } -ArgumentList (
-    $TestVMName,
+    $AdminTestVMCredential,
+    $StandardUserTestVMCredential,
     $Config,
-    $AdminTestVMCredential.UserName,
-    $AdminTestVMCredential.Password,
-    $StandardUserTestVMCredential.UserName,
-    $StandardUserTestVMCredential.Password,
+    $SelfHostedRunnerName,
     $WorkingDirectory,
     $LogFileName,
     $TestMode,
@@ -82,34 +80,18 @@ $Job = Start-Job -ScriptBlock {
     $UserModeDumpFolder)
 
 # Keep track of the last received output count
-$LastCount = 0
-$TimeElapsed = 0
-
-# Loop to fetch and print job output in near real-time
-while ($Job.State -eq 'Running') {
-    $JobOutput = Receive-Job -Job $job
-	$JobOutput | ForEach-Object { Write-Host $_ }
-
-    Start-Sleep -Seconds 2
-    $TimeElapsed += 2
-
-    if ($TimeElapsed -gt $TestJobTimeout) {
-        if ($Job.State -eq "Running") {
-            Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
-            $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-            $CheckpointName = "$TestVMName-Checkpoint-$Timestamp"
-            Write-Log "Taking snapshot $CheckpointName of $TestVMName"
-            Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
-            break
-        }
-    }
-}
-
-# Print any remaining output after the job completes
-$JobOutput = Receive-Job -Job $job
-$JobOutput | ForEach-Object { Write-Host $_ }
+$JobTimedOut = `
+    Wait-TestJobToComplete -Job $Job `
+    -Config $Config `
+    -SelfHostedRunnerName $SelfHostedRunnerName `
+    -TestJobTimeout $TestJobTimeout `
+    -CheckpointPrefix "Execute"
 
 # Clean up
 Remove-Job -Job $Job -Force
 
 Pop-Location
+
+if ($JobTimedOut) {
+    exit 1
+}

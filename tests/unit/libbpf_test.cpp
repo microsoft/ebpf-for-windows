@@ -513,6 +513,34 @@ TEST_CASE("libbpf program", "[libbpf]")
     bpf_object__close(object);
 }
 
+TEST_CASE("libbpf subprogram", "[libbpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct bpf_object* object = bpf_object__open("bindmonitor_bpf2bpf.o");
+    REQUIRE(object != nullptr);
+
+    // Test bpf_object__find_program_by_name().
+    struct bpf_program* program = bpf_object__find_program_by_name(object, "BindMonitor_Callee");
+    REQUIRE(program == nullptr);
+    program = bpf_object__find_program_by_name(object, "BindMonitor_Caller");
+    REQUIRE(program != nullptr);
+
+    // Test bpf_object__next_program().
+    REQUIRE(bpf_object__next_program(object, program) == nullptr);
+    REQUIRE(bpf_object__next_program(object, nullptr) == program);
+
+    // Test bpf_object__next_program().
+    REQUIRE(bpf_object__prev_program(object, program) == nullptr);
+    REQUIRE(bpf_object__prev_program(object, nullptr) == program);
+
+    // Load the program.
+    REQUIRE(bpf_object__load(object) == 0);
+
+    bpf_object__close(object);
+}
+
 static void
 _test_program_autoload(ebpf_execution_type_t execution_type)
 {
@@ -2978,6 +3006,64 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     attr.prog_bind_map.flags = 0;
     REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
 
+    // Verify we can create a nested array map.
+    uint32_t key = 0;
+    fd_t value = map_fd;
+    attr.map_create = {};
+    attr.map_create.map_type = BPF_MAP_TYPE_ARRAY_OF_MAPS;
+    attr.map_create.key_size = sizeof(key);
+    attr.map_create.value_size = sizeof(value);
+    attr.map_create.max_entries = 1;
+    attr.map_create.inner_map_fd = map_fd;
+    int nested_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr.map_create));
+    REQUIRE(nested_map_fd >= 0);
+
+    // Ensure we can insert map_fd into the outer map.
+    attr.map_update = {};
+    attr.map_update.map_fd = nested_map_fd;
+    attr.map_update.key = (uintptr_t)&key;
+    attr.map_update.value = (uintptr_t)&value;
+    REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr.map_update)) == 0);
+
+    // Ensure that looking up the same key gives the ID of the inner map.
+    ebpf_id_t value_id = 0;
+    attr.map_lookup = {};
+    attr.map_lookup.map_fd = nested_map_fd;
+    attr.map_lookup.key = (uintptr_t)&key;
+    attr.map_lookup.value = (uintptr_t)&value_id;
+    REQUIRE(bpf(BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr.map_lookup)) == 0);
+    REQUIRE(value_id == map_id);
+
+    Platform::_close(nested_map_fd);
+
+    // Verify we can create a nested hash map.
+    attr.map_create = {};
+    attr.map_create.map_type = BPF_MAP_TYPE_HASH_OF_MAPS;
+    attr.map_create.key_size = sizeof(key);
+    attr.map_create.value_size = sizeof(value);
+    attr.map_create.max_entries = 1;
+    attr.map_create.inner_map_fd = map_fd;
+    nested_map_fd = bpf(BPF_MAP_CREATE, &attr, sizeof(attr.map_create));
+    REQUIRE(nested_map_fd >= 0);
+
+    // Ensure we can insert map_fd into the outer map.
+    attr.map_update = {};
+    attr.map_update.map_fd = nested_map_fd;
+    attr.map_update.key = (uintptr_t)&key;
+    attr.map_update.value = (uintptr_t)&value;
+    REQUIRE(bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr.map_update)) == 0);
+
+    // Ensure that looking up the same key gives the ID of the inner map.
+    value_id = 0;
+    attr.map_lookup = {};
+    attr.map_lookup.map_fd = nested_map_fd;
+    attr.map_lookup.key = (uintptr_t)&key;
+    attr.map_lookup.value = (uintptr_t)&value_id;
+    REQUIRE(bpf(BPF_MAP_LOOKUP_ELEM, &attr, sizeof(attr.map_lookup)) == 0);
+    REQUIRE(value_id == map_id);
+
+    Platform::_close(nested_map_fd);
+
     // Release our own references on the map and program.
     Platform::_close(map_fd);
     Platform::_close(program_fd);
@@ -3604,6 +3690,7 @@ _test_maps_batch(bpf_map_type map_type)
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
     REQUIRE(fetched_batch_size == batch_size);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
 
     // Request more keys than present.
     uint32_t large_fetched_batch_size = fetched_batch_size * 2;
@@ -3611,7 +3698,7 @@ _test_maps_batch(bpf_map_type map_type)
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &large_fetched_batch_size, &opts) ==
         0);
-    REQUIRE(fetched_batch_size == batch_size);
+    REQUIRE(large_fetched_batch_size == batch_size);
 
     // Search at end of map.
     REQUIRE(
@@ -3624,18 +3711,56 @@ _test_maps_batch(bpf_map_type map_type)
             &large_fetched_batch_size,
             &opts) == -ENOENT);
 
-    // Fetch all keys in batches.
+    // Verify all keys and values in batches.
     _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
 
-    // Delete the batch.
+    // Delete all keys in one batch.
     uint32_t delete_batch_size = batch_size;
     opts.elem_flags = 0;
-
-    // Delete all keys in one batch.
     REQUIRE(bpf_map_delete_batch(map_fd, keys.data(), &delete_batch_size, &opts) == 0);
     REQUIRE(delete_batch_size == batch_size);
 
-    // Fetch all keys in one batch.
+    // Verify there are no entries, after deletion.
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==
+        -ENOENT);
+
+    // Lookup and Delete batch operation.
+    opts.elem_flags = BPF_NOEXIST;
+    update_batch_size = batch_size;
+
+    // Populate the map with the keys and values.
+    REQUIRE(bpf_map_update_batch(map_fd, keys.data(), values.data(), &update_batch_size, &opts) == 0);
+    REQUIRE(update_batch_size == batch_size);
+
+    next_key = 0;
+    opts.elem_flags = BPF_ANY;
+    fetched_batch_size = batch_size;
+    REQUIRE(
+        bpf_map_lookup_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+    _test_batch_iteration_maps(map_fd, batch_size, &opts, value_size, num_of_cpus);
+    // Verify the fetched_keys and fetched_values are returned correctly.
+    std::sort(fetched_keys.begin(), fetched_keys.end());
+    REQUIRE(fetched_keys == keys);
+    std::sort(fetched_values.begin(), fetched_values.end());
+    REQUIRE(fetched_values == values);
+
+    next_key = 0;
+    REQUIRE(
+        bpf_map_lookup_and_delete_batch(
+            map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) == 0);
+    REQUIRE(fetched_batch_size == batch_size);
+    REQUIRE(next_key == 0);
+    // Verify the fetched_keys and fetched_values are returned correctly.
+    std::sort(fetched_keys.begin(), fetched_keys.end());
+    REQUIRE(fetched_keys == keys);
+    std::sort(fetched_values.begin(), fetched_values.end());
+    REQUIRE(fetched_values == values);
+
+    // Verify there are no entries, after deletion.
     REQUIRE(
         bpf_map_lookup_batch(
             map_fd, nullptr, &next_key, fetched_keys.data(), fetched_values.data(), &fetched_batch_size, &opts) ==

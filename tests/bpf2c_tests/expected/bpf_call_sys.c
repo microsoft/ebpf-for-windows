@@ -173,6 +173,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -213,7 +214,7 @@ func(void* context)
 #line 25 "sample/undocked/bpf_call.c"
 {
 #line 25 "sample/undocked/bpf_call.c"
-    // Prologue
+    // Prologue.
 #line 25 "sample/undocked/bpf_call.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 25 "sample/undocked/bpf_call.c"
@@ -278,7 +279,7 @@ func(void* context)
     // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/bpf_call.c"
     return r0;
-#line 30 "sample/undocked/bpf_call.c"
+#line 25 "sample/undocked/bpf_call.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

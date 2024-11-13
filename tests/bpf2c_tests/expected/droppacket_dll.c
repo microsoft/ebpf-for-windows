@@ -38,6 +38,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -93,7 +94,7 @@ DropPacket(void* context)
 #line 44 "sample/droppacket.c"
 {
 #line 44 "sample/droppacket.c"
-    // Prologue
+    // Prologue.
 #line 44 "sample/droppacket.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 44 "sample/droppacket.c"
@@ -301,7 +302,7 @@ label_2:
     // EBPF_OP_EXIT pc=46 dst=r0 src=r0 offset=0 imm=0
 #line 91 "sample/droppacket.c"
     return r0;
-#line 91 "sample/droppacket.c"
+#line 44 "sample/droppacket.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

@@ -93,7 +93,12 @@ bpf(int cmd, union bpf_attr* attr, unsigned int size)
         }
         case BPF_MAP_CREATE: {
             ExtensibleStruct<sys_bpf_map_create_attr_t> map_create_attr((void*)attr, (size_t)size);
-            struct bpf_map_create_opts opts = {.map_flags = map_create_attr->map_flags};
+
+            struct bpf_map_create_opts opts = {
+                .inner_map_fd = map_create_attr->inner_map_fd,
+                .map_flags = map_create_attr->map_flags,
+            };
+
             return bpf_map_create(
                 map_create_attr->map_type,
                 nullptr,

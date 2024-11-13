@@ -173,6 +173,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
     *hash = NULL;
     *size = 0;
 }
+
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
     {NULL,
@@ -247,7 +248,7 @@ BindMonitor(void* context)
 #line 112 "sample/bindmonitor.c"
 {
 #line 112 "sample/bindmonitor.c"
-    // Prologue
+    // Prologue.
 #line 112 "sample/bindmonitor.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
 #line 112 "sample/bindmonitor.c"
@@ -693,7 +694,7 @@ label_7:
     // EBPF_OP_EXIT pc=105 dst=r0 src=r0 offset=0 imm=0
 #line 153 "sample/bindmonitor.c"
     return r0;
-#line 153 "sample/bindmonitor.c"
+#line 112 "sample/bindmonitor.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
