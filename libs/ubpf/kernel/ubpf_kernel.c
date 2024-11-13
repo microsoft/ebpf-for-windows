@@ -139,5 +139,6 @@ void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
 #include "ubpf_vm.c"
 #pragma warning(push)
 #pragma warning(disable : 6387) // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
+#include "ubpf_instruction_valid.c"
 #include "ubpf_jit.c"
 #pragma warning(pop)
