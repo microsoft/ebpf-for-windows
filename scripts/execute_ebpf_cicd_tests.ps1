@@ -11,9 +11,7 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
-       [Parameter(Mandatory = $false)][string] $VMUserName="Administrator",
-       [Parameter(Mandatory = $false)][string] $VMPassword="P@ssw0rd"
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60)
 )
 
 Push-Location $WorkingDirectory
@@ -22,8 +20,9 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 
 # TODO - figure out admin vs standard user
 $SelfHostedRunnerName = "runner_host"
-$AdminTestVMCredential = Create-VMCredential -VmUsername $VMUserName -VmPassword $VMPassword
-$StandardUserTestVMCredential = Create-VMCredential -VmUsername 'VMStandardUser' -VmPassword $VMPassword
+Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, AdminTarget: $AdminTarget, StandardUserTarget: $StandardUserTarget"
+$AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+$StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json

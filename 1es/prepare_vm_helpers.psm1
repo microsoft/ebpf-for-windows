@@ -156,12 +156,6 @@ function Create-VM {
 
     try {
         ## Check for any pre-requisites
-        # Check that the External Switch exists
-        # $externalSwitches = Get-VMSwitch -SwitchType External
-        # if ($externalSwitches -eq $null) {
-        #     throw "No external switches found"
-        # }
-
         # Check that the VHD exists
         if (-not (Test-Path -Path $VhdPath)) {
             throw "VHD not found at $VhdPath"
@@ -196,11 +190,12 @@ function Create-VM {
 
         # Create the VM
         Log-Message "Creating the VM"
-        New-VM -Name $VmName -MemoryStartupBytes $MemoryStartupBytes -VhdPath $VmVhdPath # -SwitchName $ExternalVMSwitchName
-        # foreach ($switch in $externalSwitches) {
-        #     Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
-        #     Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
-        # }
+        New-VM -Name $VmName -MemoryStartupBytes $MemoryStartupBytes -VhdPath $VmVhdPath
+        $vmSwitches = Get-VMSwitch
+        foreach ($switch in $vmSwitches) {
+            Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
+            Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
+        }
 
         if ((Get-VM -VMName $vmName) -eq $null) {
             throw "Failed to create VM: $VMName"
@@ -255,15 +250,18 @@ function Configure-VM {
 
         Wait-ForVMReady -VMName $VmName -VmCredential $VmCredential
 
-        # Checkpoint the VM.
-        Log-Message "Checkpointing VM: $VmName"
-        Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
-        Log-Message -Message "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
-
-        # Export the configured VHD.
-        # TODO - set the path...
-        # Export-VM -Name $VMName -Path "$VMWorkingDirectory\$VMName.vhd"
-        # Log-Message -Message "Successfully exported VM: $VMName to $VMWorkingDirectory\$VMName.vhd" -ForegroundColor Green
+        # Checkpoint the VM. This can sometimes fail if other operations are in progress.
+        for ($i = 0; $i -lt 5; $i += 1) {
+            try {
+                Log-Message "Checkpointing VM: $VmName"
+                Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
+                Log-Message -Message "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
+            } catch {
+                Log-Message "Failed to checkpoint VM: $VmName. Retrying..."
+                Start-Sleep -Seconds 5
+                continue
+            }
+        }
     } catch {
         throw "Failed to configure VM: $VmName. Error: $_"
     }
@@ -287,35 +285,67 @@ function Install-HyperVIfNeeded {
     }
 }
 
-function Create-ExternalSwitchIfNeeded {
+function Create-VMSwitchIfNeeded {
     param (
-        [Parameter(Mandatory=$False)][string]$ExternalSwitchName='VMExternalSwitch'
+        [Parameter(Mandatory=$False)][string]$SwitchName='VMInternalSwitch',
+        [Parameter(Mandatory=$False)][string]$SwitchType='Internal'
     )
     try {
-        # Check to see if an external switch already exists
-        $ExternalSwitches = (Get-VMSwitch -SwitchType External)
-        if ($ExternalSwitches -ne $null) {
-            Log-Message -Message "External switch already exists: $($ExternalSwitches[0].Name)"
-            return
-        }
-
-        # Try to create the external switch
-        $NetAdapterNames = (Get-NetAdapter -Name 'Ethernet*' | Where-Object { $_.Status -eq 'Up' }).Name
-        $index = 0
-        foreach ($NetAdapterName in $NetAdapterNames) {
-            try {
-                if ([string]::IsNullOrEmpty($NetAdapterName)) {
-                    continue
-                }
-                $switchName = $ExternalSwitchName + '-' + $index
-                Log-Message "Attempting to creating external switch: $switchName with NetAdapter: $NetAdapterName"
-                New-VMSwitch -Name $switchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
-                # break
-            } catch {
-                Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName $_"
+        if ($SwitchType -eq 'External') {
+            # Check to see if an external switch already exists
+            $ExternalSwitches = (Get-VMSwitch -SwitchType External)
+            if ($ExternalSwitches -ne $null) {
+                Log-Message -Message "External switch already exists: $($ExternalSwitches[0].Name)"
+                return
             }
+
+            # Try to create the external switch
+            $NetAdapterNames = (Get-NetAdapter -Name 'Ethernet*' | Where-Object { $_.Status -eq 'Up' }).Name
+            $index = 0
+            foreach ($NetAdapterName in $NetAdapterNames) {
+                try {
+                    if ([string]::IsNullOrEmpty($NetAdapterName)) {
+                        continue
+                    }
+                    $switchName = $ExternalSwitchName + '-' + $index
+                    Log-Message "Attempting to creating external switch: $switchName with NetAdapter: $NetAdapterName"
+                    New-VMSwitch -Name $switchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
+                    # break
+                } catch {
+                    Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName $_"
+                }
+            }
+        } elseif ($SwitchType -eq 'Internal') {
+            # Check to see if an internal switch already exists
+            $InternalSwitches = (Get-VMSwitch -SwitchType Internal)
+            if ($InternalSwitches -ne $null) {
+                Log-Message -Message "Internal switch already exists: $($InternalSwitches[0].Name)"
+                return
+            }
+
+            # Try to create the internal switch
+            Log-Message "Creating internal switch"
+            New-VMSwitch -Name 'VMInternalSwitch' -SwitchType Internal
+        } else {
+            throw "Invalid switch type: $SwitchType"
         }
     } catch {
         throw "Failed to create external switch: $_"
+    }
+}
+
+function Create-VMStoredCredential {
+    param (
+        [Parameter(Mandatory=$True)][string]$CredentialName,
+        [Parameter(Mandatory=$True)][string]$Username,
+        [Parameter(Mandatory=$True)][string]$Password
+    )
+
+    try {
+        $secureVmPassword = ConvertTo-SecureString $Password -AsPlainText -Force
+        $vmCredential = New-Object System.Management.Automation.PSCredential($Username, $secureVmPassword)
+        $vmCredential | Export-StoredCredential -Target $CredentialName
+    } catch {
+        throw "Failed to create stored credential: $_"
     }
 }

@@ -540,6 +540,8 @@ function Initialize-NetworkInterfacesOnVMs
             # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
             Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
 
+            ipconfig /all
+
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     }

@@ -7,16 +7,14 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][string] $VMUserName="Administrator",
-       [Parameter(Mandatory = $false)][string] $VMPassword="P@ssw0rd"
-       )
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 $SelfHostedRunnerName = "runner_host"
-$TestVMCredential = Create-VMCredential -VmUsername $VMUserName -VmPassword $VMPassword
+Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, Target: $Target"
+$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json

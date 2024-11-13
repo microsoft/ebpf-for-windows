@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 param(
     [Parameter(Mandatory=$False)][string]$VmUsername='Administrator',
+    [Parameter(Mandatory=$False)][string]$VmStandardUserName='VMStandardUser',
     [Parameter(Mandatory=$False)][string]$VmPassword='P@ssw0rd',
 
     [Parameter(Mandatory=$False)][string]$BaseUnattendPath='.\unattend.xml',
@@ -19,16 +20,6 @@ $ErrorActionPreference = "Stop"
 # Import helper functions
 Import-Module .\prepare_vm_helpers.psm1 -Force
 
-# Create-ExternalSwitchIfNeeded -ExternalSwitchName $ExternalSwitchName
-# $ExternalSwitches = Get-VMSwitch -SwitchType External
-# if (-not $ExternalSwitches) {
-#     throw "No external switches found"
-# }
-# foreach ($switch in $ExternalSwitches) {
-#     Log-Message "External switch: $switch"
-#     Log-Message "External switch: $($switch.Name)"
-# }
-
 if (-not (Test-Path -Path $BaseUnattendPath)) {
     throw "Unattend file not found at $BaseUnattendPath"
 }
@@ -37,13 +28,10 @@ if (-not (Test-Path -Path $BaseVhdDirPath)) {
     throw "VHD directory not found at $BaseVhdDirPath"
 }
 
+Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType Internal
+Create-VMStoredCredential -CredentialName "TEST_VM" -Username $VmUsername -Password $VmPassword
+Create-VMStoredCredential -CredentialName "TEST_VM_STANDARD" -Username $VmStandardUserName -Password $VmPassword
 Create-DirectoryIfNotExists -Path $WorkingPath
-
-# Create-DirectoryIfNotExists -Path $OutVhdDirPath
-
-# Create credential object for executing commands on the VM
-# TODO - maybe this can be read from the unattend file? Or passed as an azure parameter, which replaces in the unattend file.
-# $vmCredential = Create-VMCredential -VmUsername $VmUsername -VmPassword $VmPassword
 
 # Read the input VHDs
 $vhds = @((Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd))
