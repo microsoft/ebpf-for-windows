@@ -2196,7 +2196,7 @@ _ebpf_core_get_time_ns()
 {
     // cxplat_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return cxplat_query_time_since_boot_approximate(false) / EBPF_FILETIME_PER_MS;
+    return cxplat_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
@@ -2212,7 +2212,7 @@ _ebpf_core_get_time_ms()
 {
     // cxplat_query_time_since_boot_approximate returns time elapsed since
     // boot in units of 100 ns.
-    return cxplat_query_time_since_boot_approximate(false) * EBPF_NS_PER_FILETIME;
+    return cxplat_query_time_since_boot_approximate(false) / EBPF_FILETIME_PER_MS;
 }
 
 static uint64_t

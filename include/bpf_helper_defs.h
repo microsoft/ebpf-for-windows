@@ -493,5 +493,5 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ms, ());
  */
 EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
 #ifndef __doxygen
-#define bpf_ktime_get_ms ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_ms)
+#define bpf_ktime_get_ms ((bpf_ktime_get_ms_t)BPF_FUNC_ktime_get_ms)
 #endif
