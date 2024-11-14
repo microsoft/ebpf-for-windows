@@ -105,5 +105,21 @@ verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys samp
 # # Get PSExec to run tests as SYSTEM.
 # Get-PSExec
 
+# Loop through each adapter and enable IPv4 and IPv6
+$adapters = Get-NetAdapter
+foreach ($adapter in $adapters) {
+    try {
+        # Enable IPv4 (usually enabled by default)
+        Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip
+
+        # Enable IPv6
+        Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip6
+
+        Write-Host "Enabled IPv4 and IPv6 on adapter: $($adapter.Name)"
+    } catch {
+        Write-Host "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name)"
+    }
+}
+
 # Reboot the machine to apply the changes.
 Restart-Computer -Force
