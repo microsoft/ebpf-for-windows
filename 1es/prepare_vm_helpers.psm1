@@ -256,6 +256,7 @@ function Configure-VM {
                 Log-Message "Checkpointing VM: $VmName"
                 Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
                 Log-Message -Message "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
+                break
             } catch {
                 Log-Message "Failed to checkpoint VM: $VmName. Retrying..."
                 Start-Sleep -Seconds 5

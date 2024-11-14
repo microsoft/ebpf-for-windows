@@ -15,6 +15,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
+# Load other utility modules.
+Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 $SelfHostedRunnerName = "runner_host"
 try {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
@@ -23,8 +25,6 @@ try {
     $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword 'P@ssw0rd'
 }
 
-# Load other utility modules.
-Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.

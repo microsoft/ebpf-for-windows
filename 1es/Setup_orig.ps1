@@ -64,7 +64,4 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
         -CpuCount $VMCpuCount `
         -VmUsername $VmUsername `
         -VmPassword $VmPassword
-
-    Export-VM -Name $vmName -Path $OutVhdDirPath
-    Log-Message -Message "Successfully exported VM: $VMName to $VMWorkingDirectory\$VMName.vhd" -ForegroundColor Green
 }

@@ -18,7 +18,6 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 
-# TODO - figure out admin vs standard user
 $SelfHostedRunnerName = "runner_host"
 Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, AdminTarget: $AdminTarget, StandardUserTarget: $StandardUserTarget"
 try {
