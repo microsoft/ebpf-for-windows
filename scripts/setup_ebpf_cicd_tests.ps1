@@ -22,7 +22,8 @@ try {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 } catch {
     Write-Host "Failed to get credentials for $Target. Using default credentials."
-    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword 'P@ssw0rd'
+    $securePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
+    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword $securePassword
 }
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue

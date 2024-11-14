@@ -25,8 +25,9 @@ try {
     $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 } catch {
     Write-Host "Failed to get credentials for $AdminTarget or $StandardUserTarget. Using default credentials."
-    $AdminTestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword 'P@ssw0rd'
-    $StandardUserTestVMCredential = New-Credential -UserName 'VMStandardUser' -AdminPassword 'P@ssw0rd'
+    $securePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
+    $AdminTestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword $securePassword
+    $StandardUserTestVMCredential = New-Credential -UserName 'VMStandardUser' -AdminPassword $securePassword
 }
 
 # Read the test execution json.
