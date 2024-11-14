@@ -46,10 +46,10 @@ ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
     KIRQL old_irql = KeGetCurrentIrql();
 
     if (old_irql < DISPATCH_LEVEL) {
-        old_irql = KeRaiseIrqlToDpcLevel();
+        old_irql = KeAcquireSpinLockRaiseToDpc(lock);
+    } else {
+        KeAcquireSpinLockAtDpcLevel(lock);
     }
-
-    KeAcquireSpinLockAtDpcLevel(lock);
     return old_irql;
 }
 
@@ -58,9 +58,10 @@ ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
     _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
-    KeReleaseSpinLockFromDpcLevel(lock);
     if (state < DISPATCH_LEVEL) {
-        KeLowerIrql(state);
+        KeReleaseSpinLock(lock, state);
+    } else {
+        KeReleaseSpinLockFromDpcLevel(lock);
     }
 }
 #pragma warning(pop)
