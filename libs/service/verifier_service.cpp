@@ -25,17 +25,17 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
     InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
 
     // First try optimized for the success case.
-    ebpf_verifier_options_t options = ebpf_verifier_default_options;
+    ebpf_verifier_options_t options{};
     ebpf_verifier_stats_t stats;
-    options.check_termination = true;
-    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, &options, &stats);
+    options.cfg_opts.check_for_termination = true;
+    bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, options, &stats);
     if (!res) {
         // On failure, retry to get the more detailed error message.
         std::ostringstream oss;
-        options.simplify = false;
+        options.cfg_opts.simplify = false;
         options.print_failures = true;
         // Until https://github.com/vbpf/ebpf-verifier/issues/643 is fixed, don't set options.assume_assertions to true.
-        (void)ebpf_verify_program(oss, prog, raw_prog.info, &options, &stats);
+        (void)ebpf_verify_program(oss, prog, raw_prog.info, options, &stats);
 
         *error_message = allocate_string(oss.str(), error_message_size);
         return EBPF_VERIFICATION_FAILED; // Error;
