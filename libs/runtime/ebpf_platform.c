@@ -53,6 +53,8 @@ ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
     return old_irql;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 28157) // Prefast is not able to understand that the IRQL is lowered if it was raised.
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
     _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
@@ -61,6 +63,7 @@ _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVE
         KeLowerIrql(state);
     }
 }
+#pragma warning(pop)
 
 bool
 ebpf_is_preemptible()
