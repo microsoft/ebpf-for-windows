@@ -4,7 +4,7 @@
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
 try {
-    Import-Module CredentialManager -Force
+    Import-Module CredentialManager -Force -ErrorAction Ignore
 } catch {
     Write-Host "Failed to import CredentialManager module. Using default credentials."
 }
