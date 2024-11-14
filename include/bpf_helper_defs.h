@@ -473,3 +473,25 @@ EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
 #define memcpy_s bpf_memcpy
 #define memmove_s bpf_memmove
 #endif
+
+/**
+ * @brief Return time elapsed since boot in milliseconds including time while suspended.
+ * This function uses a lower resolution clock source than bpf_ktime_get_boot_ns, but is faster.
+ *
+ * @return Time elapsed since boot in milliseconds units.
+ */
+EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ms, ());
+#ifndef __doxygen
+#define bpf_ktime_get_boot_ms ((bpf_ktime_get_boot_ms_t)BPF_FUNC_ktime_get_boot_ms)
+#endif
+
+/**
+ * @brief Return time elapsed since boot in milliseconds excluding time while suspended.
+ * This function uses a lower resolution clock source than bpf_ktime_get_ns, but is faster.
+ *
+ * @return Time elapsed since boot in milliseconds units.
+ */
+EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
+#ifndef __doxygen
+#define bpf_ktime_get_ms ((bpf_ktime_get_ns_t)BPF_FUNC_ktime_get_ms)
+#endif

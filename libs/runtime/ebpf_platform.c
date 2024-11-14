@@ -220,34 +220,6 @@ ebpf_allocate_process_state()
     return state;
 }
 
-uint64_t
-ebpf_query_time_since_boot_precise(bool include_suspended_time)
-{
-    uint64_t qpc_time;
-    if (include_suspended_time) {
-        // KeQueryUnbiasedInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
-        // Unbiased Interrupt time is the total time since boot including time spent suspended.
-        // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryunbiasedinterrupttimeprecise
-        return KeQueryUnbiasedInterruptTimePrecise(&qpc_time);
-    } else {
-        // KeQueryInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
-        // (Biased) Interrupt time is the total time since boot excluding time spent suspended.        //
-        // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryinterrupttimeprecise
-        return KeQueryInterruptTimePrecise(&qpc_time);
-    }
-}
-
-uint64_t
-ebpf_query_time_since_boot_approximate(bool include_suspend_time)
-{
-    if (include_suspend_time) {
-        ebpf_assert(!"Include suspend time not supported on this platform.");
-        return 0;
-    } else {
-        return KeQueryInterruptTime();
-    }
-}
-
 MDL*
 ebpf_map_memory(size_t length)
 {
