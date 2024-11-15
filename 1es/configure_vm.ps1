@@ -121,5 +121,9 @@ foreach ($adapter in $adapters) {
     }
 }
 
+ipconfig /all
+
+Get-NetIPInterface
+
 # Reboot the machine to apply the changes.
 Restart-Computer -Force
