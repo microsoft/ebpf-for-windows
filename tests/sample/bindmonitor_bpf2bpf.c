@@ -23,12 +23,22 @@ bind_action_t
 BindMonitor_Callee(uint64_t* pid);
 
 SEC("bind")
-bind_action_t
+__attribute__((optnone)) bind_action_t
 BindMonitor_Caller(bind_md_t* ctx)
 {
+    // Use some stack space.
+    volatile uint8_t outer_cookie[2];
+    outer_cookie[0] = 0xcc;
+    outer_cookie[1] = 0xcc;
+
     uint64_t pid = ctx->process_id;
     if (BindMonitor_Callee(&ctx->process_id) == BIND_DENY) {
         return BIND_DENY;
+    }
+
+    // Verify that the caller's stack space is preserved.
+    if (outer_cookie[0] != 0xcc || outer_cookie[1] != 0xcc) {
+        return -1;
     }
 
     if (pid == 1) {
@@ -38,8 +48,12 @@ BindMonitor_Caller(bind_md_t* ctx)
     return BIND_PERMIT;
 }
 
-__attribute__((noinline)) bind_action_t
-BindMonitor_Callee(uint64_t* pid)
+__attribute__((noinline)) bind_action_t __attribute__((optnone)) BindMonitor_Callee(uint64_t* pid)
 {
+    // Use some stack space.
+    volatile uint8_t inner_cookie[2];
+    inner_cookie[0] = 0xbb;
+    inner_cookie[1] = 0xbb;
+
     return (*pid == 0) ? BIND_DENY : BIND_PERMIT;
 }

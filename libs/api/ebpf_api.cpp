@@ -64,7 +64,9 @@ _Guarded_by_(_ebpf_state_mutex) static std::vector<ebpf_object_t*> _ebpf_objects
 #define SERVICE_PARAMETERS L"Parameters"
 #define NPI_MODULE_ID L"NpiModuleId"
 
-#define NO_EXCEPT_TRY noexcept try
+#define NO_EXCEPT_TRY \
+    noexcept          \
+    try
 
 #define CATCH_NO_MEMORY_FD \
     catch (const std::bad_alloc&) { EBPF_RETURN_FD(ebpf_fd_invalid); }
@@ -2278,11 +2280,12 @@ _initialize_ebpf_object_from_elf(
 
     ebpf_result_t result = EBPF_SUCCESS;
 
-    ebpf_verifier_options_t verifier_options{false, false, false, false, false};
+    ebpf_verifier_options_t verifier_options{};
+
     result = load_byte_code(
         file_or_data,
         nullptr,
-        &verifier_options,
+        verifier_options,
         pin_root_path ? pin_root_path : DEFAULT_PIN_ROOT_PATH,
         object.programs,
         object.maps,
@@ -4179,7 +4182,8 @@ typedef struct _ebpf_ring_buffer_subscription
         : unsubscribed(false), ring_buffer_map_handle(ebpf_handle_invalid), sample_callback_context(nullptr),
           sample_callback(nullptr), buffer(nullptr), reply({}), async_ioctl_completion(nullptr),
           async_ioctl_failed(false)
-    {}
+    {
+    }
     ~_ebpf_ring_buffer_subscription()
     {
         EBPF_LOG_ENTRY();

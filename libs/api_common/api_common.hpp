@@ -5,7 +5,18 @@
 #include "ebpf_api.h"
 #include "ebpf_execution_context.h"
 #include "ebpf_utilities.h"
+
+#pragma warning(push)
+#pragma warning(disable : 26439) // This kind of function should not throw. Declare it 'noexcept'.
+#pragma warning(disable : 26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the
+                                 // result to a 8 byte value.
+#undef min                       // don't interfere with C++ min/max definitions required inside platform.hpp.
+#undef max
 #include "platform.hpp"
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+#define min(a, b) (((a) < (b)) ? (a) : (b))
+#pragma warning(pop)
+
 #include "windows_platform_common.hpp"
 
 #include <errno.h>
