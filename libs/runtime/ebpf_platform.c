@@ -43,26 +43,28 @@ _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPA
 ebpf_lock_state_t
 ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
-    return KeAcquireSpinLockRaiseToDpc(lock);
+    KIRQL old_irql = KeGetCurrentIrql();
+
+    if (old_irql < DISPATCH_LEVEL) {
+        old_irql = KeAcquireSpinLockRaiseToDpc(lock);
+    } else {
+        KeAcquireSpinLockAtDpcLevel(lock);
+    }
+    return old_irql;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 28157) // Prefast is not able to understand that the IRQL is lowered if it was raised.
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
     _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
-    KeReleaseSpinLock(lock, state);
+    if (state < DISPATCH_LEVEL) {
+        KeReleaseSpinLock(lock, state);
+    } else {
+        KeReleaseSpinLockFromDpcLevel(lock);
+    }
 }
-
-_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL)
-    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_lock_at_dispatch(_Inout_ ebpf_lock_t* lock)
-{
-    KeAcquireSpinLockAtDpcLevel(lock);
-}
-
-_Requires_lock_held_(*lock) _Releases_lock_(*lock)
-    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock_at_dispatch(_Inout_ ebpf_lock_t* lock)
-{
-    KeReleaseSpinLockFromDpcLevel(lock);
-}
+#pragma warning(pop)
 
 bool
 ebpf_is_preemptible()

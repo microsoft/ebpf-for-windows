@@ -213,6 +213,7 @@ extern "C"
      * @param[in, out] lock Pointer to memory location that contains the lock.
      * @returns The previous lock_state required for unlock.
      */
+    EBPF_INLINE_HINT
     _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
         _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock);
 
@@ -221,24 +222,9 @@ extern "C"
      * @param[in, out] lock Pointer to memory location that contains the lock.
      * @param[in] state The state returned from ebpf_lock_lock.
      */
+    EBPF_INLINE_HINT
     _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
         _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state);
-
-    /**
-     * @brief Acquire exclusive access to the lock.
-     * @param[in, out] lock Pointer to memory location that contains the lock.
-     * @returns The previous lock_state required for unlock.
-     */
-    _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL)
-        _IRQL_requires_max_(DISPATCH_LEVEL) void ebpf_lock_lock_at_dispatch(_Inout_ ebpf_lock_t* lock);
-
-    /**
-     * @brief Release exclusive access to the lock.
-     * @param[in, out] lock Pointer to memory location that contains the lock.
-     * @param[in] state The state returned from ebpf_lock_lock.
-     */
-    _Requires_lock_held_(*lock) _Releases_lock_(*lock)
-        _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock_at_dispatch(_Inout_ ebpf_lock_t* lock);
 
     /**
      * @brief Raise the IRQL to new_irql.
