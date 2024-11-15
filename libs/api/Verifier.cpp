@@ -281,7 +281,7 @@ _Must_inspect_result_ ebpf_result_t
 load_byte_code(
     std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
     _In_opt_z_ const char* section_name,
-    _In_ const ebpf_verifier_options_t* verifier_options,
+    _In_ const ebpf_verifier_options_t& verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,
@@ -486,7 +486,7 @@ ebpf_api_elf_enumerate_programs(
     _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    ebpf_verifier_options_t verifier_options{false, false, false, false, true};
+    ebpf_verifier_options_t verifier_options{};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
 
@@ -497,7 +497,7 @@ ebpf_api_elf_enumerate_programs(
     ebpf_clear_thread_local_storage();
 
     try {
-        auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), &verifier_options, platform);
+        auto raw_programs = read_elf(file, section ? std::string(section) : std::string(), verifier_options, platform);
         for (const auto& raw_program : raw_programs) {
             info = (ebpf_api_program_info_t*)ebpf_allocate(sizeof(*info));
             if (info == nullptr) {
@@ -513,7 +513,7 @@ ebpf_api_elf_enumerate_programs(
                     return 1;
                 }
                 auto& program = std::get<InstructionSeq>(programOrError);
-                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, true);
+                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, verifier_options.cfg_opts);
                 std::map<std::string, int> stats = collect_stats(controlFlowGraph);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
@@ -572,7 +572,7 @@ ebpf_api_elf_disassemble_program(
     _Outptr_result_maybenull_z_ const char** disassembly,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
+    ebpf_verifier_options_t verifier_options{};
     const ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
@@ -584,7 +584,7 @@ ebpf_api_elf_disassemble_program(
 
     try {
         std::string section(section_name ? section_name : "");
-        auto raw_programs = read_elf(file, section, &verifier_options, platform);
+        auto raw_programs = read_elf(file, section, verifier_options, platform);
         auto found_program =
             std::find_if(raw_programs.begin(), raw_programs.end(), [&program_name](const raw_program& program) {
                 return (program_name == nullptr) || (program.function_name == program_name);
@@ -649,9 +649,9 @@ _ebpf_api_elf_verify_program_from_stream(
 
     try {
         const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-        ebpf_verifier_options_t verifier_options = ebpf_verifier_default_options;
+        ebpf_verifier_options_t verifier_options{};
         verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
-        verifier_options.check_termination = true;
+        verifier_options.cfg_opts.check_for_termination = true;
         verifier_options.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
         verifier_options.print_failures = true;
         verifier_options.mock_map_fds = true;
@@ -659,7 +659,7 @@ _ebpf_api_elf_verify_program_from_stream(
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
-        auto raw_programs = read_elf(stream, stream_name, section_name, &verifier_options, platform);
+        auto raw_programs = read_elf(stream, stream_name, section_name, verifier_options, platform);
         std::optional<raw_program> found_program;
         for (auto& program : raw_programs) {
             if ((program_name == nullptr) || (program.function_name == program_name)) {
@@ -683,9 +683,9 @@ _ebpf_api_elf_verify_program_from_stream(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        verifier_options.simplify = false;
+        verifier_options.cfg_opts.simplify = false;
         bool res =
-            ebpf_verify_program(output, program, raw_program.info, &verifier_options, (ebpf_verifier_stats_t*)stats);
+            ebpf_verify_program(output, program, raw_program.info, verifier_options, (ebpf_verifier_stats_t*)stats);
         if (!res) {
             error << "Verification failed";
             *error_message = allocate_string(error.str());
