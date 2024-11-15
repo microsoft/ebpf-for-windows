@@ -28,7 +28,8 @@ if (-not (Test-Path -Path $BaseVhdDirPath)) {
     throw "VHD directory not found at $BaseVhdDirPath"
 }
 
-Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType Internal
+Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType 'Internal'
+Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
 Create-VMStoredCredential -CredentialName "TEST_VM" -Username $VmUsername -Password $VmPassword
 Create-VMStoredCredential -CredentialName "TEST_VM_STANDARD" -Username $VmStandardUserName -Password $VmPassword
 Create-DirectoryIfNotExists -Path $WorkingPath

@@ -542,8 +542,8 @@ function Initialize-NetworkInterfacesOnVMs
 
             # TODO - remove this debugging output
             ipconfig /all
-            Get-NetIPInterface
-            Get-NetAdapter
+            Get-NetIPInterface | fl *
+            Get-NetAdapter | fl *
 
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
