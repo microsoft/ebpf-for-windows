@@ -478,7 +478,7 @@ EBPF_HELPER(size_t, bpf_strnlen_s, (const char* str, size_t str_size));
  * @brief Return time elapsed since boot in milliseconds including time while suspended.
  * This function uses a lower resolution clock source than bpf_ktime_get_boot_ns, but is faster.
  *
- * @return Time elapsed since boot in milliseconds units.
+ * @return Time elapsed since boot in milliseconds.
  */
 EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ms, ());
 #ifndef __doxygen
@@ -489,7 +489,7 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_boot_ms, ());
  * @brief Return time elapsed since boot in milliseconds excluding time while suspended.
  * This function uses a lower resolution clock source than bpf_ktime_get_ns, but is faster.
  *
- * @return Time elapsed since boot in milliseconds units.
+ * @return Time elapsed since boot in milliseconds.
  */
 EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
 #ifndef __doxygen
