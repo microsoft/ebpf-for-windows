@@ -139,6 +139,7 @@ function Stop-eBPFComponents {
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
         try {
             if ($_.Value.IsDriver) {
+                Write-Log "Stopping $($_.Key) driver..."
                 Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
                 Write-Log "$($_.Key) driver stopped." -ForegroundColor Green
             }

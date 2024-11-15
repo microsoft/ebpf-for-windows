@@ -302,80 +302,59 @@ function Stop-eBPFComponentsOnVM
     Write-Log "eBPF components stopped on $VMName" -ForegroundColor Green
 }
 
-function ArchiveKernelModeDumpOnVM
+function Compress-KernelModeDumpOnVM
 {
     param (
         [Parameter(Mandatory = $True)] [System.Management.Automation.Runspaces.PSSession] $Session
     )
 
     Invoke-Command -Session $Session -ScriptBlock {
+        param([Parameter(Mandatory=$True)] [string] $WorkingDirectory)
+
+        Import-Module $env:SystemDrive\$WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
 
         $KernelModeDumpFileSourcePath = "$Env:WinDir"
         $KernelModeDumpFileDestinationPath = "$Env:SystemDrive\KernelDumps"
-
+    
         # Create the compressed dump folder if doesn't exist.
         if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
-            Write-Output "Creating $KernelModeDumpFileDestinationPath directory."
+            Write-Log "Creating $KernelModeDumpFileDestinationPath directory."
             New-Item -ItemType Directory -Path $KernelModeDumpFileDestinationPath | Out-Null
 
             # Make sure it was created
             if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
                 $ErrorMessage = `
                     "*** ERROR *** Create compressed dump file directory failed: $KernelModeDumpFileDestinationPath`n"
-                Write-Output $ErrorMessage
-                Start-Sleep -seconds 3
+                Write-Log $ErrorMessage
                 Throw $ErrorMessage
             }
         }
 
         if (Test-Path $KernelModeDumpFileSourcePath\*.dmp -PathType Leaf) {
-            Write-Output "Found kernel mode dump(s) in $($KernelModeDumpFileSourcePath):"
+            Write-Log "Found kernel mode dump(s) in $($KernelModeDumpFileSourcePath):"
             $DumpFiles = get-childitem -Path $KernelModeDumpFileSourcePath\*.dmp
             foreach ($DumpFile in $DumpFiles) {
-                Write-Output "`tName:$($DumpFile.Name), Size:$((($DumpFile.Length) / 1MB).ToString("F2")) MB"
+                Write-Log "`tName:$($DumpFile.Name), Size:$((($DumpFile.Length) / 1MB).ToString("F2")) MB"
             }
-            Write-Output "`n"
 
-            Write-Output `
+            Write-Log `
                 "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
-            # Retry 3 times to ensure compression operation succeeds.
-            # To mitigate error message: "The process cannot access the file 'C:\Windows\MEMORY.DMP' because it is being used by another process."
-            $retryCount = 1
-            while ($retryCount -lt 4) {
-                $error.clear()
-                Compress-Archive `
-                    -Path "$KernelModeDumpFileSourcePath\*.dmp" `
-                    -DestinationPath "$KernelModeDumpFileDestinationPath\km_dumps.zip" `
-                    -CompressionLevel Fastest `
-                    -Force
-                if ($error[0] -ne $null) {
-                    $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
-                    Write-Output $ErrorMessage
-                    Start-Sleep -seconds (5 * $retryCount)
-                    $retryCount++
-                } else {
-                    # Compression succeeded.
-                    break;
-                }
-            }
-
+            Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $KernelModeDumpFileDestinationPath\km_dumps.zip
             if (Test-Path $KernelModeDumpFileDestinationPath\km_dumps.zip -PathType Leaf) {
                 $CompressedDumpFile = get-childitem -Path $KernelModeDumpFileDestinationPath\km_dumps.zip
-                Write-Output "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
-                Write-Output `
+                Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
+                Write-Log `
                     "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
             } else {
                 $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found.`n`n"
-                Write-Output $ErrorMessage
-                Start-Sleep -seconds 3
+                Write-Log $ErrorMessage
                 throw $ErrorMessage
             }
         } else {
-            Write-Output "`n"
-            Write-Output "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
+            Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
         }
-    }
+    } -ArgumentList ("eBPF") -ErrorAction Ignore
 }
 
 #
@@ -405,7 +384,7 @@ function Import-ResultsFromVM
 
         # Archive and copy kernel crash dumps, if any.
         Write-Log "Processing kernel mode dump (if any) on VM $VMName"
-        ArchiveKernelModeDumpOnVM -Session $VMSession
+        Compress-KernelModeDumpOnVM -Session $VMSession
 
         $LocalKernelArchiveLocation = ".\TestLogs\$VMName\KernelDumps"
         Copy-Item `
@@ -418,11 +397,9 @@ function Import-ResultsFromVM
 
         if (Test-Path $LocalKernelArchiveLocation\km_dumps.zip -PathType Leaf) {
             $LocalFile = get-childitem -Path $LocalKernelArchiveLocation\km_dumps.zip
-            Write-Log "`n"
             Write-Log "Local copy of kernel mode dump archive in $($LocalKernelArchiveLocation) for VM $($VMName):"
             Write-Log "`tName:$($LocalFile.Name), Size:$((($LocalFile.Length) / 1MB).ToString("F2")) MB"
         } else {
-            Write-Log "`n"
             Write-Log "No local copy of kernel mode dump archive in $($LocalKernelArchiveLocation) for VM $VMName."
         }
 
@@ -489,13 +466,16 @@ function Import-ResultsFromVM
 
                 $EtlFileSize = (Get-ChildItem $WorkingDirectory\$EtlFile).Length/1MB
                 Write-Log "ETL file Size: $EtlFileSize MB"
+
+                Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
             # Copy ETL from Test VM.
-            Write-Log ("Copy $WorkingDirectory\$EtlFile on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Write-Log ("Copy $VMSystemDrive\eBPF\$EtlFile.zip on $VMName to $pwd\TestLogs\$VMName\Logs")
             Copy-Item `
                 -FromSession $VMSession `
-                -Path "$VMSystemDrive\eBPF\$EtlFile" `
+                -Path "$VMSystemDrive\eBPF\$EtlFile.zip" `
                 -Destination ".\TestLogs\$VMName\Logs" `
                 -Recurse `
                 -Force `
