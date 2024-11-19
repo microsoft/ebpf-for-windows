@@ -118,6 +118,9 @@ extern "C"
 
         /// The system is in an invalid state for this operation.
         EBPF_INVALID_STATE,
+
+        /// Unable to complete the operation due to system busy.
+        EBPF_BUSY, // = 35
     } ebpf_result_t;
 
 #define EBPF_RESULT_COUNT (EBPF_INVALID_STATE + 1)
