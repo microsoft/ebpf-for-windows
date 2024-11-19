@@ -13,12 +13,12 @@
     <ClInclude Include="..\ebpf_tracelog.h" />
     <ClInclude Include="shared_context.h" />
   </ItemGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{9388dd45-7941-45d7-b4ff-bc00f550af17}</ProjectGuid>
     <RootNamespace>ebpfshared</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>shared_user</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -62,7 +62,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)include;$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)include;$(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)include;$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)include;$(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -92,7 +92,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)include;$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\src</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)..;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)include;$(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(SolutionDir)external\ebpf-verifier\src</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>

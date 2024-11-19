@@ -4,6 +4,7 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <ProjectGuid>{55499E36-37D4-4F86-B694-9F2990315758}</ProjectGuid>
     <TemplateGuid>{1bc93793-694f-48fe-9372-81e2b05556fd}</TemplateGuid>
@@ -13,7 +14,6 @@
     <Platform Condition="'$(Platform)' == ''">Win32</Platform>
     <RootNamespace>EbpfDriver</RootNamespace>
     <ProjectName>netebpfext</ProjectName>
-    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
@@ -92,7 +92,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO;NDEBUG</PreprocessorDefinitions>
     </Midl>
     <Link>
-      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <DriverSign>
@@ -110,7 +110,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </Midl>
     <Link>
-      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <DriverSign>
@@ -127,7 +127,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </Midl>
     <Link>
-      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <DriverSign>
@@ -144,7 +144,7 @@
       <PreprocessorDefinitions>%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
     </Midl>
     <Link>
-      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(SDK_LIB_PATH)\uuid.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies);$(DDK_LIB_PATH)\ntoskrnl.lib;$(DDK_LIB_PATH)\ndis.lib;$(DDK_LIB_PATH)\wdmsec.lib;$(DDK_LIB_PATH)\fwpkclnt.lib;$(DDK_LIB_PATH)\netio.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);$(SolutionDir)$(Platform)\$(ConfigurationName)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <DriverSign>

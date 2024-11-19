@@ -13,12 +13,12 @@
   <ItemGroup>
     <ClCompile Include="ubpf_user.c" />
   </ItemGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</ProjectGuid>
     <RootNamespace>EbpfJitterDemoLib</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <UbpfDir>$(ProjectDir)../../external/ubpf/vm</UbpfDir>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
