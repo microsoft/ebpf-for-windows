@@ -261,7 +261,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 311;
+    const int code_size = 308;
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size = 1102;
 #elif defined(_M_ARM64) && defined(NDEBUG)
