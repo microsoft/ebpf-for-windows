@@ -180,6 +180,11 @@ jobs:
       run: |
         .\scripts\initialize_ebpf_repo.ps1 ${{env.BUILD_PLATFORM}}
 
+    - name: Stop cached msbuild processes
+      if: steps.skip_check.outputs.should_skip != 'true'
+      shell: cmd
+      run: taskkill /IM msbuild.exe /F /T || verify > nul
+
     - name: Build
       if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
