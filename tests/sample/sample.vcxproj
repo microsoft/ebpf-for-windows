@@ -223,7 +223,28 @@
   <ItemGroup>
     <ClInclude Include="ebpf.h" />
   </ItemGroup>
-  <ItemGroup Condition="'$(Analysis)'==''">
+  <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
+    <!-- Build BPF programs that pass verification and build native images for them. -->
+    <CustomBuild Include="*.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+    <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
+    <CustomBuild Include="unsafe\*.o">
+      <FileType>Document</FileType>
+      <Command>
+        xcopy unsafe\%(Filename).o $(OutputPath) /Y
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <BuildInParallel>true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug'">
     <!-- Build BPF programs that pass verification and build native images for them. -->
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
@@ -324,7 +345,7 @@
     </CustomBuild>
   </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->
-  <ItemGroup Condition="'$(Analysis)'==''">
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug'">
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
@@ -334,6 +355,17 @@
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)'=='FuzzerDebug'">
+    <CustomBuild Include="custom_program_type\*.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        clang $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
       <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
     </CustomBuild>
