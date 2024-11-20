@@ -27,12 +27,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <Target Name="SetVersion" BeforeTargets="PreBuildEvent">
-    <Exec Command='
-      echo #define EBPF_VERSION_MAJOR $(EbpfVersion_Major) &gt; $(OutDir)ebpf_version.h
-      echo #define EBPF_VERSION_MINOR $(EbpfVersion_Minor) &gt;&gt; $(OutDir)ebpf_version.h
-      echo #define EBPF_VERSION_REVISION $(EbpfVersion_Revision) &gt;&gt; $(OutDir)ebpf_version.h
-      echo #define EBPF_VERSION "$(EbpfVersion)" &gt;&gt; $(OutDir)ebpf_version.h
-    '/>
+    <Exec Command="&#xD;&#xA;      echo #define EBPF_VERSION_MAJOR $(EbpfVersion_Major) &gt; $(OutDir)ebpf_version.h&#xD;&#xA;      echo #define EBPF_VERSION_MINOR $(EbpfVersion_Minor) &gt;&gt; $(OutDir)ebpf_version.h&#xD;&#xA;      echo #define EBPF_VERSION_REVISION $(EbpfVersion_Revision) &gt;&gt; $(OutDir)ebpf_version.h&#xD;&#xA;      echo #define EBPF_VERSION &quot;$(EbpfVersion)&quot; &gt;&gt; $(OutDir)ebpf_version.h&#xD;&#xA;    " />
   </Target>
   <ItemGroup>
     <CustomBuild Include="..\deploy-ebpf.ps1.in">
@@ -187,12 +182,12 @@ popd
       <DeploymentContent Condition="'$(Configuration)'=='NativeOnlyRelease'">true</DeploymentContent>
     </CopyFileToFolders>
   </ItemGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{231ee32b-eba4-4fe5-a55b-db18f539d403}</ProjectGuid>
     <RootNamespace>setupbuild</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">

@@ -71,6 +71,7 @@ param([parameter(Mandatory = $true)] [string] $FileName,
     [parameter(Mandatory = $false)] [string] $BinDir = "$PSScriptRoot",
     [parameter(Mandatory = $false)] [string] $OutDir = "$PWD",
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
+    [parameter(Mandatory = $false)] [string] $Packages = "$PSScriptRoot\..\packages",
     [ValidateSet("Release", "NativeOnlyRelease", "FuzzerDebug", "Debug", "NativeOnlyDebug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true,
     [parameter(Mandatory = $false)] [string] $ResourceFile = "")
@@ -121,7 +122,7 @@ if ($PSBoundParameters.ContainsKey("Type")) {
     $AdditionalOptions += " --type $Type"
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" $ProjectFile
+msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:Packages="$Packages" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $FileName.o"

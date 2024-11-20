@@ -195,6 +195,18 @@ extern "C"
     ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_handle_t* handle);
 
     /**
+     * @brief Query the ID and type of the object associated with the provided handle.
+     *
+     * @param[in] handle Handle of the object to query.
+     * @param[out] id The ID of the object.
+     * @param[out] type The type of the object.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_get_id_and_type_from_handle(ebpf_handle_t handle, _Out_ ebpf_id_t* id, _Out_ ebpf_object_type_t* type);
+
+    /**
      * @brief Resolve the provided map handles to map addresses and associate the
      *  maps to the program object.
      *
