@@ -93,3 +93,19 @@ jobs:
         export PGPORT=$(cat ${{github.workspace}}/PGPORT)
         export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
         psql -f ${{github.workspace}}/results/upload.sql
+
+    - name: Download and run regression script
+      run: |
+        curl https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
+        export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
+        export PGHOST=$(cat ${{github.workspace}}/PGHOST)
+        export PGUSER=$(cat ${{github.workspace}}/PGUSER)
+        export PGPORT=$(cat ${{github.workspace}}/PGPORT)
+        export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
+        psql -f /mnt/d/bpf_performance/scripts/check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
+
+    - name: Upload regression results
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      with:
+        name: Regression-Results-${{inputs.result_artifact}}
+        path: ${{github.workspace}}/results/regression_results.csv
