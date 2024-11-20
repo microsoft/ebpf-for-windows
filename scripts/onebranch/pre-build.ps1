@@ -10,6 +10,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $scriptPath\..\..
 
 try {
+    Copy-Item .\scripts\onebranch\nuget.config .\nuget.config
     .\scripts\initialize_ebpf_repo.ps1 -Architecture $OneBranchArch
 }
 catch {
