@@ -229,10 +229,18 @@ net_ebpf_ext_bind_unregister_providers()
 //
 // WFP Classify Callbacks.
 //
-
-static void
-_net_ebpf_ext_resource_truncate_appid(bind_md_t* ctx)
+static ebpf_result_t
+_net_ebpf_ext_resource_validate_and_truncate_appid(bind_md_t* ctx, size_t app_id_size)
 {
+    // An empty app id is valid, but we should not process any truncation logic.
+    if (app_id_size == 0) {
+        return EBPF_SUCCESS;
+    }
+    // Ensure we have valid size for iterating and the pointers are valid.
+    if ((app_id_size % sizeof(wchar_t) != 0) || (ctx->app_id_start == NULL) || (ctx->app_id_end == NULL)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     wchar_t* last_separator = (wchar_t*)ctx->app_id_start;
     for (wchar_t* position = (wchar_t*)ctx->app_id_start; position < (wchar_t*)ctx->app_id_end; position++) {
         if (*position == '\\') {
@@ -243,6 +251,7 @@ _net_ebpf_ext_resource_truncate_appid(bind_md_t* ctx)
         last_separator++;
     }
     ctx->app_id_start = (uint8_t*)last_separator;
+    return EBPF_SUCCESS;
 }
 
 void
@@ -302,7 +311,12 @@ net_ebpf_ext_resource_allocation_classify(
         ctx->app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size;
 
-    _net_ebpf_ext_resource_truncate_appid(ctx);
+    result = _net_ebpf_ext_resource_validate_and_truncate_appid(
+        ctx,
+        incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_ASSIGNMENT_V4_ALE_APP_ID].value.byteBlob->size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     program_result = net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
@@ -396,7 +410,11 @@ net_ebpf_ext_resource_release_classify(
         ctx->app_id_start +
         incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size;
 
-    _net_ebpf_ext_resource_truncate_appid(ctx);
+    result = _net_ebpf_ext_resource_validate_and_truncate_appid(
+        ctx, incoming_fixed_values->incomingValue[FWPS_FIELD_ALE_RESOURCE_RELEASE_V4_ALE_APP_ID].value.byteBlob->size);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     // Ignore the result of this call as we don't want to block the unbind.
     (void)net_ebpf_extension_hook_invoke_programs(ctx, filter_context, &result);
@@ -441,6 +459,11 @@ _ebpf_bind_context_create(
     // Replace the app_id_start and app_id_end with pointers to data_in.
     bind_context->app_id_start = (uint8_t*)data_in;
     bind_context->app_id_end = (uint8_t*)data_in + data_size_in;
+
+    result = _net_ebpf_ext_resource_validate_and_truncate_appid(bind_context, data_size_in);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
 
     *context = bind_context;
     context_header = NULL;
