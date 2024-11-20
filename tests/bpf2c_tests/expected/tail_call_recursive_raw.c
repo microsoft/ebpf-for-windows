@@ -88,6 +88,8 @@ recurse(void* context)
 #line 45 "sample/undocked/tail_call_recursive.c"
     register uint64_t r7 = 0;
 #line 45 "sample/undocked/tail_call_recursive.c"
+    register uint64_t r8 = 0;
+#line 45 "sample/undocked/tail_call_recursive.c"
     register uint64_t r10 = 0;
 
 #line 45 "sample/undocked/tail_call_recursive.c"
@@ -98,12 +100,12 @@ recurse(void* context)
     // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 45 "sample/undocked/tail_call_recursive.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=1 dst=r8 src=r0 offset=0 imm=0
 #line 45 "sample/undocked/tail_call_recursive.c"
-    r7 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=2 dst=r10 src=r7 offset=-4 imm=0
+    r8 = IMMEDIATE(0);
+    // EBPF_OP_STXW pc=2 dst=r10 src=r8 offset=-4 imm=0
 #line 47 "sample/undocked/tail_call_recursive.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r7;
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r8;
     // EBPF_OP_MOV64_REG pc=3 dst=r2 src=r10 offset=0 imm=0
 #line 47 "sample/undocked/tail_call_recursive.c"
     r2 = r10;
@@ -122,46 +124,46 @@ recurse(void* context)
         return 0;
 #line 51 "sample/undocked/tail_call_recursive.c"
     }
-    // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=23 imm=0
+    // EBPF_OP_MOV64_REG pc=8 dst=r7 src=r0 offset=0 imm=0
+#line 51 "sample/undocked/tail_call_recursive.c"
+    r7 = r0;
+    // EBPF_OP_JEQ_IMM pc=9 dst=r7 src=r0 offset=22 imm=0
 #line 52 "sample/undocked/tail_call_recursive.c"
-    if (r0 == IMMEDIATE(0)) {
+    if (r7 == IMMEDIATE(0)) {
 #line 52 "sample/undocked/tail_call_recursive.c"
         goto label_1;
 #line 52 "sample/undocked/tail_call_recursive.c"
     }
-    // EBPF_OP_MOV64_IMM pc=9 dst=r1 src=r0 offset=0 imm=680997
+    // EBPF_OP_MOV64_IMM pc=10 dst=r1 src=r0 offset=0 imm=680997
 #line 52 "sample/undocked/tail_call_recursive.c"
     r1 = IMMEDIATE(680997);
-    // EBPF_OP_STXW pc=10 dst=r10 src=r1 offset=-8 imm=0
+    // EBPF_OP_STXW pc=11 dst=r10 src=r1 offset=-8 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
-    // EBPF_OP_LDDW pc=11 dst=r1 src=r0 offset=0 imm=1635133984
+    // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=1635133984
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 = (uint64_t)4424071317313432096;
-    // EBPF_OP_STXDW pc=13 dst=r10 src=r1 offset=-16 imm=0
+    // EBPF_OP_STXDW pc=14 dst=r10 src=r1 offset=-16 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r1;
-    // EBPF_OP_LDDW pc=14 dst=r1 src=r0 offset=0 imm=1969448306
+    // EBPF_OP_LDDW pc=15 dst=r1 src=r0 offset=0 imm=1969448306
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 = (uint64_t)4207896362280510834;
-    // EBPF_OP_STXDW pc=16 dst=r10 src=r1 offset=-24 imm=0
+    // EBPF_OP_STXDW pc=17 dst=r10 src=r1 offset=-24 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
-    // EBPF_OP_LDXW pc=17 dst=r3 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=18 dst=r3 src=r7 offset=0 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
-    r3 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-    // EBPF_OP_MOV64_REG pc=18 dst=r1 src=r10 offset=0 imm=0
+    r3 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(0));
+    // EBPF_OP_MOV64_REG pc=19 dst=r1 src=r10 offset=0 imm=0
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 = r10;
-    // EBPF_OP_ADD64_IMM pc=19 dst=r1 src=r0 offset=0 imm=-24
+    // EBPF_OP_ADD64_IMM pc=20 dst=r1 src=r0 offset=0 imm=-24
 #line 56 "sample/undocked/tail_call_recursive.c"
     r1 += IMMEDIATE(-24);
-    // EBPF_OP_MOV64_IMM pc=20 dst=r2 src=r0 offset=0 imm=20
+    // EBPF_OP_MOV64_IMM pc=21 dst=r2 src=r0 offset=0 imm=20
 #line 56 "sample/undocked/tail_call_recursive.c"
     r2 = IMMEDIATE(20);
-    // EBPF_OP_MOV64_REG pc=21 dst=r7 src=r0 offset=0 imm=0
-#line 56 "sample/undocked/tail_call_recursive.c"
-    r7 = r0;
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=13
 #line 56 "sample/undocked/tail_call_recursive.c"
     r0 = recurse_helpers[1].address(r1, r2, r3, r4, r5, context);
@@ -198,13 +200,13 @@ recurse(void* context)
         return 0;
 #line 62 "sample/undocked/tail_call_recursive.c"
     }
-    // EBPF_OP_MOV64_REG pc=31 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=31 dst=r8 src=r0 offset=0 imm=0
 #line 62 "sample/undocked/tail_call_recursive.c"
-    r7 = r0;
+    r8 = r0;
 label_1:
-    // EBPF_OP_MOV64_REG pc=32 dst=r0 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=32 dst=r0 src=r8 offset=0 imm=0
 #line 63 "sample/undocked/tail_call_recursive.c"
-    r0 = r7;
+    r0 = r8;
     // EBPF_OP_EXIT pc=33 dst=r0 src=r0 offset=0 imm=0
 #line 63 "sample/undocked/tail_call_recursive.c"
     return r0;
@@ -243,7 +245,7 @@ static void
 _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
-    version->minor = 20;
+    version->minor = 21;
     version->revision = 0;
 }
 
