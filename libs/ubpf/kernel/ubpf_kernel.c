@@ -34,6 +34,17 @@
 #define strerror place_holder_strerror
 #define errno (place_holder_errno())
 
+#if !defined(NDEBUG)
+void
+_assert(const char* message, const char* file, unsigned line)
+{
+    UNREFERENCED_PARAMETER(message);
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    __fastfail(0);
+}
+#endif
+
 inline int
 fprintf(void* stream, const char* format, ...)
 {
@@ -128,5 +139,6 @@ void __cdecl abort(void) { KeBugCheck(PAGE_FAULT_IN_NONPAGED_AREA); }
 #include "ubpf_vm.c"
 #pragma warning(push)
 #pragma warning(disable : 6387) // ubpf_jit.c(70): error C6387: 'buffer' could be '0'
+#include "ubpf_instruction_valid.c"
 #include "ubpf_jit.c"
 #pragma warning(pop)

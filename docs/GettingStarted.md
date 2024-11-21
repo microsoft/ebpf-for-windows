@@ -33,11 +33,6 @@ The following must be installed in order to build this project:
     > Note: The *WiX Toolset* has a dependency on the **.NET 3.5 Framework**: you can either enable from the Start menu -> "*Turn Windows features on or off*" and then select "*.NET Framework 3.5 (includes .NET 2.0 and 3.0)*" (recommended), *or*
 install it directly from [here](https://www.microsoft.com/en-us/download/details.aspx?id=21).
 1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
-1. [SDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/p/?linkid=2196241) (version **10.0.22621.x**).
-1. [WDK for Windows 11, version 22H2](https://go.microsoft.com/fwlink/?linkid=2196230) (version **10.0.22621.x**), including the
- "*Windows Driver Kit Visual Studio extension*" (make sure the "*Install Windows Driver Kit Visual Studio Extension*"
-  check box is checked before completing the installer).
-    >Note: as multiple versions of WDKs cannot coexist side-by-side, you may be asked to uninstall previous versions.
 1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.3.1 or higher**), which can be installed to a location
  such as "C:\Program Files (x86)\NuGet\".
 
