@@ -82,6 +82,24 @@ extern "C"
     ebpf_bitmap_start_reverse_search(_In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor);
 
     /**
+     * @brief Initialize a cursor to perform a reverse scan starting from a specified bit.
+     *
+     * This function initializes a cursor for a reverse search in the bitmap.
+     * The search starts at the specified bit.
+     * If the specified bit is beyond the end of the bitmap, the cursor is initialized
+     * to the last bit in the bitmap.
+     *
+     * @param[in] bitmap Pointer to the bitmap.
+     * @param[out] cursor Pointer to the cursor.
+     * @param[in] start_bit Bit to start searching from.
+     *
+     * @return void
+     */
+    void
+    ebpf_bitmap_start_reverse_search_at(
+        _In_ const ebpf_bitmap_t* bitmap, _Out_ ebpf_bitmap_cursor_t* cursor, _In_ size_t start_bit);
+
+    /**
      * @brief Find the next set bit in the bitmap via forward search.
      *
      * @param[in, out] cursor Pointer to cursor.

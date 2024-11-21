@@ -6,7 +6,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
   <PropertyGroup Label="Version">
     <EbpfVersion_Major>0</EbpfVersion_Major>
-    <EbpfVersion_Minor>20</EbpfVersion_Minor>
+    <EbpfVersion_Minor>21</EbpfVersion_Minor>
     <EbpfVersion_Revision>0</EbpfVersion_Revision>
     <EbpfVersion>$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
   </PropertyGroup>
@@ -71,13 +71,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' Or '$(Configuration)|$(Platform)'=='FuzzerDebug|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
     <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Release|True'">
+  <PropertyGroup Condition="'$(Fuzzer)'=='True' OR '$(Configuration)'=='FuzzerDebug'">
     <EnableASAN>true</EnableASAN>
-    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Fuzzer)'=='Debug|True' Or '$(Configuration)'=='FuzzerDebug'">
-    <EnableASAN>true</EnableASAN>
-    <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /ZH:SHA_256 %(AdditionalOptions)</AdditionalOptions>
+    <EnableFuzzer>true</EnableFuzzer>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+    <ClCompile>
+      <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /DFUZZER_BUILD %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Fuzzer)'!='True' And '$(Configuration)'!='FuzzerDebug'">
     <SpectreMitigation>Spectre</SpectreMitigation>
@@ -97,7 +97,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <AdditionalOptions>/ZH:SHA_256 /we4062 %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalIncludeDirectories>$(WindowsSdkDir)Include\10.0.22621.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(OutDir)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(WdkContentRoot)\Include\10.0.26100.0\km;$(SolutionDir)external\ebpf-verifier\build\packages\boost\lib\native\include;$(OutDir)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <CETCompat Condition="'$(Platform)'=='x64'">true</CETCompat>
@@ -142,18 +142,18 @@
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='x64'">
     <ClCompile>
-      <PreprocessorDefinitions>_AMD64_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_AMD64_;_WIN32_WINNT=0x0a00;_WINDLL;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='Win32'">
     <ClCompile>
-      <PreprocessorDefinitions>_X86_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_X86_;_WIN32_WINNT=0x0a00;_WINDLL;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Platform)'=='ARM64'">
     <ClCompile>
       <!-- Set the _ARM64_ as it is required by winnt.h for correct compilation rather than the standard _M_ARM64 -->
-      <PreprocessorDefinitions>_ARM64_;_WIN32_WINNT=0x0a00;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_ARM64_;_WIN32_WINNT=0x0a00;_WINDLL;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <!-- Set the option to emit both armv8.0 atomics and armv8.1 atomics with processor detection to select the best performing one.-->
       <AdditionalOptions>/d2overrideInterlockedIntrinsArm64 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

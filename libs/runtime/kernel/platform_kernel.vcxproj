@@ -52,6 +52,7 @@
     <ClInclude Include="stdbool.h" />
     <ClInclude Include="stdint.h" />
   </ItemGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <ProjectGuid>{FC3F9998-4085-4767-8386-5453F07C3AAD}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
@@ -62,7 +63,6 @@
     <RootNamespace>kernel</RootNamespace>
     <DriverType>KMDF</DriverType>
     <ProjectName>runtime_kernel</ProjectName>
-    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
