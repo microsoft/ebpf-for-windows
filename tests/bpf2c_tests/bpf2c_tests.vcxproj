@@ -8,12 +8,12 @@
     <ReplaceWildcardsInProjectItems>true</ReplaceWildcardsInProjectItems>
     <ReadOnlyProject>true</ReadOnlyProject>
   </PropertyGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{61df9973-81b9-4006-9148-52f58259bbcf}</ProjectGuid>
     <RootNamespace>bpf2ctests</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">

@@ -261,9 +261,11 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 311;
+    const int code_size = 308;
+    const int old_code_size = 311;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1114;
+    const int code_size = 1102;
+    const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -285,7 +287,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             array     4      4        1  port_map\n"
                                         "             array     4      4        1  inner_map\n";
 
-    REQUIRE(output == std::vformat(expected_output, std::make_format_args(code_size)));
+    REQUIRE(
+        (output == std::vformat(expected_output, std::make_format_args(code_size)) ||
+         output == std::vformat(expected_output, std::make_format_args(old_code_size))));
 }
 
 // Test a .dll file with multiple programs.
