@@ -22,6 +22,7 @@ $commands = @(
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build",
     "cmake $cmakeCommonArgs -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build",
+    "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on",
     "nuget restore ebpf-for-windows.sln"
 )
 
@@ -36,4 +37,5 @@ foreach ($command in $commands) {
         Exit  $LASTEXITCODE
     }
 }
+
 Write-Host "All commands succeeded."

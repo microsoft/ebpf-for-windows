@@ -35,6 +35,7 @@
 // Windows headers define near and far which conflict with the ubpf headers.
 #undef near
 #undef far
+#include "ubpf_instruction_valid.c"
 #include "ubpf_jit.c"
 #include "ubpf_jit_support.c"
 #include "ubpf_jit_x86_64.c"
