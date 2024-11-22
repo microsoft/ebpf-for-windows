@@ -613,6 +613,8 @@ _ebpf_epoch_release_free_list(_Inout_ ebpf_epoch_cpu_entry_t* cpu_entry, int64_t
         header = CONTAINING_RECORD(entry, ebpf_epoch_allocation_header_t, list_entry);
         if (header->freed_epoch <= released_epoch) {
             ebpf_list_remove_entry(entry);
+            // Prefetch the next entry that will be removed after the current one.
+            _mm_prefetch((char*)entry->Flink->Flink, _MM_HINT_T0);
             switch (header->entry_type) {
             case EBPF_EPOCH_ALLOCATION_MEMORY:
                 ebpf_free(header);
