@@ -180,6 +180,7 @@ ebpf_verify_program(
         bool pass;
         if (options.verbosity_opts.print_failures) {
             auto report = invariants.check_assertions(cfg);
+            thread_local_options.verbosity_opts.print_line_info = true;
             report.print_warnings(os);
             pass = report.verified();
             stats->total_warnings = (int)report.warning_set().size();
@@ -188,10 +189,6 @@ ebpf_verify_program(
             pass = invariants.verified(cfg);
         }
         stats->max_loop_count = invariants.max_loop_count();
-        if (pass && options.cfg_opts.check_for_termination &&
-            (options.verbosity_opts.print_failures || options.verbosity_opts.print_invariants)) {
-            os << "Program terminates within " << invariants.max_loop_count() << " loop iterations\n";
-        }
         return pass;
     } catch (UnmarshalError& e) {
         os << "error: " << e.what() << std::endl;
