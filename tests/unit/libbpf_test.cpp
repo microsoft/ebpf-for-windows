@@ -220,7 +220,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
     REQUIRE(program_fd < 0);
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(errno == EACCES);
-    REQUIRE(strcmp(log_buffer, "\n0: Invalid type (r0.type == number)\n\n") == 0);
+    REQUIRE(strcmp(log_buffer, "0: Invalid type (r0.type == number)\n\n") == 0);
 #else
     REQUIRE(errno == ENOTSUP);
 #endif
@@ -244,7 +244,7 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
     REQUIRE(program_fd < 0);
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     REQUIRE(errno == EACCES);
-    REQUIRE(strcmp(log_buffer, "\n0: Invalid type (r0.type == number)\n\n") == 0);
+    REQUIRE(strcmp(log_buffer, "0: Invalid type (r0.type == number)\n\n") == 0);
 #else
     REQUIRE(errno == ENOTSUP);
 #endif

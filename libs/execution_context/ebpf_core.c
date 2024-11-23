@@ -2345,6 +2345,11 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
         return -1;
     }
 
+    // If the provider is not enabled, don't bother with the rest.
+    if (!TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK)) {
+        return 0;
+    }
+
     // Make a copy of the original format string.
     char* output = (char*)ebpf_allocate_with_tag(fmt_size + 1, EBPF_POOL_TAG_CORE);
     if (output == NULL) {
