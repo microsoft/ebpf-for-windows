@@ -652,10 +652,10 @@ _ebpf_api_elf_verify_program_from_stream(
         ebpf_verifier_options_t verifier_options{};
         verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
         verifier_options.cfg_opts.check_for_termination = true;
-        verifier_options.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
-        verifier_options.print_failures = true;
+        verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
+        verifier_options.verbosity_opts.print_failures = true;
         verifier_options.mock_map_fds = true;
-        verifier_options.print_line_info = true;
+        verifier_options.verbosity_opts.print_line_info = true;
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
@@ -683,9 +683,8 @@ _ebpf_api_elf_verify_program_from_stream(
         }
         auto& program = std::get<InstructionSeq>(programOrError);
 
-        verifier_options.cfg_opts.simplify = false;
-        bool res =
-            ebpf_verify_program(output, program, raw_program.info, verifier_options, (ebpf_verifier_stats_t*)stats);
+        verifier_options.verbosity_opts.simplify = false;
+        bool res = ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
         if (!res) {
             error << "Verification failed";
             *error_message = allocate_string(error.str());
