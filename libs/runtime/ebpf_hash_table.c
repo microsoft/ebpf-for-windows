@@ -828,10 +828,7 @@ ebpf_hash_table_find(_In_ const ebpf_hash_table_t* hash_table, _In_ const uint8_
         goto Done;
     }
 
-#if defined(_M_X64)
-    // Prefetch the data on the assumption that it will be used by the caller soon.
-    _mm_prefetch((const char*)data, _MM_HINT_T0);
-#endif
+    PrefetchForWrite(data);
 
     *value = data;
     if (hash_table->notification_callback) {

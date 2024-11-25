@@ -90,113 +90,110 @@ encap_reflect_packet(void* context)
 #line 167 "sample/encap_reflect_packet.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
-#line 167 "sample/encap_reflect_packet.c"
-    r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
 #line 167 "sample/encap_reflect_packet.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_LDXDW pc=2 dst=r1 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=1 dst=r2 src=r1 offset=8 imm=0
 #line 173 "sample/encap_reflect_packet.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_LDXDW pc=3 dst=r2 src=r6 offset=0 imm=0
+    r2 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
+    // EBPF_OP_LDXDW pc=2 dst=r3 src=r1 offset=0 imm=0
 #line 172 "sample/encap_reflect_packet.c"
-    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_MOV64_REG pc=4 dst=r3 src=r2 offset=0 imm=0
+    r3 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
+    // EBPF_OP_MOV64_REG pc=3 dst=r4 src=r3 offset=0 imm=0
 #line 173 "sample/encap_reflect_packet.c"
-    r3 = r2;
-    // EBPF_OP_ADD64_IMM pc=5 dst=r3 src=r0 offset=0 imm=14
+    r4 = r3;
+    // EBPF_OP_ADD64_IMM pc=4 dst=r4 src=r0 offset=0 imm=14
 #line 173 "sample/encap_reflect_packet.c"
-    r3 += IMMEDIATE(14);
-    // EBPF_OP_JGT_REG pc=6 dst=r3 src=r1 offset=314 imm=0
+    r4 += IMMEDIATE(14);
+    // EBPF_OP_JGT_REG pc=5 dst=r4 src=r2 offset=315 imm=0
 #line 173 "sample/encap_reflect_packet.c"
-    if (r3 > r1) {
+    if (r4 > r2) {
 #line 173 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 173 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXH pc=7 dst=r4 src=r2 offset=12 imm=0
+    // EBPF_OP_LDXH pc=6 dst=r5 src=r3 offset=12 imm=0
 #line 178 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(12));
-    // EBPF_OP_JEQ_IMM pc=8 dst=r4 src=r0 offset=119 imm=56710
+    r5 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(12));
+    // EBPF_OP_JEQ_IMM pc=7 dst=r5 src=r0 offset=120 imm=56710
 #line 178 "sample/encap_reflect_packet.c"
-    if (r4 == IMMEDIATE(56710)) {
+    if (r5 == IMMEDIATE(56710)) {
 #line 178 "sample/encap_reflect_packet.c"
         goto label_2;
 #line 178 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_JNE_IMM pc=9 dst=r4 src=r0 offset=311 imm=8
+    // EBPF_OP_JNE_IMM pc=8 dst=r5 src=r0 offset=312 imm=8
 #line 178 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(8)) {
+    if (r5 != IMMEDIATE(8)) {
 #line 178 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 178 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_MOV64_REG pc=10 dst=r4 src=r2 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=9 dst=r5 src=r3 offset=0 imm=0
 #line 179 "sample/encap_reflect_packet.c"
-    r4 = r2;
-    // EBPF_OP_ADD64_IMM pc=11 dst=r4 src=r0 offset=0 imm=34
+    r5 = r3;
+    // EBPF_OP_ADD64_IMM pc=10 dst=r5 src=r0 offset=0 imm=34
 #line 179 "sample/encap_reflect_packet.c"
-    r4 += IMMEDIATE(34);
-    // EBPF_OP_JGT_REG pc=12 dst=r4 src=r1 offset=308 imm=0
+    r5 += IMMEDIATE(34);
+    // EBPF_OP_JGT_REG pc=11 dst=r5 src=r2 offset=309 imm=0
 #line 179 "sample/encap_reflect_packet.c"
-    if (r4 > r1) {
+    if (r5 > r2) {
 #line 179 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 179 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXB pc=13 dst=r4 src=r2 offset=23 imm=0
+    // EBPF_OP_LDXB pc=12 dst=r5 src=r3 offset=23 imm=0
 #line 185 "sample/encap_reflect_packet.c"
-    r4 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(23));
-    // EBPF_OP_JNE_IMM pc=14 dst=r4 src=r0 offset=306 imm=17
+    r5 = *(uint8_t*)(uintptr_t)(r3 + OFFSET(23));
+    // EBPF_OP_JNE_IMM pc=13 dst=r5 src=r0 offset=307 imm=17
 #line 185 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(17)) {
-#line 185 "sample/encap_reflect_packet.c"
-        goto label_5;
-#line 185 "sample/encap_reflect_packet.c"
-    }
-    // EBPF_OP_LDXB pc=15 dst=r2 src=r2 offset=14 imm=0
-#line 185 "sample/encap_reflect_packet.c"
-    r2 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(14));
-    // EBPF_OP_LSH64_IMM pc=16 dst=r2 src=r0 offset=0 imm=2
-#line 185 "sample/encap_reflect_packet.c"
-    r2 <<= (IMMEDIATE(2) & 63);
-    // EBPF_OP_AND64_IMM pc=17 dst=r2 src=r0 offset=0 imm=60
-#line 185 "sample/encap_reflect_packet.c"
-    r2 &= IMMEDIATE(60);
-    // EBPF_OP_ADD64_REG pc=18 dst=r3 src=r2 offset=0 imm=0
-#line 185 "sample/encap_reflect_packet.c"
-    r3 += r2;
-    // EBPF_OP_MOV64_REG pc=19 dst=r2 src=r3 offset=0 imm=0
-#line 185 "sample/encap_reflect_packet.c"
-    r2 = r3;
-    // EBPF_OP_ADD64_IMM pc=20 dst=r2 src=r0 offset=0 imm=8
-#line 185 "sample/encap_reflect_packet.c"
-    r2 += IMMEDIATE(8);
-    // EBPF_OP_JGT_REG pc=21 dst=r2 src=r1 offset=299 imm=0
-#line 185 "sample/encap_reflect_packet.c"
-    if (r2 > r1) {
+    if (r5 != IMMEDIATE(17)) {
 #line 185 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 185 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXH pc=22 dst=r1 src=r3 offset=2 imm=0
+    // EBPF_OP_LDXB pc=14 dst=r3 src=r3 offset=14 imm=0
+#line 185 "sample/encap_reflect_packet.c"
+    r3 = *(uint8_t*)(uintptr_t)(r3 + OFFSET(14));
+    // EBPF_OP_LSH64_IMM pc=15 dst=r3 src=r0 offset=0 imm=2
+#line 185 "sample/encap_reflect_packet.c"
+    r3 <<= (IMMEDIATE(2) & 63);
+    // EBPF_OP_AND64_IMM pc=16 dst=r3 src=r0 offset=0 imm=60
+#line 185 "sample/encap_reflect_packet.c"
+    r3 &= IMMEDIATE(60);
+    // EBPF_OP_ADD64_REG pc=17 dst=r4 src=r3 offset=0 imm=0
+#line 185 "sample/encap_reflect_packet.c"
+    r4 += r3;
+    // EBPF_OP_MOV64_REG pc=18 dst=r3 src=r4 offset=0 imm=0
+#line 185 "sample/encap_reflect_packet.c"
+    r3 = r4;
+    // EBPF_OP_ADD64_IMM pc=19 dst=r3 src=r0 offset=0 imm=8
+#line 185 "sample/encap_reflect_packet.c"
+    r3 += IMMEDIATE(8);
+    // EBPF_OP_JGT_REG pc=20 dst=r3 src=r2 offset=300 imm=0
+#line 185 "sample/encap_reflect_packet.c"
+    if (r3 > r2) {
+#line 185 "sample/encap_reflect_packet.c"
+        goto label_5;
+#line 185 "sample/encap_reflect_packet.c"
+    }
+    // EBPF_OP_LDXH pc=21 dst=r2 src=r4 offset=2 imm=0
 #line 191 "sample/encap_reflect_packet.c"
-    r1 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(2));
-    // EBPF_OP_JNE_IMM pc=23 dst=r1 src=r0 offset=297 imm=7459
+    r2 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    // EBPF_OP_JNE_IMM pc=22 dst=r2 src=r0 offset=298 imm=7459
 #line 191 "sample/encap_reflect_packet.c"
-    if (r1 != IMMEDIATE(7459)) {
+    if (r2 != IMMEDIATE(7459)) {
 #line 191 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 191 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_MOV64_REG pc=24 dst=r1 src=r6 offset=0 imm=0
-#line 22 "sample/encap_reflect_packet.c"
-    r1 = r6;
-    // EBPF_OP_LDDW pc=25 dst=r2 src=r0 offset=0 imm=-20
+    // EBPF_OP_MOV64_REG pc=23 dst=r6 src=r1 offset=0 imm=0
+#line 191 "sample/encap_reflect_packet.c"
+    r6 = r1;
+    // EBPF_OP_LDDW pc=24 dst=r2 src=r0 offset=0 imm=-20
 #line 22 "sample/encap_reflect_packet.c"
     r2 = (uint64_t)4294967276;
-    // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=65536
+    // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=65536
 #line 22 "sample/encap_reflect_packet.c"
     r0 = encap_reflect_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
 #line 22 "sample/encap_reflect_packet.c"
@@ -205,6 +202,9 @@ encap_reflect_packet(void* context)
         return 0;
 #line 22 "sample/encap_reflect_packet.c"
     }
+    // EBPF_OP_MOV64_REG pc=27 dst=r2 src=r6 offset=0 imm=0
+#line 22 "sample/encap_reflect_packet.c"
+    r2 = r6;
     // EBPF_OP_MOV64_REG pc=28 dst=r1 src=r0 offset=0 imm=0
 #line 22 "sample/encap_reflect_packet.c"
     r1 = r0;
@@ -217,208 +217,208 @@ encap_reflect_packet(void* context)
     // EBPF_OP_ARSH64_IMM pc=31 dst=r1 src=r0 offset=0 imm=32
 #line 22 "sample/encap_reflect_packet.c"
     r1 = (int64_t)r1 >> (uint32_t)(IMMEDIATE(32) & 63);
-    // EBPF_OP_MOV64_IMM pc=32 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=0
 #line 22 "sample/encap_reflect_packet.c"
-    r2 = IMMEDIATE(0);
-    // EBPF_OP_JSGT_REG pc=33 dst=r2 src=r1 offset=287 imm=0
+    r3 = IMMEDIATE(0);
+    // EBPF_OP_JSGT_REG pc=33 dst=r3 src=r1 offset=287 imm=0
 #line 22 "sample/encap_reflect_packet.c"
-    if ((int64_t)r2 > (int64_t)r1) {
+    if ((int64_t)r3 > (int64_t)r1) {
 #line 22 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 22 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXDW pc=34 dst=r4 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=34 dst=r5 src=r2 offset=8 imm=0
 #line 28 "sample/encap_reflect_packet.c"
-    r4 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_LDXDW pc=35 dst=r7 src=r6 offset=0 imm=0
+    r5 = *(uint64_t*)(uintptr_t)(r2 + OFFSET(8));
+    // EBPF_OP_LDXDW pc=35 dst=r6 src=r2 offset=0 imm=0
 #line 27 "sample/encap_reflect_packet.c"
-    r7 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_MOV64_REG pc=36 dst=r3 src=r7 offset=0 imm=0
+    r6 = *(uint64_t*)(uintptr_t)(r2 + OFFSET(0));
+    // EBPF_OP_MOV64_REG pc=36 dst=r3 src=r6 offset=0 imm=0
 #line 28 "sample/encap_reflect_packet.c"
-    r3 = r7;
+    r3 = r6;
     // EBPF_OP_ADD64_IMM pc=37 dst=r3 src=r0 offset=0 imm=14
 #line 28 "sample/encap_reflect_packet.c"
     r3 += IMMEDIATE(14);
-    // EBPF_OP_JGT_REG pc=38 dst=r3 src=r4 offset=282 imm=0
+    // EBPF_OP_JGT_REG pc=38 dst=r3 src=r5 offset=282 imm=0
 #line 28 "sample/encap_reflect_packet.c"
-    if (r3 > r4) {
+    if (r3 > r5) {
 #line 28 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 28 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_MOV64_REG pc=39 dst=r2 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=39 dst=r4 src=r6 offset=0 imm=0
 #line 35 "sample/encap_reflect_packet.c"
-    r2 = r7;
-    // EBPF_OP_ADD64_IMM pc=40 dst=r2 src=r0 offset=0 imm=20
+    r4 = r6;
+    // EBPF_OP_ADD64_IMM pc=40 dst=r4 src=r0 offset=0 imm=20
 #line 35 "sample/encap_reflect_packet.c"
-    r2 += IMMEDIATE(20);
-    // EBPF_OP_JGT_REG pc=41 dst=r2 src=r4 offset=279 imm=0
+    r4 += IMMEDIATE(20);
+    // EBPF_OP_JGT_REG pc=41 dst=r4 src=r5 offset=279 imm=0
 #line 35 "sample/encap_reflect_packet.c"
-    if (r2 > r4) {
-#line 35 "sample/encap_reflect_packet.c"
-        goto label_5;
-#line 35 "sample/encap_reflect_packet.c"
-    }
-    // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r7 offset=0 imm=0
-#line 43 "sample/encap_reflect_packet.c"
-    r1 = r7;
-    // EBPF_OP_ADD64_IMM pc=43 dst=r1 src=r0 offset=0 imm=34
-#line 43 "sample/encap_reflect_packet.c"
-    r1 += IMMEDIATE(34);
-    // EBPF_OP_JGT_REG pc=44 dst=r1 src=r4 offset=276 imm=0
-#line 43 "sample/encap_reflect_packet.c"
-    if (r1 > r4) {
-#line 43 "sample/encap_reflect_packet.c"
-        goto label_5;
-#line 43 "sample/encap_reflect_packet.c"
-    }
-    // EBPF_OP_MOV64_REG pc=45 dst=r5 src=r7 offset=0 imm=0
-#line 43 "sample/encap_reflect_packet.c"
-    r5 = r7;
-    // EBPF_OP_ADD64_IMM pc=46 dst=r5 src=r0 offset=0 imm=54
-#line 43 "sample/encap_reflect_packet.c"
-    r5 += IMMEDIATE(54);
-    // EBPF_OP_JGT_REG pc=47 dst=r5 src=r4 offset=273 imm=0
-#line 43 "sample/encap_reflect_packet.c"
-    if (r5 > r4) {
-#line 43 "sample/encap_reflect_packet.c"
-        goto label_5;
-#line 43 "sample/encap_reflect_packet.c"
-    }
-    // EBPF_OP_LDXH pc=48 dst=r4 src=r2 offset=0 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(0));
-    // EBPF_OP_STXH pc=49 dst=r7 src=r4 offset=0 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(0)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=50 dst=r4 src=r2 offset=2 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(2));
-    // EBPF_OP_STXH pc=51 dst=r7 src=r4 offset=2 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(2)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=52 dst=r4 src=r2 offset=4 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(4));
-    // EBPF_OP_STXH pc=53 dst=r7 src=r4 offset=4 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(4)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=54 dst=r4 src=r2 offset=12 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(12));
-    // EBPF_OP_STXH pc=55 dst=r7 src=r4 offset=12 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(12)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=56 dst=r4 src=r2 offset=6 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(6));
-    // EBPF_OP_STXH pc=57 dst=r7 src=r4 offset=6 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(6)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=58 dst=r5 src=r2 offset=10 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r5 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(10));
-    // EBPF_OP_LDXH pc=59 dst=r8 src=r2 offset=8 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    r8 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(8));
-    // EBPF_OP_STXH pc=60 dst=r7 src=r4 offset=0 imm=0
-#line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(0)) = (uint16_t)r4;
-    // EBPF_OP_STXH pc=61 dst=r7 src=r8 offset=8 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(8)) = (uint16_t)r8;
-    // EBPF_OP_STXH pc=62 dst=r7 src=r8 offset=2 imm=0
-#line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(2)) = (uint16_t)r8;
-    // EBPF_OP_STXH pc=63 dst=r7 src=r5 offset=10 imm=0
-#line 56 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(10)) = (uint16_t)r5;
-    // EBPF_OP_STXH pc=64 dst=r7 src=r5 offset=4 imm=0
-#line 17 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(4)) = (uint16_t)r5;
-    // EBPF_OP_LDXH pc=65 dst=r4 src=r2 offset=4 imm=0
-#line 18 "sample/./xdp_common.h"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(4));
-    // EBPF_OP_STXH pc=66 dst=r7 src=r4 offset=10 imm=0
-#line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(10)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=67 dst=r4 src=r2 offset=0 imm=0
-#line 18 "sample/./xdp_common.h"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(0));
-    // EBPF_OP_STXH pc=68 dst=r7 src=r4 offset=6 imm=0
-#line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(6)) = (uint16_t)r4;
-    // EBPF_OP_LDXH pc=69 dst=r2 src=r2 offset=2 imm=0
-#line 18 "sample/./xdp_common.h"
-    r2 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(2));
-    // EBPF_OP_STXH pc=70 dst=r7 src=r2 offset=8 imm=0
-#line 18 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(8)) = (uint16_t)r2;
-    // EBPF_OP_LDXW pc=71 dst=r2 src=r7 offset=50 imm=0
-#line 24 "sample/./xdp_common.h"
-    r2 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(50));
-    // EBPF_OP_LDXW pc=72 dst=r4 src=r7 offset=46 imm=0
-#line 25 "sample/./xdp_common.h"
-    r4 = *(uint32_t*)(uintptr_t)(r7 + OFFSET(46));
-    // EBPF_OP_STXW pc=73 dst=r7 src=r4 offset=50 imm=0
-#line 25 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r7 + OFFSET(50)) = (uint32_t)r4;
-    // EBPF_OP_STXW pc=74 dst=r7 src=r2 offset=46 imm=0
-#line 26 "sample/./xdp_common.h"
-    *(uint32_t*)(uintptr_t)(r7 + OFFSET(46)) = (uint32_t)r2;
-    // EBPF_OP_LDXB pc=75 dst=r4 src=r7 offset=34 imm=0
-#line 63 "sample/encap_reflect_packet.c"
-    r4 = *(uint8_t*)(uintptr_t)(r7 + OFFSET(34));
-    // EBPF_OP_LSH64_IMM pc=76 dst=r4 src=r0 offset=0 imm=2
-#line 63 "sample/encap_reflect_packet.c"
-    r4 <<= (IMMEDIATE(2) & 63);
-    // EBPF_OP_AND64_IMM pc=77 dst=r4 src=r0 offset=0 imm=60
-#line 63 "sample/encap_reflect_packet.c"
-    r4 &= IMMEDIATE(60);
-    // EBPF_OP_MOV64_REG pc=78 dst=r2 src=r1 offset=0 imm=0
-#line 63 "sample/encap_reflect_packet.c"
-    r2 = r1;
-    // EBPF_OP_ADD64_REG pc=79 dst=r2 src=r4 offset=0 imm=0
-#line 63 "sample/encap_reflect_packet.c"
-    r2 += r4;
-    // EBPF_OP_MOV64_REG pc=80 dst=r4 src=r2 offset=0 imm=0
-#line 64 "sample/encap_reflect_packet.c"
-    r4 = r2;
-    // EBPF_OP_ADD64_IMM pc=81 dst=r4 src=r0 offset=0 imm=8
-#line 64 "sample/encap_reflect_packet.c"
-    r4 += IMMEDIATE(8);
-    // EBPF_OP_LDXDW pc=82 dst=r5 src=r6 offset=8 imm=0
-#line 64 "sample/encap_reflect_packet.c"
-    r5 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JGT_REG pc=83 dst=r4 src=r5 offset=237 imm=0
-#line 64 "sample/encap_reflect_packet.c"
     if (r4 > r5) {
+#line 35 "sample/encap_reflect_packet.c"
+        goto label_5;
+#line 35 "sample/encap_reflect_packet.c"
+    }
+    // EBPF_OP_MOV64_REG pc=42 dst=r1 src=r6 offset=0 imm=0
+#line 35 "sample/encap_reflect_packet.c"
+    r1 = r6;
+    // EBPF_OP_ADD64_IMM pc=43 dst=r1 src=r0 offset=0 imm=34
+#line 35 "sample/encap_reflect_packet.c"
+    r1 += IMMEDIATE(34);
+    // EBPF_OP_JGT_REG pc=44 dst=r1 src=r5 offset=276 imm=0
+#line 35 "sample/encap_reflect_packet.c"
+    if (r1 > r5) {
+#line 35 "sample/encap_reflect_packet.c"
+        goto label_5;
+#line 35 "sample/encap_reflect_packet.c"
+    }
+    // EBPF_OP_MOV64_REG pc=45 dst=r7 src=r6 offset=0 imm=0
+#line 35 "sample/encap_reflect_packet.c"
+    r7 = r6;
+    // EBPF_OP_ADD64_IMM pc=46 dst=r7 src=r0 offset=0 imm=54
+#line 35 "sample/encap_reflect_packet.c"
+    r7 += IMMEDIATE(54);
+    // EBPF_OP_JGT_REG pc=47 dst=r7 src=r5 offset=273 imm=0
+#line 35 "sample/encap_reflect_packet.c"
+    if (r7 > r5) {
+#line 35 "sample/encap_reflect_packet.c"
+        goto label_5;
+#line 35 "sample/encap_reflect_packet.c"
+    }
+    // EBPF_OP_LDXH pc=48 dst=r5 src=r4 offset=0 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    // EBPF_OP_STXH pc=49 dst=r6 src=r5 offset=0 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(0)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=50 dst=r5 src=r4 offset=2 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    // EBPF_OP_STXH pc=51 dst=r6 src=r5 offset=2 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(2)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=52 dst=r5 src=r4 offset=4 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
+    // EBPF_OP_STXH pc=53 dst=r6 src=r5 offset=4 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(4)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=54 dst=r5 src=r4 offset=12 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(12));
+    // EBPF_OP_STXH pc=55 dst=r6 src=r5 offset=12 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(12)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=56 dst=r5 src=r4 offset=6 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(6));
+    // EBPF_OP_STXH pc=57 dst=r6 src=r5 offset=6 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(6)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=58 dst=r7 src=r4 offset=10 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r7 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(10));
+    // EBPF_OP_LDXH pc=59 dst=r8 src=r4 offset=8 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    r8 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(8));
+    // EBPF_OP_STXH pc=60 dst=r6 src=r5 offset=0 imm=0
+#line 17 "sample/./xdp_common.h"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(0)) = (uint16_t)r5;
+    // EBPF_OP_STXH pc=61 dst=r6 src=r8 offset=8 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(8)) = (uint16_t)r8;
+    // EBPF_OP_STXH pc=62 dst=r6 src=r8 offset=2 imm=0
+#line 17 "sample/./xdp_common.h"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(2)) = (uint16_t)r8;
+    // EBPF_OP_STXH pc=63 dst=r6 src=r7 offset=10 imm=0
+#line 56 "sample/encap_reflect_packet.c"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(10)) = (uint16_t)r7;
+    // EBPF_OP_STXH pc=64 dst=r6 src=r7 offset=4 imm=0
+#line 17 "sample/./xdp_common.h"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(4)) = (uint16_t)r7;
+    // EBPF_OP_LDXH pc=65 dst=r5 src=r4 offset=4 imm=0
+#line 18 "sample/./xdp_common.h"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(4));
+    // EBPF_OP_STXH pc=66 dst=r6 src=r5 offset=10 imm=0
+#line 18 "sample/./xdp_common.h"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(10)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=67 dst=r5 src=r4 offset=0 imm=0
+#line 18 "sample/./xdp_common.h"
+    r5 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    // EBPF_OP_STXH pc=68 dst=r6 src=r5 offset=6 imm=0
+#line 18 "sample/./xdp_common.h"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(6)) = (uint16_t)r5;
+    // EBPF_OP_LDXH pc=69 dst=r4 src=r4 offset=2 imm=0
+#line 18 "sample/./xdp_common.h"
+    r4 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    // EBPF_OP_STXH pc=70 dst=r6 src=r4 offset=8 imm=0
+#line 18 "sample/./xdp_common.h"
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(8)) = (uint16_t)r4;
+    // EBPF_OP_LDXW pc=71 dst=r4 src=r6 offset=50 imm=0
+#line 24 "sample/./xdp_common.h"
+    r4 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(50));
+    // EBPF_OP_LDXW pc=72 dst=r5 src=r6 offset=46 imm=0
+#line 25 "sample/./xdp_common.h"
+    r5 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(46));
+    // EBPF_OP_STXW pc=73 dst=r6 src=r5 offset=50 imm=0
+#line 25 "sample/./xdp_common.h"
+    *(uint32_t*)(uintptr_t)(r6 + OFFSET(50)) = (uint32_t)r5;
+    // EBPF_OP_STXW pc=74 dst=r6 src=r4 offset=46 imm=0
+#line 26 "sample/./xdp_common.h"
+    *(uint32_t*)(uintptr_t)(r6 + OFFSET(46)) = (uint32_t)r4;
+    // EBPF_OP_LDXB pc=75 dst=r5 src=r6 offset=34 imm=0
+#line 63 "sample/encap_reflect_packet.c"
+    r5 = *(uint8_t*)(uintptr_t)(r6 + OFFSET(34));
+    // EBPF_OP_LSH64_IMM pc=76 dst=r5 src=r0 offset=0 imm=2
+#line 63 "sample/encap_reflect_packet.c"
+    r5 <<= (IMMEDIATE(2) & 63);
+    // EBPF_OP_AND64_IMM pc=77 dst=r5 src=r0 offset=0 imm=60
+#line 63 "sample/encap_reflect_packet.c"
+    r5 &= IMMEDIATE(60);
+    // EBPF_OP_MOV64_REG pc=78 dst=r4 src=r1 offset=0 imm=0
+#line 63 "sample/encap_reflect_packet.c"
+    r4 = r1;
+    // EBPF_OP_ADD64_REG pc=79 dst=r4 src=r5 offset=0 imm=0
+#line 63 "sample/encap_reflect_packet.c"
+    r4 += r5;
+    // EBPF_OP_MOV64_REG pc=80 dst=r5 src=r4 offset=0 imm=0
+#line 64 "sample/encap_reflect_packet.c"
+    r5 = r4;
+    // EBPF_OP_ADD64_IMM pc=81 dst=r5 src=r0 offset=0 imm=8
+#line 64 "sample/encap_reflect_packet.c"
+    r5 += IMMEDIATE(8);
+    // EBPF_OP_LDXDW pc=82 dst=r2 src=r2 offset=8 imm=0
+#line 64 "sample/encap_reflect_packet.c"
+    r2 = *(uint64_t*)(uintptr_t)(r2 + OFFSET(8));
+    // EBPF_OP_JGT_REG pc=83 dst=r5 src=r2 offset=237 imm=0
+#line 64 "sample/encap_reflect_packet.c"
+    if (r5 > r2) {
 #line 64 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 64 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXH pc=84 dst=r4 src=r2 offset=2 imm=0
+    // EBPF_OP_LDXH pc=84 dst=r2 src=r4 offset=2 imm=0
 #line 68 "sample/encap_reflect_packet.c"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(2));
-    // EBPF_OP_JNE_IMM pc=85 dst=r4 src=r0 offset=4 imm=7459
+    r2 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(2));
+    // EBPF_OP_JNE_IMM pc=85 dst=r2 src=r0 offset=4 imm=7459
 #line 68 "sample/encap_reflect_packet.c"
-    if (r4 != IMMEDIATE(7459)) {
+    if (r2 != IMMEDIATE(7459)) {
 #line 68 "sample/encap_reflect_packet.c"
         goto label_1;
 #line 68 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXH pc=86 dst=r4 src=r2 offset=0 imm=0
+    // EBPF_OP_LDXH pc=86 dst=r2 src=r4 offset=0 imm=0
 #line 41 "sample/./xdp_common.h"
-    r4 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(0));
-    // EBPF_OP_STXH pc=87 dst=r2 src=r4 offset=2 imm=0
+    r2 = *(uint16_t*)(uintptr_t)(r4 + OFFSET(0));
+    // EBPF_OP_STXH pc=87 dst=r4 src=r2 offset=2 imm=0
 #line 43 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r2 + OFFSET(2)) = (uint16_t)r4;
-    // EBPF_OP_MOV64_IMM pc=88 dst=r4 src=r0 offset=0 imm=7459
+    *(uint16_t*)(uintptr_t)(r4 + OFFSET(2)) = (uint16_t)r2;
+    // EBPF_OP_MOV64_IMM pc=88 dst=r2 src=r0 offset=0 imm=7459
 #line 43 "sample/./xdp_common.h"
-    r4 = IMMEDIATE(7459);
-    // EBPF_OP_STXH pc=89 dst=r2 src=r4 offset=0 imm=0
+    r2 = IMMEDIATE(7459);
+    // EBPF_OP_STXH pc=89 dst=r4 src=r2 offset=0 imm=0
 #line 42 "sample/./xdp_common.h"
-    *(uint16_t*)(uintptr_t)(r2 + OFFSET(0)) = (uint16_t)r4;
+    *(uint16_t*)(uintptr_t)(r4 + OFFSET(0)) = (uint16_t)r2;
 label_1:
     // EBPF_OP_LDXW pc=90 dst=r2 src=r1 offset=16 imm=0
 #line 73 "sample/encap_reflect_packet.c"
@@ -453,24 +453,24 @@ label_1:
     // EBPF_OP_MOV64_IMM pc=100 dst=r1 src=r0 offset=0 imm=4
 #line 73 "sample/encap_reflect_packet.c"
     r1 = IMMEDIATE(4);
-    // EBPF_OP_STXB pc=101 dst=r7 src=r1 offset=23 imm=0
+    // EBPF_OP_STXB pc=101 dst=r6 src=r1 offset=23 imm=0
 #line 76 "sample/encap_reflect_packet.c"
-    *(uint8_t*)(uintptr_t)(r7 + OFFSET(23)) = (uint8_t)r1;
-    // EBPF_OP_LDXB pc=102 dst=r1 src=r7 offset=14 imm=0
+    *(uint8_t*)(uintptr_t)(r6 + OFFSET(23)) = (uint8_t)r1;
+    // EBPF_OP_LDXB pc=102 dst=r1 src=r6 offset=14 imm=0
 #line 77 "sample/encap_reflect_packet.c"
-    r1 = *(uint8_t*)(uintptr_t)(r7 + OFFSET(14));
+    r1 = *(uint8_t*)(uintptr_t)(r6 + OFFSET(14));
     // EBPF_OP_AND64_IMM pc=103 dst=r1 src=r0 offset=0 imm=240
 #line 77 "sample/encap_reflect_packet.c"
     r1 &= IMMEDIATE(240);
     // EBPF_OP_OR64_IMM pc=104 dst=r1 src=r0 offset=0 imm=5
 #line 77 "sample/encap_reflect_packet.c"
     r1 |= IMMEDIATE(5);
-    // EBPF_OP_STXB pc=105 dst=r7 src=r1 offset=14 imm=0
+    // EBPF_OP_STXB pc=105 dst=r6 src=r1 offset=14 imm=0
 #line 77 "sample/encap_reflect_packet.c"
-    *(uint8_t*)(uintptr_t)(r7 + OFFSET(14)) = (uint8_t)r1;
-    // EBPF_OP_LDXH pc=106 dst=r1 src=r7 offset=36 imm=0
+    *(uint8_t*)(uintptr_t)(r6 + OFFSET(14)) = (uint8_t)r1;
+    // EBPF_OP_LDXH pc=106 dst=r1 src=r6 offset=36 imm=0
 #line 78 "sample/encap_reflect_packet.c"
-    r1 = *(uint16_t*)(uintptr_t)(r7 + OFFSET(36));
+    r1 = *(uint16_t*)(uintptr_t)(r6 + OFFSET(36));
     // EBPF_OP_BE pc=107 dst=r1 src=r0 offset=0 imm=16
 #line 78 "sample/encap_reflect_packet.c"
     r1 = htobe16((uint16_t)r1);
@@ -484,15 +484,15 @@ label_1:
     r1 = htobe16((uint16_t)r1);
 #line 78 "sample/encap_reflect_packet.c"
     r1 &= UINT32_MAX;
-    // EBPF_OP_STXH pc=110 dst=r7 src=r1 offset=16 imm=0
+    // EBPF_OP_STXH pc=110 dst=r6 src=r1 offset=16 imm=0
 #line 78 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(16)) = (uint16_t)r1;
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(16)) = (uint16_t)r1;
     // EBPF_OP_MOV64_IMM pc=111 dst=r1 src=r0 offset=0 imm=0
 #line 78 "sample/encap_reflect_packet.c"
     r1 = IMMEDIATE(0);
-    // EBPF_OP_STXH pc=112 dst=r7 src=r1 offset=24 imm=0
+    // EBPF_OP_STXH pc=112 dst=r6 src=r1 offset=24 imm=0
 #line 80 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(24)) = (uint16_t)r1;
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(24)) = (uint16_t)r1;
     // EBPF_OP_MOV64_IMM pc=113 dst=r2 src=r0 offset=0 imm=0
 #line 82 "sample/encap_reflect_packet.c"
     r2 = IMMEDIATE(0);
@@ -538,62 +538,62 @@ label_1:
     // EBPF_OP_XOR64_IMM pc=125 dst=r1 src=r0 offset=0 imm=-1
 #line 82 "sample/encap_reflect_packet.c"
     r1 ^= IMMEDIATE(-1);
-    // EBPF_OP_STXH pc=126 dst=r7 src=r1 offset=24 imm=0
+    // EBPF_OP_STXH pc=126 dst=r6 src=r1 offset=24 imm=0
 #line 81 "sample/encap_reflect_packet.c"
-    *(uint16_t*)(uintptr_t)(r7 + OFFSET(24)) = (uint16_t)r1;
+    *(uint16_t*)(uintptr_t)(r6 + OFFSET(24)) = (uint16_t)r1;
     // EBPF_OP_JA pc=127 dst=r0 src=r0 offset=192 imm=0
 #line 81 "sample/encap_reflect_packet.c"
     goto label_4;
 label_2:
-    // EBPF_OP_MOV64_REG pc=128 dst=r3 src=r2 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=128 dst=r4 src=r3 offset=0 imm=0
 #line 196 "sample/encap_reflect_packet.c"
-    r3 = r2;
-    // EBPF_OP_ADD64_IMM pc=129 dst=r3 src=r0 offset=0 imm=54
+    r4 = r3;
+    // EBPF_OP_ADD64_IMM pc=129 dst=r4 src=r0 offset=0 imm=54
 #line 196 "sample/encap_reflect_packet.c"
-    r3 += IMMEDIATE(54);
-    // EBPF_OP_JGT_REG pc=130 dst=r3 src=r1 offset=190 imm=0
+    r4 += IMMEDIATE(54);
+    // EBPF_OP_JGT_REG pc=130 dst=r4 src=r2 offset=190 imm=0
 #line 196 "sample/encap_reflect_packet.c"
-    if (r3 > r1) {
+    if (r4 > r2) {
 #line 196 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 196 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXB pc=131 dst=r3 src=r2 offset=20 imm=0
+    // EBPF_OP_LDXB pc=131 dst=r4 src=r3 offset=20 imm=0
 #line 202 "sample/encap_reflect_packet.c"
-    r3 = *(uint8_t*)(uintptr_t)(r2 + OFFSET(20));
-    // EBPF_OP_JNE_IMM pc=132 dst=r3 src=r0 offset=188 imm=17
+    r4 = *(uint8_t*)(uintptr_t)(r3 + OFFSET(20));
+    // EBPF_OP_JNE_IMM pc=132 dst=r4 src=r0 offset=188 imm=17
 #line 202 "sample/encap_reflect_packet.c"
-    if (r3 != IMMEDIATE(17)) {
-#line 202 "sample/encap_reflect_packet.c"
-        goto label_5;
-#line 202 "sample/encap_reflect_packet.c"
-    }
-    // EBPF_OP_MOV64_REG pc=133 dst=r3 src=r2 offset=0 imm=0
-#line 202 "sample/encap_reflect_packet.c"
-    r3 = r2;
-    // EBPF_OP_ADD64_IMM pc=134 dst=r3 src=r0 offset=0 imm=62
-#line 202 "sample/encap_reflect_packet.c"
-    r3 += IMMEDIATE(62);
-    // EBPF_OP_JGT_REG pc=135 dst=r3 src=r1 offset=185 imm=0
-#line 202 "sample/encap_reflect_packet.c"
-    if (r3 > r1) {
+    if (r4 != IMMEDIATE(17)) {
 #line 202 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 202 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_LDXH pc=136 dst=r1 src=r2 offset=56 imm=0
+    // EBPF_OP_MOV64_REG pc=133 dst=r4 src=r3 offset=0 imm=0
+#line 202 "sample/encap_reflect_packet.c"
+    r4 = r3;
+    // EBPF_OP_ADD64_IMM pc=134 dst=r4 src=r0 offset=0 imm=62
+#line 202 "sample/encap_reflect_packet.c"
+    r4 += IMMEDIATE(62);
+    // EBPF_OP_JGT_REG pc=135 dst=r4 src=r2 offset=185 imm=0
+#line 202 "sample/encap_reflect_packet.c"
+    if (r4 > r2) {
+#line 202 "sample/encap_reflect_packet.c"
+        goto label_5;
+#line 202 "sample/encap_reflect_packet.c"
+    }
+    // EBPF_OP_LDXH pc=136 dst=r2 src=r3 offset=56 imm=0
 #line 208 "sample/encap_reflect_packet.c"
-    r1 = *(uint16_t*)(uintptr_t)(r2 + OFFSET(56));
-    // EBPF_OP_JNE_IMM pc=137 dst=r1 src=r0 offset=183 imm=7459
+    r2 = *(uint16_t*)(uintptr_t)(r3 + OFFSET(56));
+    // EBPF_OP_JNE_IMM pc=137 dst=r2 src=r0 offset=183 imm=7459
 #line 208 "sample/encap_reflect_packet.c"
-    if (r1 != IMMEDIATE(7459)) {
+    if (r2 != IMMEDIATE(7459)) {
 #line 208 "sample/encap_reflect_packet.c"
         goto label_5;
 #line 208 "sample/encap_reflect_packet.c"
     }
-    // EBPF_OP_MOV64_REG pc=138 dst=r1 src=r6 offset=0 imm=0
-#line 96 "sample/encap_reflect_packet.c"
-    r1 = r6;
+    // EBPF_OP_MOV64_REG pc=138 dst=r6 src=r1 offset=0 imm=0
+#line 208 "sample/encap_reflect_packet.c"
+    r6 = r1;
     // EBPF_OP_LDDW pc=139 dst=r2 src=r0 offset=0 imm=-40
 #line 96 "sample/encap_reflect_packet.c"
     r2 = (uint64_t)4294967256;
@@ -661,17 +661,17 @@ label_2:
 #line 109 "sample/encap_reflect_packet.c"
     }
     // EBPF_OP_MOV64_REG pc=156 dst=r3 src=r1 offset=0 imm=0
-#line 117 "sample/encap_reflect_packet.c"
+#line 109 "sample/encap_reflect_packet.c"
     r3 = r1;
     // EBPF_OP_ADD64_IMM pc=157 dst=r3 src=r0 offset=0 imm=54
-#line 117 "sample/encap_reflect_packet.c"
+#line 109 "sample/encap_reflect_packet.c"
     r3 += IMMEDIATE(54);
     // EBPF_OP_JGT_REG pc=158 dst=r3 src=r5 offset=162 imm=0
-#line 117 "sample/encap_reflect_packet.c"
+#line 109 "sample/encap_reflect_packet.c"
     if (r3 > r5) {
-#line 117 "sample/encap_reflect_packet.c"
+#line 109 "sample/encap_reflect_packet.c"
         goto label_5;
-#line 117 "sample/encap_reflect_packet.c"
+#line 109 "sample/encap_reflect_packet.c"
     }
     // EBPF_OP_MOV64_REG pc=159 dst=r7 src=r1 offset=0 imm=0
 #line 124 "sample/encap_reflect_packet.c"

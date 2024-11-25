@@ -517,8 +517,10 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     if (operation_id == EBPF_OPERATION_PROGRAM_TEST_RUN) {
         ebpf_operation_program_test_run_request_t* test_request =
             reinterpret_cast<ebpf_operation_program_test_run_request_t*>(random_buffer.data());
-        if (test_request->repeat_count > 1024) {
-            test_request->repeat_count = 1024;
+        if (header->length >= EBPF_OFFSET_OF(ebpf_operation_program_test_run_request_t, data)) {
+            if (test_request->repeat_count > 1024) {
+                test_request->repeat_count = 1024;
+            }
         }
     }
 
