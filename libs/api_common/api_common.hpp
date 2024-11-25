@@ -238,3 +238,11 @@ set_program_under_verification(ebpf_handle_t program);
  */
 void
 ebpf_clear_thread_local_storage() noexcept;
+
+bool
+ebpf_verify_program(
+    std::ostream& os,
+    _In_ const InstructionSeq& prog,
+    _In_ const program_info& info,
+    _In_ const ebpf_verifier_options_t& options,
+    _Out_ ebpf_api_verifier_stats_t* stats);
