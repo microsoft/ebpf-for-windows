@@ -111,16 +111,10 @@ static const std::string _predicate_format_string[] = {
     "{}{} <= {}{}", // JSLE
 };
 
-#define ADD_OPCODE(X)                            \
-    {                                            \
-        static_cast<uint8_t>(X), std::string(#X) \
-    }
+#define ADD_OPCODE(X) {static_cast<uint8_t>(X), std::string(#X)}
 
 // remove EBPF_ATOMIC_ prefix
-#define ADD_ATOMIC_OPCODE(X)                                \
-    {                                                       \
-        static_cast<int32_t>(X), std::string(#X).substr(12) \
-    }
+#define ADD_ATOMIC_OPCODE(X) {static_cast<int32_t>(X), std::string(#X).substr(12)}
 
 static std::map<int32_t, std::string> _atomic_opcode_name_strings = {
     ADD_ATOMIC_OPCODE(EBPF_ATOMIC_ADD),
@@ -168,12 +162,12 @@ static std::map<uint8_t, std::string> _opcode_name_strings = {
     ADD_OPCODE(EBPF_OP_ATOMIC64),   ADD_OPCODE(EBPF_OP_ATOMIC)};
 
 #define IS_ATOMIC_OPCODE(_opcode) \
-    (((_opcode)&INST_CLS_MASK) == INST_CLS_STX && ((_opcode)&INST_MODE_MASK) == EBPF_MODE_ATOMIC)
+    (((_opcode) & INST_CLS_MASK) == INST_CLS_STX && ((_opcode) & INST_MODE_MASK) == EBPF_MODE_ATOMIC)
 
 #define IS_JMP_CLASS_OPCODE(_opcode) \
-    (((_opcode)&INST_CLS_MASK) == INST_CLS_JMP || ((_opcode)&INST_CLS_MASK) == INST_CLS_JMP32)
+    (((_opcode) & INST_CLS_MASK) == INST_CLS_JMP || ((_opcode) & INST_CLS_MASK) == INST_CLS_JMP32)
 
-#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode)&INST_CLS_MASK) == INST_CLS_JMP32)
+#define IS_JMP32_CLASS_OPCODE(_opcode) (((_opcode) & INST_CLS_MASK) == INST_CLS_JMP32)
 
 #define IS_SIGNED_CMP_OPCODE(_opcode)                                                          \
     (((_opcode) >> 4) == (EBPF_MODE_JSGT >> 4) || ((_opcode) >> 4) == (EBPF_MODE_JSGE >> 4) || \
@@ -260,7 +254,7 @@ bpf_code_generator::bpf_code_generator(
     const bpf_code_generator::unsafe_string& c_name, const std::vector<ebpf_inst>& instructions)
     : c_name(c_name)
 {
-    bpf_code_generator_program* current_program = add_program(c_name, c_name);
+    bpf_code_generator_program* current_program = add_program(c_name, c_name, 0);
     uint32_t offset = 0;
     for (const auto& instruction : instructions) {
         std::string unsafe_name = "local_subprogram" + std::to_string(offset);
@@ -276,7 +270,7 @@ bpf_code_generator::bpf_code_generator(
             size_t subprogram_offset = ((size_t)offset) + instruction.imm;
             unsafe_name = "local_subprogram" + std::to_string(subprogram_offset);
             unsafe_string name(unsafe_name);
-            add_program(name, ".text");
+            add_program(name, ".text", subprogram_offset);
             current_program->output_instructions.back().relocation = name;
         }
     }
@@ -408,7 +402,7 @@ bpf_code_generator::extract_program(
                     continue;
                 }
                 if (memcmp(program_info->raw_data + callee_offset, info->raw_data, info->raw_data_size) == 0) {
-                    add_program(info->program_name, info->section_name);
+                    add_program(info->program_name, info->section_name, info->offset_in_section);
                     extract_program(info, infos);
                 }
             }
@@ -790,11 +784,13 @@ bpf_code_generator::parse_legacy_maps_section(const unsafe_string& name)
 }
 
 bpf_code_generator::bpf_code_generator_program*
-bpf_code_generator::add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name)
+bpf_code_generator::add_program(
+    const unsafe_string& program_name, const unsafe_string& elf_section_name, size_t offset_in_section)
 {
     bpf_code_generator::bpf_code_generator_program* program = &programs[program_name];
     program->program_name = program_name;
     program->elf_section_name = elf_section_name;
+    program->offset_in_section = offset_in_section;
     set_pe_section_name(*program, elf_section_name);
     return program;
 }
@@ -1622,25 +1618,24 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(entry.definition.key_size) + ","
-                          << "// Size in bytes of a map key." << std::endl;
+                          << std::to_string(entry.definition.key_size) + "," << "// Size in bytes of a map key."
+                          << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(entry.definition.value_size) + ","
-                          << "// Size in bytes of a map value." << std::endl;
+                          << std::to_string(entry.definition.value_size) + "," << "// Size in bytes of a map value."
+                          << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                           << std::to_string(entry.definition.max_entries) + ","
                           << "// Maximum number of entries allowed in the map." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(entry.definition.inner_map_idx) + ","
-                          << "// Inner map index." << std::endl;
+                          << std::to_string(entry.definition.inner_map_idx) + "," << "// Inner map index." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_pinning + ","
                           << "// Pinning type for the map." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(entry.definition.id) + ","
-                          << "// Identifier for a map template." << std::endl;
+                          << std::to_string(entry.definition.id) + "," << "// Identifier for a map template."
+                          << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(entry.definition.inner_id) + ","
-                          << "// The id of the inner map template." << std::endl;
+                          << std::to_string(entry.definition.inner_id) + "," << "// The id of the inner map template."
+                          << std::endl;
             output_stream << INDENT " }," << std::endl;
             output_stream << INDENT " " << name.quoted() << "}," << std::endl;
         }
