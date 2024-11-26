@@ -14,6 +14,8 @@
 #include "ebpf_ring_buffer.h"
 #include "ebpf_tracelog.h"
 
+$include "ebpf_map_macros.c"
+
 typedef struct _ebpf_core_map
 {
     ebpf_core_object_t object;
@@ -452,7 +454,8 @@ _delete_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     ebpf_epoch_free(map);
 }
 
-static ebpf_result_t
+EBPF_INLINE_HINT
+ebpf_result_t
 _find_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
@@ -472,7 +475,8 @@ _find_array_map_entry(
     return EBPF_SUCCESS;
 }
 
-static ebpf_result_t
+EBPF_INLINE_HINT
+ebpf_result_t
 _update_array_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -914,7 +918,7 @@ _delete_map_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* ke
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-static _Ret_maybenull_ ebpf_core_object_t*
+EBPF_INLINE_HINT _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_array_map_entry(_Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     uint32_t index = *(uint32_t*)key;
@@ -1491,7 +1495,8 @@ _reap_oldest_map_entry(_Inout_ ebpf_core_map_t* map)
     }
 }
 
-static ebpf_result_t
+EBPF_INLINE_HINT
+ebpf_result_t
 _find_hash_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, bool delete_on_success, _Outptr_ uint8_t** data)
 {
@@ -1525,7 +1530,7 @@ _find_hash_map_entry(
  * @param[in] key Pointer to the key to search for.
  * @returns Object pointer, or NULL if none.
  */
-static _Ret_maybenull_ ebpf_core_object_t*
+EBPF_INLINE_HINT _Ret_maybenull_ ebpf_core_object_t*
 _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* key)
 {
     ebpf_core_object_t* object = NULL;
@@ -1542,7 +1547,8 @@ _get_object_from_hash_map_entry(_In_ ebpf_core_map_t* map, _In_ const uint8_t* k
 
 volatile int32_t reap_attempt_counts[64] = {0};
 
-static ebpf_result_t
+EBPF_INLINE_HINT
+ebpf_result_t
 _update_hash_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
@@ -1765,6 +1771,7 @@ _ebpf_adjust_value_pointer(_In_ const ebpf_map_t* map, _Inout_ uint8_t** value)
  * @retval EBPF_INVALID_ARGUMENT Unable to perform this operation due to
  * current CPU > allocated value buffer size.
  */
+EBPF_INLINE_HINT
 _Must_inspect_result_ ebpf_result_t
 _update_entry_per_cpu(
     _Inout_ ebpf_core_map_t* map, _In_ const uint8_t* key, _In_ const uint8_t* value, ebpf_map_option_t option)
@@ -1879,7 +1886,8 @@ _delete_lpm_map_entry(_In_ ebpf_core_map_t* map, _Inout_ const uint8_t* key)
     return _delete_hash_map_entry(map, key);
 }
 
-static ebpf_result_t
+EBPF_INLINE_HINT
+ebpf_result_t
 _update_lpm_map_entry(
     _Inout_ ebpf_core_map_t* map, _In_opt_ const uint8_t* key, _In_opt_ const uint8_t* data, ebpf_map_option_t option)
 {
