@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "crab_verifier_wrapper.hpp"
 #include "ebpf_nethooks.h"
 #include "ebpf_program_types.h"
+#include "ebpf_verifier_wrapper.hpp"
 
 #define PTYPE(name, descr, native_type, prefixes) \
     {                                             \

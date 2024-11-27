@@ -3,8 +3,8 @@
 
 #include "api_common.hpp"
 #include "api_internal.h"
-#include "crab_verifier_wrapper.hpp"
 #include "ebpf_api.h"
+#include "ebpf_verifier_wrapper.hpp"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
