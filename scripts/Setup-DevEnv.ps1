@@ -5,7 +5,7 @@ Invoke-WebRequest 'https://community.chocolatey.org/install.ps1' -OutFile $env:T
 if ((get-filehash -Algorithm SHA256 $env:TEMP\install_choco.ps1).Hash -ne '44E045ED5350758616D664C5AF631E7F2CD10165F5BF2BD82CBF3A0BB8F63462') { throw "Wrong file hash for Chocolatey installer"}
 &"$env:TEMP\install_choco.ps1"
 
-choco install git --version 2.38.1 -y
+choco install git -y --params "'/GitAndUnixToolsOnPath /WindowsTerminal /NoAutoCrlf'"
 choco install visualstudio2022community --version 117.4.2.0 -y
 choco install visualstudio2022buildtools --version 117.4.2.0 -y
 
