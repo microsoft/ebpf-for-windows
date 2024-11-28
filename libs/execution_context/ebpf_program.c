@@ -1030,6 +1030,11 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     }
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    if (program->maps) {
+        result = EBPF_INVALID_ARGUMENT;
+        ebpf_lock_unlock(&program->lock, state);
+        goto Done;
+    }
     // Now go through again and acquire references.
     program->maps = program_maps;
     program_maps = NULL;
