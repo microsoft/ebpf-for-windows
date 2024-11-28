@@ -204,6 +204,19 @@ _ebpf_general_helper_function_provider_detach_client(_In_ void* provider_binding
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_core_initiate_pinning_table()
+{
+    return ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
+}
+
+void
+ebpf_core_terminate_pinning_table()
+{
+    ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
+    _ebpf_core_map_pinning_table = NULL;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
