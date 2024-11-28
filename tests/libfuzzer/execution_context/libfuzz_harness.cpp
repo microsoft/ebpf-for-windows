@@ -436,9 +436,11 @@ class fuzz_wrapper
     ~fuzz_wrapper()
     {
         ebpf_handle_table_terminate();
+        ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
         ebpf_object_tracking_terminate();
         ebpf_epoch_synchronize();
         ebpf_object_tracking_initiate();
+        ebpf_assert(ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table) == EBPF_SUCCESS);
         ebpf_assert(ebpf_handle_table_initiate() == EBPF_SUCCESS);
     }
 
