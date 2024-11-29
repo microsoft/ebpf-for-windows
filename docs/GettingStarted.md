@@ -19,22 +19,8 @@ The following must be installed in order to build this project:
    - [Download Visual Studio Professional 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Professional&rel=17)
    - [Download Visual Studio Enterprise 2022](https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=Enterprise&rel=17)
 
-   during the installation, select the following feature from the *Visual Studio Installer*:
-
-   - `"Desktop development with C++"` (ensure that the "*C++ Address Sanitizer*" component is installed)
-
-   including the following components, which must be selected from the "*Individual components*" tab in the *Visual Studio Installer*:
-
-   - `"MSVC v143 - VS 2022 C++ x64/x86 Spectre-mitigated libs (latest)"`
-   - `"C++ Clang Compiler for Windows"`
-
-1. [Visual Studio Build Tools 2022](https://aka.ms/vs/17/release/vs_buildtools.exe) (version **17.4.2 or later**).
-1. [The WiX Toolset v3.14.1 build tools](https://github.com/wixtoolset/wix3/releases)
-    > Note: The *WiX Toolset* has a dependency on the **.NET 3.5 Framework**: you can either enable from the Start menu -> "*Turn Windows features on or off*" and then select "*.NET Framework 3.5 (includes .NET 2.0 and 3.0)*" (recommended), *or*
-install it directly from [here](https://www.microsoft.com/en-us/download/details.aspx?id=21).
-1. [WiX Toolset v3 - Visual Studio 2022 Extension](https://marketplace.visualstudio.com/items?itemName=WixToolset.WixToolsetVisualStudio2022Extension).
-1. [NuGet Windows x86 Commandline](https://www.nuget.org/downloads) (version **6.3.1 or higher**), which can be installed to a location
- such as "C:\Program Files (x86)\NuGet\".
+Visual Studio will [prompt you to install](https://learn.microsoft.com/en-us/visualstudio/install/import-export-installation-configurations?view=vs-2019#use-a-configuration-file-to-automatically-install-missing-components) the necessary dependencies when opening the main solution file for the
+first time.
 
 You should add the paths to `git.exe`, `cmake.exe` and `nuget.exe` to the Windows PATH environment variable after the software packages
  above have been installed.
