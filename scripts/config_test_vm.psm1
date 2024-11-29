@@ -315,7 +315,7 @@ function Compress-KernelModeDumpOnVM
 
         $KernelModeDumpFileSourcePath = "$Env:WinDir"
         $KernelModeDumpFileDestinationPath = "$Env:SystemDrive\KernelDumps"
-    
+
         # Create the compressed dump folder if doesn't exist.
         if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
             Write-Log "Creating $KernelModeDumpFileDestinationPath directory."
@@ -539,6 +539,11 @@ function Initialize-NetworkInterfacesOnVMs
             .\duonic.ps1 -Install -NumNicPairs 2
             # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
             Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+
+            # TODO - remove this debugging output
+            ipconfig /all
+            Get-NetIPInterface | fl *
+            Get-NetAdapter | fl *
 
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
