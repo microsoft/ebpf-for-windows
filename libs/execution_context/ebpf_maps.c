@@ -2576,6 +2576,8 @@ ebpf_map_find_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
+    EBPF_LOG_MAP_OPERATION(flags, "find", map, key);
+
     if ((flags & EBPF_MAP_FLAG_HELPER) && (table->get_object_from_entry != NULL)) {
 
         // Disallow reads to prog array maps from this helper call for now.
@@ -2708,6 +2710,8 @@ ebpf_map_update_entry(
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
 
+    EBPF_LOG_MAP_OPERATION(flags, "update", map, key);
+
     if ((flags & EBPF_MAP_FLAG_HELPER) && (table->update_entry_per_cpu != NULL)) {
         result = table->update_entry_per_cpu(map, key, value, option);
     } else {
@@ -2772,6 +2776,8 @@ ebpf_map_delete_entry(_In_ ebpf_map_t* map, size_t key_size, _In_reads_(key_size
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+
+    EBPF_LOG_MAP_OPERATION(flags, "delete", map, key);
 
     ebpf_result_t result = table->delete_entry(map, key);
     return result;
