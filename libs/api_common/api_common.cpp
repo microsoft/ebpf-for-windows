@@ -175,13 +175,13 @@ ebpf_verify_program(
         const cfg_t cfg = prepare_cfg(prog, info, options.cfg_opts);
         auto invariants = analyze(cfg);
         if (options.verbosity_opts.print_invariants) {
-            invariants.print_invariants(os, cfg);
+            print_invariants(os, cfg, options.verbosity_opts.simplify, invariants);
         }
         bool pass;
         if (options.verbosity_opts.print_failures) {
             auto report = invariants.check_assertions(cfg);
             thread_local_options.verbosity_opts.print_line_info = true;
-            report.print_warnings(os);
+            print_warnings(os, report);
             pass = report.verified();
             stats->total_warnings = (int)report.warning_set().size();
             stats->total_unreachable = (int)report.reachability_set().size();
