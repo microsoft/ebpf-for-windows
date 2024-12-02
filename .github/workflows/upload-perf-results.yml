@@ -102,7 +102,7 @@ jobs:
         export PGUSER=$(cat ${{github.workspace}}/PGUSER)
         export PGPORT=$(cat ${{github.workspace}}/PGPORT)
         export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
-        psql -f /mnt/d/bpf_performance/scripts/check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
+        psql -f ./scripts/check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
 
     - name: Upload regression results
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
