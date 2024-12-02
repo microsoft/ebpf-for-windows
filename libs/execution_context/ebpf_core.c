@@ -254,7 +254,7 @@ ebpf_core_initiate()
 
     ebpf_object_tracking_initiate();
 
-    return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
+    return_value = ebpf_core_initiate_pinning_table();
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -311,8 +311,7 @@ ebpf_core_terminate()
 
     ebpf_async_terminate();
 
-    ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
-    _ebpf_core_map_pinning_table = NULL;
+    ebpf_core_terminate_pinning_table();
 
     ebpf_state_terminate();
 
