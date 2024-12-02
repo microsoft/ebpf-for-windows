@@ -1575,6 +1575,8 @@ _ebpf_core_find_matching_link(
 
     if (match_found) {
         *link = local_link;
+    } else if (local_link != NULL) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)local_link);
     }
 
 Exit:
