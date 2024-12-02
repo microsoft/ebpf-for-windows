@@ -905,6 +905,13 @@ _ebpf_epoch_messenger_propose_release_epoch(
     for (ebpf_list_entry_t* entry = cpu_entry->epoch_state_list.Flink; entry != &cpu_entry->epoch_state_list;
          entry = entry->Flink) {
         epoch_state = CONTAINING_RECORD(entry, ebpf_epoch_state_t, epoch_list_entry);
+        if (epoch_state->epoch == EBPF_EPOCH_UNKNOWN_EPOCH) {
+            ebpf_assert(cpu_entry->current_epoch != EBPF_EPOCH_UNKNOWN_EPOCH);
+            // Assume the thread is in the previous epoch. This is safe because the CPU was not active when the thread
+            // entered the epoch and the epoch doesn't advance while CPUs are activating.
+            epoch_state->epoch = cpu_entry->current_epoch - 1;
+        }
+
         minimum_epoch = min(minimum_epoch, epoch_state->epoch);
     }
 
