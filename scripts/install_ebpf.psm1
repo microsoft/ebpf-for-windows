@@ -122,6 +122,37 @@ function Start-WPRTrace
     }
 }
 
+function Stop-DriverWithTimeout {
+    param([parameter(Mandatory=$true)][string] $DriverName,
+          [parameter(Mandatory=$false)][int] $Timeout = 60)
+
+    Write-Log "Stopping driver $DriverName ..."
+    $Service = Get-Service $DriverName
+    if ($Service.Status -eq "Running") {
+        # Start the job to stop the driver.
+        $Job = Start-Job -ScriptBlock {
+            param($DriverName)
+            Stop-Service -Name $DriverName -Force
+        } -ArgumentList $DriverName
+
+        # Wait for the job to complete with a timeout
+        Write-Log "Waiting for $DriverName to stop in $Timeout seconds..."
+        if (Wait-Job -Job $Job -Timeout $Timeout) {
+            Write-Output "$DriverName stopped successfully within $Timeout seconds."
+        } else {
+            # If timeout occurs, stop the job and handle the timeout scenario
+            Stop-Job -Job $Job
+            Remove-Job -Job $Job
+            throw [System.TimeoutException]::new("Failed to stop $DriverName driver in $Timeout seconds.")
+        }
+        # Cleanup the job
+        Remove-Job -Job $Job -Force
+        Write-Log "$DriverName driver stopped." -ForegroundColor Green
+    } else {
+        Write-Log "$DriverName driver is not running." -ForegroundColor Green
+    }
+}
+
 # This function specifically tests that all eBPF drivers and services can be stopped.
 function Stop-eBPFComponents {
     # First, stop user mode service, so that EbpfCore does not hang on stop.
@@ -137,14 +168,8 @@ function Stop-eBPFComponents {
     }
     # Stop the drivers and services.
     $EbpfDrivers.GetEnumerator() | ForEach-Object {
-        try {
-            if ($_.Value.IsDriver) {
-                Write-Log "Stopping $($_.Key) driver..."
-                Stop-Service $_.Name -ErrorAction Stop 2>&1 | Write-Log
-                Write-Log "$($_.Key) driver stopped." -ForegroundColor Green
-            }
-        } catch {
-            throw "Failed to stop $($_.Key) driver: $_."
+        if ($_.Value.IsDriver) {
+            Stop-DriverWithTimeout -DriverName $_.Key
         }
     }
 }
