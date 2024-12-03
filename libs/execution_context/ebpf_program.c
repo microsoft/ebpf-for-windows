@@ -2454,7 +2454,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
         state_stored = true;
     }
 
-    uint64_t start_time = ebpf_query_time_since_boot_precise(false);
+    uint64_t start_time = cxplat_query_time_since_boot_precise(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
     // This is because the modulus operation is expensive and we want to minimize the overhead of
     // the test run.
@@ -2467,7 +2467,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             ebpf_epoch_exit(&epoch_state);
             if (ebpf_should_yield_processor()) {
                 // Compute the elapsed time since the last yield.
-                end_time = ebpf_query_time_since_boot_precise(false);
+                end_time = cxplat_query_time_since_boot_precise(false);
 
                 // Add the elapsed time to the cumulative time.
                 cumulative_time += end_time - start_time;
@@ -2479,7 +2479,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
                 old_irql = ebpf_raise_irql(context->required_irql);
 
                 // Reset the start time.
-                start_time = ebpf_query_time_since_boot_precise(false);
+                start_time = cxplat_query_time_since_boot_precise(false);
             }
             ebpf_epoch_enter(&epoch_state);
         }
@@ -2489,7 +2489,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             break;
         }
     }
-    end_time = ebpf_query_time_since_boot_precise(false);
+    end_time = cxplat_query_time_since_boot_precise(false);
 
     cumulative_time += end_time - start_time;
 

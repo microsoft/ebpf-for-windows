@@ -101,6 +101,12 @@ _ebpf_core_memmove(
     _In_reads_(source_length) const void* source,
     size_t source_length);
 
+static uint64_t
+_ebpf_core_get_time_since_boot_ms();
+
+static uint64_t
+_ebpf_core_get_time_ms();
+
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_program_type_descriptor_t _ebpf_global_helper_program_descriptor = {
@@ -144,6 +150,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_strncpy_s,
     (void*)&_ebpf_core_strncat_s,
     (void*)&_ebpf_core_strlen_s,
+    (void*)&_ebpf_core_get_time_since_boot_ms,
+    (void*)&_ebpf_core_get_time_ms,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -2257,17 +2265,33 @@ _ebpf_core_random_uint32()
 static uint64_t
 _ebpf_core_get_time_since_boot_ns()
 {
-    // ebpf_query_time_since_boot_precise returns time elapsed since
+    // cxplat_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
+    return cxplat_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
 _ebpf_core_get_time_ns()
 {
-    // ebpf_query_time_since_boot_precise returns time elapsed since
+    // cxplat_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
+    return cxplat_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
+}
+
+static uint64_t
+_ebpf_core_get_time_since_boot_ms()
+{
+    // cxplat_query_time_since_boot_approximate returns time elapsed since
+    // boot in units of 100 ns.
+    return cxplat_query_time_since_boot_approximate(true) / EBPF_FILETIME_PER_MS;
+}
+
+static uint64_t
+_ebpf_core_get_time_ms()
+{
+    // cxplat_query_time_since_boot_approximate returns time elapsed since
+    // boot in units of 100 ns.
+    return cxplat_query_time_since_boot_approximate(false) / EBPF_FILETIME_PER_MS;
 }
 
 static uint64_t

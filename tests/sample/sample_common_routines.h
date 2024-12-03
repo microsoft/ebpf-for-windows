@@ -32,6 +32,12 @@ test_utility_helper_functions(void* utility_map)
     // Get the process / thread ID.
     test_data.pid_tgid = bpf_get_current_pid_tgid();
 
+    // Get the timestamp as ms.
+    test_data.boot_timestamp_ms = bpf_ktime_get_boot_ms();
+
+    // Get the timestamp as ms.
+    test_data.timestamp_ms = bpf_ktime_get_ms();
+
     // Write into test utility_map index 0.
     bpf_map_update_elem(utility_map, &keys[0], &test_data, 0);
 
@@ -46,6 +52,12 @@ test_utility_helper_functions(void* utility_map)
 
     // Get the process / thread ID.
     test_data.pid_tgid = bpf_get_current_pid_tgid();
+
+    // Get the timestamp as ms.
+    test_data.boot_timestamp_ms = bpf_ktime_get_boot_ms();
+
+    // Get the timestamp as ms.
+    test_data.timestamp_ms = bpf_ktime_get_ms();
 
     // Write into test utility_map index 1.
     bpf_map_update_elem(utility_map, &keys[1], &test_data, 0);
