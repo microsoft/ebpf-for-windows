@@ -34,6 +34,7 @@
 #include <numeric>
 #include <sddl.h>
 #include <thread>
+#include <variant>
 #include <vector>
 
 extern ebpf_helper_function_prototype_t* ebpf_core_helper_function_prototype;
@@ -74,11 +75,27 @@ typedef class _signal
         std::unique_lock l(lock);
         condition_variable.wait(l, [&]() { return signaled; });
     }
+
+    bool
+    wait_for(std::chrono::milliseconds timeout)
+    {
+        std::unique_lock l(lock);
+        return condition_variable.wait_for(l, timeout, [&]() { return signaled; });
+    }
+
     void
     signal()
     {
         std::unique_lock l(lock);
         signaled = true;
+        condition_variable.notify_all();
+    }
+
+    void
+    reset()
+    {
+        std::unique_lock l(lock);
+        signaled = false;
         condition_variable.notify_all();
     }
 
@@ -156,7 +173,12 @@ typedef class _ebpf_epoch_scope
     /**
      * @brief Construct a new ebpf epoch scope object and enter epoch.
      */
-    _ebpf_epoch_scope() : in_epoch(false) { enter(); }
+    _ebpf_epoch_scope(bool enter_on_construct = true) : in_epoch(false), epoch_state{}
+    {
+        if (enter_on_construct) {
+            enter();
+        }
+    }
 
     /**
      * @brief Leave epoch if entered.
@@ -196,8 +218,8 @@ typedef class _ebpf_epoch_scope
     }
 
   private:
-    ebpf_epoch_state_t epoch_state;
-    bool in_epoch;
+    ebpf_epoch_state_t epoch_state{};
+    bool in_epoch = false;
 } ebpf_epoch_scope_t;
 
 TEST_CASE("hash_table_test", "[platform]")
@@ -626,6 +648,274 @@ TEST_CASE("epoch_test_stale_items", "[platform]")
         REQUIRE(ebpf_epoch_is_free_list_empty(0));
         REQUIRE(ebpf_epoch_is_free_list_empty(1));
     }
+}
+typedef struct _work_item_context
+{
+    _work_item_context() : signal() {}
+    signal_t signal;
+    const static void
+    invoke(void* context)
+    {
+        _work_item_context* work_item_context = reinterpret_cast<_work_item_context*>(context);
+        work_item_context->signal.signal();
+    }
+} work_item_context_t;
+
+typedef std::unique_ptr<ebpf_epoch_work_item_t, decltype(&ebpf_epoch_cancel_work_item)> work_item_ptr;
+
+struct scoped_cpu_affinity
+{
+    scoped_cpu_affinity(uint32_t i) : old_affinity_mask{}
+    {
+        affinity_set = ebpf_set_current_thread_cpu_affinity(i, &old_affinity_mask) == EBPF_SUCCESS;
+        REQUIRE(affinity_set);
+    }
+    ~scoped_cpu_affinity()
+    {
+        if (affinity_set) {
+            ebpf_restore_current_thread_cpu_affinity(&old_affinity_mask);
+        }
+    }
+    GROUP_AFFINITY old_affinity_mask;
+    bool affinity_set = false;
+};
+
+struct scoped_usersim_override
+{
+    scoped_usersim_override() { usersim_set_affinity_and_priority_override(0); }
+    ~scoped_usersim_override() { usersim_clear_affinity_and_priority_override(); }
+};
+
+/**
+ * @brief This function executes as a test script to verify epoch behavior. Various scripts are used to test different
+ * scenarios.
+ *
+ * @param[in] script The script to execute.
+ *
+ * @details The script is a vector of strings. Each string is a comma separated list of tokens. The first token is the
+ * command to execute. The remaining tokens are arguments to the command.
+ * If a step fails it signals this via a failing REQUIRE.
+ */
+static void
+_run_epoch_test_script(const std::vector<std::string>& script)
+{
+    using namespace std::chrono_literals;
+    typedef std::vector<std::string> script_t;
+
+    _test_helper test_helper;
+    test_helper.initialize();
+    // Add scope to ensure that epoch state is cleaned up before test_helper.
+    {
+        std::vector<work_item_context_t> work_item_contexts(2);
+        std::vector<ebpf_epoch_scope_t> epoch_states = {false, false};
+        std::vector<work_item_ptr> work_items;
+        // Start on CPU 0 as default.
+        scoped_cpu_affinity affinity_scope(0);
+
+        // Prevent usersim from interfering with the test.
+        scoped_usersim_override usersim_override;
+
+        typedef std::variant<std::function<void()>, std::function<void(size_t)>, std::function<void(size_t, bool)>>
+            step_t;
+
+        std::map<std::string, step_t> steps;
+
+        // Define possible steps the script can take.
+
+        // Initialize the state.
+        steps["setup"] = [&] {
+            work_items.clear();
+            for (auto i = 0; i < 2; i++) {
+                work_item_contexts[i].signal.reset();
+                auto work_item = ebpf_epoch_allocate_work_item(&work_item_contexts[i], work_item_context_t::invoke);
+                if (!work_item) {
+                    FAIL("Failed to allocate work item.");
+                }
+                work_items.push_back(work_item_ptr(work_item, ebpf_epoch_cancel_work_item));
+            }
+        };
+
+        // Switch to running on CPU N
+        steps["switch_cpu"] = [&](size_t i) {
+            GROUP_AFFINITY old_affinity{};
+            (void)ebpf_set_current_thread_cpu_affinity(static_cast<uint32_t>(i), &old_affinity);
+        };
+
+        // Enter epoch for location N
+        steps["enter_epoch"] = [&](size_t i) { epoch_states[i].enter(); };
+
+        // Exit epoch for location N
+        steps["exit_epoch"] = [&](size_t i) { epoch_states[i].exit(); };
+
+        // Submit work item N
+        steps["schedule"] = [&](size_t i) { ebpf_epoch_schedule_work_item(work_items[i].release()); };
+
+        // Wait for work item N to complete with success or timeout.
+        steps["wait"] = [&](size_t i, bool expect_success) {
+            if (expect_success) {
+                work_item_contexts[i].signal.wait();
+            } else {
+                REQUIRE(!work_item_contexts[i].signal.wait_for(1s));
+            }
+        };
+
+        // Explicitly clean up all state.
+        steps["clean up"] = [&] {
+            for (auto i = 0; i < work_items.size(); i++) {
+                work_items[i].reset();
+            }
+        };
+
+        // Invoke epoch synchronize to ensure that all memory that is no longer in use is released.
+        steps["synchronize"] = [&] { ebpf_epoch_synchronize(); };
+
+        // Switch to CPU 0 to start.
+        std::get<std::function<void(size_t)>>(steps["switch_cpu"])(0);
+
+        // Setup the state for the test.
+        std::get<std::function<void()>>(steps["setup"])();
+
+        // Execute each step in the script.
+        for (const auto& step : script) {
+            std::vector<std::string> tokens;
+            std::istringstream iss(step);
+
+            // Tokenize the step extracting the command and arguments.
+            for (std::string token; std::getline(iss, token, ',');) {
+                tokens.push_back(token);
+            }
+
+            // Verify that the command is valid.
+            REQUIRE(steps.find(tokens[0]) != steps.end());
+
+            try {
+                std::visit(
+                    [&](auto&& arg) {
+                        using T = std::decay_t<decltype(arg)>;
+                        if constexpr (std::is_same_v<T, std::function<void()>>) {
+                            arg();
+                        } else if constexpr (std::is_same_v<T, std::function<void(size_t)>>) {
+                            arg(std::stoi(tokens[1]));
+                        } else if constexpr (std::is_same_v<T, std::function<void(size_t, bool)>>) {
+                            bool success = tokens[2] == "signaled";
+                            arg(std::stoi(tokens[1]), success);
+                        } else {
+                            REQUIRE(!("Invalid step:" + step).size());
+                        }
+                    },
+                    steps[tokens[0]]);
+            } catch (const std::exception& e) {
+                FAIL("Failed to execute step: " + step + " with error: " + e.what());
+            }
+        }
+
+        // clean up the state.
+        std::get<std::function<void()>>(steps["clean up"])();
+    }
+}
+
+/**
+ * @brief This test verifies that a single epoch can be entered and exited and that work item that has been scheduled
+ * will run only after the epoch has been exited.
+ */
+TEST_CASE("epoch_single_epoch", "[platform]")
+{
+    _run_epoch_test_script({
+        "enter_epoch,0",
+        "schedule,0",
+        "wait,0,not_signaled",
+        "exit_epoch,0",
+        "synchronize",
+        "wait,0,signaled",
+    });
+}
+
+/**
+ * @brief This test verifies that an epoch can be entered and exited on two different CPUs and that work items scheduled
+ * on one CPU will not run until the epoch has been exited on that CPU.
+ */
+TEST_CASE("epoch_cross_cpu_exit", "[platform]")
+{
+    _run_epoch_test_script({
+        "enter_epoch,0",
+        "schedule,0",
+        "wait,0,not_signaled",
+        "switch_cpu,1",
+        "exit_epoch,0",
+        "synchronize",
+        "wait,0,signaled",
+    });
+}
+
+/**
+ * @brief This test verifies that epochs can be entered recursively and that work items scheduled on the inner epoch or
+ * outer epoch will not run until the outer epoch has been exited.
+ */
+TEST_CASE("epoch_nested_epoch", "[platform]")
+{
+    _run_epoch_test_script({
+        "enter_epoch,0",
+        "schedule,0",
+        "wait,0,not_signaled",
+        "enter_epoch,1",
+        "schedule,1",
+        "wait,0,not_signaled",
+        "wait,1,not_signaled",
+        "exit_epoch,1",
+        "wait,0,not_signaled",
+        "wait,1,not_signaled",
+        "exit_epoch,0",
+        "synchronize",
+        "wait,0,signaled",
+        "wait,1,signaled",
+    });
+}
+
+/**
+ * @brief This test verifies that epochs can be entered and exited in a non-overlapping manner and that work items
+ * scheduled on the first epoch will not run until the first epoch has been exited and work items scheduled on the
+ * second epoch will not run until the second epoch has been exited.
+ */
+TEST_CASE("epoch_sequential_non_overlapping", "[platform]")
+{
+    _run_epoch_test_script({
+        "enter_epoch,0",
+        "schedule,0",
+        "wait,0,not_signaled",
+        "exit_epoch,0",
+        "synchronize",
+        "wait,0,signaled",
+        "enter_epoch,1",
+        "schedule,1",
+        "wait,1,not_signaled",
+        "exit_epoch,1",
+        "synchronize",
+        "wait,1,signaled",
+    });
+}
+
+/**
+ * @brief This test verifies that epochs can be entered and exited in an overlapping manner and that work items
+ * scheduled on the first epoch will not run until the first epoch has been exited and work items scheduled on the
+ * second epoch will not run until the second epoch has been exited. In addition this checks that work items
+ * scheduled in the first epoch will run after the first epoch has been exited despite the second epoch being
+ * entered. This is to verify that the work items are not blocked by the second epoch.
+ */
+TEST_CASE("epoch_sequential_overlapping_epochs", "[platform]")
+{
+    _run_epoch_test_script({
+        "enter_epoch,0",
+        "schedule,0",
+        "wait,0,not_signaled",
+        "enter_epoch,1",
+        "exit_epoch,0",
+        "schedule,1",
+        "wait,0,signaled",
+        "wait,1,not_signaled",
+        "exit_epoch,1",
+        "synchronize",
+        "wait,1,signaled",
+    });
 }
 
 static auto provider_function = []() { return EBPF_SUCCESS; };
