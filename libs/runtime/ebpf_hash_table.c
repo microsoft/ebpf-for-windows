@@ -758,7 +758,13 @@ ebpf_hash_table_create(_Out_ ebpf_hash_table_t** hash_table, _In_ const ebpf_has
     table->entry_count = 0;
     table->seed = ebpf_random_uint32();
     table->extract = options->extract_function;
+#if defined(NDEBUG)
     table->max_entry_count = options->max_entries;
+#else
+    // If debug mode, treat EBPF_HASH_TABLE_NO_LIMIT as -1 to ensure that entries are counted.
+    table->max_entry_count = options->max_entries == EBPF_HASH_TABLE_NO_LIMIT ? -1 : options->max_entries;
+#endif
+
     table->supplemental_value_size = options->supplemental_value_size;
     table->notification_context = options->notification_context;
     table->notification_callback = options->notification_callback;
