@@ -169,6 +169,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a38bf8179fba161626e0eff58e222d88a"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a38bf8179fba161626e0eff58e222d88a">bpf_strnlen_s</a> (const char *str, size_t str_size)</td></tr>
 <tr class="memdesc:a38bf8179fba161626e0eff58e222d88a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find the length of a string, up to a certain number of characters.  <a href="bpf__helper__defs_8h.html#a38bf8179fba161626e0eff58e222d88a">More...</a><br /></td></tr>
 <tr class="separator:a38bf8179fba161626e0eff58e222d88a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a73478db76c69875bbf408500fe2ea3fc"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a73478db76c69875bbf408500fe2ea3fc">bpf_ktime_get_boot_ms</a> ()</td></tr>
+<tr class="memdesc:a73478db76c69875bbf408500fe2ea3fc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in milliseconds including time while suspended. This function uses a lower resolution clock source than bpf_ktime_get_boot_ns, but is faster.  <a href="bpf__helper__defs_8h.html#a73478db76c69875bbf408500fe2ea3fc">More...</a><br /></td></tr>
+<tr class="separator:a73478db76c69875bbf408500fe2ea3fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac6d332de3410614287e7145989a4a042"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ac6d332de3410614287e7145989a4a042">bpf_ktime_get_ms</a> ()</td></tr>
+<tr class="memdesc:ac6d332de3410614287e7145989a4a042"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in milliseconds excluding time while suspended. This function uses a lower resolution clock source than bpf_ktime_get_ns, but is faster.  <a href="bpf__helper__defs_8h.html#ac6d332de3410614287e7145989a4a042">More...</a><br /></td></tr>
+<tr class="separator:ac6d332de3410614287e7145989a4a042"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -378,6 +384,26 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a73478db76c69875bbf408500fe2ea3fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a73478db76c69875bbf408500fe2ea3fc">&#9670;&nbsp;</a></span>bpf_ktime_get_boot_ms()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_ktime_get_boot_ms </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Return time elapsed since boot in milliseconds including time while suspended. This function uses a lower resolution clock source than bpf_ktime_get_boot_ns, but is faster. </p>
+<dl class="section return"><dt>Returns</dt><dd>Time elapsed since boot in milliseconds. </dd></dl>
+
+</div>
+</div>
 <a id="afcd5d11ba0f150bb73ac41eaf8f847e5"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#afcd5d11ba0f150bb73ac41eaf8f847e5">&#9670;&nbsp;</a></span>bpf_ktime_get_boot_ns()</h2>
 
@@ -395,6 +421,26 @@ Functions</h2></td></tr>
 
 <p>Return time elapsed since boot in nanoseconds including time while suspended. </p>
 <dl class="section return"><dt>Returns</dt><dd>Time elapsed since boot in nanosecond units. </dd></dl>
+
+</div>
+</div>
+<a id="ac6d332de3410614287e7145989a4a042"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac6d332de3410614287e7145989a4a042">&#9670;&nbsp;</a></span>bpf_ktime_get_ms()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint64_t bpf_ktime_get_ms </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Return time elapsed since boot in milliseconds excluding time while suspended. This function uses a lower resolution clock source than bpf_ktime_get_ns, but is faster. </p>
+<dl class="section return"><dt>Returns</dt><dd>Time elapsed since boot in milliseconds. </dd></dl>
 
 </div>
 </div>
