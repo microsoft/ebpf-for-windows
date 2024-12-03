@@ -11,7 +11,7 @@ choco install visualstudio2022buildtools --version 117.4.2.0 -y
 vs_installer.exe modify --installpath "$Env:ProgramFiles\Microsoft Visual Studio\2022\Community" --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --quiet
 
 # WDK for Windows 11 not currently available on Chocolate!
-#choco install windowsdriverkit11 --version 10.0.22621.382 -y
+#choco install windowsdriverkit11 --version 10.0.26100.382 -y
 
 choco install nuget.commandline --version 6.4.0 -y
 choco install cmake.portable --version 3.25.1 -y
