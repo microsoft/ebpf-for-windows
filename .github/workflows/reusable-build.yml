@@ -222,7 +222,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.0.6/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.11.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && matrix.configurations != 'FuzzerDebug'
