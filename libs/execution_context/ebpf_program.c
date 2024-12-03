@@ -2109,7 +2109,8 @@ ebpf_program_get_info(
                     EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
                 } else {
                     ebpf_map_t* map = program->maps[i];
-                    map_ids[i] = ebpf_map_get_id(map);
+                    // Volatile user mode pointer.
+                    WriteNoFence((volatile long*)&map_ids[i], ebpf_map_get_id(map));
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
