@@ -229,7 +229,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "               .text                    func       bind     1064\n"
+                                        "               .text                    func       bind     1080\n"
 #else
                                         "               .text                    func       bind     1768\n"
 #endif
@@ -255,9 +255,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             Section                 Program       Type  (bytes)\n"
                                         "====================  ======================  =========  =======\n"
 #if defined(NDEBUG)
-                                        "          sample_ext           lookup_update     sample      311\n"
+                                        "          sample_ext           lookup_update     sample      308\n"
 #else
-                                        "          sample_ext           lookup_update     sample     1114\n"
+                                        "          sample_ext           lookup_update     sample     1102\n"
 #endif
                                         "\n"
                                         "                     Key  Value      Max\n"

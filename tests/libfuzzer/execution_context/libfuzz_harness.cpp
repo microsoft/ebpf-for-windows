@@ -436,6 +436,7 @@ class fuzz_wrapper
     ~fuzz_wrapper()
     {
         ebpf_handle_table_terminate();
+        ebpf_epoch_synchronize();
         ebpf_assert(ebpf_handle_table_initiate() == EBPF_SUCCESS);
     }
 
