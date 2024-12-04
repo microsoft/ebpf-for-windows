@@ -211,60 +211,60 @@ static uint16_t func_maps[] = {
 #pragma code_seg(push, "bind")
 static uint64_t
 func(void* context)
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
 {
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     // Prologue
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r0 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r1 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r2 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r3 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r4 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r5 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r6 = 0;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     register uint64_t r10 = 0;
 
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     r1 = (uintptr_t)context;
-#line 34 "sample/pidtgid.c"
+#line 46 "sample/pidtgid.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
-#line 34 "sample/pidtgid.c"
+    // EBPF_OP_LDXB pc=0 dst=r2 src=r1 offset=40 imm=0
+#line 46 "sample/pidtgid.c"
+    r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(40));
+    // EBPF_OP_MOV64_IMM pc=1 dst=r3 src=r0 offset=0 imm=16
+#line 46 "sample/pidtgid.c"
+    r3 = IMMEDIATE(16);
+    // EBPF_OP_JGT_REG pc=2 dst=r3 src=r2 offset=19 imm=0
+#line 46 "sample/pidtgid.c"
+    if (r3 > r2) {
+#line 46 "sample/pidtgid.c"
+        goto label_1;
+#line 46 "sample/pidtgid.c"
+    }
+    // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=26 imm=0
+#line 46 "sample/pidtgid.c"
+    r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(26));
+    // EBPF_OP_JNE_IMM pc=4 dst=r2 src=r0 offset=17 imm=15295
+#line 46 "sample/pidtgid.c"
+    if (r2 != IMMEDIATE(15295)) {
+#line 46 "sample/pidtgid.c"
+        goto label_1;
+#line 46 "sample/pidtgid.c"
+    }
+    // EBPF_OP_MOV64_REG pc=5 dst=r6 src=r1 offset=0 imm=0
+#line 46 "sample/pidtgid.c"
     r6 = r1;
-    // EBPF_OP_LDXB pc=1 dst=r1 src=r6 offset=40 imm=0
-#line 46 "sample/pidtgid.c"
-    r1 = *(uint8_t*)(uintptr_t)(r6 + OFFSET(40));
-    // EBPF_OP_MOV64_IMM pc=2 dst=r2 src=r0 offset=0 imm=16
-#line 46 "sample/pidtgid.c"
-    r2 = IMMEDIATE(16);
-    // EBPF_OP_JGT_REG pc=3 dst=r2 src=r1 offset=18 imm=0
-#line 46 "sample/pidtgid.c"
-    if (r2 > r1) {
-#line 46 "sample/pidtgid.c"
-        goto label_1;
-#line 46 "sample/pidtgid.c"
-    }
-    // EBPF_OP_LDXH pc=4 dst=r1 src=r6 offset=26 imm=0
-#line 46 "sample/pidtgid.c"
-    r1 = *(uint16_t*)(uintptr_t)(r6 + OFFSET(26));
-    // EBPF_OP_JNE_IMM pc=5 dst=r1 src=r0 offset=16 imm=15295
-#line 46 "sample/pidtgid.c"
-    if (r1 != IMMEDIATE(15295)) {
-#line 46 "sample/pidtgid.c"
-        goto label_1;
-#line 46 "sample/pidtgid.c"
-    }
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
 #line 47 "sample/pidtgid.c"
     r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
