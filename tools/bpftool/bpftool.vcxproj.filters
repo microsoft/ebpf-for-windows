@@ -130,4 +130,9 @@
   <ItemGroup>
     <None Include="..\..\external\bpftool\src\Makefile" />
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="$(SolutionDir)resource\ebpf_resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
 </Project>

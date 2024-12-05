@@ -104,6 +104,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -118,6 +119,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -132,6 +134,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -149,6 +152,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>
@@ -165,6 +169,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)libs\execution_context;$(SolutionDir)libs\runtime\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)\external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\vm;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>

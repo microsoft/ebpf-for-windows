@@ -44,5 +44,8 @@
     <ResourceCompile Include="ebpfnetsh.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+    <ResourceCompile Include="$(SolutionDir)resource\ebpf_resource.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>

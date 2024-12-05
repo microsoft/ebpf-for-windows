@@ -117,7 +117,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization Condition="'$(EnableAsan)' != 'true'">true</WholeProgramOptimization>
       <!-- /Ob3 enable hinting to link time code generation that a function should be inlined -->
       <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
@@ -131,7 +131,7 @@
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
   </ItemDefinitionGroup>
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->

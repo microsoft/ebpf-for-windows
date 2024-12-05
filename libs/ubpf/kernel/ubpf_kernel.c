@@ -35,7 +35,7 @@
 #define errno (place_holder_errno())
 
 #if !defined(NDEBUG)
-void
+static void
 _assert(const char* message, const char* file, unsigned line)
 {
     UNREFERENCED_PARAMETER(message);

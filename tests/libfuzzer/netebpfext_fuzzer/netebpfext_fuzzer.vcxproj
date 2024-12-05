@@ -53,6 +53,7 @@
     <ClCompile>
       <PreprocessorDefinitions>FUZZER;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\src;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\encode_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)netebpfext\user;$(SolutionDir)tests\netebpfext_unit;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -64,6 +65,7 @@
     <ClCompile>
       <PreprocessorDefinitions>FUZZER;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\src;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\encode_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)netebpfext\user;$(SolutionDir)tests\netebpfext_unit;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -75,6 +77,7 @@
     <ClCompile>
       <PreprocessorDefinitions>FUZZER;NDEBUG;_CONSOLE;NO_CATCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)tests\libfuzzer\include;$(SolutionDir)libs\api_common;$(SolutionDir)include;$(SolutionDir)libs\api;$(SolutionDir)libs\ebpfnetsh;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(OutDir);$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)libs\service;$(SolutionDir)rpc_interface;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\user;$(SolutionDir)external\usersim\inc;$(SolutionDir)external\usersim\src;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)tests\end_to_end;$(SolutionDir)tests\sample;$(SolutionDir)tests\sample\ext\inc;$(SolutionDir)\tests\xdp;$(SolutionDir)tools\encode_program_info;$(SolutionDir)libs\thunk;$(SolutionDir)libs\thunk\mock;$(SolutionDir)\netebpfext;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\bpftool;$(SolutionDir)include\user;$(SolutionDir)netebpfext\user;$(SolutionDir)tests\netebpfext_unit;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -82,6 +85,16 @@
       <AdditionalDependencies>$(FuzzerLibs);mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(VCToolsInstallDir)lib\$(Platform);$(SolutionDir)$(Platform)\$(ConfigurationName)\</AdditionalLibraryDirectories>
     </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
+    <ClCompile>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\netebpfext_unit\netebpf_ext_helper.cpp" />

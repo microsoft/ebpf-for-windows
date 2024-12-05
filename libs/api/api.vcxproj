@@ -86,6 +86,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -100,6 +101,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(OutDir);$(OutDir)..\Debug;%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -114,6 +116,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='FuzzerDebug|x64'">MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -131,6 +134,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(OutDir);%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,6 +151,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)rpc_interface;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)include\bpf;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\user;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;$(OutDir);$(OutDir)..\Release;%(AdditionalIncludeDirectories);$(SolutionDir)libs\thunk;$(SolutionDir)external\bpftool;$(SolutionDIr)external\pe-parse\pe-parser-library\include;$(SolutionDir)\external\ubpf\build\vm</AdditionalIncludeDirectories>
+      <RuntimeLibrary Condition="'$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
