@@ -243,7 +243,7 @@ _get_version(_Out_ bpf2c_version_t* version)
 {
     version->major = 0;
     version->minor = 19;
-    version->revision = 1;
+    version->revision = 2;
 }
 
 #pragma data_seg(push, "map_initial_values")
