@@ -35,7 +35,6 @@ RUN `
     && curl -o nuget.exe https://dist.nuget.org/win-x86-commandline/latest/nuget.exe `
     # Install the Windows 10 SDK and WDK.
     && .\nuget.exe install Microsoft.Windows.SDK.CPP -Version 10.0.26100.2161 `
-    && .\nuget.exe install Microsoft.Windows.SDK.CPP -Version 10.0.26100.2161 `
     && .\nuget.exe install Microsoft.Windows.WDK.x64 -Version 10.0.26100.2161 `
     && .\nuget.exe install -ExcludeVersion eBPF-for-Windows.x64
 
