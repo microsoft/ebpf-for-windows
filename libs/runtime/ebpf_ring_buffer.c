@@ -8,79 +8,15 @@
 
 typedef struct _ebpf_ring_buffer
 {
-    ebpf_lock_t lock;
-    size_t length;
-    size_t consumer_offset;
-    size_t producer_offset;
+    int64_t length;
+    int64_t mask;
+    cxplat_spin_lock_t producer_lock;
+    cxplat_spin_lock_t consumer_lock;
+    volatile int64_t consumer_offset;
+    volatile int64_t producer_offset;
     uint8_t* shared_buffer;
     ebpf_ring_descriptor_t* ring_descriptor;
 } ebpf_ring_buffer_t;
-
-inline static size_t
-_ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
-{
-    return ring->length;
-}
-
-inline static size_t
-_ring_get_producer_offset(_In_ const ebpf_ring_buffer_t* ring)
-{
-    return ring->producer_offset % ring->length;
-}
-
-inline static size_t
-_ring_get_consumer_offset(_In_ const ebpf_ring_buffer_t* ring)
-{
-    return ring->consumer_offset % ring->length;
-}
-
-inline static size_t
-_ring_get_used_capacity(_In_ const ebpf_ring_buffer_t* ring)
-{
-    ebpf_assert(ring->producer_offset >= ring->consumer_offset);
-    return ring->producer_offset - ring->consumer_offset;
-}
-
-inline static void
-_ring_advance_producer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
-{
-    ring->producer_offset += length;
-}
-
-inline static void
-_ring_advance_consumer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
-{
-    ring->consumer_offset += length;
-}
-
-inline static _Ret_notnull_ ebpf_ring_buffer_record_t*
-_ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
-{
-    return (ebpf_ring_buffer_record_t*)&ring->shared_buffer[offset % ring->length];
-}
-
-inline static _Ret_notnull_ ebpf_ring_buffer_record_t*
-_ring_next_consumer_record(_In_ const ebpf_ring_buffer_t* ring)
-{
-    return _ring_record_at_offset(ring, _ring_get_consumer_offset(ring));
-}
-
-inline static _Ret_maybenull_ ebpf_ring_buffer_record_t*
-_ring_buffer_acquire_record(_Inout_ ebpf_ring_buffer_t* ring, size_t requested_length)
-{
-    ebpf_ring_buffer_record_t* record = NULL;
-    requested_length += EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data);
-    size_t remaining_space = ring->length - (ring->producer_offset - ring->consumer_offset);
-
-    if (remaining_space > requested_length) {
-        record = _ring_record_at_offset(ring, _ring_get_producer_offset(ring));
-        _ring_advance_producer_offset(ring, requested_length);
-        record->header.length = (uint32_t)requested_length;
-        record->header.locked = 1;
-        record->header.discarded = 0;
-    }
-    return record;
-}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
@@ -100,6 +36,7 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
     }
 
     local_ring_buffer->length = capacity;
+    local_ring_buffer->mask = capacity - 1;
 
     local_ring_buffer->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
     if (!local_ring_buffer->ring_descriptor) {
@@ -135,30 +72,23 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     ebpf_result_t result;
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    ebpf_ring_buffer_record_t* record = _ring_buffer_acquire_record(ring, length);
+    uint8_t* buffer;
 
-    if (record == NULL) {
-        result = EBPF_OUT_OF_SPACE;
-        goto Done;
+    result = ebpf_ring_buffer_reserve(ring, &buffer, length);
+    if (result != EBPF_SUCCESS) {
+        return result;
     }
 
-    record->header.discarded = 0;
-    record->header.locked = 0;
-    memcpy(record->data, data, length);
-    result = EBPF_SUCCESS;
-Done:
-    ebpf_lock_unlock(&ring->lock, state);
-    return result;
+    memcpy(buffer, data, length);
+
+    return ebpf_ring_buffer_submit(buffer);
 }
 
 void
 ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _Out_ size_t* producer)
 {
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    *consumer = ring->consumer_offset;
-    *producer = ring->producer_offset;
-    ebpf_lock_unlock(&ring->lock, state);
+    *consumer = (size_t)ReadAcquire64(&ring->consumer_offset);
+    *producer = (size_t)ReadAcquire64(&ring->producer_offset);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -166,47 +96,57 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    size_t local_length = length;
-    size_t offset = _ring_get_consumer_offset(ring);
+    KIRQL old_irql = KeGetCurrentIrql();
+    if (old_irql < DISPATCH_LEVEL) {
+        KeRaiseIrqlToDpcLevel();
+    }
 
-    if ((length > _ring_get_length(ring)) || length > _ring_get_used_capacity(ring)) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_ring_buffer_return: Buffer too large",
-            ring->producer_offset,
-            ring->consumer_offset);
+    cxplat_acquire_spin_lock_at_dpc_level(&ring->consumer_lock);
+
+    int64_t consumer_offset = ReadNoFence64(&ring->consumer_offset);
+    int64_t producer_offset = ReadNoFence64(&ring->producer_offset);
+    int64_t effective_length = EBPF_PAD_8(length + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+
+    if (consumer_offset == producer_offset) {
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
-    // Verify count.
-    while (local_length != 0) {
-        ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, offset);
-        if (local_length < record->header.length) {
-            break;
-        }
-        offset += record->header.length;
-        local_length -= record->header.length;
-    }
-    // Did it end on a record boundary?
-    if (local_length != 0) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_ring_buffer_return: Invalid buffer length",
-            local_length);
+    int64_t remaining_space = producer_offset - consumer_offset;
+
+    if (remaining_space > effective_length) {
         result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+        goto Exit;
     }
 
-    _ring_advance_consumer_offset(ring, length);
+    remaining_space = effective_length;
+
+    while (remaining_space > 0) {
+        ebpf_ring_buffer_record_t* record =
+            (ebpf_ring_buffer_record_t*)(ring->shared_buffer + (consumer_offset & ring->mask));
+
+        long size = ReadNoFence(&record->size);
+        size += EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data);
+        size = EBPF_PAD_8(size);
+
+        consumer_offset += size;
+        remaining_space -= size;
+
+        record->size = 0;
+    }
+
+    WriteNoFence64(&ring->consumer_offset, consumer_offset);
+
     result = EBPF_SUCCESS;
 
-Done:
-    ebpf_lock_unlock(&ring->lock, state);
-    EBPF_RETURN_RESULT(result);
+Exit:
+    cxplat_release_spin_lock_from_dpc_level(&ring->consumer_lock);
+
+    if (old_irql < DISPATCH_LEVEL) {
+        KeLowerIrql(old_irql);
+    }
+
+    EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -225,55 +165,82 @@ ebpf_ring_buffer_reserve(
     _Inout_ ebpf_ring_buffer_t* ring, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length)
 {
     ebpf_result_t result;
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    ebpf_ring_buffer_record_t* record = _ring_buffer_acquire_record(ring, length);
-    if (record == NULL) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
+    KIRQL old_irql;
+    int64_t producer_offset = ReadNoFence64(&ring->producer_offset);
+    int64_t consumer_offset = ReadNoFence64(&ring->consumer_offset);
+    int64_t remaining_space = ring->length - (producer_offset - consumer_offset);
+    size_t effective_length = EBPF_PAD_8(length + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+
+    if (remaining_space < (int64_t)effective_length) {
+        return EBPF_NO_MEMORY;
     }
 
-    record->header.locked = 1;
-    MemoryBarrier();
+    old_irql = KeGetCurrentIrql();
+    if (old_irql < DISPATCH_LEVEL) {
+        KeRaiseIrqlToDpcLevel();
+    }
 
+    cxplat_acquire_spin_lock_at_dpc_level(&ring->producer_lock);
+
+    producer_offset = ReadNoFence64(&ring->producer_offset);
+    consumer_offset = ReadNoFence64(&ring->consumer_offset);
+
+    remaining_space = ring->length - (producer_offset - consumer_offset);
+
+    if (remaining_space < (int64_t)effective_length) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+
+    ebpf_ring_buffer_record_t* record =
+        (ebpf_ring_buffer_record_t*)(ring->shared_buffer + (producer_offset & ring->mask));
+
+    WriteNoFence(&record->size, (long)length | EBPF_RING_BUFFER_RECORD_FLAG_LOCKED);
     *data = record->data;
+
+    WriteNoFence64(&ring->producer_offset, producer_offset + effective_length);
+
     result = EBPF_SUCCESS;
-Done:
-    ebpf_lock_unlock(&ring->lock, state);
+
+Exit:
+    cxplat_release_spin_lock_from_dpc_level(&ring->producer_lock);
+
+    if (old_irql < DISPATCH_LEVEL) {
+        KeLowerIrql(old_irql);
+    }
+
     return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
 {
-    if (!data) {
+    ebpf_ring_buffer_record_t* record = CONTAINING_RECORD(data, ebpf_ring_buffer_record_t, data);
+    long size = ReadAcquire(&record->size);
+
+    if (!(size & EBPF_RING_BUFFER_RECORD_FLAG_LOCKED)) {
         return EBPF_INVALID_ARGUMENT;
     }
-    ebpf_ring_buffer_record_t* record =
-        (ebpf_ring_buffer_record_t*)(data - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
 
-    record->header.discarded = 0;
-    // Place a memory barrier here so that all prior writes to the record are completed before the record
-    // is unlocked. Caller needs to ensure a MemoryBarrier between reading the record->header.locked and
-    // the data in the record.
-    MemoryBarrier();
-    record->header.locked = 0;
+    size &= ~EBPF_RING_BUFFER_RECORD_FLAG_LOCKED;
+
+    WriteRelease(&record->size, size);
     return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
 {
-    if (!data) {
+    ebpf_ring_buffer_record_t* record = CONTAINING_RECORD(data, ebpf_ring_buffer_record_t, data);
+    long size = ReadAcquire(&record->size);
+
+    if (!(size & EBPF_RING_BUFFER_RECORD_FLAG_LOCKED)) {
         return EBPF_INVALID_ARGUMENT;
     }
-    ebpf_ring_buffer_record_t* record =
-        (ebpf_ring_buffer_record_t*)(data - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
 
-    record->header.discarded = 1;
-    // Place a memory barrier here so that all prior writes to the record are completed before the record
-    // is unlocked. Caller needs to ensure a MemoryBarrier between reading the record->header.locked and
-    // the data in the record.
-    MemoryBarrier();
-    record->header.locked = 0;
+    size &= ~EBPF_RING_BUFFER_RECORD_FLAG_LOCKED;
+    size |= EBPF_RING_BUFFER_RECORD_FLAG_DISCARDED;
+
+    WriteRelease(&record->size, size);
     return EBPF_SUCCESS;
 }

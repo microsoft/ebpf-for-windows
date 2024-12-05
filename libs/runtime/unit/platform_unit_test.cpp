@@ -1057,21 +1057,21 @@ TEST_CASE("ring_buffer_output", "[platform]")
 
     // Ring is not empty
     REQUIRE(producer != consumer);
-    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(producer == EBPF_PAD_8(data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data)));
     REQUIRE(consumer == 0);
 
     auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record != nullptr);
-    REQUIRE(record->header.length == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(record->size == data.size());
 
-    REQUIRE(ebpf_ring_buffer_return(ring_buffer, record->header.length) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return(ring_buffer, record->size) == EBPF_SUCCESS);
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
 
     record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record == nullptr);
     REQUIRE(consumer == producer);
-    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
-    REQUIRE(consumer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(producer == EBPF_PAD_8(data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data)));
+    REQUIRE(consumer == EBPF_PAD_8(data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data)));
 
     data.resize(1023);
     while (ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
@@ -1134,7 +1134,7 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
     }
 
     uint8_t* mem3 = nullptr;
-    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem3, size + 1) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_ring_buffer_reserve(ring_buffer, &mem3, size + 1) == EBPF_NO_MEMORY);
 
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
 
@@ -1144,6 +1144,106 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 
     ebpf_ring_buffer_destroy(ring_buffer);
     ring_buffer = nullptr;
+}
+
+TEST_CASE("ring_buffer_stress", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    ebpf_ring_buffer_t* ring_buffer;
+
+    uint8_t* buffer;
+    std::vector<uint8_t> data(10);
+    size_t size = 64 * 1024;
+    bool bad_record = false;
+    std::atomic<size_t> a_records = 0;
+    std::atomic<size_t> b_records = 0;
+    std::atomic<bool> stop{false};
+
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+
+    auto producer = [&](std::vector<uint8_t>& data) {
+        while (!stop) {
+            if (ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) != EBPF_SUCCESS) {
+                YieldProcessor();
+            }
+        }
+    };
+
+    std::vector<uint8_t> data1(13, 'a');
+    std::vector<uint8_t> data2(23, 'b');
+    auto consumer = [&]() {
+        size_t consumer;
+        size_t producer;
+        while (!stop) {
+            ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
+            if (consumer != producer) {
+                auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
+                if (record != nullptr) {
+                    volatile long actual_size = ReadAcquire(&record->size);
+                    if (actual_size & EBPF_RING_BUFFER_RECORD_FLAG_LOCKED) {
+                        YieldProcessor();
+                        continue;
+                    }
+                    switch (actual_size) {
+                    case 13:
+                        if (memcmp(record->data, data1.data(), data1.size()) != 0) {
+                            bad_record = true;
+                        }
+                        a_records++;
+                        break;
+                    case 23:
+                        if (memcmp(record->data, data2.data(), data2.size()) != 0) {
+                            bad_record = true;
+                        }
+                        b_records++;
+                        break;
+                    default:
+                        bad_record = true;
+                        return;
+                        break;
+                    }
+                    if (ebpf_ring_buffer_return(ring_buffer, actual_size) != EBPF_SUCCESS) {
+                        bad_record = true;
+                        break;
+                    }
+                }
+            } else {
+                YieldProcessor();
+            }
+        }
+        if (bad_record) {
+            return;
+        }
+    };
+
+    std::vector<std::thread> threads;
+
+    auto producer_a = [&]() { producer(data1); };
+    auto producer_b = [&]() { producer(data2); };
+
+    // Start consumer thread.
+    threads.emplace_back(std::thread(consumer));
+
+    // Start producer threads.
+    for (size_t i = 0; i < 10; i++) {
+        threads.emplace_back(std::thread(producer_a));
+        threads.emplace_back(std::thread(producer_b));
+    }
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
+
+    stop = true;
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    REQUIRE(!bad_record);
+    REQUIRE((a_records + b_records) > 0);
+
+    ebpf_ring_buffer_destroy(ring_buffer);
 }
 
 TEST_CASE("error codes", "[platform]")

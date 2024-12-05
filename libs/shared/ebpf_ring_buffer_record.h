@@ -5,15 +5,18 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
+#define EBPF_RING_BUFFER_RECORD_FLAG_LOCKED_OFFSET 31
+#define EBPF_RING_BUFFER_RECORD_FLAG_DISCARDED_OFFSET 30
+#define EBPF_RING_BUFFER_RECORD_FLAG_LOCKED (long)(0x1ul << EBPF_RING_BUFFER_RECORD_FLAG_LOCKED_OFFSET)
+#define EBPF_RING_BUFFER_RECORD_FLAG_DISCARDED (long)(0x1ul << EBPF_RING_BUFFER_RECORD_FLAG_DISCARDED_OFFSET)
+
 typedef struct _ebpf_ring_buffer_record
 {
-    struct
-    {
-        uint8_t locked : 1;
-        uint8_t discarded : 1;
-        uint32_t length : 30;
-    } header;
-    uint8_t data[1];
+    long size; ///< Size of the record in bytes. The lower 30 bits are the size, the 31st bit is the locked flag, and
+               ///< the 32nd bit is the discarded flag. Next record starts at this + size + sizeof(size) + padding (to
+               ///< 8).
+
+    uint8_t data[1]; ///< Data of the record.
 } ebpf_ring_buffer_record_t;
 
 /**
@@ -34,6 +37,25 @@ ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, s
         return NULL;
     }
     return (ebpf_ring_buffer_record_t*)(buffer + consumer % buffer_length);
+}
+
+inline const bool
+ebpf_ring_buffer_record_is_discarded(_In_ const ebpf_ring_buffer_record_t* record)
+{
+    return (ReadNoFence(&record->size) & EBPF_RING_BUFFER_RECORD_FLAG_DISCARDED) != 0;
+}
+
+inline const bool
+ebpf_ring_buffer_record_is_locked(_In_ const ebpf_ring_buffer_record_t* record)
+{
+    return (ReadNoFence(&record->size) & EBPF_RING_BUFFER_RECORD_FLAG_LOCKED) != 0;
+}
+
+inline const size_t
+ebpf_ring_buffer_record_size(_In_ const ebpf_ring_buffer_record_t* record)
+{
+    return (size_t)(ReadNoFence(&record->size) &
+                    ~(EBPF_RING_BUFFER_RECORD_FLAG_LOCKED | EBPF_RING_BUFFER_RECORD_FLAG_DISCARDED));
 }
 
 CXPLAT_EXTERN_C_END

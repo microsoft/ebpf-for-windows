@@ -4266,15 +4266,22 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
                 break;
             }
 
-            int callback_result = subscription->sample_callback(
-                subscription->sample_callback_context,
-                const_cast<void*>(reinterpret_cast<const void*>(record->data)),
-                record->header.length - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
-            if (callback_result != 0) {
-                break;
+            while (ebpf_ring_buffer_record_is_locked(record)) {
+                // The record is being written to by the producer.
+                // Wait for the producer to finish writing.
+                YieldProcessor();
             }
 
-            consumer += record->header.length;
+            if (!ebpf_ring_buffer_record_is_discarded(record)) {
+                int callback_result = subscription->sample_callback(
+                    subscription->sample_callback_context,
+                    const_cast<void*>(reinterpret_cast<const void*>(record->data)),
+                    ebpf_ring_buffer_record_size(record) - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+                if (callback_result != 0) {
+                    break;
+                }
+            }
+            consumer += ebpf_ring_buffer_record_size(record);
         }
     }
 
