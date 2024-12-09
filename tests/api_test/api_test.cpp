@@ -1082,6 +1082,47 @@ test_sock_addr_native_program_load_attach(const char* file_name)
 
 DECLARE_REGRESSION_TEST_CASE("0.11.0")
 
+TEST_CASE("static_linking", "[staticLinking]") {
+    // Create a test array map to provide target for the ioctl stress test.
+    fd_t test_map_fd1 = bpf_map_create(BPF_MAP_TYPE_HASH, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    std::cout << "bpf_map_create fd - " << test_map_fd1 << std::endl;
+    fd_t test_map_fd2 = bpf_map_create(BPF_MAP_TYPE_HASH, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    std::cout << "bpf_map_create fd - " << test_map_fd2 << std::endl;
+    fd_t test_map_fd3 = bpf_map_create(BPF_MAP_TYPE_HASH, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    std::cout << "bpf_map_create fd - " << test_map_fd3 << std::endl;
+    fd_t test_map_fd4 = bpf_map_create(BPF_MAP_TYPE_HASH, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    std::cout << "bpf_map_create fd - " << test_map_fd4 << std::endl;
+    fd_t test_map_fd5 = bpf_map_create(BPF_MAP_TYPE_HASH, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    std::cout << "bpf_map_create fd - " << test_map_fd5 << std::endl;
+
+    uint32_t key = 0, result;
+    uint32_t value;
+    result = bpf_map_lookup_elem(test_map_fd1, &key, &value);
+    if (result != 0) {
+        std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
+    }
+
+    result = bpf_map_lookup_elem(test_map_fd2, &key, &value);
+    if (result != 0) {
+        std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
+    }
+
+    result = bpf_map_lookup_elem(test_map_fd3, &key, &value);
+    if (result != 0) {
+        std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
+    }
+
+    result = bpf_map_lookup_elem(test_map_fd4, &key, &value);
+    if (result != 0) {
+        std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
+    }
+
+    result = bpf_map_lookup_elem(test_map_fd5, &key, &value);
+    if (result != 0) {
+        std::cout << "bpf_map_lookup_elem failed with " << result << std::endl;
+    }
+}
+
 TEST_CASE("ioctl_stress", "[stress]")
 {
     // Load bindmonitor_ringbuf.sys
