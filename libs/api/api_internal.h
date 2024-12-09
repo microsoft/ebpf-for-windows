@@ -521,7 +521,10 @@ ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info_by_fd(
-    fd_t bpf_fd, _Inout_updates_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) noexcept;
+    fd_t bpf_fd,
+    _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
+    _Inout_ uint32_t* info_size,
+    _Out_opt_ ebpf_object_type_t* type) noexcept;
 
 /**
  * @brief Pin an object to the specified path.

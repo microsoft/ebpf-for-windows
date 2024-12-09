@@ -192,7 +192,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
     _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
-    _Inout_ uint32_t* info_size) noexcept;
+    _Inout_ uint32_t* info_size,
+    _Out_opt_ ebpf_object_type_t* type) noexcept;
 
 _Must_inspect_result_ ebpf_result_t
 query_map_definition(
