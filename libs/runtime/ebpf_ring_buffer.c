@@ -135,6 +135,14 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     ebpf_result_t result;
+    // Before acquiring the lock, check if there is enough space in the ring buffer.
+    // This is the common case when the consumer is not consuming fast enough, so no need to acquire the lock
+    // and slow down the producer.
+    size_t remaining_space = ring->length - (ring->producer_offset - ring->consumer_offset);
+    if (remaining_space < length) {
+        return EBPF_OUT_OF_SPACE;
+    }
+
     ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
     ebpf_ring_buffer_record_t* record = _ring_buffer_acquire_record(ring, length);
 
