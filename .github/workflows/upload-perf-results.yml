@@ -109,3 +109,12 @@ jobs:
       with:
         name: Regression-Results-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results/regression_results.csv
+
+    - name: Create regression workitem
+      uses: actions/create-work-item@v1
+      with:
+        title: Performance regression detected
+        body: |
+          This work item was created automatically by CICD pipeline in response to a performance regression.
+          [View Pipeline Run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+        labels: P2, bug, perf, regression
