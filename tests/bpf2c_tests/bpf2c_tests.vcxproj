@@ -86,7 +86,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -102,7 +102,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Debug;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,7 +118,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -134,7 +134,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;BPF2C_VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,7 +152,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;BPF2C_VERBOSE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Release;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)resource;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\external\libbtf;$(OutDir);$(OutDir)..\Release;$(SolutionDir)tools\bpf2c;$(SolutionDir)external\ubpf\vm;$(SolutionDir)libs\shared;$(SolutionDir)external\ebpf-verifier\external\bpf_conformance\external\elfio;$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)\external\ubpf\build\vm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -197,7 +197,7 @@
     <ProjectReference Include="..\..\ebpfapi\ebpfapi.vcxproj">
       <Project>{75fe223a-3e45-4b0e-a2e8-04285e52e440}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
+    <ProjectReference Include="..\..\external\usersim\external\Catch2\build\src\Catch2WithMain.vcxproj">
       <Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">

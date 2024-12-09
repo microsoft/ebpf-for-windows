@@ -253,7 +253,7 @@ jobs:
       run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
+          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\usersim\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
     - name: Run test with Code Coverage and low resource simulation
       if: (inputs.code_coverage == true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -261,7 +261,7 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 8
+          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\usersim\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 8
 
     - name: Run test with low resource simulation
       if: (inputs.code_coverage != true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
@@ -278,7 +278,7 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
+          OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\usersim\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
     - name: Run test on self-hosted runner
       if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (inputs.environment == 'ebpf_cicd_tests_ws2019' || inputs.environment == 'ebpf_cicd_tests_ws2022' || inputs.environment == 'ebpf_cicd_perf_ws2022') && (inputs.fault_injection != true)
