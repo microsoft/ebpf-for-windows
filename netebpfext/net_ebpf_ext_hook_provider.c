@@ -610,7 +610,13 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
 {
     NET_EBPF_EXT_LOG_ENTRY();
 
+    // Remove the list entry from the provider's list of filter contexts.
     RemoveEntryList(&filter_context->link);
+
+#if !defined(NDEBUG)
+    // Add the entry to the zombie list (for debugging purposes)
+    net_ebpf_ext_add_filter_context_to_zombie_list(filter_context);
+#endif
 
     // Release the filter context.
     provider_context->dispatch.delete_filter_context(filter_context);
