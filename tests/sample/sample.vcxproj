@@ -244,7 +244,7 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
-  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug'">
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <!-- Build BPF programs that pass verification and build native images for them. -->
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
@@ -276,7 +276,7 @@
        configuration. As a result of that, the eBPF store cannot be populated for sample program types and hence bpf2c cannot convert
        the sample program types to native images (as it needs program information for offline verification).
   -->
-  <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug'">
+  <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <CustomBuild Include="undocked\*.c">
       <FileType>CppCode</FileType>
       <Command>
@@ -345,7 +345,7 @@
     </CustomBuild>
   </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->
-  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug'">
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
