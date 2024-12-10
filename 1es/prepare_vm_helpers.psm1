@@ -246,6 +246,8 @@ function Configure-VM {
         Log-Message "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
         Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $VMSetupScript -DestinationPath "$VMWorkingDirectory\$VMSetupScript" -CreateFullPath
         Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "cd $VMWorkingDirectory; .\$VMSetupScript"
+        Log-Message "Sleeping for 1 minute to let the VM get into a steady state"
+        Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
         Log-Message -Message "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
         Wait-ForVMReady -VMName $VmName -VmCredential $VmCredential

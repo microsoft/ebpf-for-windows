@@ -55,6 +55,12 @@ $Job = Start-Job -ScriptBlock {
             -VMName $VMName `
             -Credential $TestVMCredential `
             -ScriptBlock {
+                # TODO - remove this debugging output
+                ipconfig /all
+                Get-NetIPInterface | Out-String
+                Get-NetAdapter | Out-String
+                Get-NetAdapterBinding -AllBindings | Out-String
+
                 Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
             }
 
