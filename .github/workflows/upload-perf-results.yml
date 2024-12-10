@@ -110,7 +110,7 @@ jobs:
         name: Regression-Results-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results/regression_results.csv
 
-    - name: Create regression workitem
+    - name: Create regression work item
       uses: actions/create-work-item@v1
       with:
         title: Performance regression detected
