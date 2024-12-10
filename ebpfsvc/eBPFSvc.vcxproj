@@ -4,12 +4,12 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{ba065b6a-38f8-4197-8f66-87c84afad513}</ProjectGuid>
     <RootNamespace>eBPFSvc</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>ebpfsvc</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -68,7 +68,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -90,7 +90,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <RuntimeLibrary>MultiThreadedDebugDll</RuntimeLibrary>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -111,7 +111,7 @@
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)libs\api_common;$(SolutionDir)libs\api;$(SolutionDir)libs\shared\user;$(SolutionDir)libs\shared;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winuser;$(SolutionDir)libs\service;$(SolutionDir)include;$(SolutionDir)rpc_interface;$(SolutionDir)external\ubpf\vm;$(SolutionDir)external\ubpf\vm\inc;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\ebpf-verifier\external;$(SolutionDir)external\ebpf-verifier\build\_deps\gsl-src\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

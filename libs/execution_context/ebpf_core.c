@@ -65,11 +65,11 @@ _ebpf_core_trace_printk5(
 static int
 _ebpf_core_ring_buffer_output(
     _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags);
-static uint64_t
+static int
 _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags);
-static uint64_t
+static int
 _ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
-static uint64_t
+static int
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value);
 static uint64_t
 _ebpf_core_get_pid_tgid();
@@ -100,6 +100,12 @@ _ebpf_core_memmove(
     size_t destination_length,
     _In_reads_(source_length) const void* source,
     size_t source_length);
+
+static uint64_t
+_ebpf_core_get_time_since_boot_ms();
+
+static uint64_t
+_ebpf_core_get_time_ms();
 
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
@@ -144,6 +150,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_strncpy_s,
     (void*)&_ebpf_core_strncat_s,
     (void*)&_ebpf_core_strlen_s,
+    (void*)&_ebpf_core_get_time_since_boot_ms,
+    (void*)&_ebpf_core_get_time_ms,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -204,6 +212,19 @@ _ebpf_general_helper_function_provider_detach_client(_In_ void* provider_binding
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_core_initiate_pinning_table()
+{
+    return ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
+}
+
+void
+ebpf_core_terminate_pinning_table()
+{
+    ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
+    _ebpf_core_map_pinning_table = NULL;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_core_initiate()
 {
     ebpf_result_t return_value;
@@ -241,7 +262,7 @@ ebpf_core_initiate()
 
     ebpf_object_tracking_initiate();
 
-    return_value = ebpf_pinning_table_allocate(&_ebpf_core_map_pinning_table);
+    return_value = ebpf_core_initiate_pinning_table();
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
@@ -298,8 +319,7 @@ ebpf_core_terminate()
 
     ebpf_async_terminate();
 
-    ebpf_pinning_table_free(_ebpf_core_map_pinning_table);
-    _ebpf_core_map_pinning_table = NULL;
+    ebpf_core_terminate_pinning_table();
 
     ebpf_state_terminate();
 
@@ -358,6 +378,13 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     ebpf_result_t retval;
     uint8_t* code = NULL;
     size_t code_length = 0;
+
+    if (request->code_type <= EBPF_CODE_NONE || request->code_type >= EBPF_CODE_MAX) {
+        retval = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_CORE, "load_code: Invalid code type", request->code_type);
+        goto Done;
+    }
 
     if (request->code_type == EBPF_CODE_NATIVE) {
         retval = EBPF_INVALID_ARGUMENT;
@@ -898,6 +925,11 @@ _ebpf_core_protocol_map_update_element_batch(
 
     key_and_value_length = (size_t)map_definition->key_size + (size_t)map_definition->value_size;
 
+    if (key_and_value_length == 0) {
+        retval = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     if ((data_length % key_and_value_length) != 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
@@ -1007,7 +1039,7 @@ _ebpf_core_protocol_map_delete_element_batch(
 
     const ebpf_map_definition_in_memory_t* map_definition = ebpf_map_get_definition(map);
 
-    if (key_length % map_definition->key_size != 0) {
+    if (map_definition->key_size == 0 || key_length % map_definition->key_size != 0) {
         retval = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -1564,6 +1596,8 @@ _ebpf_core_find_matching_link(
 
     if (match_found) {
         *link = local_link;
+    } else if (local_link != NULL) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)local_link);
     }
 
 Exit:
@@ -1840,6 +1874,24 @@ ebpf_core_get_handle_by_id(ebpf_object_type_t type, ebpf_id_t id, _Out_ ebpf_han
     EBPF_RETURN_RESULT(result);
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_get_id_and_type_from_handle(ebpf_handle_t handle, _Out_ ebpf_id_t* id, _Out_ ebpf_object_type_t* type)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_core_object_t* object;
+    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(handle, EBPF_OBJECT_UNKNOWN, &object);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    *id = object->id;
+    *type = object->type;
+
+    EBPF_OBJECT_RELEASE_REFERENCE(object);
+
+    return EBPF_SUCCESS;
+}
+
 static ebpf_result_t
 _get_handle_by_id(
     ebpf_object_type_t type,
@@ -1979,10 +2031,31 @@ _ebpf_core_protocol_get_object_info(
     uint16_t reply_length)
 {
     EBPF_LOG_ENTRY();
-    uint16_t info_size = reply_length - FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info);
+    size_t output_buffer_size = reply_length;
+    size_t input_buffer_size = request->header.length;
+
+    ebpf_result_t result = ebpf_safe_size_t_subtract(
+        output_buffer_size, FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info), &output_buffer_size);
+
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    result = ebpf_safe_size_t_subtract(
+        input_buffer_size, FIELD_OFFSET(ebpf_operation_get_object_info_request_t, info), &input_buffer_size);
+
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    if (input_buffer_size > UINT16_MAX || output_buffer_size > UINT16_MAX) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    uint16_t info_size = (uint16_t)output_buffer_size;
 
     ebpf_core_object_t* object;
-    ebpf_result_t result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->handle, EBPF_OBJECT_UNKNOWN, &object);
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->handle, EBPF_OBJECT_UNKNOWN, &object);
     if (result != EBPF_SUCCESS) {
         return result;
     }
@@ -1996,7 +2069,8 @@ _ebpf_core_protocol_get_object_info(
         result = ebpf_map_get_info((ebpf_map_t*)object, reply->info, &info_size);
         break;
     case EBPF_OBJECT_PROGRAM:
-        result = ebpf_program_get_info((ebpf_program_t*)object, request->info, reply->info, &info_size);
+        result = ebpf_program_get_info(
+            (ebpf_program_t*)object, request->info, (uint16_t)input_buffer_size, reply->info, &info_size);
         break;
     default:
         result = EBPF_INVALID_ARGUMENT;
@@ -2125,6 +2199,12 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
     ebpf_result_t retval;
     uint8_t* value;
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return NULL;
+    }
+
     retval = ebpf_map_find_entry(map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
     if (retval != EBPF_SUCCESS) {
         return NULL;
@@ -2136,12 +2216,22 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
     return -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
 }
 
 static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
     return -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
 }
 
@@ -2150,6 +2240,11 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 {
     ebpf_result_t retval;
     uint8_t* value;
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return NULL;
+    }
     retval = ebpf_map_find_entry(
         map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
     if (retval != EBPF_SUCCESS) {
@@ -2162,6 +2257,12 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
+
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
@@ -2179,17 +2280,33 @@ _ebpf_core_random_uint32()
 static uint64_t
 _ebpf_core_get_time_since_boot_ns()
 {
-    // ebpf_query_time_since_boot_precise returns time elapsed since
+    // cxplat_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
+    return cxplat_query_time_since_boot_precise(true) * EBPF_NS_PER_FILETIME;
 }
 
 static uint64_t
 _ebpf_core_get_time_ns()
 {
-    // ebpf_query_time_since_boot_precise returns time elapsed since
+    // cxplat_query_time_since_boot_precise returns time elapsed since
     // boot in units of 100 ns.
-    return ebpf_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
+    return cxplat_query_time_since_boot_precise(false) * EBPF_NS_PER_FILETIME;
+}
+
+static uint64_t
+_ebpf_core_get_time_since_boot_ms()
+{
+    // cxplat_query_time_since_boot_approximate returns time elapsed since
+    // boot in units of 100 ns.
+    return cxplat_query_time_since_boot_approximate(true) / EBPF_FILETIME_PER_MS;
+}
+
+static uint64_t
+_ebpf_core_get_time_ms()
+{
+    // cxplat_query_time_since_boot_approximate returns time elapsed since
+    // boot in units of 100 ns.
+    return cxplat_query_time_since_boot_approximate(false) / EBPF_FILETIME_PER_MS;
 }
 
 static uint64_t
@@ -2241,6 +2358,11 @@ _ebpf_core_trace_printk(_In_reads_(fmt_size) const char* fmt, size_t fmt_size, i
     if (fmt_size > MAX_PRINTK_STRING_SIZE - 1) {
         // Disallow large fmt_size values.
         return -1;
+    }
+
+    // If the provider is not enabled, don't bother with the rest.
+    if (!TraceLoggingProviderEnabled(ebpf_tracelog_provider, EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_PRINTK)) {
+        return 0;
     }
 
     // Make a copy of the original format string.
@@ -2388,26 +2510,47 @@ static int
 _ebpf_core_ring_buffer_output(
     _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
+
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
     return -ebpf_ring_buffer_map_output(map, data, length);
 }
 
-static uint64_t
+static int
 _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
     return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
 }
 
-static uint64_t
+static int
 _ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
     return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
-static uint64_t
+static int
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
+    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
+    // null map pointer. Remove when fixed.
+    if (map == NULL) {
+        return -EBPF_INVALID_ARGUMENT;
+    }
     return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 

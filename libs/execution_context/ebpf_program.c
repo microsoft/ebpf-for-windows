@@ -380,7 +380,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_program_general_program_information_detach_provider(void* client_binding_context)
+_ebpf_program_general_program_information_detach_provider(_In_ void* client_binding_context)
 {
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
@@ -592,7 +592,7 @@ Done:
 }
 
 static NTSTATUS
-_ebpf_program_type_specific_program_information_detach_provider(void* client_binding_context)
+_ebpf_program_type_specific_program_information_detach_provider(_In_ void* client_binding_context)
 {
     ebpf_program_t* program = (ebpf_program_t*)client_binding_context;
 
@@ -1029,6 +1029,13 @@ ebpf_program_associate_maps(ebpf_program_t* program, ebpf_map_t** maps, uint32_t
     }
 
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+    if (program->maps) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Maps already associated with program");
+        result = EBPF_INVALID_ARGUMENT;
+        ebpf_lock_unlock(&program->lock, state);
+        goto Done;
+    }
     // Now go through again and acquire references.
     program->maps = program_maps;
     program_maps = NULL;
@@ -1367,6 +1374,11 @@ _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_load_byte
         goto Done;
     }
 
+    if (instruction_count == 0) {
+        return_value = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
     program->code_or_vm.vm = ubpf_create();
     if (!program->code_or_vm.vm) {
         return_value = EBPF_NO_MEMORY;
@@ -1426,6 +1438,15 @@ ebpf_program_load_code(
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_lock_state_t state = ebpf_lock_lock(&program->lock);
+
+    // If the program is already loaded, return an error.
+    if (program->parameters.code_type != EBPF_CODE_NONE) {
+        ebpf_lock_unlock(&program->lock, state);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_assert(code_type > EBPF_CODE_NONE && code_type <= EBPF_CODE_MAX);
+
     program->parameters.code_type = code_type;
     ebpf_assert(
         (code_type == EBPF_CODE_NATIVE && code_context != NULL) ||
@@ -2055,15 +2076,20 @@ ebpf_program_detach_link(_Inout_ ebpf_program_t* program, _Inout_ ebpf_link_t* l
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_get_info(
     _In_ const ebpf_program_t* program,
-    _In_reads_(*info_size) const uint8_t* input_buffer,
-    _Out_writes_to_(*info_size, *info_size) uint8_t* output_buffer,
-    _Inout_ uint16_t* info_size)
+    _In_reads_(input_buffer_size) const uint8_t* input_buffer,
+    uint16_t input_buffer_size,
+    _Out_writes_to_(*output_buffer_size, *output_buffer_size) uint8_t* output_buffer,
+    _Inout_ uint16_t* output_buffer_size)
 {
     EBPF_LOG_ENTRY();
     const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
     struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
-    if (*info_size < sizeof(*output_info)) {
+    if (*output_buffer_size < sizeof(*output_info)) {
         EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+    }
+
+    if (input_buffer_size < sizeof(*input_info)) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
@@ -2082,7 +2108,8 @@ ebpf_program_get_info(
                     EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
                 } else {
                     ebpf_map_t* map = program->maps[i];
-                    map_ids[i] = ebpf_map_get_id(map);
+                    // Volatile user mode pointer.
+                    WriteNoFence((volatile long*)&map_ids[i], ebpf_map_get_id(map));
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
@@ -2105,7 +2132,7 @@ ebpf_program_get_info(
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 
-    *info_size = sizeof(*output_info);
+    *output_buffer_size = sizeof(*output_info);
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2434,7 +2461,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
         state_stored = true;
     }
 
-    uint64_t start_time = ebpf_query_time_since_boot_precise(false);
+    uint64_t start_time = cxplat_query_time_since_boot_precise(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
     // This is because the modulus operation is expensive and we want to minimize the overhead of
     // the test run.
@@ -2447,7 +2474,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             ebpf_epoch_exit(&epoch_state);
             if (ebpf_should_yield_processor()) {
                 // Compute the elapsed time since the last yield.
-                end_time = ebpf_query_time_since_boot_precise(false);
+                end_time = cxplat_query_time_since_boot_precise(false);
 
                 // Add the elapsed time to the cumulative time.
                 cumulative_time += end_time - start_time;
@@ -2459,7 +2486,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
                 old_irql = ebpf_raise_irql(context->required_irql);
 
                 // Reset the start time.
-                start_time = ebpf_query_time_since_boot_precise(false);
+                start_time = cxplat_query_time_since_boot_precise(false);
             }
             ebpf_epoch_enter(&epoch_state);
         }
@@ -2469,7 +2496,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
             break;
         }
     }
-    end_time = ebpf_query_time_since_boot_precise(false);
+    end_time = cxplat_query_time_since_boot_precise(false);
 
     cumulative_time += end_time - start_time;
 

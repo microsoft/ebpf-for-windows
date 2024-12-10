@@ -17,6 +17,7 @@
 [submodule "external/pe-parse"]
 	path = external/pe-parse
 	url = https://github.com/trailofbits/pe-parse.git
+	fetchRecurseSubmodules = no
 [submodule "external/usersim"]
 	path = external/usersim
 	url = https://github.com/microsoft/usersim.git

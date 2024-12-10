@@ -19,7 +19,7 @@ jobs:
       issues: write
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
         with:
           disable-sudo: true
           egress-policy: block
@@ -34,8 +34,10 @@ jobs:
           BODY: |
             This is an automated reminder that a new release for eBPF is scheduled to be created:
 
-            1. Follow instructions in [ReleaseProcess.md](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/ReleaseProcess.md).
-            1. Sync the internal `mscodehub` and follow the internal release instructions in `\.internal\docs\ReleaseEbpfRedistProcess.md`.
+            - [ ] Ensure SPGO data is regenerated and added to the repo using performance test suite.
+            - [ ] Follow instructions in [ReleaseProcess.md](https://github.com/microsoft/ebpf-for-windows/blob/main/docs/ReleaseProcess.md).
+            - [ ] Sync the internal `undock` and follow the internal release instructions in `\.internal\docs\ReleaseEbpfRedistProcess.md`.
+
         with:
           script: |
             const owner = process.env.GITHUB_REPOSITORY.split('/')[0]

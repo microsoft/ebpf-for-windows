@@ -41,26 +41,28 @@ ebpf_lock_destroy(_In_ _Post_invalid_ ebpf_lock_t* lock)
 _Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
     _IRQL_raises_(DISPATCH_LEVEL) ebpf_lock_state_t ebpf_lock_lock(_Inout_ ebpf_lock_t* lock)
 {
-    return KeAcquireSpinLockRaiseToDpc(lock);
+    KIRQL old_irql = KeGetCurrentIrql();
+
+    if (old_irql < DISPATCH_LEVEL) {
+        old_irql = KeAcquireSpinLockRaiseToDpc(lock);
+    } else {
+        KeAcquireSpinLockAtDpcLevel(lock);
+    }
+    return old_irql;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 28157) // Prefast is not able to understand that the IRQL is lowered if it was raised.
 _Requires_lock_held_(*lock) _Releases_lock_(*lock) _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock(
     _Inout_ ebpf_lock_t* lock, _IRQL_restores_ ebpf_lock_state_t state)
 {
-    KeReleaseSpinLock(lock, state);
+    if (state < DISPATCH_LEVEL) {
+        KeReleaseSpinLock(lock, state);
+    } else {
+        KeReleaseSpinLockFromDpcLevel(lock);
+    }
 }
-
-_Requires_lock_not_held_(*lock) _Acquires_lock_(*lock) _IRQL_requires_max_(DISPATCH_LEVEL)
-    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_lock_at_dispatch(_Inout_ ebpf_lock_t* lock)
-{
-    KeAcquireSpinLockAtDpcLevel(lock);
-}
-
-_Requires_lock_held_(*lock) _Releases_lock_(*lock)
-    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lock_unlock_at_dispatch(_Inout_ ebpf_lock_t* lock)
-{
-    KeReleaseSpinLockFromDpcLevel(lock);
-}
+#pragma warning(pop)
 
 bool
 ebpf_is_preemptible()
@@ -216,34 +218,6 @@ ebpf_allocate_process_state()
     // Skipping fault injection as call to ebpf_allocate() covers it.
     ebpf_process_state_t* state = (ebpf_process_state_t*)ebpf_allocate(sizeof(ebpf_process_state_t));
     return state;
-}
-
-uint64_t
-ebpf_query_time_since_boot_precise(bool include_suspended_time)
-{
-    uint64_t qpc_time;
-    if (include_suspended_time) {
-        // KeQueryUnbiasedInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
-        // Unbiased Interrupt time is the total time since boot including time spent suspended.
-        // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryunbiasedinterrupttimeprecise
-        return KeQueryUnbiasedInterruptTimePrecise(&qpc_time);
-    } else {
-        // KeQueryInterruptTimePrecise returns the current interrupt-time count in 100-nanosecond units.
-        // (Biased) Interrupt time is the total time since boot excluding time spent suspended.        //
-        // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-kequeryinterrupttimeprecise
-        return KeQueryInterruptTimePrecise(&qpc_time);
-    }
-}
-
-uint64_t
-ebpf_query_time_since_boot_approximate(bool include_suspend_time)
-{
-    if (include_suspend_time) {
-        ebpf_assert(!"Include suspend time not supported on this platform.");
-        return 0;
-    } else {
-        return KeQueryInterruptTime();
-    }
 }
 
 MDL*

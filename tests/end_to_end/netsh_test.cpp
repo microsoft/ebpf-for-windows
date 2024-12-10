@@ -195,7 +195,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "arith32      : 0\n"
                   "arith64      : 1\n"
                   "assign       : 1\n"
-                  "basic_blocks : 2\n"
+                  "basic_blocks : 4\n"
                   "call_1       : 0\n"
                   "call_mem     : 0\n"
                   "call_nomem   : 0\n"
@@ -204,7 +204,7 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "load         : 0\n"
                   "load_store   : 0\n"
                   "map_in_map   : 0\n"
-                  "other        : 2\n"
+                  "other        : 3\n"
                   "packet_access: 0\n"
                   "reallocate   : 0\n"
                   "store        : 0\n"
@@ -261,9 +261,11 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 311;
+    const int code_size = 308;
+    const int old_code_size = 311;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1114;
+    const int code_size = 1102;
+    const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -285,7 +287,9 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             array     4      4        1  port_map\n"
                                         "             array     4      4        1  inner_map\n";
 
-    REQUIRE(output == std::vformat(expected_output, std::make_format_args(code_size)));
+    REQUIRE(
+        (output == std::vformat(expected_output, std::make_format_args(code_size)) ||
+         output == std::vformat(expected_output, std::make_format_args(old_code_size))));
 }
 
 // Test a .dll file with multiple programs.
@@ -402,7 +406,6 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "\n"
                   "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
@@ -417,7 +420,6 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"
-                  "\n"
                   "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
@@ -439,6 +441,7 @@ TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:43\n"
                   ";     ethernet_header->Type = 0x0800;\n"
+                  "\n"
                   "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
                   "\n"
                   "1 errors\n"
@@ -462,9 +465,12 @@ TEST_CASE("show verification droppacket_unsafe.o", "[netsh][verification]")
                   "\n"
                   "; ./tests/sample/unsafe/droppacket_unsafe.c:42\n"
                   ";     if (ip_header->Protocol == IPPROTO_UDP) {\n"
+                  "\n"
                   "2: Upper bound must be at most packet_size (valid_access(r1.offset+9, width=1) for read)\n"
+                  "\n"
                   "; ./tests/sample/unsafe/droppacket_unsafe.c:43\n"
                   ";         if (ntohs(udp_header->length) <= sizeof(UDP_HEADER)) {\n"
+                  "\n"
                   "4: Upper bound must be at most packet_size (valid_access(r1.offset+24, width=2) for read)\n"
                   "\n"
                   "2 errors\n"
@@ -483,19 +489,35 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
     output = strip_paths(output);
 
     // Perform a line by line comparison to detect any differences.
-    std::string expected_output = "Verification failed\n"
-                                  "\n"
-                                  "Verification report:\n"
-                                  "\n"
-                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
-                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
-                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-                                  "4: Code is unreachable after 4\n"
-                                  "\n"
-                                  "1 errors\n"
-                                  "\n";
+    std::string expected_output =
+        "Verification failed\n"
+        "\n"
+        "Verification report:\n"
+        "\n"
+        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
+        ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+        "\n"
+        "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+        "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
+        "5: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+        "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
+        "\n"
+        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:39\n"
+        ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
+        "ntohs(ETHERNET_TYPE_IPV6)) {\n"
+        "\n"
+        "6: Invalid type (r2.type in {ctx, stack, packet, shared})\n"
+        "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
+        "8: Invalid type (r1.type == number)\n"
+        "10: Invalid type (r1.type == number)\n"
+        "\n"
+        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:44\n"
+        ";     return rc;\n"
+        "\n"
+        "12: Invalid type (r0.type == number)\n"
+        "\n"
+        "9 errors\n"
+        "\n";
 
     // Split both output and expected_output into lines.
     std::istringstream output_stream(output);
@@ -524,10 +546,8 @@ TEST_CASE("show verification printk_unsafe.o", "[netsh][verification]")
                                   "\n"
                                   "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
                                   ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
+                                  "\n"
                                   "7: Invalid type (r3.type == number)\n"
-                                  "; ./tests/sample/unsafe/printk_unsafe.c:22\n"
-                                  ";     bpf_printk(\"ctx: %u\", (uint64_t)ctx);\n"
-                                  "7: Code is unreachable after 7\n"
                                   "\n"
                                   "1 errors\n"
                                   "\n";

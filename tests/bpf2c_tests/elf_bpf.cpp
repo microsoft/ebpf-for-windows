@@ -198,6 +198,7 @@ run_test_elf(const std::string& elf_file, _test_mode test_mode, const std::optio
 DECLARE_TEST("atomic_instruction_fetch_add", _test_mode::Verify)
 DECLARE_TEST("bad_map_name", _test_mode::Verify)
 DECLARE_TEST("bindmonitor", _test_mode::Verify)
+DECLARE_TEST("bindmonitor_bpf2bpf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_ringbuf", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_tailcall", _test_mode::Verify)
 DECLARE_TEST("bindmonitor_mt_tailcall", _test_mode::Verify)

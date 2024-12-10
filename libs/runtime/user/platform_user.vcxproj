@@ -38,12 +38,12 @@
     <ClInclude Include="..\ebpf_work_queue.h" />
     <ClInclude Include="framework.h" />
   </ItemGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</ProjectGuid>
     <RootNamespace>platformwindowsuser</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <ProjectName>runtime_user</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

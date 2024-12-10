@@ -687,6 +687,9 @@ _test_helper_end_to_end::_test_helper_end_to_end()
 
                 // Write the hash to a file.
                 std::ofstream output_file("corpus\\" + hash_string.str(), std::ios::binary);
+                // First write the reply buffer length.
+                uint16_t reply_buffer_length = static_cast<uint16_t>(nOutBufferSize);
+                output_file.write((char*)&reply_buffer_length, sizeof(reply_buffer_length));
                 output_file.write((char*)lpInBuffer, nInBufferSize);
                 output_file.close();
             }

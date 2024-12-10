@@ -197,6 +197,12 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
          EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
          EBPF_ARGUMENT_TYPE_CONST_SIZE_OR_ZERO,
      }},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_ktime_get_boot_ms,
+     "bpf_ktime_get_boot_ms",
+     EBPF_RETURN_TYPE_INTEGER,
+     {0}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER, BPF_FUNC_ktime_get_ms, "bpf_ktime_get_ms", EBPF_RETURN_TYPE_INTEGER, {0}},
 };
 
 #ifdef __cplusplus

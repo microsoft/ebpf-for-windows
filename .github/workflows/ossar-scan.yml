@@ -36,7 +36,7 @@ jobs:
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+      uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
       with:
         egress-policy: audit
 
@@ -81,6 +81,6 @@ jobs:
 
     - name: Upload results to Security tab
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/upload-sarif@4f3212b61783c3c68e8309a0f18a699764811cda
+      uses: github/codeql-action/upload-sarif@aa578102511db1f4524ed59b8cc2bae4f6e88195
       with:
         sarif_file: ${{ steps.ossar.outputs.sarifFile }}

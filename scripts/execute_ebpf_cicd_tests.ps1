@@ -68,12 +68,22 @@ $Job = Start-Job -ScriptBlock {
     # currently one VM runs per runner.
     $TestVMName = $VMList[0].Name
 
-    # Run Kernel tests on test VM.
-    Write-Log "Running kernel tests on $TestVMName"
-    Run-KernelTestsOnVM -VMName $TestVMName -Config $Config
+    try {
+        # Run Kernel tests on test VM.
+        Write-Log "Running kernel tests on $TestVMName"
+        Run-KernelTestsOnVM -VMName $TestVMName -Config $Config
 
-    # Stop eBPF components on test VMs.
-    Stop-eBPFComponentsOnVM -VMName $TestVMName
+        # Stop eBPF components on test VMs.
+        Stop-eBPFComponentsOnVM -VMName $TestVMName
+    } catch [System.Management.Automation.RemoteException] {
+        # Next, generate kernel dump.
+        Write-Log $_.Exception.Message
+        Write-Log $_.ScriptStackTrace
+        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
+            Generate-KernelDumpOnVM($TestVMName)
+        }
+    }
+
 
     Pop-Location
 } -ArgumentList (

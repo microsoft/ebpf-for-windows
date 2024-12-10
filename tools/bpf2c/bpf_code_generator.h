@@ -186,7 +186,8 @@ class bpf_code_generator
          */
         bpf_code_generator_exception(const unsafe_string& what, size_t offset)
             : std::runtime_error(what.raw() + " at offset " + std::to_string(offset))
-        {}
+        {
+        }
     };
 
     /**
@@ -398,10 +399,12 @@ class bpf_code_generator
     /**
      * @brief Add a program to the current section.
      *
-     * @param[in] name Program name.
+     * @param[in] program_name Program name.
+     * @param[in] elf_section_name ELF section name.
+     * @param[in] offset_in_section Offset in bytes into the ELF section where the program bytecode begins.
      */
     bpf_code_generator_program*
-    add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name);
+    add_program(const unsafe_string& program_name, const unsafe_string& elf_section_name, size_t offset_in_section);
 
     /**
      * @brief Generate C code from the parsed eBPF file.
