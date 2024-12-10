@@ -544,6 +544,24 @@ function Initialize-NetworkInterfacesOnVMs
             ipconfig /all
             Get-NetIPInterface | fl *
             Get-NetAdapter | fl *
+            Get-NetAdapterBinding -AllBindings
+
+            # Loop through each adapter and enable IPv4 and IPv6
+            $adapters = Get-NetAdapter
+            foreach ($adapter in $adapters) {
+                try {
+                    # Enable IPv4 (usually enabled by default)
+                    Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip
+
+                    # Enable IPv6
+                    Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip6
+
+                    Write-Host "Enabled IPv4 and IPv6 on adapter: $($adapter.Name)"
+                } catch {
+                    Write-Host "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name)"
+                }
+            }
+            Get-NetAdapterBinding -AllBindings
 
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop

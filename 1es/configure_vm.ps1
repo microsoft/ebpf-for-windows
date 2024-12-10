@@ -121,6 +121,8 @@ foreach ($adapter in $adapters) {
     }
 }
 
+Get-NetAdapterBinding -AllBindings
+
 ipconfig /all
 
 Get-NetIPInterface
