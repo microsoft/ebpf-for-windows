@@ -18,16 +18,25 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 
-$AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-$StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+$SelfHostedRunnerName = "runner_host"
+Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, AdminTarget: $AdminTarget, StandardUserTarget: $StandardUserTarget"
+try {
+    $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+    $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+} catch {
+    Write-Host "Failed to get credentials for $AdminTarget or $StandardUserTarget. Using default credentials."
+    $securePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
+    $AdminTestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword $securePassword
+    $StandardUserTestVMCredential = New-Credential -UserName 'VMStandardUser' -AdminPassword $securePassword
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
-           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential, 
-           [Parameter(Mandatory = $true)] [PSCustomObject] $Config, 
+           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
+           [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
            [Parameter(Mandatory = $True)] [string] $LogFileName,

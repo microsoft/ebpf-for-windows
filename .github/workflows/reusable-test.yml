@@ -69,7 +69,9 @@ jobs:
     strategy:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
-    runs-on: ${{inputs.environment}}
+    runs-on:
+      - self-hosted
+      - "1ES.Pool=ebpf-cicd-runner-pool-server-2019"
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
@@ -88,6 +90,16 @@ jobs:
       uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
       with:
         egress-policy: audit
+
+    - name: maige_test
+      id: maige-test
+      run: |
+        powershell.exe "Get-NetAdapter"
+        powershell.exe "Get-VMSwitch"
+        powershell.exe "cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
+        powershell.exe "Get-NetAdapter"
+        powershell.exe "Get-VMSwitch"
+        powershell.exe "Get-VM"
 
     - name: Print CPU information
       run:
@@ -129,6 +141,7 @@ jobs:
         sparse-checkout: |
           .github/workflows/reusable-test.yml
         sparse-checkout-cone-mode: false
+
 
     - name: Set up choco cache folder
       # Set the choco cache to a local folder so that it can be cached.
@@ -230,6 +243,16 @@ jobs:
       run: |
         .\export_program_info_sample.exe --clear
         .\export_program_info_sample.exe
+
+    - name: 1ES TEST
+      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests_ws2019' && inputs.environment != 'ebpf_cicd_tests_ws2022' && inputs.environment != 'ebpf_cicd_perf_ws2022')
+      id: test_1es
+      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      run: |
+        hostname
+        whoami
+        powershell.exe Get-VM
+        dir /s
 
     - name: Run pre test command
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests_ws2019' && inputs.environment != 'ebpf_cicd_tests_ws2022' && inputs.environment != 'ebpf_cicd_perf_ws2022')

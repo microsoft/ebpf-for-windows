@@ -3,6 +3,12 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
+try {
+    Import-Module CredentialManager -Force -ErrorAction Ignore
+} catch {
+    Write-Host "Failed to import CredentialManager module. Using default credentials."
+}
+
 #
 # Common helper functions.
 #
@@ -94,7 +100,7 @@ function Wait-TestJobToComplete
             if ($Job.State -eq "Running") {
                 $VMList = $Config.VMMap.$SelfHostedRunnerName
                 # currently one VM runs per runner.
-                $TestVMName = $VMList[0].Name            
+                $TestVMName = $VMList[0].Name
                 Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
                 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
                 $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
@@ -111,4 +117,18 @@ function Wait-TestJobToComplete
     $JobOutput | ForEach-Object { Write-Host $_ }
 
     return $JobTimedOut
+}
+
+function Create-VMCredential {
+    param (
+        [Parameter(Mandatory=$True)][string]$VmUsername,
+        [Parameter(Mandatory=$True)][string]$VmPassword
+    )
+
+    try {
+        $secureVmPassword = ConvertTo-SecureString $VmPassword -AsPlainText -Force
+        return New-Object System.Management.Automation.PSCredential($VmUsername, $secureVmPassword)
+    } catch {
+        throw "Failed to create VM credential: $_"
+    }
 }
