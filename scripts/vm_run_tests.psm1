@@ -686,43 +686,33 @@ function Run-KernelTestsOnVM
     param([Parameter(Mandatory = $true)] [string] $VMName,
           [Parameter(Mandatory = $true)] [PSCustomObject] $Config)
 
-    try {
+    # Run CICD tests on test VM.
+    Invoke-CICDTestsOnVM `
+        -VMName $VMName `
+        -TestMode $TestMode `
+        -Options $Options
 
-        # Run CICD tests on test VM.
-        Invoke-CICDTestsOnVM `
-            -VMName $VMName `
-            -TestMode $TestMode `
-            -Options $Options
+    # The required behavior is selected by the $TestMode
+    # parameter.
+    if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
 
-        # The required behavior is selected by the $TestMode
-        # parameter.
-        if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
+        # Run XDP Tests.
+        Invoke-XDPTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -VMName $VMName
 
-            # Run XDP Tests.
-            Invoke-XDPTestsOnVM `
-                -Interfaces $Config.Interfaces `
-                -VMName $VMName
+        # Run Connect Redirect Tests.
+        Invoke-ConnectRedirectTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+            -UserType "Administrator" `
+            -VMName $VMName
 
-            # Run Connect Redirect Tests.
-            Invoke-ConnectRedirectTestsOnVM `
-                -Interfaces $Config.Interfaces `
-                -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-                -UserType "Administrator" `
-                -VMName $VMName
-
-            Invoke-ConnectRedirectTestsOnVM `
-                -Interfaces $Config.Interfaces `
-                -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-                -UserType "StandardUser" `
-                -VMName $VMName
-        }
-    } catch [System.Management.Automation.RemoteException] {
-        # Next, generate kernel dump.
-        Write-Log $_.Exception.Message
-        Write-Log $_.ScriptStackTrace
-        if ($_.CategoryInfo.Reason -eq "TimeoutException") {
-            Generate-KernelDumpOnVM($VMName)
-        }
+        Invoke-ConnectRedirectTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+            -UserType "StandardUser" `
+            -VMName $VMName
     }
 }
 

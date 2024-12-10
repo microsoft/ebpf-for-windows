@@ -97,7 +97,7 @@ jobs:
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+      uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
       with:
         egress-policy: audit
 
@@ -135,12 +135,14 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@4f3212b61783c3c68e8309a0f18a699764811cda
+      uses: github/codeql-action/init@aa578102511db1f4524ed59b8cc2bae4f6e88195
       with:
         languages: 'cpp'
 
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+      with:
+        msbuild-architecture: x64
 
     - name: Add Visual Studio LLVM to path
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -154,7 +156,7 @@ jobs:
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
+      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
       env:
         cache-name: cache-nuget-modules
       with:
@@ -164,7 +166,7 @@ jobs:
     - name: Cache verifier project
       # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a
+      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
       env:
         cache-name: cache-verifier-project
       with:
@@ -183,7 +185,7 @@ jobs:
     - name: Build
       if: steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}  /bl:out.binlog
 
     - name: Check DLL dependencies for distributed binaries
       if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
@@ -220,7 +222,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.0.6/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.11.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
     - name: Extract artifacts to build path
       if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && matrix.configurations != 'FuzzerDebug'
@@ -253,7 +255,7 @@ jobs:
     - name: Build the NuGet package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget /bl:out.binlog
 
     - name: Upload the NuGet package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
@@ -265,7 +267,7 @@ jobs:
     - name: Build the NuGet Redist package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package
+      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package /bl:out.binlog
 
     - name: Upload the NuGet Redist package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
@@ -273,6 +275,13 @@ jobs:
       with:
         name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
+
+    - name: Upload binlog
+      if: (success() || failure()) && steps.skip_check.outputs.should_skip != 'true'
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      with:
+        name: build-binlog-${{env.BUILD_ARTIFACT_NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+        path: out.binlog
 
     - name: Check for crash dumps
       # Check for crash dumps even if the workflow failed.
@@ -294,4 +303,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@4f3212b61783c3c68e8309a0f18a699764811cda
+      uses: github/codeql-action/analyze@aa578102511db1f4524ed59b8cc2bae4f6e88195

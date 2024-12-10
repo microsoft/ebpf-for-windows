@@ -15,6 +15,8 @@ typedef struct _ebpf_utility_helpers_data
     uint64_t boot_timestamp;
     uint32_t cpu_id;
     uint64_t pid_tgid;
+    uint64_t boot_timestamp_ms;
+    uint64_t timestamp_ms;
 } ebpf_utility_helpers_data_t;
 
 typedef struct _helper_values

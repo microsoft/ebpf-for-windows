@@ -4,12 +4,12 @@
   SPDX-License-Identifier: MIT
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{E79382B2-FED9-4CD4-9498-DBDDD6C46C91}</ProjectGuid>
     <RootNamespace>ebpfapi</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
     <PrevailDir>$(ProjectDir)../../external/ebpf-verifier/</PrevailDir>
     <ProjectName>api_common</ProjectName>
   </PropertyGroup>

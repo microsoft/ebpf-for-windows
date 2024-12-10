@@ -20,6 +20,7 @@
     <ClInclude Include="..\ebpf_tracelog.h" />
     <ClInclude Include="shared_context.h" />
   </ItemGroup>
+  <Import Project="$(SolutionDir)wdk.props" />
   <PropertyGroup Label="Globals">
     <ProjectGuid>{d1b81388-23ca-4e4b-916f-8d37989ae836}</ProjectGuid>
     <TemplateGuid>{0a049372-4c4d-4ea0-a64e-dc6ad88ceca1}</TemplateGuid>
@@ -30,7 +31,6 @@
     <RootNamespace>kernel</RootNamespace>
     <DriverType>KMDF</DriverType>
     <ProjectName>shared_kernel</ProjectName>
-    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">

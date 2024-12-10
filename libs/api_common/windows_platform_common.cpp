@@ -3,13 +3,13 @@
 
 #include "api_common.hpp"
 #include "api_internal.h"
-#include "crab_verifier_wrapper.hpp"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
 #include "ebpf_nethooks.h"
 #include "ebpf_protocol.h"
 #include "ebpf_serialize.h"
 #include "ebpf_store_helper.h"
+#include "ebpf_verifier_wrapper.hpp"
 #include "helpers.hpp"
 #include "map_descriptors.hpp"
 #include "platform.hpp"
@@ -775,7 +775,7 @@ clear_ebpf_provider_data()
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
     get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
 {
-    const GUID* program_type = reinterpret_cast<const GUID*>(global_program_info->type.platform_specific_data);
+    const GUID* program_type = reinterpret_cast<const GUID*>(thread_local_program_info->type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
 
     _load_ebpf_provider_data();
