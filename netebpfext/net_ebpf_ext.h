@@ -143,34 +143,28 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
-#ifdef _DEBUG
+#define CLEAN_UP_FILTER_CONTEXT_COMMON(filter_context)        \
+    if ((filter_context)->filter_ids != NULL) {               \
+        ExFreePool((filter_context)->filter_ids);             \
+    }                                                         \
+    if ((filter_context)->client_contexts != NULL) {          \
+        ExFreePool((filter_context)->client_contexts);        \
+    }                                                         \
+    if ((filter_context)->wfp_engine_handle != NULL) {        \
+        FwpmEngineClose((filter_context)->wfp_engine_handle); \
+    }                                                         \
+    ExFreePool((filter_context));
+
+#if !defined(NDEBUG)
 #define CLEAN_UP_FILTER_CONTEXT(filter_context)                                \
     if ((filter_context) != NULL) {                                            \
-        if ((filter_context)->filter_ids != NULL) {                            \
-            ExFreePool((filter_context)->filter_ids);                          \
-        }                                                                      \
-        if ((filter_context)->client_contexts != NULL) {                       \
-            ExFreePool((filter_context)->client_contexts);                     \
-        }                                                                      \
-        if ((filter_context)->wfp_engine_handle != NULL) {                     \
-            FwpmEngineClose((filter_context)->wfp_engine_handle);              \
-        }                                                                      \
         net_ebpf_ext_remove_filter_context_from_zombie_list((filter_context)); \
-        ExFreePool((filter_context));                                          \
+        CLEAN_UP_FILTER_CONTEXT_COMMON(filter_context);                        \
     }
 #else
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)                   \
-    if ((filter_context) != NULL) {                               \
-        if ((filter_context)->filter_ids != NULL) {               \
-            ExFreePool((filter_context)->filter_ids);             \
-        }                                                         \
-        if ((filter_context)->client_contexts != NULL) {          \
-            ExFreePool((filter_context)->client_contexts);        \
-        }                                                         \
-        if ((filter_context)->wfp_engine_handle != NULL) {        \
-            FwpmEngineClose((filter_context)->wfp_engine_handle); \
-        }                                                         \
-        ExFreePool((filter_context));                             \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)         \
+    if ((filter_context) != NULL) {                     \
+        CLEAN_UP_FILTER_CONTEXT_COMMON(filter_context); \
     }
 #endif
 
@@ -398,7 +392,7 @@ net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
 
-#ifdef _DEBUG
+#if !defined(NDEBUG)
 /**
  * @brief Add the filter context to the zombie list.
  *
@@ -414,4 +408,4 @@ net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_fi
  */
 void
 net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
-#endif // _DEBUG
+#endif
