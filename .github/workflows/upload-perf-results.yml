@@ -95,6 +95,7 @@ jobs:
         psql -f ${{github.workspace}}/results/upload.sql
 
     - name: Download and run regression script
+      id: generate_csv
       run: |
         curl https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
         export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
@@ -102,15 +103,23 @@ jobs:
         export PGUSER=$(cat ${{github.workspace}}/PGUSER)
         export PGPORT=$(cat ${{github.workspace}}/PGPORT)
         export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
-        psql -f ./scripts/check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
+        query_output=$(psql -f ./scripts/check_perf_results.sql -v platform='${{inputs.platform}}' --csv)
+        if [ -n "$query_output" ]; then
+          echo "::set-output name=csv_created::true"
+          query_output > ${{github.workspace}}/results/regression_results.csv
+        else
+          echo "::set-output name=csv_created::false"
+        fi
 
     - name: Upload regression results
+      if: steps.generate_csv.outputs.csv_created == 'true'
       uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
       with:
         name: Regression-Results-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results/regression_results.csv
 
     - name: Create regression work item
+      if: steps.generate_csv.outputs.csv_created == 'true'
       uses: actions/create-work-item@v1
       with:
         title: Performance regression detected
