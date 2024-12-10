@@ -38,7 +38,7 @@ static bool _net_ebpf_sock_ops_providers_registered = false;
 // Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
 // contexts.
 EX_SPIN_LOCK _net_ebpf_filter_zombie_list_lock = {0};
-static LIST_ENTRY _net_ebpf_filter_zombie_list = {0};
+_Guarded_by_(_net_ebpf_filter_zombie_list_lock) static LIST_ENTRY _net_ebpf_filter_zombie_list = {0};
 #endif
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
