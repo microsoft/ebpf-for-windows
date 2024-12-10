@@ -542,9 +542,9 @@ function Initialize-NetworkInterfacesOnVMs
 
             # TODO - remove this debugging output
             ipconfig /all
-            Get-NetIPInterface | fl *
-            Get-NetAdapter | fl *
-            Get-NetAdapterBinding -AllBindings
+            Get-NetIPInterface | fl * | Out-String
+            Get-NetAdapter | fl * | Out-String
+            Get-NetAdapterBinding -AllBindings | fl * | Out-String
 
             # Loop through each adapter and enable IPv4 and IPv6
             $adapters = Get-NetAdapter
@@ -561,7 +561,7 @@ function Initialize-NetworkInterfacesOnVMs
                     Write-Host "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name)"
                 }
             }
-            Get-NetAdapterBinding -AllBindings
+            Get-NetAdapterBinding -AllBindings | fl * | Out-String
 
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop

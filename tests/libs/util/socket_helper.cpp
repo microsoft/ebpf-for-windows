@@ -86,6 +86,8 @@ _base_socket::_base_socket(
             socket, IPPROTO_IPV6, IPV6_V6ONLY, reinterpret_cast<const char*>(&ipv6_option), sizeof(unsigned long));
         if (error != 0) {
             FAIL("Could not enable dual family endpoint: " << WSAGetLastError());
+        } else {
+            printf("Dual family endpoint enabled\n");
         }
     }
 
