@@ -1,0 +1,56 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This workflow performs a build of the project and uploads the result as a build artifact.
+
+name: Check for updates to the Windows Driver Kit
+
+on:
+  # Run script every Sunday at midnight
+  schedule:
+    - cron: '0 0 * * 0'
+  # Allow manual triggering of the script
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: Windows-latest
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      if: steps.skip_check.outputs.should_skip != 'true'
+
+    - name: Check for updates to the Windows Driver Kit
+      id: check_wdk
+      run: |
+        # Get the latest version of the Windows Driver Kit
+        $packageVersion = .\scripts\Get-LatestNugetPackageVersion.ps1 -PackageName "Microsoft.Windows.WDK.x64"
+        "wdk_version=$packageVersion" >> $env:GITHUB_OUTPUT
+
+    - name: Check the version of the WDK in the repo
+      id: check_repo_wdk
+      run: |
+        $wdkVersion = (Get-Content -Path .\wdk.props | Select-String -Pattern "<WDKVersion>" | ForEach-Object { $_ -replace "<WDKVersion>", "" -replace "</WDKVersion>", "" }).trim()
+        "wdk_version=$wdkVersion" >> $env:GITHUB_OUTPUT
+
+    - name: File issue if the versions don't match and an issue doesn't already exist
+      if: steps.check_wdk.outputs.wdk_version != steps.check_repo_wdk.outputs.wdk_version
+      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const { data: issues } = await github.issues.listForRepo({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            state: 'open',
+            creator: 'github-actions[bot]',
+            labels: 'wdk-update'
+          });
+          if (issues.length === 0) {
+            await github.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Update the Windows Driver Kit',
+              body: 'The Windows Driver Kit version in the repository does not match the latest version available on NuGet. Please update the WDK version in the repository to match the latest version available on NuGet.',
+              labels: ['wdk-update']
+            });
+          }
