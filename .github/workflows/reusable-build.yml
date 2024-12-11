@@ -207,12 +207,12 @@ jobs:
         copy "${{env.msvc_tools_path}}\bin\Hostx64\x64\clang*" .
 
     - name: Download demo Debug repository
-      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
+      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && ${{env.BUILD_PLATFORM}} != 'ARM64' && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Debug-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
     - name: Download demo Release repository
-      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
+      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && ${{env.BUILD_PLATFORM}} != 'ARM64' && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
