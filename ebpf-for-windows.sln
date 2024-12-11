@@ -3397,7 +3397,6 @@ Global
 		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyDebug|x86.ActiveCfg = Debug|x64
 		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyDebug|x86.Build.0 = Debug|x64
 		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyRelease|ARM64.ActiveCfg = Release|ARM64
-		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyRelease|ARM64.Build.0 = Release|ARM64
 		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyRelease|x64.ActiveCfg = Release|x64
 		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyRelease|x86.ActiveCfg = Release|x64
 		{19A90A82-92D0-3246-93CA-F15A7B279297}.NativeOnlyRelease|x86.Build.0 = Release|x64
