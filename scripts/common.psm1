@@ -61,22 +61,41 @@ function Compress-File
     # Retry 3 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
-    while ($retryCount -lt 4) {
-        $error.clear()
-        Compress-Archive `
-            -Path $SourcePath `
-            -DestinationPath $DestinationPath `
-            -CompressionLevel Fastest `
-            -Force
-        if ($error[0] -ne $null) {
-            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+    while ($retryCount -lt 6) {
+        try {
+            $error.clear()
+            Compress-Archive `
+                -Path $SourcePath `
+                -DestinationPath $DestinationPath `
+                -CompressionLevel Fastest `
+                -Force
+            if ($error[0] -ne $null) {
+                $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+                Write-Output $ErrorMessage
+                Start-Sleep -seconds (5 * $retryCount)
+                $retryCount++
+            } else {
+                # Compression succeeded.
+                if (Test-Path $DestinationPath) {
+                    Write-Log "Successfully compressed $SourcePath -> $DestinationPath"
+                    break;
+                } else {
+                    $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+                    Write-Output $ErrorMessage
+                    Start-Sleep -seconds (5 * $retryCount)
+                    $retryCount++
+                }
+            }
+        } catch {
+            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $_. Retrying $retryCount"
             Write-Output $ErrorMessage
             Start-Sleep -seconds (5 * $retryCount)
             $retryCount++
-        } else {
-            # Compression succeeded.
-            break;
         }
+    }
+
+    if (!(Test-Path $DestinationPath)) {
+        Write-Log "Failed to compress kernel mode dump files after retries"
     }
 }
 
