@@ -92,6 +92,7 @@ jobs:
       build_artifact: Build-${{ matrix.Architecture }}-native-only
       build_msi: true
       build_nuget: true
+      download_demo_repository: false
       architecture: ${{ matrix.Architecture }}
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
