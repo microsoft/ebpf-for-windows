@@ -205,9 +205,6 @@
     <ProjectReference Include="..\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\sample\sample.vcxproj">
-      <Project>{b4ad72e3-754e-40ca-9cea-d3f2c9170e51}</Project>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\libs\execution_context\unit\execution_context_unit_test.cpp" />
