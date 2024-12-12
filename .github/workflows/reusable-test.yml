@@ -64,9 +64,9 @@ permissions:
 jobs:
   set-job-environment:
     # The following environments are supported:
-    # - 1es-<RUNNER_POOL_NAME> (which matches ebpf-cicd-runner-pool-<RUNNER_POOL_NAME> in the 1es pool)
     # - Any of the github environments.
-    runs-on: ${{ inputs.environment }}
+    # - 1es-<RUNNER_POOL_NAME> (which matches ebpf-cicd-runner-pool-<RUNNER_POOL_NAME> in the 1es pool)
+    runs-on: ubuntu-latest
     steps:
       - name: Set runner type
         id: set_runner
@@ -78,31 +78,6 @@ jobs:
           else
             echo "::set-output name=runs_on::${{ inputs.environment }}"
           fi
-# Alternative solution:
-# jobs:
-#   example-job:
-#     runs-on: ${{ inputs.environment }}
-#     steps:
-#       - name: Check condition
-#         id: condition
-#         run: echo "Condition check"
-#         # Set an output based on your condition
-#         # For example, set the output to 'true' if you want to use the self-hosted runner
-#         # You can replace this with your actual condition
-#         echo "::set-output name=use_self_hosted::true"
-
-#       - name: Set runs-on
-#         if: steps.condition.outputs.use_self_hosted == 'true'
-#         run: |
-#           echo "::set-output name=runs_on::self-hosted"
-#           echo "::set-output name=runs_on_pool::1ES.Pool=ebpf-cicd-runner-pool-server-2019"
-
-#       - name: Set runs-on
-#         if: steps.condition.outputs.use_self_hosted != 'true'
-#         run: echo "::set-output name=runs_on::${{ inputs.environment }}"
-
-#     runs-on: ${{ steps.set_runs_on.outputs.runs_on }}
-#     runs-on: ${{ steps.set_runs_on.outputs.runs_on_pool }}
   run_test:
     # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
     timeout-minutes: 90
