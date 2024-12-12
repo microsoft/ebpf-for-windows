@@ -67,7 +67,6 @@ function Invoke-CICDTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
-        GetDriveFreeSpaceGB
         $TestMode = $TestMode.ToLower()
         switch ($TestMode)
         {
@@ -288,7 +287,6 @@ function Invoke-XDPTestOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
-        GetDriveFreeSpaceGB
         Write-Log "Invoking $XDPTestName on $VM"
         Invoke-XDPTest `
             -RemoteIPV4Address $RemoteIPV4Address `
@@ -624,7 +622,6 @@ function Invoke-ConnectRedirectTestsOnVM
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
-        GetDriveFreeSpaceGB
         Write-Log "Invoking connect redirect tests [Mode=$UserType] on $VM"
         Invoke-ConnectRedirectTest `
             -LocalIPv4Address $LocalIPv4Address `
