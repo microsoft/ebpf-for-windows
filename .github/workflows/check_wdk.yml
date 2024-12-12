@@ -17,7 +17,6 @@ jobs:
     runs-on: Windows-latest
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      if: steps.skip_check.outputs.should_skip != 'true'
 
     - name: Check for updates to the Windows Driver Kit
       id: check_wdk
