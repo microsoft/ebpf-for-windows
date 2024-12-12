@@ -38,6 +38,10 @@ jobs:
         BODY: |
           The Windows Driver Kit version in the repository does not match the latest version available on NuGet. Please update the WDK version in the repository to match the latest version available on NuGet.
           The latest version is ${{steps.check_wdk.outputs.wdk_version}} and the version in the repository is ${{steps.check_repo_wdk.outputs.wdk_version}}.          
+          To update the WDK run the following command:
+          ```powershell 
+          .\scripts\Update-WdkVersion.ps1
+          ```
         LABELS: bug,ci/cd
       with:
         script: |
