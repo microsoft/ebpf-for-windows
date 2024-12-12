@@ -196,7 +196,7 @@ function Create-VM {
             Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
             Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
         }
-        Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -MinimumBytes $VMMemory -StartupBytes $VMMemory -MaximumBytes $VMMemory
+        Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
             throw "Failed to create VM: $VMName"
