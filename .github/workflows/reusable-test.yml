@@ -62,6 +62,47 @@ permissions:
   issues: write # Required to create issues.
 
 jobs:
+  set-job-environment:
+    # The following environments are supported:
+    # - 1es-<RUNNER_POOL_NAME> (which matches ebpf-cicd-runner-pool-<RUNNER_POOL_NAME> in the 1es pool)
+    # - Any of the github environments.
+    runs-on: ${{ inputs.environment }}
+    steps:
+      - name: Set runner type
+        id: set_runner
+        run: |
+          if [[ "${{ inputs.environment }}" == *"1es"* ]]; then
+            pool_name=$(echo "${{ inputs.environment }}" | sed 's/.*1es-//')
+            echo "::set-output name=runs_on::self-hosted"
+            echo "::set-output name=runs_on_pool::1ES.Pool=ebpf-cicd-runner-pool-$pool_name"
+          else
+            echo "::set-output name=runs_on::${{ inputs.environment }}"
+          fi
+# Alternative solution:
+# jobs:
+#   example-job:
+#     runs-on: ${{ inputs.environment }}
+#     steps:
+#       - name: Check condition
+#         id: condition
+#         run: echo "Condition check"
+#         # Set an output based on your condition
+#         # For example, set the output to 'true' if you want to use the self-hosted runner
+#         # You can replace this with your actual condition
+#         echo "::set-output name=use_self_hosted::true"
+
+#       - name: Set runs-on
+#         if: steps.condition.outputs.use_self_hosted == 'true'
+#         run: |
+#           echo "::set-output name=runs_on::self-hosted"
+#           echo "::set-output name=runs_on_pool::1ES.Pool=ebpf-cicd-runner-pool-server-2019"
+
+#       - name: Set runs-on
+#         if: steps.condition.outputs.use_self_hosted != 'true'
+#         run: echo "::set-output name=runs_on::${{ inputs.environment }}"
+
+#     runs-on: ${{ steps.set_runs_on.outputs.runs_on }}
+#     runs-on: ${{ steps.set_runs_on.outputs.runs_on_pool }}
   run_test:
     # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
     timeout-minutes: 90
@@ -69,9 +110,8 @@ jobs:
     strategy:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
-    runs-on:
-      - self-hosted
-      - "1ES.Pool=ebpf-cicd-runner-pool-server-2019"
+    runs-on: ${{ steps.set_runner.outputs.runs_on }}
+    runs-on: ${{ steps.set_runner.outputs.runs_on_pool }}
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
@@ -91,15 +131,15 @@ jobs:
       with:
         egress-policy: audit
 
-    - name: maige_test
-      id: maige-test
+    - name: Provision Mock (Move to setup script directly later)
+      id: provision-mock
       run: |
-        powershell.exe "Get-NetAdapter"
-        powershell.exe "Get-VMSwitch"
         powershell.exe "cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
-        powershell.exe "Get-NetAdapter"
-        powershell.exe "Get-VMSwitch"
-        powershell.exe "Get-VM"
+        # powershell.exe "Get-NetAdapter"
+        # powershell.exe "Get-VMSwitch"
+        # powershell.exe "Get-NetAdapter"
+        # powershell.exe "Get-VMSwitch"
+        # powershell.exe "Get-VM"
 
     - name: Print CPU information
       run:
@@ -243,16 +283,6 @@ jobs:
       run: |
         .\export_program_info_sample.exe --clear
         .\export_program_info_sample.exe
-
-    - name: 1ES TEST
-      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests_ws2019' && inputs.environment != 'ebpf_cicd_tests_ws2022' && inputs.environment != 'ebpf_cicd_perf_ws2022')
-      id: test_1es
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: |
-        hostname
-        whoami
-        powershell.exe Get-VM
-        dir /s
 
     - name: Run pre test command
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.environment != 'ebpf_cicd_tests_ws2019' && inputs.environment != 'ebpf_cicd_tests_ws2022' && inputs.environment != 'ebpf_cicd_perf_ws2022')
