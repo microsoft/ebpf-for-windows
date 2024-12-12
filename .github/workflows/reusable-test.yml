@@ -86,8 +86,8 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on:
-      - ${{ steps.set_runner.outputs.runs_on }}
-      - ${{ steps.set_runner.outputs.runs_on_pool }}
+      - ${{ set-job-environment.steps.set_runner.outputs.runs_on }}
+      - ${{ set-job-environment.steps.set_runner.outputs.runs_on_pool }}
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
