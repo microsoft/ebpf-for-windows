@@ -1,7 +1,7 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-# This workflow performs a build of the project and uploads the result as a build artifact.
+# This workflow checks for Windows Driver Kit updates and files issues when updates are needed.
 
 name: Check for updates to the Windows Driver Kit
 
@@ -40,25 +40,49 @@ jobs:
         }
         "wdk_version=$wdkVersion" >> $env:GITHUB_OUTPUT
 
-    - name: File issue if the versions don't match and an issue doesn't already exist
+    - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
       if: steps.check_wdk.outputs.wdk_version != steps.check_repo_wdk.outputs.wdk_version
-      uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
+      env:
+        TITLE: 'Update the Windows Driver Kit'
+        BODY: |
+          The Windows Driver Kit version in the repository does not match the latest version available on NuGet. Please update the WDK version in the repository to match the latest version available on NuGet.
+          The latest version is ${{steps.check_wdk.outputs.wdk_version}} and the version in the repository is ${{steps.check_repo_wdk.outputs.wdk_version}}.          
+        LABELS: bug,ci/cd
       with:
-        github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          const { data: issues } = await github.issues.listForRepo({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
+          const owner = process.env.GITHUB_REPOSITORY.split('/')[0]
+          const repo = process.env.GITHUB_REPOSITORY.split('/')[1]
+          const body = process.env.BODY;
+          const title = process.env.TITLE;
+          const labels = process.env.LABELS;
+          const label_array = labels ? labels.split(',') : [];
+          console.log(label_array);
+          // Get all issues that have these labels.
+          const opts = github.rest.issues.listForRepo.endpoint.merge({
+            ...context.issue,
             state: 'open',
-            creator: 'github-actions[bot]',
-            labels: 'wdk-update'
+            labels: label_array,
           });
-          if (issues.length === 0) {
-            await github.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'Update the Windows Driver Kit',
-              body: 'The Windows Driver Kit version in the repository does not match the latest version available on NuGet. Please update the WDK version in the repository to match the latest version available on NuGet.',
-              labels: ['wdk-update']
-            });
+          const issues = await github.paginate(opts);
+          // Look for an existing issue with the same title.
+          for (const issue of issues) {
+            if (issue.title === title) {
+              console.log(`Updating issue ${title}`);
+              await github.rest.issues.createComment({
+                issue_number: issue.number,
+                owner,
+                repo,
+                body,
+              });
+              return;
+            }
           }
+          // Existing issue not found, create a new one.
+          console.log(`Creating issue ${title}`);
+          await github.rest.issues.create({
+            owner: owner,
+            repo: repo,
+            title: title,
+            body: body,
+            labels: label_array,
+          });
