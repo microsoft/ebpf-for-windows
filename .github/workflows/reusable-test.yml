@@ -79,6 +79,7 @@ jobs:
             echo "::set-output name=runs_on::${{ inputs.environment }}"
           fi
   run_test:
+    needs: set-job-environment
     # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
     timeout-minutes: 90
 
@@ -86,8 +87,8 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
     runs-on:
-      - ${{ set-job-environment.steps.set_runner.outputs.runs_on }}
-      - ${{ set-job-environment.steps.set_runner.outputs.runs_on_pool }}
+      - ${{ needs.set-job-environment.steps.outputs.runs_on }}
+      - ${{ needs.set-job-environment.steps.outputs.runs_on_pool }}
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
