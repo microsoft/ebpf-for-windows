@@ -150,7 +150,7 @@ function Create-VM {
         [Parameter(Mandatory=$True)][string]$VhdPath,
         [Parameter(Mandatory=$True)][string]$VmStoragePath,
         [Parameter(Mandatory=$True)][string]$ExternalVMSwitchName,
-        [Parameter(Mandatory=$True)][Int64]$MemoryStartupBytes,
+        [Parameter(Mandatory=$True)][Int64]$VMMemory,
         [Parameter(Mandatory=$True)][string]$UnattendPath
     )
 
@@ -190,12 +190,13 @@ function Create-VM {
 
         # Create the VM
         Log-Message "Creating the VM"
-        New-VM -Name $VmName -MemoryStartupBytes $MemoryStartupBytes -VhdPath $VmVhdPath
+        New-VM -Name $VmName -VhdPath $VmVhdPath
         $vmSwitches = Get-VMSwitch
         foreach ($switch in $vmSwitches) {
             Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
             Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
         }
+        Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -MinimumBytes $VMMemory -StartupBytes $VMMemory -MaximumBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
             throw "Failed to create VM: $VMName"

@@ -11,8 +11,8 @@ param(
     [Parameter(Mandatory=$False)][string]$OutVhdDirPath='.\exported_vhds',
     [Parameter(Mandatory=$False)][string]$ExternalSwitchName='VMExternalSwitch',
 
-    [Parameter(Mandatory=$False)][string]$VMCpuCount=2,
-    [Parameter(Mandatory=$False)][string]$VMMemoryStartupBytes=512MB
+    [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
+    [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,7 +56,7 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
         -VhdPath $vhd.FullName `
         -VmStoragePath $outVMPath `
         -ExternalVMSwitchName $ExternalSwitchName `
-        -MemoryStartupBytes $VMMemoryStartupBytes `
+        -VMMemory $VMMemory `
         -UnattendPath $BaseUnattendPath `
         -VmUsername $VmUsername `
         -VmPassword $VmPassword
