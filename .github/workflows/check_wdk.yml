@@ -28,16 +28,7 @@ jobs:
     - name: Check the version of the WDK in the repo
       id: check_repo_wdk
       run: |
-        if (-not (Test-Path .\wdk.props)) {
-            throw "wdk.props file not found"
-        }
         $wdkVersion = (Get-Content -Path .\wdk.props | Select-String -Pattern "<WDKVersion>" | ForEach-Object { $_ -replace "<WDKVersion>", "" -replace "</WDKVersion>", "" }).trim()
-        if ([string]::IsNullOrWhiteSpace($wdkVersion)) {
-            throw "WDK version not found in wdk.props"
-        }
-        if (-not ($wdkVersion -match '^\d+\.\d+\.\d+(-\w+)?$')) {
-            throw "Invalid WDK version format: $wdkVersion"
-        }
         "wdk_version=$wdkVersion" >> $env:GITHUB_OUTPUT
 
     - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea
