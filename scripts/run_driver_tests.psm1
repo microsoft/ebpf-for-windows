@@ -260,33 +260,38 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
-    # Initialize arguments.
-    if ($TestArgs -ne "") {
-        $ArgumentsList = @($TestArgs)
-    }
+    try {
+        # Initialize arguments.
+        if ($TestArgs -ne "") {
+            $ArgumentsList = @($TestArgs)
+        }
 
-    if ($VerboseLogs -eq $true) {
-        $ArgumentsList += '-s'
-    }
+        if ($VerboseLogs -eq $true) {
+            $ArgumentsList += '-s'
+        }
 
-    # Execute Test.
-    Write-Log "Executing $TestName $TestArgs"
-    $TestFilePath = "$pwd\$TestName"
-    $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
-    $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
-    if ($ArgumentsList) {
-        $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
-    } else {
-        $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
-    }
-    if ($InnerTestName -ne "") {
-        Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
-    } else {
-        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestName -TestHangTimeout $TestHangTimeout
-    }
+        # Execute Test.
+        Write-Log "Executing $TestName $TestArgs"
+        $TestFilePath = "$pwd\$TestName"
+        $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
+        $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
+        if ($ArgumentsList) {
+            $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
+        } else {
+            $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
+        }
+        if ($InnerTestName -ne "") {
+            Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
+        } else {
+            Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestName -TestHangTimeout $TestHangTimeout
+        }
 
-    Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
-    Write-Log "`n==============================`n"
+        Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
+        Write-Log "`n==============================`n"
+    } catch {
+        $ErrorMessage = $_.Exception.Message
+        ThrowWithErrorMessage -ErrorMessage "Test `"$TestName $TestArgs`" Failed with $ErrorMessage"
+    }
 }
 
 # Function to create a tuple with default values for Arguments and Timeout
@@ -358,22 +363,27 @@ function Invoke-XDPTest
 
     Push-Location $WorkingDirectory
 
-    Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
-    $TestCommand = ".\xdp_tests.exe"
-    $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+    try {
+        Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
+        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
+        $TestCommand = ".\xdp_tests.exe"
+        $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
+        $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
-    $TestCommand = ".\xdp_tests.exe"
-    $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+        Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
+        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
+        $TestCommand = ".\xdp_tests.exe"
+        $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
+        $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
-    Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
-    Write-Log "`n`n"
+        Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
+        Write-Log "`n`n"
+    } catch {
+        $ErrorMessage = $_.Exception.Message
+        ThrowWithErrorMessage -ErrorMessage "XDP test Failed with $ErrorMessage"
+    }
 
     Pop-Location
 }
@@ -395,63 +405,67 @@ function Invoke-ConnectRedirectTest
 
     Push-Location $WorkingDirectory
 
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
-    $TestCommand = ".\connect_redirect_tests.exe"
+    try {
+        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
+        $TestCommand = ".\connect_redirect_tests.exe"
 
-    ## First run the test with both v4 and v6 programs attached.
-    $TestArguments =
-        " --virtual-ip-v4 $VirtualIPv4Address" +
-        " --virtual-ip-v6 $VirtualIPv6Address" +
-        " --local-ip-v4 $LocalIPv4Address" +
-        " --local-ip-v6 $LocalIPv6Address" +
-        " --remote-ip-v4 $RemoteIPv4Address" +
-        " --remote-ip-v6 $RemoteIPv6Address" +
-        " --destination-port $DestinationPort" +
-        " --proxy-port $ProxyPort" +
-        " --user-name $StandardUserName" +
-        " --password $StandardUserPassword" +
-        " --user-type $UserType"
+        ## First run the test with both v4 and v6 programs attached.
+        $TestArguments =
+            " --virtual-ip-v4 $VirtualIPv4Address" +
+            " --virtual-ip-v6 $VirtualIPv6Address" +
+            " --local-ip-v4 $LocalIPv4Address" +
+            " --local-ip-v6 $LocalIPv6Address" +
+            " --remote-ip-v4 $RemoteIPv4Address" +
+            " --remote-ip-v6 $RemoteIPv6Address" +
+            " --destination-port $DestinationPort" +
+            " --proxy-port $ProxyPort" +
+            " --user-name $StandardUserName" +
+            " --password $StandardUserPassword" +
+            " --user-type $UserType"
 
-    Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
-
-
-    ## Run test with only v4 program attached.
-    $TestArguments =
-        " --virtual-ip-v4 $VirtualIPv4Address" +
-        " --local-ip-v4 $LocalIPv4Address" +
-        " --remote-ip-v4 $RemoteIPv4Address" +
-        " --destination-port $DestinationPort" +
-        " --proxy-port $ProxyPort" +
-        " --user-name $StandardUserName" +
-        " --password $StandardUserPassword" +
-        " --user-type $UserType" +
-        " [connect_authorize_redirect_tests_v4]"
-
-    Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+        Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
+        $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
-    ## Run tests with only v6 program attached.
-    $TestArguments =
-        " --virtual-ip-v6 $VirtualIPv6Address" +
-        " --local-ip-v6 $LocalIPv6Address" +
-        " --remote-ip-v6 $RemoteIPv6Address" +
-        " --destination-port $DestinationPort" +
-        " --proxy-port $ProxyPort" +
-        " --user-name $StandardUserName" +
-        " --password $StandardUserPassword" +
-        " --user-type $UserType" +
-        " [connect_authorize_redirect_tests_v6]"
+        ## Run test with only v4 program attached.
+        $TestArguments =
+            " --virtual-ip-v4 $VirtualIPv4Address" +
+            " --local-ip-v4 $LocalIPv4Address" +
+            " --remote-ip-v4 $RemoteIPv4Address" +
+            " --destination-port $DestinationPort" +
+            " --proxy-port $ProxyPort" +
+            " --user-name $StandardUserName" +
+            " --password $StandardUserPassword" +
+            " --user-type $UserType" +
+            " [connect_authorize_redirect_tests_v4]"
 
-    Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+        Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
+        $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
-    Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
+        ## Run tests with only v6 program attached.
+        $TestArguments =
+            " --virtual-ip-v6 $VirtualIPv6Address" +
+            " --local-ip-v6 $LocalIPv6Address" +
+            " --remote-ip-v6 $RemoteIPv6Address" +
+            " --destination-port $DestinationPort" +
+            " --proxy-port $ProxyPort" +
+            " --user-name $StandardUserName" +
+            " --password $StandardUserPassword" +
+            " --user-type $UserType" +
+            " [connect_authorize_redirect_tests_v6]"
+
+        Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
+        $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+        Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+
+        Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
+    } catch {
+        $ErrorMessage = $_.Exception.Message
+        ThrowWithErrorMessage -ErrorMessage "Connect-Redirect Test Failed with $ErrorMessage"
+    }
 
     Pop-Location
 }
