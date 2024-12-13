@@ -24,6 +24,10 @@ on:
         description: 'Environment to run tests on'
         type: string
         required: true
+      environment2:
+        description: 'Environment to run tests on'
+        type: string
+        required: true
       self-hosted-runner:
         type: boolean
         required: false
@@ -73,6 +77,8 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
+    runs-on: ${{ fromJSON(inputs.environment2) }}
+
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
@@ -88,7 +94,7 @@ jobs:
       1ES_POOL: fromJSON('["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-" + ${{inputs.environment}} ]')
 
     # runs-on: ${{ (inputs.self-hosted-runner == true) && fromJSON('["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-"inputs.environment ]') || inputs.environment }}
-    runs-on: ${{ (inputs.self-hosted-runner == true) && env.1ES_POOL || inputs.environment }}
+    # runs-on: ${{ (inputs.self-hosted-runner == true) && env.1ES_POOL || inputs.environment }}
 
     steps:
     - name: Harden Runner

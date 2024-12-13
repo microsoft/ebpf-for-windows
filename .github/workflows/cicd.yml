@@ -70,6 +70,8 @@ jobs:
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
       environment: windows-2022
+      # environment2: windows-2022
+      environment2: '["windows-2022"]'
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -90,6 +92,10 @@ jobs:
       build_artifact: Build-x64
       # environment: 1ES.Pool=ebpf-cicd-runner-pool-server-2019
       environment: 1ES.Pool=ebpf-cicd-runner-pool-server-2019
+      environment2: '["self-host", "1ES.Pool=ebpf-cicd-runner-pool-server-2019"]'
+
+        #     configurations: '["Debug", "Release"]'
+
       self-hosted-runner: true
       # driver test copies dumps to testlog folder.
       gather_dumps: false
