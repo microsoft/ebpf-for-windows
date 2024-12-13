@@ -24,10 +24,6 @@ on:
         description: 'Environment to run tests on'
         type: string
         required: true
-      environment2:
-        description: 'Environment to run tests on'
-        type: string
-        required: true
       self-hosted-runner:
         type: boolean
         required: false
