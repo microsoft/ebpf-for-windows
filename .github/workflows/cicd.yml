@@ -43,24 +43,24 @@ jobs:
   # ---------------------------------------------------------------------------
 
   # Perform the regular build.
-  # regular:
-  #   # Always run this job.
-  #   if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-  #   uses: ./.github/workflows/reusable-build.yml
-  #   with:
-  #     ref: ${{ github.ref }}
-  #     repository: ${{ github.repository }}
-  #     build_artifact: Build-x64
-  #     generate_release_package: true
-  #     build_msi: true
-  #     build_nuget: true
-  #     build_options: /p:ReleaseJIT='True'
-  #     configurations: '["Debug", "Release"]'
+  regular:
+    # Always run this job.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64
+      generate_release_package: true
+      build_msi: true
+      build_nuget: true
+      build_options: /p:ReleaseJIT='True'
+      configurations: '["Debug", "Release"]'
 
   # Run the unit tests in GitHub.
   unit_tests:
     # Always run this job.
-    # needs: regular
+    needs: regular
     if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -69,9 +69,7 @@ jobs:
       # Exclude [processes] test that CodeCoverage can't work with.
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
-      environment: windows-2022
-      # environment2: windows-2022
-      environment2: '["windows-2022"]'
+      environment: '["windows-2022"]'
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -81,7 +79,7 @@ jobs:
   driver_ws2019:
     # Always run this job.
     # Only run this on repos that have self-host runners.
-    # needs: regular
+    needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
@@ -90,12 +88,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2019
       build_artifact: Build-x64
-      # environment: 1ES.Pool=ebpf-cicd-runner-pool-server-2019
-      environment: 1ES.Pool=ebpf-cicd-runner-pool-server-2019
-      environment2: '["self-host", "1ES.Pool=ebpf-cicd-runner-pool-server-2019"]'
-
-        #     configurations: '["Debug", "Release"]'
-
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019"]'
       self-hosted-runner: true
       # driver test copies dumps to testlog folder.
       gather_dumps: false

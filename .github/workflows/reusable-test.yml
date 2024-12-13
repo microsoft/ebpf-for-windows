@@ -77,7 +77,7 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
-    runs-on: ${{ fromJSON(inputs.environment2) }}
+    runs-on: ${{ fromJSON(inputs.environment) }}
 
     env:
       # Configuration type to build.
@@ -91,10 +91,6 @@ jobs:
       CXPLAT_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
       TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
-      1ES_POOL: fromJSON('["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-" + ${{inputs.environment}} ]')
-
-    # runs-on: ${{ (inputs.self-hosted-runner == true) && fromJSON('["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-"inputs.environment ]') || inputs.environment }}
-    # runs-on: ${{ (inputs.self-hosted-runner == true) && env.1ES_POOL || inputs.environment }}
 
     steps:
     - name: Harden Runner
