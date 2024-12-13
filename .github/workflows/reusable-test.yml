@@ -68,18 +68,21 @@ jobs:
     # - 1es-<RUNNER_POOL_NAME> (which matches ebpf-cicd-runner-pool-<RUNNER_POOL_NAME> in the 1es pool)
     runs-on: ubuntu-latest
     outputs:
-      runs_on: ${{ steps.set_runner.outputs.runs_on }}
-      runs_on_pool: ${{ steps.set_runner.outputs.runs_on_pool }}
+      runs_on: ${{ steps.set_runner_1es.outputs.runs_on || steps.set_runner_github.outputs.runs_on }}
+      runs_on_pool: ${{ steps.set_runner_1es.outputs.runs_on_pool || '' }}
     steps:
-      - name: Set runner type
-        id: set_runner
+      - name: Set runner type (1es)
+        id: set_runner_1es
+        if: contains(inputs.environment, '1es')
         run: |
-          if [[ "${{ inputs.environment }}" == *"1es"* ]]; then
-            pool_name=$(echo "${{ inputs.environment }}" | sed 's/.*1es-//')
-            echo "runs_on=self-hosted" >> "$GITHUB_OUTPUT"
-            echo "runs_on_pool=1ES.Pool=ebpf-cicd-runner-pool-$pool_name" >> "$GITHUB_OUTPUT"
-          else
-            echo "runs_on=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
+          pool_name=$(echo "${{ inputs.environment }}" | sed 's/.*1es-//')
+          echo "runs_on=self-hosted" >> "$GITHUB_OUTPUT"
+          echo "runs_on_pool=1ES.Pool=ebpf-cicd-runner-pool-$pool_name" >> "$GITHUB_OUTPUT"
+      - name: Set runner type (github hosted)
+        id: set_runner_github
+        if: !contains(inputs.environment, '1es')
+        run: |
+          echo "runs_on=${{ inputs.environment }}" >> "$GITHUB_OUTPUT"
   run_test:
     needs: set-job-environment
     # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
