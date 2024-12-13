@@ -88,7 +88,8 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2019
       build_artifact: Build-x64
-      environment: 1ES.Pool=ebpf-cicd-runner-pool-server-2019
+      # environment: 1ES.Pool=ebpf-cicd-runner-pool-server-2019
+      environment: '1ES.Pool=ebpf-cicd-runner-pool-server-2019'
       self-hosted-runner: true
       # driver test copies dumps to testlog folder.
       gather_dumps: false
