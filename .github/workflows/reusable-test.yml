@@ -22,8 +22,11 @@ on:
       # The environment to run this test on.
       environment:
         description: 'Environment to run tests on'
-        type: array
+        type: string
         required: true
+      self-hosted-runner:
+        type: boolean
+        required: false
       # Set to true to gather code coverage when this test runs.
       code_coverage:
         required: false
@@ -62,43 +65,7 @@ permissions:
   issues: write # Required to create issues.
 
 jobs:
-  # set-job-environment:
-  #   # The following environments are supported:
-  #   # - Any of the github environments.
-  #   # - 1es-<RUNNER_POOL_NAME> (which matches ebpf-cicd-runner-pool-<RUNNER_POOL_NAME> in the 1es pool)
-  #   runs-on: ubuntu-latest
-  #   outputs:
-  #     runs_on: ${{ steps.set_runner_1es.outputs.runs_on || steps.set_runner_github.outputs.runs_on }}
-  #     runs_on_pool: ${{ steps.set_runner_1es.outputs.runs_on_pool || '' }}
-  #   steps:
-  #     - name: Set 1es runner type
-  #       id: set_runner_1es
-  #       if: contains(inputs.environment, '1es')
-  #       run: |
-  #         pool_name=$(echo "${{ inputs.environment }}" | sed 's/.*1es-//')
-  #         echo "pool_name=$pool_name"
-  #         echo "runs_on=self-hosted" >> $GITHUB_OUTPUT
-  #         echo "runs_on_pool=1ES.Pool=ebpf-cicd-runner-pool-$pool_name" >> $GITHUB_OUTPUT
-  #     - name: Set github runner type
-  #       id: set_runner_github
-  #       if: !contains(inputs.environment, '1es')
-  #       run: |
-  #         echo "runs_on=${{ inputs.environment }}" >> $GITHUB_OUTPUT
-
-# jobs:
-#   build:
-#     runs-on: ${{ matrix.runner }}
-#     strategy:
-#       matrix:
-#         runner: []
-#         include:
-#           - env: self-hosted
-#             runner: [self-hosted, 1ES.Pool=ebpf-cicd-runner-pool-server-2019]
-#           - env: windows
-#             runner: [windows-2022]
-
   run_test:
-    needs: set-job-environment
     # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
     timeout-minutes: 90
 
@@ -106,14 +73,7 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
-    runs-on: ${{ inputs.environment }}
-    #   - ${{ needs.set-job-environment.outputs.runs_on }}
-    #   - ${{ needs.set-job-environment.outputs.runs_on_pool }}
-    # runs-on:
-    #   - self-hosted
-    #   - 1ES.Pool=ebpf-cicd-runner-pool-server-2019
-    # runs-on:
-    #   - windows-2022
+    runs-on: ${{ (inputs.self-hosted-runner) && fromJSON('[ "self-hosted", " 1ES.Pool=ebpf-cicd-runner-pool-${{ inputs.environment }}"]') || ${{ inputs.environment }} }}
     env:
       # Configuration type to build.
       SOURCE_ROOT: ${{github.workspace}}
@@ -579,3 +539,53 @@ jobs:
               body: body,
               labels: label_array,
             });
+
+
+
+
+
+
+  # set-job-environment:
+  #   # The following environments are supported:
+  #   # - Any of the github environments.
+  #   # - 1es-<RUNNER_POOL_NAME> (which matches ebpf-cicd-runner-pool-<RUNNER_POOL_NAME> in the 1es pool)
+  #   runs-on: ubuntu-latest
+  #   outputs:
+  #     runs_on: ${{ steps.set_runner_1es.outputs.runs_on || steps.set_runner_github.outputs.runs_on }}
+  #     runs_on_pool: ${{ steps.set_runner_1es.outputs.runs_on_pool || '' }}
+  #   steps:
+  #     - name: Set 1es runner type
+  #       id: set_runner_1es
+  #       if: contains(inputs.environment, '1es')
+  #       run: |
+  #         pool_name=$(echo "${{ inputs.environment }}" | sed 's/.*1es-//')
+  #         echo "pool_name=$pool_name"
+  #         echo "runs_on=self-hosted" >> $GITHUB_OUTPUT
+  #         echo "runs_on_pool=1ES.Pool=ebpf-cicd-runner-pool-$pool_name" >> $GITHUB_OUTPUT
+  #     - name: Set github runner type
+  #       id: set_runner_github
+  #       if: !contains(inputs.environment, '1es')
+  #       run: |
+  #         echo "runs_on=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+
+# jobs:
+#   build:
+#     runs-on: ${{ matrix.runner }}
+#     strategy:
+#       matrix:
+#         runner: []
+#         include:
+#           - env: self-hosted
+#             runner: [self-hosted, 1ES.Pool=ebpf-cicd-runner-pool-server-2019]
+#           - env: windows
+#             runner: [windows-2022]
+
+
+    #   - ${{ needs.set-job-environment.outputs.runs_on }}
+    #   - ${{ needs.set-job-environment.outputs.runs_on_pool }}
+
+    # runs-on:
+    #   - self-hosted
+    #   - 1ES.Pool=ebpf-cicd-runner-pool-server-2019
+    # runs-on:
+    #   - windows-2022

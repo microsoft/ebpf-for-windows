@@ -69,7 +69,7 @@ jobs:
       # Exclude [processes] test that CodeCoverage can't work with.
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
-      environment: [windows-2022]
+      environment: windows-2022
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -88,9 +88,8 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2019
       build_artifact: Build-x64
-      environment: [self-hosted, 1ES.Pool=ebpf-cicd-runner-pool-server-2019]
-    #   - self-hosted
-    #   - 1ES.Pool=ebpf-cicd-runner-pool-server-2019
+      environment: server-2019
+      self-hosted-runner: true
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
