@@ -78,6 +78,7 @@ jobs:
           pool_name=$(echo "${{ inputs.environment }}" | sed 's/.*1es-//')
           echo "runs_on=self-hosted" >> "$GITHUB_OUTPUT"
           echo "runs_on_pool=1ES.Pool=ebpf-cicd-runner-pool-$pool_name" >> "$GITHUB_OUTPUT"
+
       - name: Set runner type (github hosted)
         id: set_runner_github
         if: !contains(inputs.environment, '1es')
