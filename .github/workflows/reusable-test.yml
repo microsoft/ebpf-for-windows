@@ -73,7 +73,7 @@ jobs:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
 
-    runs-on: ${{ (inputs.self-hosted-runner == true) && fromJSON('["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool" + inputs.environment]') || inputs.environment }}
+    runs-on: ${{ (inputs.self-hosted-runner == true) && fromJSON('["self-hosted", inputs.environment]') || inputs.environment }}
 
     env:
       # Configuration type to build.
