@@ -628,19 +628,20 @@ jobs:
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
+  # TODO - figure this out...
   # Not sure what perf is - probably selfhosted runner, but do we need to support this now?
-  # performance:
-  #   needs: regular
-  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-  #   uses: ./.github/workflows/reusable-test.yml
-  #   with:
-  #     name: km_performance
-  #     pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-  #     test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
-  #     post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-  #     build_artifact: Build-x64
-  #     environment: ebpf_cicd_perf_ws2022
-  #     configurations: '["Release"]'
+  performance:
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: km_performance
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      build_artifact: Build-x64
+      environment: ebpf_cicd_perf_ws2022
+      configurations: '["Release"]'
 
   netperf:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
