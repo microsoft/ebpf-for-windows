@@ -271,6 +271,26 @@ jobs:
       code_coverage: false
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
+  # TODO - this is only for initial testing - revert this later
+  # Run the regression driver tests on self-hosted runners (only for 2019).
+  regression_driver_ws2019:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -TestMode "Regression" -RegressionArtifactsVersion "0.17.0"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Regression"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      name: regression_driver_ws2019
+      build_artifact: Build-x64
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019"]'
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
   # Run the regression driver tests on self-hosted runners (only for 2022).
   regression_driver_ws2022:
     # Always run this job.
@@ -574,7 +594,9 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TODO - revert this back
+    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests
@@ -591,7 +613,9 @@ jobs:
   # against the kernel mode eBPF sub-system.
   km_mt_stress_tests_restart_extension:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TODO  - revert this back
+    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_mt_stress_tests_restart_extension
