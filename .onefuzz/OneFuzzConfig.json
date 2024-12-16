@@ -59,24 +59,11 @@
         "PipelineId": "79576"
       },
       "AdoTemplate": {
-        "Org": "mscodehub",
-        "Project": "eBPFForWindows",
-        "AssignedTo": "alanjo@microsoft.com",
-        "AreaPath": "eBPFForWindows",
-        "IterationPath": "eBPFForWindows",
-        "Type": "Bug",
-        "BaseUrl": "https://dev.azure.com/mscodehub",
-        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-        "OnDuplicate": {
-          "Increment": [
-            ""
-          ],
-          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-          "SetState": {
-            "Resolved": "Active",
-            "Closed": "Active"
-          }
-        }
+        "Org": "microsoft",
+        "Project": "OS",
+        "AssignedTo": "Active",
+        "AreaPath": "OS\\Core\\IO Fabrics\\Transports Security and SDN\\eBPF",
+        "IterationPath": "OS"
       }
     },
     {
@@ -136,24 +123,11 @@
         "PipelineId": "79576"
       },
       "AdoTemplate": {
-        "Org": "mscodehub",
-        "Project": "eBPFForWindows",
-        "AssignedTo": "alanjo@microsoft.com",
-        "AreaPath": "eBPFForWindows",
-        "IterationPath": "eBPFForWindows",
-        "Type": "Bug",
-        "BaseUrl": "https://dev.azure.com/mscodehub",
-        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-        "OnDuplicate": {
-          "Increment": [
-            ""
-          ],
-          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-          "SetState": {
-            "Resolved": "Active",
-            "Closed": "Active"
-          }
-        }
+        "Org": "microsoft",
+        "Project": "OS",
+        "AssignedTo": "Active",
+        "AreaPath": "OS\\Core\\IO Fabrics\\Transports Security and SDN\\eBPF",
+        "IterationPath": "OS"
       }
     },
     {
@@ -213,24 +187,11 @@
         "PipelineId": "79576"
       },
       "AdoTemplate": {
-        "Org": "mscodehub",
-        "Project": "eBPFForWindows",
-        "AssignedTo": "alanjo@microsoft.com",
-        "AreaPath": "eBPFForWindows",
-        "IterationPath": "eBPFForWindows",
-        "Type": "Bug",
-        "BaseUrl": "https://dev.azure.com/mscodehub",
-        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-        "OnDuplicate": {
-          "Increment": [
-            ""
-          ],
-          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-          "SetState": {
-            "Resolved": "Active",
-            "Closed": "Active"
-          }
-        }
+        "Org": "microsoft",
+        "Project": "OS",
+        "AssignedTo": "Active",
+        "AreaPath": "OS\\Core\\IO Fabrics\\Transports Security and SDN\\eBPF",
+        "IterationPath": "OS"
       }
     },
     {
@@ -290,24 +251,11 @@
         "PipelineId": "79576"
       },
       "AdoTemplate": {
-        "Org": "mscodehub",
-        "Project": "eBPFForWindows",
-        "AssignedTo": "alanjo@microsoft.com",
-        "AreaPath": "eBPFForWindows",
-        "IterationPath": "eBPFForWindows",
-        "Type": "Bug",
-        "BaseUrl": "https://dev.azure.com/mscodehub",
-        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-        "OnDuplicate": {
-          "Increment": [
-            ""
-          ],
-          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-          "SetState": {
-            "Resolved": "Active",
-            "Closed": "Active"
-          }
-        }
+        "Org": "microsoft",
+        "Project": "OS",
+        "AssignedTo": "Active",
+        "AreaPath": "OS\\Core\\IO Fabrics\\Transports Security and SDN\\eBPF",
+        "IterationPath": "OS"
       }
     },
     {
@@ -368,24 +316,11 @@
         "PipelineId": "79576"
       },
       "AdoTemplate": {
-        "Org": "mscodehub",
-        "Project": "eBPFForWindows",
-        "AssignedTo": "alanjo@microsoft.com",
-        "AreaPath": "eBPFForWindows",
-        "IterationPath": "eBPFForWindows",
-        "Type": "Bug",
-        "BaseUrl": "https://dev.azure.com/mscodehub",
-        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-        "OnDuplicate": {
-          "Increment": [
-            ""
-          ],
-          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-          "SetState": {
-            "Resolved": "Active",
-            "Closed": "Active"
-          }
-        }
+        "Org": "microsoft",
+        "Project": "OS",
+        "AssignedTo": "Active",
+        "AreaPath": "OS\\Core\\IO Fabrics\\Transports Security and SDN\\eBPF",
+        "IterationPath": "OS"
       }
     },
     {
@@ -445,24 +380,11 @@
         "PipelineId": "79576"
       },
       "AdoTemplate": {
-        "Org": "mscodehub",
-        "Project": "eBPFForWindows",
-        "AssignedTo": "alanjo@microsoft.com",
-        "AreaPath": "eBPFForWindows",
-        "IterationPath": "eBPFForWindows",
-        "Type": "Bug",
-        "BaseUrl": "https://dev.azure.com/mscodehub",
-        "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-        "OnDuplicate": {
-          "Increment": [
-            ""
-          ],
-          "Comment": "<a href='{{ input_url }}'>This input</a> caused the <a href='{{ target_url }}'>fuzz target</a> {{ report.executable }} to crash. The faulting input SHA256 hash is {{ report.input_sha256 }} <br>",
-          "SetState": {
-            "Resolved": "Active",
-            "Closed": "Active"
-          }
-        }
+        "Org": "microsoft",
+        "Project": "OS",
+        "AssignedTo": "Active",
+        "AreaPath": "OS\\Core\\IO Fabrics\\Transports Security and SDN\\eBPF",
+        "IterationPath": "OS"
       }
     }
   ]
