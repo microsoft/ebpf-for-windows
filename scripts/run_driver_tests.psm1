@@ -492,6 +492,14 @@ function Invoke-CICDStressTests
     } else {
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
+
+    # TODO - remove debugging output
+    Write-Log "Items from .\"
+    Get-ChildItem '.\'
+    Write-Lost "Itesm from $WorkingDirectory"
+    Get-ChildItem $WorkingDirectory
+    Write-Log "Starting $TestCommand with arguments: $TestArguments"
+
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
