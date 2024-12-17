@@ -84,7 +84,7 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
 
         Log-Message "VM $vmName created successfully"
     } catch {
-        Log-Message "Failed to create VM $vmName: $_"
+        Log-Message "Failed to create VM $vmName with error $_"
     }
 }
 

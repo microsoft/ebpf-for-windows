@@ -28,7 +28,7 @@ function Create-DirectoryIfNotExists {
             throw "Failed to create directory: $Path"
         }
     } catch {
-        throw "Failed to create directory: $Path. $_"
+        throw "Failed to create directory: $Path with error $_"
     }
 }
 
@@ -77,7 +77,7 @@ function Execute-CommandOnVM {
 
         Log-Message -Message "Executed command on VM: $VMName. Command: $Command. Result: $result"
     } catch {
-        throw "Failed to execute command on VM: $VMName. Error: $_"
+        throw "Failed to execute command on VM: $VMName with error: $_"
     }
 }
 
@@ -203,7 +203,7 @@ function Create-VM {
 
         Log-Message -Message "Successfully created VM: $VMName" -ForegroundColor Green
     } catch {
-        throw "Failed to create VM: $VmName. Error: $_"
+        throw "Failed to create VM: $VmName with error: $_"
     }
 }
 
@@ -268,7 +268,7 @@ function Configure-VM {
 
         Log-Message "Successfully configured VM: $VmName" -ForegroundColor Green
     } catch {
-        throw "Failed to configure VM: $VmName. Error: $_"
+        throw "Failed to configure VM: $VmName with error: $_"
     }
 }
 
@@ -286,7 +286,7 @@ function Install-HyperVIfNeeded {
             exit 1
         }
     } catch {
-        throw "Failed to install Hyper-V: $_"
+        throw "Failed to install Hyper-V with error: $_"
     }
 }
 
@@ -317,7 +317,7 @@ function Create-VMSwitchIfNeeded {
                     New-VMSwitch -Name $switchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
                     # break
                 } catch {
-                    Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName $_"
+                    Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
                 }
             }
         } elseif ($SwitchType -eq 'Internal') {
@@ -335,7 +335,7 @@ function Create-VMSwitchIfNeeded {
             throw "Invalid switch type: $SwitchType"
         }
     } catch {
-        throw "Failed to create external switch: $_"
+        throw "Failed to create external switch with error: $_"
     }
 }
 
@@ -351,7 +351,6 @@ function Create-VMStoredCredential {
 
         New-StoredCredential -Target $CredentialName -UserName $Username -Password $Password -Type Generic -Persist LocalMachine
     } catch {
-        Log-Message "Failed to create stored credential: $_" -ForegroundColor Red
-        # throw "Failed to create stored credential: $_"
+        Log-Message "Failed to create stored credential with error $_" -ForegroundColor Red
     }
 }
