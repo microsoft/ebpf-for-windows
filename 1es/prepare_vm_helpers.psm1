@@ -149,7 +149,6 @@ function Create-VM {
         [Parameter(Mandatory=$True)][string]$VmPassword,
         [Parameter(Mandatory=$True)][string]$VhdPath,
         [Parameter(Mandatory=$True)][string]$VmStoragePath,
-        [Parameter(Mandatory=$True)][string]$ExternalVMSwitchName,
         [Parameter(Mandatory=$True)][Int64]$VMMemory,
         [Parameter(Mandatory=$True)][string]$UnattendPath
     )
@@ -191,7 +190,7 @@ function Create-VM {
         # Create the VM
         Log-Message "Creating the VM"
         New-VM -Name $VmName -VhdPath $VmVhdPath
-        $vmSwitches = Get-VMSwitch
+        $vmSwitches = Get-VMSwitch -ErrorAction Ignore
         foreach ($switch in $vmSwitches) {
             Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
             Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
@@ -238,10 +237,10 @@ function Configure-VM {
         Log-Message "Sleeping for 1 minute to let the VM get into a steady state"
         Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
 
-        # Fetch all updates on the VM
-        Log-Message "Fetching Updates on the VM"
-        # Update-VM -VMName $VmName -VmCredential $VmCredential
-        Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
+        # # Fetch all updates on the VM
+        # Log-Message "Fetching Updates on the VM"
+        # # Update-VM -VMName $VmName -VmCredential $VmCredential
+        # Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
 
         # Copy setup script to the VM and execute it.
         Log-Message "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
@@ -266,6 +265,8 @@ function Configure-VM {
                 continue
             }
         }
+
+        Log-Message "Successfully configured VM: $VmName" -ForegroundColor Green
     } catch {
         throw "Failed to configure VM: $VmName. Error: $_"
     }
@@ -297,7 +298,7 @@ function Create-VMSwitchIfNeeded {
     try {
         if ($SwitchType -eq 'External') {
             # Check to see if an external switch already exists
-            $ExternalSwitches = (Get-VMSwitch -SwitchType External)
+            $ExternalSwitches = (Get-VMSwitch -SwitchType External -ErrorAction Ignore)
             if ($ExternalSwitches -ne $null) {
                 Log-Message -Message "External switch already exists: $($ExternalSwitches[0].Name)"
                 return
@@ -311,7 +312,7 @@ function Create-VMSwitchIfNeeded {
                     if ([string]::IsNullOrEmpty($NetAdapterName)) {
                         continue
                     }
-                    $switchName = $ExternalSwitchName + '-' + $index
+                    $switchName = $SwitchName + '-' + $index
                     Log-Message "Attempting to creating external switch: $switchName with NetAdapter: $NetAdapterName"
                     New-VMSwitch -Name $switchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
                     # break
@@ -321,7 +322,7 @@ function Create-VMSwitchIfNeeded {
             }
         } elseif ($SwitchType -eq 'Internal') {
             # Check to see if an internal switch already exists
-            $InternalSwitches = (Get-VMSwitch -SwitchType Internal)
+            $InternalSwitches = (Get-VMSwitch -SwitchType Internal -ErrorAction Ignore)
             if ($InternalSwitches -ne $null) {
                 Log-Message -Message "Internal switch already exists: $($InternalSwitches[0].Name)"
                 return

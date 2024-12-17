@@ -96,11 +96,6 @@ jobs:
       if: contains(inputs.environment, 'self-hosted')
       run: |
         powershell.exe "cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
-        # powershell.exe "Get-NetAdapter"
-        # powershell.exe "Get-VMSwitch"
-        # powershell.exe "Get-NetAdapter"
-        # powershell.exe "Get-VMSwitch"
-        # powershell.exe "Get-VM"
 
     - name: Print CPU information
       run:

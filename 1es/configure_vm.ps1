@@ -121,11 +121,11 @@ foreach ($adapter in $adapters) {
     }
 }
 
-Get-NetAdapterBinding -AllBindings
+Get-NetAdapterBinding -AllBindings | Out-String
 
 ipconfig /all
 
-Get-NetIPInterface
+Get-NetIPInterface | Out-String
 
 # Reboot the machine to apply the changes.
 Restart-Computer -Force
