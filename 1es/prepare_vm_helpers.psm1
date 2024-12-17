@@ -312,9 +312,10 @@ function Create-VMSwitchIfNeeded {
                     if ([string]::IsNullOrEmpty($NetAdapterName)) {
                         continue
                     }
-                    $switchName = $SwitchName + '-' + $index
-                    Log-Message "Attempting to creating external switch: $switchName with NetAdapter: $NetAdapterName"
-                    New-VMSwitch -Name $switchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
+                    $currSwitchName = $SwitchName + '-' + $index
+                    Log-Message "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
+                    New-VMSwitch -Name $currSwitchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
+                    $index += 1
                     # break
                 } catch {
                     Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
