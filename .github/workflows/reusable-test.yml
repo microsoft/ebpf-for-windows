@@ -296,7 +296,7 @@ jobs:
         ${{env.TEST_COMMAND}} -LogFileName ${{ runner.name }}.log -SelfHostedRunnerName ${{ runner.name }}
 
     - name: Run test without Code Coverage
-      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'self-hosted') && (inputs.fault_injection != true)
+      if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && !contains(inputs.environment, 'self-hosted') && (inputs.fault_injection != true)
       id: run_test_without_code_coverage
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       shell: cmd
@@ -306,7 +306,7 @@ jobs:
 
     - name: Run post test command
       # Run the post test command even if the workflow has failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && contains(inputs.environment, 'self-hosted')
+      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && !contains(inputs.environment, 'self-hosted')
       id: run_post_test_command
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       run: |
