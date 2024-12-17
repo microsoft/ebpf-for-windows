@@ -80,15 +80,20 @@ jobs:
 
   # Perform the native-only build.
   regular_native-only:
+    strategy:
+      matrix:
+        Architecture: ['x64', 'ARM64']
     # Always run this job.
     if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ github.ref }}
       repository: ${{ github.repository }}
-      build_artifact: Build-x64-native-only
+      build_artifact: Build-${{ matrix.Architecture }}-native-only
       build_msi: true
       build_nuget: true
+      download_demo_repository: false
+      architecture: ${{ matrix.Architecture }}
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the unit tests in GitHub.
