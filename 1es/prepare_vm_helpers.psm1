@@ -212,7 +212,7 @@ function Configure-VM {
         [Parameter(Mandatory=$True)][string]$VmName,
         [Parameter(Mandatory=$True)][string]$VmUsername,
         [Parameter(Mandatory=$True)][string]$VmPassword,
-        [Parameter(Mandatory=$True)][int]$CpuCount,
+        [Parameter(Mandatory=$True)][int]$VMCpuCount,
         [Parameter(Mandatory=$False)][string]$VMWorkingDirectory='C:\ebpf_cicd',
         [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1'
     )
@@ -221,8 +221,8 @@ function Configure-VM {
         Log-Message "Configuring VM: $VmName"
 
         # Post VM creation configuration steps.
-        Log-Message "Setting VM processor count to $CpuCount"
-        Set-VMProcessor -VMName $VmName -Count $CpuCount
+        Log-Message "Setting VM processor count to $VMCpuCount"
+        Set-VMProcessor -VMName $VmName -Count $VMCpuCount
         Log-Message "Enabling Guest Service Interface"
         Enable-VMIntegrationService -VMName $VMName -Name 'Guest Service Interface'
 

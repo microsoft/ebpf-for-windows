@@ -87,7 +87,7 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
             -VmName $vmName `
             -VmUsername $VmUsername `
             -VmPassword $VmPassword `
-            -CpuCount $CpuCount
+            -VMCpuCount $VMCpuCount
 
         Log-Message "VM $vmName created successfully"
     } catch {
