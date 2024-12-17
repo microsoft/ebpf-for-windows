@@ -292,52 +292,54 @@ function Install-HyperVIfNeeded {
 
 function Create-VMSwitchIfNeeded {
     param (
-        [Parameter(Mandatory=$False)][string]$SwitchName='VMInternalSwitch',
-        [Parameter(Mandatory=$False)][string]$SwitchType='Internal'
+        [Parameter(Mandatory=$true)][string]$SwitchName,
+        [Parameter(Mandatory=$true)][string]$SwitchType
     )
-    try {
-        if ($SwitchType -eq 'External') {
-            # Check to see if an external switch already exists
-            $ExternalSwitches = (Get-VMSwitch -SwitchType External -ErrorAction Ignore)
-            if ($ExternalSwitches -ne $null) {
-                Log-Message -Message "External switch already exists: $($ExternalSwitches[0].Name)"
-                return
-            }
+    if ($SwitchType -eq 'External') {
+        # Check to see if an external switch already exists
+        $ExternalSwitches = (Get-VMSwitch -SwitchType External -ErrorAction Ignore)
+        if ($ExternalSwitches -ne $null) {
+            Log-Message -Message "External switch already exists: $($ExternalSwitches[0].Name)"
+            return
+        }
 
-            # Try to create the external switch
-            $NetAdapterNames = (Get-NetAdapter -Name 'Ethernet*' | Where-Object { $_.Status -eq 'Up' }).Name
-            $index = 0
-            foreach ($NetAdapterName in $NetAdapterNames) {
-                try {
-                    if ([string]::IsNullOrEmpty($NetAdapterName)) {
-                        continue
-                    }
-                    $currSwitchName = $SwitchName + '-' + $index
-                    Log-Message "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
-                    New-VMSwitch -Name $currSwitchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
-                    $index += 1
-                    # break
-                } catch {
-                    Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
+        # Try to create the external switch
+        $NetAdapterNames = (Get-NetAdapter -Name 'Ethernet*' | Where-Object { $_.Status -eq 'Up' }).Name
+        $index = 0
+        foreach ($NetAdapterName in $NetAdapterNames) {
+            try {
+                if ([string]::IsNullOrEmpty($NetAdapterName)) {
+                    continue
                 }
+                $currSwitchName = $SwitchName + '-' + $index
+                Log-Message "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
+                New-VMSwitch -Name $currSwitchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
+                $index += 1
+                # break
+            } catch {
+                Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
             }
-        } elseif ($SwitchType -eq 'Internal') {
-            # Check to see if an internal switch already exists
-            $InternalSwitches = (Get-VMSwitch -SwitchType Internal -ErrorAction Ignore)
-            if ($InternalSwitches -ne $null) {
-                Log-Message -Message "Internal switch already exists: $($InternalSwitches[0].Name)"
-                return
-            }
+        }
+    } elseif ($SwitchType -eq 'Internal') {
+        # Check to see if an internal switch already exists
+        $InternalSwitches = (Get-VMSwitch -SwitchType Internal -ErrorAction Ignore)
+        if ($InternalSwitches -ne $null) {
+            Log-Message -Message "Internal switch already exists: $($InternalSwitches[0].Name)"
+            return
+        }
 
-            # Try to create the internal switch
+        # Try to create the internal switch
+        try {
             Log-Message "Creating internal switch"
             New-VMSwitch -Name 'VMInternalSwitch' -SwitchType Internal
-        } else {
-            throw "Invalid switch type: $SwitchType"
+        } catch {
+            throw "Failed to create internal switch with error: $_"
         }
-    } catch {
-        throw "Failed to create external switch with error: $_"
+    } else {
+        throw "Invalid switch type: $SwitchType"
     }
+
+    Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }
 
 function Create-VMStoredCredential {

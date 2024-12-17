@@ -7,8 +7,9 @@ param(
 
     [Parameter(Mandatory=$False)][string]$BaseUnattendPath='.\unattend.xml',
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
-    [Parameter(Mandatory=$False)][string]$WorkingPath='.\working',
-    [Parameter(Mandatory=$False)][string]$OutVhdDirPath='.\exported_vhds',
+    # [Parameter(Mandatory=$False)][string]$WorkingPath='.\working',
+    [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
+    # [Parameter(Mandatory=$False)][string]$OutVhdDirPath='.\exported_vhds',
 
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
     [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
@@ -35,32 +36,38 @@ Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
 Create-DirectoryIfNotExists -Path $WorkingPath
 
 # Unzip any VHDs
+Log-Message "Processing VHDs in $BaseVhdDirPath"
 $zipFiles = Get-ChildItem -Path $BaseVhdDirPath -Filter *.zip
 foreach ($zipFile in $zipFiles) {
+    Log-Message "Extracting VHDs from $($zipFile.FullName)"
     $outDir = Join-Path -Path $BaseVhdDirPath -ChildPath $zipFile.BaseName
     if (-not (Test-Path -Path $outDir)) {
         Expand-Archive -Path $zipFile.FullName -DestinationPath $outDir
 
         # Move the VHDs to the base directory
-        $vhdFiles = Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
+        $vhdFiles = @()
+        $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
         $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhdx -ErrorAction Ignore
         foreach ($vhdFile in $vhdFiles) {
             Move-Item -Path $vhdFile.FullName -Destination $BaseVhdDirPath
         }
     }
+    Log-Message "Successfully processed $($zipFile.FullName)"
 }
 
 # Read the input VHDs
-$vhds = @((Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd))
-$vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx
+$vhds = @()
+$vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd -ErrorAction Ignore
+$vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx -ErrorAction Ignore
 if ($vhds.Count -eq 0) {
     throw "No VHDs found in $BaseVhdDirPath"
 }
+Log-Message "Successfully processed VHDs"
 
 for ($i = 0; $i -lt $vhds.Count; $i++) {
     try {
         $vhd = $vhds[$i]
-        Log-Message -Message "Processing VHD: $($vhd.FullName)"
+        Log-Message -Message "Creating VM from VHD: $($vhd.FullName)"
         $vmName = "runner_vm"
         if ($i -gt 0) {
             $vmName += "_$i"
