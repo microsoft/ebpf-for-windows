@@ -1,0 +1,37 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This yaml builds the Docker image for the eBPF for Windows project.
+
+name: Build Docker Image
+
+on:
+    push:
+        branches:
+        - main
+    pull_request:
+        branches:
+        - main
+    workflow_dispatch:
+
+jobs:
+    build:
+        runs-on: windows-latest
+
+        steps:
+        - name: Checkout repository
+          uses: actions/checkout@v2
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v1
+
+        - name: Build Docker image
+          working-directory: ${{github.workspace}}\\scripts\build_native
+          run: |
+            docker build -t bpf_build_native:0.20.0 -m 2GB .
+
+        - name: Push Docker image
+          run: |
+            echo ${{ secrets.DOCKER_PASSWORD }} | docker login ghcr.io -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
+            docker tag ebpf-for-windows:latest ghcr.io/ebpf-for-windows/ebpf-for-windows:latest
+            docker push ghcr.io/ebpf-for-windows/ebpf-for-windows:latest
