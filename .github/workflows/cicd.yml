@@ -226,7 +226,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2022
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2022"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -264,7 +264,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_native_only_ws2022
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2022"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage

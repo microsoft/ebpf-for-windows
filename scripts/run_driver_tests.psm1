@@ -162,6 +162,8 @@ function Process-TestCompletion
         throw "Failed to start $TestCommand"
     }
 
+    Write-Log "Process-TestCompletion invoked for $TestProcess and $TestCommand"
+
     # Use Wait-Process for the process to terminate or timeout.
     # See https://stackoverflow.com/a/23797762
     Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
@@ -192,6 +194,7 @@ function Process-TestCompletion
         Write-Log "Throwing TestHungException for $TestCommand" -ForegroundColor Red
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
+        Write-Log "Process-TestCompletion: command should have completed"
         # Ensure the process has completely exited.
         Wait-Process -InputObject $TestProcess
         $currExitCode = $TestProcess.ExitCode
