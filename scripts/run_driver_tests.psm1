@@ -189,6 +189,10 @@ function Process-TestCompletion
     } else {
         # Ensure the process has completely exited.
         Wait-Process -InputObject $TestProcess
+        $currExitCode = $TestProcess.ExitCode
+        $temp = $TestProcess | Out-String
+        Write-Log "Maige - test output: $temp"
+        Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
@@ -485,7 +489,7 @@ function Invoke-CICDStressTests
 
     $LASTEXITCODE = 0
 
-    $TestCommand = "ebpf_stress_tests_km"
+    $TestCommand = "ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
         $TestArguments = "-tt=8 -td=5"
@@ -496,11 +500,19 @@ function Invoke-CICDStressTests
     # TODO - remove debugging output
     Write-Log "Items from .\"
     Get-ChildItem '.\'
-    Write-Lost "Itesm from $WorkingDirectory"
+    Write-Log "Items from $WorkingDirectory"
     Get-ChildItem $WorkingDirectory
     Write-Log "Starting $TestCommand with arguments: $TestArguments"
 
+    # Valid that the test command exists.
+    if (-not (Test-Path $TestCommand)) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** $TestCommand not found under $WorkingDirectory."
+    }
+
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    if ($TestProcess -eq $null) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Failed to start $TestCommand."
+    }
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
