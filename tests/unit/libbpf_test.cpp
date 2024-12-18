@@ -3295,6 +3295,7 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(map_info.map_flags == map_create.map_flags);
     REQUIRE(strncmp(map_info.name, map_create.map_name, sizeof(map_info.name)) == 0);
 
+#if !defined(CONFIG_BPF_JIT_DISABLED)
     struct ebpf_inst instructions[] = {
         {INST_ALU_OP_MOV | INST_CLS_ALU64, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},                                         // return r0
@@ -3344,6 +3345,7 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(program_info.nr_map_ids == 1);
     REQUIRE(map_ids[0] == map_info.id);
     REQUIRE(strncmp(program_info.name, "testing", sizeof(program_info.name)) == 0);
+#endif
 }
 
 TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
