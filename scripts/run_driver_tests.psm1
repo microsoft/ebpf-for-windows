@@ -212,8 +212,8 @@ function Process-TestCompletion
 
         $TestExitCode = $TestProcess.ExitCode
         Write-Log "Maige - Test exit code: $TestExitCode"
-        # if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
-        if ($TestExitCode -ne 0) {
+        if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
+        # if ($TestExitCode -ne 0) {
             $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
             if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
                 Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
