@@ -121,7 +121,7 @@ obj_get_info_by_fd(_In_ sys_bpf_obj_info_attr_t* attr)
         convert_to_map_info(&tmp.map, &info);
 
         info_size = sizeof(tmp.map);
-        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.map, &info_size, NULL);
+        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.map, &info_size, nullptr);
         if (result != EBPF_SUCCESS) {
             return libbpf_result_err(result);
         }
@@ -142,7 +142,7 @@ obj_get_info_by_fd(_In_ sys_bpf_obj_info_attr_t* attr)
         convert_to_prog_info(&tmp.prog, &info);
 
         info_size = sizeof(tmp.prog);
-        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.prog, &info_size, NULL);
+        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.prog, &info_size, nullptr);
         if (result != EBPF_SUCCESS) {
             return libbpf_result_err(result);
         }
@@ -157,7 +157,7 @@ obj_get_info_by_fd(_In_ sys_bpf_obj_info_attr_t* attr)
         convert_to_link_info(&tmp.link, &info);
 
         info_size = sizeof(tmp.link);
-        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.link, &info_size, NULL);
+        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.link, &info_size, nullptr);
         if (result != EBPF_SUCCESS) {
             return libbpf_result_err(result);
         }
