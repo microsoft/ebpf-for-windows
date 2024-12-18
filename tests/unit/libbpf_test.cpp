@@ -2243,6 +2243,16 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.obj_pin.pathname = (uintptr_t) "MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
+    // Get info on the second link.
+    memset(&attr, 0, sizeof(attr));
+    info = {};
+    attr.info.bpf_fd = fd1;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_BIND);
+    REQUIRE(info.type == BPF_LINK_TYPE_PLAIN); // This fails for some reason.
+
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
     REQUIRE(bpf(BPF_OBJ_GET, &attr, sizeof(attr)) == -EINVAL);
 
