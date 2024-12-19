@@ -93,6 +93,15 @@ Data Fields</h2></td></tr>
 <tr class="memitem:acd91f40f3d8485a1399f7de3ab1f4346"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsys__bpf__map__create__attr__t.html#acd91f40f3d8485a1399f7de3ab1f4346">inner_map_fd</a></td></tr>
 <tr class="memdesc:acd91f40f3d8485a1399f7de3ab1f4346"><td class="mdescLeft">&#160;</td><td class="mdescRight">File descriptor of inner map.  <a href="structsys__bpf__map__create__attr__t.html#acd91f40f3d8485a1399f7de3ab1f4346">More...</a><br /></td></tr>
 <tr class="separator:acd91f40f3d8485a1399f7de3ab1f4346"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8db9edf281d3ac77df758917127854e1"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsys__bpf__map__create__attr__t.html#a8db9edf281d3ac77df758917127854e1">numa_node</a></td></tr>
+<tr class="memdesc:a8db9edf281d3ac77df758917127854e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Not supported, must be zero.  <a href="structsys__bpf__map__create__attr__t.html#a8db9edf281d3ac77df758917127854e1">More...</a><br /></td></tr>
+<tr class="separator:a8db9edf281d3ac77df758917127854e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a10d2217e94ea0f639b5999045cd066fd"><td class="memItemLeft" align="right" valign="top">char&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsys__bpf__map__create__attr__t.html#a10d2217e94ea0f639b5999045cd066fd">map_name</a> [<a class="el" href="linux_2bpf_8h.html#aab92caa51df011305523b2e902fbb6bb">SYS_BPF_OBJ_NAME_LEN</a>]</td></tr>
+<tr class="memdesc:a10d2217e94ea0f639b5999045cd066fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map name.  <a href="structsys__bpf__map__create__attr__t.html#a10d2217e94ea0f639b5999045cd066fd">More...</a><br /></td></tr>
+<tr class="separator:a10d2217e94ea0f639b5999045cd066fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83430b4e9322a9564c4737145d041a19"><td class="memItemLeft" align="right" valign="top">uint32_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structsys__bpf__map__create__attr__t.html#a83430b4e9322a9564c4737145d041a19">map_ifindex</a></td></tr>
+<tr class="memdesc:a83430b4e9322a9564c4737145d041a19"><td class="mdescLeft">&#160;</td><td class="mdescRight">Not supported, must be zero.  <a href="structsys__bpf__map__create__attr__t.html#a83430b4e9322a9564c4737145d041a19">More...</a><br /></td></tr>
+<tr class="separator:a83430b4e9322a9564c4737145d041a19"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Attributes used by BPF_MAP_CREATE. </p>
@@ -145,6 +154,38 @@ Data Fields</h2></td></tr>
 
 </div>
 </div>
+<a id="a83430b4e9322a9564c4737145d041a19"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83430b4e9322a9564c4737145d041a19">&#9670;&nbsp;</a></span>map_ifindex</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t sys_bpf_map_create_attr_t::map_ifindex</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Not supported, must be zero. </p>
+
+</div>
+</div>
+<a id="a10d2217e94ea0f639b5999045cd066fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a10d2217e94ea0f639b5999045cd066fd">&#9670;&nbsp;</a></span>map_name</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char sys_bpf_map_create_attr_t::map_name[<a class="el" href="linux_2bpf_8h.html#aab92caa51df011305523b2e902fbb6bb">SYS_BPF_OBJ_NAME_LEN</a>]</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Map name. </p>
+
+</div>
+</div>
 <a id="acf0d209ef737a6271bca050f7cbe71cd"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#acf0d209ef737a6271bca050f7cbe71cd">&#9670;&nbsp;</a></span>map_type</h2>
 
@@ -174,6 +215,22 @@ Data Fields</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Maximum number of entries in the map. </p>
+
+</div>
+</div>
+<a id="a8db9edf281d3ac77df758917127854e1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a8db9edf281d3ac77df758917127854e1">&#9670;&nbsp;</a></span>numa_node</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">uint32_t sys_bpf_map_create_attr_t::numa_node</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Not supported, must be zero. </p>
 
 </div>
 </div>

@@ -69,6 +69,7 @@ $(function() {
 <a href="#nested-classes">Data Structures</a> &#124;
 <a href="#define-members">Macros</a> &#124;
 <a href="#typedef-members">Typedefs</a> &#124;
+<a href="#enum-members">Enumerations</a> &#124;
 <a href="#var-members">Variables</a>  </div>
   <div class="headertitle">
 <div class="title">ebpf_core_structs.h File Reference</div>  </div>
@@ -104,6 +105,17 @@ Typedefs</h2></td></tr>
 <tr class="separator:abb41989791fe081530c8719049ad1c35"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a643436c42891bd9a231b3301d906e220"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__ring__buffer__map__async__query__result.html">_ebpf_ring_buffer_map_async_query_result</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#a643436c42891bd9a231b3301d906e220">ebpf_ring_buffer_map_async_query_result_t</a></td></tr>
 <tr class="separator:a643436c42891bd9a231b3301d906e220"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a32fb968697fbcf8fa6eb66b35b438b69"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa">_ebpf_object_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a></td></tr>
+<tr class="separator:a32fb968697fbcf8fa6eb66b35b438b69"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="enum-members"></a>
+Enumerations</h2></td></tr>
+<tr class="memitem:a36815228d851a9e0017cddd870dbbfaa"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa">_ebpf_object_type</a> { <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaaaed4f378303c87b744d768857f7667ccd">EBPF_OBJECT_UNKNOWN</a>
+, <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaaa0074a37a473198387653e972d3fbbf87">EBPF_OBJECT_MAP</a>
+, <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaaa9acfb10db11d5981bb211c0d5b42e8cb">EBPF_OBJECT_LINK</a>
+, <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaaa082c1ad3f6c4445e6cb7d93a9baa0279">EBPF_OBJECT_PROGRAM</a>
+ }</td></tr>
+<tr class="separator:a36815228d851a9e0017cddd870dbbfaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="var-members"></a>
 Variables</h2></td></tr>
@@ -158,6 +170,20 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a32fb968697fbcf8fa6eb66b35b438b69"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a32fb968697fbcf8fa6eb66b35b438b69">&#9670;&nbsp;</a></span>ebpf_object_type_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef enum <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa">_ebpf_object_type</a> <a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="a643436c42891bd9a231b3301d906e220"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a643436c42891bd9a231b3301d906e220">&#9670;&nbsp;</a></span>ebpf_ring_buffer_map_async_query_result_t</h2>
 
@@ -169,6 +195,27 @@ Variables</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<h2 class="groupheader">Enumeration Type Documentation</h2>
+<a id="a36815228d851a9e0017cddd870dbbfaa"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a36815228d851a9e0017cddd870dbbfaa">&#9670;&nbsp;</a></span>_ebpf_object_type</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa">_ebpf_object_type</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<table class="fieldtable">
+<tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a36815228d851a9e0017cddd870dbbfaaaed4f378303c87b744d768857f7667ccd"></a>EBPF_OBJECT_UNKNOWN&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a36815228d851a9e0017cddd870dbbfaaa0074a37a473198387653e972d3fbbf87"></a>EBPF_OBJECT_MAP&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a36815228d851a9e0017cddd870dbbfaaa9acfb10db11d5981bb211c0d5b42e8cb"></a>EBPF_OBJECT_LINK&#160;</td><td class="fielddoc"></td></tr>
+<tr><td class="fieldname"><a id="a36815228d851a9e0017cddd870dbbfaaa082c1ad3f6c4445e6cb7d93a9baa0279"></a>EBPF_OBJECT_PROGRAM&#160;</td><td class="fielddoc"></td></tr>
+</table>
 
 </div>
 </div>

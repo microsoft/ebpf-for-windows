@@ -1,5 +1,5 @@
 var searchData=
 [
-  ['xdp_970',['xdp',['../structbpf__link__info.html#a6e316edd69d9e253f4e98bf05998bc44',1,'bpf_link_info']]],
-  ['xdp_5fflags_5freplace_971',['XDP_FLAGS_REPLACE',['../ebpf__structs_8h.html#a6895b7ffe1198b667b8d71b08b82b4a2',1,'ebpf_structs.h']]]
+  ['win32_5flean_5fand_5fmean_986',['WIN32_LEAN_AND_MEAN',['../ebpf__utilities_8h.html#ac7bef5d85e3dcd73eef56ad39ffc84a9',1,'ebpf_utilities.h']]],
+  ['window_987',['window',['../structtcphdr.html#a47b9951bde2432e71882d954a9973bb7',1,'tcphdr']]]
 ];

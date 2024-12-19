@@ -1,21 +1,6 @@
 var searchData=
 [
-  ['length_1377',['Length',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html#ac94ccf3ae4ad72f8487adabdd260af36',1,'_ETHERNET_HEADER']]],
-  ['length_1378',['length',['../struct_u_d_p___h_e_a_d_e_r__.html#ae23f400c0e3eb7effffdf004168970d2',1,'UDP_HEADER_']]],
-  ['license_1379',['license',['../structbpf__load__program__attr.html#a502a218ebab88aa350824503c769db0a',1,'bpf_load_program_attr::license()'],['../structsys__bpf__prog__load__attr__t.html#a98353681d931de5808625718bf728718',1,'sys_bpf_prog_load_attr_t::license()']]],
-  ['line_5finfo_1380',['line_info',['../structbpf__load__program__attr.html#ab4f646cfbe9a11f97b7340d3a2ca5cbc',1,'bpf_load_program_attr']]],
-  ['line_5finfo_5fcnt_1381',['line_info_cnt',['../structbpf__load__program__attr.html#aea99b40c179b768a577796bc3e722a66',1,'bpf_load_program_attr']]],
-  ['line_5finfo_5frec_5fsize_1382',['line_info_rec_size',['../structbpf__load__program__attr.html#a4a632fa308548bd4598d7d609b3f36fa',1,'bpf_load_program_attr']]],
-  ['link_5fcount_1383',['link_count',['../structbpf__prog__info.html#a4a53fd3aada67c1f67cbbe1d2ec4fb18',1,'bpf_prog_info']]],
-  ['link_5fdetach_1384',['link_detach',['../unionbpf__attr.html#aa80d4da3bce1db5134c67cf59772773d',1,'bpf_attr']]],
-  ['link_5ffd_1385',['link_fd',['../structsys__bpf__link__detach__attr__t.html#a715e7ba247b96a86b8e8a377f1c5337e',1,'sys_bpf_link_detach_attr_t']]],
-  ['link_5fget_5fnext_5fid_1386',['link_get_next_id',['../unionbpf__attr.html#a6cde35a77115006e3a25a53a6ac5eb4d',1,'bpf_attr']]],
-  ['link_5fid_1387',['link_id',['../unionbpf__attr.html#a590a04762b69a0274c8544db33383799',1,'bpf_attr']]],
-  ['link_5ftype_1388',['link_type',['../struct__ebpf__attach__provider__data.html#ad6788b8c9c259d89d484bef132dab0a1',1,'_ebpf_attach_provider_data']]],
-  ['local_5fip4_1389',['local_ip4',['../struct__bpf__sock__ops.html#a06e2a806f4dcaac44c39e598e115e6eb',1,'_bpf_sock_ops']]],
-  ['local_5fip6_1390',['local_ip6',['../struct__bpf__sock__ops.html#ab5705a12010620b2dc5ac0f89c66f69f',1,'_bpf_sock_ops']]],
-  ['local_5fport_1391',['local_port',['../struct__bpf__sock__ops.html#af9d37c42a1b143dc7a5748a009b5d1d9',1,'_bpf_sock_ops']]],
-  ['log_5fbuf_1392',['log_buf',['../structsys__bpf__prog__load__attr__t.html#a46f92e118a68b458e5e6e810fe2eac2d',1,'sys_bpf_prog_load_attr_t']]],
-  ['log_5flevel_1393',['log_level',['../structbpf__load__program__attr.html#addb5c848b3e10f04e1fb96ec18b2b8c1',1,'bpf_load_program_attr::log_level()'],['../structbpf__object__load__attr.html#ab1bf0cf3f940e60f76e6158e6891a4ac',1,'bpf_object_load_attr::log_level()'],['../structsys__bpf__prog__load__attr__t.html#aa5389396f95435be96a2a229c7055cb0',1,'sys_bpf_prog_load_attr_t::log_level()']]],
-  ['log_5fsize_1394',['log_size',['../structsys__bpf__prog__load__attr__t.html#adff78cd9cc144aa36182ba3ee16e0c41',1,'sys_bpf_prog_load_attr_t']]]
+  ['kern_5fversion_1400',['kern_version',['../structbpf__load__program__attr.html#aafd5999d1bd27a4c480bb64ba081bf4e',1,'bpf_load_program_attr::kern_version()'],['../structsys__bpf__prog__load__attr__t.html#aa6d1fdee33182aaf4eb399c74011e645',1,'sys_bpf_prog_load_attr_t::kern_version()']]],
+  ['key_1401',['key',['../struct__ebpf__stat.html#addc6dec45f103009797c811d68f17869',1,'_ebpf_stat::key()'],['../structsys__bpf__map__lookup__attr__t.html#a2a679fe03b0edff75c7a6d235c56f45b',1,'sys_bpf_map_lookup_attr_t::key()'],['../structsys__bpf__map__delete__attr__t.html#a8b6d4f98ad5a5847c9cbeec520f658ff',1,'sys_bpf_map_delete_attr_t::key()'],['../structsys__bpf__map__next__key__attr__t.html#a21f4dd0e4ba24698b8628e4541c70b98',1,'sys_bpf_map_next_key_attr_t::key()']]],
+  ['key_5fsize_1402',['key_size',['../structbpf__create__map__attr.html#aeb279d0f5545e4da94b4349a21a9515a',1,'bpf_create_map_attr::key_size()'],['../struct__ebpf__map__definition__in__memory.html#a3355e179c8e1ad58c8f111c96c3d5879',1,'_ebpf_map_definition_in_memory::key_size()'],['../struct__ebpf__map__definition__in__file.html#a103d15ebb247ecc8e060be0347aa4303',1,'_ebpf_map_definition_in_file::key_size()'],['../structbpf__map__info.html#a59d3a53b2bec2c49d3955f25707cb337',1,'bpf_map_info::key_size()'],['../structsys__bpf__map__create__attr__t.html#ab34753f00c42a39006df233b1641a3ad',1,'sys_bpf_map_create_attr_t::key_size()'],['../structsys__bpf__map__info__t.html#af69e4e131b41e74c7b71eda3cad7eae7',1,'sys_bpf_map_info_t::key_size()']]]
 ];
