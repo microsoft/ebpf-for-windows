@@ -85,7 +85,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\bpftool;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\bpftool;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -97,7 +97,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\bpftool;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\bpftool;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -109,7 +109,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\bpftool;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)external\bpftool;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -121,7 +121,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -135,7 +135,7 @@
     <ClCompile>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\catch2\src;$(SolutionDir)external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)include;$(SolutionDir)tests\libs\util;$(SolutionDir)tests\sample;$(OutDir);$(SolutionDir)external\usersim\external\catch2\src;$(SolutionDir)external\usersim\external\catch2\build\generated-includes;$(SolutionDir)tests\libs\common;$(SolutionDir)external\bpftool;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)tests\socket;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -158,7 +158,7 @@
     <ProjectReference Include="$(SolutionDir)tests\libs\util\test_util.vcxproj">
       <Project>{d6725f19-b9bf-435f-80f2-c5f3ef0f4b8f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\external\Catch2\build\src\Catch2.vcxproj">
+    <ProjectReference Include="..\..\external\usersim\external\Catch2\build\src\Catch2.vcxproj">
       <Project>{8d538cbe-01bf-4a2e-a98a-6c368fdf13d7}</Project>
     </ProjectReference>
   </ItemGroup>
