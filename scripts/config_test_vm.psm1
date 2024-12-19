@@ -315,7 +315,7 @@ function Compress-KernelModeDumpOnVM
 
         $KernelModeDumpFileSourcePath = "$Env:WinDir"
         $KernelModeDumpFileDestinationPath = "$Env:SystemDrive\KernelDumps"
-    
+
         # Create the compressed dump folder if doesn't exist.
         if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
             Write-Log "Creating $KernelModeDumpFileDestinationPath directory."
@@ -539,6 +539,29 @@ function Initialize-NetworkInterfacesOnVMs
             .\duonic.ps1 -Install -NumNicPairs 2
             # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
             Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+
+            # TODO - remove this debugging output
+            ipconfig /all
+            Get-NetIPInterface | Out-String
+            Get-NetAdapter | Out-String
+            Get-NetAdapterBinding -AllBindings | Out-String
+
+            # Loop through each adapter and enable IPv4 and IPv6
+            $adapters = Get-NetAdapter
+            foreach ($adapter in $adapters) {
+                try {
+                    # Enable IPv4 (usually enabled by default)
+                    Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip
+
+                    # Enable IPv6
+                    Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip6
+
+                    Write-Host "Enabled IPv4 and IPv6 on adapter: $($adapter.Name)"
+                } catch {
+                    Write-Host "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name)"
+                }
+            }
+            Get-NetAdapterBinding -AllBindings | Out-String
 
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop

@@ -12,8 +12,15 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+$SelfHostedRunnerName = "runner_host"
+Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, Target: $Target"
+try {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+} catch {
+    Write-Host "Failed to get credentials for $Target. Using default credentials."
+    $securePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
+    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword $securePassword
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -48,6 +55,12 @@ $Job = Start-Job -ScriptBlock {
             -VMName $VMName `
             -Credential $TestVMCredential `
             -ScriptBlock {
+                # TODO - remove this debugging output
+                ipconfig /all
+                Get-NetIPInterface | Out-String
+                Get-NetAdapter | Out-String
+                Get-NetAdapterBinding -AllBindings | Out-String
+
                 Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
             }
 
@@ -89,4 +102,3 @@ Pop-Location
 if ($JobTimedOut) {
     exit 1
 }
-

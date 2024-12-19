@@ -15,10 +15,17 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+$SelfHostedRunnerName = "runner_host"
+try {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+} catch {
+    Write-Host "Failed to get credentials for $Target. Using default credentials."
+    $securePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
+    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword $securePassword
+}
+
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.
@@ -27,10 +34,6 @@ $VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Delete old log files if any.
 Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
-foreach($VM in $VMList) {
-    $VMName = $VM.Name
-    Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
-}
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
