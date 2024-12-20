@@ -3,6 +3,12 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
+try {
+    Import-Module CredentialManager -Force -ErrorAction Ignore
+} catch {
+    Write-Host "Failed to import CredentialManager module. Using default credentials."
+}
+
 #
 # Common helper functions.
 #
@@ -55,22 +61,41 @@ function Compress-File
     # Retry 3 times to ensure compression operation succeeds.
     # To mitigate error message: "The process cannot access the file <filename> because it is being used by another process."
     $retryCount = 1
-    while ($retryCount -lt 4) {
-        $error.clear()
-        Compress-Archive `
-            -Path $SourcePath `
-            -DestinationPath $DestinationPath `
-            -CompressionLevel Fastest `
-            -Force
-        if ($error[0] -ne $null) {
-            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+    while ($retryCount -lt 6) {
+        try {
+            $error.clear()
+            Compress-Archive `
+                -Path $SourcePath `
+                -DestinationPath $DestinationPath `
+                -CompressionLevel Fastest `
+                -Force
+            if ($error[0] -ne $null) {
+                $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+                Write-Output $ErrorMessage
+                Start-Sleep -seconds (5 * $retryCount)
+                $retryCount++
+            } else {
+                # Compression succeeded.
+                if (Test-Path $DestinationPath) {
+                    Write-Log "Successfully compressed $SourcePath -> $DestinationPath"
+                    break;
+                } else {
+                    $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $error. Retrying $retryCount"
+                    Write-Output $ErrorMessage
+                    Start-Sleep -seconds (5 * $retryCount)
+                    $retryCount++
+                }
+            }
+        } catch {
+            $ErrorMessage = "*** ERROR *** Failed to compress kernel mode dump files: $_. Retrying $retryCount"
             Write-Output $ErrorMessage
             Start-Sleep -seconds (5 * $retryCount)
             $retryCount++
-        } else {
-            # Compression succeeded.
-            break;
         }
+    }
+
+    if (!(Test-Path $DestinationPath)) {
+        Write-Log "Failed to compress kernel mode dump files after retries"
     }
 }
 
@@ -94,7 +119,7 @@ function Wait-TestJobToComplete
             if ($Job.State -eq "Running") {
                 $VMList = $Config.VMMap.$SelfHostedRunnerName
                 # currently one VM runs per runner.
-                $TestVMName = $VMList[0].Name            
+                $TestVMName = $VMList[0].Name
                 Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
                 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
                 $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
@@ -111,4 +136,18 @@ function Wait-TestJobToComplete
     $JobOutput | ForEach-Object { Write-Host $_ }
 
     return $JobTimedOut
+}
+
+function Create-VMCredential {
+    param (
+        [Parameter(Mandatory=$True)][string]$VmUsername,
+        [Parameter(Mandatory=$True)][string]$VmPassword
+    )
+
+    try {
+        $secureVmPassword = ConvertTo-SecureString $VmPassword -AsPlainText -Force
+        return New-Object System.Management.Automation.PSCredential($VmUsername, $secureVmPassword)
+    } catch {
+        throw "Failed to create VM credential: $_"
+    }
 }
