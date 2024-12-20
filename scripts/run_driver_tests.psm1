@@ -162,7 +162,7 @@ function Process-TestCompletion
         throw "Failed to start $TestCommand"
     }
 
-    Write-Log "Process-TestCompletion invoked for $TestProcess and $TestCommand"
+    Write-Log "Process-TestCompletion (maige) invoked for $TestProcess and $TestCommand"
 
     # Use Wait-Process for the process to terminate or timeout.
     # See https://stackoverflow.com/a/23797762
