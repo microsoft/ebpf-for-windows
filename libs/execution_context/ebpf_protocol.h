@@ -359,6 +359,7 @@ typedef struct _ebpf_operation_get_object_info_request
 typedef struct _ebpf_operation_get_object_info_reply
 {
     struct _ebpf_operation_header header;
+    ebpf_object_type_t type;
     uint8_t info[1];
 } ebpf_operation_get_object_info_reply_t;
 
