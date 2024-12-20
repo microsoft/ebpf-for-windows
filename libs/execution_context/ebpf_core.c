@@ -2077,6 +2077,7 @@ _ebpf_core_protocol_get_object_info(
     }
 
     if (result == EBPF_SUCCESS) {
+        reply->type = object->type;
         reply->header.length = FIELD_OFFSET(ebpf_operation_get_object_info_reply_t, info) + info_size;
     }
     EBPF_OBJECT_RELEASE_REFERENCE(object);
