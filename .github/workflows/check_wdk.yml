@@ -12,6 +12,10 @@ on:
   # Allow manual triggering of the script
   workflow_dispatch:
 
+permissions:
+  contents: read  # Required by actions/checkout to fetch code.
+  issues: write # Required to create issues.
+
 jobs:
   check:
     runs-on: Windows-latest
