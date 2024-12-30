@@ -16,8 +16,8 @@
 
 # $ErrorActionPreference = "Stop"
 
-# # Import helper functions
-# Import-Module .\prepare_vm_helpers.psm1 -Force
+# Import helper functions
+Import-Module .\prepare_vm_helpers.psm1 -Force
 
 $hyperV = (Get-WindowsFeature -Name 'Hyper-V').Installed
 Log-Message -Message "Hyper-V is installed: $hyperV"

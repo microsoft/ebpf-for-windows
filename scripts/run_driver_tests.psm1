@@ -168,12 +168,12 @@ function Process-TestCompletion
         # Use Wait-Process for the process to terminate or timeout.
         # See https://stackoverflow.com/a/23797762
         Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
+        Write-Log "(maige) Process-TestCompletion: Process exit code: $($TestProcess.ExitCode)"
     } catch {
         Write-Log "(CATCH) Process-TestCompletion: Failed to wait for $TestCommand"
+        Write-Log "(maige) Process-TestCompletion: Process exit code: $($TestProcess.ExitCode)"
         throw "Failed to wait for $TestCommand"
     }
-
-    Write-Log "(maige) Process-TestCompletion: Process exit code: $($TestProcess.ExitCode)"
 
     if (-not $TestProcess.HasExited) {
         Write-Log "`n*** ERROR *** Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.`n"
