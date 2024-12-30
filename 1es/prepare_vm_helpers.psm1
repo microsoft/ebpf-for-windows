@@ -342,6 +342,7 @@ function Create-VMSwitchIfNeeded {
     Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }
 
+
 function Create-VMStoredCredential {
     param (
         [Parameter(Mandatory=$True)][string]$CredentialName,
