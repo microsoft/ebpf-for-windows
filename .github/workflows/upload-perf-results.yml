@@ -121,12 +121,11 @@ jobs:
     - name: Create regression work item
       run: |
         echo "Work Item created to register performance regression..."
-        new_issue_url=$(gh issue create \
+        gh issue create \
             --title "$TITLE" \
             --label "$LABELS" \
             --body "$BODY")
 
-        gh issue pin "$new_issue_url"
       env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
