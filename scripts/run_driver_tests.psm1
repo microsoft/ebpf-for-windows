@@ -172,6 +172,7 @@ function Process-TestCompletion
     } catch {
         Write-Log "(CATCH) Process-TestCompletion: Failed to wait for $TestCommand"
         Write-Log "(maige) Process-TestCompletion: Process exit code: $($TestProcess.ExitCode)"
+        Write-Log "(maige) Error: $_"
         throw "Failed to wait for $TestCommand"
     }
 
@@ -396,7 +397,6 @@ function Invoke-XDPTest
 
     try {
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
-        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
         $TestCommand = ".\xdp_tests.exe"
         $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
@@ -404,10 +404,10 @@ function Invoke-XDPTest
             Write-Log "Failed to start $TestCommand with arguments $TestArguments"
             throw "Failed to start $TestCommand with arguments $TestArguments"
         }
+        Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
-        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
         $TestCommand = ".\xdp_tests.exe"
         $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
@@ -415,6 +415,7 @@ function Invoke-XDPTest
             Write-Log "Failed to start $TestCommand with arguments $TestArguments"
             throw "Failed to start $TestCommand with arguments $TestArguments"
         }
+        Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "$XDPTestName Test Passed" -ForegroundColor Green

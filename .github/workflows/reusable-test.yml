@@ -95,7 +95,7 @@ jobs:
       id: configure-runner
       if: contains(inputs.environment, 'self-hosted')
       run: |
-        powershell.exe "cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
+        powershell.exe "Get-ChildItem 'C:\bin\CloudTestWorker' -Recurse; cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
 
     - name: Print CPU information
       run:
