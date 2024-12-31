@@ -1,0 +1,38 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This workflow executes a single test, optionally gathering code coverage and logs.
+
+name: Reusable Test Workflow
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+      result_artifact:
+        required: true
+        type: string
+      platform:
+        required: false
+        type: string
+        default: "Windows 2019"
+    secrets:
+      AZURE_CLIENT_ID:
+        required: true
+      AZURE_TENANT_ID:
+        required: true
+      AZURE_SUBSCRIPTION_ID:
+        required: true
+
+permissions:
+  id-token: write # Required to log in to Azure.
+
+jobs:
+  upload_results:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create Work Item
+      run: |
+        gh issue create --title "test - regressin" --body "test"

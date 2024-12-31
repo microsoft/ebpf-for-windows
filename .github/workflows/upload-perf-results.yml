@@ -109,7 +109,3 @@ jobs:
       with:
         name: Regression-Results-${{inputs.result_artifact}}
         path: ${{github.workspace}}/results/regression_results.csv
-
-    - name: Create Work Item
-      run: |
-        gh issue create --title "test - regressin" --body "test"
