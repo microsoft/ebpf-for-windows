@@ -3,7 +3,8 @@
 
 # This workflow executes a single test, optionally gathering code coverage and logs.
 
-name: Reusable Test Workflow
+name: Test
+
 
 on:
   workflow_call:
