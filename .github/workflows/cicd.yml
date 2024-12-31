@@ -52,7 +52,13 @@ jobs:
 
     - name: Create Work Item
       run: |
-        gh issue create -t "Performance regression - $date" -l "perf-regression" -b "This issue was created automatically in response to a perf-regression as part of run -- https://github.com/microsoft/ebpf-for-windows/actions/runs/$GITHUB_RUNID"
+        gh issue create \
+          -t "Performance regression" \
+          -l "perf-regression" \
+          -b "This issue was created automatically \
+              on $(date) in response to a perf-regression \
+              as part of run -- (https://github.com/microsoft/ebpf-for-windows/actions/runs/$GITHUB_RUNID). \
+              Please check build artifacts for more details"
       env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_RUNID: ${{ github.run_id }}
