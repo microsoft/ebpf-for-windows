@@ -84,6 +84,12 @@ $Job = Start-Job -ScriptBlock {
         Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
     }
 
+    # Log OS build information on the test VM.
+    foreach($VM in $VMList) {
+        $VMName = $VM.Name
+        Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
+    }
+
     Pop-Location
 }  -ArgumentList (
     $TestVMCredential,

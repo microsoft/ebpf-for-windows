@@ -540,29 +540,6 @@ function Initialize-NetworkInterfacesOnVMs
             # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
             Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
 
-            # TODO - remove this debugging output
-            ipconfig /all
-            Get-NetIPInterface | Out-String
-            Get-NetAdapter | Out-String
-            Get-NetAdapterBinding -AllBindings | Out-String
-
-            # Loop through each adapter and enable IPv4 and IPv6
-            $adapters = Get-NetAdapter
-            foreach ($adapter in $adapters) {
-                try {
-                    # Enable IPv4 (usually enabled by default)
-                    Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip
-
-                    # Enable IPv6
-                    Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip6
-
-                    Write-Host "Enabled IPv4 and IPv6 on adapter: $($adapter.Name)"
-                } catch {
-                    Write-Host "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name)"
-                }
-            }
-            Get-NetAdapterBinding -AllBindings | Out-String
-
             Pop-Location
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     }
@@ -715,4 +692,20 @@ function Get-PSExec {
     cd ..
     Move-Item -Path "$DownloadPath\PSTools\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
+}
+
+#
+# Queries registry for OS build information and logs it.
+#
+function Log-OSBuildInformationOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName)
+
+    Write-Log "Logging OS build information on $VMName"
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
+        Write-Output "OS Build Information: $($buildLabEx.BuildLabEx)"
+    }
+    Write-Log "Finished logging OS build informatino on $VMName" -ForegroundColor Green
 }
