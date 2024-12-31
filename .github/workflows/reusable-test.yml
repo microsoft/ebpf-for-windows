@@ -91,11 +91,11 @@ jobs:
       with:
         egress-policy: audit
 
-    - name: Configure runner (Move to setup script directly later)
+    - name: Check runner configuration (TODO possibly remove, if not needed)
       id: configure-runner
       if: contains(inputs.environment, 'self-hosted')
       run: |
-        powershell.exe "Get-ChildItem 'C:\bin\CloudTestWorker' -Recurse; cd C:\bin\CloudTestWorker\ProvisioningScript; dir; .\Setup_orig.ps1"
+        powershell.exe "Get-VM; Get-ChildItem 'C:\work' -Recurse;"
 
     - name: Print CPU information
       run:

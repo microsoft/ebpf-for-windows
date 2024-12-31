@@ -207,7 +207,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2019
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2019"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2019"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -226,7 +226,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2022
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2022"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2022"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -245,7 +245,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_native_only_ws2019
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2019"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2019"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -264,7 +264,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_native_only_ws2022
       build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2022"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2022"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -284,7 +284,7 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: regression_driver_ws2022
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2022"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2022"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
@@ -584,7 +584,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2019"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2019"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -603,7 +603,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=ebpf-cicd-image-server-2019"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server-2019"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false

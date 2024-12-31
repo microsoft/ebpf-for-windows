@@ -2,7 +2,23 @@
     "license":["Copyright (c) eBPF for Windows contributors", "SPDX-License-Identifier: MIT"],
     "artifacts": [
         {
-            "name": "windows-server-install-feature-hyperv"
+            "Name": "windows-server-install-feature-hyperv"
+        },
+        {
+            "Name": "windows-azcopy-downloadfile-msi",
+            "Parameters":
+                {
+                    "BlobUri": "https://ebpfcicdstorage.blob.core.windows.net/server-2019/*",
+                    "Destination": "C:\\work",
+                    "Identity": "/subscriptions/15cd5cd8-c222-405e-bb37-c5c6712a075f/resourceGroups/ebpf-cicd-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ebpf-cicd-identity"
+                }
+        },
+        {
+            "Name": "windows-powershell-invokecommand",
+            "Parameters":
+                {
+                    "Script": "Get-ChildItem -Path 'C:\\work' -Recurse; cd 'C:\\work'; Invoke-Expression 'C:\\work\\Setup.ps1'"
+                }
         }
     ]
 }
