@@ -47,6 +47,9 @@ jobs:
     # Always run this job.
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+
     - name: Create Work Item
       run: |
         gh issue create --title "test - regressin" --body "test"
