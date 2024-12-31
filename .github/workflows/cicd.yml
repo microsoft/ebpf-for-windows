@@ -628,6 +628,10 @@ jobs:
     secrets:
       NET_PERF_TRIGGER: ${{ secrets.NET_PERF_TRIGGER }}
 
+  - name: Create Work Item
+      run: |
+        gh issue create --title "test - regression" --body "test"
+
   upload_perf_results:
     needs: performance
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
