@@ -453,13 +453,14 @@ __drv_allocatesMem(Mem) _Must_inspect_result_
     return header;
 }
 
-_Must_inspect_result_ _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
+_Must_inspect_result_
+_Ret_writes_maybenull_(size) void* ebpf_epoch_allocate(size_t size)
 {
     return ebpf_epoch_allocate_with_tag(size, EBPF_POOL_TAG_EPOCH);
 }
 
 _Must_inspect_result_
-    _Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
+_Ret_writes_maybenull_(size) void* ebpf_epoch_allocate_cache_aligned_with_tag(size_t size, uint32_t tag)
 {
     ebpf_assert(size);
     ebpf_epoch_allocation_header_t* header;
