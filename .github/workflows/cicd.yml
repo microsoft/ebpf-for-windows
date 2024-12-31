@@ -50,3 +50,5 @@ jobs:
     - name: Create Work Item
       run: |
         gh issue create --title "test - regressin" --body "test"
+      env:
+          GITHUB_TOKEN: ${{ github.token }}
