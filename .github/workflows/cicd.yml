@@ -52,6 +52,11 @@ jobs:
 
     - name: Create Work Item
       run: |
-        gh issue create --title "test - regressin" --body "test"
+        gh issue create --title "Performance regression - $date" `
+                        --label "perf-regression"
+                        --body "This issue was created automatically `
+                                in response to a perf-regression `
+                                https://github.com/microsoft/ebpf-for-windows/actions/runs/$GITHUB_WORKFLOW"
       env:
           GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_WORKFLOW: ${{ github.workflow }}
