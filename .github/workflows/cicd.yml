@@ -53,7 +53,7 @@ jobs:
     - name: Create Work Item
       run: |
         gh issue create -t "Performance regression - $date" `
-                        -l "perf-regression"
+                        -l "perf-regression" `
                         -b "This issue was created automatically `
                                 in response to a perf-regression `
                                 https://github.com/microsoft/ebpf-for-windows/actions/runs/$GITHUB_WORKFLOW"
