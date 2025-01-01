@@ -205,22 +205,22 @@ function Process-TestCompletion
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
         Write-Log "(maige) Process-TestCompletion: command should have completed"
-        try {
-            $currExitCode = $TestProcess.ExitCode
-            $temp = $TestProcess | Out-String
-            Write-Log "Maige - test output: $temp"
-            Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
-        } catch {
-            Write-Log "maige - failed"
-        }
+        # try {
+        #     $currExitCode = $TestProcess.ExitCode
+        #     $temp = $TestProcess | Out-String
+        #     Write-Log "Maige - test output: $temp"
+        #     Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
+        # } catch {
+        #     Write-Log "maige - failed"
+        # }
 
         # $currExitCode = $TestProcess.ExitCode
         # $temp = $TestProcess | Out-String
         # Write-Log "Maige - test output: $temp"
         # Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
 
-        # # Ensure the process has completely exited.
-        # Wait-Process -InputObject $TestProcess
+        # Ensure the process has completely exited.
+        Wait-Process -InputObject $TestProcess
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
@@ -234,9 +234,9 @@ function Process-TestCompletion
         }
 
         $TestExitCode = $TestProcess.ExitCode
-        # Write-Log "Maige - Test exit code: $TestExitCode"
-        # if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
-        if ($TestExitCode -ne 0) {
+        Write-Log "Maige - Test exit code: $TestExitCode"
+        if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
+        # if ($TestExitCode -ne 0) {
             $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
             if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
                 Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
