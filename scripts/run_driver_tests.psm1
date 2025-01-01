@@ -205,22 +205,22 @@ function Process-TestCompletion
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
         Write-Log "(maige) Process-TestCompletion: command should have completed"
-        # try {
-        #     $currExitCode = $TestProcess.ExitCode
-        #     $temp = $TestProcess | Out-String
-        #     Write-Log "Maige - test output: $temp"
-        #     Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
-        # } catch {
-        #     Write-Log "maige - failed"
-        # }
+        try {
+            $currExitCode = $TestProcess.ExitCode
+            $temp = $TestProcess | Out-String
+            Write-Log "Maige - test output: $temp"
+            Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
+        } catch {
+            Write-Log "maige - failed"
+        }
 
         # $currExitCode = $TestProcess.ExitCode
         # $temp = $TestProcess | Out-String
         # Write-Log "Maige - test output: $temp"
         # Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
 
-        # Ensure the process has completely exited.
-        Wait-Process -InputObject $TestProcess
+        # # Ensure the process has completely exited.
+        # Wait-Process -InputObject $TestProcess
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
