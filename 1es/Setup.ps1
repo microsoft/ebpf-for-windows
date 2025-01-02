@@ -1,9 +1,9 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 param(
-    [Parameter(Mandatory=$False)][string]$VmUsername='Administrator',
-    [Parameter(Mandatory=$False)][string]$VmStandardUserName='VMStandardUser',
-    [Parameter(Mandatory=$False)][string]$VmPassword='P@ssw0rd',
+    # [Parameter(Mandatory=$False)][string]$VmUsername='Administrator',
+    # [Parameter(Mandatory=$False)][string]$VmStandardUserName='VMStandardUser',
+    # [Parameter(Mandatory=$False)][string]$VmPassword='P@ssw0rd',
 
     [Parameter(Mandatory=$False)][string]$BaseUnattendPath='.\unattend.xml',
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
@@ -29,14 +29,6 @@ if (-not (Test-Path -Path $BaseVhdDirPath)) {
 }
 
 Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType 'Internal'
-# Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
-# Stored credentials doesn't seem to be working...
-
-# TODO - switch to azure key vault, once we validate on CICD?
-# $keyVaultValue = Get-AzKeyVaultSecret -VaultName "kobulloc-keyvaultAZPS" -Name "ExampleAZPSPassword"
-# $keyVaultValue.SecretValue | ConvertFrom-SecureString -AsPlainText
-Create-VMStoredCredential -CredentialName "TEST_VM" -Username $VmUsername -Password $VmPassword
-Create-VMStoredCredential -CredentialName "TEST_VM_STANDARD" -Username $VmStandardUserName -Password $VmPassword
 Create-DirectoryIfNotExists -Path $WorkingPath
 
 # Unzip any VHDs
@@ -68,6 +60,8 @@ if ($vhds.Count -eq 0) {
 }
 Log-Message "Successfully processed VHDs"
 
+$AdminUserCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+$StandardUserCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
 for ($i = 0; $i -lt $vhds.Count; $i++) {
     try {
         $vhd = $vhds[$i]
@@ -80,18 +74,17 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
 
         Create-VM `
             -VmName $vmName `
+            -AdminUserCredential $AdminUserCredential `
+            -StandardUserCredential $StandardUserCredential `
             -VhdPath $vhd.FullName `
             -VmStoragePath $outVMPath `
             -VMMemory $VMMemory `
             -UnattendPath $BaseUnattendPath `
-            -VmUsername $VmUsername `
-            -VmPassword $VmPassword `
             -VMSwitchName 'VMInternalSwitch'
 
         Configure-VM `
             -VmName $vmName `
-            -VmUsername $VmUsername `
-            -VmPassword $VmPassword `
+            -VmCredential $AdminUserCredential `
             -VMCpuCount $VMCpuCount
 
         Log-Message "VM $vmName created successfully"

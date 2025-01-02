@@ -72,7 +72,6 @@ function Get-AzureKeyVaultCredential
     }
 }
 
-
 function Compress-File
 {
     param ([Parameter(Mandatory = $True)] [string] $SourcePath,

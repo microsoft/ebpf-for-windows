@@ -17,13 +17,13 @@
             </OOBE>
             <UserAccounts>
                 <AdministratorPassword>
-                    <Value>PLACEHOLDER_PASSWORD</Value>
+                    <Value>PLACEHOLDER_ADMIN_PASSWORD</Value>
                     <PlainText>true</PlainText>
                 </AdministratorPassword>
                 <LocalAccounts>
                     <LocalAccount>
                         <Password>
-                            <Value>PLACEHOLDER_PASSWORD</Value>
+                            <Value>PLACEHOLDER_STANDARDUSER_PASSWORD</Value>
                             <PlainText>true</PlainText>
                         </Password>
                         <Description>Standard User Account</Description>
@@ -34,12 +34,12 @@
             </UserAccounts>
             <AutoLogon>
                 <Password>
-                    <Value>PLACEHOLDER_PASSWORD</Value>
+                    <Value>PLACEHOLDER_ADMIN_PASSWORD</Value>
                     <PlainText>true</PlainText>
                 </Password>
                 <Enabled>true</Enabled>
                 <LogonCount>9999</LogonCount>
-                <Username>PLACEHOLDER_USERNAME</Username>
+                <Username>Administrator</Username>
             </AutoLogon>
         </component>
     </settings>

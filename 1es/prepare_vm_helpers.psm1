@@ -32,20 +32,6 @@ function Create-DirectoryIfNotExists {
     }
 }
 
-function Create-VMCredential {
-    param (
-        [Parameter(Mandatory=$True)][string]$VmUsername,
-        [Parameter(Mandatory=$True)][string]$VmPassword
-    )
-
-    try {
-        $secureVmPassword = ConvertTo-SecureString $VmPassword -AsPlainText -Force
-        return New-Object System.Management.Automation.PSCredential($VmUsername, $secureVmPassword)
-    } catch {
-        throw "Failed to create VM credential: $_"
-    }
-}
-
 function Replace-PlaceholderStrings {
     param (
         [Parameter(Mandatory=$True)][string]$FilePath,
@@ -145,8 +131,8 @@ function Wait-ForVMReady {
 function Create-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
-        [Parameter(Mandatory=$True)][string]$VmUsername,
-        [Parameter(Mandatory=$True)][string]$VmPassword,
+        [Parameter(Mandatory=$True)][PSCredential]$AdminUserCredential,
+        [Parameter(Mandatory=$True)][PSCredential]$StandardUserCredential,
         [Parameter(Mandatory=$True)][string]$VhdPath,
         [Parameter(Mandatory=$True)][string]$VmStoragePath,
         [Parameter(Mandatory=$True)][Int64]$VMMemory,
@@ -170,12 +156,12 @@ function Create-VM {
         Move-Item -Path $VhdPath -Destination $VmStoragePath -Force
         $VmVhdPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $VhdPath -Leaf)
 
-        # Move unattend to the path
+        # Move unattend to the path and replace placeholder strings
         Log-Message "Moving $UnattendPath file to $VmStoragePath"
         Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
-        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_USERNAME' -ReplaceString $VmUsername
-        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_PASSWORD' -ReplaceString $VmPassword
+        Replace-PlaceholderStrings -FilePath $UnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $AdminUserCredential.GetNetworkCredential().Password
+        Replace-PlaceholderStrings -FilePath $UnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $StandardUserCredential.GetNetworkCredential().Password
 
         # Configure the VHD with the unattend file.
         Log-Message "Mounting VHD and applying unattend file"
@@ -211,8 +197,7 @@ function Create-VM {
 function Configure-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
-        [Parameter(Mandatory=$True)][string]$VmUsername,
-        [Parameter(Mandatory=$True)][string]$VmPassword,
+        [Parameter(Mandatory=$True)][PSCredential]$VmCredential,
         [Parameter(Mandatory=$True)][int]$VMCpuCount,
         [Parameter(Mandatory=$False)][string]$VMWorkingDirectory='C:\ebpf_cicd',
         [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1'
@@ -226,9 +211,6 @@ function Configure-VM {
         Set-VMProcessor -VMName $VmName -Count $VMCpuCount
         Log-Message "Enabling Guest Service Interface"
         Enable-VMIntegrationService -VMName $VMName -Name 'Guest Service Interface'
-
-        # Get the VM credential
-        $VmCredential = Create-VMCredential -VmUsername $VmUsername -VmPassword $VmPassword
 
         # Start the VM
         Log-Message "Starting VM: $VmName"
@@ -344,18 +326,31 @@ function Create-VMSwitchIfNeeded {
     Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }
 
-function Create-VMStoredCredential {
-    param (
-        [Parameter(Mandatory=$True)][string]$CredentialName,
-        [Parameter(Mandatory=$True)][string]$Username,
-        [Parameter(Mandatory=$True)][string]$Password
-    )
-    try {
-        Install-Module -Name CredentialManager -Scope AllUsers -Force
-        Import-Module CredentialManager -Force
+#
+# Retrieves the secret from Azure Key Vault.
+# Returns a PSCredential object, where the username is the secret name and the password is the retrieved secret.
+#
+function Get-AzureKeyVaultCredential
+{
+    param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
+          [Parameter(Mandatory=$True)][string] $SecretName)
 
-        New-StoredCredential -Target $CredentialName -UserName $Username -Password $Password -Type Generic -Persist LocalMachine
+    try {
+        # Check if the Az module is installed, if not, install it
+        if (-not (Get-Module -ListAvailable -Name Az)) {
+            Install-Module -Name Az -AllowClobber -Force
+        }
+
+        # Authenticate using the managed identity
+        Connect-AzAccount -Identity
+
+        # Retrieve the secret from Key Vault
+        $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
+
+        # The SecretName is the username and the secret value is the password
+        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret)
+        return $credential
     } catch {
-        Log-Message "Failed to create stored credential with error $_" -ForegroundColor Red
+        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName, SecretName: $SecretName. Error: $_"
     }
 }
