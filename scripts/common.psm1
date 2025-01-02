@@ -65,11 +65,11 @@ function Get-AzureKeyVaultCredential
         $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
 
         # The SecretName is the username and the secret value is the password
-        Write-Host "Successfully retrieved secret from Azure Key Vault. KeyVaultName: $KeyVaultName, SecretName: $SecretName"
+        Write-Host "Successfully retrieved secret from Azure Key Vault. KeyVaultName: $KeyVaultName SecretName: $SecretName"
         $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret.SecretValue)
         return $credential
     } catch {
-        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName, SecretName: $SecretName. Error: $_"
+        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName SecretName: $SecretName Error: $_"
     }
 }
 
