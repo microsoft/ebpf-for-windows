@@ -61,7 +61,7 @@ function Get-AzureKeyVaultCredential
         # Authenticate using the managed identity
         Connect-AzAccount -Identity
 
-        Set-AzContext -SubscriptionId '15cd5cd8-c222-405e-bb37-c5c6712a075f'
+        # Set-AzContext -SubscriptionId '15cd5cd8-c222-405e-bb37-c5c6712a075f'
 
         # Retrieve the secret from Key Vault
         $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
