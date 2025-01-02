@@ -61,12 +61,54 @@ function Get-AzureKeyVaultCredential
         # Authenticate using the managed identity
         Connect-AzAccount -Identity
 
+        Set-AzContext -SubscriptionId '15cd5cd8-c222-405e-bb37-c5c6712a075f'
+
         # Retrieve the secret from Key Vault
         $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
 
         # The SecretName is the username and the secret value is the password
         $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret)
         return $credential
+    } catch {
+        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName, SecretName: $SecretName. Error: $_"
+    }
+}
+
+#
+# Retrieves the secret from Azure Key Vault.
+# Returns a PSCredential object, where the username is the secret name and the password is the retrieved secret.
+#
+function Get-AzureKeyVaultCredential2
+{
+    param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
+          [Parameter(Mandatory=$True)][string] $SecretName)
+
+    try {
+        # # Check if the Az module is installed, if not, install it
+        # if (-not (Get-Module -ListAvailable -Name Az)) {
+        #     Install-Module -Name Az -AllowClobber -Force
+        # }
+
+        # # Authenticate using the managed identity
+        # Connect-AzAccount -Identity
+
+        # Set-AzContext -SubscriptionId "your-subscription-id"
+
+        # Get the managed identity token
+        $keyVaultUri = 'http://169.254.169.254/metadata/identity/oauth2/token?api-version=2019-08-01&resource=https://' + $KeyVaultName + '.vault.azure.net'
+        $token = (Invoke-RestMethod -Uri $keyVaultUri -Method GET -Headers @{Metadata="true"}).access_token
+
+        # Set the token in the header
+        $headers = @{
+            'Authorization' = "Bearer $token"
+        }
+
+        # Get the secret from the Key Vault
+        $keyVaultSecretUri = 'https://' + $KeyVaultName + '.vault.azure.net/secrets/' + $SecretName + '?api-version=7.0'
+        $secret = Invoke-RestMethod -Uri keyVaultSecretUri -Method GET -Headers $headers
+        $password = ConvertTo-SecureString $secret.value -AsPlainText -Force
+
+        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $password)
     } catch {
         throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName, SecretName: $SecretName. Error: $_"
     }

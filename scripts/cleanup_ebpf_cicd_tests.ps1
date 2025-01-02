@@ -14,7 +14,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 $SelfHostedRunnerName = "runner_host"
 Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, Target: $Target"
-$TestVMCredential = Get-AzureKeyVaultCredential -SecretName'Administrator'
+$TestVMCredential = Get-AzureKeyVaultCredential2 -SecretName'Administrator'
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
