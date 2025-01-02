@@ -53,10 +53,10 @@ function Get-AzureKeyVaultCredential
           [Parameter(Mandatory=$True)][string] $SecretName)
 
     try {
-        # Check if the Az module is installed, if not, install it
-        if (-not (Get-Module -ListAvailable -Name Az)) {
-            Install-Module -Name Az -AllowClobber -Force
-        }
+        # # Check if the Az module is installed, if not, install it
+        # if (-not (Get-Module -ListAvailable -Name Az)) {
+        #     Install-Module -Name Az -AllowClobber -Force
+        # }
 
         # Authenticate using the managed identity
         Connect-AzAccount -Identity
@@ -65,7 +65,7 @@ function Get-AzureKeyVaultCredential
         $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
 
         # The SecretName is the username and the secret value is the password
-        Write-Host "Successfully retrieved secret from Azure Key Vault. KeyVaultName: $KeyVaultName SecretName: $SecretName"
+        # Write-Host "Successfully retrieved secret from Azure Key Vault. KeyVaultName: $KeyVaultName SecretName: $SecretName"
         $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret.SecretValue)
         return $credential
     } catch {
