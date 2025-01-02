@@ -53,10 +53,10 @@ function Get-AzureKeyVaultCredential
           [Parameter(Mandatory=$True)][string] $SecretName)
 
     try {
-        # # Check if the Az module is installed, if not, install it
-        # if (-not (Get-Module -ListAvailable -Name Az)) {
-        #     Install-Module -Name Az -AllowClobber -Force
-        # }
+        # Check if the Az module is installed, if not, install it
+        if (-not (Get-Module -ListAvailable -Name Az)) {
+            Install-Module -Name Az -AllowClobber -Force
+        }
 
         # Authenticate using the managed identity
         Connect-AzAccount -Identity
