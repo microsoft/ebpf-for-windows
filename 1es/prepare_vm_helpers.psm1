@@ -150,7 +150,8 @@ function Create-VM {
         [Parameter(Mandatory=$True)][string]$VhdPath,
         [Parameter(Mandatory=$True)][string]$VmStoragePath,
         [Parameter(Mandatory=$True)][Int64]$VMMemory,
-        [Parameter(Mandatory=$True)][string]$UnattendPath
+        [Parameter(Mandatory=$True)][string]$UnattendPath,
+        [Parameter(Mandatory=$True)][string]$VmSwitchName
     )
 
     try {
@@ -189,12 +190,12 @@ function Create-VM {
 
         # Create the VM
         Log-Message "Creating the VM"
-        New-VM -Name $VmName -VhdPath $VmVhdPath
-        $vmSwitches = Get-VMSwitch -ErrorAction Ignore
-        foreach ($switch in $vmSwitches) {
-            Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
-            Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
-        }
+        New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName
+        # $vmSwitches = Get-VMSwitch -ErrorAction Ignore
+        # foreach ($switch in $vmSwitches) {
+        #     Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
+        #     Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
+        # }
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
@@ -295,6 +296,7 @@ function Create-VMSwitchIfNeeded {
         [Parameter(Mandatory=$true)][string]$SwitchName,
         [Parameter(Mandatory=$true)][string]$SwitchType
     )
+
     if ($SwitchType -eq 'External') {
         # Check to see if an external switch already exists
         $ExternalSwitches = (Get-VMSwitch -SwitchType External -ErrorAction Ignore)
@@ -322,7 +324,7 @@ function Create-VMSwitchIfNeeded {
         }
     } elseif ($SwitchType -eq 'Internal') {
         # Check to see if an internal switch already exists
-        $InternalSwitches = (Get-VMSwitch -SwitchType Internal -ErrorAction Ignore)
+        $InternalSwitches = (Get-VMSwitch -SwitchType Internal -Name $SwitchName -ErrorAction Ignore)
         if ($InternalSwitches -ne $null) {
             Log-Message -Message "Internal switch already exists: $($InternalSwitches[0].Name)"
             return
@@ -331,7 +333,7 @@ function Create-VMSwitchIfNeeded {
         # Try to create the internal switch
         try {
             Log-Message "Creating internal switch"
-            New-VMSwitch -Name 'VMInternalSwitch' -SwitchType Internal
+            New-VMSwitch -Name $SwitchName -SwitchType Internal
         } catch {
             throw "Failed to create internal switch with error: $_"
         }
@@ -341,7 +343,6 @@ function Create-VMSwitchIfNeeded {
 
     Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }
-
 
 function Create-VMStoredCredential {
     param (

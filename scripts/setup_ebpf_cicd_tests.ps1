@@ -18,13 +18,7 @@ Push-Location $WorkingDirectory
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 $SelfHostedRunnerName = "runner_host"
-try {
-    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-} catch {
-    Write-Host "Failed to get credentials for $Target. Using default credentials."
-    $securePassword = ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force
-    $TestVMCredential = New-Credential -UserName 'Administrator' -AdminPassword $securePassword
-}
+$TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 

@@ -3,12 +3,6 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
-try {
-    Import-Module CredentialManager -Force -ErrorAction Ignore
-} catch {
-    Write-Host "Failed to import CredentialManager module. Using default credentials."
-}
-
 #
 # Common helper functions.
 #
@@ -47,6 +41,35 @@ function New-Credential
 
     $Credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($UserName, $AdminPassword)
     return $Credential
+}
+
+#
+# Retrieves the secret from Azure Key Vault.
+# Returns a PSCredential object, where the username is the secret name and the password is the retrieved secret.
+#
+function Get-AzureKeyVaultCredential
+{
+    param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
+          [Parameter(Mandatory=$True)][string] $SecretName)
+
+    try {
+        # Check if the Az module is installed, if not, install it
+        if (-not (Get-Module -ListAvailable -Name Az)) {
+            Install-Module -Name Az -AllowClobber -Force
+        }
+
+        # Authenticate using the managed identity
+        Connect-AzAccount -Identity
+
+        # Retrieve the secret from Key Vault
+        $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
+
+        # The SecretName is the username and the secret value is the password
+        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret)
+        return $credential
+    } catch {
+        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName, SecretName: $SecretName. Error: $_"
+    }
 }
 
 
@@ -117,18 +140,4 @@ function Wait-TestJobToComplete
     $JobOutput | ForEach-Object { Write-Host $_ }
 
     return $JobTimedOut
-}
-
-function Create-VMCredential {
-    param (
-        [Parameter(Mandatory=$True)][string]$VmUsername,
-        [Parameter(Mandatory=$True)][string]$VmPassword
-    )
-
-    try {
-        $secureVmPassword = ConvertTo-SecureString $VmPassword -AsPlainText -Force
-        return New-Object System.Management.Automation.PSCredential($VmUsername, $secureVmPassword)
-    } catch {
-        throw "Failed to create VM credential: $_"
-    }
 }

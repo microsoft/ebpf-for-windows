@@ -175,6 +175,11 @@ function Process-TestCompletion
     #     Write-Log "(maige) Error: $_"
     #     throw "Failed to wait for $TestCommand"
     # }
+
+    # Sleep for a few seconds to ensure the process has had a chance to start.
+    Start-Sleep -Seconds 5
+
+    # Wait for the process to complete or for the timeout to complete.
     Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
 
     if (-not $TestProcess.HasExited) {

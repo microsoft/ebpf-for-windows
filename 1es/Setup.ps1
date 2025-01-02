@@ -29,10 +29,14 @@ if (-not (Test-Path -Path $BaseVhdDirPath)) {
 }
 
 Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType 'Internal'
-Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
+# Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
 # Stored credentials doesn't seem to be working...
-# Create-VMStoredCredential -CredentialName "TEST_VM" -Username $VmUsername -Password $VmPassword
-# Create-VMStoredCredential -CredentialName "TEST_VM_STANDARD" -Username $VmStandardUserName -Password $VmPassword
+
+# TODO - switch to azure key vault, once we validate on CICD?
+# $keyVaultValue = Get-AzKeyVaultSecret -VaultName "kobulloc-keyvaultAZPS" -Name "ExampleAZPSPassword"
+# $keyVaultValue.SecretValue | ConvertFrom-SecureString -AsPlainText
+Create-VMStoredCredential -CredentialName "TEST_VM" -Username $VmUsername -Password $VmPassword
+Create-VMStoredCredential -CredentialName "TEST_VM_STANDARD" -Username $VmStandardUserName -Password $VmPassword
 Create-DirectoryIfNotExists -Path $WorkingPath
 
 # Unzip any VHDs
@@ -81,7 +85,8 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
             -VMMemory $VMMemory `
             -UnattendPath $BaseUnattendPath `
             -VmUsername $VmUsername `
-            -VmPassword $VmPassword
+            -VmPassword $VmPassword `
+            -VMSwitchName 'VMInternalSwitch'
 
         Configure-VM `
             -VmName $vmName `
