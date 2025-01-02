@@ -205,23 +205,15 @@ function Process-TestCompletion
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
         Write-Log "(maige) Process-TestCompletion: command should have completed"
-        try {
-            $currExitCode = $TestProcess.ExitCode
-            $temp = $TestProcess | Out-String
-            Write-Log "Maige - test output: $temp"
-            Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
-            Write-Log "maige3 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
-        } catch {
-            Write-Log "maige - failed"
-        }
-
-        # $currExitCode = $TestProcess.ExitCode
-        # $temp = $TestProcess | Out-String
-        # Write-Log "Maige - test output: $temp"
-        # Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
-
-        # # Ensure the process has completely exited.
-        # Wait-Process -InputObject $TestProcess
+        # try {
+        #     $currExitCode = $TestProcess.ExitCode
+        #     $temp = $TestProcess | Out-String
+        #     Write-Log "Maige - test output: $temp"
+        #     Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
+        #     Write-Log "maige3 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        # } catch {
+        #     Write-Log "maige - failed"
+        # }
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
@@ -237,7 +229,6 @@ function Process-TestCompletion
         $TestExitCode = $TestProcess.ExitCode
         Write-Log "Maige - Test exit code: $TestExitCode"
         if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
-        # if ($TestExitCode -ne 0) {
             $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
             if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
                 Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
@@ -295,7 +286,7 @@ function Invoke-Test
           [Parameter(Mandatory = $True)][bool] $VerboseLogs,
           [Parameter(Mandatory = $True)][int] $TestHangTimeout)
 
-    try {
+    # try {
         # Initialize arguments.
         if ($TestArgs -ne "") {
             $ArgumentsList = @($TestArgs)
@@ -323,10 +314,10 @@ function Invoke-Test
 
         Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
         Write-Log "`n==============================`n"
-    } catch {
-        $ErrorMessage = $_.Exception.Message
-        ThrowWithErrorMessage -ErrorMessage "(maige) Test `"$TestName $TestArgs`" Failed with $ErrorMessage"
-    }
+    # } catch {
+    #     $ErrorMessage = $_.Exception.Message
+    #     ThrowWithErrorMessage -ErrorMessage "(maige) Test `"$TestName $TestArgs`" Failed with $ErrorMessage"
+    # }
 }
 
 # Function to create a tuple with default values for Arguments and Timeout
@@ -398,7 +389,7 @@ function Invoke-XDPTest
 
     Push-Location $WorkingDirectory
 
-    try {
+    # try {
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
         $TestCommand = ".\xdp_tests.exe"
         $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
@@ -407,7 +398,7 @@ function Invoke-XDPTest
         #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
         #     throw "Failed to start $TestCommand with arguments $TestArguments"
         # }
-        Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        # Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
@@ -418,15 +409,15 @@ function Invoke-XDPTest
         #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
         #     throw "Failed to start $TestCommand with arguments $TestArguments"
         # }
-        Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        # Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
         Write-Log "`n`n"
-    } catch {
-        $ErrorMessage = $_.Exception.Message
-        ThrowWithErrorMessage -ErrorMessage "(maige) XDP test Failed with $ErrorMessage"
-    }
+    # } catch {
+    #     $ErrorMessage = $_.Exception.Message
+    #     ThrowWithErrorMessage -ErrorMessage "(maige) XDP test Failed with $ErrorMessage"
+    # }
 
     Pop-Location
 }
@@ -533,12 +524,11 @@ function Invoke-CICDStressTests
     }
 
     # TODO - remove debugging output
-    Write-Log "Items from .\"
-    Get-ChildItem '.\'
-    Write-Log "Items from $WorkingDirectory"
-    Get-ChildItem $WorkingDirectory
+    # Write-Log "Items from .\"
+    # Get-ChildItem '.\'
+    # Write-Log "Items from $WorkingDirectory"
+    # Get-ChildItem $WorkingDirectory
     Write-Log "Starting $TestCommand with arguments: $TestArguments"
-
     # # Valid that the test command exists.
     # if (-not (Test-Path $TestCommand)) {
     #     ThrowWithErrorMessage -ErrorMessage "*** ERROR *** $TestCommand not found under $WorkingDirectory."
