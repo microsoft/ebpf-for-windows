@@ -162,12 +162,12 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
 
     Write-Log "(maige) Process-TestCompletion (maige)"
+    if ($TestProcess -eq $null) {
+        Write-Log "Process-TestCompletion: Failed to start $TestCommand"
+        throw "Failed to start $TestCommand"
+    }
     Write-Log "maige2 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     # Write-Log "Process-TestCompletion (maige) invoked for $TestCommand"
-    # if ($TestProcess -eq $null) {
-    #     Write-Log "Process-TestCompletion: Failed to start $TestCommand"
-    #     throw "Failed to start $TestCommand"
-    # }
 
     # try {
     #     # Use Wait-Process for the process to terminate or timeout.
@@ -184,8 +184,17 @@ function Process-TestCompletion
     # Sleep for a few seconds to ensure the process has had a chance to start.
     # Start-Sleep -Seconds 5
 
-    # Wait for the process to complete or for the timeout to complete.
-    Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
+
+    for ($i = 0; $i -lt 5; $i++) {
+        try {
+            # Wait for the process to complete or for the timeout to complete.
+            Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
+            break
+        } catch {
+            Write-Lost "Process-TestCompletion: Wait-Process failed for $TestCommand . Retrying..."
+            Start-Sleep -Seconds 5
+        }
+    }
 
     if (-not $TestProcess.HasExited) {
         Write-Log "`n*** ERROR *** Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.`n"
