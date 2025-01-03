@@ -218,6 +218,7 @@ function Process-TestCompletion
             Write-Log "maige3 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         } catch {
             Write-Log "maige - failed"
+
         }
 
         # Read and display the output (if any) from the temporary output file.
