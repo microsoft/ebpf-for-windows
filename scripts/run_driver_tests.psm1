@@ -177,7 +177,7 @@ function Process-TestCompletion
     # }
 
     # Sleep for a few seconds to ensure the process has had a chance to start.
-    Start-Sleep -Seconds 5
+    # Start-Sleep -Seconds 5
 
     # Wait for the process to complete or for the timeout to complete.
     Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
@@ -400,22 +400,22 @@ function Invoke-XDPTest
         $TestCommand = ".\xdp_tests.exe"
         $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-        # if ($TestProcess -eq $null) {
-        #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
-        #     throw "Failed to start $TestCommand with arguments $TestArguments"
-        # }
-        # Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        if ($TestProcess -eq $null) {
+            Write-Log "Failed to start $TestCommand with arguments $TestArguments"
+            ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
+        }
+        Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
         $TestCommand = ".\xdp_tests.exe"
         $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-        # if ($TestProcess -eq $null) {
-        #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
-        #     throw "Failed to start $TestCommand with arguments $TestArguments"
-        # }
-        # Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        if ($TestProcess -eq $null) {
+            Write-Log "Failed to start $TestCommand with arguments $TestArguments"
+            ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
+        }
+        Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
