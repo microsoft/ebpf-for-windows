@@ -19,7 +19,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 $SelfHostedRunnerName = "runner_host"
 $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-Write-Host "(maige) - cred $TestVMCredential"
+Write-Host "(maige) - cred $TestVMCredential and type $($TestVMCredential.GetType())"
 Write-Host "(maige) credential UserName: $($TestVMCredential.UserName) and password: $($TestVMCredential.Password)"
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
