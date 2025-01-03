@@ -161,7 +161,7 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [int] $TestHangTimeout = (10*60), # 10 minutes default timeout.
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
 
-    # Write-Log "(maige) Process-TestCompletion (maige)"
+    Write-Log "(maige) Process-TestCompletion (maige)"
     # Write-Log "Process-TestCompletion (maige) invoked for $TestCommand"
     # if ($TestProcess -eq $null) {
     #     Write-Log "Process-TestCompletion: Failed to start $TestCommand"
@@ -224,8 +224,8 @@ function Process-TestCompletion
         #     Write-Log "maige - failed"
         # }
 
-        # Ensure the process has completely exited.
-        Wait-Process -InputObject $TestProcess
+        # # Ensure the process has completely exited.
+        # Wait-Process -InputObject $TestProcess
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
