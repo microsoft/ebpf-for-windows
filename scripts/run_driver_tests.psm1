@@ -162,6 +162,7 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
 
     Write-Log "(maige) Process-TestCompletion (maige)"
+    Write-Log "maige2 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     # Write-Log "Process-TestCompletion (maige) invoked for $TestCommand"
     # if ($TestProcess -eq $null) {
     #     Write-Log "Process-TestCompletion: Failed to start $TestCommand"
