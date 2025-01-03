@@ -1,16 +1,35 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
-param(
-    # [Parameter(Mandatory=$False)][string]$VmUsername='Administrator',
-    # [Parameter(Mandatory=$False)][string]$VmStandardUserName='VMStandardUser',
-    # [Parameter(Mandatory=$False)][string]$VmPassword='P@ssw0rd',
+<#
+.SYNOPSIS
+    This script configures a host environment by creating and configuring VMs required for testing.
 
+.DESCRIPTION
+    This script will create and configure VMs based on the provided parameters.
+    It is expected that the current working directory contains the necessary files to execute this script.
+
+.PARAMETER BaseUnattendPath
+    The path to the base unattend.xml file used for VM creation.
+
+.PARAMETER BaseVhdDirPath
+    The path to the base VHD directory used for VM creation.
+
+.PARAMETER WorkingPath
+    The working path where the VMs will be created.
+
+.PARAMETER VMCpuCount
+    The number of CPUs to assign to each VM. Default is 4.
+
+.PARAMETER VMMemory
+    The amount of memory to assign to each VM. Default is 4096MB.
+
+.EXAMPLE
+    .\Setup.ps1 -BaseUnattendPath 'C:\path\to\unattend.xml' -BaseVhdDirPath 'C:\path\to\vhd' -WorkingPath 'C:\vms'
+#>
+param(
     [Parameter(Mandatory=$False)][string]$BaseUnattendPath='.\unattend.xml',
     [Parameter(Mandatory=$False)][string]$BaseVhdDirPath='.\',
-    # [Parameter(Mandatory=$False)][string]$WorkingPath='.\working',
     [Parameter(Mandatory=$False)][string]$WorkingPath='C:\vms',
-    # [Parameter(Mandatory=$False)][string]$OutVhdDirPath='.\exported_vhds',
-
     [Parameter(Mandatory=$False)][string]$VMCpuCount=4,
     [Parameter(Mandatory=$False)][string]$VMMemory=4096MB
 )
@@ -20,6 +39,7 @@ $ErrorActionPreference = "Stop"
 # Import helper functions
 Import-Module .\prepare_vm_helpers.psm1 -Force
 
+# Input validation for input paths
 if (-not (Test-Path -Path $BaseUnattendPath)) {
     throw "Unattend file not found at $BaseUnattendPath"
 }
@@ -28,40 +48,21 @@ if (-not (Test-Path -Path $BaseVhdDirPath)) {
     throw "VHD directory not found at $BaseVhdDirPath"
 }
 
-Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType 'Internal'
+# Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath
 
-# Unzip any VHDs
-Log-Message "Processing VHDs in $BaseVhdDirPath"
-$zipFiles = Get-ChildItem -Path $BaseVhdDirPath -Filter *.zip
-foreach ($zipFile in $zipFiles) {
-    Log-Message "Extracting VHDs from $($zipFile.FullName)"
-    $outDir = Join-Path -Path $BaseVhdDirPath -ChildPath $zipFile.BaseName
-    if (-not (Test-Path -Path $outDir)) {
-        Expand-Archive -Path $zipFile.FullName -DestinationPath $outDir
+# Create internal switch for VM.
+$VMSwitchName = 'VMInternalSwitch'
+Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 
-        # Move the VHDs to the base directory
-        $vhdFiles = @()
-        $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
-        $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhdx -ErrorAction Ignore
-        foreach ($vhdFile in $vhdFiles) {
-            Move-Item -Path $vhdFile.FullName -Destination $BaseVhdDirPath
-        }
-    }
-    Log-Message "Successfully processed $($zipFile.FullName)"
-}
-
-# Read the input VHDs
-$vhds = @()
-$vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd -ErrorAction Ignore
-$vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx -ErrorAction Ignore
-if ($vhds.Count -eq 0) {
-    throw "No VHDs found in $BaseVhdDirPath"
-}
-Log-Message "Successfully processed VHDs"
-
+# Fetch the credentials for the VM using the Azure Key Vault.
 $AdminUserCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 $StandardUserCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
+
+# Unzip any VHD files, if needed, and get the list of VHDs to create VMs from.
+$vhds = Prepare-VhdFiles -BaseVhdDirPath $BaseVhdDirPath
+
+# Process VM creation and setup.
 for ($i = 0; $i -lt $vhds.Count; $i++) {
     try {
         $vhd = $vhds[$i]
@@ -80,7 +81,7 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
             -VmStoragePath $outVMPath `
             -VMMemory $VMMemory `
             -UnattendPath $BaseUnattendPath `
-            -VMSwitchName 'VMInternalSwitch'
+            -VMSwitchName $VMSwitchName
 
         Configure-VM `
             -VmName $vmName `

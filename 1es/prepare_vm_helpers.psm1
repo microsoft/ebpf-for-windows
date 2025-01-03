@@ -2,6 +2,24 @@
 # SPDX-License-Identifier: MIT
 $ErrorActionPreference = "Stop"
 
+<#
+.SYNOPSIS
+    Helper function to format a log message with a timestamp and outputs the message to the console.
+
+.DESCRIPTION
+    This function formats a log message with a timestamp and outputs the message to the console.
+
+.PARAMETER Message
+    The message to log.
+
+.PARAMETER ForegroundColor
+    The color of the text to display in the console. Defaults to 'White'.
+
+.EXAMPLE
+    Log-Message -Message "This is a log message"
+    Log-Message -Message "This is a success log message" -ForegroundColor "Green"
+    Log-Message -Message "This is an error log message" -ForegroundColor "Red"
+#>
 function Log-Message {
     param(
         [Parameter(Mandatory=$True)][string]$Message,
@@ -14,6 +32,19 @@ function Log-Message {
     Write-Host "[$timestamp] - $Message" -ForegroundColor $ForegroundColor
 }
 
+<#
+.SYNOPSIS
+    Helper function to create a directory if it does not already exist.
+
+.DESCRIPTION
+    This function checks if a directory exists at the specified path. If it does not exist, it creates the directory.
+
+.PARAMETER Path
+    The path of the directory to create.
+
+.EXAMPLE
+    Create-DirectoryIfNotExists -Path "C:\MyDirectory"
+#>
 function Create-DirectoryIfNotExists {
     param (
         [Parameter(Mandatory=$True)][string]$Path
@@ -32,6 +63,25 @@ function Create-DirectoryIfNotExists {
     }
 }
 
+<#
+.SYNOPSIS
+    Helper function to replace placeholder strings in a file.
+
+.DESCRIPTION
+    This function replaces all occurrences of a specified search string with a replacement string in a file.
+
+.PARAMETER FilePath
+    The path to the file in which to replace the placeholder strings.
+
+.PARAMETER SearchString
+    The string to search for in the file.
+
+.PARAMETER ReplaceString
+    The string to replace the search string with.
+
+.EXAMPLE
+    Replace-PlaceholderStrings -FilePath "C:\MyFile.txt" -SearchString "PLACEHOLDER" -ReplaceString "ActualValue"
+#>
 function Replace-PlaceholderStrings {
     param (
         [Parameter(Mandatory=$True)][string]$FilePath,
@@ -48,6 +98,22 @@ function Replace-PlaceholderStrings {
     }
 }
 
+<#
+.SYNOPSIS
+    Helper function to execute a command on a VM.
+
+.DESCRIPTION
+    This function executes a command on a specified VM using the provided credentials.
+
+.PARAMETER VMName
+    The name of the VM to execute the command on.
+
+.PARAMETER VmCredential
+    The credentials to use for executing the command on the VM.
+
+.PARAMETER Command
+    The command to execute on the VM.
+#>
 function Execute-CommandOnVM {
     param (
         [Parameter(Mandatory=$True)][string]$VMName,
@@ -56,17 +122,36 @@ function Execute-CommandOnVM {
     )
 
     try {
+        Log-Message "Executing command on VM: $VMName. Command: $Command"
         $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
             param($Command)
             Invoke-Expression $Command
         } -ArgumentList $Command
-
-        Log-Message -Message "Executed command on VM: $VMName. Command: $Command. Result: $result"
+        Log-Message -Message "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
     } catch {
         throw "Failed to execute command on VM: $VMName with error: $_"
     }
 }
 
+<#
+.SYNOPSIS
+    Helper function to wait for a VM to be ready.
+
+.DESCRIPTION
+    This function waits for a VM to be in the 'Running' state and then connects to it using a simple command.
+
+.PARAMETER VMName
+    The name of the VM to wait for.
+
+.PARAMETER VmCredential
+    The credentials to use for connecting to the VM.
+
+.PARAMETER TimeoutInMinutes
+    The maximum time to wait for the VM to be ready, in minutes. Defaults to 30 minutes.
+
+.EXAMPLE
+    Wait-ForVMReady -VMName "MyVM" -VmCredential $myCredential -TimeoutInMinutes 20
+#>
 function Wait-ForVMReady {
     param (
         [Parameter(Mandatory=$True)][string]$VMName,
@@ -107,27 +192,40 @@ function Wait-ForVMReady {
     throw "Failed to connect to $VMName after timeout..."
 }
 
-# function Update-VM {
-#     param (
-#         [Parameter(Mandatory=$True)][string]$VMName,
-#         [Parameter(Mandatory=$True)][System.Management.Automation.PSCredential]$VmCredential
-#     )
+<#
+.SYNOPSIS
+    Helper function to create a VM.
 
-# # TODO debugging output - remove later
-#     Get-VMNetworkAdapter -All
-#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "ipconfig /all" } catch { Log-Message -Message "Failed to query IP config: $_" -ForegroundColor Red }
+.DESCRIPTION
+    This function creates a new VM with the specified parameters.
 
-#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Invoke-WebRequest bing.com" } catch { Log-Message -Message "Failed to connect to the internet: $_" -ForegroundColor Red }
+.PARAMETER VmName
+    The name of the VM to create.
 
-#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Install-PackageProvider -Name NuGet -Force" } catch { Log-Message -Message "Failed to install NuGet provider: $_" -ForegroundColor Red }
-#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Install-Module -Name PSWindowsUpdate -Force" } catch { Log-Message -Message "Failed to install PSWindowsUpdate module: $_" -ForegroundColor Red }
-#     try { Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "Get-WindowsUpdate -Install -AcceptAll -AutoReboot" } catch { Log-Message -Message "Failed to install updates: $_" -ForegroundColor Red }
+.PARAMETER AdminUserCredential
+    The credentials for the admin user to use for the VM.
 
-#     Sleep -Seconds 300 # Sleep for 5 minutes to let the VM start fetching updates, etc...
-#     Wait-ForVMReady -VMName $VMName -VmCredential $VmCredential
-#     Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
-# }
+.PARAMETER StandardUserCredential
+    The credentials for the standard user to use for the VM.
 
+.PARAMETER VhdPath
+    The path to the VHD file to use for the VM.
+
+.PARAMETER VmStoragePath
+    The storage path for the VM.
+
+.PARAMETER VMMemory
+    The amount of memory to allocate for the VM.
+
+.PARAMETER UnattendPath
+    The path to the unattend file to use for the VM. This will notably be used for configuring the user accounts and passwords.
+
+.PARAMETER VmSwitchName
+    The name of the switch to use for the VM.
+
+.EXAMPLE
+    Create-VM -VmName "MyVM" -AdminUserCredential $adminCredential -StandardUserCredential $userCredential -VhdPath "C:\MyVHD.vhd" -VmStoragePath "C:\VMStorage" -VMMemory 2GB -UnattendPath "C:\MyUnattend.xml" -VmSwitchName "VMInternalSwitch"
+#>
 function Create-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
@@ -177,11 +275,6 @@ function Create-VM {
         # Create the VM
         Log-Message "Creating the VM"
         New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName
-        # $vmSwitches = Get-VMSwitch -ErrorAction Ignore
-        # foreach ($switch in $vmSwitches) {
-        #     Log-Message "Adding network adapter to VM: $VmName with switch: $($switch.Name)"
-        #     Add-VMNetworkAdapter -VMName $VmName -SwitchName $switch.Name
-        # }
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
@@ -194,6 +287,31 @@ function Create-VM {
     }
 }
 
+<#
+.SYNOPSIS
+    Helper function to configure a VM after creation.
+
+.DESCRIPTION
+    This function configures a VM after it has been created, including setting the processor count, enabling the Guest Service Interface, and executing a setup script.
+
+.PARAMETER VmName
+    The name of the VM to configure.
+
+.PARAMETER VmCredential
+    The credentials to use for connecting to the VM.
+
+.PARAMETER VMCpuCount
+    The number of processors to allocate for the VM.
+
+.PARAMETER VMWorkingDirectory
+    The working directory on the VM to use for executing the setup script. Defaults to 'C:\ebpf_cicd'.
+
+.PARAMETER VMSetupScript
+    The path to the setup script to execute on the VM. Defaults to '.\configure_vm.ps1'.
+
+.EXAMPLE
+    Configure-VM -VmName "MyVM" -VmCredential $myCredential -VMCpuCount 4
+#>
 function Configure-VM {
     param(
         [Parameter(Mandatory=$True)][string]$VmName,
@@ -218,12 +336,7 @@ function Configure-VM {
         Wait-ForVMReady -VMName $VmName -VmCredential $VmCredential
 
         Log-Message "Sleeping for 1 minute to let the VM get into a steady state"
-        Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
-
-        # # Fetch all updates on the VM
-        # Log-Message "Fetching Updates on the VM"
-        # # Update-VM -VMName $VmName -VmCredential $VmCredential
-        # Log-Message -Message "Successfully updated VM: $VMName" -ForegroundColor Green
+        Sleep -Seconds 60
 
         # Copy setup script to the VM and execute it.
         Log-Message "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
@@ -256,23 +369,77 @@ function Configure-VM {
 }
 
 ########## Helpers for the host machine ##########
-function Install-HyperVIfNeeded {
-    try {
-        if ((Get-WindowsFeature -Name 'Hyper-V').Installed) {
-            Log-Message -Message 'Hyper-V is already installed on this host'
-        } else {
-            Log-Message -Message 'Hyper-V is not installed on this host. Installing now...'
+<#
+.SYNOPSIS
+    Helper function to prepare VHD files for VM creation.
 
-            Import-Module ServerManager
-            Install-WindowsFeature -Name 'Hyper-V' -IncludeManagementTools
-            Restart-Computer -Force
-            exit 1
+.DESCRIPTION
+    Unzips any files in given directory and returns a list of VHD and VHDX files in the input directory.
+
+.PARAMETER BaseVhdDirPath
+    The base directory containing the VHD files or zip files containing the VHD files.
+
+.OUTPUTS
+    System.IO.FileInfo[]
+    This function returns a list of System.IO.FileInfo[] representing the VHD and VHDX files found in the input directory
+    after any processing is complete.
+
+.EXAMPLE
+    $vhds = Prepare-VhdFiles -BaseVhdDirPath "C:\path\to\vhd\directory"
+#>
+function Prepare-VhdFiles {
+    param(
+        [Parameter(Mandatory=$True)][string]$BaseVhdDirPath
+    )
+    # Unzip any VHDs
+    Log-Message "Processing VHDs in $BaseVhdDirPath"
+    $zipFiles = Get-ChildItem -Path $BaseVhdDirPath -Filter *.zip
+    foreach ($zipFile in $zipFiles) {
+        Log-Message "Extracting VHDs from $($zipFile.FullName)"
+        $outDir = Join-Path -Path $BaseVhdDirPath -ChildPath $zipFile.BaseName
+        if (-not (Test-Path -Path $outDir)) {
+            Expand-Archive -Path $zipFile.FullName -DestinationPath $outDir
+
+            # Move the VHDs to the base directory
+            $vhdFiles = @()
+            $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
+            $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhdx -ErrorAction Ignore
+            foreach ($vhdFile in $vhdFiles) {
+                Move-Item -Path $vhdFile.FullName -Destination $BaseVhdDirPath
+            }
         }
-    } catch {
-        throw "Failed to install Hyper-V with error: $_"
+        Log-Message "Successfully processed $($zipFile.FullName)"
     }
+
+    # Read the input VHDs
+    $vhds = @()
+    $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd -ErrorAction Ignore
+    $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx -ErrorAction Ignore
+    if ($vhds.Count -eq 0) {
+        throw "No VHDs found in $BaseVhdDirPath"
+    }
+    Log-Message "Successfully processed VHDs"
+
+    return $vhds
 }
 
+<#
+.SYNOPSIS
+    Helper function to create a VM switch if it does not already exist.
+
+.DESCRIPTION
+    Checks if a VM switch with the given name and type already exists. If not, it creates a new switch of the specified type.
+
+.PARAMETER SwitchName
+    The name of the switch to create.
+
+.PARAMETER SwitchType
+    The type of switch to create. Can be 'External' or 'Internal'.
+
+.EXAMPLE
+    Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType 'Internal'
+    Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
+#>
 function Create-VMSwitchIfNeeded {
     param (
         [Parameter(Mandatory=$true)][string]$SwitchName,
@@ -299,7 +466,6 @@ function Create-VMSwitchIfNeeded {
                 Log-Message "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
                 New-VMSwitch -Name $currSwitchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
                 $index += 1
-                # break
             } catch {
                 Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
             }
@@ -326,10 +492,27 @@ function Create-VMSwitchIfNeeded {
     Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }
 
-#
-# Retrieves the secret from Azure Key Vault.
-# Returns a PSCredential object, where the username is the secret name and the password is the retrieved secret.
-#
+<#
+.SYNOPSIS
+    Retrieves a secret from Azure Key Vault and returns it as a PSCredential object.
+
+.DESCRIPTION
+    This function retrieves a secret from Azure Key Vault and returns it as a PSCredential object.
+
+.PARAMETER KeyVaultName
+    The name of the Azure Key Vault to retrieve the secret from. Defaults to 'ebpf-cicd-key-vault'.
+
+.PARAMETER SecretName
+    The name of the secret to retrieve from the Key Vault.
+
+.OUTPUTS
+    System.Management.Automation.PSCredential
+    This function returns a PSCredential object containing the secret value from the Key Vault.
+    The username is the input 'SecretName' and the password is the secret value.
+
+.EXAMPLE
+    $credential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+#>
 function Get-AzureKeyVaultCredential
 {
     param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
