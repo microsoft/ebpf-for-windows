@@ -160,8 +160,8 @@ function Create-VM {
         Log-Message "Moving $UnattendPath file to $VmStoragePath"
         Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
-        Replace-PlaceholderStrings -FilePath $UnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $AdminUserCredential.GetNetworkCredential().Password
-        Replace-PlaceholderStrings -FilePath $UnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $StandardUserCredential.GetNetworkCredential().Password
+        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $AdminUserCredential.GetNetworkCredential().Password
+        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $StandardUserCredential.GetNetworkCredential().Password
 
         # Configure the VHD with the unattend file.
         Log-Message "Mounting VHD and applying unattend file"
@@ -338,19 +338,19 @@ function Get-AzureKeyVaultCredential
     try {
         # Check if the Az module is installed, if not, install it
         if (-not (Get-Module -ListAvailable -Name Az)) {
-            Install-Module -Name Az -AllowClobber -Force
+            Install-Module -Name Az -AllowClobber -Force *> $null 2>&1
         }
 
         # Authenticate using the managed identity
-        Connect-AzAccount -Identity
+        Connect-AzAccount -Identity *> $null 2>&1
 
         # Retrieve the secret from Key Vault
         $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
 
-        # The SecretName is the username and the secret value is the password
-        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret)
+        # Return as a PSCredential object
+        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret.SecretValue)
         return $credential
     } catch {
-        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName, SecretName: $SecretName. Error: $_"
+        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName SecretName: $SecretName Error: $_"
     }
 }
