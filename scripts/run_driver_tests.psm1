@@ -214,16 +214,18 @@ function Process-TestCompletion
         throw [System.TimeoutException]::new("Test $TestCommand execution hang timeout ($TestHangTimeout seconds) expired.")
     } else {
         Write-Log "(maige) Process-TestCompletion: command should have completed"
-        try {
-            $currExitCode = $TestProcess.ExitCode
-            $temp = $TestProcess | Out-String
-            Write-Log "Maige - test output: $temp"
-            Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
-            Write-Log "maige3 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
-        } catch {
-            Write-Log "maige - failed"
+        # try {
+        #     $currExitCode = $TestProcess.ExitCode
+        #     $temp = $TestProcess | Out-String
+        #     Write-Log "Maige - test output: $temp"
+        #     Write-Log "MAIGE - $TestCommand exited with code $currExitCode"
+        #     Write-Log "maige3 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        # } catch {
+        #     Write-Log "maige - failed"
+        # }
 
-        }
+        # Ensure the process has completely exited.
+        Wait-Process -InputObject $TestProcess
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
@@ -238,7 +240,8 @@ function Process-TestCompletion
 
         $TestExitCode = $TestProcess.ExitCode
         Write-Log "Maige - Test exit code: $TestExitCode"
-        if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
+        # if ($TestExitCode -ne $null -and $TestExitCode -ne 0) {
+        if ($TestExitCode -ne 0) {
             $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
             if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
                 Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
@@ -410,11 +413,11 @@ function Invoke-XDPTest
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
         # Cache the process handle to ensure subsequent access of the process is accurate
         $handle = $TestProcess.Handle
-        if ($TestProcess -eq $null) {
-            Write-Log "Failed to start $TestCommand with arguments $TestArguments"
-            ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
-        }
-        Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        # if ($TestProcess -eq $null) {
+        #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
+        #     ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
+        # }
+        # Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
@@ -423,11 +426,11 @@ function Invoke-XDPTest
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
         # Cache the process handle to ensure subsequent access of the process is accurate
         $handle = $TestProcess.Handle
-        if ($TestProcess -eq $null) {
-            Write-Log "Failed to start $TestCommand with arguments $TestArguments"
-            ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
-        }
-        Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        # if ($TestProcess -eq $null) {
+        #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
+        #     ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
+        # }
+        # Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
