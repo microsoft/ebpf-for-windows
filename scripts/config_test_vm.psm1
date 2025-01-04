@@ -701,11 +701,9 @@ function Log-OSBuildInformationOnVM
 {
     param([parameter(Mandatory=$true)][string] $VMName)
 
-    Write-Log "Logging OS build information on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
         Write-Output "OS Build Information: $($buildLabEx.BuildLabEx)"
     }
-    Write-Log "Finished logging OS build informatino on $VMName" -ForegroundColor Green
 }

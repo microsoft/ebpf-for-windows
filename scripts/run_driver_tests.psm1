@@ -191,8 +191,12 @@ function Process-TestCompletion
             Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
             break
         } catch {
-            Write-Lost "Process-TestCompletion: Wait-Process failed for $TestCommand . Retrying..."
-            Start-Sleep -Seconds 5
+            if ($i -eq 4) {
+                ThrowWithErrorMessage -ErrorMessage "Process-TestCompletion: Wait-Process failed for $TestCommand after 5 retries."
+            } else {
+                Write-Log "Process-TestCompletion: Wait-Process failed for $TestCommand . Retrying..."
+                Start-Sleep -Seconds 5
+            }
         }
     }
 
