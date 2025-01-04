@@ -194,7 +194,8 @@ function Process-TestCompletion
             if ($i -eq 4) {
                 ThrowWithErrorMessage -ErrorMessage "Process-TestCompletion: Wait-Process failed for $TestCommand after 5 retries."
             } else {
-                Write-Log "Process-TestCompletion: Wait-Process failed for $TestCommand . Retrying..."
+                Write-Log "Wait-Process failed for $TestCommand with $_"
+                Write-Log "Process-TestCompletion Retrying Wait-Process..."
                 Start-Sleep -Seconds 5
             }
         }
@@ -431,7 +432,7 @@ function Invoke-XDPTest
         #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
         #     ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
         # }
-        # Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
@@ -444,7 +445,7 @@ function Invoke-XDPTest
         #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
         #     ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
         # }
-        # Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
