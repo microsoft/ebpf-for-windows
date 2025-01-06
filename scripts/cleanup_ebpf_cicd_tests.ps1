@@ -6,14 +6,12 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = "runner_host",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-$SelfHostedRunnerName = "runner_host"
-Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, Target: $Target"
 $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 
 # Read the test execution json.
@@ -49,12 +47,6 @@ $Job = Start-Job -ScriptBlock {
             -VMName $VMName `
             -Credential $TestVMCredential `
             -ScriptBlock {
-                # TODO - remove this debugging output
-                ipconfig /all
-                Get-NetIPInterface | Out-String
-                Get-NetAdapter | Out-String
-                Get-NetAdapterBinding -AllBindings | Out-String
-
                 Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
             }
 

@@ -8,7 +8,7 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
-       [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
+       [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = "runner_host",
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60)
@@ -18,8 +18,6 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 
-$SelfHostedRunnerName = "runner_host"
-Write-Host "SelfHostedRunnerName: $SelfHostedRunnerName, AdminTarget: $AdminTarget, StandardUserTarget: $StandardUserTarget"
 $AdminTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 $StandardUserTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
 

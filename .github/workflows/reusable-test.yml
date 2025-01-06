@@ -91,12 +91,6 @@ jobs:
       with:
         egress-policy: audit
 
-    - name: Check runner configuration (TODO possibly remove, if not needed)
-      id: configure-runner
-      if: contains(inputs.environment, 'self-hosted')
-      run: |
-        powershell.exe "Get-VM; Get-ChildItem 'C:\work' -Recurse;"
-
     - name: Print CPU information
       run:
         Get-WmiObject -Class Win32_Processor | Select-Object -Property Name, NumberOfCores, NumberOfLogicalProcessors

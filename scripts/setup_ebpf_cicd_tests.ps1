@@ -10,17 +10,14 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsVersion = "",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = "runner_host",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
 
 Push-Location $WorkingDirectory
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-$SelfHostedRunnerName = "runner_host"
 $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-Write-Host "(maige) - cred $TestVMCredential and type $($TestVMCredential.GetType())"
-Write-Host "(maige) credential UserName: $($TestVMCredential.UserName) and password: $($TestVMCredential.Password)"
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
