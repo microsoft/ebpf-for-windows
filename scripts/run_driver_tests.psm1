@@ -69,8 +69,6 @@ function Generate-KernelDump
 
     # This will/should not return (test system will/should bluescreen and reboot).
     $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
-    # Cache the process handle to ensure subsequent access of the process is accurate
-    $handle = $NotMyFaultProc.Handle
     # wait for 30 minutes to generate the kernel dump.
     $NotMyFaultProc.WaitForExit(30*60*1000)
 
@@ -123,8 +121,6 @@ function Generate-ProcessDump
         -FilePath $ProcDumpBinaryPath `
         -ArgumentList $ProcDumpArguments `
         -Wait -PassThru
-    # Cache the process handle to ensure subsequent access of the process is accurate
-    $handle = $ProcDumpProcess.Handle
     Write-Log "Waiting for user mode dump to complete..."
     $ProcDumpProcess.WaitForExit()
 
@@ -160,22 +156,9 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [bool] $NestedProcess,
           [Parameter(Mandatory = $false)] [int] $TestHangTimeout = (10*60), # 10 minutes default timeout.
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
-    # for ($i = 0; $i -lt 5; $i++) {
-    #     try {
-    #         # Wait for the process to complete or for the timeout to complete.
-    #         Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
-    #         break
-    #     } catch {
-    #         if ($i -eq 4) {
-    #             ThrowWithErrorMessage -ErrorMessage "Process-TestCompletion: Wait-Process failed for $TestCommand after 5 retries."
-    #         } else {
-    #             Write-Log "Wait-Process failed for $TestCommand with $_"
-    #             Write-Log "Process-TestCompletion Retrying Wait-Process..."
-    #             Start-Sleep -Seconds 5
-    #         }
-    #     }
-    # }
-    # Wait for the process to complete or for the timeout to complete.
+
+    # Use Wait-Process for the process to terminate or timeout.
+    # See https://stackoverflow.com/a/23797762
     Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
 
     if (-not $TestProcess.HasExited) {
@@ -292,12 +275,8 @@ function Invoke-Test
     $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
     if ($ArgumentsList) {
         $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
-        # Cache the process handle to ensure subsequent access of the process is accurate
-        $handle = $TestProcess.Handle
     } else {
         $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
-        # Cache the process handle to ensure subsequent access of the process is accurate
-        $handle = $TestProcess.Handle
     }
     if ($InnerTestName -ne "") {
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
@@ -382,8 +361,6 @@ function Invoke-XDPTest
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    # Cache the process handle to ensure subsequent access of the process is accurate
-    $handle = $TestProcess.Handle
     Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
@@ -391,8 +368,6 @@ function Invoke-XDPTest
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    # Cache the process handle to ensure subsequent access of the process is accurate
-    $handle = $TestProcess.Handle
     Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
@@ -438,8 +413,6 @@ function Invoke-ConnectRedirectTest
 
         Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-        # Cache the process handle to ensure subsequent access of the process is accurate
-        $handle = $TestProcess.Handle
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
@@ -457,8 +430,6 @@ function Invoke-ConnectRedirectTest
 
         Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-        # Cache the process handle to ensure subsequent access of the process is accurate
-        $handle = $TestProcess.Handle
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
@@ -476,8 +447,6 @@ function Invoke-ConnectRedirectTest
 
         Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-        # Cache the process handle to ensure subsequent access of the process is accurate
-        $handle = $TestProcess.Handle
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
@@ -509,10 +478,7 @@ function Invoke-CICDStressTests
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
 
-    Write-Log "Starting $TestCommand with arguments: $TestArguments"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    # Cache the process handle to ensure subsequent access of the process is accurate
-    $handle = $TestProcess.Handle
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
 
