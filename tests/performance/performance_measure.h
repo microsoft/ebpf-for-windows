@@ -55,7 +55,6 @@ template <typename T> class _performance_measure
         for (uint32_t i = 0; i < cpu_count; i++) {
             threads.emplace_back(std::thread([i, this, &ready_count] {
                 uint32_t local_cpu_id = i;
-                usersim_set_affinity_and_priority_override(local_cpu_id);
                 uintptr_t thread_mask = local_cpu_id;
                 thread_mask = static_cast<uintptr_t>(1) << thread_mask;
                 SetThreadAffinityMask(GetCurrentThread(), thread_mask);
@@ -76,8 +75,6 @@ template <typename T> class _performance_measure
                         if (!preemptible) {
                             KeLowerIrql(old_irql);
                         }
-                        usersim_clear_affinity_and_priority_override();
-                        usersim_set_affinity_and_priority_override(local_cpu_id);
                         if (!preemptible) {
                             old_irql = KeRaiseIrqlToDpcLevel();
                         }
@@ -94,7 +91,6 @@ template <typename T> class _performance_measure
                 if (!preemptible) {
                     KeLowerIrql(old_irql);
                 }
-                usersim_clear_affinity_and_priority_override();
             }));
         }
         // Wait for threads to spin up.
