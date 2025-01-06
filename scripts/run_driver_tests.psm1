@@ -162,11 +162,11 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
 
     Write-Log "(maige) Process-TestCompletion (maige)"
-    if ($TestProcess -eq $null) {
-        Write-Log "Process-TestCompletion: Failed to start $TestCommand"
-        throw "Failed to start $TestCommand"
-    }
-    Write-Log "maige2 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+    # if ($TestProcess -eq $null) {
+    #     Write-Log "Process-TestCompletion: Failed to start $TestCommand"
+    #     throw "Failed to start $TestCommand"
+    # }
+    # Write-Log "maige2 - In Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     # Write-Log "Process-TestCompletion (maige) invoked for $TestCommand"
 
     # try {
@@ -239,8 +239,8 @@ function Process-TestCompletion
         #     Write-Log "maige - failed"
         # }
 
-        # # Ensure the process has completely exited.
-        # Wait-Process -InputObject $TestProcess
+        # Ensure the process has completely exited.
+        Wait-Process -InputObject $TestProcess
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
@@ -428,11 +428,7 @@ function Invoke-XDPTest
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
         # Cache the process handle to ensure subsequent access of the process is accurate
         $handle = $TestProcess.Handle
-        # if ($TestProcess -eq $null) {
-        #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
-        #     ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
-        # }
-        Write-Log "maige1 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
@@ -441,11 +437,7 @@ function Invoke-XDPTest
         $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
         # Cache the process handle to ensure subsequent access of the process is accurate
         $handle = $TestProcess.Handle
-        # if ($TestProcess -eq $null) {
-        #     Write-Log "Failed to start $TestCommand with arguments $TestArguments"
-        #     ThrowWithErrorMessage -ErrorMessage "(maige) Failed to start $TestCommand with arguments $TestArguments"
-        # }
-        Write-Log "maige2 - before Process-TestCompletion with process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
+        Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
         Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
