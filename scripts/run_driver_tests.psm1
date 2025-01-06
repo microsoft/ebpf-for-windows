@@ -239,8 +239,8 @@ function Process-TestCompletion
         #     Write-Log "maige - failed"
         # }
 
-        # Ensure the process has completely exited.
-        Wait-Process -InputObject $TestProcess
+        # # Ensure the process has completely exited.
+        # Wait-Process -InputObject $TestProcess
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
