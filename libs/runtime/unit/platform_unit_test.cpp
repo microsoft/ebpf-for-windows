@@ -680,12 +680,6 @@ struct scoped_cpu_affinity
     bool affinity_set = false;
 };
 
-struct scoped_usersim_override
-{
-    scoped_usersim_override() { usersim_set_affinity_and_priority_override(0); }
-    ~scoped_usersim_override() { usersim_clear_affinity_and_priority_override(); }
-};
-
 /**
  * @brief This function executes as a test script to verify epoch behavior. Various scripts are used to test different
  * scenarios.
@@ -711,9 +705,6 @@ _run_epoch_test_script(const std::vector<std::string>& script)
         std::vector<work_item_ptr> work_items;
         // Start on CPU 0 as default.
         scoped_cpu_affinity affinity_scope(0);
-
-        // Prevent usersim from interfering with the test.
-        scoped_usersim_override usersim_override;
 
         typedef std::variant<std::function<void()>, std::function<void(size_t)>, std::function<void(size_t, bool)>>
             step_t;
