@@ -368,6 +368,9 @@ function Invoke-XDPTest
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    # Cache the process handle to ensure subsequent access of the process is accurate
+    $handle = $TestProcess.Handle
+
     Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
@@ -375,6 +378,8 @@ function Invoke-XDPTest
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
+    # Cache the process handle to ensure subsequent access of the process is accurate
+    $handle = $TestProcess.Handle
     Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
