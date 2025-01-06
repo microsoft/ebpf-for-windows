@@ -323,7 +323,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 1
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
+      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
       id: upload_code_coverage_report_1
       continue-on-error: true
       with:
@@ -338,7 +338,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 2
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
+      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
       id: upload_code_coverage_report_2
       continue-on-error: true
       with:
@@ -353,7 +353,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 3
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
+      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
       id: upload_code_coverage_report_3
       continue-on-error: true
       with:
@@ -368,7 +368,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 4
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
+      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
       id: upload_code_coverage_report_4
       continue-on-error: true
       with:
@@ -410,7 +410,7 @@ jobs:
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
       if: always() && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true') && (inputs.gather_dumps == true)
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -429,7 +429,7 @@ jobs:
       # Upload test logs even if the workflow failed.
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_logs.outputs.files_exists == 'true')
       id: upload_logs
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
       continue-on-error: true
       with:
         name: Test-Logs-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -449,7 +449,7 @@ jobs:
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_artifacts.outputs.files_exists == 'true')
       id: upload_artifacts
       continue-on-error: true
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b
       with:
         name: Artifacts-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\Artifacts
