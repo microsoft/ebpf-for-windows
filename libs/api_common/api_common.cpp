@@ -61,7 +61,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
     _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
-    _Inout_ uint32_t* info_size) noexcept
+    _Inout_ uint32_t* info_size,
+    _Out_opt_ ebpf_object_type_t* type) noexcept
 {
     EBPF_LOG_ENTRY();
     if (info == nullptr || info_size == nullptr) {
@@ -84,6 +85,9 @@ ebpf_object_get_info(
 
     ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
+        if (type != NULL) {
+            *type = reply->type;
+        }
         *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
         memcpy(info, reply->info, *info_size);
     }
@@ -103,7 +107,7 @@ query_map_definition(
 {
     bpf_map_info info = {0};
     uint32_t info_size = sizeof(info);
-    ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size);
+    ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size, NULL);
     if (result == EBPF_SUCCESS) {
         *id = info.id;
         *type = info.type;
