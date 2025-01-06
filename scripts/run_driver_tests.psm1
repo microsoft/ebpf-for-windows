@@ -69,6 +69,8 @@ function Generate-KernelDump
 
     # This will/should not return (test system will/should bluescreen and reboot).
     $NotMyFaultProc = Start-Process -NoNewWindow -Passthru -FilePath $NotMyFaultBinaryPath -ArgumentList "/crash"
+    # Cache the process handle to ensure subsequent access of the process is accurate
+    $handle = $NotMyFaultProc.Handle
     # wait for 30 minutes to generate the kernel dump.
     $NotMyFaultProc.WaitForExit(30*60*1000)
 
@@ -121,6 +123,8 @@ function Generate-ProcessDump
         -FilePath $ProcDumpBinaryPath `
         -ArgumentList $ProcDumpArguments `
         -Wait -PassThru
+    # Cache the process handle to ensure subsequent access of the process is accurate
+    $handle = $ProcDumpProcess.Handle
     Write-Log "Waiting for user mode dump to complete..."
     $ProcDumpProcess.WaitForExit()
 
@@ -156,6 +160,8 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [bool] $NestedProcess,
           [Parameter(Mandatory = $false)] [int] $TestHangTimeout = (10*60), # 10 minutes default timeout.
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
+    # Cache the process handle to ensure subsequent access of the process is accurate
+    $handle = $TestProcess.Handle
 
     # Use Wait-Process for the process to terminate or timeout.
     # See https://stackoverflow.com/a/23797762
@@ -278,6 +284,7 @@ function Invoke-Test
     } else {
         $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
     }
+
     if ($InnerTestName -ne "") {
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
     } else {
