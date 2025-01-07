@@ -868,6 +868,11 @@ net_ebpf_ext_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
+#if !defined(NDEBUG)
+    InitializeListHead(&_net_ebpf_filter_zombie_list);
+    InitializeListHead(&_net_ebpf_filter_rundown_acquired_list);
+#endif
+
     status = net_ebpf_ext_xdp_register_providers();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -911,11 +916,6 @@ net_ebpf_ext_register_providers()
         goto Exit;
     }
     _net_ebpf_sock_ops_providers_registered = true;
-
-#if !defined(NDEBUG)
-    InitializeListHead(&_net_ebpf_filter_zombie_list);
-    InitializeListHead(&_net_ebpf_filter_rundown_acquired_list);
-#endif
 
 Exit:
     if (!NT_SUCCESS(status)) {
