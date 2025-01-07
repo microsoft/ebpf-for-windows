@@ -568,7 +568,7 @@ _net_ebpf_extension_hook_provider_attach_client(
 
 #if !defined(NDEBUG)
     // Rundown reference has been acquired for this filter. Add to list for tracking.
-    net_ebpf_ext_add_filter_context_to_rundown_acquired_list(&new_filter_context);
+    net_ebpf_ext_add_filter_context_to_rundown_acquired_list(new_filter_context);
 #endif
 
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
