@@ -37,8 +37,9 @@ static bool _net_ebpf_sock_ops_providers_registered = false;
 #if !defined(NDEBUG)
 // Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
 // contexts.
-EX_SPIN_LOCK _net_ebpf_filter_zombie_list_lock = {0};
-_Guarded_by_(_net_ebpf_filter_zombie_list_lock) static LIST_ENTRY _net_ebpf_filter_zombie_list = {0};
+EX_SPIN_LOCK _net_ebpf_ext_debug_lock = {0};
+_Guarded_by_(_net_ebpf_ext_debug_lock) static LIST_ENTRY _net_ebpf_filter_zombie_list = {0};
+_Guarded_by_(_net_ebpf_ext_debug_lock) static LIST_ENTRY _net_ebpf_filter_rundown_acquired_list = {0};
 #endif
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
@@ -281,6 +282,9 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
+#if !defined(NDEBUG)
+    InitializeListHead(&local_filter_context->debug_link);
+#endif
     local_filter_context->reference_count = 1; // Initial reference.
 
     // Set the first client context.
@@ -910,6 +914,7 @@ net_ebpf_ext_register_providers()
 
 #if !defined(NDEBUG)
     InitializeListHead(&_net_ebpf_filter_zombie_list);
+    InitializeListHead(&_net_ebpf_filter_rundown_acquired_list);
 #endif
 
 Exit:
@@ -1012,18 +1017,27 @@ net_ebpf_ext_remove_client_context(
 void
 net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_filter_zombie_list_lock);
-    InsertHeadList(&_net_ebpf_filter_zombie_list, &filter_context->link);
-    ExReleaseSpinLockExclusive(&_net_ebpf_filter_zombie_list_lock, old_irql);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_debug_lock);
+    InsertHeadList(&_net_ebpf_filter_zombie_list, &filter_context->debug_link);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
 }
 
 void
-net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_add_filter_context_to_rundown_acquired_list(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    if (!IsListEmpty(&filter_context->link)) {
-        KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_filter_zombie_list_lock);
-        RemoveEntryList(&filter_context->link);
-        ExReleaseSpinLockExclusive(&_net_ebpf_filter_zombie_list_lock, old_irql);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_debug_lock);
+    InsertHeadList(&_net_ebpf_filter_rundown_acquired_list, &filter_context->debug_link);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
+}
+
+void
+net_ebpf_ext_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    if (!IsListEmpty(&filter_context->debug_link)) {
+        KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_debug_lock);
+        RemoveEntryList(&filter_context->debug_link);
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
     }
 }
 #endif

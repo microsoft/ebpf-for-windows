@@ -566,6 +566,11 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
+#if !defined(NDEBUG)
+    // Rundown reference has been acquired for this filter. Add to list for tracking.
+    net_ebpf_ext_add_filter_context_to_rundown_acquired_list(&new_filter_context);
+#endif
+
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
         new_filter_context->wildcard = TRUE;
@@ -614,6 +619,9 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
     RemoveEntryList(&filter_context->link);
 
 #if !defined(NDEBUG)
+    // The filter context was previously added to the rundown acquired list. Remove it here.
+    net_ebpf_ext_remove_filter_context_from_debug_list(filter_context);
+
     // Add the entry to the zombie list (for debugging purposes)
     net_ebpf_ext_add_filter_context_to_zombie_list(filter_context);
 #endif
