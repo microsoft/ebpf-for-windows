@@ -42,6 +42,7 @@ jobs:
             api.osv.dev:443
             www.bestpractices.dev:443
             github.com:443
+            api.deps.dev:443
 
       - name: "Checkout code"
         if: github.ref_name == 'main'
