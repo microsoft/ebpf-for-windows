@@ -419,6 +419,20 @@ extern "C"
         _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
+     * @brief Attach an eBPF program by program file descriptor and return
+     * the link as a file descriptor.
+     *
+     * @see ebpf_program_attach_by_fd
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_attach_as_fd(
+        fd_t program_fd,
+        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size,
+        _Out_ fd_t* link) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Detach an eBPF program from an attach point represented by
      *  the bpf_link structure.
      *
