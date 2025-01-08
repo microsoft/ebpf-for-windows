@@ -11,7 +11,9 @@ typedef struct _net_ebpf_ext_hook_client_rundown
     EX_RUNDOWN_REF protection;
     bool rundown_occurred;
 #if !defined(NDEBUG)
+    bool rundown_initialized;
     uint64_t rundown_acquired_count;
+    uint64_t rundown_reference_count;
 #endif
 } net_ebpf_ext_hook_rundown_t;
 
@@ -83,6 +85,11 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     // Initialize the rundown and disable new references.
     ExInitializeRundownProtection(&rundown->protection);
     rundown->rundown_occurred = FALSE;
+#if !defined(NDEBUG)
+    rundown->rundown_initialized = TRUE;
+    rundown->rundown_acquired_count = 0;
+    rundown->rundown_reference_count = 0;
+#endif
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -156,6 +163,7 @@ net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_cli
 #if !defined(NDEBUG)
     if (status) {
         rundown->rundown_acquired_count++;
+        rundown->rundown_reference_count++;
     }
 #endif
     return status;
@@ -167,7 +175,7 @@ net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_cli
     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
     ExReleaseRundownProtection(&rundown->protection);
 #if !defined(NDEBUG)
-    rundown->rundown_acquired_count--;
+    rundown->rundown_reference_count--;
 #endif
 }
 
@@ -179,6 +187,7 @@ net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_p
 #if !defined(NDEBUG)
     if (status) {
         rundown->rundown_acquired_count++;
+        rundown->rundown_reference_count++;
     }
 #endif
     return status;
@@ -190,7 +199,7 @@ net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_p
     net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
     ExReleaseRundownProtection(&rundown->protection);
 #if !defined(NDEBUG)
-    rundown->rundown_acquired_count--;
+    rundown->rundown_reference_count--;
 #endif
 }
 
