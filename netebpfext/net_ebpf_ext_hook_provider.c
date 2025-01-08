@@ -571,8 +571,8 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     // No matching filter context found. Need to create a new filter context.
     // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context)'' if (!rundown_acquired)
-    {
+    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context);
+    if (!rundown_acquired) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
