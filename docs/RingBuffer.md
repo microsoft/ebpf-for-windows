@@ -54,8 +54,8 @@ Only the producer may update the producer offset, and only the consumer may upda
  *
  * Wakeup options (flags):
  * - 0 (auto/default): Notify if consumer has caught up.
- * - BPF_RB_FORCE_WAKEUP - Always notify consumer.
- * - BPF_RB_NO_WAKEUP - Never notify consumer.
+ * - BPF_RB_FORCE_WAKEUP: Always notify consumer.
+ * - BPF_RB_NO_WAKEUP: Never notify consumer.
  *
  */
 ebpf_result_t
@@ -76,7 +76,7 @@ struct ring_buffer;
 typedef int (*ring_buffer_sample_fn)(void *ctx, void *data, size_t size);
 
 struct ring_buffer_opts {
-	size_t sz; /* size of this struct, for forward/backward compatiblity */
+  size_t sz; /* size of this struct, for forward/backward compatiblity */
   uint64_t flags; /* ring buffer option flags */
 };
 
@@ -103,8 +103,6 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void *ctx,
 /**
  * @brief poll ringbuf for new data
  * Poll for available data and consume records, if any are available.
- * Returns number of records consumed (or INT_MAX, whichever is less), or
- * negative number, if any of the registered callbacks returned error.
  *
  * If timeout_ms is zero, poll will not wait but only invoke the callback on records that are ready.
  * If timeout_ms is -1, poll will wait until data is ready (no timeout).
@@ -130,18 +128,19 @@ void ring_buffer__free(struct ring_buffer *rb);
 
 ```c
 /**
- * get pointers to mapped producer and consumer pages
+ * Get pointers to mapped producer and consumer pages.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[out] producer pointer* to start of read-only mapped producer pages
  * @param[out] consumer pointer* to start of read-write mapped consumer page
  *
- * @returns EBPF_SUCCESS on success, or error
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval other An error occurred.
  */
 ebpf_result_t ebpf_ring_buffer_get_buffer(fd_t map_fd, void **producer, void **consumer);
 
 /**
- * get the wait handle to use with WaitForSingleObject/WaitForMultipleObject
+ * Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  *
