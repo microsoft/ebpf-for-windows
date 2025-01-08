@@ -11,7 +11,7 @@ typedef struct _net_ebpf_ext_hook_client_rundown
     EX_RUNDOWN_REF protection;
     bool rundown_occurred;
 #if !defined(NDEBUG)
-    uint64_t rundown_acquired_count = 0;
+    uint64_t rundown_acquired_count;
 #endif
 } net_ebpf_ext_hook_rundown_t;
 
