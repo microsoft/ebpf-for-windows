@@ -10,6 +10,9 @@ typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
     bool rundown_occurred;
+#if !defined(NDEBUG)
+    uint64_t rundown_acquired_count = 0;
+#endif
 } net_ebpf_ext_hook_rundown_t;
 
 struct _net_ebpf_extension_hook_provider;
@@ -150,6 +153,11 @@ net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_cli
 {
     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
     bool status = ExAcquireRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    if (status) {
+        rundown->rundown_acquired_count++;
+    }
+#endif
     return status;
 }
 
@@ -158,6 +166,22 @@ net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_cli
 {
     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
     ExReleaseRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    rundown->rundown_acquired_count--;
+#endif
+}
+
+_Must_inspect_result_ bool
+net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
+    bool status = ExAcquireRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    if (status) {
+        rundown->rundown_acquired_count++;
+    }
+#endif
+    return status;
 }
 
 void
@@ -165,6 +189,9 @@ net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_p
 {
     net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
     ExReleaseRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    rundown->rundown_acquired_count--;
+#endif
 }
 
 const ebpf_extension_data_t*
@@ -544,8 +571,8 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     // No matching filter context found. Need to create a new filter context.
     // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    rundown_acquired = ExAcquireRundownProtection(&local_provider_context->rundown.protection);
-    if (!rundown_acquired) {
+    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context)'' if (!rundown_acquired)
+    {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
@@ -602,7 +629,7 @@ Exit:
 
     if (status != STATUS_SUCCESS) {
         if (rundown_acquired) {
-            ExReleaseRundownProtection(&local_provider_context->rundown.protection);
+            net_ebpf_extension_hook_provider_leave_rundown(local_provider_context);
         }
     }
 
