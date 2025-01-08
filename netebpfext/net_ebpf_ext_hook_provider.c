@@ -10,6 +10,11 @@ typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
     bool rundown_occurred;
+#if !defined(NDEBUG)
+    bool rundown_initialized;
+    uint64_t rundown_acquired_count;
+    uint64_t rundown_reference_count;
+#endif
 } net_ebpf_ext_hook_rundown_t;
 
 struct _net_ebpf_extension_hook_provider;
@@ -80,6 +85,11 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     // Initialize the rundown and disable new references.
     ExInitializeRundownProtection(&rundown->protection);
     rundown->rundown_occurred = FALSE;
+#if !defined(NDEBUG)
+    rundown->rundown_initialized = TRUE;
+    rundown->rundown_acquired_count = 0;
+    rundown->rundown_reference_count = 0;
+#endif
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -150,6 +160,12 @@ net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_cli
 {
     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
     bool status = ExAcquireRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    if (status) {
+        rundown->rundown_acquired_count++;
+        rundown->rundown_reference_count++;
+    }
+#endif
     return status;
 }
 
@@ -158,6 +174,23 @@ net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_cli
 {
     net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
     ExReleaseRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    rundown->rundown_reference_count--;
+#endif
+}
+
+_Must_inspect_result_ bool
+net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
+    bool status = ExAcquireRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    if (status) {
+        rundown->rundown_acquired_count++;
+        rundown->rundown_reference_count++;
+    }
+#endif
+    return status;
 }
 
 void
@@ -165,6 +198,9 @@ net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_p
 {
     net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
     ExReleaseRundownProtection(&rundown->protection);
+#if !defined(NDEBUG)
+    rundown->rundown_reference_count--;
+#endif
 }
 
 const ebpf_extension_data_t*
@@ -544,7 +580,7 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     // No matching filter context found. Need to create a new filter context.
     // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    rundown_acquired = ExAcquireRundownProtection(&local_provider_context->rundown.protection);
+    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context);
     if (!rundown_acquired) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -565,6 +601,11 @@ _net_ebpf_extension_hook_provider_attach_client(
         status = STATUS_ACCESS_DENIED;
         goto Exit;
     }
+
+#if !defined(NDEBUG)
+    // Rundown reference has been acquired for this filter. Add to list for tracking.
+    net_ebpf_ext_add_filter_context_to_rundown_acquired_list(new_filter_context);
+#endif
 
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
@@ -597,7 +638,7 @@ Exit:
 
     if (status != STATUS_SUCCESS) {
         if (rundown_acquired) {
-            ExReleaseRundownProtection(&local_provider_context->rundown.protection);
+            net_ebpf_extension_hook_provider_leave_rundown(local_provider_context);
         }
     }
 
@@ -614,6 +655,9 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
     RemoveEntryList(&filter_context->link);
 
 #if !defined(NDEBUG)
+    // The filter context was previously added to the rundown acquired list. Remove it here.
+    net_ebpf_ext_remove_filter_context_from_debug_list(filter_context);
+
     // Add the entry to the zombie list (for debugging purposes)
     net_ebpf_ext_add_filter_context_to_zombie_list(filter_context);
 #endif
