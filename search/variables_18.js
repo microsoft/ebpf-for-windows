@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['zero_1562',['zero',['../struct__program__entry.html#a0a3a7687599e518ff649e44aabbf6598',1,'_program_entry']]]
+  ['zero_0',['zero',['../struct__program__entry.html#a0a3a7687599e518ff649e44aabbf6598',1,'_program_entry']]]
 ];
