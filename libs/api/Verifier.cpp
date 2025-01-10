@@ -506,15 +506,17 @@ ebpf_api_elf_enumerate_programs(
             memset(info, 0, sizeof(*info));
 
             if (verbose) {
-                std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
-                if (std::holds_alternative<std::string>(programOrError)) {
-                    std::cout << "parse failure: " << std::get<std::string>(programOrError) << "\n";
+                std::variant<InstructionSeq, std::string> instruction_sequence_or_error = unmarshal(raw_program);
+                if (std::holds_alternative<std::string>(instruction_sequence_or_error)) {
+                    std::cout << "parse failure: " << std::get<std::string>(instruction_sequence_or_error) << "\n";
                     ebpf_free(info);
                     return 1;
                 }
-                auto& program = std::get<InstructionSeq>(programOrError);
-                cfg_t controlFlowGraph = prepare_cfg(program, raw_program.info, verifier_options.cfg_opts);
-                std::map<std::string, int> stats = collect_stats(controlFlowGraph);
+                auto& instruction_sequence = std::get<InstructionSeq>(instruction_sequence_or_error);
+                // auto program = crab::prepare_cfg(program, raw_program.info, verifier_options.cfg_opts);
+                auto program =
+                    Program::from_sequence(instruction_sequence, raw_program.info, verifier_options.cfg_opts);
+                std::map<std::string, int> stats = collect_stats(program);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
                 }
