@@ -2,7 +2,19 @@
     "license":["Copyright (c) eBPF for Windows contributors", "SPDX-License-Identifier: MIT"],
     "artifacts": [
         {
-            "Name": "windows-server-install-feature-hyperv"
+            "name": "windows-enabledismfeature",
+            "parameters": {
+                "FeatureName": "Microsoft-Hyper-V"
+            }
+        },
+        {
+            "name": "windows-enabledismfeature",
+            "parameters": {
+                "FeatureName": "Microsoft-Hyper-V-Management-PowerShell"
+            }
+        },
+        {
+            "name": "windows-restart"
         },
         {
             "Name": "windows-azcopy-downloadfile-msi",

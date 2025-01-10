@@ -53,9 +53,13 @@ function Get-AzureKeyVaultCredential
           [Parameter(Mandatory=$True)][string] $SecretName)
 
     try {
+        # NuGet is a dependency for the Az module. Ensure it is installed too.
+        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+        Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+
         # Check if the Az module is installed, if not, install it
         if (-not (Get-Module -ListAvailable -Name Az)) {
-            Install-Module -Name Az -AllowClobber -Force *> $null 2>&1
+            Install-Module -Name Az -AllowClobber -Force -ErrorAction Stop *> $null 2>&1
         }
 
         # Authenticate using the managed identity
