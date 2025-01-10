@@ -472,7 +472,7 @@ function Invoke-CICDStressTests
 
     $LASTEXITCODE = 0
 
-    $TestCommand = ".\ebpf_stress_tests_km"
+    $TestCommand = ".\ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
         $TestArguments = "-tt=8 -td=5"
