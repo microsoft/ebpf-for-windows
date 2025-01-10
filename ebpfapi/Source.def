@@ -117,10 +117,10 @@ EXPORTS
     ebpf_free_sections = ebpf_free_programs
     ebpf_free_string
     ebpf_get_attach_type_name
-    ebpf_get_bpf_program_type
     ebpf_get_bpf_attach_type
-    ebpf_get_ebpf_program_type
+    ebpf_get_bpf_program_type
     ebpf_get_ebpf_attach_type
+    ebpf_get_ebpf_program_type
     ebpf_get_next_pinned_object_path
     ebpf_get_next_pinned_program_path
     ebpf_get_program_info_from_verifier
@@ -149,5 +149,5 @@ EXPORTS
     libbpf_num_possible_cpus
     libbpf_prog_type_by_name
     libbpf_strerror
-    ring_buffer__new
     ring_buffer__free
+    ring_buffer__new
