@@ -1656,7 +1656,7 @@ ebpf_program_attach(
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_program_attach_as_fd(
+ebpf_program_attach_fds(
     fd_t program_fd,
     _In_opt_ const ebpf_attach_type_t* attach_type,
     _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
@@ -1699,7 +1699,7 @@ ebpf_program_attach_by_fd(
     }
 
     ebpf_result_t result =
-        ebpf_program_attach_as_fd(program_fd, attach_type, attach_parameters, attach_parameters_size, &new_link->fd);
+        ebpf_program_attach_fds(program_fd, attach_type, attach_parameters, attach_parameters_size, &new_link->fd);
     if (result != EBPF_SUCCESS) {
         ebpf_free(new_link);
         EBPF_RETURN_RESULT(result);
