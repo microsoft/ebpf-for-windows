@@ -28,21 +28,25 @@ The main motivation for this proposal is to efficiently support payload capture 
 
 # Proposal
 
-The proposed behaviour matches linux, but currently only supports user-space consumers and bpf-program producers with a subset of the features.
+The proposed behaviour matches linux (except the auto callback feature when set), but currently only supports user-space consumers and bpf-program producers with a subset of the features.
 
 The plan is to implement perf buffers using the existing per-cpu and ring buffer maps support in ebpf-for-windows.
 
+To match linux behaviour, by default the callback will only be called inside calls to `perf_buffer__poll()`.
+If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automatically invoked when there is data available.
+
 1. Implement a new map type `BPF_MAP_TYPE_PERF_EVENT_ARRAY`.
-    1. Initially only support bpf programs as producers and user space as consumer
-    2. The behaviour will match linux perf event arrays, but only support a subset of the features
-    3. For now no watermark support or other linux perf features, just output and poll
+    1. Support linux-compatible default behaviour (but supports only as subset of the perf event array features)
+    2. Initially only support bpf programs as producers and user space as consumer
+    3. In addition to the linux behaviour, automatically invoke the callback if the auto callback flag is set
 2. Implement `perf_event_output` bpf helper function
     1. Support BPF_F_INDEX_MASK, BPF_F_CURRENT_CPU, BPF_F_CTXLEN_MASK flags
 2. Implement libbpf support for perf event arrays.
-    1. `perf_buffer__new` - create a new perfbuf manager (and attach callback to map)
-    2. `perf_buffer__free` - 
+    1. `perf_buffer__new` - create a new perfbuf manager (attaches callback)
+    2. `perf_buffer__free` - free perfbuf manager (detaches callback)
     3. `perf_buffer__poll` - wait the buffer to be non-empty (or timeout), then invoke callback for each ready record
-        1. Callbacks will only be done synchronously in calls to `poll` (to match linux behaviour)
+        1. poll() should not be called if PERFBUF_FLAG_AUTO_CALLBACK is set
+        2. if not using auto callbacks, the callback will not be called except inside poll() calls
 
 ## bpf helpers
 ```c
@@ -102,8 +106,13 @@ typedef void (*perf_buffer_lost_fn)(void *ctx, int cpu, __u64 cnt);
 
 struct perf_buffer_opts {
 	size_t sz;
+    uint64_t flags;
 };
-#define perf_buffer_opts__last_field sz
+#define perf_buffer_opts__last_field flags
+
+enum perf_buffer_flags {
+    PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0 /* Automatically invoke callback for each record */
+}
 
 /**
  * @brief **perf_buffer__new()** creates BPF perfbuf manager for a specified
