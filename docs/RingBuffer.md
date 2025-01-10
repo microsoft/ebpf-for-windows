@@ -59,7 +59,7 @@ Only the producer may update the producer offset, and only the consumer may upda
  *
  */
 ebpf_result_t
-ebpf_ring_buffer_output(ebpf_ring_buffer_t* ring, uint8_t* data, size_t length, size_t flags)
+ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length, size_t flags)
 ```
 
 ### Updated libbpf API for callback consumer
@@ -73,7 +73,7 @@ to get direct access to the mapped ringbuffer memory.
 ```c
 struct ring_buffer;
 
-typedef int (*ring_buffer_sample_fn)(void *ctx, void *data, size_t size);
+typedef int (*ring_buffer_sample_fn)(_Inout_ void *ctx, _In_reads_bytes_(size) void *data, size_t size);
 
 struct ring_buffer_opts {
   size_t sz; /* size of this struct, for forward/backward compatiblity */
@@ -97,8 +97,8 @@ enum ring_buffer_flags {
  * @returns Pointer to ring buffer manager.
  */
 struct ring_buffer *
-ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void *ctx,
-		 const struct ring_buffer_opts *opts);
+ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, _Inout_ void *ctx,
+		 _In_ const struct ring_buffer_opts *opts);
 
 /**
  * @brief poll ringbuf for new data
@@ -114,14 +114,14 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void *ctx,
  *
  * @returns number of records consumed, INT_MAX, or a negative number on error
  */
-int ring_buffer__poll(struct ring_buffer *rb, int timeout_ms);
+int ring_buffer__poll(_In_ struct ring_buffer *rb, int timeout_ms);
 
 /**
  * @brief Frees a ring buffer manager.
  *
  * @param[in] rb Pointer to ring buffer manager to be freed.
  */
-void ring_buffer__free(struct ring_buffer *rb);
+void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
 ```
 
 ### New ebpf APIs for mapped memory consumer
@@ -137,7 +137,7 @@ void ring_buffer__free(struct ring_buffer *rb);
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
  */
-ebpf_result_t ebpf_ring_buffer_get_buffer(fd_t map_fd, void **producer, void **consumer);
+ebpf_result_t ebpf_ring_buffer_get_buffer(fd_t map_fd, _Out_ void **producer, _Out_ void **consumer);
 
 /**
  * Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
