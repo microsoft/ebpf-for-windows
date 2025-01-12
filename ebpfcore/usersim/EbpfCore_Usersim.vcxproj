@@ -76,6 +76,7 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)'=='Debug'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='FuzzerDebug'">
     <DebuggerFlavor>DbgengKernelDebugger</DebuggerFlavor>
@@ -147,6 +148,7 @@
       <AdditionalDependencies>usersim.lib;uuid.lib;bcrypt.lib;legacy_stdio_definitions.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>ntdll.lib</IgnoreSpecificDefaultLibraries>
+      <AdditionalOptions>/allpdata %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
