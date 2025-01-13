@@ -1491,7 +1491,7 @@ static ebpf_result_t
 _link_ebpf_program(
     ebpf_handle_t program_handle,
     _In_ const ebpf_attach_type_t* attach_type,
-    _Out_ ebpf_handle_t* link,
+    _Out_ ebpf_handle_t* link_handle,
     _In_reads_bytes_opt_(attach_parameter_size) uint8_t* attach_parameter,
     size_t attach_parameter_size) NO_EXCEPT_TRY
 {
@@ -1523,7 +1523,7 @@ _link_ebpf_program(
         }
         ebpf_assert(reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_LINK_PROGRAM);
 
-        *link = reply.link_handle;
+        *link_handle = reply.link_handle;
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     } catch (const std::bad_alloc&) {
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
