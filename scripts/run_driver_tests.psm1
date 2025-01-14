@@ -163,6 +163,10 @@ function Process-TestCompletion
     # Cache the process handle to ensure subsequent access of the process is accurate
     $handle = $TestProcess.Handle
 
+    if ($TestProcess -eq $null) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Test $TestCommand failed to start."
+    }
+
     # Use Wait-Process for the process to terminate or timeout.
     # See https://stackoverflow.com/a/23797762
     Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
@@ -406,7 +410,6 @@ function Invoke-ConnectRedirectTest
 
     Push-Location $WorkingDirectory
 
-        $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
         $TestCommand = ".\connect_redirect_tests.exe"
 
         ## First run the test with both v4 and v6 programs attached.
