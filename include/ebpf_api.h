@@ -423,6 +423,8 @@ extern "C"
      * the link as a file descriptor.
      *
      * @see ebpf_program_attach_by_fd
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_attach_fds(
