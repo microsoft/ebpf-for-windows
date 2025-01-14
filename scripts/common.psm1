@@ -51,7 +51,6 @@ function Get-AzureKeyVaultCredential
 {
     param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
           [Parameter(Mandatory=$True)][string] $SecretName)
-
     try {
         # NuGet is a dependency for the Az module. Ensure it is installed too.
         Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
