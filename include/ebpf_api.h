@@ -31,6 +31,13 @@ extern "C"
     struct bpf_link;
 
     /**
+     * @brief Query the version of the eBPF runtime.
+     * @returns A version in the form Major.Minor.Revision. The returned string is only valid while the DLL is loaded.
+     */
+    const char*
+    ebpf_version() EBPF_NO_EXCEPT;
+
+    /**
      * @brief Query info about an eBPF program.
      * @param[in] fd File descriptor of an eBPF program.
      * @param[out] execution_type On success, contains the execution type.

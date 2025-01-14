@@ -130,6 +130,7 @@ EXPORTS
     ebpf_store_delete_section_information
     ebpf_store_update_program_information_array
     ebpf_store_update_section_information
+    ebpf_version
     libbpf_attach_type_by_name
     libbpf_bpf_attach_type_str
     libbpf_bpf_link_type_str

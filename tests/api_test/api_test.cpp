@@ -9,6 +9,7 @@
 #include "catch_wrapper.hpp"
 #include "common_tests.h"
 #include "ebpf_structs.h"
+#include "ebpf_version.h"
 #include "misc_helper.h"
 #include "native_helper.hpp"
 #include "program_helper.h"
@@ -103,6 +104,8 @@ static _Success_(return == 0) int _program_load_helper(
     *object = new_object;
     return 0;
 }
+
+TEST_CASE("ebpf_version", "") { REQUIRE(strcmp(ebpf_version(), EBPF_VERSION) == 0); }
 
 static void
 _test_program_load(
