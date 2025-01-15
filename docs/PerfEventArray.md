@@ -19,7 +19,7 @@ There are 3 primary differences between ring buffer maps and perf event arrays:
   3. For supported program types with a payload, perf event arrays can copy payload from the bpf context by
   putting the length to copy in the `BPF_F_CTXLEN_MASK` field of the flags.
       - `perf_event_output` takes the bpf context as an argument and the helper implementation copies the payload.
-          - The payload is whatever the data pointer of the program context points to (e.g. packet data including headers).
+          - The payload is whatever the data pointer of the program context points to (e.g. packet data including headers). The payload does not include the bpf program context structure itself.
 
 The main motivation for this proposal is to efficiently support payload capture from the context in bpf programs.
 - Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273).
@@ -45,7 +45,11 @@ If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automaticall
           attaching bpf programs to perf events, and sending events from user-space to bpf programs.
     3. In addition to the linux behaviour, automatically invoke the callback if the auto callback flag is set.
 2. Implement `perf_event_output` bpf helper function.
-    1. Support BPF_F_INDEX_MASK, BPF_F_CURRENT_CPU, BPF_F_CTXLEN_MASK flags.
+    1. Support BPF_F_INDEX_MASK, BPF_F_CURRENT_CPU to specify which per-cpu perf ringbuf to write the event to.
+    2. Support BPF_F_CTXLEN_MASK flags for TC and XDP programs to have raw packet data appended to the event.
+        - The ebpf_context_descriptor_t passed by extensions to the platform includes the offset of the data pointer.
+        - Whatever the program context data pointer points to will be copied by the platform,
+          without any additional ebpf extension support needed.
 2. Implement libbpf support for perf event arrays.
     1. `perf_buffer__new` - Create a new perfbuf manager (attaches callback).
     2. `perf_buffer__free` - Free perfbuf manager (detaches callback).
