@@ -42,7 +42,7 @@ typedef struct _bind_context_header
     sample_program_context_t* ctx = &header.context;
 
 bpf_attach_type_t
-get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
+ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
 
 typedef struct _ebpf_free_memory
 {
@@ -139,7 +139,7 @@ typedef class _single_instance_hook : public _hook_helper
     {
         attach_provider_data.header = EBPF_ATTACH_PROVIDER_DATA_HEADER;
         attach_provider_data.supported_program_type = program_type;
-        attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
+        attach_provider_data.bpf_attach_type = ebpf_get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
         module_id.Guid = attach_type;
     }
