@@ -13,106 +13,90 @@ and some of them are exposed via bpf.
 The newer option is the ring buffer map, which is a single ring buffer (not per-cpu).
 
 There are 3 primary differences between ring buffer maps and perf event arrays:
-  - We are just looking at transfering variable sized records between kernel and user space (not other linux perf features)
-  1. Perf event arrays are per-cpu, whereas ring buffers are a single shared buffer
-  2. Ring buffer maps support reserve and submit to separately allocate and then fill in the record
-  3. For specific program types with a payload, perf event arrays can copy payload from the bpf context by
-  putting the length to copy in the `BPF_F_CTXLEN_MASK` field of the flags
-      - `perf_event_output` takes the bpf context as an argument and the helper implementation copies the payload
+  1. Perf event arrays are per-cpu, whereas ring buffers are a single shared buffer.
+      - Calling code must ensure mutual exclusion if multiple producers write to a single CPU.
+  2. Ring buffer maps support reserve and submit to separately allocate and then fill in the record.
+  3. For supported program types with a payload, perf event arrays can copy payload from the bpf context by
+  putting the length to copy in the `BPF_F_CTXLEN_MASK` field of the flags.
+      - `perf_event_output` takes the bpf context as an argument and the helper implementation copies the payload.
+          - The payload is whatever the data pointer of the program context points to (e.g. packet data including headers).
 
 The main motivation for this proposal is to efficiently support payload capture from the context in bpf programs.
-- Supporting ring buffer reserve and submit in ebpf-for-windows is blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273)
-- without reserve+submit, using `ringbuf_output` for payload capture requires using a per-cpu array as scratch space to append the payload to the event before calling ringbuf_output
-- the CTXLEN field in the flags of `perf_event_output` tells the kernel to append bytes from the payload to the record, avoiding the extra copy
+- Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273).
+- Without reserve+submit, using `ringbuf_output` for payload capture requires using a per-cpu array as scratch space to append the payload to the event before calling ringbuf_output.
+- The CTXLEN field in the flags of `perf_event_output` tells the kernel to append bytes from the payload to the record, avoiding the extra copy.
 
 
 # Proposal
 
-The proposed behaviour matches linux (except the auto callback feature when set), but currently only supports user-space consumers and bpf-program producers with a subset of the features.
+The proposed behaviour matches linux, but currently only supports user-space consumers and bpf-program producers with a subset of the features.
 
-The plan is to implement perf buffers using the existing per-cpu and ring buffer maps support in ebpf-for-windows.
+The plan is to implement perf buffers using the existing per-cpu and ring buffer map support in ebpf-for-windows.
 
 To match linux behaviour, by default the callback will only be called inside calls to `perf_buffer__poll()`.
 If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automatically invoked when there is data available.
 
 1. Implement a new map type `BPF_MAP_TYPE_PERF_EVENT_ARRAY`.
-    1. Support linux-compatible default behaviour (but supports only as subset of the perf event array features)
-    2. Initially only support bpf programs as producers and user space as consumer
-    3. In addition to the linux behaviour, automatically invoke the callback if the auto callback flag is set
-2. Implement `perf_event_output` bpf helper function
-    1. Support BPF_F_INDEX_MASK, BPF_F_CURRENT_CPU, BPF_F_CTXLEN_MASK flags
+    1. Linux-compatible default behaviour.
+        - With linux-compatible behaviour and bpf interfaces, additional features from linux should be possible to add in the future.
+    2. Only support the perf ringbuffer (not other linux perf features).
+        - Only support bpf program producers with a single user-space consumer per event array.
+        - Features not supported include perf counters, hardware-generated perf events,
+          attaching bpf programs to perf events, and sending events from user-space to bpf programs.
+    3. In addition to the linux behaviour, automatically invoke the callback if the auto callback flag is set.
+2. Implement `perf_event_output` bpf helper function.
+    1. Support BPF_F_INDEX_MASK, BPF_F_CURRENT_CPU, BPF_F_CTXLEN_MASK flags.
 2. Implement libbpf support for perf event arrays.
-    1. `perf_buffer__new` - create a new perfbuf manager (attaches callback)
-    2. `perf_buffer__free` - free perfbuf manager (detaches callback)
-    3. `perf_buffer__poll` - wait the buffer to be non-empty (or timeout), then invoke callback for each ready record
-        1. poll() should not be called if PERFBUF_FLAG_AUTO_CALLBACK is set
-        2. if not using auto callbacks, the callback will not be called except inside poll() calls
+    1. `perf_buffer__new` - Create a new perfbuf manager (attaches callback).
+    2. `perf_buffer__free` - Free perfbuf manager (detaches callback).
+    3. `perf_buffer__poll` - Wait the buffer to be non-empty (or timeout), then invoke callback for each ready record.
+        1. By default (without `PERFBUF_FLAG_AUTO_CALLBACK`), the callback will not be called except inside poll() calls.
+        2. poll() should not be called if the auto callback flag is set.
 
 ## bpf helpers
 ```c
- * long bpf_perf_event_output(void *ctx, struct bpf_map *map, u64 flags, void *data, u64 size)
- * 	Description
- * 		Write raw *data* blob into a special BPF perf event held by
- * 		*map* of type **BPF_MAP_TYPE_PERF_EVENT_ARRAY**. This perf
- * 		event must have the following attributes: **PERF_SAMPLE_RAW**
- * 		as **sample_type**, **PERF_TYPE_SOFTWARE** as **type**, and
- * 		**PERF_COUNT_SW_BPF_OUTPUT** as **config**.
+/**
+ * @brief Write raw data blob into a special BPF perf event held by a map of type BPF_MAP_TYPE_PERF_EVENT_ARRAY.
  *
- * 		The *flags* are used to indicate the index in *map* for which
- * 		the value must be put, masked with **BPF_F_INDEX_MASK**.
- * 		Alternatively, *flags* can be set to **BPF_F_CURRENT_CPU**
- * 		to indicate that the index of the current CPU core should be
- * 		used.
+ * @param ctx The context of the program.
+ * @param map The BPF map of type BPF_MAP_TYPE_PERF_EVENT_ARRAY.
+ * @param flags Flags indicating the index in the map for which the value must be put, masked with BPF_F_INDEX_MASK.
+ *              Alternatively, flags can be set to BPF_F_CURRENT_CPU to indicate that the index of the current CPU core should be used.
+ *              Caller must ensure that only one producer writes to a CPU at a time (or use BPF_F_CURRENT_CPU).
+ * @param data The value to write, passed through eBPF stack and pointed by data.
+ * @param size The size of the value to write.
  *
- * 		The value to write, of *size*, is passed through eBPF stack and
- * 		pointed by *data*.
+ * @return 0 on success, or a negative error in case of failure.
  *
- * 		The context of the program *ctx* needs also be passed to the
- * 		helper.
- *
- * 		On user space, a program willing to read the values needs to
- * 		call **perf_event_open**\ () on the perf event (either for
- * 		one or for all CPUs) and to store the file descriptor into the
- * 		*map*. This must be done before the eBPF program can send data
- * 		into it. An example is available in file
- * 		*samples/bpf/trace_output_user.c* in the Linux kernel source
- * 		tree (the eBPF program counterpart is in
- * 		*samples/bpf/trace_output_kern.c*).
- *
- * 		**bpf_perf_event_output**\ () achieves better performance
- * 		than **bpf_trace_printk**\ () for sharing data with user
- * 		space, and is much better suitable for streaming data from eBPF
- * 		programs.
- *
- * 		Note that this helper is not restricted to tracing use cases
- * 		and can be used with programs attached to TC or XDP as well,
- * 		where it allows for passing data to user space listeners. Data
- * 		can be:
- *
- * 		* Only custom structs,
- * 		* Only the packet payload, or
- * 		* A combination of both.
- * 	Return
- * 		0 on success, or a negative error in case of failure.
+ * @note This helper is not restricted to tracing use cases and can be used with programs attached to TC or XDP as well,
+ *       where it allows for passing data to user space listeners. Data can be:
+ *       - Only custom structs,
+ *       - Only the packet payload, or
+ *       - A combination of both.
+ */
+long bpf_perf_event_output(void *ctx, struct bpf_map *map, u64 flags, void *data, u64 size)
 ```
 
 ## libbpf API
 ```c
 struct perf_buffer;
 
+// Callback definitions.
 typedef void (*perf_buffer_sample_fn)(void *ctx, int cpu,
 				      void *data, __u32 size);
 typedef void (*perf_buffer_lost_fn)(void *ctx, int cpu, __u64 cnt);
 
+// Perf buffer manager options.
 struct perf_buffer_opts {
 	size_t sz;
     uint64_t flags;
 };
 #define perf_buffer_opts__last_field flags
 
+// Flags for configuring perf buffer manager.
 enum perf_buffer_flags {
     PERFBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0 /* Automatically invoke callback for each record */
-}
+};
 
 /**
  * @brief **perf_buffer__new()** creates BPF perfbuf manager for a specified
