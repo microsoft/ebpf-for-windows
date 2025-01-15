@@ -15,6 +15,7 @@
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
+#include "ebpf_version.h"
 #include "hash.h"
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
@@ -246,6 +247,12 @@ ebpf_api_terminate() noexcept
     clean_up_rpc_binding();
 #endif
     ebpf_trace_terminate();
+}
+
+const char*
+ebpf_version() noexcept
+{
+    return EBPF_VERSION;
 }
 
 static ebpf_result_t
