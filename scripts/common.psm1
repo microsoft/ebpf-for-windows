@@ -43,6 +43,37 @@ function New-Credential
     return $Credential
 }
 
+#
+# Retrieves the secret from Azure Key Vault.
+# Returns a PSCredential object, where the username is the secret name and the password is the retrieved secret.
+#
+function Get-AzureKeyVaultCredential
+{
+    param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
+          [Parameter(Mandatory=$True)][string] $SecretName)
+    try {
+        # NuGet is a dependency for the Az module. Ensure it is installed too.
+        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+        Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+
+        # Check if the Az module is installed, if not, install it
+        if (-not (Get-Module -ListAvailable -Name Az)) {
+            Install-Module -Name Az -AllowClobber -Force -ErrorAction Stop *> $null 2>&1
+        }
+
+        # Authenticate using the managed identity
+        Connect-AzAccount -Identity *> $null 2>&1
+
+        # Retrieve the secret from Key Vault
+        $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
+
+        # Return as a PSCredential object
+        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret.SecretValue)
+        return $credential
+    } catch {
+        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName SecretName: $SecretName Error: $_"
+    }
+}
 
 function Compress-File
 {
@@ -94,7 +125,7 @@ function Wait-TestJobToComplete
             if ($Job.State -eq "Running") {
                 $VMList = $Config.VMMap.$SelfHostedRunnerName
                 # currently one VM runs per runner.
-                $TestVMName = $VMList[0].Name            
+                $TestVMName = $VMList[0].Name
                 Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
                 $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
                 $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
