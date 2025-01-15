@@ -7,14 +7,18 @@ This document proposes support for a simplified version of the linux bpf map typ
 On linux there are two map types for sending large amounts of data from BPF programs to user space.
 
 The older one is the perf event array, which on linux interfaces with the linux perf subsystem to provide
-per-cpu ring buffers. The perf subsystem has many other features (including counters and hardware event support)
+per-CPU ring buffers. The perf subsystem has many other features (including counters and hardware event support)
 and some of them are exposed via bpf.
 
-The newer option is the ring buffer map, which is a single ring buffer (not per-cpu).
+The newer option is the ring buffer map, which is a single ring buffer (not per-CPU).
 
 There are 3 primary differences between ring buffer maps and perf event arrays:
-  1. Perf event arrays are per-cpu, whereas ring buffers are a single shared buffer.
-      - Calling code must ensure mutual exclusion if multiple producers write to a single CPU.
+
+  1. Perf event arrays are per-CPU, whereas ring buffers are a single shared buffer.
+      - Currently on linux perf_event_output may only write to the current CPU,
+        and manually specifying a CPU other than the currently running one will return an error.
+      - By default the consumer attaches to all CPUs to get events from each per-CPU buffer.
+      - Using `perf_buffer__new_raw` a consumer can attach to specific CPUs
   2. Ring buffer maps support reserve and submit to separately allocate and then fill in the record.
   3. For supported program types with a payload, perf event arrays can copy payload from the bpf context by
   putting the length to copy in the `BPF_F_CTXLEN_MASK` field of the flags.
@@ -23,7 +27,7 @@ There are 3 primary differences between ring buffer maps and perf event arrays:
 
 The main motivation for this proposal is to efficiently support payload capture from the context in bpf programs.
 - Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273).
-- Without reserve+submit, using `ringbuf_output` for payload capture requires using a per-cpu array as scratch space to append the payload to the event before calling ringbuf_output.
+- Without reserve+submit, using `ringbuf_output` for payload capture requires using a per-CPU array as scratch space to append the payload to the event before calling ringbuf_output.
 - The CTXLEN field in the flags of `perf_event_output` tells the kernel to append bytes from the payload to the record, avoiding the extra copy.
 
 
@@ -31,7 +35,7 @@ The main motivation for this proposal is to efficiently support payload capture 
 
 The proposed behaviour matches linux, but currently only supports user-space consumers and bpf-program producers with a subset of the features.
 
-The plan is to implement perf buffers using the existing per-cpu and ring buffer map support in ebpf-for-windows.
+The plan is to implement perf buffers using the existing per-CPU and ring buffer map support in ebpf-for-windows.
 
 To match linux behaviour, by default the callback will only be called inside calls to `perf_buffer__poll()`.
 If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automatically invoked when there is data available.
@@ -45,17 +49,21 @@ If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automaticall
           attaching bpf programs to perf events, and sending events from user-space to bpf programs.
     3. In addition to the linux behaviour, automatically invoke the callback if the auto callback flag is set.
 2. Implement `perf_event_output` bpf helper function.
-    1. Support BPF_F_INDEX_MASK, BPF_F_CURRENT_CPU to specify which per-cpu perf ringbuf to write the event to.
+    1. Only support writing to the current CPU (matches current linux restrictions).
+        - Specify current CPU in flags using BPF_F_INDEX_MASK or pass BPF_F_CURRENT_CPU.
     2. Support BPF_F_CTXLEN_MASK flags for TC and XDP programs to have raw packet data appended to the event.
         - The ebpf_context_descriptor_t passed by extensions to the platform includes the offset of the data pointer.
         - Whatever the program context data pointer points to will be copied by the platform,
           without any additional ebpf extension support needed.
 2. Implement libbpf support for perf event arrays.
     1. `perf_buffer__new` - Create a new perfbuf manager (attaches callback).
+        - Attaches to all CPUs automatically.
+    2. `perf_buffer__new_raw` - Not supported initially (can be future work).
+        - This function gives extra control over the perfbuf manager creation (e.g. which CPUs to attach).
     2. `perf_buffer__free` - Free perfbuf manager (detaches callback).
     3. `perf_buffer__poll` - Wait the buffer to be non-empty (or timeout), then invoke callback for each ready record.
-        1. By default (without `PERFBUF_FLAG_AUTO_CALLBACK`), the callback will not be called except inside poll() calls.
-        2. poll() should not be called if the auto callback flag is set.
+        - By default (without `PERFBUF_FLAG_AUTO_CALLBACK`), the callback will not be called except inside poll() calls.
+        - poll() should not be called if the auto callback flag is set.
 
 ## bpf helpers
 ```c
@@ -66,7 +74,7 @@ If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automaticall
  * @param map The BPF map of type BPF_MAP_TYPE_PERF_EVENT_ARRAY.
  * @param flags Flags indicating the index in the map for which the value must be put, masked with BPF_F_INDEX_MASK.
  *              Alternatively, flags can be set to BPF_F_CURRENT_CPU to indicate that the index of the current CPU core should be used.
- *              Caller must ensure that only one producer writes to a CPU at a time (or use BPF_F_CURRENT_CPU).
+ *              Only supports writing to the current CPU (manually specify current CPU or pass BPF_F_CURRENT_CPU).
  * @param data The value to write, passed through eBPF stack and pointed by data.
  * @param size The size of the value to write.
  *
