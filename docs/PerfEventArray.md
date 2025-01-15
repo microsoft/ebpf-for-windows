@@ -131,6 +131,9 @@ perf_buffer__new(int map_fd, size_t page_cnt,
  * @brief poll perfbuf for new data
  * Poll for available data and consume records, if any are available.
  *
+ * Must be called to receive callbacks by default (without auto callbacks).
+ * NOT supported when PERFBUF_FLAG_AUTO_CALLBACK is set.
+ *
  * If timeout_ms is zero, poll will not wait but only invoke the callback on records that are ready.
  * If timeout_ms is -1, poll will wait until data is ready (no timeout).
  *
