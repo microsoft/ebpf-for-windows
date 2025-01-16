@@ -165,7 +165,7 @@ ebpf_clear_thread_local_storage() noexcept
 bool
 ebpf_verify_program(
     std::ostream& os,
-    _In_ const InstructionSeq& prog,
+    _In_ const InstructionSeq& instruction_sequence,
     _In_ const program_info& info,
     _In_ const ebpf_verifier_options_t& options,
     _Out_ ebpf_api_verifier_stats_t* stats)
@@ -176,21 +176,21 @@ ebpf_verify_program(
 
     // Convert the instruction sequence to a control-flow graph.
     try {
-        const cfg_t cfg = prepare_cfg(prog, info, options.cfg_opts);
-        auto invariants = analyze(cfg);
+        const auto program = Program::from_sequence(instruction_sequence, info, options.cfg_opts);
+        auto invariants = analyze(program);
         if (options.verbosity_opts.print_invariants) {
-            print_invariants(os, cfg, options.verbosity_opts.simplify, invariants);
+            print_invariants(os, program, options.verbosity_opts.simplify, invariants);
         }
         bool pass;
         if (options.verbosity_opts.print_failures) {
-            auto report = invariants.check_assertions(cfg);
+            auto report = invariants.check_assertions(program);
             thread_local_options.verbosity_opts.print_line_info = true;
             print_warnings(os, report);
             pass = report.verified();
             stats->total_warnings = (int)report.warning_set().size();
             stats->total_unreachable = (int)report.reachability_set().size();
         } else {
-            pass = invariants.verified(cfg);
+            pass = invariants.verified(program);
         }
         stats->max_loop_count = invariants.max_loop_count();
         return pass;

@@ -20,6 +20,11 @@ jobs:
   check:
     runs-on: Windows-latest
     steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
+      with:
+        egress-policy: audit
+
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
     - name: Check for updates to the Windows Driver Kit

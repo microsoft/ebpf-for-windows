@@ -221,7 +221,10 @@ template <typename context_type> class fuzz_helper_function
             }
             case EBPF_ARGUMENT_TYPE_PTR_TO_MAP_OF_PROGRAMS:
                 // Put the PROG_ARRAY map pointer into the argument.
-                argument[arg_count] = (uint64_t)get_prog_array_map();
+                argument[arg_count] = (uint64_t)get_map(BPF_MAP_TYPE_PROG_ARRAY);
+                if (argument[arg_count] == 0) {
+                    return -1;
+                }
                 break;
             case EBPF_ARGUMENT_TYPE_PTR_TO_MAP_VALUE: {
                 // Put the supplied data into the argument.
@@ -434,12 +437,6 @@ template <typename context_type> class fuzz_helper_function
         return maps.contains(type) ? maps[type] : nullptr;
     }
 
-    _Ret_maybenull_ ebpf_map_t*
-    get_prog_array_map()
-    {
-        return prog_array_map;
-    }
-
     // Generic helper prototypes.
     typedef uint64_t (*function0_t)();
     typedef uint64_t (*function1_t)(uint64_t r1);
@@ -554,7 +551,6 @@ template <typename context_type> class fuzz_helper_function
   private:
     GUID provider_guid;
     std::map<ebpf_map_type_t, ebpf_map_t*> maps;
-    ebpf_map_t* prog_array_map = nullptr;
     NPI_CLIENT_CHARACTERISTICS program_information_client_characteristics;
     HANDLE program_information_nmr_handle;
     const ebpf_program_data_t* program_data;

@@ -195,10 +195,10 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "arith32      : 0\n"
                   "arith64      : 1\n"
                   "assign       : 1\n"
-                  "basic_blocks : 4\n"
                   "call_1       : 0\n"
                   "call_mem     : 0\n"
                   "call_nomem   : 0\n"
+                  "instructions : 4\n"
                   "joins        : 0\n"
                   "jumps        : 0\n"
                   "load         : 0\n"
@@ -268,8 +268,10 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
+    const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size = 1020;
+    const int old_code_size = 1020;
 #else
 #error "Unsupported architecture"
 #endif
