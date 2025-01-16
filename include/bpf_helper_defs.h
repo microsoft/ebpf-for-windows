@@ -495,3 +495,17 @@ EBPF_HELPER(uint64_t, bpf_ktime_get_ms, ());
 #ifndef __doxygen
 #define bpf_ktime_get_ms ((bpf_ktime_get_ms_t)BPF_FUNC_ktime_get_ms)
 #endif
+
+/**
+ * @brief Copy data into the ring buffer map.
+ *
+ * @param[in, out] map Pointer to ring buffer map.
+ * @param[in] data Data to copy into ring buffer map.
+ * @param[in] size Length of data.
+ * @param[in] flags Flags indicating if notification for new data availability should be sent.
+ * @returns 0 on success and a negative value on error.
+ */
+EBPF_HELPER(int, bpf_perf_event_output, (void* ctx, void* perf_event_array, uint64_t flags, void* data, uint64_t size));
+#ifndef __doxygen
+#define bpf_perf_event_output ((bpf_perf_event_output_t)BPF_FUNC_perf_event_output)
+#endif
