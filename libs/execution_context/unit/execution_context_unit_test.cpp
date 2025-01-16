@@ -8,6 +8,7 @@
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
+#include "ebpf_perf_event_array.h"
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 #include "helpers.h"

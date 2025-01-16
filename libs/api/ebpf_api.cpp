@@ -10,6 +10,7 @@
 #include "bpf2c.h"
 #include "device_helper.hpp"
 #include "ebpf_api.h"
+#include "ebpf_perf_event_array_record.h"
 #include "ebpf_protocol.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_serialize.h"
@@ -4542,6 +4543,77 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
     }
 
     EBPF_RETURN_BOOL(cancel_result);
+}
+CATCH_NO_MEMORY_BOOL
+
+typedef struct _ebpf_perf_event_array_subscription
+{
+    _ebpf_perf_event_array_subscription()
+        : unsubscribed(false), perf_event_array_map_handle(ebpf_handle_invalid), callback_context(nullptr),
+          sample_callback(nullptr), lost_callback(nullptr), buffer(nullptr), reply({}), async_ioctl_completion(nullptr),
+          async_ioctl_failed(false)
+    {
+    }
+    ~_ebpf_perf_event_array_subscription() { EBPF_LOG_ENTRY(); }
+    std::mutex lock;
+    _Write_guarded_by_(lock) boolean unsubscribed;
+    ebpf_handle_t perf_event_array_map_handle;
+    void* callback_context;
+    perf_buffer_sample_fn sample_callback;
+    perf_buffer_lost_fn lost_callback;
+    uint8_t* buffer;
+    ebpf_operation_perf_event_array_map_async_query_reply_t reply;
+    _Write_guarded_by_(lock) async_ioctl_completion_t* async_ioctl_completion;
+    _Write_guarded_by_(lock) bool async_ioctl_failed;
+} ebpf_perf_event_array_subscription_t;
+
+typedef std::unique_ptr<ebpf_perf_event_array_subscription_t> ebpf_perf_event_array_subscription_ptr;
+
+static ebpf_result_t
+_ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(completion_context);
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_perf_event_array_map_subscribe(
+    fd_t map_fd,
+    _Inout_opt_ void* callback_context,
+    perf_buffer_sample_fn sample_callback,
+    perf_buffer_lost_fn lost_callback,
+    _Outptr_ perf_event_array_subscription_t** subscription) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(map_fd);
+    UNREFERENCED_PARAMETER(callback_context);
+    UNREFERENCED_PARAMETER(sample_callback);
+    UNREFERENCED_PARAMETER(lost_callback);
+    UNREFERENCED_PARAMETER(subscription);
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_perf_event_array_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(map_fd);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(data_length);
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+bool
+ebpf_perf_event_array_map_unsubscribe(_In_ _Post_invalid_ perf_event_array_subscription_t* subscription) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(subscription);
+    EBPF_RETURN_BOOL(false);
 }
 CATCH_NO_MEMORY_BOOL
 
