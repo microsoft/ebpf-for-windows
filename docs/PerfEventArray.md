@@ -29,6 +29,7 @@ The main motivation for this proposal is to efficiently support payload capture 
 - Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273).
 - Without reserve+submit, using `ringbuf_output` for payload capture requires using a per-CPU array as scratch space to append the payload to the event before calling ringbuf_output.
 - The CTXLEN field in the flags of `perf_event_output` tells the kernel to append bytes from the payload to the record, avoiding the extra copy.
+  - On linux this works for specifc program types, on Windows this will work for any program type with a data pointer in the context.
 
 
 # Proposal
@@ -51,7 +52,7 @@ If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automaticall
 2. Implement `perf_event_output` bpf helper function.
     1. Only support writing to the current CPU (matches current linux restrictions).
         - Specify current CPU in flags using BPF_F_INDEX_MASK or pass BPF_F_CURRENT_CPU.
-    2. Support BPF_F_CTXLEN_MASK flags for TC and XDP programs to have raw packet data appended to the event.
+    2. Support BPF_F_CTXLEN_MASK flags any bpf program types with a data pointer in the context.
         - The ebpf_context_descriptor_t passed by extensions to the platform includes the offset of the data pointer.
         - Whatever the program context data pointer points to will be copied by the platform,
           without any additional ebpf extension support needed.
@@ -79,12 +80,6 @@ If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automaticall
  * @param size The size of the value to write.
  *
  * @return 0 on success, or a negative error in case of failure.
- *
- * @note This helper is not restricted to tracing use cases and can be used with programs attached to TC or XDP as well,
- *       where it allows for passing data to user space listeners. Data can be:
- *       - Only custom structs,
- *       - Only the packet payload, or
- *       - A combination of both.
  */
 long bpf_perf_event_output(void *ctx, struct bpf_map *map, u64 flags, void *data, u64 size)
 ```
