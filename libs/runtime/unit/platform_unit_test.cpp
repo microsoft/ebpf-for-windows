@@ -10,6 +10,7 @@
 #include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
+#include "ebpf_perf_event_array.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
@@ -1144,6 +1145,67 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 
     ebpf_ring_buffer_destroy(ring_buffer);
     ring_buffer = nullptr;
+}
+
+TEST_CASE("perf_event_output", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    size_t consumer;
+    size_t producer;
+    ebpf_perf_event_array_t* perf_event_array;
+    ebpf_perf_event_array_opts_t* opts = nullptr;
+
+    uint8_t* buffer;
+    std::vector<uint8_t> data(10);
+    size_t size = 64 * 1024;
+    void* ctx = nullptr;
+    uint32_t cpu_id = 0;
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+
+    REQUIRE(ebpf_perf_event_array_create(&perf_event_array, size, opts) == EBPF_SUCCESS);
+    REQUIRE(ebpf_perf_event_array_map_buffer(perf_event_array, cpu_id, &buffer) == EBPF_SUCCESS);
+
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+
+    // Ring is empty
+    REQUIRE(producer == consumer);
+    REQUIRE(consumer == 0);
+
+    REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size()) == EBPF_SUCCESS);
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+
+    // Ring is not empty
+    REQUIRE(producer != consumer);
+    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_perf_event_array_record_t, data));
+    REQUIRE(consumer == 0);
+
+    auto record = ebpf_perf_event_array_next_record(buffer, size, consumer, producer);
+    REQUIRE(record != nullptr);
+    REQUIRE(record->header.length == data.size() + EBPF_OFFSET_OF(ebpf_perf_event_array_record_t, data));
+
+    REQUIRE(ebpf_perf_event_array_return(perf_event_array, cpu_id, record->header.length) == EBPF_SUCCESS);
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+
+    record = ebpf_perf_event_array_next_record(buffer, size, consumer, producer);
+    REQUIRE(record == nullptr);
+    REQUIRE(consumer == producer);
+    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_perf_event_array_record_t, data));
+    REQUIRE(consumer == data.size() + EBPF_OFFSET_OF(ebpf_perf_event_array_record_t, data));
+
+    data.resize(1023);
+    while (ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size()) == EBPF_SUCCESS) {
+    }
+
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+    REQUIRE(ebpf_perf_event_array_return(perf_event_array, cpu_id, (producer - consumer) % size) == EBPF_SUCCESS);
+
+    data.resize(size - EBPF_OFFSET_OF(ebpf_perf_event_array_record_t, data) - 1);
+    // Fill ring
+    REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size()) == EBPF_SUCCESS);
+
+    ebpf_perf_event_array_destroy(perf_event_array);
+    perf_event_array = nullptr;
 }
 
 TEST_CASE("error codes", "[platform]")

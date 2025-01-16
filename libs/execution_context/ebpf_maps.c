@@ -2342,6 +2342,13 @@ ebpf_perf_event_output(
     UNREFERENCED_PARAMETER(flags);
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(length);
+    uint32_t cpu = (uint32_t)(flags & EBPF_MAP_FLAG_INDEX_MASK);
+    uint32_t current_cpu = ebpf_get_current_cpu();
+    if (cpu == EBPF_MAP_FLAG_CURRENT_CPU) {
+        cpu = current_cpu;
+    } else if (cpu != current_cpu) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
@@ -2353,20 +2360,20 @@ _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_cont
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_perf_event_array_map_query_buffer(
-    _In_ const ebpf_map_t* map, uint32_t cpu, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
+    _In_ const ebpf_map_t* map, uint32_t cpu_id, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
     UNREFERENCED_PARAMETER(map);
-    UNREFERENCED_PARAMETER(cpu);
+    UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(buffer);
     UNREFERENCED_PARAMETER(consumer_offset);
     return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_map_return_buffer(_In_ const ebpf_map_t* map, uint32_t cpu, size_t consumer_offset)
+ebpf_perf_event_array_map_return_buffer(_In_ const ebpf_map_t* map, uint32_t cpu_id, size_t consumer_offset)
 {
     UNREFERENCED_PARAMETER(map);
-    UNREFERENCED_PARAMETER(cpu);
+    UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(consumer_offset);
     return EBPF_OPERATION_NOT_SUPPORTED;
 }

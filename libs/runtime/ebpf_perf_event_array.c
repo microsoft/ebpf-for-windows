@@ -69,21 +69,23 @@ _perfbuf_next_consumer_record(_In_ const ebpf_perf_event_array_t* perfbuf)
 }
 
 inline static _Ret_maybenull_ ebpf_perf_event_array_record_t*
-_perf_event_array_acquire_record(_Inout_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu, size_t requested_length)
+_perf_event_array_acquire_record(_Inout_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu_id, size_t requested_length)
 {
     UNREFERENCED_PARAMETER(perfbuf);
-    UNREFERENCED_PARAMETER(cpu);
+    UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(requested_length);
     ebpf_perf_event_array_record_t* record = NULL;
     return record;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_create(_Outptr_ ebpf_perf_event_array_t** perfbuf, size_t capacity)
+ebpf_perf_event_array_create(
+    _Outptr_ ebpf_perf_event_array_t** perfbuf, size_t capacity, _In_ ebpf_perf_event_array_opts_t* opts)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(perfbuf);
     UNREFERENCED_PARAMETER(capacity);
+    UNREFERENCED_PARAMETER(opts);
     EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
 }
 
@@ -98,71 +100,46 @@ ebpf_perf_event_array_destroy(_Frees_ptr_opt_ ebpf_perf_event_array_t* perfbuf)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_perf_event_array_output(
-    _Inout_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu, _In_reads_bytes_(length) uint8_t* data, size_t length)
+    _Inout_ void* ctx,
+    _Inout_ ebpf_perf_event_array_t* perfbuf,
+    uint64_t flags,
+    _In_reads_bytes_(length) uint8_t* data,
+    size_t length)
 {
+    UNREFERENCED_PARAMETER(ctx);
     UNREFERENCED_PARAMETER(perfbuf);
-    UNREFERENCED_PARAMETER(cpu);
     UNREFERENCED_PARAMETER(data);
     UNREFERENCED_PARAMETER(length);
+    UNREFERENCED_PARAMETER(flags);
     return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 void
 ebpf_perf_event_array_query(
-    _In_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu, _Out_ size_t* consumer, _Out_ size_t* producer)
+    _In_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu_id, _Out_ size_t* consumer, _Out_ size_t* producer)
 {
     UNREFERENCED_PARAMETER(perfbuf);
-    UNREFERENCED_PARAMETER(cpu);
+    UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(consumer);
     UNREFERENCED_PARAMETER(producer);
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_return(_Inout_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu, size_t length)
+ebpf_perf_event_array_return(_Inout_ ebpf_perf_event_array_t* perfbuf, uint32_t cpu_id, size_t length)
 {
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(perfbuf);
-    UNREFERENCED_PARAMETER(cpu);
+    UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(length);
     EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_map_buffer(_In_ const ebpf_perf_event_array_t* perfbuf, uint32_t cpu, _Outptr_ uint8_t** buffer)
+ebpf_perf_event_array_map_buffer(
+    _In_ const ebpf_perf_event_array_t* perfbuf, uint32_t cpu_id, _Outptr_ uint8_t** buffer)
 {
     UNREFERENCED_PARAMETER(perfbuf);
-    UNREFERENCED_PARAMETER(cpu);
+    UNREFERENCED_PARAMETER(cpu_id);
     UNREFERENCED_PARAMETER(buffer);
-    return EBPF_OPERATION_NOT_SUPPORTED;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_reserve(
-    _Inout_ ebpf_perf_event_array_t* perfbuf,
-    uint32_t cpu,
-    _Outptr_result_bytebuffer_(length) uint8_t** data,
-    size_t length)
-{
-    UNREFERENCED_PARAMETER(perfbuf);
-    UNREFERENCED_PARAMETER(cpu);
-    UNREFERENCED_PARAMETER(buffer);
-    return EBPF_OPERATION_NOT_SUPPORTED;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_submit(_Frees_ptr_opt_ uint8_t* data)
-{
-    if (!data) {
-        return EBPF_INVALID_ARGUMENT;
-    }
-    return EBPF_OPERATION_NOT_SUPPORTED;
-}
-
-_Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_discard(_Frees_ptr_opt_ uint8_t* data)
-{
-    if (!data) {
-        return EBPF_INVALID_ARGUMENT;
-    }
     return EBPF_OPERATION_NOT_SUPPORTED;
 }

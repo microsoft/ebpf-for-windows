@@ -16,6 +16,12 @@ extern "C"
 #define EBPF_MAP_FLAG_HELPER 0x01      /* Called by an eBPF program. */
 #define EBPF_MAP_FIND_FLAG_DELETE 0x02 /* Perform a find and delete. */
 
+    ///* BPF_FUNC_perf_event_output flags. */
+    // #define EBPF_MAP_FLAG_INDEX_MASK 0xffffffffULL
+    // #define EBPF_MAP_FLAG_CURRENT_CPU EBPF_MAP_FLAG_INDEX_MASK
+    ///* BPF_FUNC_perf_event_output for program types with data pointer in context */
+    // #define EBPF_MAP_FLAG_CTXLEN_MASK (0xfffffULL << 32)
+
     typedef struct _ebpf_core_map ebpf_map_t;
 
     /**
@@ -248,7 +254,7 @@ extern "C"
      * @brief Get pointer to the perf event array's shared data for a specific cpu.
      *
      * @param[in] map Perf event array map to query.
-     * @param[in] cpu CPU ID to query.
+     * @param[in] cpu_id CPU ID to query.
      * @param[out] buffer Pointer to perf event array data.
      * @param[out] consumer_offset Offset of consumer in perf event array data.
      * @retval EBPF_SUCCESS Successfully mapped the perf event array.
@@ -256,19 +262,19 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_perf_event_array_map_query_buffer(
-        _In_ const ebpf_map_t* map, uint32_t cpu, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
+        _In_ const ebpf_map_t* map, uint32_t cpu_id, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
      * @brief Return consumed buffer back to the perf event array map.
      *
      * @param[in] map Perf event array map.
-     * @param[in] cpu CPU ID to return buffer space to.
+     * @param[in] cpu_id CPU ID to return buffer space to.
      * @param[in] length Length of bytes to return to the perf event array.
      * @retval EBPF_SUCCESS Successfully returned records to the perf event array.
      * @retval EBPF_INVALID_ARGUMENT Unable to return records to the perf event array.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_array_map_return_buffer(_In_ const ebpf_map_t* map, uint32_t cpu, size_t length);
+    ebpf_perf_event_array_map_return_buffer(_In_ const ebpf_map_t* map, uint32_t cpu_id, size_t length);
 
     /**
      * @brief Issue an asynchronous query to perf event array map.

@@ -412,3 +412,9 @@ struct bpf_prog_info
     uint32_t pinned_path_count;          ///< Number of pinned paths.
     uint32_t link_count;                 ///< Number of attached links.
 };
+
+/* BPF_FUNC_perf_event_output flags. */
+#define EBPF_MAP_FLAG_INDEX_MASK 0xffffffffULL
+#define EBPF_MAP_FLAG_CURRENT_CPU EBPF_MAP_FLAG_INDEX_MASK
+/* BPF_FUNC_perf_event_output for program types with data pointer in context */
+#define EBPF_MAP_FLAG_CTXLEN_MASK (0xfffffULL << 32)
