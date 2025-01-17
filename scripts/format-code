@@ -174,7 +174,7 @@ check_clang-format()
         cf="clang-format"
     fi
 
-    local required_cfver='17.0.3'
+    local required_cfver='18.1.8'
     # shellcheck disable=SC2155
     local cfver=$(${cf} --version | grep -o -E '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
     check_version "${required_cfver}" "${cfver}"
