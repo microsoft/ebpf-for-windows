@@ -120,8 +120,8 @@ ebpf_perf_event_array_query(
 {
     UNREFERENCED_PARAMETER(perfbuf);
     UNREFERENCED_PARAMETER(cpu_id);
-    UNREFERENCED_PARAMETER(consumer);
-    UNREFERENCED_PARAMETER(producer);
+    *consumer = 0;
+    *producer = 0;
 }
 
 _Must_inspect_result_ ebpf_result_t
