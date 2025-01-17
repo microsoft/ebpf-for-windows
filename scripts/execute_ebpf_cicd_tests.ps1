@@ -18,8 +18,10 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 
-$AdminTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-$StandardUserTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
+# $AdminTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+# $StandardUserTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
+$AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+$StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json

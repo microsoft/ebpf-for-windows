@@ -15,9 +15,11 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
+$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-$TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+# $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 

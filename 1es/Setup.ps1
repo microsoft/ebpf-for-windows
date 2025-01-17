@@ -55,18 +55,22 @@ Create-DirectoryIfNotExists -Path $WorkingPath
 $VMSwitchName = 'VMInternalSwitch'
 Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 
-# Fetch the credentials for the VM using the Azure Key Vault.
-$AdminUserCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-$StandardUserCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
+# # Fetch the credentials for the VM using the Azure Key Vault.
+# $AdminUserCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+# $StandardUserCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
+$AdminUserCredential = Generate-StoredCredential -Target 'TEST_VM' -Username 'Administrator'
+$StandardUserCredential = Generate-StoredCredential -Target 'TEST_VM_STANDARD' -Username 'VMStandardUser'
 
 # Unzip any VHD files, if needed, and get the list of VHDs to create VMs from.
-$vhds = Prepare-VhdFiles -BaseVhdDirPath $BaseVhdDirPath
+$vhds = Prepare-VhdFiles -InputDirectory $BaseVhdDirPath
+Log-Message "Found $($vhds.Count) VHDs to create VMs from."
+$vhdDebugString = $vhds | Out-String
+Log-Message "VHDs: $vhdDebugString"
 
 # Process VM creation and setup.
-for ($i = 0; $i -lt $vhds.Count; $i++) {
+foreach ($vhd in $vhds) {
     try {
-        $vhd = $vhds[$i]
-        Log-Message -Message "Creating VM from VHD: $($vhd.FullName)"
+        Log-Message -Message "Creating VM from VHD: $vhd"
         $vmName = "runner_vm"
         if ($i -gt 0) {
             $vmName += "_$i"
@@ -77,7 +81,7 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
             -VmName $vmName `
             -AdminUserCredential $AdminUserCredential `
             -StandardUserCredential $StandardUserCredential `
-            -VhdPath $vhd.FullName `
+            -VhdPath $vhd `
             -VmStoragePath $outVMPath `
             -VMMemory $VMMemory `
             -UnattendPath $BaseUnattendPath `
@@ -92,6 +96,12 @@ for ($i = 0; $i -lt $vhds.Count; $i++) {
     } catch {
         Log-Message "Failed to create VM $vmName with error $_"
     }
+}
+
+$vms = Get-VM
+if ($vms.Count -eq 0) {
+    throw "No VMs were created. Check script execution logs for more details."
+    Exit 1
 }
 
 Log-Message "Setup.ps1 complete!"

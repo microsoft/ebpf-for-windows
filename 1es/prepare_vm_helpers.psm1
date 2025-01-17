@@ -369,58 +369,124 @@ function Configure-VM {
 }
 
 ########## Helpers for the host machine ##########
+# <#
+# .SYNOPSIS
+#     Helper function to prepare VHD files for VM creation.
+
+# .DESCRIPTION
+#     Unzips any files in given directory and returns a list of VHD and VHDX files in the input directory.
+
+# .PARAMETER BaseVhdDirPath
+#     The base directory containing the VHD files or zip files containing the VHD files.
+
+# .OUTPUTS
+#     System.IO.FileInfo[]
+#     This function returns a list of System.IO.FileInfo[] representing the VHD and VHDX files found in the input directory
+#     after any processing is complete.
+
+# .EXAMPLE
+#     $vhds = Prepare-VhdFiles -BaseVhdDirPath "C:\path\to\vhd\directory"
+# #>
+# function Prepare-VhdFiles {
+#     param(
+#         [Parameter(Mandatory=$True)][string]$BaseVhdDirPath
+#     )
+#     # Unzip any VHDs
+#     Log-Message "Processing VHDs in $BaseVhdDirPath"
+#     $zipFiles = Get-ChildItem -Path $BaseVhdDirPath -Filter *.zip
+#     foreach ($zipFile in $zipFiles) {
+#         Log-Message "Extracting VHDs from $($zipFile.FullName)"
+#         $outDir = Join-Path -Path $BaseVhdDirPath -ChildPath $zipFile.BaseName
+#         if (-not (Test-Path -Path $outDir)) {
+#             $maxRetries = 3
+#             $retryCount = 0
+#             $success = $false
+
+#             while (-not $success -and $retryCount -lt $maxRetries) {
+#                 try {
+#                     Expand-Archive -Path $zipFile.FullName -DestinationPath $outDir
+#                     Log-Message "Successfully extracted $($zipFile.FullName) to $outDir"
+#                     $success = $true
+#                 } catch {
+#                     $retryCount++
+#                     Log-Message "Failed to extract $($zipFile.FullName) on attempt $retryCount with error $_"
+#                     Start-Sleep -Seconds 5  # Wait before retrying
+#                 }
+#             }
+
+#             if (-not $success) {
+#                 throw "Failed to extract $($zipFile.FullName) after $maxRetries attempts"
+#             }
+#         }
+
+#         # Check the extracted files
+#         Get-ChildItem -Path $outDir -Recurse
+
+#         # Move the VHDs to the base directory
+#         $vhdFiles = @()
+#         $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
+#         $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhdx -ErrorAction Ignore
+#         foreach ($vhdFile in $vhdFiles) {
+#             if (Test-Path -Path $vhdFile.FullName) {
+#                 Move-Item -Path $vhdFile.FullName -Destination $BaseVhdDirPath
+#             } else {
+#                 Log-Message "File not found: $($vhdFile.FullName)"
+#                 throw "Failed to find extracted VHD file: $($vhdFile.FullName)"
+#             }
+#         }
+#         Log-Message "Successfully processed $($zipFile.FullName)"
+#     }
+
+#     # Get the list of VHDs in the directory.
+#     $vhds = @()
+#     $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd -ErrorAction Ignore
+#     $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx -ErrorAction Ignore
+#     if ($vhds.Count -eq 0) {
+#         throw "No VHDs found in $BaseVhdDirPath"
+#     }
+#     Log-Message "Successfully processed VHDs"
+
+#     return $vhds
+# }
+
 <#
 .SYNOPSIS
-    Helper function to prepare VHD files for VM creation.
+    Extracts .zip files in the specified directory and returns paths to .vhd and .vhdx files.
 
 .DESCRIPTION
-    Unzips any files in given directory and returns a list of VHD and VHDX files in the input directory.
+    This function takes an input directory as a parameter, looks inside the directory for any .zip files, extracts them, and returns a PowerShell string array of all full paths to .vhd and .vhdx files. It suppresses any output and throws errors if any exceptions are found.
 
-.PARAMETER BaseVhdDirPath
-    The base directory containing the VHD files or zip files containing the VHD files.
-
-.OUTPUTS
-    System.IO.FileInfo[]
-    This function returns a list of System.IO.FileInfo[] representing the VHD and VHDX files found in the input directory
-    after any processing is complete.
+.PARAMETER InputDirectory
+    The directory to search for .zip files and extract them.
 
 .EXAMPLE
-    $vhds = Prepare-VhdFiles -BaseVhdDirPath "C:\path\to\vhd\directory"
+    $vhdFiles = Prepare-VhdFiles -InputDirectory "C:\MyDirectory"
 #>
 function Prepare-VhdFiles {
-    param(
-        [Parameter(Mandatory=$True)][string]$BaseVhdDirPath
+    param (
+        [Parameter(Mandatory=$true)]
+        [string]$InputDirectory
     )
-    # Unzip any VHDs
-    Log-Message "Processing VHDs in $BaseVhdDirPath"
-    $zipFiles = Get-ChildItem -Path $BaseVhdDirPath -Filter *.zip
-    foreach ($zipFile in $zipFiles) {
-        Log-Message "Extracting VHDs from $($zipFile.FullName)"
-        $outDir = Join-Path -Path $BaseVhdDirPath -ChildPath $zipFile.BaseName
-        if (-not (Test-Path -Path $outDir)) {
-            Expand-Archive -Path $zipFile.FullName -DestinationPath $outDir
 
-            # Move the VHDs to the base directory
-            $vhdFiles = @()
-            $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
-            $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhdx -ErrorAction Ignore
-            foreach ($vhdFile in $vhdFiles) {
-                Move-Item -Path $vhdFile.FullName -Destination $BaseVhdDirPath
-            }
+    try {
+        $zipFiles = Get-ChildItem -Path $InputDirectory -Filter *.zip -Recurse
+        foreach ($zipFile in $zipFiles) {
+            Expand-Archive -Path $zipFile.FullName -DestinationPath $InputDirectory *> $null 2>&1
         }
-        Log-Message "Successfully processed $($zipFile.FullName)"
-    }
 
-    # Read the input VHDs
-    $vhds = @()
-    $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd -ErrorAction Ignore
-    $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx -ErrorAction Ignore
-    if ($vhds.Count -eq 0) {
-        throw "No VHDs found in $BaseVhdDirPath"
-    }
-    Log-Message "Successfully processed VHDs"
+        # Get all .vhd and .vhdx files
+        $vhdFiles = (Get-ChildItem -Path $InputDirectory -Recurse -Include *.vhd, *.vhdx) | Select-Object -ExpandProperty FullName
 
-    return $vhds
+        if ($vhdFiles.Count -eq 0) {
+            throw "No VHD files found in $InputDirectory"
+        }
+
+        return [string[]]$vhdFiles
+    }
+    catch {
+        Get-ChildItem -Path $InputDirectory -Recurse
+        throw "Failed to prepare VHD files with error: $_"
+    }
 }
 
 <#
@@ -538,5 +604,52 @@ function Get-AzureKeyVaultCredential
         return $credential
     } catch {
         throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName SecretName: $SecretName Error: $_"
+    }
+}
+
+<#
+.SYNOPSIS
+    Creates and stores a new credential using the provided target and username and a randomly generated password.
+
+.DESCRIPTION
+    This function takes a username as a string, generates a random password, creates a stored credential using the CredentialManager module, and returns a PSCredential object.
+    It ensures that the CredentialManager module is installed and handles any errors that occur during the process.
+
+.PARAMETER Target
+    The target name for the stored credential.
+
+.PARAMETER Username
+    The username for the credential.
+
+.RETURNS
+    [System.Management.Automation.PSCredential]
+    The PSCredential object created from the provided username and generated password.
+
+.EXAMPLE
+    $credential = Generate-StoredCredential -Target "your_target" -Username "your_username"
+#>
+function Generate-StoredCredential {
+    param (
+        [Parameter(Mandatory=$True)][string]$Target,
+        [Parameter(Mandatory=$True)][string]$Username
+    )
+
+    try {
+        # Import the CredentialManager module. Ensure any dependencies are installed.
+        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+        Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+        if (-not (Get-Module -ListAvailable -Name CredentialManager)) {
+            Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
+        }
+        Import-Module CredentialManager -ErrorAction Stop
+
+        # Create the stored credential
+        $SecurePassword = ConvertTo-SecureString (Get-StrongPassword) -AsPlainText -Force
+        New-StoredCredential -Target $Target -UserName $Username -SecurePassword $SecurePassword -ErrorAction Stop *> $null 2>&1
+
+        # Create a new PSCredential object
+        New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
+    } catch {
+        throw "Failed to create and store credential for username: $Username with error: $_"
     }
 }
