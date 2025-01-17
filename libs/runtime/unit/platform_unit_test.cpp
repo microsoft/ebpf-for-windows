@@ -1161,7 +1161,8 @@ TEST_CASE("perf_event_output", "[platform]")
     size_t size = 64 * 1024;
     void* ctx = nullptr;
     uint32_t cpu_id = 0;
-    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+    uint64_t flags = 0; // For initial testing while writing to current CPU isn't required.
+    // uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
 
     REQUIRE(ebpf_perf_event_array_create(&perf_event_array, size, opts) == EBPF_SUCCESS);
     REQUIRE(ebpf_perf_event_array_map_buffer(perf_event_array, cpu_id, &buffer) == EBPF_SUCCESS);
@@ -1203,6 +1204,9 @@ TEST_CASE("perf_event_output", "[platform]")
     data.resize(size - EBPF_OFFSET_OF(ebpf_perf_event_array_record_t, data) - 1);
     // Fill ring
     REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size()) == EBPF_SUCCESS);
+
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+    REQUIRE((producer - consumer) == size - 1);
 
     ebpf_perf_event_array_destroy(perf_event_array);
     perf_event_array = nullptr;
