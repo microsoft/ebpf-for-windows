@@ -15,13 +15,14 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+Import-Module CredentialManager -ErrorAction Stop
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 # $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
