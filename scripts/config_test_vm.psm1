@@ -315,7 +315,7 @@ function Compress-KernelModeDumpOnVM
 
         $KernelModeDumpFileSourcePath = "$Env:WinDir"
         $KernelModeDumpFileDestinationPath = "$Env:SystemDrive\KernelDumps"
-    
+
         # Create the compressed dump folder if doesn't exist.
         if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
             Write-Log "Creating $KernelModeDumpFileDestinationPath directory."
@@ -692,4 +692,18 @@ function Get-PSExec {
     cd ..
     Move-Item -Path "$DownloadPath\PSTools\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
+}
+
+#
+# Queries registry for OS build information and logs it.
+#
+function Log-OSBuildInformationOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName)
+
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
+        Write-Output "OS Build Information: $($buildLabEx.BuildLabEx)"
+    }
 }

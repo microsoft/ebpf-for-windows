@@ -10,16 +10,19 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsVersion = "",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = "runner_host",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
 
 Push-Location $WorkingDirectory
 
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+Import-Module CredentialManager -ErrorAction Stop
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+# $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -27,10 +30,6 @@ $VMList = $Config.VMMap.$SelfHostedRunnerName
 
 # Delete old log files if any.
 Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
-foreach($VM in $VMList) {
-    $VMName = $VM.Name
-    Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
-}
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
@@ -79,6 +78,12 @@ $Job = Start-Job -ScriptBlock {
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+    }
+
+    # Log OS build information on the test VM.
+    foreach($VM in $VMList) {
+        $VMName = $VM.Name
+        Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
     }
 
     Pop-Location
