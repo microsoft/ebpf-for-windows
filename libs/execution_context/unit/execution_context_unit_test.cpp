@@ -8,6 +8,7 @@
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
+#include "ebpf_perf_event_array.h"
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 #include "helpers.h"
@@ -413,6 +414,15 @@ TEST_CASE("map_create_invalid", "[execution_context][negative]")
             {
                 BPF_MAP_TYPE_RINGBUF,
                 4, // Key size must be 0 for ring buffer.
+                20,
+                20,
+            },
+        },
+        {
+            "BPF_MAP_TYPE_PERF_EVENT_ARRAY",
+            {
+                BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+                4, // Key size must be 0 for perf event array.
                 20,
                 20,
             },
@@ -1378,6 +1388,96 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
     }
 }
 
+TEST_CASE("perf_event_array_async_query", "[execution_context]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    struct _completion
+    {
+        uint8_t* buffer = nullptr;
+        size_t consumer_offset = 0;
+        ebpf_perf_event_array_map_async_query_result_t async_query_result = {};
+        uint64_t value{};
+    } completion;
+
+    uint32_t cpu = 0;
+
+    REQUIRE(
+        ebpf_perf_event_array_map_query_buffer(map.get(), cpu, &completion.buffer, &completion.consumer_offset) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(
+        ebpf_async_set_completion_callback(
+            &completion, [](_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result) {
+                UNREFERENCED_PARAMETER(output_buffer_length);
+                auto completion = reinterpret_cast<_completion*>(context);
+                auto async_query_result = &completion->async_query_result;
+                auto record = ebpf_perf_event_array_next_record(
+                    completion->buffer, sizeof(uint64_t), async_query_result->consumer, async_query_result->producer);
+                completion->value = *(uint64_t*)(record->data);
+                REQUIRE(result == EBPF_SUCCESS);
+            }) == EBPF_SUCCESS);
+
+    ebpf_result_t result =
+        ebpf_perf_event_array_map_async_query(map.get(), &completion.async_query_result, &completion);
+    if (result != EBPF_PENDING) {
+        REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
+    }
+    REQUIRE(result == EBPF_PENDING);
+
+    void* ctx = nullptr;
+    uint64_t value = 1;
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+    REQUIRE(
+        ebpf_perf_event_output(ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(completion.value == value);
+
+    {
+        uint32_t key = 0;
+        uint32_t value2 = 0;
+        REQUIRE(
+            ebpf_map_update_entry(map.get(), sizeof(key), reinterpret_cast<uint8_t*>(&key), 0, nullptr, EBPF_ANY, 0) ==
+            EBPF_INVALID_ARGUMENT);
+
+        // Negative test cases.
+        REQUIRE(
+            ebpf_map_update_entry(
+                map.get(), 0, nullptr, sizeof(value2), reinterpret_cast<uint8_t*>(&value2), EBPF_ANY, 0) ==
+            EBPF_INVALID_ARGUMENT);
+
+        REQUIRE(ebpf_map_update_entry(map.get(), 0, nullptr, 0, nullptr, EBPF_ANY, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+
+        REQUIRE(ebpf_map_get_program_from_entry(map.get(), sizeof(&key), reinterpret_cast<uint8_t*>(&key)) == nullptr);
+        REQUIRE(ebpf_map_get_program_from_entry(map.get(), 0, 0) == nullptr);
+
+        REQUIRE(
+            ebpf_map_find_entry(map.get(), sizeof(key), reinterpret_cast<uint8_t*>(&key), 0, nullptr, 0) ==
+            EBPF_INVALID_ARGUMENT);
+        REQUIRE(
+            ebpf_map_find_entry(map.get(), 0, nullptr, sizeof(value2), reinterpret_cast<uint8_t*>(&value2), 0) ==
+            EBPF_INVALID_ARGUMENT);
+
+        REQUIRE(ebpf_map_find_entry(map.get(), 0, nullptr, 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_delete_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_next_key(map.get(), 0, nullptr, nullptr) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_push_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_pop_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+        REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
+    }
+}
+
 std::vector<GUID> _program_types = {
     EBPF_PROGRAM_TYPE_XDP,
     EBPF_PROGRAM_TYPE_BIND,
@@ -2219,6 +2319,37 @@ TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][neg
     request.map_handle = map_handles["BPF_MAP_TYPE_HASH"];
     REQUIRE(
         invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_QUERY_BUFFER", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_perf_event_array_map_query_buffer_request_t request;
+    ebpf_operation_perf_event_array_map_query_buffer_reply_t reply;
+
+    request.map_handle = ebpf_handle_invalid - 1;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_OBJECT);
+
+    request.map_handle = map_handles.begin()->second;
+    REQUIRE(invoke_protocol(EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_ARGUMENT);
+}
+
+TEST_CASE("EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_ASYNC_QUERY", "[execution_context][negative]")
+{
+    NEGATIVE_TEST_PROLOG();
+    ebpf_operation_perf_event_array_map_async_query_request_t request;
+    ebpf_operation_perf_event_array_map_async_query_reply_t reply;
+    int async = 1;
+
+    request.map_handle = ebpf_handle_invalid - 1;
+    REQUIRE(
+        invoke_protocol(EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_ASYNC_QUERY, request, reply, &async) ==
+        EBPF_INVALID_OBJECT);
+
+    request.map_handle = map_handles["BPF_MAP_TYPE_HASH"];
+    REQUIRE(
+        invoke_protocol(EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_ASYNC_QUERY, request, reply, &async) ==
+        EBPF_INVALID_ARGUMENT);
 }
 
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context][negative]")

@@ -107,6 +107,10 @@ _ebpf_core_get_time_since_boot_ms();
 static uint64_t
 _ebpf_core_get_time_ms();
 
+static int
+_ebpf_core_perf_event_output(
+    _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
+
 #define EBPF_CORE_GLOBAL_HELPER_EXTENSION_VERSION 0
 
 static ebpf_program_type_descriptor_t _ebpf_global_helper_program_descriptor = {
@@ -152,6 +156,8 @@ static const void* _ebpf_general_helpers[] = {
     (void*)&_ebpf_core_strlen_s,
     (void*)&_ebpf_core_get_time_since_boot_ms,
     (void*)&_ebpf_core_get_time_ms,
+    // Perf event array (perf buffer) output.
+    (void*)&_ebpf_core_perf_event_output,
 };
 
 static const ebpf_helper_function_addresses_t _ebpf_global_helper_function_dispatch_table = {
@@ -2117,6 +2123,16 @@ Exit:
 }
 
 static ebpf_result_t
+_ebpf_core_protocol_perf_event_array_map_query_buffer(
+    _In_ const ebpf_operation_perf_event_array_map_query_buffer_request_t* request,
+    _Out_ ebpf_operation_perf_event_array_map_query_buffer_reply_t* reply)
+{
+    UNREFERENCED_PARAMETER(request);
+    UNREFERENCED_PARAMETER(reply);
+    return EBPF_OPERATION_NOT_SUPPORTED;
+}
+
+static ebpf_result_t
 _ebpf_core_protocol_ring_buffer_map_async_query(
     _In_ const ebpf_operation_ring_buffer_map_async_query_request_t* request,
     _Inout_ ebpf_operation_ring_buffer_map_async_query_reply_t* reply,
@@ -2205,6 +2221,28 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
     } else {
         return value;
     }
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_perf_event_array_map_async_query(
+    _In_ const ebpf_operation_perf_event_array_map_async_query_request_t* request,
+    _Inout_ ebpf_operation_perf_event_array_map_async_query_reply_t* reply,
+    uint16_t reply_length,
+    _Inout_ void* async_context)
+{
+    UNREFERENCED_PARAMETER(request);
+    UNREFERENCED_PARAMETER(reply);
+    UNREFERENCED_PARAMETER(reply_length);
+    UNREFERENCED_PARAMETER(async_context);
+    return EBPF_OPERATION_NOT_SUPPORTED;
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_perf_event_array_map_write_data(
+    _In_ const ebpf_operation_perf_event_array_map_write_data_request_t* request)
+{
+    UNREFERENCED_PARAMETER(request);
+    return EBPF_OPERATION_NOT_SUPPORTED;
 }
 
 static int64_t
@@ -2489,6 +2527,18 @@ _ebpf_core_ring_buffer_output(
 }
 
 static int
+_ebpf_core_perf_event_output(
+    _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
+{
+    UNREFERENCED_PARAMETER(ctx);
+    UNREFERENCED_PARAMETER(map);
+    UNREFERENCED_PARAMETER(flags);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(length);
+    return EBPF_OPERATION_NOT_SUPPORTED;
+}
+
+static int
 _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
     return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
@@ -2627,65 +2677,62 @@ typedef struct _ebpf_protocol_handler
 #define PROTOCOL_ALL_MODES PROTOCOL_NATIVE_MODE
 #endif
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS)             \
-    {                                                                                 \
-        EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY, (void*)_ebpf_core_protocol_##OPERATION, \
-            sizeof(ebpf_operation_##OPERATION##_request_t), .flags.value = FLAGS      \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                              \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                      \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(OPERATION, FLAGS)                              \
-    {                                                                                                     \
-        EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY, (void*)_ebpf_core_protocol_##OPERATION,                  \
-            sizeof(ebpf_operation_##OPERATION##_request_t), sizeof(ebpf_operation_##OPERATION##_reply_t), \
-            .flags.value = FLAGS                                                                          \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                 \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                         \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                           \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REPLY, FLAGS)        \
-    {                                                                                                  \
-        EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY, (void*)_ebpf_core_protocol_##OPERATION,            \
-            sizeof(ebpf_operation_##OPERATION##_request_t),                                            \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REPLY, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY,                                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                    \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                                            \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),                      \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS)             \
-    {                                                                                                      \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY, (void*)_ebpf_core_protocol_##OPERATION,                   \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST), .flags.value = FLAGS \
-    }
+#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY,                                                  \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                   \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                 \
+     .flags.value = FLAGS}
 
 #define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
-    {                                                                                             \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY, (void*)_ebpf_core_protocol_##OPERATION,       \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),             \
-            sizeof(ebpf_operation_##OPERATION##_reply_t), .flags.value = FLAGS                    \
-    }
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY,                                                  \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                      \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                    \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                                                \
+     .flags.value = FLAGS}
 
 #define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS) \
-    {                                                                                                                \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY, (void*)_ebpf_core_protocol_##OPERATION,                       \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                                \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS               \
-    }
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,                                                                  \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                                         \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                                       \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),                                           \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(OPERATION, FLAGS)                        \
-    {                                                                                                     \
-        EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC, (void*)_ebpf_core_protocol_##OPERATION,            \
-            sizeof(ebpf_operation_##OPERATION##_request_t), sizeof(ebpf_operation_##OPERATION##_reply_t), \
-            .flags.value = FLAGS                                                                          \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                       \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                               \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                                 \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(                                \
-    OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS)                                                \
-    {                                                                                                  \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC, (void*)_ebpf_core_protocol_##OPERATION,   \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                  \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
-    }
+#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(        \
+    OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS)                        \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC,                      \
+     (void*)_ebpf_core_protocol_##OPERATION,                                   \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST), \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),     \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_INVALID(type) \
-    {                                          \
-        type, NULL, 0, 0, .flags.value = 0     \
-    }
+#define DECLARE_PROTOCOL_HANDLER_INVALID(type) {type, NULL, 0, 0, .flags.value = 0}
 
 #define ALIAS_TYPES(X, Y)                                                  \
     typedef ebpf_operation_##X##_request_t ebpf_operation_##Y##_request_t; \
@@ -2747,8 +2794,11 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
         get_next_pinned_program_path, start_path, next_path, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(bind_map, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_query_buffer, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(perf_event_array_map_query_buffer, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(ring_buffer_map_async_query, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(ring_buffer_map_write_data, data, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(perf_event_array_map_async_query, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(perf_event_array_map_write_data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),
