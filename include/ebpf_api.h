@@ -498,7 +498,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_dup_fd(fd_t fd, _Out_ fd_t* dup) EBPF_NO_EXCEPT;
+    ebpf_duplicate_fd(fd_t fd, _Out_ fd_t* dup) EBPF_NO_EXCEPT;
 
     /**
      * @brief Get eBPF program type and expected attach type by name.

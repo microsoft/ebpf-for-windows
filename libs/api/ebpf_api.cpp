@@ -1809,7 +1809,7 @@ ebpf_close_fd(fd_t fd) noexcept
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_dup_fd(fd_t fd, _Out_ fd_t* dup) noexcept
+ebpf_duplicate_fd(fd_t fd, _Out_ fd_t* dup) noexcept
 {
     EBPF_LOG_ENTRY();
 

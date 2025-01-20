@@ -547,7 +547,7 @@ _test_nested_maps(bpf_map_type type)
 TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
 TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
-TEST_CASE("dup_fd", "")
+TEST_CASE("duplicate_fd", "")
 {
     fd_t map_fd1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(map_fd1 > 0);
@@ -557,7 +557,7 @@ TEST_CASE("dup_fd", "")
     REQUIRE(bpf_map_update_elem(map_fd1, &key, &value, 0) == 0);
 
     fd_t map_fd2;
-    REQUIRE(ebpf_dup_fd(map_fd1, &map_fd2) == EBPF_SUCCESS);
+    REQUIRE(ebpf_duplicate_fd(map_fd1, &map_fd2) == EBPF_SUCCESS);
     REQUIRE(map_fd2 > 0);
 
     REQUIRE(bpf_map_lookup_elem(map_fd2, &key, &value) == 0);
