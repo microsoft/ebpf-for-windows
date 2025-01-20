@@ -713,6 +713,16 @@ ebpf_program_load_bytes(
 #endif
 
 /**
+ * @brief Get eBPF attach type for the specified bpf attach type.
+ *
+ * @param[in] program_type Bpf attach type.
+ *
+ * @returns Pointer to eBPF attach type, or NULL if not found.
+ */
+_Ret_maybenull_ const ebpf_attach_type_t*
+get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) noexcept;
+
+/**
  * @brief Initialize the eBPF library's thread local storage.
  */
 void

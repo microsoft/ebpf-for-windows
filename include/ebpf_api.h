@@ -639,12 +639,14 @@ extern "C"
     /**
      * @brief Get eBPF attach type for the specified BPF attach type.
      *
-     * @param[in] program_type BPF attach type.
+     * @param[in] bpf_attach_type BPF attach type.
+     * @param[out] ebpf_attach_type eBPF attach type or GUID_NULL.
      *
-     * @returns Pointer to eBPF attach type, or NULL if not found.
+     * @returns EBPF_INVALID_ARGUMENT if attach type is unknown, EBPF_SUCCESS otherwise.
      */
-    _Ret_maybenull_ const ebpf_attach_type_t*
-    ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) EBPF_NO_EXCEPT;
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type, _Out_ ebpf_attach_type_t* ebpf_attach_type)
+        EBPF_NO_EXCEPT;
 
     /**
      * @brief Get BPF program type for the specified eBPF program type.
