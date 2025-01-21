@@ -545,6 +545,50 @@ function Initialize-NetworkInterfacesOnVMs
     }
 }
 
+function Expand-ZipFile {
+    param(
+        [Parameter(Mandatory=$True)][string] $DownloadFilePath,
+        [Parameter(Mandatory=$True)][string] $OutputDir,
+        [Parameter(Mandatory=$True)][int] $maxRetries,
+        [Parameter(Mandatory=$True)][int] $retryDelay,
+        [Parameter(Mandatory=$True)][int] $timeout
+    )
+
+    for ($i = 0; $i -lt $maxRetries; $i++) {
+        try {
+            Write-Log "Extract attempt $($i + 1) started"
+            $job = Start-Job -ScriptBlock {
+                param ($DownloadFilePath, $OutputDir)
+                Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
+            } -ArgumentList $DownloadFilePath, $OutputDir
+
+            if (Wait-Job -Job $job -Timeout $timeout) {
+                Write-Log "Extraction completed"
+                Receive-Job -Job $job
+                break
+            } else {
+                Stop-Job -Job $job
+                Remove-Job -Job $job
+                Write-Log "Extract attempt $($i + 1) timed out after $timeout seconds."
+                if ($i -eq ($maxRetries - 1)) {
+                    throw "Failed to extract $DownloadFilePath after $maxRetries attempts."
+                } else {
+                    Write-Log "Retrying in $retryDelay seconds..."
+                    Start-Sleep -Seconds $retryDelay
+                }
+            }
+        } catch {
+            Write-Log "Iteration $($i + 1) failed to extract $DownloadFilePath" -ForegroundColor Red
+            if ($i -eq ($maxRetries - 1)) {
+                throw "Failed to extract $DownloadFilePath after $maxRetries attempts."
+            } else {
+                Write-Log "Retrying in $retryDelay seconds..."
+                Start-Sleep -Seconds $retryDelay
+            }
+        }
+    }
+}
+
 function Get-ZipFileFromUrl {
     param(
         [Parameter(Mandatory=$True)][string] $Url,
@@ -568,16 +612,16 @@ function Get-ZipFileFromUrl {
             $ProgressPreference = 'SilentlyContinue'
 
             $job = Start-Job -ScriptBlock {
-                param ($Url, $DownloadFilePath)
-                Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
-            } -ArgumentList $Url, $DownloadFilePath
+                param ($Url, $DownloadFilePath, $timeout)
+                Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath -TimeoutSec $timeout
+            } -ArgumentList $Url, $DownloadFilePath, $timeout
 
             if (Wait-Job -Job $job -Timeout $timeout) {
                 Write-Log "Download completed"
                 Receive-Job -Job $job
 
                 Write-Log "Extracting $DownloadFilePath to $OutputDir"
-                Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
+                Expand-ZipFile -DownloadFilePath $DownloadFilePath -OutputDir $OutputDir -maxRetries $maxRetries -retryDelay $retryDelay -timeout $timeout
                 break
             } else {
                 Stop-Job -Job $job
