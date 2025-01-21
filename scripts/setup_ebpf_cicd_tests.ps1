@@ -46,7 +46,7 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 
 Get-CoreNetTools
 Get-PSExec
-Log-Message "Finished downloading the required tools. Installing tools on the test VM."
+Write-Log "Finished downloading the required tools. Installing tools on the test VM."
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
@@ -67,23 +67,28 @@ $Job = Start-Job -ScriptBlock {
     $VMList = $Config.VMMap.$SelfHostedRunnerName
 
     # Get all VMs to ready state.
+    Write-Log "Initializing all VMs."
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
     # Export build artifacts to the test VMs.
+    Write-Log "Exporting build artifacts to VM"
     Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
 
     # Configure network adapters on VMs.
+    Write-Log "Configuring network interfaces on VMs."
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 
     # Install eBPF Components on the test VM.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
+        Write-Log "Installing eBPF components on VM: $VMName"
         Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
     }
 
     # Log OS build information on the test VM.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
+        Write-Log "Logging OS build information on VM: $VMName"
         Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
     }
 
