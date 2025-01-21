@@ -551,20 +551,57 @@ function Get-ZipFileFromUrl {
         [Parameter(Mandatory=$True)][string] $DownloadFilePath,
         [Parameter(Mandatory=$True)][string] $OutputDir
     )
+    $maxRetries = 5
+    $retryDelay = 5 # seconds
+    $timeout = 300 # seconds
 
-    for ($i = 0; $i -lt 5; $i++) {
+    Write-Log "Downloading $Url to $DownloadFilePath"
+
+    for ($i = 0; $i -lt $maxRetries; $i++) {
         try {
-            Write-Log "Downloading $Url to $DownloadFilePath"
+            Write-Log "Download attempt $($i + 1) started"
             $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
 
-            Write-Log "Extracting $DownloadFilePath to $OutputDir"
-            Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
-            break
-        } catch {
-            Write-Log "Iteration $i failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
-            Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
-            Start-Sleep -Seconds 5
+            $job = Start-Job -ScriptBlock {
+                param ($Url, $DownloadFilePath)
+                Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
+            } -ArgumentList $Url, $DownloadFilePath
+
+            if (Wait-Job -Job $job -Timeout $timeout) {
+                Write-Log "Download completed"
+                Receive-Job -Job $job
+
+                Write-Log "Extracting $DownloadFilePath to $OutputDir"
+                Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
+                break
+            } else {
+                Stop-Job -Job $job
+                Remove-Job -Job $job
+                Write-Log "Download attempt $($i + 1) timed out after $timeout seconds."
+                if (Test-Path $DownloadFilePath) {
+                    Remove-Item -Path $DownloadFilePath -Force
+                    Write-Log "Removed partially downloaded file."
+                }
+                if ($i -eq ($maxRetries - 1)) {
+                    throw "Failed to download $Url after $maxRetries attempts."
+                } else {
+                    Write-Log "Retrying in $retryDelay seconds..."
+                    Start-Sleep -Seconds $retryDelay
+                }
+            }
+        }
+        catch {
+            Write-Log "Iteration $($i + 1) failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
+            if (Test-Path $DownloadFilePath) {
+                Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
+                Write-Log "Removed partially downloaded file."
+            }
+            if ($i -eq ($maxRetries - 1)) {
+                throw "Failed to download $Url after $maxRetries attempts."
+            } else {
+                Write-Log "Retrying in $retryDelay seconds..."
+                Start-Sleep -Seconds $retryDelay
+            }
         }
     }
 }
@@ -683,32 +720,10 @@ function Get-CoreNetTools {
 function Get-PSExec {
     $url = "https://download.sysinternals.com/files/PSTools.zip"
     $DownloadPath = "$pwd\psexec"
-    $maxRetries = 3
-    $retryDelay = 10 # seconds
 
-    mkdir $DownloadPath
-    Write-Log "Downloading PSExec from $url to $DownloadPath"
-    $ProgressPreference = 'SilentlyContinue'
-
-    for ($i = 1; $i -le $maxRetries; $i++) {
-        try {
-            Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip" -TimeoutSec 300
-            break
-        } catch {
-            Write-Log "Attempt $i failed: $_"
-            if ($i -eq $maxRetries) {
-                throw "Failed to download PSExec after $maxRetries attempts."
-            } else {
-                Write-Log "Retrying in $retryDelay seconds..."
-                Start-Sleep -Seconds $retryDelay
-            }
-        }
-    }
-
-    cd $DownloadPath
-    Expand-Archive -Path "$DownloadPath\pstools.zip" -Force
+    Get-ZipFileFromUrl -Url $url -DownloadFilePath "$pwd\pstools.zip" -OutputDir "$DownloadPath"
     cd ..
-    Move-Item -Path "$DownloadPath\PSTools\PsExec64.exe" -Destination $pwd -Force
+    Move-Item -Path "$DownloadPath\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse
 }
 
