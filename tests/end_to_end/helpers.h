@@ -132,7 +132,10 @@ typedef class _hook_helper
 typedef class _single_instance_hook : public _hook_helper
 {
   public:
-    _single_instance_hook(ebpf_program_type_t program_type, ebpf_attach_type_t attach_type)
+    _single_instance_hook(
+        ebpf_program_type_t program_type,
+        ebpf_attach_type_t attach_type,
+        bpf_link_type link_type = BPF_LINK_TYPE_UNSPEC)
         : _hook_helper{attach_type}, client_binding_context(nullptr), client_data(nullptr),
           client_dispatch_table(nullptr), link_object(nullptr), client_registration_instance(nullptr),
           nmr_binding_handle(nullptr), nmr_provider_handle(nullptr)
@@ -141,6 +144,7 @@ typedef class _single_instance_hook : public _hook_helper
         attach_provider_data.supported_program_type = program_type;
         attach_provider_data.bpf_attach_type = get_bpf_attach_type(&attach_type);
         this->attach_type = attach_type;
+        attach_provider_data.link_type = link_type;
         module_id.Guid = attach_type;
     }
     ebpf_result_t

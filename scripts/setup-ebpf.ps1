@@ -35,8 +35,8 @@ $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 Push-Location $WorkingDirectory
 
 if ($Uninstall) {
-    # Uninstall the MSI package.
-    $arguments = "/x $MsiPath /qn /norestart /l*v msi-uninstall.log"
+    # Uninstall the MSI package using the MSI product code. Product code from: installer\Product.wxs
+    $arguments = "/x {022C44B5-8969-4B75-8DB0-73F98B1BD7DC} /qn /norestart /l*v msi-uninstall.log"
     Write-Host("Uninstalling eBPF MSI package at 'msiexec.exe $arguments'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {

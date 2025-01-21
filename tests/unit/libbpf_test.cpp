@@ -2173,9 +2173,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC);
     REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
-    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, BPF_LINK_TYPE_PLAIN);
     REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
 
     // Verify the enumeration is empty.
@@ -2270,9 +2270,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     attr.info.info = (uintptr_t)&info;
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    // TODO: Should this be BPF_LINK_TYPE_PLAIN?
-    // See https://github.com/microsoft/ebpf-for-windows/issues/4096
-    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(info.type == BPF_LINK_TYPE_PLAIN);
     REQUIRE(info.id == id2);
     REQUIRE(info.prog_id != 0);
 
