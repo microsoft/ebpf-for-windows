@@ -207,12 +207,13 @@ query_map_definition(
     _Out_ ebpf_id_t* inner_map_id) noexcept;
 
 void
-set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type);
+set_global_program_and_attach_type(
+    _In_opt_ const ebpf_program_type_t* program_type, _In_opt_ const ebpf_attach_type_t* attach_type);
 
-const ebpf_program_type_t*
+_Ret_maybenull_ const ebpf_program_type_t*
 get_global_program_type();
 
-const ebpf_attach_type_t*
+_Ret_maybenull_ const ebpf_attach_type_t*
 get_global_attach_type();
 
 void

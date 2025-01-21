@@ -120,19 +120,20 @@ query_map_definition(
 }
 
 void
-set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type)
+set_global_program_and_attach_type(
+    _In_opt_ const ebpf_program_type_t* program_type, _In_opt_ const ebpf_attach_type_t* attach_type)
 {
     _global_program_type = program_type;
     _global_attach_type = attach_type;
 }
 
-const ebpf_program_type_t*
+_Ret_maybenull_ const ebpf_program_type_t*
 get_global_program_type()
 {
     return _global_program_type;
 }
 
-const ebpf_attach_type_t*
+_Ret_maybenull_ const ebpf_attach_type_t*
 get_global_attach_type()
 {
     return _global_attach_type;
@@ -170,6 +171,8 @@ ebpf_verify_program(
     _In_ const ebpf_verifier_options_t& options,
     _Out_ ebpf_api_verifier_stats_t* stats)
 {
+    _verification_in_progress_helper helper;
+
     stats->total_unreachable = 0;
     stats->total_warnings = 0;
     stats->max_loop_count = 0;

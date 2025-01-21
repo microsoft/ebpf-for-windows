@@ -636,13 +636,13 @@ ebpf_api_elf_disassemble_section(
 static uint32_t
 _ebpf_api_elf_verify_program_from_stream(
     std::istream& stream,
-    const char* stream_name,
-    const char* section_name,
-    const char* program_name,
+    _In_z_ const char* stream_name,
+    _In_opt_z_ const char* section_name, // Section name, or null to look in all sections.
+    _In_opt_z_ const char* program_name, // Program name, or null to use the first program.
     ebpf_verification_verbosity_t verbosity,
-    const char** report,
-    const char** error_message,
-    ebpf_api_verifier_stats_t* stats) noexcept
+    _Outptr_result_maybenull_z_ const char** report,
+    _Outptr_result_maybenull_z_ const char** error_message,
+    _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
     std::ostringstream error;
     std::ostringstream output;
@@ -661,7 +661,8 @@ _ebpf_api_elf_verify_program_from_stream(
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
-        auto raw_programs = read_elf(stream, stream_name, section_name, verifier_options, platform);
+        auto raw_programs =
+            read_elf(stream, stream_name, (section_name != nullptr ? section_name : ""), verifier_options, platform);
         std::optional<raw_program> found_program;
         for (auto& program : raw_programs) {
             if ((program_name == nullptr) || (program.function_name == program_name)) {
@@ -768,7 +769,6 @@ static _Success_(return == 0) uint32_t _verify_program_from_string(
     ebpf_clear_thread_local_storage();
 
     set_global_program_and_attach_type(program_type, nullptr);
-    _verification_in_progress_helper helper;
     return _ebpf_api_elf_verify_program_from_stream(
         stream, name, section_name, program_name, verbosity, report, error_message, stats);
 }
