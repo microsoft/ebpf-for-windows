@@ -46,6 +46,7 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 
 Get-CoreNetTools
 Get-PSExec
+Log-Message "Finished downloading the required tools. Installing tools on the test VM."
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,

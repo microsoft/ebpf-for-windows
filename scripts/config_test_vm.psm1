@@ -139,6 +139,8 @@ function Initialize-AllVMs
 {
     param ([Parameter(Mandatory=$True)] $VMList)
 
+    Write-Log "Initializing VMs..."
+
     # Restore the VMs.
     Restore-AllVMs -VMList $VMList
 
@@ -772,7 +774,7 @@ function Get-PSExec {
     Get-ZipFileFromUrl -Url $url -DownloadFilePath "$pwd\pstools.zip" -OutputDir "$DownloadPath"
     cd ..
     Move-Item -Path "$DownloadPath\PsExec64.exe" -Destination $pwd -Force
-    Remove-Item -Path $DownloadPath -Force -Recurse
+    Remove-Item -Path $DownloadPath -Force -Recurse -ErrorAction Ignore
 }
 
 #
