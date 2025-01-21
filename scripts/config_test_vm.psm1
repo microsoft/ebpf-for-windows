@@ -683,10 +683,28 @@ function Get-CoreNetTools {
 function Get-PSExec {
     $url = "https://download.sysinternals.com/files/PSTools.zip"
     $DownloadPath = "$pwd\psexec"
+    $maxRetries = 3
+    $retryDelay = 10 # seconds
+
     mkdir $DownloadPath
     Write-Log "Downloading PSExec from $url to $DownloadPath"
     $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip"
+
+    for ($i = 1; $i -le $maxRetries; $i++) {
+        try {
+            Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip" -TimeoutSec 300
+            break
+        } catch {
+            Write-Log "Attempt $i failed: $_"
+            if ($i -eq $maxRetries) {
+                throw "Failed to download PSExec after $maxRetries attempts."
+            } else {
+                Write-Log "Retrying in $retryDelay seconds..."
+                Start-Sleep -Seconds $retryDelay
+            }
+        }
+    }
+
     cd $DownloadPath
     Expand-Archive -Path "$DownloadPath\pstools.zip" -Force
     cd ..
