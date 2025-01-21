@@ -18,8 +18,6 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 Import-Module CredentialManager -ErrorAction Stop
-# $AdminTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-# $StandardUserTestVMCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
 $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
 $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
 
