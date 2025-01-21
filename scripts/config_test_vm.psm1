@@ -559,6 +559,11 @@ function Get-ZipFileFromUrl {
 
     for ($i = 0; $i -lt $maxRetries; $i++) {
         try {
+            $response = Invoke-WebRequest -Uri $Url -UseBasicParsing -Method Head -TimeoutSec $timeout
+            if ($response.StatusCode -ne 200) {
+                throw "Failed to reach $Url HTTP status code: $($response.StatusCode)"
+            }
+
             Write-Log "Download attempt $($i + 1) started"
             $ProgressPreference = 'SilentlyContinue'
 
@@ -589,8 +594,7 @@ function Get-ZipFileFromUrl {
                     Start-Sleep -Seconds $retryDelay
                 }
             }
-        }
-        catch {
+        } catch {
             Write-Log "Iteration $($i + 1) failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
             if (Test-Path $DownloadFilePath) {
                 Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
