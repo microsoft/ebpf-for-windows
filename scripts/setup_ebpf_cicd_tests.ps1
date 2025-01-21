@@ -11,7 +11,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = "runner_host",
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (5*60))
 
 Push-Location $WorkingDirectory
 
@@ -23,6 +23,8 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+$debugCred = $TestVMCredential.GetNetworkCredential() | Out-String
+Write-Log "Cred: $debugCred"
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -58,8 +60,10 @@ $Job = Start-Job -ScriptBlock {
            [parameter(Mandatory = $true)] [bool] $KmTracing,
            [parameter(Mandatory = $true)] [string] $KmTraceType
     )
+    Write-Log "Starting the setup job."
     Push-Location $WorkingDirectory
 
+    Write-Log "Importing modules."
     # Load other utility modules.
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
