@@ -24,22 +24,34 @@ The following diagram shows the basic architecture of this project and related c
 
 ![Architectural Overview](docs/ArchitectureDiagram.png)
 
-As shown in the diagram, existing eBPF toolchains (clang, etc.) can be used to generate eBPF bytecode from
-source code in various languages.  Bytecode can be consumed by any application, or via bpftool or the Netsh command line tool, which use a shared library
-that exposes [Libbpf APIs](https://github.com/libbpf/libbpf),
-though this is still in progress.
+As shown in the diagram, in a typical developer workflow, the existing eBPF toolchains (clang, etc.) 
+can be used to generate eBPF bytecode (stored in `ELF` format) from source code in various languages.
 
-The eBPF bytecode is sent to a static verifier (the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier))
-that is hosted in a secure user-mode environment such as a system service (which is the case at present),
-enclave, or trusted VM.
-If the eBPF program passes all the verifier checks, it can be loaded into the kernel-mode execution context.
-Typically this is done by being JIT compiled (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) into native code that is passed to the execution context.  In a debug build,
-the byte code can instead be directly loaded into
-an interpreter (from [uBPF](https://github.com/iovisor/ubpf) in the kernel-mode execution context) though
-the interpreter is not present in a release build as it is considered less secure.  See also the HVCI FAQ answer
-below.
+There are two main approaches to process the eBPF bytecode to be loaded into Windows kernel.
 
-eBPF programs installed into the kernel-mode execution context can attach to various
+1. **Native eBPF Program**:
+The eBPF bytecode is sent to the `bpf2c` tool in the next phase of the workflow. The `bpf2c` tool passes the 
+bytecode to the [PREVAIL verifier](https://github.com/vbpf/ebpf-verifier). If the eBPF program passes all the verifier checks,
+the `bpf2c` tool converts every instruction in the bytecode to equivalent `C` statements as outlined in the
+[native code generation](docs/NativeCodeGeneration.md) document. The generated `C` code is then built into a windows driver
+module (stored in a `.sys` file) using the standard visual studio toolchain. The generated driver is also known as the native eBPF program.
+
+   **Note:** This is the *preferred* and *secure* way of deploying eBPF programs. 
+   See also the HVCI FAQ answer below.
+
+1. **JIT Compilation and Interpreter**
+This approach (not illustrated in the above architecture diagram), is recommended to be used for testing purposes.
+An user mode service (`eBPFsvc.exe`) is used to process the eBPF bytecode which ensures that the eBPF programs pass
+all the verifier checks.
+There are two sub-options in this approach:
+    - The bytecode is *JIT compiled* (via the [uBPF](https://github.com/iovisor/ubpf) JIT compiler) into native code that is passed to the execution context.
+    - The bytecode can be directly loaded into an *interpreter* (from [uBPF](https://github.com/iovisor/ubpf)) in the execution context.  
+       **Note:** that the interpreter is present only in debug builds and not in release builds as it is considered less secure.  
+
+The eBPF programs can be consumed by any application, or via bpftool or the Netsh command line tool, which use a shared library (`ebpfapi.dll`) that exposes [Libbpf APIs](https://github.com/libbpf/libbpf). These APIs can be used to load the
+eBPF programs to the kernel-mode `execution context`.
+
+eBPF programs that are loaded into the kernel-mode execution context can attach to various
 [hooks](https://microsoft.github.io/ebpf-for-windows/ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0)
 and call various helper APIs exposed by the eBPF shim,
 which internally wraps public Windows kernel APIs, allowing the use of eBPF on existing versions of Windows.
