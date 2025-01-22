@@ -22,6 +22,26 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 # $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+
+function Get-UserContext {
+    $whoami = whoami
+    $username = $env:USERNAME
+    $userdomain = $env:USERDOMAIN
+    $wmiUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName
+
+    [PSCustomObject]@{
+        WhoAmI      = $whoami
+        UserName    = $username
+        UserDomain  = $userdomain
+        WmiUserName = $wmiUser
+    }
+}
+
+# Run the function
+$user = Get-UserContext
+$userString = $user | Out-String
+Log-Message "User context: $userString"
+
 Write-Log "Fetching the test VM credential using target: $Target"
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 if ($null -eq $TestVMCredential) {

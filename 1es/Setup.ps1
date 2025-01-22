@@ -61,6 +61,38 @@ Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 $AdminUserCredential = Generate-StoredCredential -Target 'TEST_VM' -Username 'Administrator'
 $StandardUserCredential = Generate-StoredCredential -Target 'TEST_VM_STANDARD' -Username 'VMStandardUser'
 
+$cred = Get-StoredCredential -Target 'TEST_VM'
+if ($cred -eq $null) {
+    throw "Failed to retrieve the TEST_VM credential."
+} else {
+    Log-Message "Sucessfully retrieved the TEST_VM credential."
+}
+$cred = Get-StoredCredential -Target 'TEST_VM_STANDARD'
+if ($cred -eq $null) {
+    throw "Failed to retrieve the TEST_VM_STANDARD credential."
+} else {
+    Log-Message "Sucessfully retrieved the TEST_VM_STANDARD credential."
+}
+
+function Get-UserContext {
+    $whoami = whoami
+    $username = $env:USERNAME
+    $userdomain = $env:USERDOMAIN
+    $wmiUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName
+
+    [PSCustomObject]@{
+        WhoAmI      = $whoami
+        UserName    = $username
+        UserDomain  = $userdomain
+        WmiUserName = $wmiUser
+    }
+}
+
+# Run the function
+$user = Get-UserContext
+$userString = $user | Out-String
+Log-Message "User context: $userString"
+
 # Unzip any VHD files, if needed, and get the list of VHDs to create VMs from.
 $vhds = Prepare-VhdFiles -InputDirectory $BaseVhdDirPath
 Log-Message "Found $($vhds.Count) VHDs to create VMs from."
@@ -95,6 +127,7 @@ foreach ($vhd in $vhds) {
         Log-Message "VM $vmName created successfully"
     } catch {
         Log-Message "Failed to create VM $vmName with error $_"
+        throw "Failed to create VM $vmName with error $_"
     }
 }
 
