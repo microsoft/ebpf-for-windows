@@ -645,7 +645,7 @@ function Generate-StoredCredential {
 
         # Create the stored credential
         $SecurePassword = ConvertTo-SecureString (Get-StrongPassword) -AsPlainText -Force
-        New-StoredCredential -Target $Target -UserName $Username -SecurePassword $SecurePassword -ErrorAction Stop *> $null 2>&1
+        New-StoredCredential -Target $Target -UserName $Username -SecurePassword $SecurePassword -Persist LocalMachine -ErrorAction Stop *> $null 2>&1
 
         # Validate that the credential was created
         $cred = Get-StoredCredential -Target $Target -ErrorAction Stop
