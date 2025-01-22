@@ -40,7 +40,7 @@ function Get-UserContext {
 # Run the function
 $user = Get-UserContext
 $userString = $user | Out-String
-Log-Message "User context: $userString"
+Write-Log "User context: $userString"
 
 Write-Log "Fetching the test VM credential using target: $Target"
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
