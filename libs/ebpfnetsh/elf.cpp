@@ -243,18 +243,6 @@ _verify_program(
     const char* report;
     const char* error_message;
     ebpf_api_verifier_stats_t stats;
-#if 0
-    ebpf_program_type_t program_type = *program_type_input;
-
-    ebpf_program_type_t program_type_zero = {0};
-    if (memcmp(&program_type, &program_type_zero, sizeof(ebpf_program_type_t)) == 0) {
-        ebpf_attach_type_t attach_type;
-        if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
-            std::cerr << "\nProgram type for section " << section.c_str() << " not found." << std::endl;
-            return ERROR_SUPPRESS_OUTPUT;
-        }
-    }
-#endif
 
     unsigned long status = ebpf_api_elf_verify_program_from_file(
         filename.c_str(),
