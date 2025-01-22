@@ -633,8 +633,7 @@ ebpf_api_elf_disassemble_section(
     return ebpf_api_elf_disassemble_program(file, section, {}, disassembly, error_message);
 }
 
-static uint32_t
-_ebpf_api_elf_verify_program_from_stream(
+static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
     std::istream& stream,
     _In_z_ const char* stream_name,
     _In_opt_z_ const char* section_name, // Section name, or null to look in all sections.
@@ -644,6 +643,7 @@ _ebpf_api_elf_verify_program_from_stream(
     _Outptr_result_maybenull_z_ const char** error_message,
     _Out_opt_ ebpf_api_verifier_stats_t* stats) noexcept
 {
+    ebpf_api_verifier_stats_t stats_buffer;
     std::ostringstream error;
     std::ostringstream output;
     *report = nullptr;
@@ -685,6 +685,11 @@ _ebpf_api_elf_verify_program_from_stream(
             return 1;
         }
         auto& program = std::get<InstructionSeq>(programOrError);
+
+        if (stats == nullptr) {
+            // ebpf_verify_program() requires stats to be non-null.
+            stats = &stats_buffer;
+        }
 
         verifier_options.verbosity_opts.simplify = false;
         bool res = ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
