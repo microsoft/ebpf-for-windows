@@ -22,6 +22,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 # $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+Write-Log "Fetching the test VM credential using target: $Target"
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 if ($null -eq $TestVMCredential) {
     ThrowWithErrorMessage "Failed to retrieve the test VM credential."
