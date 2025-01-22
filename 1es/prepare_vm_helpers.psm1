@@ -647,8 +647,13 @@ function Generate-StoredCredential {
         $SecurePassword = ConvertTo-SecureString (Get-StrongPassword) -AsPlainText -Force
         New-StoredCredential -Target $Target -UserName $Username -SecurePassword $SecurePassword -ErrorAction Stop *> $null 2>&1
 
-        # Create a new PSCredential object
-        New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
+        # Validate that the credential was created
+        $cred = Get-StoredCredential -Target $Target -ErrorAction Stop
+        if ($cred -eq $null) {
+            throw "Failed to create and store credential for target: $Target and username: $Username"
+        }
+
+        return $cred
     } catch {
         throw "Failed to create and store credential for username: $Username with error: $_"
     }

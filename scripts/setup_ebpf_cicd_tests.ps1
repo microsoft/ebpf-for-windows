@@ -23,6 +23,9 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+if ($null -eq $TestVMCredential) {
+    ThrowWithErrorMessage "Failed to retrieve the test VM credential."
+}
 $debugCred = $TestVMCredential.GetNetworkCredential() | Out-String
 Write-Log "Cred: $debugCred"
 

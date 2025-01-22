@@ -3,6 +3,8 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
+Import-Module CredentialManager -ErrorAction Stop
+
 #
 # Common helper functions.
 #
