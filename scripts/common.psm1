@@ -3,8 +3,6 @@
 
 param ([parameter(Mandatory=$True)] [string] $LogFileName)
 
-Import-Module CredentialManager -ErrorAction Stop
-
 #
 # Common helper functions.
 #
@@ -45,36 +43,35 @@ function New-Credential
     return $Credential
 }
 
-#
-# Retrieves the secret from Azure Key Vault.
-# Returns a PSCredential object, where the username is the secret name and the password is the retrieved secret.
-#
-function Get-AzureKeyVaultCredential
-{
-    param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
-          [Parameter(Mandatory=$True)][string] $SecretName)
-    try {
-        # NuGet is a dependency for the Az module. Ensure it is installed too.
-        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-        Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
+<#
+.SYNOPSIS
+    Reads a PSCredential object from an XML file.
 
-        # Check if the Az module is installed, if not, install it
-        if (-not (Get-Module -ListAvailable -Name Az)) {
-            Install-Module -Name Az -AllowClobber -Force -ErrorAction Stop *> $null 2>&1
-        }
+.DESCRIPTION
+    This function takes a username as input, reads the corresponding XML file,
+    and returns the PSCredential object stored in that file.
 
-        # Authenticate using the managed identity
-        Connect-AzAccount -Identity *> $null 2>&1
+.PARAMETER FilePath
+    The FilePath for which the PSCredential object will be read.
 
-        # Retrieve the secret from Key Vault
-        $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
-
-        # Return as a PSCredential object
-        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret.SecretValue)
-        return $credential
-    } catch {
-        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName SecretName: $SecretName Error: $_"
+.EXAMPLE
+    $cred = Get-UserCredential -FilePath "C:\Administrator.xml"
+    This example reads the PSCredential object from the file "C:\Administrator.xml".
+#>
+function Get-UserCredential {
+    param (
+        [string]$FilePath
+    )
+    # Check if the file exists
+    if (-Not (Test-Path -Path $FilePath)) {
+        throw "The file $FilePath does not exist."
     }
+
+    # Import the credential from the XML file
+    $Credential = Import-Clixml -Path $FilePath
+
+    # Return the PSCredential object
+    return $Credential
 }
 
 function Compress-File

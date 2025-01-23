@@ -560,101 +560,69 @@ function Create-VMSwitchIfNeeded {
 
 <#
 .SYNOPSIS
-    Retrieves a secret from Azure Key Vault and returns it as a PSCredential object.
+    Reads a PSCredential object from an XML file.
 
 .DESCRIPTION
-    This function retrieves a secret from Azure Key Vault and returns it as a PSCredential object.
+    This function takes a username as input, reads the corresponding XML file,
+    and returns the PSCredential object stored in that file.
 
-.PARAMETER KeyVaultName
-    The name of the Azure Key Vault to retrieve the secret from. Defaults to 'ebpf-cicd-key-vault'.
-
-.PARAMETER SecretName
-    The name of the secret to retrieve from the Key Vault.
-
-.OUTPUTS
-    System.Management.Automation.PSCredential
-    This function returns a PSCredential object containing the secret value from the Key Vault.
-    The username is the input 'SecretName' and the password is the secret value.
+.PARAMETER FilePath
+    The FilePath for which the PSCredential object will be read.
 
 .EXAMPLE
-    $credential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
+    $cred = Get-UserCredential -FilePath "C:\Administrator.xml"
+    This example reads the PSCredential object from the file "C:\Administrator.xml".
 #>
-function Get-AzureKeyVaultCredential
-{
-    param([Parameter(Mandatory=$False)][string] $KeyVaultName='ebpf-cicd-key-vault',
-          [Parameter(Mandatory=$True)][string] $SecretName)
-
-    try {
-        # NuGet is a dependency for the Az module. Ensure it is installed too.
-        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-        Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-        # Check if the Az module is installed, if not, install it
-        if (-not (Get-Module -ListAvailable -Name Az)) {
-            Install-Module -Name Az -AllowClobber -Force -ErrorAction Stop *> $null 2>&1
-        }
-
-        # Authenticate using the managed identity
-        Connect-AzAccount -Identity *> $null 2>&1
-
-        # Retrieve the secret from Key Vault
-        $secret = Get-AzKeyVaultSecret -VaultName $KeyVaultName -Name $SecretName
-
-        # Return as a PSCredential object
-        $credential = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList  @($SecretName, $secret.SecretValue)
-        return $credential
-    } catch {
-        throw "Failed to get Azure Key Vault Credential using KeyVaultName: $KeyVaultName SecretName: $SecretName Error: $_"
+function Get-UserCredential {
+    param (
+        [string]$FilePath
+    )
+    # Check if the file exists
+    if (-Not (Test-Path -Path $FilePath)) {
+        throw "The file $FilePath does not exist."
     }
+
+    # Import the credential from the XML file
+    $Credential = Import-Clixml -Path $FilePath
+
+    # Return the PSCredential object
+    return $Credential
 }
 
 <#
 .SYNOPSIS
-    Creates and stores a new credential using the provided target and username and a randomly generated password.
+    Creates a PSCredential object with a randomly generated password and exports it to an XML file.
 
 .DESCRIPTION
-    This function takes a username as a string, generates a random password, creates a stored credential using the CredentialManager module, and returns a PSCredential object.
-    It ensures that the CredentialManager module is installed and handles any errors that occur during the process.
-
-.PARAMETER Target
-    The target name for the stored credential.
+    This function takes a username as input, generates a random password, converts it to a secure string,
+    creates a PSCredential object, and exports the credential to an XML file named after the username.
 
 .PARAMETER Username
-    The username for the credential.
-
-.RETURNS
-    [System.Management.Automation.PSCredential]
-    The PSCredential object created from the provided username and generated password.
+    The username for which the PSCredential object will be created.
 
 .EXAMPLE
-    $credential = Generate-StoredCredential -Target "your_target" -Username "your_username"
+    $cred = Get-NewUserCredential -Username "exampleUser"
+    This example creates a PSCredential object for the user "exampleUser" and exports it to "exampleUser.xml".
 #>
-function Generate-StoredCredential {
+function Get-NewUserCredential {
     param (
-        [Parameter(Mandatory=$True)][string]$Target,
-        [Parameter(Mandatory=$True)][string]$Username
+        [string]$Username
     )
 
-    try {
-        # Import the CredentialManager module. Ensure any dependencies are installed.
-        Install-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-        Import-PackageProvider -Name NuGet -Force -ErrorAction Stop *> $null 2>&1
-        if (-not (Get-Module -ListAvailable -Name CredentialManager)) {
-            Install-Module -Name CredentialManager -Force -ErrorAction Stop *> $null 2>&1
-        }
-        Import-Module CredentialManager -ErrorAction Stop
+    # Generate a random password of 12 characters
+    $PasswordLength = 12
+    $Password = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count $PasswordLength | ForEach-Object {[char]$_})
 
-        # Create the stored credential
-        $SecurePassword = ConvertTo-SecureString (Get-StrongPassword) -AsPlainText -Force
-        New-StoredCredential -Target $Target -UserName $Username -SecurePassword $SecurePassword -Persist LocalMachine -ErrorAction Stop *> $null 2>&1
+    # Convert the password to a secure string
+    $SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
 
-        # Validate that the credential was created
-        $cred = Get-StoredCredential -Target $Target -ErrorAction Stop
-        if ($cred -eq $null) {
-            throw "Failed to create and store credential for target: $Target and username: $Username"
-        }
+    # Create the PSCredential object with the username and secure password
+    $Credential = New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
 
-        return $cred
-    } catch {
-        throw "Failed to create and store credential for username: $Username with error: $_"
-    }
+    # Export the credential to an XML file named after the username
+    $FilePath = ".\$Username.xml"
+    $Credential | Export-Clixml -Path $FilePath
+
+    # Obtain the credential back to ensure it was exported correctly
+    return Get-UserCredential -FilePath $FilePath
 }

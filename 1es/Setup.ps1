@@ -55,25 +55,23 @@ Create-DirectoryIfNotExists -Path $WorkingPath
 $VMSwitchName = 'VMInternalSwitch'
 Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 
-# # Fetch the credentials for the VM using the Azure Key Vault.
-# $AdminUserCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-# $StandardUserCredential = Get-AzureKeyVaultCredential -SecretName 'VMStandardUser'
-$AdminUserCredential = Generate-StoredCredential -Target 'TEST_VM' -Username 'Administrator'
-$StandardUserCredential = Generate-StoredCredential -Target 'TEST_VM_STANDARD' -Username 'VMStandardUser'
+# Create new credentials for the VM.
+$AdminUserCredential =  Get-NewUserCredential -Username 'Administrator'
+$StandardUserCredential = Get-NewUserCredential -Username 'VMStandardUser'
 
-$cred = Get-StoredCredential -Target 'TEST_VM'
-if ($cred -eq $null) {
-    throw "Failed to retrieve the TEST_VM credential."
+if ($AdminUserCredential -eq $null) {
+    throw "Failed to retrieve the Administrator credential."
 } else {
-    Log-Message "Sucessfully retrieved the TEST_VM credential."
-}
-$cred = Get-StoredCredential -Target 'TEST_VM_STANDARD'
-if ($cred -eq $null) {
-    throw "Failed to retrieve the TEST_VM_STANDARD credential."
-} else {
-    Log-Message "Sucessfully retrieved the TEST_VM_STANDARD credential."
+    Log-Message "Sucessfully retrieved the Administrator credential."
 }
 
+if ($StandardUserCredential -eq $null) {
+    throw "Failed to retrieve the VMStandardUser credential."
+} else {
+    Log-Message "Sucessfully retrieved the VMStandardUser credential."
+}
+
+# TODO - remove this debugging output.
 function Get-UserContext {
     $whoami = whoami
     $username = $env:USERNAME

@@ -6,15 +6,17 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $LogFileName = "TestLog.log",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
-       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = "runner_host",
+       [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-# $TestVMCredential = Get-AzureKeyVaultCredential -SecretName 'Administrator'
-Import-Module CredentialManager -ErrorAction Stop
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+if ($SelfHostedRunnerName -eq "1ESRunner") {
+    $TestVMCredential =  Get-UserCredential -FilePath 'C:\work\Administrator.xml'
+} else {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
@@ -90,3 +92,4 @@ Pop-Location
 if ($JobTimedOut) {
     exit 1
 }
+

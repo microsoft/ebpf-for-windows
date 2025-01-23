@@ -8,7 +8,7 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
-       [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = "runner_host",
+       [Parameter(Mandatory = $false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60)
@@ -17,9 +17,13 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
 Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
-Import-Module CredentialManager -ErrorAction Stop
-$AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-$StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+if ($SelfHostedRunnerName -eq "1ESRunner") {
+    $AdminTestVMCredential =  Get-UserCredential -FilePath 'C:\work\Administrator.xml'
+    $AdminTestVMCredential =  Get-UserCredential -FilePath 'C:\work\VMStandardUser.xml'
+} else {
+    $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+    $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
