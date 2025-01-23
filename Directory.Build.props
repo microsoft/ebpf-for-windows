@@ -123,7 +123,7 @@
       <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo %(AdditionalOptions) /allpdata</AdditionalOptions>
       <LinkTimeCodeGeneration Condition="'$(EnableAsan)' != 'true'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
