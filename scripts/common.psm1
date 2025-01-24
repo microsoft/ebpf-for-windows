@@ -301,7 +301,7 @@ function Generate-NewCredential {
     Write-Host "Password: $Password"
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
-        New-StoredCredential -Target '$Target' -UserName '$Username' -Password '$Password';
+        New-StoredCredential -Target '$Target' -UserName '$Username' -Password '$Password' -Persist LocalMachine;
 "@
 
     $outputFile = [System.IO.Path]::GetTempFileName()
