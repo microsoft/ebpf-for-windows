@@ -13,9 +13,7 @@ Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 if ($SelfHostedRunnerName -eq "1ESRunner") {
-    Get-PSExec
-    $psExecPath = "$pwd\PSExec64.exe"
-    $TestVMCredential = Retrieve-StoredCredential -Target $Target -PsExecPath $psExecPath
+    $TestVMCredential = Retrieve-StoredCredential -Target $Target
 } else {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 }

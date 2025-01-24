@@ -36,47 +36,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Input validation for input paths
-if (-not (Test-Path -Path $BaseUnattendPath)) {
-    throw "Unattend file not found at $BaseUnattendPath"
-}
-
-if (-not (Test-Path -Path $BaseVhdDirPath)) {
-    throw "VHD directory not found at $BaseVhdDirPath"
-}
-
 # Import helper functions
 $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
-$adminPassword = New-UniquePassword
-$adminSecureString = ConvertTo-SecureString -String $adminPassword -AsPlainText -Force
-$standardUserPassword = New-UniquePassword
-Import-Module .\prepare_vm_helpers.psm1 -Force -WarningAction SilentlyContinue
-Import-Module .\config_test_vm.psm1 -Force -ArgumentList('Administrator', $adminSecureString, 'C:\work', $logFileName) -WarningAction SilentlyContinue
-
-Get-PSExec
-if (-not (Test-Path -Path "$pwd\PSExec64.exe")) {
-    throw "PSExec64.exe not found in the current directory."
-}
-$psExecPath = "$pwd\PSExec64.exe"
-
+$password = New-UniquePassword
+$passwordSecureString = ConvertTo-SecureString -String $adminPassword -AsPlainText -Force
+Import-Module .\config_test_vm.psm1 -Force -ArgumentList('Administrator', $passwordSecureString, 'C:\work', $logFileName) -WarningAction SilentlyContinue
 
 # Create new credentials for the VM.
-$AdminUserCredential =  Generate-NewCredential -Username 'Administrator' -Password $adminPassword -Target 'TEST_VM' -PsExecPath $psExecPath
-$StandardUserCredential = Generate-NewCredential -Username 'VMStandardUser' -Password $standardUserPassword -Target 'TEST_VM_STANDARD' -PsExecPath $psExecPath
-
-# TODO - remove this debugging output.
-if ($AdminUserCredential -eq $null) {
-    throw "Failed to retrieve the Administrator credential."
-} else {
-    Write-Log "Sucessfully retrieved the Administrator credential."
-}
-
-if ($StandardUserCredential -eq $null) {
-    throw "Failed to retrieve the VMStandardUser credential."
-} else {
-    Write-Log "Sucessfully retrieved the VMStandardUser credential."
-}
+$AdminUserCredential =  Generate-NewCredential -Username 'Administrator' -Password $password -Target 'TEST_VM'
+$StandardUserCredential = Generate-NewCredential -Username 'VMStandardUser' -Password $password -Target 'TEST_VM_STANDARD'
 
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath
@@ -87,9 +56,7 @@ Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 
 # Unzip any VHD files, if needed, and get the list of VHDs to create VMs from.
 $vhds = Prepare-VhdFiles -InputDirectory $BaseVhdDirPath
-Write-Log "Found $($vhds.Count) VHDs to create VMs from."
 $vhdDebugString = $vhds | Out-String
-Write-Log "VHDs: $vhdDebugString"
 
 # Process VM creation and setup.
 foreach ($vhd in $vhds) {
@@ -103,17 +70,16 @@ foreach ($vhd in $vhds) {
 
         Create-VM `
             -VmName $vmName `
-            -AdminUserCredential $AdminUserCredential `
-            -StandardUserCredential $StandardUserCredential `
+            -UserPassword $password `
             -VhdPath $vhd `
             -VmStoragePath $outVMPath `
             -VMMemory $VMMemory `
             -UnattendPath $BaseUnattendPath `
             -VMSwitchName $VMSwitchName
 
-        Configure-VM `
+        Initialize-VM `
             -VmName $vmName `
-            -VmCredential $AdminUserCredential `
+            -UserPassword $password `
             -VMCpuCount $VMCpuCount
 
         Write-Log "VM $vmName created successfully"

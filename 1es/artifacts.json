@@ -20,7 +20,7 @@
             "Name": "windows-azcopy-downloadfile-msi",
             "Parameters":
                 {
-                    "BlobUri": "https://ebpfcicdstorage.blob.core.windows.net/server-2019/*",
+                    "BlobUri": "https://ebpfcicdstorage.blob.core.windows.net/server-2025/*",
                     "Destination": "C:\\work",
                     "Identity": "/subscriptions/15cd5cd8-c222-405e-bb37-c5c6712a075f/resourceGroups/ebpf-cicd-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ebpf-cicd-identity"
                 }

@@ -20,9 +20,7 @@ Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction S
 
 if ($SelfHostedRunnerName -eq "1ESRunner") {
     Write-Log "Fetching the test VM credential using target: $Target"
-    Get-PSExec
-    $psExecPath = "$pwd\PSExec64.exe"
-    $TestVMCredential = Retrieve-StoredCredential -Target $Target -PsExecPath $psExecPath
+    $TestVMCredential = Retrieve-StoredCredential -Target $Target
     if ($null -eq $TestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential."
     }

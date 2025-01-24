@@ -215,9 +215,6 @@ function New-UniquePassword {
 .SYNOPSIS
     Retrieves a credential from the Windows Credential Manager using PsExec.
 
-.PARAMETER PsExecPath
-    The path to the PsExec executable.
-
 .PARAMETER Target
     The name of the stored credential. Default is "MyStoredCredential".
 
@@ -225,13 +222,15 @@ function New-UniquePassword {
     This function uses PsExec to run a PowerShell script in the LocalSystem account context to retrieve a credential from the Windows Credential Manager.
 
 .EXAMPLE
-    $credential = Retrieve-StoredCredential -PsExecPath "C:\Path\To\PsExec.exe" -Target "MyStoredCredential"
+    $credential = Retrieve-StoredCredential -Target "MyStoredCredential"
 #>
 function Retrieve-StoredCredential {
     param (
-        [Parameter(Mandatory=$True)][string]$PsExecPath,
         [Parameter(Mandatory=$True)][string]$Target
     )
+
+    $PSExecPath = Get-PSExec
+
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
         `$Credential = Get-StoredCredential -Target '$Target';
@@ -252,11 +251,9 @@ function Retrieve-StoredCredential {
             throw "PsExec failed with exit code $($process.ExitCode). Error: $error"
         }
 
-        Write-Host "Output: $output"
         $lines = $output -split "`n"
         $Username = $lines[0].Trim()
         $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
-        Write-Host "Username: $Username Password: $Password"
         return [System.Management.Automation.PSCredential]::new($Username, $Password)
     } catch {
         throw "An error occurred while retrieving the credential: $_"
@@ -269,9 +266,6 @@ function Retrieve-StoredCredential {
 <#
 .SYNOPSIS
     Stores a credential in the Windows Credential Manager using PsExec.
-
-.PARAMETER PsExecPath
-    The path to the PsExec executable.
 
 .PARAMETER Username
     The username for the credential.
@@ -287,18 +281,17 @@ function Retrieve-StoredCredential {
 
 .EXAMPLE
     $securePassword = ConvertTo-SecureString "YourPassword" -AsPlainText -Force
-    $credential = Generate-NewCredential -Username "YourUsername" -Password $securePassword -Target "MyStoredCredential" -PsExecPath "C:\Path\To\PsExec.exe"
+    $credential = Generate-NewCredential -Username "YourUsername" -Password $securePassword -Target "MyStoredCredential"
 #>
 function Generate-NewCredential {
     param (
         [Parameter(Mandatory=$True)][string]$Username,
         [Parameter(Mandatory=$True)][string]$Password,
-        [Parameter(Mandatory=$True)][string]$Target,
-        [Parameter(Mandatory=$True)][string]$PsExecPath
+        [Parameter(Mandatory=$True)][string]$Target
     )
     Get-CredentialManager
+    $PSExecPath = Get-PSExec
 
-    Write-Host "Password: $Password"
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
         New-StoredCredential -Target '$Target' -UserName '$Username' -Password '$Password' -Persist LocalMachine;
@@ -548,9 +541,10 @@ function Get-CoreNetTools {
 
 # Download and extract PSExec to run tests as SYSTEM.
 function Get-PSExec {
+    $psExecPath = "$pwd\PsExec64.exe"
     # Check to see if PSExec already exists
-    if (Test-Path -Path "$pwd\PsExec64.exe") {
-        return
+    if (Test-Path -Path $psExecPath) {
+        return $psExecPath
     }
     $url = "https://download.sysinternals.com/files/PSTools.zip"
     $DownloadPath = "$pwd\psexec"
@@ -558,4 +552,5 @@ function Get-PSExec {
     Get-ZipFileFromUrl -Url $url -DownloadFilePath "$pwd\pstools.zip" -OutputDir "$DownloadPath"
     Move-Item -Path "$DownloadPath\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse -ErrorAction Ignore
+    return $psExecPath
 }

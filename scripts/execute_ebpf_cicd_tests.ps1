@@ -18,10 +18,14 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 if ($SelfHostedRunnerName -eq "1ESRunner") {
-    Get-PSExec
-    $psExecPath = "$pwd\PSExec64.exe"
-    $TestVMCredential = Retrieve-StoredCredential -Target $AdminTarget -PsExecPath $psExecPath
-    $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget -PsExecPath $psExecPath
+    $TestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
+    if ($null -eq $TestVMCredential) {
+        ThrowWithErrorMessage "Failed to retrieve the test VM credential."
+    }
+    $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
+    if ($null -eq $StandardUserTestVMCredential) {
+        ThrowWithErrorMessage "Failed to retrieve the standard user test VM credential."
+    }
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
     $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
@@ -30,6 +34,7 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
+Write-Log "Starting eBPF CICD tests on $SelfHostedRunnerName"
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
            [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,

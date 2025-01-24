@@ -304,3 +304,13 @@ jobs:
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
       uses: github/codeql-action/analyze@b6a472f63d85b9c78a3ac5e89422239fc15e9b3c
+
+    - name: Upload 1ES artifacts
+      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: ebpf-for-windows - 1ES artifacts (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
+        path: |
+          1es/**
+          scripts/common.psm1
+          scripts/config_test_vm.psm1
