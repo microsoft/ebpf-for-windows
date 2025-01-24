@@ -20,7 +20,7 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 if ($SelfHostedRunnerName -eq "1ESRunner") {
     Get-PSExec
     $psExecPath = "$pwd\PSExec64.exe"
-    $TestVMCredential = Retrieve-StoredCredential -Target $Target -PsExecPath $psExecPath
+    $TestVMCredential = Retrieve-StoredCredential -Target $AdminTarget -PsExecPath $psExecPath
     $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget -PsExecPath $psExecPath
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
