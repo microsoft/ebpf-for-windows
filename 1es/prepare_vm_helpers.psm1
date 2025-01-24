@@ -31,7 +31,7 @@ function Execute-CommandOnVM {
             param($Command)
             Invoke-Expression $Command
         } -ArgumentList $Command
-        Write-Log -Message "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
+        Write-Log "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
     } catch {
         throw "Failed to execute command on VM: $VMName with error: $_"
     }
@@ -69,7 +69,7 @@ function Wait-ForVMReady {
         try {
             # Ensure the VM is in running state
             while ((Get-VM -Name $VMName).State -ne 'Running') {
-                Log-Message -Message "Waiting for $VMName to reach running state..."
+                Write-Log "Waiting for $VMName to reach running state..."
                 Start-Sleep -Seconds 5
             }
 
@@ -77,18 +77,18 @@ function Wait-ForVMReady {
             try {
                 Execute-CommandOnVM -VMName $VMName -VmCredential $VmCredential -Command 'hostname'
             } catch {
-                Log-Message -Message "Failed to connect to $VMName. Retrying..."
+                Write-Log "Failed to connect to $VMName. Retrying..."
                 Start-Sleep -Seconds 5
                 continue
             }
 
-            Log-Message -Message "Successfully connected to $VMName"
+            Write-Log "Successfully connected to $VMName"
             return
         } catch {
             # Do nothing. We will retry if we failed to connect to the VM.
         }
 
-        Log-Message -Message "Failed to connect to $VMName. Retrying..."
+        Write-Log "Failed to connect to $VMName. Retrying..."
         Start-Sleep -Seconds 5
     }
 
@@ -154,19 +154,19 @@ function Create-VM {
         Create-DirectoryIfNotExists -Path $VmStoragePath
 
         # Move the VHD to the path
-        Log-Message "Moving $VhdPath to $VmStoragePath"
+        Write-Log "Moving $VhdPath to $VmStoragePath"
         Move-Item -Path $VhdPath -Destination $VmStoragePath -Force
         $VmVhdPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $VhdPath -Leaf)
 
         # Move unattend to the path and replace placeholder strings
-        Log-Message "Moving $UnattendPath file to $VmStoragePath"
+        Write-Log "Moving $UnattendPath file to $VmStoragePath"
         Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
         $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
         Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $AdminUserCredential.GetNetworkCredential().Password
         Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $StandardUserCredential.GetNetworkCredential().Password
 
         # Configure the VHD with the unattend file.
-        Log-Message "Mounting VHD and applying unattend file"
+        Write-Log "Mounting VHD and applying unattend file"
         $VmMountPath = Join-Path -Path $VmStoragePath -ChildPath 'mountedVhd'
         if (-not (Test-Path -Path $VmMountPath)) {
             New-Item -ItemType Directory -Path $VmMountPath
@@ -177,7 +177,7 @@ function Create-VM {
         Dismount-WindowsImage -Path $VmMountPath -Save -ErrorAction Stop
 
         # Create the VM
-        Log-Message "Creating the VM"
+        Write-Log "Creating the VM"
         New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
@@ -185,7 +185,7 @@ function Create-VM {
             throw "Failed to create VM: $VMName"
         }
 
-        Log-Message -Message "Successfully created VM: $VMName" -ForegroundColor Green
+        Write-Log "Successfully created VM: $VMName" -ForegroundColor Green
     } catch {
         throw "Failed to create VM: $VmName with error: $_"
     }
@@ -226,133 +226,53 @@ function Configure-VM {
     )
 
     try {
-        Log-Message "Configuring VM: $VmName"
+        Write-Log "Configuring VM: $VmName"
 
         # Post VM creation configuration steps.
-        Log-Message "Setting VM processor count to $VMCpuCount"
+        Write-Log "Setting VM processor count to $VMCpuCount"
         Set-VMProcessor -VMName $VmName -Count $VMCpuCount
-        Log-Message "Enabling Guest Service Interface"
+        Write-Log "Enabling Guest Service Interface"
         Enable-VMIntegrationService -VMName $VMName -Name 'Guest Service Interface'
 
         # Start the VM
-        Log-Message "Starting VM: $VmName"
+        Write-Log "Starting VM: $VmName"
         Start-VM -Name $VmName
         Wait-ForVMReady -VMName $VmName -VmCredential $VmCredential
 
-        Log-Message "Sleeping for 1 minute to let the VM get into a steady state"
+        Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
         Sleep -Seconds 60
 
         # Copy setup script to the VM and execute it.
-        Log-Message "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
+        Write-Log "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
         Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $VMSetupScript -DestinationPath "$VMWorkingDirectory\$VMSetupScript" -CreateFullPath
         Execute-CommandOnVM -VMName $VmName -VmCredential $VmCredential -Command "cd $VMWorkingDirectory; .\$VMSetupScript"
-        Log-Message "Sleeping for 1 minute to let the VM get into a steady state"
+        Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
         Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
-        Log-Message -Message "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
+        Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
         Wait-ForVMReady -VMName $VmName -VmCredential $VmCredential
 
         # Checkpoint the VM. This can sometimes fail if other operations are in progress.
         for ($i = 0; $i -lt 5; $i += 1) {
             try {
-                Log-Message "Checkpointing VM: $VmName"
+                Write-Log "Checkpointing VM: $VmName"
                 Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
-                Log-Message -Message "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
+                Write-Log "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
                 break
             } catch {
-                Log-Message "Failed to checkpoint VM: $VmName. Retrying..."
+                Write-Log "Failed to checkpoint VM: $VmName. Retrying..."
                 Start-Sleep -Seconds 5
                 continue
             }
         }
 
-        Log-Message "Successfully configured VM: $VmName" -ForegroundColor Green
+        Write-Log "Successfully configured VM: $VmName" -ForegroundColor Green
     } catch {
         throw "Failed to configure VM: $VmName with error: $_"
     }
 }
 
 ########## Helpers for the host machine ##########
-# <#
-# .SYNOPSIS
-#     Helper function to prepare VHD files for VM creation.
-
-# .DESCRIPTION
-#     Unzips any files in given directory and returns a list of VHD and VHDX files in the input directory.
-
-# .PARAMETER BaseVhdDirPath
-#     The base directory containing the VHD files or zip files containing the VHD files.
-
-# .OUTPUTS
-#     System.IO.FileInfo[]
-#     This function returns a list of System.IO.FileInfo[] representing the VHD and VHDX files found in the input directory
-#     after any processing is complete.
-
-# .EXAMPLE
-#     $vhds = Prepare-VhdFiles -BaseVhdDirPath "C:\path\to\vhd\directory"
-# #>
-# function Prepare-VhdFiles {
-#     param(
-#         [Parameter(Mandatory=$True)][string]$BaseVhdDirPath
-#     )
-#     # Unzip any VHDs
-#     Log-Message "Processing VHDs in $BaseVhdDirPath"
-#     $zipFiles = Get-ChildItem -Path $BaseVhdDirPath -Filter *.zip
-#     foreach ($zipFile in $zipFiles) {
-#         Log-Message "Extracting VHDs from $($zipFile.FullName)"
-#         $outDir = Join-Path -Path $BaseVhdDirPath -ChildPath $zipFile.BaseName
-#         if (-not (Test-Path -Path $outDir)) {
-#             $maxRetries = 3
-#             $retryCount = 0
-#             $success = $false
-
-#             while (-not $success -and $retryCount -lt $maxRetries) {
-#                 try {
-#                     Expand-Archive -Path $zipFile.FullName -DestinationPath $outDir
-#                     Log-Message "Successfully extracted $($zipFile.FullName) to $outDir"
-#                     $success = $true
-#                 } catch {
-#                     $retryCount++
-#                     Log-Message "Failed to extract $($zipFile.FullName) on attempt $retryCount with error $_"
-#                     Start-Sleep -Seconds 5  # Wait before retrying
-#                 }
-#             }
-
-#             if (-not $success) {
-#                 throw "Failed to extract $($zipFile.FullName) after $maxRetries attempts"
-#             }
-#         }
-
-#         # Check the extracted files
-#         Get-ChildItem -Path $outDir -Recurse
-
-#         # Move the VHDs to the base directory
-#         $vhdFiles = @()
-#         $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhd -ErrorAction Ignore
-#         $vhdFiles += Get-ChildItem -Path $outDir -Filter *.vhdx -ErrorAction Ignore
-#         foreach ($vhdFile in $vhdFiles) {
-#             if (Test-Path -Path $vhdFile.FullName) {
-#                 Move-Item -Path $vhdFile.FullName -Destination $BaseVhdDirPath
-#             } else {
-#                 Log-Message "File not found: $($vhdFile.FullName)"
-#                 throw "Failed to find extracted VHD file: $($vhdFile.FullName)"
-#             }
-#         }
-#         Log-Message "Successfully processed $($zipFile.FullName)"
-#     }
-
-#     # Get the list of VHDs in the directory.
-#     $vhds = @()
-#     $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhd -ErrorAction Ignore
-#     $vhds += Get-ChildItem -Path $BaseVhdDirPath -Filter *.vhdx -ErrorAction Ignore
-#     if ($vhds.Count -eq 0) {
-#         throw "No VHDs found in $BaseVhdDirPath"
-#     }
-#     Log-Message "Successfully processed VHDs"
-
-#     return $vhds
-# }
-
 <#
 .SYNOPSIS
     Extracts .zip files in the specified directory and returns paths to .vhd and .vhdx files.
@@ -420,7 +340,7 @@ function Create-VMSwitchIfNeeded {
         # Check to see if an external switch already exists
         $ExternalSwitches = (Get-VMSwitch -SwitchType External -ErrorAction Ignore)
         if ($ExternalSwitches -ne $null) {
-            Log-Message -Message "External switch already exists: $($ExternalSwitches[0].Name)"
+            Write-Log "External switch already exists: $($ExternalSwitches[0].Name)"
             return
         }
 
@@ -433,24 +353,24 @@ function Create-VMSwitchIfNeeded {
                     continue
                 }
                 $currSwitchName = $SwitchName + '-' + $index
-                Log-Message "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
+                Write-Log "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
                 New-VMSwitch -Name $currSwitchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
                 $index += 1
             } catch {
-                Log-Message "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
+                Write-Log "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
             }
         }
     } elseif ($SwitchType -eq 'Internal') {
         # Check to see if an internal switch already exists
         $InternalSwitches = (Get-VMSwitch -SwitchType Internal -Name $SwitchName -ErrorAction Ignore)
         if ($InternalSwitches -ne $null) {
-            Log-Message -Message "Internal switch already exists: $($InternalSwitches[0].Name)"
+            Write-Log "Internal switch already exists: $($InternalSwitches[0].Name)"
             return
         }
 
         # Try to create the internal switch
         try {
-            Log-Message "Creating internal switch"
+            Write-Log "Creating internal switch"
             New-VMSwitch -Name $SwitchName -SwitchType Internal
         } catch {
             throw "Failed to create internal switch with error: $_"
@@ -459,5 +379,5 @@ function Create-VMSwitchIfNeeded {
         throw "Invalid switch type: $SwitchType"
     }
 
-    Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
+    Write-Log "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }

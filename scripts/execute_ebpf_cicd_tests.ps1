@@ -18,8 +18,10 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 if ($SelfHostedRunnerName -eq "1ESRunner") {
-    $AdminTestVMCredential =  Get-UserCredential -FilePath 'C:\work\Administrator.xml'
-    $AdminTestVMCredential =  Get-UserCredential -FilePath 'C:\work\VMStandardUser.xml'
+    Get-PSExec
+    $psExecPath = "$pwd\PSExec64.exe"
+    $TestVMCredential = Retrieve-StoredCredential -Target $Target -PsExecPath $psExecPath
+    $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget -PsExecPath $psExecPath
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
     $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop

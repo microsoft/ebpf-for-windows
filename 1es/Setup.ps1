@@ -69,35 +69,14 @@ $StandardUserCredential = Generate-NewCredential -Username 'VMStandardUser' -Pas
 if ($AdminUserCredential -eq $null) {
     throw "Failed to retrieve the Administrator credential."
 } else {
-    Log-Message "Sucessfully retrieved the Administrator credential."
+    Write-Log "Sucessfully retrieved the Administrator credential."
 }
 
 if ($StandardUserCredential -eq $null) {
     throw "Failed to retrieve the VMStandardUser credential."
 } else {
-    Log-Message "Sucessfully retrieved the VMStandardUser credential."
+    Write-Log "Sucessfully retrieved the VMStandardUser credential."
 }
-
-Get-ChildItem -Path 'C:\work' -Recurse
-
-function Get-UserContext {
-    $whoami = whoami
-    $username = $env:USERNAME
-    $userdomain = $env:USERDOMAIN
-    $wmiUser = (Get-WmiObject -Class Win32_ComputerSystem).UserName
-
-    [PSCustomObject]@{
-        WhoAmI      = $whoami
-        UserName    = $username
-        UserDomain  = $userdomain
-        WmiUserName = $wmiUser
-    }
-}
-
-# Run the function
-$user = Get-UserContext
-$userString = $user | Out-String
-Log-Message "User context: $userString"
 
 # Create working directory used for VM creation.
 Create-DirectoryIfNotExists -Path $WorkingPath
@@ -108,14 +87,14 @@ Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 
 # Unzip any VHD files, if needed, and get the list of VHDs to create VMs from.
 $vhds = Prepare-VhdFiles -InputDirectory $BaseVhdDirPath
-Log-Message "Found $($vhds.Count) VHDs to create VMs from."
+Write-Log "Found $($vhds.Count) VHDs to create VMs from."
 $vhdDebugString = $vhds | Out-String
-Log-Message "VHDs: $vhdDebugString"
+Write-Log "VHDs: $vhdDebugString"
 
 # Process VM creation and setup.
 foreach ($vhd in $vhds) {
     try {
-        Log-Message -Message "Creating VM from VHD: $vhd"
+        Write-Log "Creating VM from VHD: $vhd"
         $vmName = "runner_vm"
         if ($i -gt 0) {
             $vmName += "_$i"
@@ -137,9 +116,9 @@ foreach ($vhd in $vhds) {
             -VmCredential $AdminUserCredential `
             -VMCpuCount $VMCpuCount
 
-        Log-Message "VM $vmName created successfully"
+        Write-Log "VM $vmName created successfully"
     } catch {
-        Log-Message "Failed to create VM $vmName with error $_"
+        Write-Log "Failed to create VM $vmName with error $_"
         throw "Failed to create VM $vmName with error $_"
     }
 }
@@ -150,4 +129,4 @@ if ($vms.Count -eq 0) {
     Exit 1
 }
 
-Log-Message "Setup.ps1 complete!"
+Write-Log "Setup.ps1 complete!"
