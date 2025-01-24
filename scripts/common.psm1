@@ -252,9 +252,11 @@ function Retrieve-StoredCredential {
             throw "PsExec failed with exit code $($process.ExitCode). Error: $error"
         }
 
+        Write-Host "Output: $output"
         $lines = $output -split "`n"
         $Username = $lines[0].Trim()
         $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
+        Write-Host "Username: $Username Password: $Password"
         return [System.Management.Automation.PSCredential]::new($Username, $Password)
     } catch {
         throw "An error occurred while retrieving the credential: $_"
