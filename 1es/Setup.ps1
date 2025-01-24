@@ -36,9 +36,6 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Import helper functions
-Import-Module .\prepare_vm_helpers.psm1 -Force
-
 # Input validation for input paths
 if (-not (Test-Path -Path $BaseUnattendPath)) {
     throw "Unattend file not found at $BaseUnattendPath"
@@ -48,16 +45,25 @@ if (-not (Test-Path -Path $BaseVhdDirPath)) {
     throw "VHD directory not found at $BaseVhdDirPath"
 }
 
-# Create working directory used for VM creation.
-Create-DirectoryIfNotExists -Path $WorkingPath
+# Import helper functions
+$logFileName = 'Setup.log'
+Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
+$adminPassword = New-UniquePassword
+$adminSecureString = ConvertTo-SecureString -String $adminPassword -AsPlainText -Force
+$standardUserPassword = New-UniquePassword
+Import-Module .\prepare_vm_helpers.psm1 -Force -WarningAction SilentlyContinue
+Import-Module .\config_test_vm.psm1 -Force -ArgumentList('Administrator', $adminSecureString, 'C:\work', $logFileName) -WarningAction SilentlyContinue
 
-# Create internal switch for VM.
-$VMSwitchName = 'VMInternalSwitch'
-Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
+Get-PSExec
+if (-not (Test-Path -Path "$pwd\PSExec64.exe")) {
+    throw "PSExec64.exe not found in the current directory."
+}
+$psExecPath = "$pwd\PSExec64.exe"
+
 
 # Create new credentials for the VM.
-$AdminUserCredential =  Get-NewUserCredential -Username 'Administrator'
-$StandardUserCredential = Get-NewUserCredential -Username 'VMStandardUser'
+$AdminUserCredential =  Generate-NewCredential -Username 'Administrator' -Password $adminPassword -Target 'TEST_VM' -PsExecPath $psExecPath
+$StandardUserCredential = Generate-NewCredential -Username 'VMStandardUser' -Password $standardUserPassword -Target 'TEST_VM_STANDARD' -PsExecPath $psExecPath
 
 # TODO - remove this debugging output.
 if ($AdminUserCredential -eq $null) {
@@ -92,6 +98,13 @@ function Get-UserContext {
 $user = Get-UserContext
 $userString = $user | Out-String
 Log-Message "User context: $userString"
+
+# Create working directory used for VM creation.
+Create-DirectoryIfNotExists -Path $WorkingPath
+
+# Create internal switch for VM.
+$VMSwitchName = 'VMInternalSwitch'
+Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 
 # Unzip any VHD files, if needed, and get the list of VHDs to create VMs from.
 $vhds = Prepare-VhdFiles -InputDirectory $BaseVhdDirPath

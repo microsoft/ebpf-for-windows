@@ -768,11 +768,14 @@ function Get-CoreNetTools {
 
 # Download and extract PSExec to run tests as SYSTEM.
 function Get-PSExec {
+    # Check to see if PSExec already exists
+    if (Test-Path -Path "$pwd\PsExec64.exe") {
+        return
+    }
     $url = "https://download.sysinternals.com/files/PSTools.zip"
     $DownloadPath = "$pwd\psexec"
 
     Get-ZipFileFromUrl -Url $url -DownloadFilePath "$pwd\pstools.zip" -OutputDir "$DownloadPath"
-    cd ..
     Move-Item -Path "$DownloadPath\PsExec64.exe" -Destination $pwd -Force
     Remove-Item -Path $DownloadPath -Force -Recurse -ErrorAction Ignore
 }

@@ -4,102 +4,6 @@ $ErrorActionPreference = "Stop"
 
 <#
 .SYNOPSIS
-    Helper function to format a log message with a timestamp and outputs the message to the console.
-
-.DESCRIPTION
-    This function formats a log message with a timestamp and outputs the message to the console.
-
-.PARAMETER Message
-    The message to log.
-
-.PARAMETER ForegroundColor
-    The color of the text to display in the console. Defaults to 'White'.
-
-.EXAMPLE
-    Log-Message -Message "This is a log message"
-    Log-Message -Message "This is a success log message" -ForegroundColor "Green"
-    Log-Message -Message "This is an error log message" -ForegroundColor "Red"
-#>
-function Log-Message {
-    param(
-        [Parameter(Mandatory=$True)][string]$Message,
-        [Parameter(Mandatory=$False)][string]$ForegroundColor='White'
-    )
-
-    # Get timestamp
-    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-
-    Write-Host "[$timestamp] - $Message" -ForegroundColor $ForegroundColor
-}
-
-<#
-.SYNOPSIS
-    Helper function to create a directory if it does not already exist.
-
-.DESCRIPTION
-    This function checks if a directory exists at the specified path. If it does not exist, it creates the directory.
-
-.PARAMETER Path
-    The path of the directory to create.
-
-.EXAMPLE
-    Create-DirectoryIfNotExists -Path "C:\MyDirectory"
-#>
-function Create-DirectoryIfNotExists {
-    param (
-        [Parameter(Mandatory=$True)][string]$Path
-    )
-
-    try {
-        if (-not (Test-Path -Path $Path -PathType Container)) {
-            New-Item -Path $Path -ItemType Directory -Force # -ErrorAction Ignore | Out-Null
-        }
-
-        if (-not (Test-Path -PathType Container $Path)) {
-            throw "Failed to create directory: $Path"
-        }
-    } catch {
-        throw "Failed to create directory: $Path with error $_"
-    }
-}
-
-<#
-.SYNOPSIS
-    Helper function to replace placeholder strings in a file.
-
-.DESCRIPTION
-    This function replaces all occurrences of a specified search string with a replacement string in a file.
-
-.PARAMETER FilePath
-    The path to the file in which to replace the placeholder strings.
-
-.PARAMETER SearchString
-    The string to search for in the file.
-
-.PARAMETER ReplaceString
-    The string to replace the search string with.
-
-.EXAMPLE
-    Replace-PlaceholderStrings -FilePath "C:\MyFile.txt" -SearchString "PLACEHOLDER" -ReplaceString "ActualValue"
-#>
-function Replace-PlaceholderStrings {
-    param (
-        [Parameter(Mandatory=$True)][string]$FilePath,
-        [Parameter(Mandatory=$True)][string]$SearchString,
-        [Parameter(Mandatory=$True)][string]$ReplaceString
-    )
-
-    try {
-        $content = Get-Content -Path $FilePath
-        $content = $content -replace $SearchString, $ReplaceString
-        Set-Content -Path $FilePath -Value $content
-    } catch {
-        throw "Failed to replace placeholder strings in file: $FilePath. Error: $_"
-    }
-}
-
-<#
-.SYNOPSIS
     Helper function to execute a command on a VM.
 
 .DESCRIPTION
@@ -122,12 +26,12 @@ function Execute-CommandOnVM {
     )
 
     try {
-        Log-Message "Executing command on VM: $VMName. Command: $Command"
+        Write-Log "Executing command on VM: $VMName. Command: $Command"
         $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
             param($Command)
             Invoke-Expression $Command
         } -ArgumentList $Command
-        Log-Message -Message "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
+        Write-Log -Message "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
     } catch {
         throw "Failed to execute command on VM: $VMName with error: $_"
     }
@@ -556,73 +460,4 @@ function Create-VMSwitchIfNeeded {
     }
 
     Log-Message "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
-}
-
-<#
-.SYNOPSIS
-    Reads a PSCredential object from an XML file.
-
-.DESCRIPTION
-    This function takes a username as input, reads the corresponding XML file,
-    and returns the PSCredential object stored in that file.
-
-.PARAMETER FilePath
-    The FilePath for which the PSCredential object will be read.
-
-.EXAMPLE
-    $cred = Get-UserCredential -FilePath "C:\Administrator.xml"
-    This example reads the PSCredential object from the file "C:\Administrator.xml".
-#>
-function Get-UserCredential {
-    param (
-        [string]$FilePath
-    )
-    # Check if the file exists
-    if (-Not (Test-Path -Path $FilePath)) {
-        throw "The file $FilePath does not exist."
-    }
-
-    # Import the credential from the XML file
-    $Credential = Import-Clixml -Path $FilePath
-
-    # Return the PSCredential object
-    return $Credential
-}
-
-<#
-.SYNOPSIS
-    Creates a PSCredential object with a randomly generated password and exports it to an XML file.
-
-.DESCRIPTION
-    This function takes a username as input, generates a random password, converts it to a secure string,
-    creates a PSCredential object, and exports the credential to an XML file named after the username.
-
-.PARAMETER Username
-    The username for which the PSCredential object will be created.
-
-.EXAMPLE
-    $cred = Get-NewUserCredential -Username "exampleUser"
-    This example creates a PSCredential object for the user "exampleUser" and exports it to "exampleUser.xml".
-#>
-function Get-NewUserCredential {
-    param (
-        [string]$Username
-    )
-
-    # Generate a random password of 12 characters
-    $PasswordLength = 12
-    $Password = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count $PasswordLength | ForEach-Object {[char]$_})
-
-    # Convert the password to a secure string
-    $SecurePassword = ConvertTo-SecureString $Password -AsPlainText -Force
-
-    # Create the PSCredential object with the username and secure password
-    $Credential = New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
-
-    # Export the credential to an XML file named after the username
-    $FilePath = ".\$($Username).xml"
-    $Credential | Export-Clixml -Path $FilePath
-
-    # Obtain the credential back to ensure it was exported correctly
-    return Get-UserCredential -FilePath $FilePath
 }
