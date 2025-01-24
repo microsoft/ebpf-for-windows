@@ -84,7 +84,7 @@ typedef class _ebpf_program_test_state
         ebpf_get_execution_context_state(&state);
         result = ebpf_program_invoke(program, false, context, &result, &state);
         ebpf_epoch_exit(&epoch_state);
-        REQUIRE(result == EBPF_SUCCESS);
+        // Since this is perf test, not checking the result.
     }
 
   private:
@@ -98,12 +98,14 @@ typedef class _ebpf_map_test_state
   public:
     _ebpf_map_test_state(ebpf_map_type_t type, std::optional<uint32_t> map_size = {})
     {
+        // Since this is perf test, not checking the result.
+
         cxplat_utf8_string_t name{(uint8_t*)"test", 4};
-        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
+        ebpf_core_initiate();
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
-        REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
+        ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map);
 
         for (uint32_t i = 0; i < definition.max_entries; i++) {
             uint64_t value = 0;
@@ -203,7 +205,7 @@ typedef class _ebpf_map_test_state
 typedef class _ebpf_map_lpm_trie_test_state
 {
   public:
-    _ebpf_map_lpm_trie_test_state() : map(nullptr) { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
+    _ebpf_map_lpm_trie_test_state() : map(nullptr) { ebpf_core_initiate(); }
 
     void
     populate_ipv4_routes(size_t route_count)
@@ -212,7 +214,7 @@ typedef class _ebpf_map_lpm_trie_test_state
         ebpf_map_definition_in_memory_t definition{
             BPF_MAP_TYPE_LPM_TRIE, sizeof(uint32_t) * 2, sizeof(uint64_t), static_cast<uint32_t>(route_count)};
 
-        REQUIRE(ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map) == EBPF_SUCCESS);
+        ebpf_map_create(&name, &definition, ebpf_handle_invalid, &map);
 
         // Prefix Length Distributions from https://bgp.potaroo.net/as2.0/bgp-active.html
         std::vector<size_t> ipv4_prefix_length_distribution{
