@@ -72,10 +72,8 @@ $Job = Start-Job -ScriptBlock {
            [parameter(Mandatory = $true)] [bool] $KmTracing,
            [parameter(Mandatory = $true)] [string] $KmTraceType
     )
-    Write-Log "Starting the setup job."
     Push-Location $WorkingDirectory
 
-    Write-Log "Importing modules."
     # Load other utility modules.
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
@@ -83,28 +81,23 @@ $Job = Start-Job -ScriptBlock {
     $VMList = $Config.VMMap.$SelfHostedRunnerName
 
     # Get all VMs to ready state.
-    Write-Log "Initializing all VMs."
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
     # Export build artifacts to the test VMs.
-    Write-Log "Exporting build artifacts to VM"
     Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
 
     # Configure network adapters on VMs.
-    Write-Log "Configuring network interfaces on VMs."
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 
     # Install eBPF Components on the test VM.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Write-Log "Installing eBPF components on VM: $VMName"
         Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
     }
 
     # Log OS build information on the test VM.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
-        Write-Log "Logging OS build information on VM: $VMName"
         Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
     }
 
