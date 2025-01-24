@@ -620,7 +620,7 @@ function Get-NewUserCredential {
     $Credential = New-Object System.Management.Automation.PSCredential ($Username, $SecurePassword)
 
     # Export the credential to an XML file named after the username
-    $FilePath = ".\$Username.xml"
+    $FilePath = ".\$($Username).xml"
     $Credential | Export-Clixml -Path $FilePath
 
     # Obtain the credential back to ensure it was exported correctly

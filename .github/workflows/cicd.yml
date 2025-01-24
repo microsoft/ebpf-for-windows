@@ -246,8 +246,8 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -SelfHostedRunnerName '1ESRunner'
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -SelfHostedRunnerName '1ESRunner'
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -SelfHostedRunnerName '1ESRunner'
       name: driver_ws2025
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025"]'

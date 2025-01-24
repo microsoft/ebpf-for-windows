@@ -59,6 +59,7 @@ Create-VMSwitchIfNeeded -SwitchName $VMSwitchName -SwitchType 'Internal'
 $AdminUserCredential =  Get-NewUserCredential -Username 'Administrator'
 $StandardUserCredential = Get-NewUserCredential -Username 'VMStandardUser'
 
+# TODO - remove this debugging output.
 if ($AdminUserCredential -eq $null) {
     throw "Failed to retrieve the Administrator credential."
 } else {
@@ -71,7 +72,8 @@ if ($StandardUserCredential -eq $null) {
     Log-Message "Sucessfully retrieved the VMStandardUser credential."
 }
 
-# TODO - remove this debugging output.
+Get-ChildItem -Path 'C:\work' -Recurse
+
 function Get-UserContext {
     $whoami = whoami
     $username = $env:USERNAME
