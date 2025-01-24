@@ -639,7 +639,6 @@ sock_addr_thread_function(
             (*failure_count)++;
             break;
         }
-        // REQUIRE((result == _get_fwp_sock_addr_action(port_number) || fault_injection_enabled));
     }
 }
 

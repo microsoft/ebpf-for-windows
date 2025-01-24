@@ -70,6 +70,16 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
     uint32_t count{0};
     using sc = std::chrono::steady_clock;
     auto endtime = sc::now() + std::chrono::minutes(test_params.duration_minutes);
+    int bpf_error = 0;
+    ebpf_result_t ebpf_result = EBPF_SUCCESS;
+
+    auto log_error_and_increment_failure_count = [&](int error, const char* function_name) {
+        LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
+        (*test_params.failure_count)++;
+
+        return;
+    };
+
     while (sc::now() < endtime) {
 
         LOG_VERBOSE(
@@ -78,7 +88,7 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
         auto [result, _] = _program_load(test_params.file_name, test_params.program_type, test_params.execution_type);
         if (std::holds_alternative<int>(result)) {
             auto error = std::get<int>(result);
-            REQUIRE(error == 0);
+            log_error_and_increment_failure_count(error, "_program_load");
         }
 
         const auto& local_program_object_info = std::get<program_object_info>(result);
@@ -86,40 +96,50 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
         // Set up tail calls.
         struct bpf_program* callee0 =
             bpf_object__find_program_by_name(local_program_object_info.object.get(), "BindMonitor_Callee0");
-        REQUIRE(callee0 != nullptr);
+        if (callee0 == nullptr) {
+            log_error_and_increment_failure_count(-1, "bpf_object__find_program_by_name(BindMonitor_Callee0)");
+        }
         fd_t callee0_fd = bpf_program__fd(callee0);
-        REQUIRE(callee0_fd > 0);
+        log_error_and_increment_failure_count(callee0_fd, "bpf_program__fd(BindMonitor_Callee0)");
 
         struct bpf_program* callee1 =
             bpf_object__find_program_by_name(local_program_object_info.object.get(), "BindMonitor_Callee1");
-        REQUIRE(callee1 != nullptr);
+        if (callee1 == nullptr) {
+            log_error_and_increment_failure_count(-1, "bpf_object__find_program_by_name(BindMonitor_Callee1)");
+        }
         fd_t callee1_fd = bpf_program__fd(callee1);
-        REQUIRE(callee1_fd > 0);
+        log_error_and_increment_failure_count(callee1_fd, "bpf_program__fd(BindMonitor_Callee1)");
 
         fd_t prog_map_fd = bpf_object__find_map_fd_by_name(local_program_object_info.object.get(), "prog_array_map");
-        REQUIRE(prog_map_fd > 0);
+        log_error_and_increment_failure_count(prog_map_fd, "bpf_object__find_map_fd_by_name(prog_array_map)");
 
         // Set up tail calls.
         uint32_t index = 0;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0) == 0);
+        bpf_error = bpf_map_update_elem(prog_map_fd, &index, &callee0_fd, 0);
+        log_error_and_increment_failure_count(bpf_error, "bpf_map_update_elem(prog_array_map, callee0_fd)");
         index = 1;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0) == 0);
+        bpf_error = bpf_map_update_elem(prog_map_fd, &index, &callee1_fd, 0);
+        log_error_and_increment_failure_count(bpf_error, "bpf_map_update_elem(prog_array_map, callee1_fd)");
 
         // Attach and detach link.
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
-        REQUIRE(hook.initialize() == EBPF_SUCCESS);
+        ebpf_result = hook.initialize();
+        log_error_and_increment_failure_count(ebpf_result, "hook.initialize()");
         uint32_t ifindex = test_params.thread_index;
         bpf_link* link = nullptr;
-        REQUIRE(hook.attach_link(local_program_object_info.fd, &ifindex, sizeof(ifindex), &link) == EBPF_SUCCESS);
+        ebpf_result = hook.attach_link(local_program_object_info.fd, &ifindex, sizeof(ifindex), &link);
+        log_error_and_increment_failure_count(ebpf_result, "hook.attach_link()");
 
         hook.detach_link(link);
         hook.close_link(link);
 
         // Tear down tail calls.
         index = 0;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+        bpf_error = bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0);
+        log_error_and_increment_failure_count(bpf_error, "bpf_map_update_elem(prog_array_map, ebpf_fd_invalid)");
         index = 1;
-        REQUIRE(bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0) == 0);
+        bpf_error = bpf_map_update_elem(prog_map_fd, &index, &ebpf_fd_invalid, 0);
+        log_error_and_increment_failure_count(bpf_error, "bpf_map_update_elem(prog_array_map, ebpf_fd_invalid)");
     }
 
     LOG_INFO("{} done. Iterations: {}", test_params.file_name.c_str(), count);
@@ -129,8 +149,13 @@ static void
 _droppacket_stress_thread_function(const stress_test_thread_context& test_params)
 {
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_XDP, EBPF_ATTACH_TYPE_XDP);
-    REQUIRE(hook.initialize() == EBPF_SUCCESS);
-    UNREFERENCED_PARAMETER(test_params);
+    if (hook.initialize() != EBPF_SUCCESS) {
+        LOG_ERROR("{}({}): hook.initialize() failed.", __func__, test_params.thread_index);
+        (*test_params.failure_count)++;
+        return;
+    }
+    int ebpf_error = 0;
+    ebpf_result_t ebpf_result = EBPF_SUCCESS;
     uint32_t count{0};
     using sc = std::chrono::steady_clock;
     auto endtime = sc::now() + std::chrono::minutes(test_params.duration_minutes);
@@ -139,10 +164,17 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
         LOG_VERBOSE(
             "{}({}): Instantiating _program_load. Iteration #: {}", __func__, test_params.thread_index, count++);
 
+        auto log_error_and_increment_failure_count = [&](int error, const char* function_name) {
+            LOG_ERROR("{}({}): {} failed with error: {}", __func__, test_params.thread_index, function_name, error);
+            (*test_params.failure_count)++;
+
+            return;
+        };
+
         auto [result, _] = _program_load(test_params.file_name, test_params.program_type, test_params.execution_type);
         if (std::holds_alternative<int>(result)) {
             auto error = std::get<int>(result);
-            REQUIRE(error == 0);
+            log_error_and_increment_failure_count(error, "_program_load");
         }
 
         const auto& local_program_object_info = std::get<program_object_info>(result);
@@ -156,29 +188,55 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
         // different purpose, the 'thread_index' member of the test_params struct happens to fit this requirement,
         // so we use it here as well.
         uint32_t if_index = test_params.thread_index;
-        REQUIRE(bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY) == EBPF_SUCCESS);
+        ebpf_error = bpf_map_update_elem(interface_index_map_fd, &key, &if_index, EBPF_ANY);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_update_elem(interface_index_map_fd)");
 
         // Attach only to the single interface being tested.
         bpf_link* link = nullptr;
-        REQUIRE(hook.attach_link(local_program_object_info.fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
+        ebpf_result = hook.attach_link(local_program_object_info.fd, &if_index, sizeof(if_index), &link);
+        log_error_and_increment_failure_count(ebpf_result, "hook.attach_link()");
 
         // Do a basic map i/o test.
         fd_t dropped_packet_map_fd =
             bpf_object__find_map_fd_by_name(local_program_object_info.object.get(), "dropped_packet_map");
-        REQUIRE(dropped_packet_map_fd > 0);
+        log_error_and_increment_failure_count(dropped_packet_map_fd, "bpf_object__find_map_fd_by_name()");
 
         key = 0;
         uint64_t value = 1000;
-        REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
-        REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
-        REQUIRE(value == 1000);
+        ebpf_error = bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_update_elem(dropped_packet_map_fd)");
+
+        ebpf_error = bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_lookup_elem(dropped_packet_map_fd)");
+
+        if (value != 1000) {
+            LOG_ERROR(
+                "{}({}): bpf_map_lookup_elem(dropped_packet_map_fd) returned unexpected value: {}",
+                __func__,
+                test_params.thread_index,
+                value);
+            (*test_params.failure_count)++;
+
+            return;
+        }
 
         // Do some more basic validations.
-        REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
+        ebpf_error = bpf_map_delete_elem(dropped_packet_map_fd, &key);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_delete_elem(dropped_packet_map_fd)");
 
-        REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
-        REQUIRE(value == 0);
+        ebpf_error = bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value);
+        log_error_and_increment_failure_count(ebpf_error, "bpf_map_lookup_elem(dropped_packet_map_fd)");
+        if (value != 0) {
+            LOG_ERROR(
+                "{}({}): bpf_map_lookup_elem(dropped_packet_map_fd) returned unexpected value: {}",
+                __func__,
+                test_params.thread_index,
+                value);
+            (*test_params.failure_count)++;
+
+            return;
+        }
 
         // Detach link.
         hook.detach_link(link);
@@ -317,6 +375,7 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
 
     std::vector<stress_test_thread_context> test_thread_contexts{};
     std::vector<std::thread> test_threads{};
+    std::atomic<size_t> failure_count{0};
 
     for (const auto& program : _test_control_info.programs) {
 
@@ -327,6 +386,7 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
         local_context.program_type = program_attributes.program_type;
         local_context.execution_type = program_attributes.execution_type;
         local_context.duration_minutes = _test_control_info.duration_minutes;
+        local_context.failure_count = &failure_count;
 
         // ...And spawn the required test threads.
         auto [tv, ttc] = spawn_test_threads(
@@ -344,4 +404,6 @@ TEST_CASE("load_attach_detach_unload_sequential_test", "[mt_stress_test]")
     for (auto& t : test_threads) {
         t.join();
     }
+
+    REQUIRE(failure_count == 0);
 }

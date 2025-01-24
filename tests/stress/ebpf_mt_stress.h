@@ -85,6 +85,7 @@ struct stress_test_thread_context
     uint32_t duration_minutes{0};
     fd_t map_fd;
     ebpf_result_t result;
+    std::atomic<size_t>* failure_count;
 };
 
 using test_thread_function_t = void (*)(const stress_test_thread_context& test_params);
