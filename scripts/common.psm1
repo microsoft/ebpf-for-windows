@@ -229,7 +229,11 @@ function Retrieve-StoredCredential {
         [Parameter(Mandatory=$True)][string]$Target
     )
 
+    Get-CredentialManager
     $PSExecPath = Get-PSExec
+    if (-not (Test-Path $PSExecPath)) {
+        throw "PsExec not found at $PSExecPath"
+    }
 
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
@@ -291,6 +295,9 @@ function Generate-NewCredential {
     )
     Get-CredentialManager
     $PSExecPath = Get-PSExec
+    if (-not (Test-Path $PSExecPath)) {
+        throw "PsExec not found at $PSExecPath"
+    }
 
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
