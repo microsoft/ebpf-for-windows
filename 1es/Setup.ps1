@@ -40,7 +40,7 @@ $ErrorActionPreference = "Stop"
 $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
 $password = New-UniquePassword
-$passwordSecureString = ConvertTo-SecureString -String $adminPassword -AsPlainText -Force
+$passwordSecureString = ConvertTo-SecureString -String $password -AsPlainText -Force
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList('Administrator', $passwordSecureString, 'C:\work', $logFileName) -WarningAction SilentlyContinue
 
 # Create new credentials for the VM.

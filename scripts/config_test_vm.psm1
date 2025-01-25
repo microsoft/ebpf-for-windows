@@ -781,8 +781,7 @@ function Initialize-VM {
 #>
 function Prepare-VhdFiles {
     param (
-        [Parameter(Mandatory=$true)]
-        [string]$InputDirectory
+        [Parameter(Mandatory=$true)][string]$InputDirectory
     )
 
     try {

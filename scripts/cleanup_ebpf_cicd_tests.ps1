@@ -14,6 +14,9 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 if ($SelfHostedRunnerName -eq "1ESRunner") {
     $TestVMCredential = Retrieve-StoredCredential -Target $Target
+    if ($null -eq $TestVMCredential) {
+        ThrowWithErrorMessage "Failed to retrieve the test VM credential."
+    }
 } else {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 }
