@@ -604,6 +604,9 @@ function Execute-CommandOnVM {
 .PARAMETER VmName
     The name of the VM to create.
 
+.PARAMETER UserPassword
+    The plain text password to use for the user accounts on the VM.
+
 .PARAMETER VhdPath
     The path to the VHD file to use for the VM.
 
