@@ -153,6 +153,7 @@ TEST_CASE("xdp_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto xdp_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
+    REQUIRE(xdp_program_data != nullptr);
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
@@ -260,6 +261,7 @@ TEST_CASE("bind_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto bind_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_BIND);
+    REQUIRE(bind_program_data != nullptr);
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
@@ -791,6 +793,7 @@ TEST_CASE("sock_addr_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto sock_addr_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    REQUIRE(sock_addr_program_data != nullptr);
 
     size_t output_data_size = 0;
     bpf_sock_addr_t input_context = {
@@ -910,6 +913,7 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto sock_ops_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_SOCK_OPS);
+    REQUIRE(sock_ops_program_data != nullptr);
 
     size_t output_data_size = 0;
     bpf_sock_ops_t input_context = {
