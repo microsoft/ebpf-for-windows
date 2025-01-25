@@ -231,8 +231,8 @@ function Retrieve-StoredCredential {
 
     Get-CredentialManager
     $PSExecPath = Get-PSExec
-    if (-not (Test-Path $PSExecPath)) {
-        throw "PsExec not found at $PSExecPath"
+    if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
+        throw "Failed to retrieve PsExec path."
     }
 
     $Script = @"
@@ -295,8 +295,8 @@ function Generate-NewCredential {
     )
     Get-CredentialManager
     $PSExecPath = Get-PSExec
-    if (-not (Test-Path $PSExecPath)) {
-        throw "PsExec not found at $PSExecPath"
+    if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
+        throw "Failed to retrieve PsExec path."
     }
 
     $Script = @"
@@ -317,7 +317,7 @@ function Generate-NewCredential {
         }
 
         # Use the Retrieve-StoredCredential function to verify that the credential was stored correctly.
-        return (Retrieve-StoredCredential -PsExecPath $PsExecPath -Target $Target)
+        return (Retrieve-StoredCredential -Target $Target)
     } catch {
         throw "An error occurred while storing the credential: $_"
     } finally {
