@@ -79,7 +79,6 @@ foreach ($vhd in $vhds) {
 
         Initialize-VM `
             -VmName $vmName `
-            -UserPassword $password `
             -VMCpuCount $VMCpuCount
 
         Write-Log "VM $vmName created successfully"

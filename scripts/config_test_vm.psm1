@@ -637,6 +637,7 @@ function Create-VM {
     )
 
     try {
+        Write-Log "Creating VM: with Name: $VmName Password: $UserPassword VhdPath: $VhdPath VmStoragePath: $VmStoragePath Memory: $VMMemory UnattendPath: $UnattendPath VMSwitchName: $VmSwitchName"
         ## Check for any pre-requisites
         # Check that the VHD exists
         if (-not (Test-Path -Path $VhdPath)) {
