@@ -473,18 +473,22 @@ GlueDeviceIoControl(
     unsigned long sharedBufferSize = (input_buffer_size > output_buffer_size) ? input_buffer_size : output_buffer_size;
     const void* local_input_buffer = nullptr;
     void* local_output_buffer = nullptr;
+    std::vector<uint8_t> synchronousBuffer;
+    std::vector<uint8_t>& sharedBuffer = synchronousBuffer;
 
     // To correctly emulate the kernel execution context, we need to use the same buffer
     // for both input and output.  So we allocate a buffer that is large enough to hold
     // either the input or output, and then use that buffer for both.
     if (overlapped) {
         std::unique_lock lock(_overlapped_buffers_mutex);
-        REQUIRE(_overlapped_buffers.find(overlapped) == _overlapped_buffers.end());
+        if (_overlapped_buffers.find(overlapped) != _overlapped_buffers.end()) {
+            result = EBPF_INVALID_ARGUMENT;
+            goto Fail;
+        }
         _overlapped_buffers[overlapped] = {{}, (uint8_t*)output_buffer, output_buffer_size};
     }
-    std::vector<uint8_t> synchronousBuffer;
 
-    std::vector<uint8_t>& sharedBuffer = overlapped ? _overlapped_buffers[overlapped].buffer : synchronousBuffer;
+    sharedBuffer = overlapped ? _overlapped_buffers[overlapped].buffer : synchronousBuffer;
 
     sharedBuffer.resize(sharedBufferSize);
 
