@@ -208,3 +208,12 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
  */
 net_ebpf_extension_hook_attach_capability_t
 net_ebpf_extension_hook_provider_get_attach_capability(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
+
+/**
+ * @brief Remove the filter context from the zombie list.
+ *
+ * @param filter_context Filter context to remove from the zombie list.
+ */
+void
+net_ebpf_extension_hook_provider_remove_filter_context_from_zombie_list(
+    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);

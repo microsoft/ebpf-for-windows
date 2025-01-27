@@ -303,7 +303,7 @@
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(KernelConfiguration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(KernelConfiguration) -KernelMode $true -Verbose
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(Configuration) -KernelMode $false
         popd
       </Command>

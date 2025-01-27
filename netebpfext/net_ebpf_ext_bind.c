@@ -136,7 +136,9 @@ _net_ebpf_ext_bind_create_filter_context(
     local_filter_context = NULL;
 
 Exit:
-    CLEAN_UP_FILTER_CONTEXT(local_filter_context);
+    if (local_filter_context != NULL) {
+        CLEAN_UP_FILTER_CONTEXT(local_filter_context);
+    }
 
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
