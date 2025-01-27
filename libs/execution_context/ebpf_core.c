@@ -2199,12 +2199,6 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
     ebpf_result_t retval;
     uint8_t* value;
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return NULL;
-    }
-
     retval = ebpf_map_find_entry(map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER);
     if (retval != EBPF_SUCCESS) {
         return NULL;
@@ -2216,22 +2210,12 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 static int64_t
 _ebpf_core_map_update_element(ebpf_map_t* map, const uint8_t* key, const uint8_t* value, uint64_t flags)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
     return -ebpf_map_update_entry(map, 0, key, 0, value, flags, EBPF_MAP_FLAG_HELPER);
 }
 
 static int64_t
 _ebpf_core_map_delete_element(ebpf_map_t* map, const uint8_t* key)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
     return -ebpf_map_delete_entry(map, 0, key, EBPF_MAP_FLAG_HELPER);
 }
 
@@ -2240,11 +2224,6 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 {
     ebpf_result_t retval;
     uint8_t* value;
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return NULL;
-    }
     retval = ebpf_map_find_entry(
         map, 0, key, sizeof(&value), (uint8_t*)&value, EBPF_MAP_FLAG_HELPER | EBPF_MAP_FIND_FLAG_DELETE);
     if (retval != EBPF_SUCCESS) {
@@ -2257,12 +2236,6 @@ _ebpf_core_map_find_and_delete_element(_Inout_ ebpf_map_t* map, _In_ const uint8
 static int64_t
 _ebpf_core_tail_call(void* context, ebpf_map_t* map, uint32_t index)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
-
     // Get program from map[index].
     ebpf_program_t* callee = ebpf_map_get_program_from_entry(map, sizeof(index), (uint8_t*)&index);
     if (callee == NULL) {
@@ -2510,12 +2483,6 @@ static int
 _ebpf_core_ring_buffer_output(
     _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length, uint64_t flags)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
-
     // This function implements bpf_ringbuf_output helper function, which returns negative error in case of failure.
     UNREFERENCED_PARAMETER(flags);
     return -ebpf_ring_buffer_map_output(map, data, length);
@@ -2524,33 +2491,18 @@ _ebpf_core_ring_buffer_output(
 static int
 _ebpf_core_map_push_elem(_Inout_ ebpf_map_t* map, _In_ const uint8_t* value, uint64_t flags)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
     return -ebpf_map_push_entry(map, 0, value, (int)flags | EBPF_MAP_FLAG_HELPER);
 }
 
 static int
 _ebpf_core_map_pop_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
     return -ebpf_map_pop_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
 static int
 _ebpf_core_map_peek_elem(_Inout_ ebpf_map_t* map, _Out_ uint8_t* value)
 {
-    // Workadound for bug (https://github.com/microsoft/ebpf-for-windows/issues/4017) in bpf2c_fuzzer that crashes with
-    // null map pointer. Remove when fixed.
-    if (map == NULL) {
-        return -EBPF_INVALID_ARGUMENT;
-    }
     return -ebpf_map_peek_entry(map, 0, value, EBPF_MAP_FLAG_HELPER);
 }
 
@@ -2675,65 +2627,62 @@ typedef struct _ebpf_protocol_handler
 #define PROTOCOL_ALL_MODES PROTOCOL_NATIVE_MODE
 #endif
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS)             \
-    {                                                                                 \
-        EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY, (void*)_ebpf_core_protocol_##OPERATION, \
-            sizeof(ebpf_operation_##OPERATION##_request_t), .flags.value = FLAGS      \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                              \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                      \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(OPERATION, FLAGS)                              \
-    {                                                                                                     \
-        EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY, (void*)_ebpf_core_protocol_##OPERATION,                  \
-            sizeof(ebpf_operation_##OPERATION##_request_t), sizeof(ebpf_operation_##OPERATION##_reply_t), \
-            .flags.value = FLAGS                                                                          \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                 \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                         \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                           \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REPLY, FLAGS)        \
-    {                                                                                                  \
-        EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY, (void*)_ebpf_core_protocol_##OPERATION,            \
-            sizeof(ebpf_operation_##OPERATION##_request_t),                                            \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REPLY, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_VARIABLE_REPLY,                                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                    \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                                            \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),                      \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS)             \
-    {                                                                                                      \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY, (void*)_ebpf_core_protocol_##OPERATION,                   \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST), .flags.value = FLAGS \
-    }
+#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY,                                                  \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                   \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                 \
+     .flags.value = FLAGS}
 
 #define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(OPERATION, VARIABLE_REQUEST, FLAGS) \
-    {                                                                                             \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY, (void*)_ebpf_core_protocol_##OPERATION,       \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),             \
-            sizeof(ebpf_operation_##OPERATION##_reply_t), .flags.value = FLAGS                    \
-    }
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_FIXED_REPLY,                                                  \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                      \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                    \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                                                \
+     .flags.value = FLAGS}
 
 #define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS) \
-    {                                                                                                                \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY, (void*)_ebpf_core_protocol_##OPERATION,                       \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                                \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS               \
-    }
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY,                                                                  \
+     (void*)_ebpf_core_protocol_##OPERATION,                                                                         \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                                       \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),                                           \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(OPERATION, FLAGS)                        \
-    {                                                                                                     \
-        EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC, (void*)_ebpf_core_protocol_##OPERATION,            \
-            sizeof(ebpf_operation_##OPERATION##_request_t), sizeof(ebpf_operation_##OPERATION##_reply_t), \
-            .flags.value = FLAGS                                                                          \
-    }
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(OPERATION, FLAGS) \
+    {EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY_ASYNC,                                \
+     (void*)_ebpf_core_protocol_##OPERATION,                                       \
+     sizeof(ebpf_operation_##OPERATION##_request_t),                               \
+     sizeof(ebpf_operation_##OPERATION##_reply_t),                                 \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(                                \
-    OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS)                                                \
-    {                                                                                                  \
-        EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC, (void*)_ebpf_core_protocol_##OPERATION,   \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST),                  \
-            EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY), .flags.value = FLAGS \
-    }
+#define DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(        \
+    OPERATION, VARIABLE_REQUEST, VARIABLE_REPLY, FLAGS)                        \
+    {EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC,                      \
+     (void*)_ebpf_core_protocol_##OPERATION,                                   \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_request_t, VARIABLE_REQUEST), \
+     EBPF_OFFSET_OF(ebpf_operation_##OPERATION##_reply_t, VARIABLE_REPLY),     \
+     .flags.value = FLAGS}
 
-#define DECLARE_PROTOCOL_HANDLER_INVALID(type) \
-    {                                          \
-        type, NULL, 0, 0, .flags.value = 0     \
-    }
+#define DECLARE_PROTOCOL_HANDLER_INVALID(type) {type, NULL, 0, 0, .flags.value = 0}
 
 #define ALIAS_TYPES(X, Y)                                                  \
     typedef ebpf_operation_##X##_request_t ebpf_operation_##Y##_request_t; \

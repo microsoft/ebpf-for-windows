@@ -122,6 +122,10 @@ if ($PSBoundParameters.ContainsKey("Type")) {
     $AdditionalOptions += " --type $Type"
 }
 
+if ($VerbosePreference -eq "Continue") {
+    $AdditionalOptions += " --verbose"
+}
+
 msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:Packages="$Packages" $ProjectFile
 
 if ($LASTEXITCODE -ne 0) {

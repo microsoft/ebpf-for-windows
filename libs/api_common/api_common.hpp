@@ -12,6 +12,7 @@
                                  // result to a 8 byte value.
 #undef min                       // don't interfere with C++ min/max definitions required inside platform.hpp.
 #undef max
+#include "asm_syntax.hpp"
 #include "platform.hpp"
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))

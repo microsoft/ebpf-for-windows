@@ -157,6 +157,10 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [int] $TestHangTimeout = (10*60), # 10 minutes default timeout.
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
 
+    if ($TestProcess -eq $null) {
+        ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Test $TestCommand failed to start."
+    }
+
     # Use Wait-Process for the process to terminate or timeout.
     # See https://stackoverflow.com/a/23797762
     Wait-Process -InputObject $TestProcess -Timeout $TestHangTimeout -ErrorAction SilentlyContinue
@@ -359,14 +363,12 @@ function Invoke-XDPTest
     Push-Location $WorkingDirectory
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
     Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
@@ -395,7 +397,6 @@ function Invoke-ConnectRedirectTest
 
     Push-Location $WorkingDirectory
 
-    $TestRunScript = ".\Run-Self-Hosted-Runner-Test.ps1"
     $TestCommand = ".\connect_redirect_tests.exe"
 
     ## First run the test with both v4 and v6 programs attached.

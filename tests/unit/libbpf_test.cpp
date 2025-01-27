@@ -387,30 +387,12 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
 #define BPF_LD_MAP_FD(reg, fd) \
     {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
-#define BPF_ALU64_IMM(op, reg, imm)                                     \
-    {                                                                   \
-        INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm) \
-    }
-#define BPF_MOV64_IMM(reg, imm)                                  \
-    {                                                            \
-        INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm) \
-    }
-#define BPF_MOV64_REG(dst, src)                                  \
-    {                                                            \
-        INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0 \
-    }
-#define BPF_EXIT_INSN() \
-    {                   \
-        INST_OP_EXIT    \
-    }
-#define BPF_CALL_FUNC(imm)           \
-    {                                \
-        INST_OP_CALL, 0, 0, 0, (imm) \
-    }
-#define BPF_STX_MEM(sz, dst, src, off)                              \
-    {                                                               \
-        INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0 \
-    }
+#define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
+#define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
+#define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
+#define BPF_EXIT_INSN() {INST_OP_EXIT}
+#define BPF_CALL_FUNC(imm) {INST_OP_CALL, 0, 0, 0, (imm)}
+#define BPF_STX_MEM(sz, dst, src, off) {INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0}
 #define BPF_W INST_SIZE_W
 #define BPF_REG_1 R1_ARG
 #define BPF_REG_2 R2_ARG
@@ -2173,9 +2155,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC);
     REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
-    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, BPF_LINK_TYPE_PLAIN);
     REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
 
     // Verify the enumeration is empty.
@@ -2270,9 +2252,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     attr.info.info = (uintptr_t)&info;
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    // TODO: Should this be BPF_LINK_TYPE_PLAIN?
-    // See https://github.com/microsoft/ebpf-for-windows/issues/4096
-    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(info.type == BPF_LINK_TYPE_PLAIN);
     REQUIRE(info.id == id2);
     REQUIRE(info.prog_id != 0);
 
