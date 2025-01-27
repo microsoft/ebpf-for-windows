@@ -126,7 +126,6 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
     LIST_ENTRY link; ///< Entry in the list of filter contexts.
-#if !defined(NDEBUG)
     // This object should be either in the _net_ebpf_filter_rundown_acquired_list or in the
     // _net_ebpf_filter_zombie_list. The following stages are possible: a - The WFP filter has been created, and a
     // rundown reference has been acquired on behalf of it. This filter will be in the
@@ -136,7 +135,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     // filter will no longer be present in any list, and it's memory will be freed.
     LIST_ENTRY debug_link; ///< Debug entry in the list of filter contexts.
 
-#endif
     volatile long reference_count;     ///< Reference count.
     EX_SPIN_LOCK lock;                 ///< Lock to protect the client context array.
     uint32_t client_context_count_max; ///< Maximum number of hook NPI clients.

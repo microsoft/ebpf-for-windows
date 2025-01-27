@@ -34,7 +34,6 @@ static bool _net_ebpf_xdp_providers_registered = false;
 static bool _net_ebpf_bind_providers_registered = false;
 static bool _net_ebpf_sock_addr_providers_registered = false;
 static bool _net_ebpf_sock_ops_providers_registered = false;
-#if !defined(NDEBUG)
 // Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
 // contexts.
 EX_SPIN_LOCK _net_ebpf_ext_debug_lock = {0};
@@ -44,7 +43,6 @@ _Guarded_by_(_net_ebpf_ext_debug_lock) static uint64_t zombie_list_used_count = 
 _Guarded_by_(_net_ebpf_ext_debug_lock) static uint64_t rundown_list_used_count = 0;
 _Guarded_by_(_net_ebpf_ext_debug_lock) static uint64_t debug_list_removed_count = 0;
 _Guarded_by_(_net_ebpf_ext_debug_lock) static uint64_t restart_count = 0;
-#endif
 
 static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
     {&EBPF_DEFAULT_SUBLAYER, L"EBPF Sub-Layer", L"Sub-Layer for use by eBPF callouts", 0, SUBLAYER_WEIGHT_MAXIMUM},
@@ -286,9 +284,7 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
-#if !defined(NDEBUG)
     InitializeListHead(&local_filter_context->debug_link);
-#endif
     local_filter_context->reference_count = 1; // Initial reference.
 
     // Set the first client context.
@@ -874,12 +870,10 @@ net_ebpf_ext_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-#if !defined(NDEBUG)
     if (restart_count++ == 0) {
         InitializeListHead(&_net_ebpf_filter_zombie_list);
         InitializeListHead(&_net_ebpf_filter_rundown_acquired_list);
     }
-#endif
 
     status = net_ebpf_ext_xdp_register_providers();
     if (!NT_SUCCESS(status)) {
@@ -1021,7 +1015,6 @@ net_ebpf_ext_remove_client_context(
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
 
-#if !defined(NDEBUG)
 void
 net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
@@ -1051,4 +1044,3 @@ net_ebpf_ext_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wf
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
     }
 }
-#endif
