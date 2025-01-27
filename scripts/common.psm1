@@ -255,6 +255,7 @@ function Retrieve-StoredCredential {
             throw "PsExec failed with exit code $($process.ExitCode). Error: $error"
         }
 
+        Write-Log "(Debug) Retrieved credential: $output"
         $lines = $output -split "`n"
         $Username = $lines[0].Trim()
         $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force

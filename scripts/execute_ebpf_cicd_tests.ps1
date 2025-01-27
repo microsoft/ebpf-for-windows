@@ -21,10 +21,14 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
     $TestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
     if ($null -eq $TestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential."
+    } else {
+        Write-Log "Fetched the test VM credential using target: $AdminTarget"
     }
     $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
     if ($null -eq $StandardUserTestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the standard user test VM credential."
+    } else {
+        Write-Log "Fetched the standard user test VM credential using target: $StandardUserTarget"
     }
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
