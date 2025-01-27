@@ -19,12 +19,13 @@ Push-Location $WorkingDirectory
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 if ($SelfHostedRunnerName -eq "1ESRunner") {
     Write-Log "Fetching the test VM credential using target: $AdminTarget"
-    $TestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-    if ($null -eq $TestVMCredential) {
+    $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
+    if ($null -eq $AdminTestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential for $AdminTarget"
     } else {
-        $debugCred = $TestVMCredential.GetNetworkCredential() | Out-String
-        Write-Log "Cred: $debugCred"
+        $type = $AdminTestVMCredential.GetType()
+        Write-Log "Type: $type"
+        Write-Log "Successfully retrieved the test VM credential for $AdminTarget"
     }
 
     Write-Log "Fetching the test VM credential using target: $StandardUserTarget"
@@ -32,8 +33,9 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
     if ($null -eq $StandardUserTestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential for $StandardUserTarget"
     } else {
-        $debugCred = $StandardUserTestVMCredential.GetNetworkCredential() | Out-String
-        Write-Log "Cred: $debugCred"
+        $type = $StandardUserTestVMCredential.GetType()
+        Write-Log "Type: $type"
+        Write-Log "Successfully retrieved the test VM credential for $StandardUserTarget"
     }
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
@@ -111,6 +113,12 @@ $Job = Start-Job -ScriptBlock {
     $Options,
     $TestHangTimeout,
     $UserModeDumpFolder)
+
+if ($Job -eq $null) {
+    ThrowWithErrorMessage "Failed to start the job"
+} else {
+    Write-Log "Job started successfully"
+}
 
 # Keep track of the last received output count
 $JobTimedOut = `

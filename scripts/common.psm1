@@ -202,9 +202,6 @@ function Invoke-PsExecScript {
     $PSExecPath = Get-PSExec
     if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
         throw "Failed to retrieve PsExec path."
-    } else {
-        # TODO - remove this.
-        Write-Log "(Debug) PsExec path: $PSExecPath"
     }
 
     $attempt = 0
@@ -223,10 +220,8 @@ function Invoke-PsExecScript {
 
             return $output
         } catch {
-            Write-Log "(Error) Attempt $($attempt + 1) failed: $_"
             $attempt++
             if ($attempt -lt $MaxRetries) {
-                Write-Log "(Info) Retrying in $RetryDelay seconds..."
                 Start-Sleep -Seconds $RetryDelay
             } else {
                 throw "Failed to execute the script with PsExec after $MaxRetries attempts."
@@ -299,7 +294,6 @@ function Retrieve-StoredCredential {
 "@
 
     $output = Invoke-PsExecScript -Script $Script
-    Write-Log "(Debug) Retrieved credential: $output"
     $lines = $output -split "`n"
     $Username = $lines[0].Trim()
     $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
