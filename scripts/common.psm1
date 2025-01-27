@@ -43,6 +43,7 @@ function New-Credential
     return $Credential
 }
 
+
 function Compress-File
 {
     param ([Parameter(Mandatory = $True)] [string] $SourcePath,
@@ -130,16 +131,14 @@ function Create-DirectoryIfNotExists {
         [Parameter(Mandatory=$True)][string]$Path
     )
 
-    try {
-        if (-not (Test-Path -Path $Path -PathType Container)) {
-            New-Item -Path $Path -ItemType Directory -Force # -ErrorAction Ignore | Out-Null
-        }
+    # Create the directory if it does not already exist.
+    if (-not (Test-Path -Path $Path -PathType Container)) {
+        New-Item -Path $Path -ItemType Directory -Force
+    }
 
-        if (-not (Test-Path -PathType Container $Path)) {
-            throw "Failed to create directory: $Path"
-        }
-    } catch {
-        throw "Failed to create directory: $Path with error $_"
+    # Check if the directory was successfully created.
+    if (-not (Test-Path -PathType Container $Path)) {
+        throw "Failed to create directory: $Path"
     }
 }
 
@@ -188,16 +187,12 @@ function Replace-PlaceholderStrings {
 .PARAMETER Script
     The script to execute using PsExec.
 
-.PARAMETER MaxRetries
-    The maximum number of times to retry executing the script. Default is 3.
-
 .EXAMPLE
     Invoke-PsExecScript -Script "Get-Process"
 #>
 function Invoke-PsExecScript {
     param (
-        [Parameter(Mandatory=$true)][string]$Script,
-        [Parameter(Mandatory=$false)][int]$MaxRetries = 3
+        [Parameter(Mandatory=$true)][string]$Script
     )
     $PSExecPath = Get-PSExec
     if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
@@ -207,7 +202,6 @@ function Invoke-PsExecScript {
     $outputFile = [System.IO.Path]::GetTempFileName()
     $errorFile = [System.IO.Path]::GetTempFileName()
 
-    # TODO - possibly remove maxretries param
     try {
         $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
         $output = Get-Content $outputFile
@@ -222,34 +216,6 @@ function Invoke-PsExecScript {
         Remove-Item $outputFile -Force -ErrorAction Ignore
         Remove-Item $errorFile -Force -ErrorAction Ignore
     }
-
-    # $attempt = 0
-    # while ($attempt -lt $MaxRetries) {
-    #     $outputFile = [System.IO.Path]::GetTempFileName()
-    #     $errorFile = [System.IO.Path]::GetTempFileName()
-
-    #     try {
-    #         $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
-    #         $output = Get-Content $outputFile
-    #         $err = Get-Content $errorFile
-
-    #         if ($process.ExitCode -ne 0) {
-    #             throw "PsExec failed with exit code $($process.ExitCode). Error: $err"
-    #         }
-
-    #         return $output
-    #     } catch {
-    #         $attempt++
-    #         if ($attempt -lt $MaxRetries) {
-    #             Start-Sleep -Seconds $RetryDelay
-    #         } else {
-    #             throw "Failed to execute the script with PsExec after $MaxRetries attempts."
-    #         }
-    #     } finally {
-    #         Remove-Item $outputFile -Force -ErrorAction Ignore
-    #         Remove-Item $errorFile -Force -ErrorAction Ignore
-    #     }
-    # }
 }
 
 <#
@@ -321,6 +287,9 @@ function Retrieve-StoredCredential {
             $lines = $output -split "`n"
             $Username = $lines[0].Trim()
             $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
+            if ($null -eq $Username -or $null -eq $Password) {
+                throw "Failed to retrieve the stored credential."
+            }
             return [System.Management.Automation.PSCredential]::new($Username, $Password)
         } catch {
             $attempt++
@@ -381,33 +350,28 @@ function Expand-ZipFile {
 
     for ($i = 0; $i -lt $maxRetries; $i++) {
         try {
-            Write-Log "Extract attempt $($i + 1) started"
             $job = Start-Job -ScriptBlock {
                 param ($DownloadFilePath, $OutputDir)
                 Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
             } -ArgumentList $DownloadFilePath, $OutputDir
 
             if (Wait-Job -Job $job -Timeout $timeout) {
-                Write-Log "Extraction completed"
+                Write-Log "Extraction completed. $DownloadFilePath -> $OutputDir"
                 Receive-Job -Job $job
                 break
             } else {
                 Stop-Job -Job $job
                 Remove-Job -Job $job
-                Write-Log "Extract attempt $($i + 1) timed out after $timeout seconds."
                 if ($i -eq ($maxRetries - 1)) {
                     throw "Failed to extract $DownloadFilePath after $maxRetries attempts."
                 } else {
-                    Write-Log "Retrying in $retryDelay seconds..."
                     Start-Sleep -Seconds $retryDelay
                 }
             }
         } catch {
-            Write-Log "Iteration $($i + 1) failed to extract $DownloadFilePath" -ForegroundColor Red
             if ($i -eq ($maxRetries - 1)) {
                 throw "Failed to extract $DownloadFilePath after $maxRetries attempts."
             } else {
-                Write-Log "Retrying in $retryDelay seconds..."
                 Start-Sleep -Seconds $retryDelay
             }
         }
@@ -433,7 +397,6 @@ function Get-ZipFileFromUrl {
                 throw "Failed to reach $Url HTTP status code: $($response.StatusCode)"
             }
 
-            Write-Log "Download attempt $($i + 1) started"
             $ProgressPreference = 'SilentlyContinue'
 
             $job = Start-Job -ScriptBlock {
@@ -442,7 +405,6 @@ function Get-ZipFileFromUrl {
             } -ArgumentList $Url, $DownloadFilePath, $timeout
 
             if (Wait-Job -Job $job -Timeout $timeout) {
-                Write-Log "Download completed"
                 Receive-Job -Job $job
 
                 Write-Log "Extracting $DownloadFilePath to $OutputDir"
@@ -451,28 +413,22 @@ function Get-ZipFileFromUrl {
             } else {
                 Stop-Job -Job $job
                 Remove-Job -Job $job
-                Write-Log "Download attempt $($i + 1) timed out after $timeout seconds."
                 if (Test-Path $DownloadFilePath) {
-                    Remove-Item -Path $DownloadFilePath -Force
-                    Write-Log "Removed partially downloaded file."
+                    Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
                 }
                 if ($i -eq ($maxRetries - 1)) {
                     throw "Failed to download $Url after $maxRetries attempts."
                 } else {
-                    Write-Log "Retrying in $retryDelay seconds..."
                     Start-Sleep -Seconds $retryDelay
                 }
             }
         } catch {
-            Write-Log "Iteration $($i + 1) failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
             if (Test-Path $DownloadFilePath) {
                 Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
-                Write-Log "Removed partially downloaded file."
             }
             if ($i -eq ($maxRetries - 1)) {
                 throw "Failed to download $Url after $maxRetries attempts."
             } else {
-                Write-Log "Retrying in $retryDelay seconds..."
                 Start-Sleep -Seconds $retryDelay
             }
         }

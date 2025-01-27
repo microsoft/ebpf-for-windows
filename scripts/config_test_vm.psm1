@@ -139,8 +139,6 @@ function Initialize-AllVMs
 {
     param ([Parameter(Mandatory=$True)] $VMList)
 
-    Write-Log "Initializing VMs..."
-
     # Restore the VMs.
     Restore-AllVMs -VMList $VMList
 
@@ -637,7 +635,7 @@ function Create-VM {
     )
 
     try {
-        Write-Log "Creating VM: with Name: $VmName Password: $UserPassword VhdPath: $VhdPath VmStoragePath: $VmStoragePath Memory: $VMMemory UnattendPath: $UnattendPath VMSwitchName: $VmSwitchName"
+        Write-Log "Creating VM: with Name: $VmName VhdPath: $VhdPath VmStoragePath: $VmStoragePath Memory: $VMMemory UnattendPath: $UnattendPath VMSwitchName: $VmSwitchName"
         ## Check for any pre-requisites
         # Check that the VHD exists
         if (-not (Test-Path -Path $VhdPath)) {

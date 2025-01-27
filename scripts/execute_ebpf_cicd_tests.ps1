@@ -18,21 +18,8 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 if ($SelfHostedRunnerName -eq "1ESRunner") {
-    Write-Log "Fetching the test VM credential using target: $AdminTarget"
     $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-    if ($null -eq $AdminTestVMCredential) {
-        ThrowWithErrorMessage "Failed to retrieve the test VM credential for $AdminTarget"
-    } else {
-        Write-Log "Successfully retrieved the test VM credential for $AdminTarget"
-    }
-
-    Write-Log "Fetching the test VM credential using target: $StandardUserTarget"
     $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
-    if ($null -eq $StandardUserTestVMCredential) {
-        ThrowWithErrorMessage "Failed to retrieve the test VM credential for $StandardUserTarget"
-    } else {
-        Write-Log "Successfully retrieved the test VM credential for $StandardUserTarget"
-    }
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
     $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
@@ -41,7 +28,6 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-Write-Log "Starting eBPF CICD tests on $SelfHostedRunnerName"
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
            [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
@@ -54,11 +40,9 @@ $Job = Start-Job -ScriptBlock {
            [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
            [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
 
-    Write-Host "Executing test..."
     Push-Location $WorkingDirectory
 
     # Load other utility modules.
-    Write-Host "Importing modules"
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     Import-Module $WorkingDirectory\vm_run_tests.psm1 `
         -Force `
@@ -79,7 +63,6 @@ $Job = Start-Job -ScriptBlock {
     # currently one VM runs per runner.
     $TestVMName = $VMList[0].Name
 
-    Write-Host "Starting eBPF CICD tests on $TestVMName"
     try {
         # Run Kernel tests on test VM.
         Write-Log "Running kernel tests on $TestVMName"
@@ -109,12 +92,6 @@ $Job = Start-Job -ScriptBlock {
     $Options,
     $TestHangTimeout,
     $UserModeDumpFolder)
-
-if ($Job -eq $null) {
-    ThrowWithErrorMessage "Failed to start the job"
-} else {
-    Write-Log "Job started successfully"
-}
 
 # Keep track of the last received output count
 $JobTimedOut = `

@@ -19,13 +19,7 @@ Push-Location $WorkingDirectory
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
 if ($SelfHostedRunnerName -eq "1ESRunner") {
-    Write-Log "Fetching the test VM credential using target: $Target"
     $TestVMCredential = Retrieve-StoredCredential -Target $Target
-    if ($null -eq $TestVMCredential) {
-        ThrowWithErrorMessage "Failed to retrieve the test VM credential."
-    } else {
-        Write-Log "Successfully retrieved the test VM credential."
-    }
 } else {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 }
@@ -58,7 +52,6 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 
 Get-CoreNetTools
 Get-PSExec
-Write-Log "Finished downloading the required tools. Installing tools on the test VM."
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
