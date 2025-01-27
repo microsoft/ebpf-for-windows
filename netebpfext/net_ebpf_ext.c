@@ -1019,6 +1019,7 @@ void
 net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_debug_lock);
+    ASSERT(IsListEmpty(&filter_context->debug_link));
     InsertHeadList(&_net_ebpf_filter_zombie_list, &filter_context->debug_link);
     zombie_list_used_count++;
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
@@ -1029,6 +1030,7 @@ net_ebpf_ext_add_filter_context_to_rundown_acquired_list(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_debug_lock);
+    ASSERT(IsListEmpty(&filter_context->debug_link));
     InsertHeadList(&_net_ebpf_filter_rundown_acquired_list, &filter_context->debug_link);
     rundown_list_used_count++;
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
@@ -1042,5 +1044,8 @@ net_ebpf_ext_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wf
         RemoveEntryList(&filter_context->debug_link);
         debug_list_removed_count++;
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_debug_lock, old_irql);
+    } else {
+        // We should not be hitting this case.
+        ASSERT(FALSE);
     }
 }
