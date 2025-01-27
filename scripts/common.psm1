@@ -196,7 +196,7 @@ function Replace-PlaceholderStrings {
 #>
 function Invoke-PsExecScript {
     param (
-        [Parameter(Mandatory=$true)][string]$Script
+        [Parameter(Mandatory=$true)][string]$Script,
         [Parameter(Mandatory=$false)][int]$MaxRetries = 3
     )
     $PSExecPath = Get-PSExec
