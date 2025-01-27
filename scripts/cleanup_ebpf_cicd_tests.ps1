@@ -17,9 +17,9 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
     $TestVMCredential = Retrieve-StoredCredential -Target $Target
     if ($null -eq $TestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential."
+    } else {
+        Write-Log "Successfully retrieved the test VM credential."
     }
-    $debugCred = $TestVMCredential.GetNetworkCredential() | Out-String
-    Write-Log "Cred: $debugCred"
 } else {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 }

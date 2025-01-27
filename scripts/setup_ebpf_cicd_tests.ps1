@@ -24,8 +24,6 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
     if ($null -eq $TestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential."
     } else {
-        $type = $TestVMCredential.GetType()
-        Write-Log "Type: $type"
         Write-Log "Successfully retrieved the test VM credential."
     }
 } else {

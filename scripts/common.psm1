@@ -204,33 +204,52 @@ function Invoke-PsExecScript {
         throw "Failed to retrieve PsExec path."
     }
 
-    $attempt = 0
-    while ($attempt -lt $MaxRetries) {
-        $outputFile = [System.IO.Path]::GetTempFileName()
-        $errorFile = [System.IO.Path]::GetTempFileName()
+    $outputFile = [System.IO.Path]::GetTempFileName()
+    $errorFile = [System.IO.Path]::GetTempFileName()
 
-        try {
-            $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
-            $output = Get-Content $outputFile
-            $err = Get-Content $errorFile
+    # TODO - possibly remove maxretries param
+    try {
+        $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
+        $output = Get-Content $outputFile
+        $err = Get-Content $errorFile
 
-            if ($process.ExitCode -ne 0) {
-                throw "PsExec failed with exit code $($process.ExitCode). Error: $err"
-            }
-
-            return $output
-        } catch {
-            $attempt++
-            if ($attempt -lt $MaxRetries) {
-                Start-Sleep -Seconds $RetryDelay
-            } else {
-                throw "Failed to execute the script with PsExec after $MaxRetries attempts."
-            }
-        } finally {
-            Remove-Item $outputFile -Force -ErrorAction Ignore
-            Remove-Item $errorFile -Force -ErrorAction Ignore
+        if ($process.ExitCode -ne 0) {
+            throw "PsExec failed with exit code $($process.ExitCode). Output: $output Error: $err"
         }
+
+        return $output
+    } finally {
+        Remove-Item $outputFile -Force -ErrorAction Ignore
+        Remove-Item $errorFile -Force -ErrorAction Ignore
     }
+
+    # $attempt = 0
+    # while ($attempt -lt $MaxRetries) {
+    #     $outputFile = [System.IO.Path]::GetTempFileName()
+    #     $errorFile = [System.IO.Path]::GetTempFileName()
+
+    #     try {
+    #         $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
+    #         $output = Get-Content $outputFile
+    #         $err = Get-Content $errorFile
+
+    #         if ($process.ExitCode -ne 0) {
+    #             throw "PsExec failed with exit code $($process.ExitCode). Error: $err"
+    #         }
+
+    #         return $output
+    #     } catch {
+    #         $attempt++
+    #         if ($attempt -lt $MaxRetries) {
+    #             Start-Sleep -Seconds $RetryDelay
+    #         } else {
+    #             throw "Failed to execute the script with PsExec after $MaxRetries attempts."
+    #         }
+    #     } finally {
+    #         Remove-Item $outputFile -Force -ErrorAction Ignore
+    #         Remove-Item $errorFile -Force -ErrorAction Ignore
+    #     }
+    # }
 }
 
 <#
@@ -293,11 +312,25 @@ function Retrieve-StoredCredential {
         \"`$UserName`n`$Password\"
 "@
 
-    $output = Invoke-PsExecScript -Script $Script
-    $lines = $output -split "`n"
-    $Username = $lines[0].Trim()
-    $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
-    return [System.Management.Automation.PSCredential]::new($Username, $Password)
+    # PSExec sometimes fails to fetch the output. Retry up to 3 times to improve reliability.
+    $attempt = 0
+    $maxRetries = 5
+    while ($attempt -lt $maxRetries) {
+        try {
+            $output = Invoke-PsExecScript -Script $Script
+            $lines = $output -split "`n"
+            $Username = $lines[0].Trim()
+            $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
+            return [System.Management.Automation.PSCredential]::new($Username, $Password)
+        } catch {
+            $attempt++
+            if ($attempt -lt $maxRetries) {
+                Start-Sleep -Seconds 5
+            } else {
+                throw "Failed to retrieve the stored credential after $maxRetries attempts."
+            }
+        }
+    }
 }
 
 <#

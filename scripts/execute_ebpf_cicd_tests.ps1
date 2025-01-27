@@ -23,8 +23,6 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
     if ($null -eq $AdminTestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential for $AdminTarget"
     } else {
-        $type = $AdminTestVMCredential.GetType()
-        Write-Log "Type: $type"
         Write-Log "Successfully retrieved the test VM credential for $AdminTarget"
     }
 
@@ -33,8 +31,6 @@ if ($SelfHostedRunnerName -eq "1ESRunner") {
     if ($null -eq $StandardUserTestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential for $StandardUserTarget"
     } else {
-        $type = $StandardUserTestVMCredential.GetType()
-        Write-Log "Type: $type"
         Write-Log "Successfully retrieved the test VM credential for $StandardUserTarget"
     }
 } else {
