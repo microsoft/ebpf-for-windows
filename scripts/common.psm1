@@ -233,6 +233,8 @@ function Retrieve-StoredCredential {
     $PSExecPath = Get-PSExec
     if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
         throw "Failed to retrieve PsExec path."
+    } else {
+        Write-Log "(Debug) PsExec path: $PSExecPath"
     }
 
     $Script = @"
@@ -249,13 +251,13 @@ function Retrieve-StoredCredential {
     try {
         $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
         $output = Get-Content $outputFile
-        $error = Get-Content $errorFile
+        $err = Get-Content $errorFile
 
         if ($process.ExitCode -ne 0) {
             throw "PsExec failed with exit code $($process.ExitCode). Error: $error"
         }
 
-        Write-Log "(Debug) Retrieved credential: $output"
+        Write-Log "(Debug) Retrieved credential: $output and error: $err"
         $lines = $output -split "`n"
         $Username = $lines[0].Trim()
         $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
@@ -311,10 +313,10 @@ function Generate-NewCredential {
     try {
         $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
         $output = Get-Content $outputFile
-        $error = Get-Content $errorFile
+        $err = Get-Content $errorFile
 
         if ($process.ExitCode -ne 0) {
-            throw "PsExec failed with exit code $($process.ExitCode). Error: $error"
+            throw "PsExec failed with exit code $($process.ExitCode). Error: $err"
         }
 
         # Use the Retrieve-StoredCredential function to verify that the credential was stored correctly.

@@ -13,10 +13,13 @@ Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 if ($SelfHostedRunnerName -eq "1ESRunner") {
+    Write-Log "Fetching the test VM credential using target: $Target"
     $TestVMCredential = Retrieve-StoredCredential -Target $Target
     if ($null -eq $TestVMCredential) {
         ThrowWithErrorMessage "Failed to retrieve the test VM credential."
     }
+    $debugCred = $TestVMCredential.GetNetworkCredential() | Out-String
+    Write-Log "Cred: $debugCred"
 } else {
     $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
 }

@@ -18,17 +18,22 @@ Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 if ($SelfHostedRunnerName -eq "1ESRunner") {
+    Write-Log "Fetching the test VM credential using target: $AdminTarget"
     $TestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
     if ($null -eq $TestVMCredential) {
-        ThrowWithErrorMessage "Failed to retrieve the test VM credential."
+        ThrowWithErrorMessage "Failed to retrieve the test VM credential for $AdminTarget"
     } else {
-        Write-Log "Fetched the test VM credential using target: $AdminTarget"
+        $debugCred = $TestVMCredential.GetNetworkCredential() | Out-String
+        Write-Log "Cred: $debugCred"
     }
+
+    Write-Log "Fetching the test VM credential using target: $StandardUserTarget"
     $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
     if ($null -eq $StandardUserTestVMCredential) {
-        ThrowWithErrorMessage "Failed to retrieve the standard user test VM credential."
+        ThrowWithErrorMessage "Failed to retrieve the test VM credential for $StandardUserTarget"
     } else {
-        Write-Log "Fetched the standard user test VM credential using target: $StandardUserTarget"
+        $debugCred = $StandardUserTestVMCredential.GetNetworkCredential() | Out-String
+        Write-Log "Cred: $debugCred"
     }
 } else {
     $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
