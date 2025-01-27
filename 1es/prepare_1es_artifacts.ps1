@@ -12,7 +12,7 @@ foreach ($image in $images) {
     $outFileName = "artifacts_$image.json"
     Copy-Item -Path .\artifacts.json -Destination $outFileName
     # The IMAGETYPE name MUST match the Azure Storage Blob Container that holds the necessary dependencies for configuring the 1ES runner.
-    Replace-PlaceholderStrings -Path $outFileName -SearchString 'IMAGETYPE' -ReplaceString $image
+    Replace-PlaceholderStrings -FilePath $outFileName -SearchString 'IMAGETYPE' -ReplaceString $image
 }
 
 # Copy any shared scripts into the 1ES folder.
