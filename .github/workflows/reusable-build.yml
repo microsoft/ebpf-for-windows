@@ -226,9 +226,10 @@ jobs:
 
     - name: Prepare 1ES artifacts
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
+      working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
-        cp scripts/common.psm1 1es/
-        cp scripts/config_test_vm.psm1 1es/
+        cd .\1es
+        .\prepare_1es_artifacts.ps1
 
     - name: Upload 1ES artifacts
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
