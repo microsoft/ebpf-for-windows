@@ -643,11 +643,10 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
     // Remove the list entry from the provider's list of filter contexts.
     RemoveEntryList(&filter_context->link);
 
-    // TODO - main has this, if it matters...
     // Insert the list entry to the list of zombie filter contexts.
-    // ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
-    // InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->link);
-    // RELEASE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
+    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
+    InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->link);
+    RELEASE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
 
     // The filter context was previously added to the rundown acquired list. Remove it here.
     net_ebpf_ext_remove_filter_context_from_debug_list(filter_context);
