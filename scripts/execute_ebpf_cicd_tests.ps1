@@ -56,9 +56,11 @@ $Job = Start-Job -ScriptBlock {
            [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
            [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
 
+    Write-Host "Executing test..."
     Push-Location $WorkingDirectory
 
     # Load other utility modules.
+    Write-Host "Importing modules"
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     Import-Module $WorkingDirectory\vm_run_tests.psm1 `
         -Force `
@@ -79,6 +81,7 @@ $Job = Start-Job -ScriptBlock {
     # currently one VM runs per runner.
     $TestVMName = $VMList[0].Name
 
+    Write-Host "Starting eBPF CICD tests on $TestVMName"
     try {
         # Run Kernel tests on test VM.
         Write-Log "Running kernel tests on $TestVMName"

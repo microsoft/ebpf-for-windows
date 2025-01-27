@@ -180,6 +180,66 @@ function Replace-PlaceholderStrings {
 
 <#
 .SYNOPSIS
+    Helper function to invoke a script using PsExec.
+
+.DESCRIPTION
+    This function uses PsExec to run a PowerShell script in the LocalSystem account context.
+
+.PARAMETER Script
+    The script to execute using PsExec.
+
+.PARAMETER MaxRetries
+    The maximum number of times to retry executing the script. Default is 3.
+
+.EXAMPLE
+    Invoke-PsExecScript -Script "Get-Process"
+#>
+function Invoke-PsExecScript {
+    param (
+        [Parameter(Mandatory=$true)][string]$Script
+        [Parameter(Mandatory=$false)][int]$MaxRetries = 3
+    )
+    $PSExecPath = Get-PSExec
+    if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
+        throw "Failed to retrieve PsExec path."
+    } else {
+        # TODO - remove this.
+        Write-Log "(Debug) PsExec path: $PSExecPath"
+    }
+
+    $attempt = 0
+    while ($attempt -lt $MaxRetries) {
+        $outputFile = [System.IO.Path]::GetTempFileName()
+        $errorFile = [System.IO.Path]::GetTempFileName()
+
+        try {
+            $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
+            $output = Get-Content $outputFile
+            $err = Get-Content $errorFile
+
+            if ($process.ExitCode -ne 0) {
+                throw "PsExec failed with exit code $($process.ExitCode). Error: $err"
+            }
+
+            return $output
+        } catch {
+            Write-Log "(Error) Attempt $($attempt + 1) failed: $_"
+            $attempt++
+            if ($attempt -lt $MaxRetries) {
+                Write-Log "(Info) Retrying in $RetryDelay seconds..."
+                Start-Sleep -Seconds $RetryDelay
+            } else {
+                throw "Failed to execute the script with PsExec after $MaxRetries attempts."
+            }
+        } finally {
+            Remove-Item $outputFile -Force -ErrorAction Ignore
+            Remove-Item $errorFile -Force -ErrorAction Ignore
+        }
+    }
+}
+
+<#
+.SYNOPSIS
     Imports the CredentialManager, and installs it if necessary.
 
 .DESCRIPTION
@@ -228,14 +288,7 @@ function Retrieve-StoredCredential {
     param (
         [Parameter(Mandatory=$True)][string]$Target
     )
-
     Get-CredentialManager
-    $PSExecPath = Get-PSExec
-    if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
-        throw "Failed to retrieve PsExec path."
-    } else {
-        Write-Log "(Debug) PsExec path: $PSExecPath"
-    }
 
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
@@ -245,29 +298,12 @@ function Retrieve-StoredCredential {
         \"`$UserName`n`$Password\"
 "@
 
-    $outputFile = [System.IO.Path]::GetTempFileName()
-    $errorFile = [System.IO.Path]::GetTempFileName()
-
-    try {
-        $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
-        $output = Get-Content $outputFile
-        $err = Get-Content $errorFile
-
-        if ($process.ExitCode -ne 0) {
-            throw "PsExec failed with exit code $($process.ExitCode). Error: $error"
-        }
-
-        Write-Log "(Debug) Retrieved credential: $output and error: $err"
-        $lines = $output -split "`n"
-        $Username = $lines[0].Trim()
-        $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
-        return [System.Management.Automation.PSCredential]::new($Username, $Password)
-    } catch {
-        throw "An error occurred while retrieving the credential: $_"
-    } finally {
-        if (Test-Path $outputFile) { Remove-Item $outputFile }
-        if (Test-Path $errorFile) { Remove-Item $errorFile }
-    }
+    $output = Invoke-PsExecScript -Script $Script
+    Write-Log "(Debug) Retrieved credential: $output"
+    $lines = $output -split "`n"
+    $Username = $lines[0].Trim()
+    $Password = ConvertTo-SecureString -String $lines[1].Trim() -AsPlainText -Force
+    return [System.Management.Automation.PSCredential]::new($Username, $Password)
 }
 
 <#
@@ -297,36 +333,13 @@ function Generate-NewCredential {
         [Parameter(Mandatory=$True)][string]$Target
     )
     Get-CredentialManager
-    $PSExecPath = Get-PSExec
-    if (($null -eq $PSExecPath) -or (-not (Test-Path $PSExecPath))) {
-        throw "Failed to retrieve PsExec path."
-    }
-
     $Script = @"
         Import-Module CredentialManager -ErrorAction Stop;
         New-StoredCredential -Target '$Target' -UserName '$Username' -Password '$Password' -Persist LocalMachine;
 "@
 
-    $outputFile = [System.IO.Path]::GetTempFileName()
-    $errorFile = [System.IO.Path]::GetTempFileName()
-
-    try {
-        $process = Start-Process -FilePath $PsExecPath -ArgumentList "-accepteula -nobanner -s powershell.exe -command `"$Script`"" -NoNewWindow -PassThru -Wait -RedirectStandardOutput $outputFile -RedirectStandardError $errorFile
-        $output = Get-Content $outputFile
-        $err = Get-Content $errorFile
-
-        if ($process.ExitCode -ne 0) {
-            throw "PsExec failed with exit code $($process.ExitCode). Error: $err"
-        }
-
-        # Use the Retrieve-StoredCredential function to verify that the credential was stored correctly.
-        return (Retrieve-StoredCredential -Target $Target)
-    } catch {
-        throw "An error occurred while storing the credential: $_"
-    } finally {
-        if (Test-Path $outputFile) { Remove-Item $outputFile }
-        if (Test-Path $errorFile) { Remove-Item $errorFile }
-    }
+    $output = Invoke-PsExecScript -Script $Script
+    return (Retrieve-StoredCredential -Target $Target)
 }
 
 
