@@ -741,8 +741,7 @@ function Initialize-VM {
         # Copy setup script to the VM and execute it.
         Write-Log "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
         Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $VMSetupScript -DestinationPath "$VMWorkingDirectory\$VMSetupScript" -CreateFullPath
-        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-        Execute-CommandOnVM -VMName $VmName -VmCredential $vmCredential -Command "cd $VMWorkingDirectory; .\$VMSetupScript"
+        Execute-CommandOnVM -VMName $VmName -Command "cd $VMWorkingDirectory; .\$VMSetupScript"
         Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
         Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
