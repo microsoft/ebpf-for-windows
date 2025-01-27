@@ -101,7 +101,7 @@ typedef class _ebpf_map_test_state
         // Since this is perf test, not checking the result.
 
         cxplat_utf8_string_t name{(uint8_t*)"test", 4};
-        (void)ebpf_core_initiate();
+        REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS);
         ebpf_map_definition_in_memory_t definition{
             type, sizeof(uint32_t), sizeof(uint64_t), map_size.has_value() ? map_size.value() : ebpf_get_cpu_count()};
 
@@ -109,7 +109,9 @@ typedef class _ebpf_map_test_state
 
         for (uint32_t i = 0; i < definition.max_entries; i++) {
             uint64_t value = 0;
-            (void)ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER);
+            REQUIRE(
+                ebpf_map_update_entry(map, 0, (uint8_t*)&i, 0, (uint8_t*)&value, EBPF_ANY, EBPF_MAP_FLAG_HELPER) ==
+                EBPF_SUCCESS);
         }
         // Make the active key range 10% of the map size.
         lru_key_range = definition.max_entries / 10;
@@ -205,7 +207,7 @@ typedef class _ebpf_map_test_state
 typedef class _ebpf_map_lpm_trie_test_state
 {
   public:
-    _ebpf_map_lpm_trie_test_state() : map(nullptr) { (void)ebpf_core_initiate(); }
+    _ebpf_map_lpm_trie_test_state() : map(nullptr) { REQUIRE(ebpf_core_initiate() == EBPF_SUCCESS); }
 
     void
     populate_ipv4_routes(size_t route_count)
