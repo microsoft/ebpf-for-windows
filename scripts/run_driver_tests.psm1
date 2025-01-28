@@ -460,7 +460,7 @@ function Invoke-ConnectRedirectTest
 function Invoke-CICDStressTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = 3600,
+          [parameter(Mandatory = $false)][int] $TestHangTimeout = (45*60),
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
@@ -480,7 +480,7 @@ function Invoke-CICDStressTests
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand -TestHangTimeout $TestHangTimeout
 
 
     Pop-Location

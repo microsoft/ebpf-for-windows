@@ -791,6 +791,9 @@ net_ebpf_extension_hook_provider_register(
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
 
     NET_EBPF_EXT_LOG_ENTRY();
+
+    *provider_context = NULL;
+
     local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
@@ -835,6 +838,8 @@ net_ebpf_extension_hook_provider_register(
 
 Exit:
     if (!NT_SUCCESS(status)) {
+        // BUGBUG - if we never initialized rundown but failed, we can be waiting on an uninitialized rundown object.
+        // For example, if NmrRegisterProvider fails.
         net_ebpf_extension_hook_provider_unregister(local_provider_context);
     }
 
