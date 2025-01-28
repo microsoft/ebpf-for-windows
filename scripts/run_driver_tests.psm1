@@ -286,6 +286,9 @@ function Invoke-Test
     } else {
         $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
     }
+    # Cache the process handle to ensure subsequent access of the process is accurate
+    $handle = $TestProcess.Handle
+    Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     if ($InnerTestName -ne "") {
         Process-TestCompletion -TestProcess $TestProcess -TestCommand $InnerTestName -NestedProcess $True -TestHangTimeout $TestHangTimeout
     } else {
@@ -333,7 +336,6 @@ function Invoke-CICDTests
         (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
     )
 
-
     foreach ($Test in $TestList) {
         Invoke-Test -TestName $($Test.Test) -TestArgs $($Test.Arguments) -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
     }
@@ -368,14 +370,12 @@ function Invoke-XDPTest
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV4Address"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV4Address"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
 
     Write-Log "Executing $XDPTestName with remote address: $RemoteIPV6Address"
     $TestCommand = ".\xdp_tests.exe"
     $TestArguments = "$XDPTestName --remote-ip $RemoteIPV6Address"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
 
     Write-Log "$XDPTestName Test Passed" -ForegroundColor Green
     Write-Log "`n`n"
@@ -417,9 +417,7 @@ function Invoke-ConnectRedirectTest
         " --user-type $UserType"
 
     Write-Log "Executing connect redirect tests with v4 and v6 programs. Arguments: $TestArguments"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
-
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
 
     ## Run test with only v4 program attached.
     $TestArguments =
@@ -434,9 +432,7 @@ function Invoke-ConnectRedirectTest
         " [connect_authorize_redirect_tests_v4]"
 
     Write-Log "Executing connect redirect tests with v4 programs. Arguments: $TestArguments"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
-
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
 
     ## Run tests with only v6 program attached.
     $TestArguments =
@@ -451,8 +447,7 @@ function Invoke-ConnectRedirectTest
         " [connect_authorize_redirect_tests_v6]"
 
     Write-Log "Executing connect redirect tests with v6 programs. Arguments: $TestArguments"
-    $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $false -TestHangTimeout $TestHangTimeout
 
 
     Write-Log "Connect-Redirect Test Passed" -ForegroundColor Green
@@ -483,10 +478,7 @@ function Invoke-CICDStressTests
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
-    # Cache the process handle to ensure subsequent access of the process is accurate
-    $handle = $TestProcess.Handle
-    Process-TestCompletion -TestProcess $TestProcess -TestCommand $TestCommand -TestHangTimeout $TestHangTimeout
-
+    Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout
 
     Pop-Location
 }
