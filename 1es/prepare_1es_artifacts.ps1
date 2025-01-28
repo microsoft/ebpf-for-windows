@@ -13,6 +13,8 @@ foreach ($image in $images) {
     Copy-Item -Path .\artifacts.json -Destination $outFileName
     # The IMAGETYPE name MUST match the Azure Storage Blob Container that holds the necessary dependencies for configuring the 1ES runner.
     Replace-PlaceholderStrings -FilePath $outFileName -SearchString 'IMAGETYPE' -ReplaceString $image
+    # Remove the license text line in this output, as it is not compatible with the expected json format.
+    (Get-Content $outFileName) | Where-Object { $_ -notmatch 'license' } | Set-Content $outFileName
 }
 
 # Copy any shared scripts into the 1ES folder.
