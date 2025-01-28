@@ -105,8 +105,13 @@ _ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     NET_EBPF_EXT_LOG_ENTRY();
 
-    ExWaitForRundownProtectionRelease(&rundown->protection);
-    rundown->rundown_occurred = TRUE;
+    ASSERT(rundown->rundown_initialized);
+    ASSERT(rundown->rundown_occurred == FALSE);
+
+    if (rundown->rundown_initialized == TRUE) {
+        ExWaitForRundownProtectionRelease(&rundown->protection);
+        rundown->rundown_occurred = TRUE;
+    }
 
     NET_EBPF_EXT_LOG_EXIT();
 }
@@ -178,6 +183,9 @@ _Must_inspect_result_ bool
 net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
+    if (rundown->rundown_initialized == FALSE) {
+        return FALSE;
+    }
     bool status = ExAcquireRundownProtection(&rundown->protection);
     if (status) {
         rundown->rundown_acquired_count++;
@@ -190,8 +198,10 @@ void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
     net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
-    ExReleaseRundownProtection(&rundown->protection);
-    rundown->rundown_reference_count--;
+    if (rundown->rundown_initialized) {
+        ExReleaseRundownProtection(&rundown->protection);
+        rundown->rundown_reference_count--;
+    }
 }
 
 const ebpf_extension_data_t*
@@ -806,6 +816,7 @@ net_ebpf_extension_hook_provider_register(
 
     // Initialize rundown protection for the provider context.
     ExInitializeRundownProtection(&local_provider_context->rundown.protection);
+    local_provider_context->rundown.rundown_initialized = TRUE;
     local_provider_context->rundown.rundown_occurred = FALSE;
 
     *provider_context = local_provider_context;
