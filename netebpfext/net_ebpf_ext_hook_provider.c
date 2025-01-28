@@ -642,7 +642,6 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
 
     // Remove the list entry from the provider's list of filter contexts.
     RemoveEntryList(&filter_context->link);
-
     // Insert the list entry to the list of zombie filter contexts.
     ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
     InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->link);

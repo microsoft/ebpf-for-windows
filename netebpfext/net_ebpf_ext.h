@@ -162,6 +162,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 #define CLEAN_UP_FILTER_CONTEXT(filter_context)                                                \
     ASSERT((filter_context) != NULL);                                                          \
     net_ebpf_extension_hook_provider_remove_filter_context_from_zombie_list((filter_context)); \
+    net_ebpf_ext_remove_filter_context_from_debug_list((filter_context));                      \
     if ((filter_context)->filter_ids != NULL) {                                                \
         ExFreePool((filter_context)->filter_ids);                                              \
     }                                                                                          \

@@ -2627,7 +2627,7 @@ typedef struct _ebpf_protocol_handler
 #define PROTOCOL_ALL_MODES PROTOCOL_NATIVE_MODE
 #endif
 
-#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS) \
+#define DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(OPERATION, FLAGS)             \
     {                                                                                 \
         EBPF_PROTOCOL_FIXED_REQUEST_NO_REPLY, (void*)_ebpf_core_protocol_##OPERATION, \
             sizeof(ebpf_operation_##OPERATION##_request_t), .flags.value = FLAGS      \
