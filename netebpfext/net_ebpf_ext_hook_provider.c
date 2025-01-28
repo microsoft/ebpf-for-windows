@@ -828,7 +828,7 @@ net_ebpf_extension_hook_provider_register(
     }
 
     // Initialize rundown protection for the provider context.
-    _ebpf_ext_init_hook_rundown(local_provider_context->rundown);
+    _ebpf_ext_init_hook_rundown(&local_provider_context->rundown);
 
     *provider_context = local_provider_context;
     local_provider_context = NULL;
