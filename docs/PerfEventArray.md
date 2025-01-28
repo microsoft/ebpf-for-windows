@@ -29,7 +29,7 @@ The main motivation for this proposal is to efficiently support payload capture 
 - Supporting ring buffer reserve and submit in ebpf-for-windows is currently blocked on verifier support [#273](https://github.com/vbpf/ebpf-verifier/issues/273).
 - Without reserve+submit, using `ringbuf_output` for payload capture requires using a per-CPU array as scratch space to append the payload to the event before calling ringbuf_output.
 - The CTXLEN field in the flags of `perf_event_output` tells the kernel to append bytes from the payload to the record, avoiding the extra copy.
-  - On linux this works for specifc program types, on Windows this will work for any program type with a data pointer in the context.
+  - On linux this works for specific program types, on Windows this will work for any program type with a data pointer in the context.
 
 
 # Proposal
@@ -52,10 +52,12 @@ If the PERFBUF_FLAG_AUTO_CALLBACK flag is set, the callback will be automaticall
 2. Implement `perf_event_output` bpf helper function.
     1. Only support writing to the current CPU (matches current linux restrictions).
         - Specify current CPU in flags using BPF_F_INDEX_MASK or pass BPF_F_CURRENT_CPU.
-    2. Support BPF_F_CTXLEN_MASK flags any bpf program types with a data pointer in the context.
-        - The ebpf_context_descriptor_t passed by extensions to the platform includes the offset of the data pointer.
-        - Whatever the program context data pointer points to will be copied by the platform,
-          without any additional ebpf extension support needed.
+    2. Support BPF_F_CTXLEN_MASK flags for any bpf program types with a data pointer in the context.
+        - The global helper will copy the memory from the program-type specific context data pointer,
+          so no extension-specific helpers will be needed.
+          - The extension-provided ebpf_context_descriptor_t includes the offset of the data pointer.
+        - Passing a non-zero value in BPF_F_CTXLEN_MASK will return an operation not supported error for program types
+          without a data pointer in the context.
 2. Implement libbpf support for perf event arrays.
     1. `perf_buffer__new` - Create a new perfbuf manager (attaches callback).
         - Attaches to all CPUs automatically.
