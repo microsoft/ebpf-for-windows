@@ -58,6 +58,23 @@ typedef struct _net_ebpf_extension_invoke_programs_parameters
 } net_ebpf_extension_invoke_programs_parameters_t;
 
 /**
+ * @brief Initialize the hook rundown state.
+ *
+ * @param[in, out] rundown Pointer to the rundown object to initialize.
+ */
+static void
+_ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+{
+    ASSERT(rundown->rundown_initialized == FALSE);
+
+    ExInitializeRundownProtection(&rundown->protection);
+    rundown->rundown_occurred = FALSE;
+    rundown->rundown_initialized = TRUE;
+    rundown->rundown_acquired_count = 0;
+    rundown->rundown_reference_count = 0;
+}
+
+/**
  * @brief Initialize the hook client rundown state.
  *
  * @param[in, out] hook_client Pointer to the attached hook NPI client.
@@ -84,11 +101,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     }
 
     // Initialize the rundown and disable new references.
-    ExInitializeRundownProtection(&rundown->protection);
-    rundown->rundown_occurred = FALSE;
-    rundown->rundown_initialized = TRUE;
-    rundown->rundown_acquired_count = 0;
-    rundown->rundown_reference_count = 0;
+    _ebpf_ext_init_hook_rundown(rundown);
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -815,9 +828,7 @@ net_ebpf_extension_hook_provider_register(
     }
 
     // Initialize rundown protection for the provider context.
-    ExInitializeRundownProtection(&local_provider_context->rundown.protection);
-    local_provider_context->rundown.rundown_initialized = TRUE;
-    local_provider_context->rundown.rundown_occurred = FALSE;
+    _ebpf_ext_init_hook_rundown(local_provider_context->rundown);
 
     *provider_context = local_provider_context;
     local_provider_context = NULL;
