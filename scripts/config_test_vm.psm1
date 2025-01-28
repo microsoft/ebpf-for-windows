@@ -555,7 +555,7 @@ function Log-OSBuildInformationOnVM
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
-        Write-Log "OS Build Information: $($buildLabEx.BuildLabEx)"
+        Write-Host "OS Build Information: $($buildLabEx.BuildLabEx)"
     }
 }
 
