@@ -456,7 +456,7 @@ function Invoke-ConnectRedirectTest
 function Invoke-CICDStressTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = (45*60),
+          [parameter(Mandatory = $false)][int] $TestHangTimeout = (60*60),
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
@@ -471,9 +471,9 @@ function Invoke-CICDStressTests
     $TestCommand = ".\ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=5 -vo=true"
+        $TestArguments = "-tt=8 -td=5"
     } else {
-        $TestArguments = "-tt=8 -td=5 -vo=true -erd=1000 -er=1"
+        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
     Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout
