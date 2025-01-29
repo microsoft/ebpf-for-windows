@@ -35,8 +35,8 @@ $VcRedistPath = Join-Path $WorkingDirectory "vc_redist.x64.exe"
 Push-Location $WorkingDirectory
 
 if ($Uninstall) {
-    # Uninstall the MSI package.
-    $arguments = "/x $MsiPath /qn /norestart /l*v msi-uninstall.log"
+    # Uninstall the MSI package using the MSI product code. Product code from: installer\Product.wxs
+    $arguments = "/x {022C44B5-8969-4B75-8DB0-73F98B1BD7DC} /qn /norestart /l*v msi-uninstall.log"
     Write-Host("Uninstalling eBPF MSI package at 'msiexec.exe $arguments'...")
     $process = Start-Process -FilePath msiexec.exe -ArgumentList $arguments -Wait -PassThru
     if ($process.ExitCode -eq 0) {
@@ -61,13 +61,14 @@ if ($Uninstall) {
         Write-Host("Visual C++ Redistributable installation completed successfully!") -ForegroundColor Green
     }
 
-    # Move the Visual C++ Redistributable Debug DLLs to the JIT directory, so that ebpfsvc.exe
-    # does not fail to start with error 1053.
+    # Copy the Visual C++ Redistributable Debug DLLs to the JIT directory and give
+    # LOCAL SERVICE read access.
+    # This is so that ebpfsvc.exe does not fail to start with error 1053.
     Write-Host("Copying Visual C++ Redistributable debug runtime DLLs to the $EbpfSvcPath directory...")
     # Test if the VC debug runtime DLLs are present in the working directory (indicating a debug build).
     $VCDebugRuntime = $VCDebugRuntime | Where-Object { Test-Path (Join-Path $WorkingDirectory $_) }
     if (-not $VCDebugRuntime) {
-        Write-Host("Visual C++ Redistributable debug runtime DLLs not found in the working directory (i.e., release build or already installed). Skipping this step.") -ForegroundColor Yellow
+        Write-Host("Visual C++ Redistributable debug runtime DLLs not found in the working directory. Skipping this step.") -ForegroundColor Yellow
     } else {
         if (-not (Test-Path $EbpfSvcPath)) {
             New-Item -Path $EbpfSvcPath -ItemType Directory
@@ -76,7 +77,10 @@ if ($Uninstall) {
         $VCDebugRuntime | ForEach-Object {
             $sourcePath = Join-Path $WorkingDirectory $_
             $destinationPath = Join-Path $EbpfSvcPath $_
-            Move-Item -Path $sourcePath -Destination $destinationPath -Force
+            Copy-Item -Path $sourcePath -Destination $destinationPath -Force
+            $acl = Get-Acl $destinationPath
+            $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule("NT AUTHORITY\LOCAL SERVICE", "ReadAndExecute", "Allow")))
+            Set-Acl $destinationPath $acl
         }
         Write-Host("Visual C++ Redistributable debug runtime DLLs copied successfully!") -ForegroundColor Green
     }

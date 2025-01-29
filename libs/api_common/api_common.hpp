@@ -12,6 +12,7 @@
                                  // result to a 8 byte value.
 #undef min                       // don't interfere with C++ min/max definitions required inside platform.hpp.
 #undef max
+#include "asm_syntax.hpp"
 #include "platform.hpp"
 #define max(a, b) (((a) > (b)) ? (a) : (b))
 #define min(a, b) (((a) < (b)) ? (a) : (b))
@@ -192,7 +193,8 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
     _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
-    _Inout_ uint32_t* info_size) noexcept;
+    _Inout_ uint32_t* info_size,
+    _Out_opt_ ebpf_object_type_t* type) noexcept;
 
 _Must_inspect_result_ ebpf_result_t
 query_map_definition(
@@ -205,25 +207,14 @@ query_map_definition(
     _Out_ ebpf_id_t* inner_map_id) noexcept;
 
 void
-set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type);
+set_global_program_and_attach_type(
+    _In_opt_ const ebpf_program_type_t* program_type, _In_opt_ const ebpf_attach_type_t* attach_type);
 
-const ebpf_program_type_t*
+_Ret_maybenull_ const ebpf_program_type_t*
 get_global_program_type();
 
-const ebpf_attach_type_t*
+_Ret_maybenull_ const ebpf_attach_type_t*
 get_global_attach_type();
-
-void
-set_verification_in_progress(bool value);
-
-bool
-get_verification_in_progress();
-
-struct _verification_in_progress_helper
-{
-    _verification_in_progress_helper() { set_verification_in_progress(true); }
-    ~_verification_in_progress_helper() { set_verification_in_progress(false); }
-};
 
 /**
  * @brief Save handle to program being verified in thread-local storage.

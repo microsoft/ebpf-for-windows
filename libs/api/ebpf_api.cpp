@@ -316,7 +316,7 @@ ebpf_map_create(
 
     ebpf_assert(map_fd);
 
-    if (opts && opts->map_flags != 0) {
+    if (opts && (opts->map_flags != 0 || opts->numa_node != 0 || opts->map_ifindex != 0)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -2016,7 +2016,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
     if (map_cache.verifier_map_descriptor.inner_map_fd != ebpf_fd_invalid) {
         struct bpf_map_info info = {0};
         uint32_t info_size = (uint32_t)sizeof(info);
-        if (ebpf_object_get_info_by_fd(map_cache.verifier_map_descriptor.inner_map_fd, &info, &info_size) ==
+        if (ebpf_object_get_info_by_fd(map_cache.verifier_map_descriptor.inner_map_fd, &info, &info_size, NULL) ==
             EBPF_SUCCESS) {
             map->map_definition.inner_map_id = info.id;
         }
@@ -2049,7 +2049,7 @@ _initialize_ebpf_maps_native(
         }
         struct bpf_map_info info = {0};
         uint32_t info_size = (uint32_t)sizeof(info);
-        result = ebpf_object_get_info(map_handles[i], &info, &info_size);
+        result = ebpf_object_get_info(map_handles[i], &info, &info_size, NULL);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -2107,7 +2107,7 @@ _initialize_ebpf_programs_native(
         }
         struct bpf_prog_info info = {};
         uint32_t info_size = (uint32_t)sizeof(info);
-        result = ebpf_object_get_info(program_handles[i], &info, &info_size);
+        result = ebpf_object_get_info(program_handles[i], &info, &info_size, NULL);
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
@@ -2983,7 +2983,7 @@ _ebpf_validate_map(_In_ const ebpf_map_t* map, fd_t original_map_fd) NO_EXCEPT_T
     struct bpf_map_info info = {0};
     fd_t inner_map_info_fd = ebpf_fd_invalid;
     uint32_t info_size = (uint32_t)sizeof(info);
-    ebpf_result_t result = ebpf_object_get_info_by_fd(original_map_fd, &info, &info_size);
+    ebpf_result_t result = ebpf_object_get_info_by_fd(original_map_fd, &info, &info_size, NULL);
     if (result != EBPF_SUCCESS) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
@@ -4067,7 +4067,10 @@ CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info_by_fd(
-    fd_t bpf_fd, _Inout_updates_bytes_to_(*info_size, *info_size) void* info, _Inout_ uint32_t* info_size) NO_EXCEPT_TRY
+    fd_t bpf_fd,
+    _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
+    _Inout_ uint32_t* info_size,
+    _Out_opt_ ebpf_object_type_t* type) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(info);
@@ -4078,7 +4081,7 @@ ebpf_object_get_info_by_fd(
         EBPF_RETURN_RESULT(EBPF_INVALID_FD);
     }
 
-    EBPF_RETURN_RESULT(ebpf_object_get_info(handle, info, info_size));
+    EBPF_RETURN_RESULT(ebpf_object_get_info(handle, info, info_size, type));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -4130,8 +4133,11 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) NO_EXCE
     ebpf_assert(program_type);
 
     try {
-        const EbpfProgramType& type = get_program_type_windows(*program_type);
-        EBPF_RETURN_POINTER(const char*, type.name.c_str());
+        const EbpfProgramType* type = get_program_type_windows(*program_type);
+        if (type == nullptr) {
+            EBPF_RETURN_POINTER(const char*, nullptr);
+        }
+        EBPF_RETURN_POINTER(const char*, type->name.c_str());
     } catch (...) {
         return nullptr;
     }

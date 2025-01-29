@@ -14,7 +14,7 @@ is_helper_usable_windows(int32_t n);
 EbpfMapType
 get_map_type_windows(uint32_t platform_specific_type);
 
-const EbpfProgramType&
+_Ret_maybenull_ const EbpfProgramType*
 get_program_type_windows(const GUID& program_type);
 
 EbpfProgramType

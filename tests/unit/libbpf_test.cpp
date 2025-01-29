@@ -2165,7 +2165,7 @@ TEST_CASE("enumerate link IDs", "[libbpf]")
     REQUIRE(errno == ENOENT);
 }
 
-TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
+TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
@@ -2173,9 +2173,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
     program_info_provider_t bind_program_info;
     REQUIRE(bind_program_info.initialize(EBPF_PROGRAM_TYPE_BIND) == EBPF_SUCCESS);
-    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    single_instance_hook_t sample_hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE, BPF_LINK_TYPE_UNSPEC);
     REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
-    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
+    single_instance_hook_t bind_hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND, BPF_LINK_TYPE_PLAIN);
     REQUIRE(bind_hook.initialize() == EBPF_SUCCESS);
 
     // Verify the enumeration is empty.
@@ -2217,12 +2217,14 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
 
     // Get info on the first link.
     memset(&attr, 0, sizeof(attr));
-    bpf_link_info info;
+    sys_bpf_link_info_t info = {};
     attr.info.bpf_fd = fd1;
     attr.info.info = (uintptr_t)&info;
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(info.id == id1);
+    REQUIRE(info.prog_id != 0);
 
     // Detach the first link.
     memset(&attr, 0, sizeof(attr));
@@ -2235,7 +2237,9 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.info.info = (uintptr_t)&info;
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    REQUIRE(info.attach_type_uuid == EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(info.type == BPF_LINK_TYPE_UNSPEC);
+    REQUIRE(info.id == id1);
+    REQUIRE(info.prog_id == 0);
 
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
@@ -2258,6 +2262,17 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf]")
     attr.info.info_len = sizeof(info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
     REQUIRE(info.id == id1);
+
+    // Get info on the second link.
+    memset(&attr, 0, sizeof(attr));
+    info = {};
+    attr.info.bpf_fd = fd2;
+    attr.info.info = (uintptr_t)&info;
+    attr.info.info_len = sizeof(info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(info.type == BPF_LINK_TYPE_PLAIN);
+    REQUIRE(info.id == id2);
+    REQUIRE(info.prog_id != 0);
 
     // And for completeness, try an invalid bpf() call.
     REQUIRE(bpf(-1, &attr, sizeof(attr)) == -EINVAL);
@@ -2887,7 +2902,7 @@ TEST_CASE("bpf_object__load with .o from memory", "[libbpf]")
 }
 
 // Test that bpf() accepts a smaller and a larger bpf_attr.
-TEST_CASE("bpf() backwards compatibility", "[libbpf]")
+TEST_CASE("bpf() backwards compatibility", "[libbpf][bpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -2925,7 +2940,7 @@ TEST_CASE("bpf() backwards compatibility", "[libbpf]")
 // BPF_PROG_LOAD, BPF_OBJ_GET_INFO_BY_FD, BPF_PROG_GET_NEXT_ID,
 // BPF_MAP_CREATE, BPF_MAP_GET_NEXT_ID, BPF_PROG_BIND_MAP,
 // BPF_PROG_GET_FD_BY_ID, BPF_MAP_GET_FD_BY_ID, and BPF_MAP_GET_FD_BY_ID.
-TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
+TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf][bpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -2944,7 +2959,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(program_fd >= 0);
 
     // Now query the program info and verify it matches what we set.
-    bpf_prog_info program_info;
+    sys_bpf_prog_info_t program_info = {};
     memset(&attr, 0, sizeof(attr));
     attr.info.bpf_fd = program_fd;
     attr.info.info = (uintptr_t)&program_info;
@@ -2953,6 +2968,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(attr.info.info_len == sizeof(program_info));
     REQUIRE(program_info.nr_map_ids == 0);
     REQUIRE(program_info.type == BPF_PROG_TYPE_SAMPLE);
+    REQUIRE(strnlen(program_info.name, sizeof(program_info.name)) == 0);
 
     // Verify we can enumerate the program id.
     memset(&attr, 0, sizeof(attr));
@@ -2978,13 +2994,13 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
     REQUIRE(map_fd > 0);
 
     // Query the map id.
-    bpf_map_info info;
+    sys_bpf_map_info_t map_info = {};
     memset(&attr, 0, sizeof(attr));
     attr.info.bpf_fd = map_fd;
-    attr.info.info = (uintptr_t)&info;
-    attr.info.info_len = sizeof(info);
+    attr.info.info = (uintptr_t)&map_info;
+    attr.info.info_len = sizeof(map_info);
     REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
-    ebpf_id_t map_id = info.id;
+    ebpf_id_t map_id = map_info.id;
 
     // Verify we can enumerate the map id.
     memset(&attr, 0, sizeof(attr));
@@ -3071,7 +3087,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf]")
 
 // Test bpf() with the following command ids:
 //  BPF_PROG_ATTACH, BPF_PROG_DETACH
-TEST_CASE("BPF_PROG_ATTACH", "[libbpf]")
+TEST_CASE("BPF_PROG_ATTACH", "[libbpf][bpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -3123,7 +3139,7 @@ TEST_CASE("BPF_PROG_ATTACH", "[libbpf]")
 // Test bpf() with the following command ids:
 // BPF_MAP_CREATE, BPF_MAP_UPDATE_ELEM, BPF_MAP_LOOKUP_ELEM,
 // BPF_MAP_GET_NEXT_KEY, BPF_MAP_LOOKUP_AND_DELETE_ELEM, and BPF_MAP_DELETE_ELEM.
-TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
+TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf][bpf]")
 {
     _test_helper_libbpf test_helper;
     test_helper.initialize();
@@ -3233,6 +3249,101 @@ TEST_CASE("BPF_MAP_GET_NEXT_KEY etc.", "[libbpf]")
     REQUIRE(next_key == first_key);
 
     Platform::_close(map_fd);
+}
+
+TEST_CASE("Map and program information", "[libbpf][bpf]")
+{
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    // Create a map.
+    sys_bpf_map_create_attr_t map_create = {};
+    map_create.map_type = BPF_MAP_TYPE_ARRAY;
+    map_create.key_size = sizeof(uint32_t);
+    map_create.value_size = sizeof(uint32_t);
+    map_create.max_entries = 2;
+    strncpy_s(map_create.map_name, "testing", sizeof(map_create.map_name));
+    int map_fd = bpf(BPF_MAP_CREATE, (union bpf_attr*)&map_create, sizeof(map_create));
+    REQUIRE(map_fd > 0);
+
+    // Retrieve a prefix of map info.
+    sys_bpf_map_info_t map_info = {};
+    union bpf_attr attr = {};
+    attr.info.bpf_fd = map_fd;
+    attr.info.info = (uintptr_t)&map_info;
+    attr.info.info_len = offsetof(map_info, key_size);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == offsetof(map_info, key_size));
+    REQUIRE(map_info.type == map_create.map_type);
+    REQUIRE(map_info.id != 0);
+    REQUIRE(map_info.key_size == 0);
+
+    // Retrieve the map info.
+    attr = {};
+    attr.info.bpf_fd = map_fd;
+    attr.info.info = (uintptr_t)&map_info;
+    attr.info.info_len = sizeof(map_info);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == sizeof(map_info));
+    REQUIRE(map_info.type == map_create.map_type);
+    REQUIRE(map_info.id != 0);
+    REQUIRE(map_info.key_size == map_create.key_size);
+    REQUIRE(map_info.value_size == map_create.value_size);
+    REQUIRE(map_info.max_entries == map_create.max_entries);
+    REQUIRE(map_info.map_flags == map_create.map_flags);
+    REQUIRE(strncmp(map_info.name, map_create.map_name, sizeof(map_info.name)) == 0);
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+    struct ebpf_inst instructions[] = {
+        {INST_ALU_OP_MOV | INST_CLS_ALU64, R0_RETURN_VALUE, 0}, // r0 = 0
+        {INST_OP_EXIT},                                         // return r0
+    };
+
+    // Load and verify the eBPF program.
+    attr = {};
+    attr.prog_load.prog_type = BPF_PROG_TYPE_SAMPLE;
+    attr.prog_load.insns = (uintptr_t)instructions;
+    attr.prog_load.insn_cnt = _countof(instructions);
+    strncpy_s(attr.prog_load.prog_name, "testing", sizeof(attr.prog_load.prog_name));
+    int program_fd = bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
+    REQUIRE(program_fd >= 0);
+
+    // Bind map to the program so that the ID is returned in the info.
+    attr = {};
+    attr.prog_bind_map.prog_fd = program_fd;
+    attr.prog_bind_map.map_fd = map_fd;
+    REQUIRE(bpf(BPF_PROG_BIND_MAP, &attr, sizeof(attr)) == 0);
+
+    // Verify that we can query a prefix of fields.
+    sys_bpf_prog_info_t program_info = {};
+    attr = {};
+    attr.info.bpf_fd = program_fd;
+    attr.info.info = (uintptr_t)&program_info;
+    attr.info.info_len = offsetof(program_info, tag);
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == offsetof(program_info, tag));
+    REQUIRE(program_info.id != 0);
+    REQUIRE(program_info.nr_map_ids == 0);
+    REQUIRE(strnlen(program_info.name, sizeof(program_info.name)) == 0);
+
+    // Query the full program info.
+    ebpf_id_t map_ids[2] = {};
+    attr.info.info_len = sizeof(program_info);
+    program_info.nr_map_ids = sizeof(map_ids) / sizeof(map_ids[0]);
+    program_info.map_ids = (uintptr_t)map_ids;
+    REQUIRE(bpf(BPF_OBJ_GET_INFO_BY_FD, &attr, sizeof(attr)) == 0);
+    REQUIRE(attr.info.info_len == sizeof(program_info));
+    REQUIRE(program_info.tag[0] == 0);
+    REQUIRE(program_info.jited_prog_len == 0);
+    REQUIRE(program_info.xlated_prog_len == 0);
+    REQUIRE(program_info.jited_prog_insns == 0);
+    REQUIRE(program_info.xlated_prog_insns == 0);
+    REQUIRE(program_info.load_time == 0);
+    REQUIRE(program_info.created_by_uid == 0);
+    REQUIRE(program_info.nr_map_ids == 1);
+    REQUIRE(map_ids[0] == map_info.id);
+    REQUIRE(strncmp(program_info.name, "testing", sizeof(program_info.name)) == 0);
+#endif
 }
 
 TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")

@@ -195,10 +195,10 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "arith32      : 0\n"
                   "arith64      : 1\n"
                   "assign       : 1\n"
-                  "basic_blocks : 4\n"
                   "call_1       : 0\n"
                   "call_mem     : 0\n"
                   "call_nomem   : 0\n"
+                  "instructions : 4\n"
                   "joins        : 0\n"
                   "jumps        : 0\n"
                   "load         : 0\n"
@@ -268,8 +268,10 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
+    const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size = 1020;
+    const int old_code_size = 1020;
 #else
 #error "Unsupported architecture"
 #endif
@@ -403,6 +405,21 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
     int result;
     std::string output =
         _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L"program=func", L"type=bind", &result);
+    REQUIRE(result == NO_ERROR);
+    REQUIRE(
+        output == "\n"
+                  "Verification succeeded\n"
+                  "Program terminates within 0 loop iterations\n");
+}
+
+TEST_CASE("show verification bindmonitor_bpf2bpf.o", "[netsh][verification]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+
+    int result;
+    std::string output =
+        _run_netsh_command(handle_ebpf_show_verification, L"bindmonitor_bpf2bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
         output == "\n"

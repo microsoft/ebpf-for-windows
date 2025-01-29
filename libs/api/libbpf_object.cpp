@@ -70,7 +70,7 @@ bpf_object__next(struct bpf_object* prev)
 int
 bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len)
 {
-    return libbpf_result_err(ebpf_object_get_info_by_fd((fd_t)bpf_fd, info, info_len));
+    return libbpf_result_err(ebpf_object_get_info_by_fd((fd_t)bpf_fd, info, info_len, NULL));
 }
 
 int

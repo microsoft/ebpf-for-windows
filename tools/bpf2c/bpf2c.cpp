@@ -143,6 +143,7 @@ main(int argc, char** argv)
         std::string output_file_name;
         std::string type_string = "";
         std::string hash_algorithm = EBPF_HASH_ALGORITHM;
+        bool verbose = false;
         std::vector<std::string> parameters(argv + 1, argv + argc);
         auto iter = parameters.begin();
         auto iter_end = parameters.end();
@@ -227,6 +228,12 @@ main(int argc, char** argv)
                   }
                   return false;
               }}},
+            {"--verbose",
+             {"Show verbose failure information",
+              [&]() {
+                  verbose = true;
+                  return true;
+              }}},
         };
 
         for (; iter != iter_end; ++iter) {
@@ -305,7 +312,7 @@ main(int argc, char** argv)
                     program->section_name,
                     program->program_name,
                     (global_program_type_set) ? &program_type : &program->program_type,
-                    EBPF_VERIFICATION_VERBOSITY_NORMAL,
+                    verbose ? EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL : EBPF_VERIFICATION_VERBOSITY_NORMAL,
                     &report,
                     &error_message,
                     &stats) != 0) {

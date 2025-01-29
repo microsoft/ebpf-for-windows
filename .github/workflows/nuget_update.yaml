@@ -33,7 +33,7 @@ jobs:
     steps:
     # Check out the main repo.
     - name: Harden Runner
-      uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f # v2.10.2
+      uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
       with:
         egress-policy: audit
 
@@ -61,7 +61,7 @@ jobs:
         nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
     - name: Create Pull Request
-      uses: peter-evans/create-pull-request@5e914681df9dc83aa4e4905692ca88beb2f9e91f
+      uses: peter-evans/create-pull-request@67ccf781d68cd99b580ae25a5c18a1cc84ffff1f
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         commit-message: Update NuGet packages

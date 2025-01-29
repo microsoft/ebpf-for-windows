@@ -244,7 +244,7 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
-  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug'">
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <!-- Build BPF programs that pass verification and build native images for them. -->
     <CustomBuild Include="*.c">
       <FileType>CppCode</FileType>
@@ -269,6 +269,27 @@
       <BuildInParallel>true</BuildInParallel>
     </CustomBuild>
   </ItemGroup>
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'!='$(HostPlatform)'">
+    <!-- Build BPF programs that pass verification and build native images for them. -->
+    <CustomBuild Include="*.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+    <!-- Copy explicit unsafe object files (i.e., not to be verified) among the other generated .o files -->
+    <CustomBuild Include="unsafe\*.o">
+      <FileType>Document</FileType>
+      <Command>
+        xcopy unsafe\%(Filename).o $(OutputPath) /Y
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o</Outputs>
+      <BuildInParallel>true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
   <!-- Build undocked BPF programs that pass verification and build native images for them only when configuration is NOT FuzzerDebug.
        Background:
        Some projects today are skipped for FuzzerDebug configuration, hence the NuGet package is also not generated for FuzzerDebug.
@@ -276,15 +297,26 @@
        configuration. As a result of that, the eBPF store cannot be populated for sample program types and hence bpf2c cannot convert
        the sample program types to native images (as it needs program information for offline verification).
   -->
-  <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug'">
+  <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <CustomBuild Include="undocked\*.c">
       <FileType>CppCode</FileType>
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(KernelConfiguration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(KernelConfiguration) -KernelMode $true -Verbose
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(Configuration) -KernelMode $false
         popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)'!='FuzzerDebug' And '$(Platform)'!='$(HostPlatform)'">
+    <CustomBuild Include="undocked\*.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
@@ -345,7 +377,7 @@
     </CustomBuild>
   </ItemGroup>
   <!-- Build BPF programs that pass verification and build native images for them but require custom program type. -->
-  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug'">
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'=='$(HostPlatform)'">
     <CustomBuild Include="custom_program_type\*.c">
       <FileType>CppCode</FileType>
       <Command>
@@ -353,6 +385,17 @@
         pushd $(SolutionDir)\scripts
         powershell -NonInteractive -ExecutionPolicy Unrestricted .\build_custom_sample_programs.ps1 -FileName %(Filename) -FilePath $(OutDir) -IncludePath $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(Configuration) -KernelConfiguration $(KernelConfiguration)
         popd
+      </Command>
+      <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
+      <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->
+      <BuildInParallel Condition="'$(Fuzzer)'!='True' And '$(AddressSanitizer)'!='True'">true</BuildInParallel>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup Condition="'$(Analysis)'=='' And '$(Configuration)'!='FuzzerDebug' And '$(Platform)'!='$(HostPlatform)'">
+    <CustomBuild Include="custom_program_type\*.c">
+      <FileType>CppCode</FileType>
+      <Command>
+        $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
       <!-- Don't run bpf2c in parallel when built with fuzzing flags as this triggers failures. -->

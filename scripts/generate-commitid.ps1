@@ -14,5 +14,5 @@ if (Test-Path $file_name) {
 }
 if ($old_commit_id -ne $commit_id) {
     Write-Output "Commit ID changed, regenerating $file_name"
-    $new_content | out-file -FilePath $file_name
+    $new_content | out-file -FilePath $file_name -Encoding Ascii
 }

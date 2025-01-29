@@ -3,6 +3,7 @@
 Copyright (c) eBPF for Windows contributors
 SPDX-License-Identifier: MIT
 -->
+<!-- Product version must remain the same for the life of the product. Do not change it. -->
 <?define ProductVersion="022C44B5-8969-4B75-8DB0-73F98B1BD7DC"?>
 <?define UpgradeCode="B6BCACB1-C872-4159-ABCB-43A50668056C"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:ui="http://schemas.microsoft.com/wix/UIExtension" xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
