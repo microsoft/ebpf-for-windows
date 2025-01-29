@@ -16,9 +16,6 @@
 thread_local static const ebpf_program_type_t* _global_program_type = nullptr;
 thread_local static const ebpf_attach_type_t* _global_attach_type = nullptr;
 
-// Whether a program verification is in progress.
-thread_local static bool _verification_in_progress = false;
-
 const char*
 allocate_string(const std::string& string, uint32_t* length) noexcept
 {
@@ -120,34 +117,23 @@ query_map_definition(
 }
 
 void
-set_global_program_and_attach_type(const ebpf_program_type_t* program_type, const ebpf_attach_type_t* attach_type)
+set_global_program_and_attach_type(
+    _In_opt_ const ebpf_program_type_t* program_type, _In_opt_ const ebpf_attach_type_t* attach_type)
 {
     _global_program_type = program_type;
     _global_attach_type = attach_type;
 }
 
-const ebpf_program_type_t*
+_Ret_maybenull_ const ebpf_program_type_t*
 get_global_program_type()
 {
     return _global_program_type;
 }
 
-const ebpf_attach_type_t*
+_Ret_maybenull_ const ebpf_attach_type_t*
 get_global_attach_type()
 {
     return _global_attach_type;
-}
-
-void
-set_verification_in_progress(bool value)
-{
-    _verification_in_progress = value;
-}
-
-bool
-get_verification_in_progress()
-{
-    return _verification_in_progress;
 }
 
 void
@@ -157,7 +143,6 @@ ebpf_clear_thread_local_storage() noexcept
     clear_map_descriptors();
     clear_program_info_cache();
     set_program_under_verification(ebpf_handle_invalid);
-    set_verification_in_progress(false);
     clean_up_sync_device_handle();
 }
 
@@ -176,6 +161,9 @@ ebpf_verify_program(
 
     // Convert the instruction sequence to a control-flow graph.
     try {
+        if (info.type.platform_specific_data == (uintptr_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
+            throw std::runtime_error("Unspecified program type.");
+        }
         const auto program = Program::from_sequence(instruction_sequence, info, options.cfg_opts);
         auto invariants = analyze(program);
         if (options.verbosity_opts.print_invariants) {
