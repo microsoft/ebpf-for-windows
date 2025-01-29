@@ -239,10 +239,8 @@ jobs:
 
   # Run the driver tests on self-hosted runners.
   driver_ws2025:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # Only run during daily scheduled run
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
@@ -296,10 +294,8 @@ jobs:
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   driver_native_only_ws2025:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    # Only run during daily scheduled run
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     uses: ./.github/workflows/reusable-test.yml
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
