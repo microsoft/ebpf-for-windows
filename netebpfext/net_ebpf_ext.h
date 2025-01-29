@@ -125,16 +125,7 @@ typedef struct _net_ebpf_ext_wfp_filter_id
 
 typedef struct _net_ebpf_extension_wfp_filter_context
 {
-    LIST_ENTRY link; ///< Entry in the list of filter contexts.
-    // This object should be either in the _net_ebpf_filter_rundown_acquired_list or in the
-    // _net_ebpf_filter_zombie_list. The following stages are possible: a - The WFP filter has been created, and a
-    // rundown reference has been acquired on behalf of it. This filter will be in the
-    // _net_ebpf_filter_rundown_acquired_list. b - Netebpfext has removed the WFP filter, but the WFP framework has not
-    // released all references to it. This filter will be in the _net_ebpf_filter_zombie_list. c - All references to
-    // this filter have been removed, included by WFP (i.e this module has received the filter notify callback). This
-    // filter will no longer be present in any list, and it's memory will be freed.
-    LIST_ENTRY debug_link; ///< Debug entry in the list of filter contexts.
-
+    LIST_ENTRY link;                   ///< Entry in the list of filter contexts.
     volatile long reference_count;     ///< Reference count.
     EX_SPIN_LOCK lock;                 ///< Lock to protect the client context array.
     uint32_t client_context_count_max; ///< Maximum number of hook NPI clients.
@@ -162,7 +153,6 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 #define CLEAN_UP_FILTER_CONTEXT(filter_context)                                                \
     ASSERT((filter_context) != NULL);                                                          \
     net_ebpf_extension_hook_provider_remove_filter_context_from_zombie_list((filter_context)); \
-    net_ebpf_ext_remove_filter_context_from_debug_list((filter_context));                      \
     if ((filter_context)->filter_ids != NULL) {                                                \
         ExFreePool((filter_context)->filter_ids);                                              \
     }                                                                                          \
@@ -400,28 +390,3 @@ ebpf_result_t
 net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
-
-/**
- * @brief Add the filter context to the zombie list.
- *
- * @param filter_context Filter context to add to the zombie list.
- */
-void
-net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
-
-/**
- * @brief Add the filter context to the rundown acquired list.
- *
- * @param filter_context Filter context to add to the rundown acquired list.
- */
-void
-net_ebpf_ext_add_filter_context_to_rundown_acquired_list(
-    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
-
-/**
- * @brief Remove the filter context from the debug list.
- *
- * @param filter_context Filter context to remove from the debug list.
- */
-void
-net_ebpf_ext_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
