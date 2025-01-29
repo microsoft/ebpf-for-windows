@@ -11,9 +11,6 @@
 [submodule "external/win-c"]
 	path = external/win-c
 	url = https://github.com/takamin/win-c.git
-[submodule "external/Catch2"]
-	path = external/Catch2
-	url = https://github.com/catchorg/Catch2.git
 [submodule "external/pe-parse"]
 	path = external/pe-parse
 	url = https://github.com/trailofbits/pe-parse.git
