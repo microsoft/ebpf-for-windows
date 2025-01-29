@@ -627,10 +627,17 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
     new_file_name += (std::to_string(token) + file_spec.extension().string());
     REQUIRE(new_file_name.size() != file_name.size());
 
-    // Make a copy.
-    LOG_VERBOSE("Copying {} to {}", file_name, new_file_name);
-    auto result =
-        std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
+    // Make a copy. Retry a few times in case the file is in use.
+    bool result = false;
+    for (uint32_t i = 0; i < 5; i++) {
+        LOG_VERBOSE("Copying {} to {}", file_name, new_file_name);
+        result =
+            std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
+        if (result) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
     REQUIRE(result == true);
 
     return new_file_name;
@@ -1105,7 +1112,7 @@ _print_test_control_info(const test_control_info& test_control_info)
 
 // The following code is used by the "bindmonitor_tail_call_invoke_program_test" test which is currently disabled due
 // to a potential WFP bug exposed while investigating Issue #3337.  Uncomment the following line to re-enable test.
-// #define ENABLE_TAIL_CALL_STRESS_TEST
+#define ENABLE_TAIL_CALL_STRESS_TEST
 
 #if (defined ENABLE_TAIL_CALL_STRESS_TEST)
 static void
@@ -1493,9 +1500,6 @@ TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_str
     _km_test_init();
     LOG_INFO("\nStarting test *** native_invoke_v4_v6_programs_restart_extension_test ***");
     test_control_info local_test_control_info = _global_test_control_info;
-
-    // TODO: Bring this test in compliance with GH Issue #3223. Until then, disable extension restart for this test.
-    local_test_control_info.extension_restart_enabled = false;
 
     // This test needs only 2 threads (one per program).
     local_test_control_info.threads_count = 2;

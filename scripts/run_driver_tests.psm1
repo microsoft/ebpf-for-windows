@@ -471,9 +471,9 @@ function Invoke-CICDStressTests
     $TestCommand = ".\ebpf_stress_tests_km.exe"
     $TestArguments = " "
     if ($RestartExtension -eq $false) {
-        $TestArguments = "-tt=8 -td=5"
+        $TestArguments = "-tt=8 -td=5 -vo=true"
     } else {
-        $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
+        $TestArguments = "-tt=8 -td=5 -vo=true -erd=1000 -er=1"
     }
     $TestProcess = Start-Process -FilePath $TestCommand -ArgumentList $TestArguments -PassThru -NoNewWindow
     Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout
