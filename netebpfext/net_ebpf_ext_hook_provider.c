@@ -11,8 +11,6 @@ typedef struct _net_ebpf_ext_hook_client_rundown
     EX_RUNDOWN_REF protection;
     bool rundown_occurred;
     bool rundown_initialized;
-    uint64_t rundown_acquired_count;
-    uint64_t rundown_reference_count;
 } net_ebpf_ext_hook_rundown_t;
 
 struct _net_ebpf_extension_hook_provider;
@@ -70,8 +68,6 @@ _ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
     ExInitializeRundownProtection(&rundown->protection);
     rundown->rundown_occurred = FALSE;
     rundown->rundown_initialized = TRUE;
-    rundown->rundown_acquired_count = 0;
-    rundown->rundown_reference_count = 0;
 }
 
 /**
@@ -114,16 +110,16 @@ Exit:
  *
  */
 static void
-_ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+_ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-
-    ASSERT(rundown->rundown_initialized);
-    ASSERT(rundown->rundown_occurred == FALSE);
 
     if (rundown->rundown_initialized == TRUE) {
         ExWaitForRundownProtectionRelease(&rundown->protection);
         rundown->rundown_occurred = TRUE;
+    } else {
+        // Attempting to wait for rundown without initialization is a bug.
+        ASSERT(FALSE);
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -162,7 +158,7 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1854
 
     // Wait for any in progress callbacks to complete.
-    _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown);
+    _ebpf_ext_wait_for_rundown(&hook_client->rundown);
 
     IoFreeWorkItem(work_item);
 
@@ -173,48 +169,50 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
 }
 
 _Must_inspect_result_ bool
+_net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+{
+    if (rundown->rundown_initialized == TRUE) {
+        return ExAcquireRundownProtection(&rundown->protection);
+    } else {
+        // Attempting to enter rundown without initialization is a bug.
+        ASSERT(FALSE);
+        return FALSE;
+    }
+}
+
+void
+_net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+{
+    if (rundown->rundown_initialized == TRUE) {
+        ExReleaseRundownProtection(&rundown->protection);
+    } else {
+        // Attempting to leave rundown without initialization is a bug.
+        ASSERT(FALSE);
+    }
+}
+
+_Must_inspect_result_ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
-    bool status = ExAcquireRundownProtection(&rundown->protection);
-    if (status) {
-        rundown->rundown_acquired_count++;
-        rundown->rundown_reference_count++;
-    }
-    return status;
+    return _net_ebpf_ext_enter_rundown(&hook_client->rundown);
 }
 
 void
 net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
-    ExReleaseRundownProtection(&rundown->protection);
-    rundown->rundown_reference_count--;
+    _net_ebpf_ext_leave_rundown(&hook_client->rundown);
 }
 
 _Must_inspect_result_ bool
 net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
-    if (rundown->rundown_initialized == FALSE) {
-        return FALSE;
-    }
-    bool status = ExAcquireRundownProtection(&rundown->protection);
-    if (status) {
-        rundown->rundown_acquired_count++;
-        rundown->rundown_reference_count++;
-    }
-    return status;
+    return _net_ebpf_ext_enter_rundown(&provider_context->rundown);
 }
 
 void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
-    if (rundown->rundown_initialized) {
-        ExReleaseRundownProtection(&rundown->protection);
-        rundown->rundown_reference_count--;
-    }
+    _net_ebpf_ext_leave_rundown(&provider_context->rundown);
 }
 
 const ebpf_extension_data_t*
@@ -763,7 +761,7 @@ net_ebpf_extension_hook_provider_unregister(
         }
         // Wait for rundown reference to become 0. This will ensure all filter contexts, hence all
         // filter are cleaned up.
-        _ebpf_ext_attach_wait_for_rundown(&provider_context->rundown);
+        _ebpf_ext_wait_for_rundown(&provider_context->rundown);
         ExFreePool(provider_context);
     }
     NET_EBPF_EXT_LOG_EXIT();
@@ -829,8 +827,10 @@ net_ebpf_extension_hook_provider_register(
 
 Exit:
     if (!NT_SUCCESS(status)) {
+        // TODO - remove this comment.
         // BUGBUG - if we never initialized rundown but failed, we can be waiting on an uninitialized rundown object.
         // For example, if NmrRegisterProvider fails.
+        // This should be addressed with the changes that were made in this PR.
         net_ebpf_extension_hook_provider_unregister(local_provider_context);
     }
 
