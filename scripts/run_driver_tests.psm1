@@ -297,6 +297,7 @@ function Invoke-Test
 
     Write-Log "Test `"$TestName $TestArgs`" Passed" -ForegroundColor Green
     Write-Log "`n==============================`n"
+
 }
 
 # Function to create a tuple with default values for Arguments and Timeout
