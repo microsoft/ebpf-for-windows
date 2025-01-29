@@ -245,9 +245,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -SelfHostedRunnerName '1ESRunner'
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -SelfHostedRunnerName '1ESRunner'
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -SelfHostedRunnerName '1ESRunner'
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_ws2025
       build_artifact: Build-x64
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025"]'
@@ -302,9 +302,9 @@ jobs:
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -SelfHostedRunnerName '1ESRunner'
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -SelfHostedRunnerName '1ESRunner'
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -SelfHostedRunnerName '1ESRunner'
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_native_only_ws2025
       build_artifact: Build-x64-native-only
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025"]'
