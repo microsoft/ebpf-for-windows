@@ -156,7 +156,6 @@ function Process-TestCompletion
           [Parameter(Mandatory = $false)] [bool] $NestedProcess,
           [Parameter(Mandatory = $false)] [int] $TestHangTimeout = (10*60), # 10 minutes default timeout.
           [Parameter(Mandatory = $false)] [bool] $NeedKernelDump = $true)
-    Write-Log "Process-TestCompletion waiting for $TestCommand to complete..."
 
     if ($TestProcess -eq $null) {
         ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Test $TestCommand failed to start."
@@ -194,8 +193,6 @@ function Process-TestCompletion
     } else {
         # Ensure the process has completely exited.
         Wait-Process -InputObject $TestProcess
-
-        Write-Log "Test $TestCommand completed."
 
         # Read and display the output (if any) from the temporary output file.
         $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output

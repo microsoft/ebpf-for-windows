@@ -827,10 +827,6 @@ net_ebpf_extension_hook_provider_register(
 
 Exit:
     if (!NT_SUCCESS(status)) {
-        // TODO - remove this comment.
-        // BUGBUG - if we never initialized rundown but failed, we can be waiting on an uninitialized rundown object.
-        // For example, if NmrRegisterProvider fails.
-        // This should be addressed with the changes that were made in this PR.
         net_ebpf_extension_hook_provider_unregister(local_provider_context);
     }
 
