@@ -23,6 +23,69 @@ static const std::map<std::string, test_program_attributes> _test_program_info =
       BPF_PROG_TYPE_UNSPEC,
       EBPF_EXECUTION_ANY}}};
 
+// Structure to store bpf_object_ptr elements.  A fixed-size table of these entries is shared between the 'creator',
+// 'attacher' and the 'destroyer' threads.
+struct object_table_entry
+{
+    std::unique_ptr<std::mutex> lock{nullptr};
+    _Guarded_by_(lock) bool available{true};
+    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
+    _Guarded_by_(lock) bool loaded{false};
+    bool attach{false};
+
+    // The following fields are for debugging this test itself.
+    uint32_t index{0};
+    uint32_t reuse_count{0};
+    uint32_t tag{0};
+};
+
+// Possible roles for each thread. A thread is assigned a specific role at creation and it does not change thereafter.
+//
+// 'Creator' threads create as many ebpf program objects as they can, gated by the size of the object_table array.
+//
+// The 'Attacher' threads will alternatively 'attach' or 'detach' the program objects created by the 'Creator' threads
+// w/o considering if the objects have already been attached or detached.  Any errors returned by the ebpfapi are
+// ignored.
+//
+// 'Destroyer' threads close as many 'opened' eBPF program objects as then can.  These threads synchronize access to
+// the object table entries with the 'Creator' and 'Attacher' threads as the destroyer threads can only destroy program
+// objects that were created by the creator threads in the first place.
+//
+// The intent here is to cause the maximum nondeterministic multi-threaded stress scenarios as possible. Note that we
+// do not care about user mode failures in, or errors returned from, ebpfapi and focus only on exercing the in-kernel
+// eBPF components' ability to deal with such situations w/o causing a kernel hang or crash. The primary test goal here
+// is to ensure that such races do not cause hangs or crashes in the in-kernel eBPF sub-system components
+// (ebpfcore, netebpfext drivers).
+
+enum class thread_role_type : uint32_t
+{
+    ROLE_NOT_SET = 0,
+    CREATOR,
+    ATTACHER,
+    DESTROYER,
+    MONITOR_IPV4,
+    MONITOR_IPV6
+};
+
+// Context for each test thread. This is a superset and field usage varies by test.
+struct thread_context
+{
+    std::string program_name{};
+    std::string file_name{};
+    bool is_native_program{};
+    std::string map_name{};
+    thread_role_type role{};
+    uint32_t thread_index{};
+    uint32_t compartment_id{};
+    uint32_t duration_minutes{};
+    bool extension_restart_enabled{};
+    fd_t map_fd;
+    fd_t program_fd;
+    std::vector<object_table_entry>& object_table;
+    std::string extension_name{};
+    bool succeeded{true};
+};
+
 // This call is called by the common test initialization code to get a list of programs supported by the user mode
 // or kernel mode test suites. (For example, some programs could be meant for kernel mode stress testing only.)
 const std::vector<std::string>
@@ -254,69 +317,6 @@ _start_extension_restart_thread(
         restart_delay_ms,
         thread_lifetime_minutes);
 }
-
-// Structure to store bpf_object_ptr elements.  A fixed-size table of these entries is shared between the 'creator',
-// 'attacher' and the 'destroyer' threads.
-struct object_table_entry
-{
-    std::unique_ptr<std::mutex> lock{nullptr};
-    _Guarded_by_(lock) bool available{true};
-    _Guarded_by_(lock) bpf_object_ptr object{nullptr};
-    _Guarded_by_(lock) bool loaded{false};
-    bool attach{false};
-
-    // The following fields are for debugging this test itself.
-    uint32_t index{0};
-    uint32_t reuse_count{0};
-    uint32_t tag{0};
-};
-
-// Possible roles for each thread. A thread is assigned a specific role at creation and it does not change thereafter.
-//
-// 'Creator' threads create as many ebpf program objects as they can, gated by the size of the object_table array.
-//
-// The 'Attacher' threads will alternatively 'attach' or 'detach' the program objects created by the 'Creator' threads
-// w/o considering if the objects have already been attached or detached.  Any errors returned by the ebpfapi are
-// ignored.
-//
-// 'Destroyer' threads close as many 'opened' eBPF program objects as then can.  These threads synchronize access to
-// the object table entries with the 'Creator' and 'Attacher' threads as the destroyer threads can only destroy program
-// objects that were created by the creator threads in the first place.
-//
-// The intent here is to cause the maximum nondeterministic multi-threaded stress scenarios as possible. Note that we
-// do not care about user mode failures in, or errors returned from, ebpfapi and focus only on exercing the in-kernel
-// eBPF components' ability to deal with such situations w/o causing a kernel hang or crash. The primary test goal here
-// is to ensure that such races do not cause hangs or crashes in the in-kernel eBPF sub-system components
-// (ebpfcore, netebpfext drivers).
-
-enum class thread_role_type : uint32_t
-{
-    ROLE_NOT_SET = 0,
-    CREATOR,
-    ATTACHER,
-    DESTROYER,
-    MONITOR_IPV4,
-    MONITOR_IPV6
-};
-
-// Context for each test thread. This is a superset and field usage varies by test.
-struct thread_context
-{
-    std::string program_name{};
-    std::string file_name{};
-    bool is_native_program{};
-    std::string map_name{};
-    thread_role_type role{};
-    uint32_t thread_index{};
-    uint32_t compartment_id{};
-    uint32_t duration_minutes{};
-    bool extension_restart_enabled{};
-    fd_t map_fd;
-    fd_t program_fd;
-    std::vector<object_table_entry>& object_table;
-    std::string extension_name{};
-    bool succeeded{true};
-};
 
 static void
 _do_creator_work(thread_context& context, std::time_t endtime_seconds)
