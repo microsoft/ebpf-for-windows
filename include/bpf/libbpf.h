@@ -921,7 +921,7 @@ ring_buffer__free(struct ring_buffer* rb);
  * @brief Query the BPF program flags.
  *
  * @param[in] prog A pointer to the BPF program.
- * @return The flags of the BPF program.
+ * @return The flags of the BPF program that were last set by this process.
  */
 __u32
 bpf_program__flags(const struct bpf_program* prog);
