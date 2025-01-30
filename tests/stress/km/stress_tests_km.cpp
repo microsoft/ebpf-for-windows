@@ -314,6 +314,7 @@ _start_extension_restart_thread(
             }
             LOG_INFO("**** Extension restart thread done. Exiting. ****");
         },
+        context,
         restart_delay_ms,
         thread_lifetime_minutes);
 }
@@ -657,6 +658,7 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
 
 static void
 configure_extension_restart(
+    const test_control_info& test_control_info,
     const std::vector<std::string>& extension_names,
     std::vector<std::thread>& extension_restart_thread_table,
     std::vector<thread_context>& extension_restart_thread_context_table)
@@ -665,15 +667,15 @@ configure_extension_restart(
     size_t extension_count = extension_names.size();
     extension_restart_thread_table.resize(extension_count);
     extension_restart_thread_context_table.resize(
-        extension_count, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
+        extension_count, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, {}});
 
     for (uint32_t i = 0; i < extension_count; i++) {
         auto& context_entry = extension_restart_thread_context_table[i];
         auto& thread_entry = extension_restart_thread_table[i];
         context_entry.extension_name = extension_names[i];
         thread_entry = std::move(_start_extension_restart_thread(
-            std::ref(context_entry),
-            std::ref(extension_names[i]),
+            context_entry,
+            extension_names[i],
             test_control_info.extension_restart_delay_ms,
             test_control_info.duration_minutes));
     }
@@ -801,7 +803,7 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
 
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
 
     wait_and_verify_test_threads(
@@ -1091,7 +1093,7 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     std::vector<thread_context> extension_restart_thread_context_table;
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
 
     wait_and_verify_test_threads(
@@ -1190,7 +1192,7 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
 
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
 
     wait_and_verify_test_threads(
@@ -1505,7 +1507,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     std::vector<thread_context> extension_restart_thread_context_table;
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
 
     wait_and_verify_test_threads(
