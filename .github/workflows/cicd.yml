@@ -240,6 +240,7 @@ jobs:
   # Run the driver tests on self-hosted runners.
   driver_ws2025:
     # Only run during daily scheduled run
+    needs: regular
     # TODO - revert this after a successful build
     # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
@@ -298,6 +299,7 @@ jobs:
   driver_native_only_ws2025:
     # Only run during daily scheduled run
     # TODO - revert this after a successful build
+    needs: regular_native-only
     # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
