@@ -55,7 +55,7 @@ jobs:
       build_msi: true
       build_nuget: true
       build_options: /p:ReleaseJIT='True'
-      configurations: '["Debug"]'
+      configurations: '["Debug", "Release"]'
       # configurations: '["Debug", "FuzzerDebug", "Release"]'
 
 
