@@ -99,6 +99,10 @@ typedef struct _metadata_table
 {
     void (*programs)(program_entry_t** programs, size_t* count);
     void (*maps)(map_entry_t** maps, size_t* count);
+    void (*hash)(const uint8_t** hash, size_t* size);
+    void (*version)(bpf2c_version_t* version);
+    void (*map_initial_values)(map_initial_values_t** map_initial_values, size_t* count);
+    void (*global_variable_sections)(global_variable_section_t** global_variable_sections, size_t* count);
 } metadata_table_t;
 
 metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps };
@@ -115,6 +119,7 @@ Each program in the generated C file is exported via a program_entry_t:
 typedef struct _program_entry
 {
     uint64_t (*function)(void*);
+    const char* pe_section_name;
     const char* section_name;
     const char* program_name;
     uint16_t* referenced_map_indices;
@@ -178,6 +183,40 @@ static map_entry_t_maps[] = {
 The skeleton then uses NMR to either create an instance of the map or obtain the address of an existing map and then
 write the address into the address field. References to the maps in the generated code are then indirect via the
 address field.
+
+### Map initial values
+
+Hash of map, array of map, and program array maps can have initial values defined. For each map that has initial
+values provided, an entry of type map_initial_values_t is added.
+
+```c
+typedef struct _map_initial_values
+{
+    const char* name;
+    size_t count;
+    const char** values;
+} map_initial_values_t;
+```
+
+The name field is the name of the map for which initial values are being provided.
+The count and values field are an array of map names to initialize the map with.
+
+### Exported global variable sections
+
+Each global section (.rodata, .data, or .bss) that is referenced by the program is added as an entry.
+
+```c
+typedef struct _global_variable_section
+{
+    const char* name;
+    unsigned char* address_of_map_value;
+    size_t size;
+    const void* initial_data;
+} global_variable_section_t;
+```
+
+The execution context creates an array map for each section, loads any initial data into the map, and stores the
+address of the start of the map data into the address_of_map_value field.
 
 ## Loading an eBPF program from a PE .sys file
 
