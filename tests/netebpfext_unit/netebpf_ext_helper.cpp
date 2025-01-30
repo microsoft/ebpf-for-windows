@@ -141,9 +141,11 @@ _netebpf_ext_helper::get_program_info_provider_data(_In_ const GUID& program_inf
     auto iter = program_info_providers.find(program_info_provider);
 
     // We might not find the provider if some allocation failed during initialization.
-    REQUIRE(iter != program_info_providers.end());
+    if (iter != program_info_providers.end()) {
+        return const_cast<ebpf_program_data_t*>(iter->second->program_data);
+    }
 
-    return const_cast<ebpf_program_data_t*>(iter->second->program_data);
+    return nullptr;
 }
 
 NTSTATUS

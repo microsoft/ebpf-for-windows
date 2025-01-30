@@ -153,6 +153,7 @@ TEST_CASE("xdp_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto xdp_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_XDP_TEST);
+    REQUIRE(xdp_program_data != nullptr);
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
@@ -260,6 +261,7 @@ TEST_CASE("bind_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto bind_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_BIND);
+    REQUIRE(bind_program_data != nullptr);
 
     std::vector<uint8_t> input_data(100);
     std::vector<uint8_t> output_data(100);
@@ -454,6 +456,13 @@ netebpfext_unit_invoke_sock_addr_program(
         REQUIRE(sock_addr_context->protocol == IPPROTO_TCP);
         REQUIRE(sock_addr_context->user_port == htons(1234));
         REQUIRE(sock_addr_context->msg_src_port == htons(5678));
+    } else {
+        ASSERT((sock_addr_context->family == AF_INET || sock_addr_context->family == AF_INET6));
+        ASSERT(sock_addr_context->user_ip4 == htonl(0x01020304));
+        ASSERT(sock_addr_context->msg_src_ip4 == htonl(0x05060708));
+        ASSERT(sock_addr_context->protocol == IPPROTO_TCP);
+        ASSERT(sock_addr_context->user_port == htons(1234));
+        ASSERT(sock_addr_context->msg_src_port == htons(5678));
     }
 
     if (is_admin) {
@@ -587,7 +596,8 @@ sock_addr_thread_function(
     _In_ fwp_classify_parameters_t* parameters,
     sock_addr_test_type_t type,
     uint16_t start_port,
-    uint16_t end_port)
+    uint16_t end_port,
+    std::atomic<size_t>* failure_count)
 {
     FWP_ACTION_TYPE result;
     uint16_t port_number;
@@ -621,7 +631,16 @@ sock_addr_thread_function(
             break;
         }
 
-        REQUIRE((result == _get_fwp_sock_addr_action(port_number) || fault_injection_enabled));
+        auto expected_result = _get_fwp_sock_addr_action(port_number);
+        if (result != expected_result) {
+            if (fault_injection_enabled) {
+                // If fault injection is enabled, then the result can be different.
+                continue;
+            }
+
+            (*failure_count)++;
+            break;
+        }
     }
 }
 
@@ -633,6 +652,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     test_sock_addr_client_context_t client_context = {};
     fwp_classify_parameters_t parameters = {};
     std::vector<std::jthread> threads;
+    std::atomic<size_t> failure_count = 0;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
@@ -640,7 +660,7 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
         (netebpfext_helper_base_client_context_t*)&client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
-    client_context.validate_sock_addr_entries = true;
+    client_context.validate_sock_addr_entries = false;
 
     // Classify operations that should be allowed.
     client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
@@ -653,7 +673,8 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
             &parameters,
             SOCK_ADDR_TEST_TYPE_CONNECT,
             parameters.destination_port,
-            parameters.destination_port);
+            parameters.destination_port,
+            &failure_count);
     }
 
     // Wait for 10 seconds.
@@ -668,6 +689,8 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     for (auto& thread : threads) {
         thread.join();
     }
+
+    REQUIRE(failure_count == 0);
 }
 
 // Invoke SOCK_ADDR_CONNECT concurrently with different classify parameters.
@@ -677,6 +700,7 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     test_sock_addr_client_context_t client_context = {};
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
+    std::atomic<size_t> failure_count = 0;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
@@ -697,7 +721,8 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
             &parameters[i],
             SOCK_ADDR_TEST_TYPE_CONNECT,
             (uint16_t)(i * 1000),
-            (uint16_t)(i * 1000 + 1000));
+            (uint16_t)(i * 1000 + 1000),
+            &failure_count);
     }
 
     // Wait for 10 seconds.
@@ -712,6 +737,8 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     for (auto& thread : threads) {
         thread.join();
     }
+
+    REQUIRE(failure_count == 0);
 }
 
 // Invoke SOCK_ADDR_RECV_ACCEPT concurrently with different classify parameters.
@@ -721,6 +748,7 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     test_sock_addr_client_context_t client_context = {};
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
+    std::atomic<size_t> failure_count = 0;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
@@ -741,7 +769,8 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
             &parameters[i],
             SOCK_ADDR_TEST_TYPE_RECV_ACCEPT,
             (uint16_t)(i * 1000),
-            (uint16_t)(i * 1000 + 1000));
+            (uint16_t)(i * 1000 + 1000),
+            &failure_count);
     }
 
     // Wait for 10 seconds.
@@ -756,12 +785,15 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     for (auto& thread : threads) {
         thread.join();
     }
+
+    REQUIRE(failure_count == 0);
 }
 
 TEST_CASE("sock_addr_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto sock_addr_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR);
+    REQUIRE(sock_addr_program_data != nullptr);
 
     size_t output_data_size = 0;
     bpf_sock_addr_t input_context = {
@@ -881,6 +913,7 @@ TEST_CASE("sock_ops_context", "[netebpfext]")
 {
     netebpf_ext_helper_t helper;
     auto sock_ops_program_data = helper.get_program_info_provider_data(EBPF_PROGRAM_TYPE_SOCK_OPS);
+    REQUIRE(sock_ops_program_data != nullptr);
 
     size_t output_data_size = 0;
     bpf_sock_ops_t input_context = {
