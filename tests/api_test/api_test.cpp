@@ -1100,8 +1100,7 @@ TEST_CASE("ioctl_stress", "[stress]")
     fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
 
     // Subscribe to the ring buffer with empty callback
-    auto ring = ring_buffer__new(
-        process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr);
+    auto ring = ring_buffer__new(process_map_fd, [](void*, void*, size_t) { return 0; }, nullptr, nullptr);
 
     // Run 4 threads per cpu
     // Get cpu count
@@ -1239,6 +1238,7 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
 
     // Create 2 threads that invoke the program to trigger ring buffer events.
     std::vector<std::jthread> threads;
+    std::atomic<size_t> failure_count = 0;
     for (uint32_t i = 0; i < thread_count; i++) {
         threads.emplace_back([&]() {
             bind_md_t ctx = {};
@@ -1254,7 +1254,11 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
 
             for (uint32_t i = 0; i < iterations_per_thread; i++) {
                 int result = bpf_prog_test_run_opts(program_fd, &opts);
-                REQUIRE(result == 0);
+                if (result != 0) {
+                    std::cout << "bpf_prog_test_run_opts failed with " << result << std::endl;
+                    failure_count++;
+                    break;
+                }
             }
         });
     }
@@ -1263,6 +1267,9 @@ TEST_CASE("test_ringbuffer_wraparound", "[stress]")
     for (auto& t : threads) {
         t.join();
     }
+
+    REQUIRE(failure_count == 0);
+
     // Wait for 1 second for the ring buffer to receive all events.
     REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
