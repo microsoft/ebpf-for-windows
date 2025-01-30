@@ -165,7 +165,10 @@ _restart_extension(const std::string& extension_name, uint32_t timeout)
     SC_HANDLE scm_handle = nullptr;
     SC_HANDLE service_handle = nullptr;
 
-    REQUIRE(extension_name.size() != 0);
+    if (extension_name.size() == 0) {
+        LOG_ERROR("FATAL ERROR: Extension name is empty.");
+        return false;
+    }
 
     // Get a handle to the SCM database.
     scm_handle = OpenSCManager(nullptr, nullptr, SC_MANAGER_ALL_ACCESS);
@@ -211,10 +214,13 @@ exit:
 
 static std::thread
 _start_extension_restart_thread(
-    const std::string& extension_name, uint32_t restart_delay_ms, uint32_t thread_lifetime_minutes)
+    thread_context& context,
+    const std::string& extension_name,
+    uint32_t restart_delay_ms,
+    uint32_t thread_lifetime_minutes)
 {
     return std::thread(
-        [&](uint32_t local_restart_delay_ms, uint32_t local_thread_lifetime_minutes) {
+        [&](thread_context& context, uint32_t local_restart_delay_ms, uint32_t local_thread_lifetime_minutes) {
             // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
             // window where if the extension is unloading/unloaded, an incoming attach might fail.
             std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -235,7 +241,8 @@ _start_extension_restart_thread(
                 constexpr uint32_t RESTART_TIMEOUT_SECONDS = 10;
                 LOG_VERBOSE("Toggling extension state for {} extension...", extension_name);
                 if (!_restart_extension(extension_name, RESTART_TIMEOUT_SECONDS)) {
-                    exit(-1);
+                    LOG_ERROR("FATAL ERROR: Failed to restart extension: {}", extension_name);
+                    context.succeeded = false;
                 }
 
                 LOG_VERBOSE(
@@ -307,6 +314,8 @@ struct thread_context
     fd_t map_fd;
     fd_t program_fd;
     std::vector<object_table_entry>& object_table;
+    std::string extension_name{};
+    bool succeeded{true};
 };
 
 static void
@@ -355,8 +364,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                             entry.index,
                             errno);
 
-                        // We can't use a REQUIRE here as it invokes the 'catch' handler below and gives a misleading
-                        // error message.
+                        context.succeeded = false;
                         exit(-1);
                     }
 
@@ -383,6 +391,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                         context.thread_index,
                         entry.index,
                         errno);
+                    context.succeeded = false;
                     exit(-1);
                 }
                 LOG_VERBOSE("(CREATOR)[{}][{}] - Object created.", context.thread_index, entry.index);
@@ -424,8 +433,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                                 result,
                                 errno);
 
-                            // We can't use a REQUIRE here as it invokes the 'catch' handler below and gives a
-                            // misleading error message.
+                            context.succeeded = false;
                             exit(-1);
                         }
                     }
@@ -446,6 +454,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                         context.thread_index,
                         entry.index,
                         errno);
+                    context.succeeded = false;
                     exit(-1);
                 }
                 entry.loaded = true;
@@ -601,9 +610,12 @@ _test_thread_function(thread_context& context)
             _do_creator_work(context, endtime_seconds);
         } else if (context.role == thread_role_type::ATTACHER) {
             _do_attacher_work(context, endtime_seconds);
-        } else {
-            REQUIRE(context.role == thread_role_type::DESTROYER);
+        } else if (context.role == thread_role_type::DESTROYER) {
             _do_destroyer_work(context, endtime_seconds);
+        } else {
+            LOG_ERROR("FATAL ERROR: Unknown thread role: {}", (uint32_t)context.role);
+            context.succeeded = false;
+            exit(-1);
         }
 
         timenow = sc::now();
@@ -644,6 +656,72 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
 }
 
 static void
+configure_extension_restart(
+    const std::vector<std::string>& extension_names,
+    std::vector<std::thread>& extension_restart_thread_table,
+    std::vector<thread_context>& extension_restart_thread_context_table)
+{
+    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
+    size_t extension_count = extension_names.size();
+    extension_restart_thread_table.resize(extension_count);
+    extension_restart_thread_context_table.resize(
+        extension_count, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
+
+    for (uint32_t i = 0; i < extension_count; i++) {
+        auto& context_entry = extension_restart_thread_context_table[i];
+        auto& thread_entry = extension_restart_thread_table[i];
+        context_entry.extension_name = extension_names[i];
+        thread_entry = std::move(_start_extension_restart_thread(
+            std::ref(context_entry),
+            std::ref(extension_names[i]),
+            test_control_info.extension_restart_delay_ms,
+            test_control_info.duration_minutes));
+    }
+}
+
+static void
+wait_and_verify_test_threads(
+    const test_control_info& test_control_info,
+    std::vector<std::thread>& thread_table,
+    std::vector<thread_context>& thread_context_table,
+    std::vector<std::thread>& extension_restart_thread_table,
+    std::vector<thread_context>& extension_restart_thread_context_table)
+{
+    // Wait for all test threads
+    LOG_INFO("waiting on {} test threads...", thread_table.size());
+    for (auto& t : thread_table) {
+        t.join();
+    }
+
+    // Wait for all extension restart threads
+    if (test_control_info.extension_restart_enabled) {
+        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
+        for (auto& t : extension_restart_thread_table) {
+            t.join();
+        }
+    }
+
+    // Check if all test threads succeeded.
+    for (const auto& context : thread_context_table) {
+        if (!context.succeeded) {
+            LOG_ERROR(
+                "FATAL ERROR: Test thread failed. role: {}, index: {}", (uint32_t)context.role, context.thread_index);
+            REQUIRE(context.succeeded == true);
+        }
+    }
+
+    // Check if all extension restart threads succeeded.
+    if (test_control_info.extension_restart_enabled) {
+        for (const auto& context : extension_restart_thread_context_table) {
+            if (!context.succeeded) {
+                LOG_ERROR("FATAL ERROR: Extension restart thread failed. Extension: {},", context.extension_name);
+                REQUIRE(context.succeeded == true);
+            }
+        }
+    }
+}
+
+static void
 _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control_info& test_control_info)
 {
     constexpr uint32_t OBJECT_TABLE_SIZE{64};
@@ -663,9 +741,12 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
     std::vector<thread_context> thread_context_table(
         total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
     std::vector<std::thread> test_thread_table(total_threads);
+    thread_context restart_extension_thread_context{};
 
     // Another table for the 'extension restart' threads (1 thread per program).
-    std::vector<std::thread> extension_restart_thread_table{};
+    std::vector<std::string> extension_names;
+    std::vector<std::thread> extension_restart_thread_table;
+    std::vector<thread_context> extension_restart_thread_context_table;
 
     // An incrementing 'compartment Id' to ensure that _each_ 'Attacher' thread gets a unique compartment id.
     uint32_t compartment_id{1};
@@ -715,27 +796,20 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
         }
 
         // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-        if (test_control_info.extension_restart_enabled) {
-            auto restart_thread = _start_extension_restart_thread(
-                std::ref(program_attribs.extension_name),
-                test_control_info.extension_restart_delay_ms,
-                test_control_info.duration_minutes);
-            extension_restart_thread_table.push_back(std::move(restart_thread));
-        }
-    }
-
-    // Wait for threads to terminate.
-    LOG_INFO("waiting on {} test threads...", test_thread_table.size());
-    for (auto& t : test_thread_table) {
-        t.join();
+        extension_names.push_back(program_attribs.extension_name);
     }
 
     if (test_control_info.extension_restart_enabled) {
-        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
-        for (auto& t : extension_restart_thread_table) {
-            t.join();
-        }
+        configure_extension_restart(
+            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
+
+    wait_and_verify_test_threads(
+        test_control_info,
+        test_thread_table,
+        thread_context_table,
+        extension_restart_thread_table,
+        extension_restart_thread_context_table);
 }
 
 enum class program_map_usage : uint32_t
@@ -745,10 +819,12 @@ enum class program_map_usage : uint32_t
 };
 
 static std::pair<bpf_object_ptr, fd_t>
-_load_attach_program(const std::string& file_name, enum bpf_attach_type attach_type, uint32_t thread_index)
+_load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
 {
     bpf_object_ptr object_ptr;
     bpf_object* object_raw_ptr = nullptr;
+    const std::string& file_name = context.file_name;
+    const uint32_t thread_index = context.thread_index;
 
     // Get the 'object' ptr for the program associated with this thread.
     object_raw_ptr = bpf_object__open(file_name.c_str());
@@ -759,7 +835,8 @@ _load_attach_program(const std::string& file_name, enum bpf_attach_type attach_t
             thread_index,
             file_name.c_str(),
             errno);
-        REQUIRE(object_raw_ptr != nullptr);
+        context.succeeded = false;
+        return {};
     }
     LOG_VERBOSE("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
 
@@ -772,7 +849,8 @@ _load_attach_program(const std::string& file_name, enum bpf_attach_type attach_t
             thread_index,
             file_name.c_str(),
             errno);
-        REQUIRE(result == 0);
+        context.succeeded = false;
+        return {};
     }
     object_ptr.reset(object_raw_ptr);
     LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
@@ -786,7 +864,8 @@ _load_attach_program(const std::string& file_name, enum bpf_attach_type attach_t
             thread_index,
             file_name.c_str(),
             errno);
-        REQUIRE(program != nullptr);
+        context.succeeded = false;
+        return {};
     }
     LOG_VERBOSE(
         "{}({}) Found program object for program:{}, file_name:{}",
@@ -805,7 +884,8 @@ _load_attach_program(const std::string& file_name, enum bpf_attach_type attach_t
             file_name.c_str(),
             program->program_name,
             errno);
-        REQUIRE(program_fd >= 0);
+        context.succeeded = false;
+        return {};
     }
     LOG_VERBOSE(
         "{}({}) Opened fd:{}, for program:{}, file_name:{}",
@@ -826,7 +906,8 @@ _load_attach_program(const std::string& file_name, enum bpf_attach_type attach_t
             file_name.c_str(),
             program->program_name,
             errno);
-        REQUIRE(result == 0);
+        context.succeeded = false;
+        return {};
     }
     LOG_VERBOSE(
         "{}({}) Attached program:{}, file_name:{}", __func__, thread_index, program->program_name, file_name.c_str());
@@ -839,7 +920,11 @@ _prep_program(thread_context& context, program_map_usage map_usage)
 {
     enum bpf_attach_type attach_type =
         context.role == thread_role_type::MONITOR_IPV4 ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
-    auto [program_object, program_fd] = _load_attach_program(context.file_name, attach_type, context.thread_index);
+    auto [program_object, program_fd] = _load_attach_program(context, attach_type);
+    if (context.succeeded == false) {
+        LOG_ERROR("{}({}) - FATAL ERROR: _load_attach_program() failed.", __func__, context.thread_index);
+        exit(-1);
+    }
 
     // Stash the object pointer as we'll need it at 'close' time.
     auto& entry = context.object_table[context.thread_index];
@@ -847,7 +932,6 @@ _prep_program(thread_context& context, program_map_usage map_usage)
     context.program_fd = program_fd;
 
     if (map_usage == program_map_usage::USE_MAP) {
-
         // Get the map fd for the map for this program.
         auto map_fd = bpf_object__find_map_fd_by_name(entry.object.get(), context.map_name.c_str());
         if (map_fd < 0) {
@@ -858,7 +942,8 @@ _prep_program(thread_context& context, program_map_usage map_usage)
                 context.map_name.c_str(),
                 context.file_name.c_str(),
                 errno);
-            REQUIRE(map_fd >= 0);
+            context.succeeded = false;
+            exit(-1);
         }
         LOG_VERBOSE(
             "{}({}) Opened fd:{} for map:{}, file_name:{}",
@@ -885,7 +970,11 @@ _invoke_test_thread_function(thread_context& context)
         socket_handle = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
         remote_endpoint.ss_family = AF_INET6;
     }
-    REQUIRE(socket_handle != INVALID_SOCKET);
+    if (socket_handle == INVALID_SOCKET) {
+        LOG_ERROR("{}({}) - FATAL ERROR: socket() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
+        context.succeeded = false;
+        exit(-1);
+    }
     INETADDR_SETLOOPBACK(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
     constexpr uint16_t remote_port = SOCKET_TEST_PORT;
     (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
@@ -905,7 +994,15 @@ _invoke_test_thread_function(thread_context& context)
         uint64_t start_count = 0;
         auto result = bpf_map_lookup_elem(context.map_fd, &key, &start_count);
         if (start_count) {
-            REQUIRE(result == 0);
+            if (result != 0) {
+                LOG_ERROR(
+                    "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed. errno:{}",
+                    __func__,
+                    context.thread_index,
+                    errno);
+                context.succeeded = false;
+                exit(-1);
+            }
         }
 
         constexpr uint32_t BURST_SIZE = 8192;
@@ -920,10 +1017,24 @@ _invoke_test_thread_function(thread_context& context)
 
         uint64_t end_count = 0;
         result = bpf_map_lookup_elem(context.map_fd, &key, &end_count);
-        REQUIRE(result == 0);
+        if (result != 0) {
+            LOG_ERROR(
+                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed. errno:{}", __func__, context.thread_index, errno);
+            context.succeeded = false;
+            exit(-1);
+        }
         LOG_VERBOSE(
             "{}({}) connect start_count:{}, end_count:{}", __func__, context.thread_index, start_count, end_count);
-        REQUIRE(end_count > start_count);
+        if (end_count != start_count) {
+            LOG_ERROR(
+                "{}({}) - FATAL ERROR: connect count mismatched. start_count:{}, end_count:{}",
+                __func__,
+                context.thread_index,
+                start_count,
+                end_count);
+            context.succeeded = false;
+            exit(-1);
+        }
         start_count = end_count;
     }
 }
@@ -957,7 +1068,6 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
-
         // First, prepare the context for this thread.
         auto& context_entry = thread_context_table[i];
         auto& [file_name, map_name] = program_file_map_names[i];
@@ -975,29 +1085,21 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
         thread_entry = std::move(std::thread(_invoke_test_thread_function, std::ref(context_entry)));
     }
 
-    // Another table for the 'extension restart' threads.
-    std::vector<std::thread> extension_restart_thread_table{};
-
     // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-    std::string extension_name = {"netebpfext"};
+    std::vector<std::string> extension_names = {"netebpfext"};
+    std::vector<std::thread> extension_restart_thread_table;
+    std::vector<thread_context> extension_restart_thread_context_table;
     if (test_control_info.extension_restart_enabled) {
-        auto restart_thread = _start_extension_restart_thread(
-            std::ref(extension_name), test_control_info.extension_restart_delay_ms, test_control_info.duration_minutes);
-        extension_restart_thread_table.push_back(std::move(restart_thread));
+        configure_extension_restart(
+            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
 
-    // Wait for threads to terminate.
-    LOG_INFO("waiting on {} test threads...", test_thread_table.size());
-    for (auto& t : test_thread_table) {
-        t.join();
-    }
-
-    if (test_control_info.extension_restart_enabled) {
-        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
-        for (auto& t : extension_restart_thread_table) {
-            t.join();
-        }
-    }
+    wait_and_verify_test_threads(
+        test_control_info,
+        test_thread_table,
+        thread_context_table,
+        extension_restart_thread_table,
+        extension_restart_thread_context_table);
 }
 
 static void
@@ -1013,7 +1115,11 @@ _invoke_mt_sockaddr_thread_function(thread_context& context)
         socket_handle = socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
         remote_endpoint.ss_family = AF_INET6;
     }
-    REQUIRE(socket_handle != INVALID_SOCKET);
+    if (socket_handle == INVALID_SOCKET) {
+        LOG_ERROR("{}({}) - FATAL ERROR: socket() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
+        context.succeeded = false;
+        exit(-1);
+    }
     INETADDR_SETLOOPBACK(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
     uint16_t remote_port = SOCKET_TEST_PORT + static_cast<uint16_t>(context.thread_index);
     (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
@@ -1049,7 +1155,11 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    auto [program_object, _] = _load_attach_program({"cgroup_mt_connect6.sys"}, BPF_CGROUP_INET6_CONNECT, 0);
+    thread_context program_load_context;
+    program_load_context.file_name = {"cgroup_mt_connect6.sys"};
+    program_load_context.thread_index = 0;
+    auto [program_object, _] = _load_attach_program(program_load_context, BPF_CGROUP_INET6_CONNECT);
+    REQUIRE(program_load_context.succeeded == true);
 
     // Not used, needed for thread_context initialization.
     std::vector<object_table_entry> dummy_table(1);
@@ -1074,28 +1184,21 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
     }
 
     // Another table for the 'extension restart' threads.
+    std::vector<std::string> extension_names = {"netebpfext"};
     std::vector<std::thread> extension_restart_thread_table{};
-
-    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-    std::string extension_name = {"netebpfext"};
-    if (test_control_info.extension_restart_enabled) {
-        auto restart_thread = _start_extension_restart_thread(
-            std::ref(extension_name), test_control_info.extension_restart_delay_ms, test_control_info.duration_minutes);
-        extension_restart_thread_table.push_back(std::move(restart_thread));
-    }
-
-    // Wait for threads to terminate.
-    LOG_INFO("waiting on {} test threads...", test_thread_table.size());
-    for (auto& t : test_thread_table) {
-        t.join();
-    }
+    std::vector<thread_context> extension_restart_thread_context_table{};
 
     if (test_control_info.extension_restart_enabled) {
-        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
-        for (auto& t : extension_restart_thread_table) {
-            t.join();
-        }
+        configure_extension_restart(
+            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
+
+    wait_and_verify_test_threads(
+        test_control_info,
+        test_thread_table,
+        thread_context_table,
+        extension_restart_thread_table,
+        extension_restart_thread_context_table);
 }
 
 static void
@@ -1194,7 +1297,11 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
         for (uint32_t i = 0; i < BURST_SIZE; i++) {
             // Create a socket.
             socket_handle = WSASocket(remote_endpoint.ss_family, SOCK_STREAM, IPPROTO_TCP, nullptr, 0, 0);
-            REQUIRE(socket_handle != INVALID_SOCKET);
+            if (socket_handle == INVALID_SOCKET) {
+                LOG_ERROR("Thread[{}] WSASocket() failed. errno:{}", context.thread_index, WSAGetLastError());
+                context.succeeded = false;
+                exit(-1);
+            }
 
             INETADDR_SETANY(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
             SS_PORT(&remote_endpoint) = htons(remote_port);
@@ -1211,7 +1318,8 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
                     WSAGetLastError(),
                     remote_port);
                 closesocket(socket_handle);
-                REQUIRE(result == 0);
+                context.succeeded = false;
+                exit(-1);
             }
 
             // Bind the socket.
@@ -1225,7 +1333,8 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
                     WSAGetLastError(),
                     remote_port);
                 closesocket(socket_handle);
-                REQUIRE(result == 0);
+                context.succeeded = false;
+                exit(-1);
             }
 
             LOG_VERBOSE("Thread[{}] bind success to port:{}", context.thread_index, remote_port);
@@ -1236,16 +1345,14 @@ _invoke_mt_bindmonitor_tail_call_thread_function(thread_context& context)
 }
 
 static std::pair<bpf_object_ptr, fd_t>
-_load_attach_tail_program(
-    const std::string& file_name,
-    uint32_t thread_index,
-    ebpf_attach_type_t attach_type,
-    const std::string program_name,
-    bpf_prog_type program_type)
+_load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_type, bpf_prog_type program_type)
 {
     bpf_object_ptr object_ptr;
     bpf_object* object_raw_ptr = nullptr;
     bpf_link* link = nullptr;
+    const std::string& file_name = context.file_name;
+    const std::string& program_name = context.program_name;
+    const uint32_t thread_index = context.thread_index;
 
     // Get the 'object' ptr for the program associated with this thread.
     object_raw_ptr = bpf_object__open(file_name.c_str());
@@ -1256,7 +1363,8 @@ _load_attach_tail_program(
             thread_index,
             file_name.c_str(),
             errno);
-        REQUIRE(object_raw_ptr != nullptr);
+        context.succeeded = false;
+        exit(-1);
     }
     LOG_VERBOSE("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
 
@@ -1269,7 +1377,8 @@ _load_attach_tail_program(
             thread_index,
             file_name.c_str(),
             errno);
-        REQUIRE(result == 0);
+        context.succeeded = false;
+        exit(-1);
     }
     object_ptr.reset(object_raw_ptr);
     LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
@@ -1283,7 +1392,8 @@ _load_attach_tail_program(
             thread_index,
             file_name.c_str(),
             errno);
-        REQUIRE(program != nullptr);
+        context.succeeded = false;
+        exit(-1);
     }
     LOG_VERBOSE(
         "{}({}) Found program object for program:{}, file_name:{}",
@@ -1305,7 +1415,8 @@ _load_attach_tail_program(
             file_name.c_str(),
             program->program_name,
             errno);
-        REQUIRE(program_fd >= 0);
+        context.succeeded = false;
+        exit(-1);
     }
     LOG_VERBOSE(
         "{}({}) Opened fd:{}, for program:{}, file_name:{}",
@@ -1324,7 +1435,8 @@ _load_attach_tail_program(
             file_name.c_str(),
             program->program_name,
             errno);
-        REQUIRE(result == ERROR_SUCCESS);
+        context.succeeded = false;
+        exit(-1);
     }
     LOG_VERBOSE(
         "{}({}) Attached program:{}, file_name:{}", __func__, thread_index, program->program_name, file_name.c_str());
@@ -1339,17 +1451,18 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    std::string file_name = "bindmonitor_mt_tailcall.sys";
-    std::string map_name = "bind_tail_call_map";
-    std::string program_name = "BindMonitor_Caller";
-    bpf_prog_type program_type = BPF_PROG_TYPE_BIND;
-
     // Load the program.
+    thread_context program_load_context;
+    program_load_context.program_name = "BindMonitor_Caller";
+    program_load_context.file_name = "bindmonitor_mt_tailcall.sys";
+    program_load_context.map_name = "bind_tail_call_map";
+    program_load_context.thread_index = 0;
     auto [program_object, _] =
-        _load_attach_tail_program(file_name, 0, EBPF_ATTACH_TYPE_BIND, program_name, program_type);
+        _load_attach_tail_program(program_load_context, EBPF_ATTACH_TYPE_BIND, BPF_PROG_TYPE_BIND);
+    REQUIRE(program_load_context.succeeded == true);
 
     // Set up the tail call programs.
-    _set_up_tailcall_program(program_object.get(), map_name);
+    _set_up_tailcall_program(program_object.get(), program_load_context.map_name);
 
     // Needed for thread_context initialization.
     constexpr uint32_t MAX_BIND_PROGRAM = 1;
@@ -1386,29 +1499,21 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
             std::move(std::thread(_invoke_mt_bindmonitor_tail_call_thread_function, std::ref(context_entry)));
     }
 
-    // Another table for the 'extension restart' threads.
-    std::vector<std::thread> extension_restart_thread_table{};
-
     // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-    std::string extension_name = {"netebpfext"};
+    std::vector<std::string> extension_names = {"netebpfext"};
+    std::vector<std::thread> extension_restart_thread_table;
+    std::vector<thread_context> extension_restart_thread_context_table;
     if (test_control_info.extension_restart_enabled) {
-        auto restart_thread = _start_extension_restart_thread(
-            std::ref(extension_name), test_control_info.extension_restart_delay_ms, test_control_info.duration_minutes);
-        extension_restart_thread_table.push_back(std::move(restart_thread));
+        configure_extension_restart(
+            extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
     }
 
-    // Wait for threads to terminate.
-    LOG_INFO("waiting on {} test threads...", test_thread_table.size());
-    for (auto& t : test_thread_table) {
-        t.join();
-    }
-
-    if (test_control_info.extension_restart_enabled) {
-        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
-        for (auto& t : extension_restart_thread_table) {
-            t.join();
-        }
-    }
+    wait_and_verify_test_threads(
+        test_control_info,
+        test_thread_table,
+        thread_context_table,
+        extension_restart_thread_table,
+        extension_restart_thread_context_table);
 
     // Clean up Winsock.
     WSACleanup();
