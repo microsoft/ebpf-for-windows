@@ -85,6 +85,10 @@
   <PropertyGroup>
     <ClangExec>"$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe"</ClangExec>
   </PropertyGroup>
+  <!-- Set /allpdata only for the x64 platform. -->
+  <PropertyGroup Condition="'$(Platform)'=='x64'">
+    <AllPDataOption>/allpdata</AllPDataOption>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -123,7 +127,7 @@
       <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo $(AllPDataOption) %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration Condition="'$(EnableAsan)' != 'true'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>

@@ -307,12 +307,9 @@ ebpf_verify_and_load_program(
         }
 
         // Verify the program.
-        {
-            _verification_in_progress_helper helper;
-            result = verify_byte_code(program_type, instructions, instruction_count, error_message, error_message_size);
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
+        result = verify_byte_code(program_type, instructions, instruction_count, error_message, error_message_size);
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
         }
 
         result = _resolve_maps_in_byte_code(program_handle, instructions, instruction_count);

@@ -87,7 +87,7 @@ jobs:
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
+      uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
       with:
         egress-policy: audit
 
@@ -345,7 +345,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 1
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
+      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
       id: upload_code_coverage_report_1
       continue-on-error: true
       with:
@@ -360,7 +360,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 2
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
+      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
       id: upload_code_coverage_report_2
       continue-on-error: true
       with:
@@ -375,7 +375,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 3
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
+      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
       id: upload_code_coverage_report_3
       continue-on-error: true
       with:
@@ -390,7 +390,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 4
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-      uses: codecov/codecov-action@1e68e06f1dbfde0e4cefc87efeba9e4643565303
+      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
       id: upload_code_coverage_report_4
       continue-on-error: true
       with:
@@ -487,7 +487,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@c95a14d0e5bab51a9f56296a4eb0e416910cd350 # v2.10.3
+        uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
         with:
           disable-sudo: true
           egress-policy: block
