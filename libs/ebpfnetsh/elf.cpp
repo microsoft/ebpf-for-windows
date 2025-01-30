@@ -232,6 +232,46 @@ handle_ebpf_show_sections(
     return NO_ERROR;
 }
 
+static unsigned long
+_verify_program(
+    std::string filename,                             // Name of file in which the program appears.
+    std::string section,                              // Name of section in which the program appears.
+    std::string program_name,                         // Name of program.
+    _In_opt_ const ebpf_program_type_t* program_type, // Program type.
+    ebpf_verification_verbosity_t verbosity)          // Verbosity.
+{
+    const char* report;
+    const char* error_message;
+    ebpf_api_verifier_stats_t stats;
+
+    unsigned long status = ebpf_api_elf_verify_program_from_file(
+        filename.c_str(),
+        !section.empty() ? section.c_str() : nullptr,
+        !program_name.empty() ? program_name.c_str() : nullptr,
+        program_type,
+        verbosity,
+        &report,
+        &error_message,
+        &stats);
+    if (status == ERROR_SUCCESS) {
+        std::cout << report;
+        std::cout << "\nProgram terminates within " << stats.max_loop_count << " loop iterations\n";
+        ebpf_free_string(report);
+        return NO_ERROR;
+    } else {
+        if (error_message) {
+            std::cerr << error_message << std::endl;
+        }
+        if (report) {
+            std::cerr << "\nVerification report:\n" << report;
+            std::cerr << stats.total_warnings << " errors\n\n";
+        }
+        ebpf_free_string(error_message);
+        ebpf_free_string(report);
+        return ERROR_SUPPRESS_OUTPUT;
+    }
+}
+
 // The following function uses windows specific type as an input to match
 // definition of "FN_HANDLE_CMD" in public file of NetSh.h
 unsigned long
@@ -272,9 +312,9 @@ handle_ebpf_show_verification(
     std::string section = "";      // Use the first code section by default.
     std::string program_name = ""; // Use the first program name by default.
     std::string type_name = "";
-    ebpf_program_type_t program_type;
+    ebpf_program_type_t program_type_guid = {0};
+    ebpf_program_type_t* program_type = nullptr;
     ebpf_attach_type_t attach_type;
-    bool program_type_found = false;
 
     for (int i = 0; (status == NO_ERROR) && ((i + current_index) < argc); i++) {
         switch (tag_type[i]) {
@@ -292,10 +332,10 @@ handle_ebpf_show_verification(
         }
         case TYPE_INDEX: {
             type_name = down_cast_from_wstring(std::wstring(argv[current_index + i]));
-            if (ebpf_get_program_type_by_name(type_name.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
+            if (ebpf_get_program_type_by_name(type_name.c_str(), &program_type_guid, &attach_type) != EBPF_SUCCESS) {
                 status = ERROR_INVALID_PARAMETER;
             } else {
-                program_type_found = true;
+                program_type = &program_type_guid;
             }
             break;
         }
@@ -316,39 +356,6 @@ handle_ebpf_show_verification(
         return status;
     }
 
-    const char* report;
-    const char* error_message;
-    ebpf_api_verifier_stats_t stats;
-
-    if (section == "") {
-        // If no section name was provided, fetch the first section name.
-        ebpf_api_program_info_t* program_data = nullptr;
-        ebpf_result_t result =
-            ebpf_enumerate_programs(filename.c_str(), level == VL_VERBOSE, &program_data, &error_message);
-        if (result != ERROR_SUCCESS || program_data == nullptr) {
-            if (error_message) {
-                std::cerr << error_message << std::endl;
-            } else {
-                std::cerr << "\nNo section(s) found" << std::endl;
-            }
-            ebpf_free_string(error_message);
-            ebpf_free_programs(program_data);
-            return ERROR_SUPPRESS_OUTPUT;
-        }
-
-        section = program_data->section_name;
-        program_name = program_data->program_name;
-        ebpf_free_string(error_message);
-        ebpf_free_programs(program_data);
-    }
-
-    if (!program_type_found) {
-        if (ebpf_get_program_type_by_name(section.c_str(), &program_type, &attach_type) != EBPF_SUCCESS) {
-            std::cerr << "\nProgram type for section " << section.c_str() << " not found." << std::endl;
-            return ERROR_SUPPRESS_OUTPUT;
-        }
-    }
-
     ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL;
     switch (level) {
     case VL_NORMAL:
@@ -366,30 +373,40 @@ handle_ebpf_show_verification(
         break;
     }
 
-    status = ebpf_api_elf_verify_program_from_file(
-        filename.c_str(),
-        !section.empty() ? section.c_str() : nullptr,
-        !program_name.empty() ? program_name.c_str() : nullptr,
-        &program_type,
-        verbosity,
-        &report,
-        &error_message,
-        &stats);
-    if (status == ERROR_SUCCESS) {
-        std::cout << report;
-        std::cout << "\nProgram terminates within " << stats.max_loop_count << " loop iterations\n";
-        ebpf_free_string(report);
-        return NO_ERROR;
-    } else {
+    ebpf_api_program_info_t* program_data = nullptr;
+    const char* error_message;
+    ebpf_result_t result = ebpf_enumerate_programs(
+        filename.c_str(), verbosity == EBPF_VERIFICATION_VERBOSITY_VERBOSE, &program_data, &error_message);
+    if (result != ERROR_SUCCESS || program_data == nullptr) {
         if (error_message) {
             std::cerr << error_message << std::endl;
-        }
-        if (report) {
-            std::cerr << "\nVerification report:\n" << report;
-            std::cerr << stats.total_warnings << " errors\n\n";
+        } else {
+            std::cerr << "\nNo section(s) found" << std::endl;
         }
         ebpf_free_string(error_message);
-        ebpf_free_string(report);
+        ebpf_free_programs(program_data);
         return ERROR_SUPPRESS_OUTPUT;
     }
+
+    for (ebpf_api_program_info_t* current = program_data; current != nullptr; current = current->next) {
+        if (!section.empty() && section != current->section_name) {
+            continue;
+        }
+        if (!program_name.empty() && program_name != current->program_name) {
+            continue;
+        }
+        if (program_data->next != nullptr && strcmp(current->section_name, ".text") == 0) {
+            // Skip subprograms.
+            continue;
+        }
+        unsigned long program_status =
+            _verify_program(filename, current->section_name, current->program_name, program_type, verbosity);
+        if (program_status != NO_ERROR) {
+            status = program_status;
+        }
+    }
+
+    ebpf_free_string(error_message);
+    ebpf_free_programs(program_data);
+    return status;
 }
