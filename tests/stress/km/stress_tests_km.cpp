@@ -641,14 +641,25 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
 
     // Make a copy. Retry a few times in case the file is in use.
     bool result = false;
-    for (uint32_t i = 0; i < 100; i++) {
-        LOG_INFO("Copying {} to {}", file_name, new_file_name);
-        result =
-            std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
-        if (result) {
-            break;
+    uint32_t max_retries = 10;
+    for (uint32_t i = 0; i < max_retries; i++) {
+        try {
+            LOG_INFO("Copying {} to {}", file_name, new_file_name);
+            result =
+                std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
+            if (result) {
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        } catch {
+            if (i == (max_retries - 1)) {
+                LOG_ERROR(
+                    "FATAL ERROR: Failed to copy {} to {}. Error: {} after retry limit reached.",
+                    file_name,
+                    new_file_name,
+                    GetLastError());
+            }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
     REQUIRE(result == true);
 

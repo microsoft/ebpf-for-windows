@@ -73,8 +73,10 @@ $Job = Start-Job -ScriptBlock {
         if ($_.CategoryInfo.Reason -eq "TimeoutException") {
             Generate-KernelDumpOnVM($TestVMName)
         }
-    }
 
+        # Throw to ensure the job is marked as failed.
+        throw $_.Exception.Message
+    }
 
     Pop-Location
 } -ArgumentList (
