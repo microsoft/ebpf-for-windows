@@ -283,7 +283,7 @@ _start_extension_restart_thread(
     uint32_t thread_lifetime_minutes)
 {
     return std::thread(
-        [&](thread_context& context, uint32_t local_restart_delay_ms, uint32_t local_thread_lifetime_minutes) {
+        [&](uint32_t local_restart_delay_ms, uint32_t local_thread_lifetime_minutes) {
             // Delay the start of this thread for a bit to allow the ebpf programs to attach successfully. There's a
             // window where if the extension is unloading/unloaded, an incoming attach might fail.
             std::this_thread::sleep_for(std::chrono::seconds(3));
@@ -314,7 +314,6 @@ _start_extension_restart_thread(
             }
             LOG_INFO("**** Extension restart thread done. Exiting. ****");
         },
-        context,
         restart_delay_ms,
         thread_lifetime_minutes);
 }
@@ -661,10 +660,12 @@ configure_extension_restart(
     const test_control_info& test_control_info,
     const std::vector<std::string>& extension_names,
     std::vector<std::thread>& extension_restart_thread_table,
-    std::vector<thread_context>& extension_restart_thread_context_table)
+    std::vector<thread_context>& extension_restart_thread_context_table,
+    std::vector<object_table_entry>& object_table)
 {
     for (uint32_t i = 0; i < extension_names.size(); i++) {
-        thread_context context_entry = {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, {}};
+        thread_context context_entry = {
+            {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table};
         context_entry.extension_name = extension_names[i];
         extension_restart_thread_context_table.emplace_back(std::move(context_entry));
 
@@ -738,7 +739,6 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
     std::vector<thread_context> thread_context_table(
         total_threads, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, object_table});
     std::vector<std::thread> test_thread_table(total_threads);
-    thread_context restart_extension_thread_context{};
 
     // Another table for the 'extension restart' threads (1 thread per program).
     std::vector<std::string> extension_names;
@@ -798,7 +798,11 @@ _mt_prog_load_stress_test(ebpf_execution_type_t program_type, const test_control
 
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info,
+            extension_names,
+            extension_restart_thread_table,
+            extension_restart_thread_context_table,
+            object_table);
     }
 
     wait_and_verify_test_threads(
@@ -1088,7 +1092,11 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     std::vector<thread_context> extension_restart_thread_context_table;
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info,
+            extension_names,
+            extension_restart_thread_table,
+            extension_restart_thread_context_table,
+            object_table);
     }
 
     wait_and_verify_test_threads(
@@ -1152,14 +1160,13 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
     auto error = WSAStartup(MAKEWORD(2, 2), &data);
     REQUIRE(error == 0);
 
-    thread_context program_load_context;
+    std::vector<object_table_entry> dummy_table(1);
+    thread_context program_load_context = {
+        {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table};
     program_load_context.file_name = {"cgroup_mt_connect6.sys"};
     program_load_context.thread_index = 0;
     auto [program_object, _] = _load_attach_program(program_load_context, BPF_CGROUP_INET6_CONNECT);
     REQUIRE(program_load_context.succeeded == true);
-
-    // Not used, needed for thread_context initialization.
-    std::vector<object_table_entry> dummy_table(1);
 
     size_t total_threads = test_control_info.threads_count;
     std::vector<thread_context> thread_context_table(
@@ -1187,7 +1194,11 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
 
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info,
+            extension_names,
+            extension_restart_thread_table,
+            extension_restart_thread_context_table,
+            dummy_table);
     }
 
     wait_and_verify_test_threads(
@@ -1449,7 +1460,9 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     REQUIRE(error == 0);
 
     // Load the program.
-    thread_context program_load_context;
+    std::vector<object_table_entry> dummy_table(1);
+    thread_context program_load_context = {
+        {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table};
     program_load_context.program_name = "BindMonitor_Caller";
     program_load_context.file_name = "bindmonitor_mt_tailcall.sys";
     program_load_context.map_name = "bind_tail_call_map";
@@ -1502,7 +1515,11 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     std::vector<thread_context> extension_restart_thread_context_table;
     if (test_control_info.extension_restart_enabled) {
         configure_extension_restart(
-            test_control_info, extension_names, extension_restart_thread_table, extension_restart_thread_context_table);
+            test_control_info,
+            extension_names,
+            extension_restart_thread_table,
+            extension_restart_thread_context_table,
+            object_table);
     }
 
     wait_and_verify_test_threads(
