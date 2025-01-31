@@ -641,7 +641,7 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
 
     // Make a copy. Retry a few times in case the file is in use.
     bool result = false;
-    uint32_t max_retries = 10;
+    uint32_t max_retries = 100;
     for (uint32_t i = 0; i < max_retries; i++) {
         try {
             LOG_INFO("Copying {} to {}", file_name, new_file_name);
