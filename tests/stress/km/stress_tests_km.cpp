@@ -663,21 +663,16 @@ configure_extension_restart(
     std::vector<std::thread>& extension_restart_thread_table,
     std::vector<thread_context>& extension_restart_thread_context_table)
 {
-    // If requested, start the 'extension stop-and-restart' thread for extension for this program type.
-    size_t extension_count = extension_names.size();
-    extension_restart_thread_table.resize(extension_count);
-    extension_restart_thread_context_table.resize(
-        extension_count, {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, {}});
-
-    for (uint32_t i = 0; i < extension_count; i++) {
-        auto& context_entry = extension_restart_thread_context_table[i];
-        auto& thread_entry = extension_restart_thread_table[i];
+    for (uint32_t i = 0; i < extension_names.size(); i++) {
+        thread_context context_entry = {{}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, {}};
         context_entry.extension_name = extension_names[i];
-        thread_entry = std::move(_start_extension_restart_thread(
-            context_entry,
+        extension_restart_thread_context_table.emplace_back(std::move(context_entry));
+
+        extension_restart_thread_table.emplace_back(std::move(_start_extension_restart_thread(
+            std::ref(extension_restart_thread_context_table.back()),
             extension_names[i],
             test_control_info.extension_restart_delay_ms,
-            test_control_info.duration_minutes));
+            test_control_info.duration_minutes)));
     }
 }
 
