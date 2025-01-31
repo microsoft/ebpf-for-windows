@@ -651,13 +651,13 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
                 break;
             }
             std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        } catch {
+        } catch (const std::exception& e) {
             if (i == (max_retries - 1)) {
                 LOG_ERROR(
                     "FATAL ERROR: Failed to copy {} to {}. Error: {} after retry limit reached.",
                     file_name,
                     new_file_name,
-                    GetLastError());
+                    e.what());
             }
         }
     }
