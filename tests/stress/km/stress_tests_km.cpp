@@ -641,7 +641,7 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
 
     // Make a copy. Retry a few times in case the file is in use.
     bool result = false;
-    for (uint32_t i = 0; i < 10; i++) {
+    for (uint32_t i = 0; i < 100; i++) {
         LOG_INFO("Copying {} to {}", file_name, new_file_name);
         result =
             std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
@@ -1026,7 +1026,7 @@ _invoke_test_thread_function(thread_context& context)
         }
         LOG_VERBOSE(
             "{}({}) connect start_count:{}, end_count:{}", __func__, context.thread_index, start_count, end_count);
-        if (end_count != start_count) {
+        if (end_count <= start_count) {
             LOG_ERROR(
                 "{}({}) - FATAL ERROR: connect count mismatched. start_count:{}, end_count:{}",
                 __func__,
