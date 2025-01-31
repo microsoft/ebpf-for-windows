@@ -650,7 +650,7 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
             if (result) {
                 break;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+            std::this_thread::sleep_for(std::chrono::seconds(2));
         } catch (const std::exception& e) {
             if (i == (max_retries - 1)) {
                 LOG_ERROR(

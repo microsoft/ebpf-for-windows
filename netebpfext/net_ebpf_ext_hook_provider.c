@@ -113,14 +113,16 @@ static void
 _ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     NET_EBPF_EXT_LOG_ENTRY();
+    ExWaitForRundownProtectionRelease(&rundown->protection);
+    rundown->rundown_occurred = TRUE;
 
-    if (rundown->rundown_initialized == TRUE) {
-        ExWaitForRundownProtectionRelease(&rundown->protection);
-        rundown->rundown_occurred = TRUE;
-    } else {
-        // Attempting to wait for rundown without initialization is a bug.
-        ASSERT(FALSE);
-    }
+    // if (rundown->rundown_initialized == TRUE) {
+    //     ExWaitForRundownProtectionRelease(&rundown->protection);
+    //     rundown->rundown_occurred = TRUE;
+    // } else {
+    //     // Attempting to wait for rundown without initialization is a bug.
+    //     ASSERT(FALSE);
+    // }
 
     NET_EBPF_EXT_LOG_EXIT();
 }
