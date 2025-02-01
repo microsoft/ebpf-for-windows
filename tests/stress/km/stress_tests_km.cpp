@@ -639,18 +639,31 @@ _make_unique_file_copy(const std::string& file_name, uint32_t token)
     new_file_name += (std::to_string(token) + file_spec.extension().string());
     REQUIRE(new_file_name.size() != file_name.size());
 
+    if (std::filesystem::exists(new_file_name)) {
+        LOG_INFO("Target file already exist - {}", new_file_name);
+    }
+
     // Make a copy. Retry a few times in case the file is in use.
     bool result = false;
-    uint32_t max_retries = 100;
+    uint32_t max_retries = 50;
     for (uint32_t i = 0; i < max_retries; i++) {
         try {
+            if (std::filesystem::exists(new_file_name)) {
+                LOG_INFO("File already exists. Attempting to remove it - {}", new_file_name);
+                if (std::filesystem::remove(new_file_name)) {
+                    LOG_INFO("Removed existing file - {}", new_file_name);
+                } else {
+                    LOG_ERROR("Failed to remove existing file - {}", new_file_name);
+                }
+            }
+
             LOG_INFO("Copying {} to {}", file_name, new_file_name);
             result =
                 std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
             if (result) {
                 break;
             }
-            Sleep(2000);
+            Sleep(10000);
         } catch (const std::exception& e) {
             if (i == (max_retries - 1)) {
                 LOG_ERROR(
