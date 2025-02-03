@@ -635,7 +635,6 @@ _generate_random_string()
 {
     size_t string_length = 10;
     const std::string characters = "0123456789abcdefghijklmnopqrstuvwxyz";
-    const size_t characters_len = sizeof(characters) - 1;
 
     std::string random_string;
     random_string.reserve(string_length);
