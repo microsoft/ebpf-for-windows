@@ -649,43 +649,29 @@ _generate_random_string()
 static std::string
 _get_unique_file_name(const std::string& file_name)
 {
-    uint32_t max_retries = 5;
-    while (max_retries > 0) {
-        // Generate the new (unique) file name.
-        std::filesystem::path file_spec = file_name;
-        std::string new_file_name = file_spec.stem().string();
-        // Use tick count to help generate a unique file name.
-        new_file_name += ("_" + _generate_random_string() + file_spec.extension().string());
-        REQUIRE(new_file_name.size() != file_name.size());
-
-        if (std::filesystem::exists(new_file_name)) {
-            LOG_INFO("Target file already exist - {}", new_file_name);
-            if (--max_retries == 0) {
-                LOG_ERROR("FATAL ERROR: Failed to generate a unique file name.");
-                REQUIRE(0);
-            }
-        } else {
-            return new_file_name;
-        }
-    }
-
-    return "";
+    // Generate the new (unique) file name.
+    std::filesystem::path file_spec = file_name;
+    std::string new_file_name = file_spec.stem().string();
+    return (new_file_name + "_" + _generate_random_string() + file_spec.extension().string());
 }
 
 static _Must_inspect_result_ std::string
 _make_unique_file_copy(const std::string& file_name)
 {
-    std::string new_file_name = _get_unique_file_name(file_name);
-    REQUIRE(new_file_name.size() != 0);
-    bool result =
-        std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
-    if (result) {
-        LOG_INFO("Copied {} to {}", file_name, new_file_name);
-    } else {
-        LOG_ERROR("Failed to copy {} to {}", file_name, new_file_name);
+    uint32_t max_retries = 10;
+    while (max_retries--) {
+        std::string new_file_name = _get_unique_file_name(file_name);
+        bool result =
+            std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
+        if (result) {
+            LOG_INFO("Copied {} to {}", file_name, new_file_name);
+            return new_file_name;
+        }
     }
-    REQUIRE(result == true);
-    return new_file_name;
+
+    LOG_ERROR("Failed to copy {} to a unique file name.", file_name);
+    REQUIRE(0);
+    return "";
 }
 
 static void
