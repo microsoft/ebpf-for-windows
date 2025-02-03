@@ -646,6 +646,10 @@ _get_unique_file_name(const std::string& file_name)
             return new_file_name;
         } else {
             LOG_INFO("Target file already exist - {}", new_file_name);
+            if (--max_retries == 0) {
+                LOG_ERROR("FATAL ERROR: Failed to generate a unique file name.");
+                REQUIRE(0);
+            }
         }
     }
 }
@@ -654,7 +658,8 @@ static _Must_inspect_result_ std::string
 _make_unique_file_copy(const std::string& file_name)
 {
     std::string new_file_name = _get_unique_file_name(file_name);
-    result = std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
+    bool result =
+        std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
     if (result) {
         LOG_INFO("Copied {} to {}", file_name, new_file_name);
     } else {
