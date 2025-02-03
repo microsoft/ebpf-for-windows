@@ -885,7 +885,7 @@ _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
         return {};
     }
     object_ptr.reset(object_raw_ptr);
-    LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
+    LOG_INFO("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
 
     // Get program object for the (only) program in this file.
     auto program = bpf_object__next_program(object_raw_ptr, nullptr);
