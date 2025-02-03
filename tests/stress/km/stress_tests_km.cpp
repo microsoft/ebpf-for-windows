@@ -631,6 +631,22 @@ _test_thread_function(thread_context& context)
 }
 
 static std::string
+_generate_random_string()
+{
+    size_t string_length = 10;
+    const std::string characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const size_t characters_len = sizeof(characters) - 1;
+
+    std::string random_string;
+    random_string.reserve(string_length);
+    for (size_t i = 0; i < string_length; ++i) {
+        random_string += characters[rand() % characters_len];
+    }
+
+    return random_string;
+}
+
+static std::string
 _get_unique_file_name(const std::string& file_name)
 {
     uint32_t max_retries = 5;
@@ -639,7 +655,7 @@ _get_unique_file_name(const std::string& file_name)
         std::filesystem::path file_spec = file_name;
         std::string new_file_name = file_spec.stem().string();
         // Use tick count to help generate a unique file name.
-        new_file_name += (std::to_string(GetTickCount64()) + file_spec.extension().string());
+        new_file_name += (_generate_random_string() + file_spec.extension().string());
         REQUIRE(new_file_name.size() != file_name.size());
 
         if (!std::filesystem::exists(new_file_name)) {
