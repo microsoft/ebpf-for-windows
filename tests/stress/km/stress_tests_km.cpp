@@ -652,12 +652,15 @@ _get_unique_file_name(const std::string& file_name)
             }
         }
     }
+
+    return "";
 }
 
 static _Must_inspect_result_ std::string
 _make_unique_file_copy(const std::string& file_name)
 {
     std::string new_file_name = _get_unique_file_name(file_name);
+    REQUIRE(new_file_name.size() != 0);
     bool result =
         std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
     if (result) {
