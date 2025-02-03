@@ -634,13 +634,13 @@ static std::string
 _generate_random_string()
 {
     size_t string_length = 10;
-    const std::string characters = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    const std::string characters = "0123456789abcdefghijklmnopqrstuvwxyz";
     const size_t characters_len = sizeof(characters) - 1;
 
     std::string random_string;
     random_string.reserve(string_length);
     for (size_t i = 0; i < string_length; ++i) {
-        random_string += characters[rand() % characters_len];
+        random_string += characters[rand() % characters.size()];
     }
 
     return random_string;
@@ -655,17 +655,17 @@ _get_unique_file_name(const std::string& file_name)
         std::filesystem::path file_spec = file_name;
         std::string new_file_name = file_spec.stem().string();
         // Use tick count to help generate a unique file name.
-        new_file_name += (_generate_random_string() + file_spec.extension().string());
+        new_file_name += ("_" + _generate_random_string() + file_spec.extension().string());
         REQUIRE(new_file_name.size() != file_name.size());
 
-        if (!std::filesystem::exists(new_file_name)) {
-            return new_file_name;
-        } else {
+        if (std::filesystem::exists(new_file_name)) {
             LOG_INFO("Target file already exist - {}", new_file_name);
             if (--max_retries == 0) {
                 LOG_ERROR("FATAL ERROR: Failed to generate a unique file name.");
                 REQUIRE(0);
             }
+        } else {
+            return new_file_name;
         }
     }
 
