@@ -1447,13 +1447,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         section_name = NULL;
         hash_type_name = NULL;
 
-        // Load machine code.
-        result = ebpf_core_load_code(
-            native_program->handle, EBPF_CODE_NATIVE, module, (uint8_t*)native_program->entry->function, 0);
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-
         // Resolve and associate maps with the program.
         result = _ebpf_native_resolve_maps_for_program(instance, native_program);
         if (result != EBPF_SUCCESS) {

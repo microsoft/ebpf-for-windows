@@ -2495,7 +2495,7 @@ _ebpf_pe_get_map_definitions(
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
                 if (entry->zero_marker != 0) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
-                    // at the end of the section.  This entry seems to be a map name string, so we've
+                    // at the end of the section. This entry seems to be a map name string, so we've
                     // reached the end of the maps.
                     break;
                 }
