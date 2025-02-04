@@ -443,11 +443,9 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                         }
                     } else {
                         LOG_INFO(
-                            "(CREATOR)[{}][{}] - bpf_object__load() succeeded. result: {}, errno: {} progname: {}",
+                            "(CREATOR)[{}][{}] - bpf_object__load() succeeded progname: {}",
                             context.thread_index,
                             entry.index,
-                            result,
-                            errno,
                             context.file_name.c_str());
                     }
                 } catch (...) {
