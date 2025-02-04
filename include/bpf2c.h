@@ -45,6 +45,10 @@ extern "C"
 #define htole64(X) (X)
 #endif
 
+#if !defined(UNREFERENCED_PARAMETER)
+#define UNREFERENCED_PARAMETER(P) (P)
+#endif
+
     typedef uint64_t (*helper_function_t)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, void*);
 
     /**
