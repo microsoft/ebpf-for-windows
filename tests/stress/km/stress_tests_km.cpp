@@ -1125,8 +1125,8 @@ _mt_invoke_prog_stress_test(ebpf_execution_type_t program_type, const test_contr
     std::vector<std::thread> test_thread_table(total_threads);
 
     std::vector<std::pair<std::string, std::string>> program_file_map_names = {
-        {{"cgroup_count_connect4.sys"}, {"connect4_count_map"}},
-        {{"cgroup_count_connect6.sys"}, {"connect6_count_map"}}};
+        {{_make_unique_file_copy("cgroup_count_connect4.sys")}, {"connect4_count_map"}},
+        {{_make_unique_file_copy("cgroup_count_connect6.sys")}, {"connect6_count_map"}}};
     ASSERT(program_file_map_names.size() == MAX_TCP_CONNECT_PROGRAMS);
 
     for (uint32_t i = 0; i < total_threads; i++) {
@@ -1224,7 +1224,7 @@ _mt_sockaddr_invoke_program_test(const test_control_info& test_control_info)
     std::vector<object_table_entry> dummy_table(1);
     thread_context program_load_context = {
         {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table};
-    program_load_context.file_name = {"cgroup_mt_connect6.sys"};
+    program_load_context.file_name = _make_unique_file_copy("cgroup_mt_connect6.sys");
     program_load_context.thread_index = 0;
     auto [program_object, _] = _load_attach_program(program_load_context, BPF_CGROUP_INET6_CONNECT);
     REQUIRE(program_load_context.succeeded == true);
@@ -1534,7 +1534,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     thread_context program_load_context = {
         {}, {}, false, {}, thread_role_type::ROLE_NOT_SET, 0, 0, 0, false, 0, 0, dummy_table};
     program_load_context.program_name = "BindMonitor_Caller";
-    program_load_context.file_name = "bindmonitor_mt_tailcall.sys";
+    program_load_context.file_name = _make_unique_file_copy("bindmonitor_mt_tailcall.sys");
     program_load_context.map_name = "bind_tail_call_map";
     program_load_context.thread_index = 0;
     auto [program_object, _] =
