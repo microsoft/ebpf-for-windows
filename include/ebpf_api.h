@@ -517,10 +517,29 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
+     * @deprecated Use ebpf_get_next_pinned_object_path() instead.
+     */
+    __declspec(deprecated("Use ebpf_get_next_pinned_object_path() instead.")) _Must_inspect_result_ ebpf_result_t
+        ebpf_get_next_pinned_program_path(
+            _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Retrieve the next pinned path of an eBPF object.
+     *
+     * @param[in] start_path Path to look for an entry greater than or NULL.
+     * @param[out] next_path Returns the next path in lexicographical order, if one exists.
+     * @param[in] next_path_len Length of the next path buffer.
+     * @param[in, out] type On input, the type of object to retrieve or EBPF_OBJECT_UNKNOWN.
+     *                      On output, the type of the object.
+     *
+     * @returns EBPF_SUCCESS or an error.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_get_next_pinned_program_path(
-        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
+    ebpf_get_next_pinned_object_path(
+        _In_z_ const char* start_path,
+        _Out_writes_z_(next_path_len) char* next_path,
+        size_t next_path_len,
+        _Inout_ ebpf_object_type_t* type) EBPF_NO_EXCEPT;
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
