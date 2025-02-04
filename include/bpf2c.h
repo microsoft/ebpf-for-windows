@@ -120,7 +120,7 @@ extern "C"
         // entries in the programs section.
         uint64_t zero;
 
-        uint64_t (*function)(void*, void*);       ///< Address of the program.
+        uint64_t (*function)(void*, const program_runtime_context_t*); ///< Address of the program.
         const char* pe_section_name;              ///< Name of the PE section containing the program.
         const char* section_name;                 ///< Name of the section containing the program.
         const char* program_name;                 ///< Name of the program.
