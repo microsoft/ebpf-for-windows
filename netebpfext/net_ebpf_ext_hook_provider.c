@@ -113,8 +113,6 @@ static void
 _ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     NET_EBPF_EXT_LOG_ENTRY();
-    // ExWaitForRundownProtectionRelease(&rundown->protection);
-    // rundown->rundown_occurred = TRUE;
 
     if (rundown->rundown_initialized == TRUE) {
         ExWaitForRundownProtectionRelease(&rundown->protection);
@@ -173,7 +171,6 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
 _Must_inspect_result_ bool
 _net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
-    // return ExAcquireRundownProtection(&rundown->protection);
     if (rundown->rundown_initialized == TRUE) {
         return ExAcquireRundownProtection(&rundown->protection);
     } else {
@@ -186,7 +183,6 @@ _net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 void
 _net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
-    // ExReleaseRundownProtection(&rundown->protection);
     if (rundown->rundown_initialized == TRUE) {
         ExReleaseRundownProtection(&rundown->protection);
     } else {

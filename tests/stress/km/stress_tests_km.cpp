@@ -125,7 +125,7 @@ _km_test_init()
                         _global_test_control_info.programs.begin(),
                         _global_test_control_info.programs.end(),
                         program) == _global_test_control_info.programs.end()) {
-                    LOG_INFO("ERROR: Uexpected program: {}", program);
+                    LOG_ERROR("ERROR: Uexpected program: {}", program);
                     REQUIRE(0);
                 }
             }
@@ -442,7 +442,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                             exit(-1);
                         }
                     } else {
-                        LOG_INFO(
+                        LOG_VERBOSE(
                             "(CREATOR)[{}][{}] - bpf_object__load() succeeded progname: {}",
                             context.thread_index,
                             entry.index,
@@ -471,7 +471,7 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                     exit(-1);
                 }
                 entry.loaded = true;
-                LOG_INFO(
+                LOG_VERBOSE(
                     "(CREATOR)[{}][{}][{}] - Object loaded.",
                     context.thread_index,
                     entry.index,
@@ -680,7 +680,7 @@ _make_unique_file_copy(const std::string& file_name)
             bool result =
                 std::filesystem::copy_file(file_name, new_file_name, std::filesystem::copy_options::overwrite_existing);
             if (result) {
-                LOG_INFO("Copied {} to {}", file_name, new_file_name);
+                LOG_VERBOSE("Copied {} to {}", file_name, new_file_name);
                 return new_file_name;
             } else {
                 LOG_ERROR("Failed to copy {} to {}", file_name, new_file_name);
@@ -734,14 +734,14 @@ wait_and_verify_test_threads(
     std::vector<thread_context>& extension_restart_thread_context_table)
 {
     // Wait for all test threads
-    LOG_INFO("waiting on {} test threads...", thread_table.size());
+    LOG_VERBOSE("waiting on {} test threads...", thread_table.size());
     for (auto& t : thread_table) {
         t.join();
     }
 
     // Wait for all extension restart threads
     if (test_control_info.extension_restart_enabled) {
-        LOG_INFO("waiting on {} extension restart threads...", extension_restart_thread_table.size());
+        LOG_VERBOSE("waiting on {} extension restart threads...", extension_restart_thread_table.size());
         for (auto& t : extension_restart_thread_table) {
             t.join();
         }
@@ -765,12 +765,6 @@ wait_and_verify_test_threads(
             }
         }
     }
-
-    // // Handle any cleanup
-    // foreach (auto& context : thread_context_table) {
-    //     // detach and close the program
-
-    // }
 }
 
 static void
@@ -880,13 +874,6 @@ _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
     const std::string& file_name = context.file_name;
     const uint32_t thread_index = context.thread_index;
 
-    // Validate that the file exists.
-    if (!std::filesystem::exists(file_name)) {
-        LOG_ERROR("{}({}) FATAL ERROR: File {} does not exist.", __func__, thread_index, file_name.c_str());
-        context.succeeded = false;
-        return {};
-    }
-
     // Get the 'object' ptr for the program associated with this thread.
     object_raw_ptr = bpf_object__open(file_name.c_str());
     if (object_raw_ptr == nullptr) {
@@ -915,7 +902,7 @@ _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
         return {};
     }
     object_ptr.reset(object_raw_ptr);
-    LOG_INFO("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
+    LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
 
     // Get program object for the (only) program in this file.
     auto program = bpf_object__next_program(object_raw_ptr, nullptr);
@@ -1022,6 +1009,10 @@ void
 _invoke_test_thread_function(thread_context& context)
 {
     _prep_program(context, program_map_usage::USE_MAP);
+    if (context.succeeded == false) {
+        LOG_ERROR("{}({}) - FATAL ERROR: _prep_program() failed.", __func__, context.thread_index);
+        exit(-1);
+    }
     SOCKET socket_handle;
     SOCKADDR_STORAGE remote_endpoint{};
 
@@ -1050,20 +1041,26 @@ _invoke_test_thread_function(thread_context& context)
     // attempts as the program will not be invoked for connect attempts made while the extension is restarting.
     using sc = std::chrono::steady_clock;
     auto endtime = sc::now() + std::chrono::minutes(context.duration_minutes);
+    bool first_map_lookup = true;
     while (sc::now() < endtime) {
 
         uint16_t key = remote_port;
         uint64_t start_count = 0;
         auto result = bpf_map_lookup_elem(context.map_fd, &key, &start_count);
         if (start_count) {
-            if (result != 0) {
-                LOG_ERROR(
-                    "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed. errno:{}",
-                    __func__,
-                    context.thread_index,
-                    errno);
-                context.succeeded = false;
-                exit(-1);
+            // The first map lookup may fail, as the program has not inserted the entry yet.
+            if (first_map_lookup) {
+                first_map_lookup = false;
+            } else {
+                if (result != 0) {
+                    LOG_ERROR(
+                        "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed. errno:{}",
+                        __func__,
+                        context.thread_index,
+                        errno);
+                    context.succeeded = false;
+                    exit(-1);
+                }
             }
         }
 
@@ -1423,15 +1420,6 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
     const std::string& program_name = context.program_name;
     const uint32_t thread_index = context.thread_index;
 
-    // Sanity check that the file exists
-    if (!std::filesystem::exists(file_name)) {
-        LOG_ERROR("{}({}) - FATAL ERROR: file does not exist:{}", __func__, thread_index, file_name.c_str());
-        context.succeeded = false;
-        exit(-1);
-    } else {
-        LOG_INFO("{}({}) - file exists:{}", __func__, thread_index, file_name.c_str());
-    }
-
     // Get the 'object' ptr for the program associated with this thread.
     object_raw_ptr = bpf_object__open(file_name.c_str());
     if (object_raw_ptr == nullptr) {
@@ -1444,7 +1432,7 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
         context.succeeded = false;
         exit(-1);
     }
-    LOG_INFO("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
+    LOG_VERBOSE("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
 
     // Load the program.
     auto result = bpf_object__load(object_raw_ptr);
@@ -1459,7 +1447,7 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
         exit(-1);
     }
     object_ptr.reset(object_raw_ptr);
-    LOG_INFO("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
+    LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
 
     // Load program by name.
     bpf_program* program = bpf_object__find_program_by_name(object_raw_ptr, program_name.c_str());
