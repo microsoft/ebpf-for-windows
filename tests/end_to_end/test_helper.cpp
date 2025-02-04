@@ -786,8 +786,6 @@ _test_helper_end_to_end::~_test_helper_end_to_end()
         duplicate_handle_handler = nullptr;
 
         _expect_native_module_load_failures = false;
-
-        set_verification_in_progress(false);
     } catch (...) {
     }
 }

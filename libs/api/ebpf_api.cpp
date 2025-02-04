@@ -4133,8 +4133,11 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) NO_EXCE
     ebpf_assert(program_type);
 
     try {
-        const EbpfProgramType& type = get_program_type_windows(*program_type);
-        EBPF_RETURN_POINTER(const char*, type.name.c_str());
+        const EbpfProgramType* type = get_program_type_windows(*program_type);
+        if (type == nullptr) {
+            EBPF_RETURN_POINTER(const char*, nullptr);
+        }
+        EBPF_RETURN_POINTER(const char*, type->name.c_str());
     } catch (...) {
         return nullptr;
     }
