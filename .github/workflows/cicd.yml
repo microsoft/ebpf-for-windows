@@ -615,84 +615,84 @@ jobs:
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
 
-# TODO - remove these
+# # TODO - remove these
 
-  # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
-  # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests_2:
-    needs: regular
-    # TODO - revert this
-    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_mt_stress_tests
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
-      code_coverage: false
-      # For this test, we only want kernel mode dumps and not user mode dumps.
-      gather_dumps: false
+#   # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
+#   # against the kernel mode eBPF sub-system.
+#   km_mt_stress_tests_2:
+#     needs: regular
+#     # TODO - revert this
+#     # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+#     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+#     uses: ./.github/workflows/reusable-test.yml
+#     with:
+#       name: km_mt_stress_tests
+#       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+#       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
+#       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+#       build_artifact: Build-x64
+#       environment: ebpf_cicd_tests_ws2019
+#       code_coverage: false
+#       # For this test, we only want kernel mode dumps and not user mode dumps.
+#       gather_dumps: false
 
-  # Run multi-threaded stress tests with 'restart extension' enabled
-  # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests_restart_extension_2:
-    needs: regular
-    # TODO - revert this
-    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_mt_stress_tests_restart_extension
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
-      code_coverage: false
-      # For this test, we only want kernel mode dumps and not user mode dumps.
-      gather_dumps: false
+#   # Run multi-threaded stress tests with 'restart extension' enabled
+#   # against the kernel mode eBPF sub-system.
+#   km_mt_stress_tests_restart_extension_2:
+#     needs: regular
+#     # TODO - revert this
+#     # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+#     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+#     uses: ./.github/workflows/reusable-test.yml
+#     with:
+#       name: km_mt_stress_tests_restart_extension
+#       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+#       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
+#       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+#       build_artifact: Build-x64
+#       environment: ebpf_cicd_tests_ws2019
+#       code_coverage: false
+#       # For this test, we only want kernel mode dumps and not user mode dumps.
+#       gather_dumps: false
 
 
-  # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
-  # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests_3:
-    needs: regular
-    # TODO - revert this
-    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_mt_stress_tests
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
-      code_coverage: false
-      # For this test, we only want kernel mode dumps and not user mode dumps.
-      gather_dumps: false
+#   # Run multi-threaded stress tests with 'restart extension' disabled (default behavior)
+#   # against the kernel mode eBPF sub-system.
+#   km_mt_stress_tests_3:
+#     needs: regular
+#     # TODO - revert this
+#     # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+#     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+#     uses: ./.github/workflows/reusable-test.yml
+#     with:
+#       name: km_mt_stress_tests
+#       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+#       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
+#       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+#       build_artifact: Build-x64
+#       environment: ebpf_cicd_tests_ws2019
+#       code_coverage: false
+#       # For this test, we only want kernel mode dumps and not user mode dumps.
+#       gather_dumps: false
 
-  # Run multi-threaded stress tests with 'restart extension' enabled
-  # against the kernel mode eBPF sub-system.
-  km_mt_stress_tests_restart_extension_3:
-    needs: regular
-    # TODO - revert this
-    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      name: km_mt_stress_tests_restart_extension
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
-      code_coverage: false
-      # For this test, we only want kernel mode dumps and not user mode dumps.
-      gather_dumps: false
+#   # Run multi-threaded stress tests with 'restart extension' enabled
+#   # against the kernel mode eBPF sub-system.
+#   km_mt_stress_tests_restart_extension_3:
+#     needs: regular
+#     # TODO - revert this
+#     # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+#     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+#     uses: ./.github/workflows/reusable-test.yml
+#     with:
+#       name: km_mt_stress_tests_restart_extension
+#       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "memory"
+#       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
+#       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+#       build_artifact: Build-x64
+#       environment: ebpf_cicd_tests_ws2019
+#       code_coverage: false
+#       # For this test, we only want kernel mode dumps and not user mode dumps.
+#       gather_dumps: false
 
   # performance:
   #   needs: regular

@@ -472,11 +472,6 @@ function Invoke-CICDStressTests
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
-    # Log all current items in the directory, recursively.
-    Get-ChildItem -Recurse | ForEach-Object {
-        Write-Log $_.FullName
-    }
-
     Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
 
     $LASTEXITCODE = 0

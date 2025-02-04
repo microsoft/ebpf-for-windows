@@ -1046,23 +1046,24 @@ _invoke_test_thread_function(thread_context& context)
 
         uint16_t key = remote_port;
         uint64_t start_count = 0;
+        // Map lookup before the program invocation may fail if the program has not inserted the map entry yet.
         auto result = bpf_map_lookup_elem(context.map_fd, &key, &start_count);
-        if (start_count) {
-            // The first map lookup may fail, as the program has not inserted the entry yet.
-            if (first_map_lookup) {
-                first_map_lookup = false;
-            } else {
-                if (result != 0) {
-                    LOG_ERROR(
-                        "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed. errno:{}",
-                        __func__,
-                        context.thread_index,
-                        errno);
-                    context.succeeded = false;
-                    exit(-1);
-                }
-            }
-        }
+        // if (start_count) {
+        //     // The first map lookup may fail, as the program has not inserted the entry yet.
+        //     if (first_map_lookup) {
+        //         first_map_lookup = false;
+        //     } else {
+        //         if (result != 0) {
+        //             LOG_ERROR(
+        //                 "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed before connect. errno:{}",
+        //                 __func__,
+        //                 context.thread_index,
+        //                 errno);
+        //             context.succeeded = false;
+        //             exit(-1);
+        //         }
+        //     }
+        // }
 
         constexpr uint32_t BURST_SIZE = 8192;
         for (uint32_t i = 0; i < BURST_SIZE; i++) {
@@ -1078,7 +1079,10 @@ _invoke_test_thread_function(thread_context& context)
         result = bpf_map_lookup_elem(context.map_fd, &key, &end_count);
         if (result != 0) {
             LOG_ERROR(
-                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed. errno:{}", __func__, context.thread_index, errno);
+                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed after connect. errno:{}",
+                __func__,
+                context.thread_index,
+                errno);
             context.succeeded = false;
             exit(-1);
         }
