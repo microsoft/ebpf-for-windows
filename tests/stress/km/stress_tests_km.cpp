@@ -1416,6 +1416,8 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
         LOG_ERROR("{}({}) - FATAL ERROR: file does not exist:{}", __func__, thread_index, file_name.c_str());
         context.succeeded = false;
         exit(-1);
+    } else {
+        LOG_INFO("{}({}) - file exists:{}", __func__, thread_index, file_name.c_str());
     }
 
     // Get the 'object' ptr for the program associated with this thread.
@@ -1430,7 +1432,7 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
         context.succeeded = false;
         exit(-1);
     }
-    LOG_VERBOSE("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
+    LOG_INFO("{}({}) Opened file:{}", __func__, thread_index, file_name.c_str());
 
     // Load the program.
     auto result = bpf_object__load(object_raw_ptr);
