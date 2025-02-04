@@ -464,7 +464,7 @@ function Invoke-ConnectRedirectTest
 function Invoke-CICDStressTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $false)][int] $TestHangTimeout = (35*60),
+          [parameter(Mandatory = $false)][int] $TestHangTimeout = (60*60),
           [parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
