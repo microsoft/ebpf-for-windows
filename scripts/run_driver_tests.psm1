@@ -469,6 +469,11 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
 
+    # Log all current items in the directory, recursively.
+    Get-ChildItem -Recurse | ForEach-Object {
+        Write-Log $_.FullName
+    }
+
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 

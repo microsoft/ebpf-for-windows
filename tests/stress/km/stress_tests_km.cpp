@@ -359,9 +359,10 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                         }
 
                         LOG_ERROR(
-                            "(CREATOR)[{}][{}] - FATAL ERROR: bpf_object__open() failed. errno: {}",
+                            "(CREATOR)[{}][{}] - FATAL ERROR: bpf_object__open() failed for {}. errno: {}",
                             context.thread_index,
                             entry.index,
+                            context.file_name.c_str(),
                             errno);
 
                         context.succeeded = false;
@@ -387,9 +388,11 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                     // program objects if they don't exist in the first place, so there's no point in letting the test
                     // continue execution.
                     LOG_ERROR(
-                        "(CREATOR)[{}][{}] - FATAL ERROR: Unexpected exception caught (bpf_object__open). errno: {}",
+                        "(CREATOR)[{}][{}] - FATAL ERROR: Unexpected exception caught (bpf_object__open). file: {} "
+                        "errno: {}",
                         context.thread_index,
                         entry.index,
+                        context.file_name.c_str(),
                         errno);
                     context.succeeded = false;
                     exit(-1);
@@ -888,10 +891,11 @@ _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
     auto result = bpf_object__load(object_raw_ptr);
     if (result != 0) {
         LOG_ERROR(
-            "{}({}) FATAL ERROR: bpf_object__load({}) failed. errno:{}",
+            "{}({}) FATAL ERROR: bpf_object__load({}) failed. result:{}, errno:{}",
             __func__,
             thread_index,
             file_name.c_str(),
+            result,
             errno);
         context.succeeded = false;
         return {};
