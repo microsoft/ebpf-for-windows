@@ -427,7 +427,7 @@ extern "C"
      * @retval EBPF_SUCCESS The operation was successful.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_program_attach_fds(
+    ebpf_program_attach_by_fds(
         fd_t program_fd,
         _In_opt_ const ebpf_attach_type_t* attach_type,
         _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,

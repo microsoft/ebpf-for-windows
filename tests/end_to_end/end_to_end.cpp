@@ -2005,7 +2005,7 @@ ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == 0);
 
     fd_t link_fd;
-    REQUIRE(ebpf_program_attach_fds(program_fd, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link_fd) == EBPF_SUCCESS);
+    REQUIRE(ebpf_program_attach_by_fds(program_fd, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link_fd) == EBPF_SUCCESS);
     REQUIRE(link_fd > 0);
     REQUIRE(ebpf_close_fd(link_fd) == EBPF_SUCCESS);
 
@@ -2013,10 +2013,10 @@ ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("ebpf_program_attach_fds-jit", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("ebpf_program_attach_by_fds-jit", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_JIT); }
 #endif
 
-TEST_CASE("ebpf_program_attach_fds-native", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_NATIVE); }
+TEST_CASE("ebpf_program_attach_by_fds-native", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_NATIVE); }
 
 TEST_CASE("create_map", "[end_to_end]")
 {
