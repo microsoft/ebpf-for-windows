@@ -667,8 +667,7 @@ _get_unique_file_name(const std::string& file_name)
 {
     // Generate the new (unique) file name.
     std::filesystem::path file_spec = file_name;
-    std::string new_file_name = file_spec.stem().string();
-    return (new_file_name + "_" + _generate_random_string() + file_spec.extension().string());
+    return (file_spec.stem().string() + "_" + _generate_random_string() + file_spec.extension().string());
 }
 
 static _Must_inspect_result_ std::string
@@ -766,6 +765,12 @@ wait_and_verify_test_threads(
             }
         }
     }
+
+    // // Handle any cleanup
+    // foreach (auto& context : thread_context_table) {
+    //     // detach and close the program
+
+    // }
 }
 
 static void
@@ -874,6 +879,13 @@ _load_attach_program(thread_context& context, enum bpf_attach_type attach_type)
     bpf_object* object_raw_ptr = nullptr;
     const std::string& file_name = context.file_name;
     const uint32_t thread_index = context.thread_index;
+
+    // Validate that the file exists.
+    if (!std::filesystem::exists(file_name)) {
+        LOG_ERROR("{}({}) FATAL ERROR: File {} does not exist.", __func__, thread_index, file_name.c_str());
+        context.succeeded = false;
+        return {};
+    }
 
     // Get the 'object' ptr for the program associated with this thread.
     object_raw_ptr = bpf_object__open(file_name.c_str());
