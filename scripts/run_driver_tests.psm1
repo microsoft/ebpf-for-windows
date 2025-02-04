@@ -469,13 +469,13 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][bool] $NeedKernelDump = $true,
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
 
+    Push-Location $WorkingDirectory
+    $env:EBPF_ENABLE_WER_REPORT = "yes"
+
     # Log all current items in the directory, recursively.
     Get-ChildItem -Recurse | ForEach-Object {
         Write-Log $_.FullName
     }
-
-    Push-Location $WorkingDirectory
-    $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
 

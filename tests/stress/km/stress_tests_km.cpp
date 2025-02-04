@@ -430,11 +430,13 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
 
                         if (!context.is_native_program) {
                             LOG_ERROR(
-                                "(CREATOR)[{}][{}] - FATAL ERROR: bpf_object__load() failed. result: {}, errno: {}",
+                                "(CREATOR)[{}][{}] - FATAL ERROR: bpf_object__load() failed. result: {}, errno: {} "
+                                "progname: {}",
                                 context.thread_index,
                                 entry.index,
                                 result,
-                                errno);
+                                errno,
+                                context.file_name.c_str());
 
                             context.succeeded = false;
                             exit(-1);
@@ -461,10 +463,12 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                     // program objects if they don't exist in the first place, so there's no point in letting the test
                     // continue execution.
                     LOG_ERROR(
-                        "(CREATOR)[{}][{}] - FATAL ERROR: Unexpected exception caught (bpf_object__load). errno: {}",
+                        "(CREATOR)[{}][{}] - FATAL ERROR: Unexpected exception caught (bpf_object__load). errno: {} "
+                        "filename: {}",
                         context.thread_index,
                         entry.index,
-                        errno);
+                        errno,
+                        context.file_name.c_str());
                     context.succeeded = false;
                     exit(-1);
                 }
