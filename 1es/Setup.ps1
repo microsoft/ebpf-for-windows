@@ -36,7 +36,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Import helper functions
+# Import helper functions.
 $logFileName = 'Setup.log'
 Import-Module .\common.psm1 -Force -ArgumentList ($logFileName) -WarningAction SilentlyContinue
 $password = New-UniquePassword

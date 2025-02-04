@@ -46,9 +46,9 @@ utilize. It is used by `Setup.ps1`.
 also utilize, focusing on functionality related to the inner VM. It is used by `Setup.ps1`
 
 ## Creating a New Image
-The following steps can be used to onboard a new test image.
-- Create a new azure storage blob container within the `ebpfcicdstorage` storage account
-- Update the `prepare_1es_artifacts.ps1` script with the new storage blob name
+The following steps can be used to onboard a new test image:
+- Create a new azure storage blob container within the `ebpfcicdstorage` storage account.
+- Update the `prepare_1es_artifacts.ps1` script with the new storage blob name.
 - Upload files from the `1ES Artifacts` build artifact into the storage blob.
 - Upload a `.zip` file containing the `.vhd` file containing the base OS image to be used in the
 inner VM.

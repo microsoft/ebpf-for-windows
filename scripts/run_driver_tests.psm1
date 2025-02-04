@@ -281,7 +281,7 @@ function Invoke-Test
     } else {
         $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
     }
-    # Cache the process handle to ensure subsequent access of the process is accurate
+    # Cache the process handle to ensure subsequent access of the process is accurate.
     $handle = $TestProcess.Handle
     Write-Log "Started process pid: $($TestProcess.Id) name: $($TestProcess.ProcessName) and start: $($TestProcess.StartTime)"
     if ($InnerTestName -ne "") {
