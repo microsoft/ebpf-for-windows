@@ -436,6 +436,14 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                             context.succeeded = false;
                             exit(-1);
                         }
+                    } else {
+                        LOG_INFO(
+                            "(CREATOR)[{}][{}] - bpf_object__load() succeeded. result: {}, errno: {} progname: {}",
+                            context.thread_index,
+                            entry.index,
+                            result,
+                            errno,
+                            context.file_name.c_str());
                     }
                 } catch (...) {
 
@@ -458,7 +466,11 @@ _do_creator_work(thread_context& context, std::time_t endtime_seconds)
                     exit(-1);
                 }
                 entry.loaded = true;
-                LOG_VERBOSE("(CREATOR)[{}][{}] - Object loaded.", context.thread_index, entry.index);
+                LOG_INFO(
+                    "(CREATOR)[{}][{}][{}] - Object loaded.",
+                    context.thread_index,
+                    entry.index,
+                    context.file_name.c_str());
             }
         }
     }
@@ -1420,7 +1432,7 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
         exit(-1);
     }
     object_ptr.reset(object_raw_ptr);
-    LOG_VERBOSE("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
+    LOG_INFO("{}({}) loaded file:{}", __func__, thread_index, file_name.c_str());
 
     // Load program by name.
     bpf_program* program = bpf_object__find_program_by_name(object_raw_ptr, program_name.c_str());
