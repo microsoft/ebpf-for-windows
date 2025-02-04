@@ -260,8 +260,6 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     std::string output = _run_netsh_command(handle_ebpf_show_sections, L"map_reuse_um.dll", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
 
-    std::cout << output << std::endl;
-
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size = 305;
     const int old_code_size = 311;
@@ -338,9 +336,6 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                                         "==================  ====  =====  =======  ========\n"
                                         "        prog_array     4      4       10  map\n";
 
-    // print the output.
-    std::cout << output << std::endl;
-
     REQUIRE(
         (output == std::vformat(
                        expected_output, std::make_format_args(code_size_old[0], code_size_old[1], code_size_old[2])) ||
@@ -358,8 +353,6 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     std::string output =
         _run_netsh_command(handle_ebpf_show_sections, L"cgroup_sock_addr.sys", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-
-    std::cout << output << std::endl;
 
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size[] = {327, 344, 328, 345};
