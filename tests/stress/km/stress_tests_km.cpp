@@ -1411,6 +1411,13 @@ _load_attach_tail_program(thread_context& context, ebpf_attach_type_t attach_typ
     const std::string& program_name = context.program_name;
     const uint32_t thread_index = context.thread_index;
 
+    // Sanity check that the file exists
+    if (!std::filesystem::exists(file_name)) {
+        LOG_ERROR("{}({}) - FATAL ERROR: file does not exist:{}", __func__, thread_index, file_name.c_str());
+        context.succeeded = false;
+        exit(-1);
+    }
+
     // Get the 'object' ptr for the program associated with this thread.
     object_raw_ptr = bpf_object__open(file_name.c_str());
     if (object_raw_ptr == nullptr) {
