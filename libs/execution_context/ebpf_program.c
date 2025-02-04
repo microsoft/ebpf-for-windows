@@ -64,9 +64,7 @@ typedef struct _ebpf_program
         struct
         {
             ebpf_native_code_context_t code_context;
-            // const ebpf_native_module_binding_context_t* module;
             const uint8_t* code_pointer;
-            // const uintptr_t* map_context;
         } native;
     } code_or_vm;
 
@@ -729,7 +727,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL) static void _ebpf_program_free(_In_opt_ _Post
             (ebpf_native_module_binding_context_t*)program->code_or_vm.native.code_context.native_module_context);
         program->code_or_vm.native.code_context.native_module_context = NULL;
         program->code_or_vm.native.code_context.runtime_context = NULL;
-        // ebpf_free((void*)program->code_or_vm.native.map_context);
         break;
     case EBPF_CODE_NONE:
         break;

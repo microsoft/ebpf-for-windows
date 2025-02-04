@@ -59,10 +59,8 @@ extern "C"
      */
     typedef struct _helper_function_entry
     {
-        // helper_function_t address;
         uint32_t helper_id;
         const char* name;
-        // bool tail_call;
     } helper_function_entry_t;
 
     typedef struct _helper_function_data
@@ -83,7 +81,6 @@ extern "C"
         // entries in the maps section.
         uint64_t zero_marker;
 
-        // void* address;
         ebpf_map_definition_in_file_t definition;
         const char* name;
     } map_entry_t;

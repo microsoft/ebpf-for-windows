@@ -957,7 +957,6 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
 {
     std::vector<output_instruction_t>& program_output = output_instructions;
     auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
-    // auto helper_array_prefix = program_name.c_identifier() + "_helpers[{}]";
     auto helper_array_prefix = "runtime_context->helper_data[{}]";
 
     // Encode instructions

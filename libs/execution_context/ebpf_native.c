@@ -51,7 +51,6 @@ typedef struct _ebpf_native_program
     program_entry_t* entry;
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
-    // uintptr_t* map_addresses;
     program_runtime_context_t runtime_context;
 } ebpf_native_program_t;
 
@@ -74,36 +73,19 @@ typedef struct _ebpf_native_module
     bool detaching;
     _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
     ebpf_lock_t lock;
-    // ebpf_native_map_t* maps;
-    // size_t map_count;
-    // ebpf_native_program_t* programs;
-    // size_t program_count;
     HANDLE nmr_binding_handle;
-    // ebpf_list_entry_t list_entry;
     cxplat_preemptible_work_item_t* cleanup_work_item;
-    KEVENT event;
-    bool unload_driver_on_cleanup;
     bpf2c_version_t version;
 } ebpf_native_module_t;
 
 typedef struct _ebpf_native_module_instance
 {
     ebpf_native_module_t* module;
-    // ebpf_base_object_t base;
     GUID instance_id;
-    // metadata_table_t table;
-    // ebpf_native_module_instance_state_t state;
-    // bool detaching;
-    // _Field_z_ wchar_t* service_name; // This will be used to pass to the unload module workitem.
-    // ebpf_lock_t lock;
     ebpf_native_map_t* maps;
     size_t map_count;
     ebpf_native_program_t** programs;
     size_t program_count;
-    // HANDLE nmr_binding_handle;
-    // ebpf_list_entry_t list_entry;
-    // cxplat_preemptible_work_item_t* cleanup_work_item;
-    // ebpf_native_handle_cleanup_context_t handle_cleanup_context;
 } ebpf_native_module_instance_t;
 
 static const GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -145,7 +127,6 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_native_provider_characteristics 
 
 static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
-// #define EBPF_CLIENT_TABLE_BUCKET_COUNT 64
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
 static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
 
@@ -285,16 +266,6 @@ _ebpf_native_clean_up_programs(
 static void
 _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
-    // _ebpf_native_clean_up_maps(module->maps, module->map_count, false);
-    // _ebpf_native_clean_up_programs(module->programs, module->program_count);
-
-    // module->maps = NULL;
-    // module->map_count = 0;
-    // module->programs = NULL;
-    // module->program_count = 0;
-
-    // ebpf_free(module->map_addresses);
-
     cxplat_free_preemptible_work_item(module->cleanup_work_item);
     ebpf_free(module->service_name);
 
@@ -317,15 +288,6 @@ _ebpf_native_clean_up_module_instance(_In_ ebpf_native_module_instance_t* instan
     instance->map_count = 0;
     instance->programs = NULL;
     instance->program_count = 0;
-
-    // ebpf_free(module->map_addresses);
-
-    // cxplat_free_preemptible_work_item(instance->cleanup_work_item);
-    // ebpf_free(instance->service_name);
-
-    // ebpf_lock_destroy(&instance->lock);
-
-    // ebpf_free(instance);
 }
 
 _Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Inout_ ebpf_native_module_t* module)
@@ -413,23 +375,15 @@ _ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_t* mod
         // is the case, explicitly unload the driver, if it is safe to do so.
         if (!module->detaching) {
             // If the module is not yet marked as detaching, and reference
-            // count is 1, it means all the program and module references have been
+            // count is 1, it means all the program references have been
             // released.
-            if (module->unload_driver_on_cleanup) {
-                EBPF_LOG_MESSAGE_GUID(
-                    EBPF_TRACELOG_LEVEL_INFO,
-                    EBPF_TRACELOG_KEYWORD_NATIVE,
-                    "_ebpf_native_release_reference: all program references released. Unloading module",
-                    &module->client_module_id);
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_INFO,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "_ebpf_native_release_reference: all program references released. Unloading module",
+                &module->client_module_id);
 
-                ebpf_assert_success(_ebpf_native_unload(module));
-            } else {
-                EBPF_LOG_MESSAGE_GUID(
-                    EBPF_TRACELOG_LEVEL_INFO,
-                    EBPF_TRACELOG_KEYWORD_NATIVE,
-                    "_ebpf_native_release_reference: unload_driver_on_cleanup is false. Skip unloading module",
-                    &module->client_module_id);
-            }
+            ebpf_assert_success(_ebpf_native_unload(module));
         }
         ebpf_lock_unlock(&module->lock, module_lock_state);
         lock_acquired = false;
@@ -600,7 +554,6 @@ _ebpf_native_provider_attach_client_callback(
     client_context->client_module_id = *client_module_id;
     client_context->state = MODULE_STATE_UNINITIALIZED;
     client_context->nmr_binding_handle = nmr_binding_handle;
-    KeInitializeEvent(&client_context->event, NotificationEvent, FALSE);
 
     // Insert the new client context in the hash table.
     state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
@@ -787,7 +740,6 @@ _ebpf_native_initialize_maps(
         }
         native_maps[i].entry = &maps[i];
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
-        // maps[i].address = NULL;
 
         if (maps[i].definition.pinning == LIBBPF_PIN_BY_NAME) {
             // Construct the pin path.
@@ -1138,18 +1090,6 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-// static void
-// _ebpf_native_initialize_programs(
-//     _Out_writes_(program_count) ebpf_native_program_t* native_programs,
-//     _In_reads_(program_count) program_entry_t* programs,
-//     size_t program_count)
-// {
-//     for (uint32_t i = 0; i < program_count; i++) {
-//         native_programs[i].entry = &programs[i];
-//         native_programs[i].handle = ebpf_handle_invalid;
-//     }
-// }
-
 static ebpf_result_t
 _ebpf_native_resolve_maps_for_program(
     _In_ ebpf_native_module_instance_t* instance, _In_ const ebpf_native_program_t* program)
@@ -1158,7 +1098,6 @@ _ebpf_native_resolve_maps_for_program(
     ebpf_result_t result;
     ebpf_handle_t* map_handles = NULL;
     uintptr_t* map_addresses = NULL;
-    // uintptr_t* local_map_addresses = NULL;
     uint16_t* map_indices = program->entry->referenced_map_indices;
     uint16_t map_count = program->entry->referenced_map_count;
     ebpf_native_map_t* native_maps = instance->maps;
@@ -1334,7 +1273,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     instance->program_count = program_count;
     native_programs = instance->programs;
 
-    // _ebpf_native_initialize_programs(native_programs, programs, program_count);
     for (uint32_t i = 0; i < program_count; i++) {
         native_programs[i]->entry = &programs[i];
         native_programs[i]->handle = ebpf_handle_invalid;
@@ -1535,48 +1473,6 @@ _ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
     module->table.programs(&programs, &count_of_programs);
 
     return count_of_programs;
-}
-
-static ebpf_result_t
-_get_native_module_from_hash_table(_In_ const GUID* module_id, _Outptr_ ebpf_native_module_t** module)
-{
-    ebpf_result_t result;
-    ebpf_lock_state_t hash_table_state = 0;
-    ebpf_lock_state_t module_state = 0;
-    ebpf_native_module_t** existing_module = NULL;
-    *module = NULL;
-
-    // Find the native entry in hash table.
-    hash_table_state = ebpf_lock_lock(&_ebpf_native_client_table_lock);
-    result = ebpf_hash_table_find(_ebpf_native_client_table, (const uint8_t*)module_id, (uint8_t**)&existing_module);
-    if (result != EBPF_SUCCESS) {
-        result = EBPF_OBJECT_NOT_FOUND;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "_get_native_module_from_hash_table: module not found",
-            module_id);
-        goto Done;
-    }
-
-    // The module is deleted from the hash table when the reference count becomes 0. A tiny race condition is possible
-    // where one thread has released a reference on the module that made the reference count to be 0, and is about to
-    // delete the module from hash table, and clean it up. Another thread at the same time is trying to find the module
-    // in the hash table. To handle this, check the reference count of the module. If it is 0, return
-    // EBPF_OBJECT_NOT_FOUND. If the reference count is not 0, acquire a reference on the module.
-    module_state = ebpf_lock_lock(&(*existing_module)->lock);
-    if ((*existing_module)->base.reference_count == 0) {
-        result = EBPF_OBJECT_NOT_FOUND;
-        ebpf_lock_unlock(&(*existing_module)->lock, module_state);
-        goto Done;
-    }
-    _ebpf_native_acquire_reference_under_lock(*existing_module);
-    ebpf_lock_unlock(&(*existing_module)->lock, module_state);
-    *module = *existing_module;
-
-Done:
-    ebpf_lock_unlock(&_ebpf_native_client_table_lock, hash_table_state);
-    return result;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -1882,8 +1778,6 @@ Done:
         module_referenced = false;
     }
 
-    // TODO: Add cleanup logic for instance.
-
     EBPF_RETURN_RESULT(result);
 }
 
@@ -1971,8 +1865,6 @@ _ebpf_native_helper_address_changed(
             return_value = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
-        // *(uint64_t*)&(helper_address_changed_context->native_program->entry->helpers[i].address) =
-        // addresses[i].address;
         *(uint64_t*)&(helper_address_changed_context->native_program->runtime_context.helper_data[i].address) =
             addresses[i].address;
     }

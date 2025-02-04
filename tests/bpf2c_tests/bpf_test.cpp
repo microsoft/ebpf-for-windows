@@ -12,8 +12,6 @@
 #include <string>
 #include <vector>
 
-// #define UNREFERENCED_PARAMETER(P) (P)
-
 #if !defined(C_NAME)
 #define C_NAME test_metadata_table
 #endif
@@ -79,19 +77,13 @@ main(int argc, char** argv)
             } else {
                 runtime_context->helper_data[j].address =
                     reinterpret_cast<helper_function_t>(helper_functions[helper_function_entries[j].helper_id]);
-                // helper_function_entries[j].address =
-                //     reinterpret_cast<helper_function_t>(helper_functions[helper_function_entries[j].helper_id]);
                 if (runtime_context->helper_data[j].address == reinterpret_cast<helper_function_t>(unwind)) {
                     runtime_context->helper_data[j].tail_call = true;
                 }
-                // if (helper_function_entries[j].address == reinterpret_cast<helper_function_t>(unwind)) {
-                //     helper_function_entries[j].tail_call = true;
-                // }
             }
         }
     }
 
-    std::cout << "bpf_test doesn't support programs yet." << std::endl;
     uint64_t actual_result = program_entries[0].function(mem.data(), &runtime_contexts[0]);
     if (expected_result != actual_result) {
         std::cerr << argv[0] << " Expected result = " << expected_result << " Actual result = " << actual_result
