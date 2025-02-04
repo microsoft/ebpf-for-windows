@@ -24,7 +24,7 @@ static GUID program1_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x7
 static GUID program1_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind_4")
 static uint64_t
-program1(void* context)
+program1(void* context, const program_runtime_context_t* runtime_context)
 #line 28 "sample/multiple_programs.c"
 {
 #line 28 "sample/multiple_programs.c"
@@ -42,6 +42,8 @@ program1(void* context)
     r1 = (uintptr_t)context;
 #line 28 "sample/multiple_programs.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 28 "sample/multiple_programs.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
 #line 28 "sample/multiple_programs.c"
@@ -58,7 +60,7 @@ static GUID program2_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x7
 static GUID program2_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind_3")
 static uint64_t
-program2(void* context)
+program2(void* context, const program_runtime_context_t* runtime_context)
 #line 35 "sample/multiple_programs.c"
 {
 #line 35 "sample/multiple_programs.c"
@@ -76,6 +78,8 @@ program2(void* context)
     r1 = (uintptr_t)context;
 #line 35 "sample/multiple_programs.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 35 "sample/multiple_programs.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=2
 #line 35 "sample/multiple_programs.c"
@@ -92,7 +96,7 @@ static GUID program3_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x7
 static GUID program3_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind_2")
 static uint64_t
-program3(void* context)
+program3(void* context, const program_runtime_context_t* runtime_context)
 #line 21 "sample/multiple_programs.c"
 {
 #line 21 "sample/multiple_programs.c"
@@ -110,6 +114,8 @@ program3(void* context)
     r1 = (uintptr_t)context;
 #line 21 "sample/multiple_programs.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 21 "sample/multiple_programs.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
 #line 21 "sample/multiple_programs.c"
@@ -126,7 +132,7 @@ static GUID program4_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x7
 static GUID program4_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind_1")
 static uint64_t
-program4(void* context)
+program4(void* context, const program_runtime_context_t* runtime_context)
 #line 42 "sample/multiple_programs.c"
 {
 #line 42 "sample/multiple_programs.c"
@@ -144,6 +150,8 @@ program4(void* context)
     r1 = (uintptr_t)context;
 #line 42 "sample/multiple_programs.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 42 "sample/multiple_programs.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=4
 #line 42 "sample/multiple_programs.c"

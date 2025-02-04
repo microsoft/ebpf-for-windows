@@ -28,7 +28,11 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-__declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
+__declspec(dllexport) metadata_table_t*
+get_metadata_table()
+{
+    return &metadata_table;
+}
 
 #include "bpf2c.h"
 
@@ -41,7 +45,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          2,                 // Size in bytes of a map key.
@@ -64,8 +68,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t count_tcp_connect6_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 2, "helper_id_2"},
+    {1, "helper_id_1"},
+    {2, "helper_id_2"},
 };
 
 static GUID count_tcp_connect6_program_type_guid = {
@@ -78,7 +82,7 @@ static uint16_t count_tcp_connect6_maps[] = {
 
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
-count_tcp_connect6(void* context)
+count_tcp_connect6(void* context, const program_runtime_context_t* runtime_context)
 #line 31 "sample/cgroup_count_connect6.c"
 {
 #line 31 "sample/cgroup_count_connect6.c"
@@ -142,12 +146,12 @@ count_tcp_connect6(void* context)
     r2 += IMMEDIATE(-2);
     // EBPF_OP_LDDW pc=9 dst=r1 src=r1 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect6.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect6.c"
-    r0 = count_tcp_connect6_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/cgroup_count_connect6.c"
-    if ((count_tcp_connect6_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_count_connect6.c"
         return 0;
 #line 48 "sample/cgroup_count_connect6.c"
@@ -179,15 +183,15 @@ count_tcp_connect6(void* context)
     r3 += IMMEDIATE(-16);
     // EBPF_OP_LDDW pc=19 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/cgroup_count_connect6.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=21 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/cgroup_count_connect6.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_count_connect6.c"
-    r0 = count_tcp_connect6_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/cgroup_count_connect6.c"
-    if ((count_tcp_connect6_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_count_connect6.c"
         return 0;
 #line 51 "sample/cgroup_count_connect6.c"

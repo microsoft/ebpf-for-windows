@@ -28,7 +28,11 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-__declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
+__declspec(dllexport) metadata_table_t*
+get_metadata_table()
+{
+    return &metadata_table;
+}
 
 #include "bpf2c.h"
 
@@ -47,17 +51,17 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t func_helpers[] = {
-    {NULL, 12, "helper_id_12"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 14, "helper_id_14"},
-    {NULL, 15, "helper_id_15"},
+    {12, "helper_id_12"},
+    {13, "helper_id_13"},
+    {14, "helper_id_14"},
+    {15, "helper_id_15"},
 };
 
 static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
 static GUID func_attach_type_guid = {0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-func(void* context)
+func(void* context, const program_runtime_context_t* runtime_context)
 #line 26 "sample/printk_legacy.c"
 {
 #line 26 "sample/printk_legacy.c"
@@ -124,9 +128,9 @@ func(void* context)
     r2 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=12
 #line 31 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 31 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 31 "sample/printk_legacy.c"
         return 0;
 #line 31 "sample/printk_legacy.c"
@@ -157,9 +161,9 @@ func(void* context)
     r2 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=12
 #line 32 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 32 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 32 "sample/printk_legacy.c"
         return 0;
 #line 32 "sample/printk_legacy.c"
@@ -190,9 +194,9 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=30 dst=r0 src=r0 offset=0 imm=13
 #line 35 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 35 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 35 "sample/printk_legacy.c"
         return 0;
 #line 35 "sample/printk_legacy.c"
@@ -235,9 +239,9 @@ func(void* context)
     r2 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=14
 #line 36 "sample/printk_legacy.c"
-    r0 = func_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 36 "sample/printk_legacy.c"
-    if ((func_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 36 "sample/printk_legacy.c"
         return 0;
 #line 36 "sample/printk_legacy.c"
@@ -289,9 +293,9 @@ func(void* context)
     r2 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=15
 #line 38 "sample/printk_legacy.c"
-    r0 = func_helpers[3].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 38 "sample/printk_legacy.c"
-    if ((func_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 38 "sample/printk_legacy.c"
         return 0;
 #line 38 "sample/printk_legacy.c"
@@ -328,9 +332,9 @@ func(void* context)
     r2 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=74 dst=r0 src=r0 offset=0 imm=12
 #line 42 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 42 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 42 "sample/printk_legacy.c"
         return 0;
 #line 42 "sample/printk_legacy.c"
@@ -358,9 +362,9 @@ func(void* context)
     r2 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=83 dst=r0 src=r0 offset=0 imm=12
 #line 43 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 43 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 43 "sample/printk_legacy.c"
         return 0;
 #line 43 "sample/printk_legacy.c"
@@ -391,9 +395,9 @@ func(void* context)
     r2 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=93 dst=r0 src=r0 offset=0 imm=13
 #line 44 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 44 "sample/printk_legacy.c"
         return 0;
 #line 44 "sample/printk_legacy.c"
@@ -421,9 +425,9 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=102 dst=r0 src=r0 offset=0 imm=13
 #line 45 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 45 "sample/printk_legacy.c"
         return 0;
 #line 45 "sample/printk_legacy.c"
@@ -454,9 +458,9 @@ func(void* context)
     r2 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=111 dst=r0 src=r0 offset=0 imm=13
 #line 49 "sample/printk_legacy.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 49 "sample/printk_legacy.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 49 "sample/printk_legacy.c"
         return 0;
 #line 49 "sample/printk_legacy.c"
@@ -481,9 +485,9 @@ func(void* context)
     r2 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=119 dst=r0 src=r0 offset=0 imm=12
 #line 50 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 50 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 50 "sample/printk_legacy.c"
         return 0;
 #line 50 "sample/printk_legacy.c"
@@ -517,9 +521,9 @@ func(void* context)
     r2 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=130 dst=r0 src=r0 offset=0 imm=12
 #line 53 "sample/printk_legacy.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 53 "sample/printk_legacy.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 53 "sample/printk_legacy.c"
         return 0;
 #line 53 "sample/printk_legacy.c"

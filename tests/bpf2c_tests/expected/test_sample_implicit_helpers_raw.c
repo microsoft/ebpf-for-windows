@@ -15,7 +15,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -27,7 +27,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "test_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -50,13 +50,13 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t test_program_entry_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 65537, "helper_id_65537"},
-    {NULL, 65538, "helper_id_65538"},
-    {NULL, 65539, "helper_id_65539"},
-    {NULL, 65540, "helper_id_65540"},
-    {NULL, 2, "helper_id_2"},
-    {NULL, 65536, "helper_id_65536"},
+    {1, "helper_id_1"},
+    {65537, "helper_id_65537"},
+    {65538, "helper_id_65538"},
+    {65539, "helper_id_65539"},
+    {65540, "helper_id_65540"},
+    {2, "helper_id_2"},
+    {65536, "helper_id_65536"},
 };
 
 static GUID test_program_entry_program_type_guid = {
@@ -70,7 +70,7 @@ static uint16_t test_program_entry_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-test_program_entry(void* context)
+test_program_entry(void* context, const program_runtime_context_t* runtime_context)
 #line 41 "sample/undocked/test_sample_implicit_helpers.c"
 {
 #line 41 "sample/undocked/test_sample_implicit_helpers.c"
@@ -120,12 +120,12 @@ test_program_entry(void* context)
     r2 += IMMEDIATE(-8);
     // EBPF_OP_LDDW pc=6 dst=r1 src=r1 offset=0 imm=1
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=1
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 47 "sample/undocked/test_sample_implicit_helpers.c"
@@ -141,12 +141,12 @@ test_program_entry(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=12 dst=r1 src=r1 offset=0 imm=1
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 48 "sample/undocked/test_sample_implicit_helpers.c"
@@ -185,9 +185,9 @@ test_program_entry(void* context)
     r4 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=23 dst=r0 src=r0 offset=0 imm=65537
 #line 54 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 54 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 54 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 54 "sample/undocked/test_sample_implicit_helpers.c"
@@ -219,9 +219,9 @@ test_program_entry(void* context)
     r5 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=31 dst=r0 src=r0 offset=0 imm=65538
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
@@ -239,9 +239,9 @@ test_program_entry(void* context)
 label_1:
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=65539
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[3].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
@@ -254,9 +254,9 @@ label_1:
     r1 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=37 dst=r0 src=r0 offset=0 imm=65540
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[4].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[4].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[4].tail_call) && (r0 == 0)) {
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
@@ -281,15 +281,15 @@ label_1:
     r7 = IMMEDIATE(0);
     // EBPF_OP_LDDW pc=44 dst=r1 src=r1 offset=0 imm=2
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=46 dst=r4 src=r0 offset=0 imm=0
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=47 dst=r0 src=r0 offset=0 imm=2
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[5].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[5].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[5].tail_call) && (r0 == 0)) {
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
@@ -299,9 +299,9 @@ label_1:
     r1 = r6;
     // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=65536
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
-    r0 = test_program_entry_helpers[6].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((test_program_entry_helpers[6].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[6].tail_call) && (r0 == 0)) {
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
         return 0;
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"

@@ -28,7 +28,11 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-__declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
+__declspec(dllexport) metadata_table_t*
+get_metadata_table()
+{
+    return &metadata_table;
+}
 
 #include "bpf2c.h"
 
@@ -47,8 +51,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t xdp_invalid_socket_cookie_helpers[] = {
-    {NULL, 26, "helper_id_26"},
-    {NULL, 13, "helper_id_13"},
+    {26, "helper_id_26"},
+    {13, "helper_id_13"},
 };
 
 static GUID xdp_invalid_socket_cookie_program_type_guid = {
@@ -57,7 +61,7 @@ static GUID xdp_invalid_socket_cookie_attach_type_guid = {
     0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 #pragma code_seg(push, "xdp")
 static uint64_t
-xdp_invalid_socket_cookie(void* context)
+xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtime_context)
 #line 21 "sample/xdp_invalid_socket_cookie.c"
 {
 #line 21 "sample/xdp_invalid_socket_cookie.c"
@@ -86,9 +90,9 @@ xdp_invalid_socket_cookie(void* context)
 
     // EBPF_OP_CALL pc=0 dst=r0 src=r0 offset=0 imm=26
 #line 21 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 21 "sample/xdp_invalid_socket_cookie.c"
-    if ((xdp_invalid_socket_cookie_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 21 "sample/xdp_invalid_socket_cookie.c"
         return 0;
 #line 21 "sample/xdp_invalid_socket_cookie.c"
@@ -131,9 +135,9 @@ xdp_invalid_socket_cookie(void* context)
     r3 = r0;
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=13
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    if ((xdp_invalid_socket_cookie_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 23 "sample/xdp_invalid_socket_cookie.c"
         return 0;
 #line 23 "sample/xdp_invalid_socket_cookie.c"

@@ -28,7 +28,11 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-__declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
+__declspec(dllexport) metadata_table_t*
+get_metadata_table()
+{
+    return &metadata_table;
+}
 
 #include "bpf2c.h"
 
@@ -47,7 +51,7 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 }
 
 static helper_function_entry_t decapsulate_permit_packet_helpers[] = {
-    {NULL, 65536, "helper_id_65536"},
+    {65536, "helper_id_65536"},
 };
 
 static GUID decapsulate_permit_packet_program_type_guid = {
@@ -56,7 +60,7 @@ static GUID decapsulate_permit_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_te~1")
 static uint64_t
-decapsulate_permit_packet(void* context)
+decapsulate_permit_packet(void* context, const program_runtime_context_t* runtime_context)
 #line 94 "sample/decap_permit_packet.c"
 {
 #line 94 "sample/decap_permit_packet.c"
@@ -285,9 +289,9 @@ decapsulate_permit_packet(void* context)
     r2 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=56 dst=r0 src=r0 offset=0 imm=65536
 #line 41 "sample/decap_permit_packet.c"
-    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 41 "sample/decap_permit_packet.c"
-    if ((decapsulate_permit_packet_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 41 "sample/decap_permit_packet.c"
         return 0;
 #line 41 "sample/decap_permit_packet.c"
@@ -443,9 +447,9 @@ label_1:
     r2 = IMMEDIATE(40);
     // EBPF_OP_CALL pc=101 dst=r0 src=r0 offset=0 imm=65536
 #line 70 "sample/decap_permit_packet.c"
-    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/decap_permit_packet.c"
-    if ((decapsulate_permit_packet_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/decap_permit_packet.c"
         return 0;
 #line 70 "sample/decap_permit_packet.c"
