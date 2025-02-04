@@ -532,7 +532,8 @@ extern "C"
      * @param[in, out] type On input, the type of object to retrieve or EBPF_OBJECT_UNKNOWN.
      *                      On output, the type of the object.
      *
-     * @returns EBPF_SUCCESS or an error.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval other An error occurred.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_next_pinned_object_path(
