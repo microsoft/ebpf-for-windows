@@ -1028,6 +1028,22 @@ _invoke_test_thread_function(thread_context& context)
         context.succeeded = false;
         exit(-1);
     }
+
+    // Set the timeout for connect attempts
+    timeval timeout;
+    timeout.tv_sec = 5; // 5 seconds
+    timeout.tv_usec = 0;
+    if (setsockopt(socket_handle, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) < 0) {
+        LOG_ERROR("{}({}) - ERROR: setsockopt() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
+        context.succeeded = false;
+        exit(-1);
+    }
+    if (setsockopt(socket_handle, SOL_SOCKET, SO_SNDTIMEO, (const char*)&timeout, sizeof(timeout)) < 0) {
+        LOG_ERROR("{}({}) - ERROR: setsockopt() failed. errno:{}", __func__, context.thread_index, WSAGetLastError());
+        context.succeeded = false;
+        exit(-1);
+    }
+
     INETADDR_SETLOOPBACK(reinterpret_cast<PSOCKADDR>(&remote_endpoint));
     constexpr uint16_t remote_port = SOCKET_TEST_PORT;
     (reinterpret_cast<PSOCKADDR_IN>(&remote_endpoint))->sin_port = htons(remote_port);
@@ -1068,6 +1084,10 @@ _invoke_test_thread_function(thread_context& context)
                 socket_handle,
                 reinterpret_cast<SOCKADDR*>(&remote_endpoint),
                 static_cast<int>(sizeof(remote_endpoint)));
+
+            if (sc::now() >= endtime) {
+                break;
+            }
         }
 
         uint64_t end_count = 0;
