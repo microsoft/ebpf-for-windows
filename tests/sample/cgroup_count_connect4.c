@@ -30,6 +30,7 @@ SEC("cgroup/connect4")
 int
 count_tcp_connect4(bpf_sock_addr_t* ctx)
 {
+    bpf_printk("maige count_tcp_connect4 invoked");
     int retval = 0;
     if (ctx->protocol != IPPROTO_TCP) {
         retval = BPF_SOCK_ADDR_VERDICT_PROCEED;
@@ -51,6 +52,7 @@ count_tcp_connect4(bpf_sock_addr_t* ctx)
     }
     ++value;
     bpf_map_update_elem(&connect4_count_map, &key, &value, 0);
+    bpf_printk("maige count_tcp_connect4 map updated %d", value);
 
     // Fail all connect attempts at our port.  This ensures that we are invoked for every connect attempt as we need
     // to show steady increments in the count in our 'connect attempts' map.  Our user mode counterpart monitors this
