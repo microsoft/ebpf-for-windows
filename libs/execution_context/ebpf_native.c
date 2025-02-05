@@ -20,7 +20,10 @@
 static const uint32_t _ebpf_native_marker = 'entv';
 
 // Set this value if there is a need to block older version of the native driver.
-static bpf2c_version_t _ebpf_minimum_version = {0, 0, 0};
+// Version 0.21.0 contains support for multiple loads of native module, which is
+// a breaking change for the NMR interface. Older native modules will not work
+// with the new eBPF runtime.
+static bpf2c_version_t _ebpf_minimum_version = {0, 21, 0};
 
 // Minimum bpf2c version that supports implicit context.
 static const bpf2c_version_t _ebpf_version_implicit_context = {0, 18, 0};
@@ -534,6 +537,11 @@ _ebpf_native_provider_attach_client_callback(
     table->version(&client_context->version);
     if (_ebpf_compare_versions(&client_context->version, &_ebpf_minimum_version) < 0) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "Native module version is older than _ebpf_minimum_version. Rejecting the attach request.",
+            client_module_id);
         goto Done;
     }
 
