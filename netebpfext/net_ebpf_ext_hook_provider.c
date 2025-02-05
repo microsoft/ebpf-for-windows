@@ -119,7 +119,8 @@ _ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
         rundown->rundown_occurred = TRUE;
     } else {
         // Attempting to wait for rundown without initialization is a bug.
-        ASSERT(FALSE);
+        // ASSERT(FALSE);
+        RtlFailFast(0);
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -175,7 +176,8 @@ _net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
         return ExAcquireRundownProtection(&rundown->protection);
     } else {
         // Attempting to enter rundown without initialization is a bug.
-        ASSERT(FALSE);
+        // ASSERT(FALSE);
+        RtlFailFast(0);
         return FALSE;
     }
 }
@@ -187,7 +189,8 @@ _net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
         ExReleaseRundownProtection(&rundown->protection);
     } else {
         // Attempting to leave rundown without initialization is a bug.
-        ASSERT(FALSE);
+        // ASSERT(FALSE);
+        RtlFailFast(0);
     }
 }
 
