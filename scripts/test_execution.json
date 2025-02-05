@@ -104,6 +104,12 @@
             {
                 "Name": "vm_perf_ws2022"
             }
+        ],
+        "1ESRunner" :
+        [
+            {
+                "Name": "runner_vm"
+            }
         ]
     },
 
