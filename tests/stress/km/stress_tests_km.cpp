@@ -1067,9 +1067,10 @@ _invoke_test_thread_function(thread_context& context)
             first_map_lookup = false;
         } else if (result != 0) {
             LOG_ERROR(
-                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed before connect. errno:{}",
+                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed for fd {} before connect. errno:{}",
                 __func__,
                 context.thread_index,
+                context.map_fd,
                 errno);
             context.succeeded = false;
             exit(-1);
@@ -1093,9 +1094,10 @@ _invoke_test_thread_function(thread_context& context)
         result = bpf_map_lookup_elem(context.map_fd, &key, &end_count);
         if (result != 0) {
             LOG_ERROR(
-                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed after connect. errno:{}",
+                "{}({}) - FATAL ERROR: bpf_map_lookup_elem() failed for fd {} after connect. errno:{}",
                 __func__,
                 context.thread_index,
+                context.map_fd,
                 errno);
             context.succeeded = false;
             exit(-1);
