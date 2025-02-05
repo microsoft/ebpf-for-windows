@@ -48,7 +48,7 @@ static_assert(sizeof(ebpf_bitmap_cursor_internal_t) == sizeof(ebpf_bitmap_cursor
 #define OFFSET_IN_BLOCK(X) ((X) % BITS_IN_BLOCK)
 
 // Give the bit offset of the start of the block containing X.
-#define START_OF_BLOCK(X) ((X)-OFFSET_IN_BLOCK(X))
+#define START_OF_BLOCK(X) ((X) - OFFSET_IN_BLOCK(X))
 
 // Calculate a bitmask so the lowest X bits are set.
 #define BIT_COUNT_MASK(X) (((uint64_t)1 << (X)) - 1)
