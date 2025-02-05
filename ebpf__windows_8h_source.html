@@ -163,101 +163,94 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae8e9dcc9656a62e7ee4db492c15da954">   78</a></span><span class="preprocessor">#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)</span></div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a72035353ac94e6a62c33c82c8469278c">   79</a></span><span class="preprocessor">#define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_attach_provider_data_t)</span></div>
 <div class="foldopen" id="foldopen00080" data-start="" data-end="">
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ac4aeb220234022240c2d57e9b34c2eab">   80</a></span><span class="preprocessor">#define EBPF_ATTACH_PROVIDER_DATA_HEADER                                                           \</span></div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">    {                                                                                              \</span></div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">        EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="preprocessor">            EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE                                   \</span></div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ac4aeb220234022240c2d57e9b34c2eab">   80</a></span><span class="preprocessor">#define EBPF_ATTACH_PROVIDER_DATA_HEADER             \</span></div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="preprocessor">     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#aa79e565cedb87f05a994c65d1bc291b6">   86</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1</span></div>
-<div class="foldopen" id="foldopen00087" data-start="" data-end="">
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae0cb953dd7319e3b1fdf6e251b91800f">   87</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \</span></div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_type_descriptor_t, is_privileged)</span></div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#aa79e565cedb87f05a994c65d1bc291b6">   85</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1</span></div>
+<div class="foldopen" id="foldopen00086" data-start="" data-end="">
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae0cb953dd7319e3b1fdf6e251b91800f">   86</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \</span></div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_type_descriptor_t, is_privileged)</span></div>
 </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#adadd6f0a8cb0da5903ff4d193dc061ed">   89</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_type_descriptor_t)</span></div>
-<div class="foldopen" id="foldopen00090" data-start="" data-end="">
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ac0e725167e7ea425e1200a3912d42ab5">   90</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER                                                              \</span></div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="preprocessor">    {                                                                                                    \</span></div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="preprocessor">        EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="preprocessor">            EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE                                      \</span></div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#adadd6f0a8cb0da5903ff4d193dc061ed">   88</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_type_descriptor_t)</span></div>
+<div class="foldopen" id="foldopen00089" data-start="" data-end="">
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ac0e725167e7ea425e1200a3912d42ab5">   89</a></span><span class="preprocessor">#define EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER             \</span></div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="preprocessor">    {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="preprocessor">     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="preprocessor">     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a953be532ec7870da8e0b3da5e8a10f4e">   96</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION 1</span></div>
-<div class="foldopen" id="foldopen00097" data-start="" data-end="">
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a349764181f7e373a0d855c5cf9e1b9b2">   97</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE \</span></div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, implicit_context)</span></div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a953be532ec7870da8e0b3da5e8a10f4e">   94</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION 1</span></div>
+<div class="foldopen" id="foldopen00095" data-start="" data-end="">
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a349764181f7e373a0d855c5cf9e1b9b2">   95</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE \</span></div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, implicit_context)</span></div>
 </div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#abd1c0d94a7f7b73476719d17fefb9d40">   99</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_helper_function_prototype_t)</span></div>
-<div class="foldopen" id="foldopen00100" data-start="" data-end="">
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a48a54b6f4e499cb072d89f97b26478c6">  100</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER                                                                \</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="preprocessor">    {                                                                                                        \</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="preprocessor">        EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="preprocessor">            EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE                                        \</span></div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#abd1c0d94a7f7b73476719d17fefb9d40">   97</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_helper_function_prototype_t)</span></div>
+<div class="foldopen" id="foldopen00098" data-start="" data-end="">
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a48a54b6f4e499cb072d89f97b26478c6">   98</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER             \</span></div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span><span class="preprocessor">    {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="preprocessor">     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="preprocessor">     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span> </div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ace71bbed24a94bcf15ea1fbe399943b8">  106</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION 1</span></div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span> </div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ace71bbed24a94bcf15ea1fbe399943b8">  103</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION 1</span></div>
+<div class="foldopen" id="foldopen00104" data-start="" data-end="">
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a4d6325f492dba0751e9b11d96951d32c">  104</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE \</span></div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)</span></div>
+</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a2484a6ccc5e8e78d605e79db272ec618">  106</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_info_t)</span></div>
 <div class="foldopen" id="foldopen00107" data-start="" data-end="">
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a4d6325f492dba0751e9b11d96951d32c">  107</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE \</span></div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)</span></div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a047a4e5607f838ba31432c4c854c3cc0">  107</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_HEADER             \</span></div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="preprocessor">    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span><span class="preprocessor">     EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="preprocessor">     EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a2484a6ccc5e8e78d605e79db272ec618">  109</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_info_t)</span></div>
-<div class="foldopen" id="foldopen00110" data-start="" data-end="">
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a047a4e5607f838ba31432c4c854c3cc0">  110</a></span><span class="preprocessor">#define EBPF_PROGRAM_INFORMATION_HEADER                                                          \</span></div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="preprocessor">    {                                                                                            \</span></div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="preprocessor">        EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="preprocessor">            EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE                                  \</span></div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span> </div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a3810ad251c9e7cb87124f192f28e4636">  112</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION 1</span></div>
+<div class="foldopen" id="foldopen00113" data-start="" data-end="">
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#aa049cecbc1d167368748f5cbcd9f792f">  113</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE \</span></div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_addresses_t, helper_function_address)</span></div>
 </div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span> </div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a3810ad251c9e7cb87124f192f28e4636">  116</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION 1</span></div>
-<div class="foldopen" id="foldopen00117" data-start="" data-end="">
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#aa049cecbc1d167368748f5cbcd9f792f">  117</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE \</span></div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_addresses_t, helper_function_address)</span></div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a55e9913c52cf495acea42177829acc43">  115</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_helper_function_addresses_t)</span></div>
+<div class="foldopen" id="foldopen00116" data-start="" data-end="">
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a1043105ff9006eb491e7b9d49069fcd6">  116</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_HEADER             \</span></div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="preprocessor">    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span><span class="preprocessor">     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="preprocessor">     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a55e9913c52cf495acea42177829acc43">  119</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_helper_function_addresses_t)</span></div>
-<div class="foldopen" id="foldopen00120" data-start="" data-end="">
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a1043105ff9006eb491e7b9d49069fcd6">  120</a></span><span class="preprocessor">#define EBPF_HELPER_FUNCTION_ADDRESSES_HEADER                                                                \</span></div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span><span class="preprocessor">    {                                                                                                        \</span></div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span><span class="preprocessor">        EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="preprocessor">            EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE                                        \</span></div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span> </div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a94f2d4001fd718de35ab50255af5fc6f">  121</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_CURRENT_VERSION 1</span></div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ac86dc1658cbdf76f9af89ab72aeb630d">  122</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, capabilities)</span></div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae88cc3961206acd2f44e4b812bfe40ca">  123</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_data_t)</span></div>
+<div class="foldopen" id="foldopen00124" data-start="" data-end="">
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a502f2086700a2403b2d31541a61980e5">  124</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_HEADER             \</span></div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="preprocessor">    {EBPF_PROGRAM_DATA_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span><span class="preprocessor">     EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span><span class="preprocessor">     EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a94f2d4001fd718de35ab50255af5fc6f">  126</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_CURRENT_VERSION 1</span></div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ac86dc1658cbdf76f9af89ab72aeb630d">  127</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, capabilities)</span></div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae88cc3961206acd2f44e4b812bfe40ca">  128</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_data_t)</span></div>
-<div class="foldopen" id="foldopen00129" data-start="" data-end="">
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a502f2086700a2403b2d31541a61980e5">  129</a></span><span class="preprocessor">#define EBPF_PROGRAM_DATA_HEADER                                                   \</span></div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span><span class="preprocessor">    {                                                                              \</span></div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="preprocessor">        EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span><span class="preprocessor">            EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE                           \</span></div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span><span class="preprocessor">    }</span></div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span> </div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae9a8dc78504a8f96f5db7791720af874">  129</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION 1</span></div>
+<div class="foldopen" id="foldopen00130" data-start="" data-end="">
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#add8a4c138774e0b2a086061bf92bcb2a">  130</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE \</span></div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)</span></div>
 </div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span> </div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae9a8dc78504a8f96f5db7791720af874">  135</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION 1</span></div>
-<div class="foldopen" id="foldopen00136" data-start="" data-end="">
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#add8a4c138774e0b2a086061bf92bcb2a">  136</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE \</span></div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span><span class="preprocessor">    EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)</span></div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae807f7756adc0d2f6dd5eccd7e2acc15">  132</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_section_info_t)</span></div>
+<div class="foldopen" id="foldopen00133" data-start="" data-end="">
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a163d1a0a69e9508edcdc470b4957a50f">  133</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_HEADER             \</span></div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span><span class="preprocessor">    {EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,      \</span></div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="preprocessor">     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE, \</span></div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span><span class="preprocessor">     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE}</span></div>
 </div>
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#ae807f7756adc0d2f6dd5eccd7e2acc15">  138</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_section_info_t)</span></div>
-<div class="foldopen" id="foldopen00139" data-start="" data-end="">
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a163d1a0a69e9508edcdc470b4957a50f">  139</a></span><span class="preprocessor">#define EBPF_PROGRAM_SECTION_INFORMATION_HEADER                                                                  \</span></div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span><span class="preprocessor">    {                                                                                                            \</span></div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span><span class="preprocessor">        EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE, \</span></div>
-<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span><span class="preprocessor">            EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE                                          \</span></div>
-<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span><span class="preprocessor">    }</span></div>
-</div>
-<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span> </div>
-<div class="foldopen" id="foldopen00152" data-start="{" data-end="};">
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html">  152</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="struct__ebpf__extension__header.html">_ebpf_extension_header</a></div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>{</div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">  154</a></span>    uint16_t <a class="code hl_variable" href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">version</a>;  </div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">  155</a></span>    <span class="keywordtype">size_t</span> <a class="code hl_variable" href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">size</a>;       </div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">  156</a></span>    <span class="keywordtype">size_t</span> <a class="code hl_variable" href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">total_size</a>; </div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">  157</a></span>} <a class="code hl_typedef" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a>;</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span> </div>
+<div class="foldopen" id="foldopen00145" data-start="{" data-end="};">
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html">  145</a></span><span class="keyword">typedef</span> <span class="keyword">struct </span><a class="code hl_struct" href="struct__ebpf__extension__header.html">_ebpf_extension_header</a></div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>{</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">  147</a></span>    uint16_t <a class="code hl_variable" href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">version</a>;  </div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">  148</a></span>    <span class="keywordtype">size_t</span> <a class="code hl_variable" href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">size</a>;       </div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno"><a class="line" href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">  149</a></span>    <span class="keywordtype">size_t</span> <a class="code hl_variable" href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">total_size</a>; </div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno"><a class="line" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">  150</a></span>} <a class="code hl_typedef" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a>;</div>
 </div>
 <div class="ttc" id="aebpf__windows_8h_html_a3f56868552f991b0f9eb6800d8f9a43c"><div class="ttname"><a href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a></div><div class="ttdeci">GUID ebpf_attach_type_t</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:62</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_a653f667ffc6571d5f67b1b81d612a0cd"><div class="ttname"><a href="ebpf__windows_8h.html#a653f667ffc6571d5f67b1b81d612a0cd">_ebpf_helper_function</a></div><div class="ttdeci">_ebpf_helper_function</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:65</div></div>
@@ -269,10 +262,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aebpf__windows_8h_html_a774aa72faaf900258d045f091c6ebb3f"><div class="ttname"><a href="ebpf__windows_8h.html#a774aa72faaf900258d045f091c6ebb3f">GUID</a></div><div class="ttdeci">uint8_t GUID[16]</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:12</div></div>
 <div class="ttc" id="aebpf__windows_8h_html_af7133d5060d723837012a802b6855bea"><div class="ttname"><a href="ebpf__windows_8h.html#af7133d5060d723837012a802b6855bea">ebpf_helper_function_t</a></div><div class="ttdeci">enum _ebpf_helper_function ebpf_helper_function_t</div></div>
 <div class="ttc" id="astddef_8h_html"><div class="ttname"><a href="stddef_8h.html">stddef.h</a></div></div>
-<div class="ttc" id="astruct__ebpf__extension__header_html"><div class="ttname"><a href="struct__ebpf__extension__header.html">_ebpf_extension_header</a></div><div class="ttdoc">Header of an eBPF extension data structure. Every eBPF extension data structure must start with this ...</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:153</div></div>
-<div class="ttc" id="astruct__ebpf__extension__header_html_a0eb703712bfe98678ef9ffc1fe327282"><div class="ttname"><a href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">_ebpf_extension_header::size</a></div><div class="ttdeci">size_t size</div><div class="ttdoc">Size of the extension data structure not including any padding.</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:155</div></div>
-<div class="ttc" id="astruct__ebpf__extension__header_html_a1434771369379cf540e1448184f639dd"><div class="ttname"><a href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">_ebpf_extension_header::total_size</a></div><div class="ttdeci">size_t total_size</div><div class="ttdoc">Total size of the extension data structure including any padding.</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:156</div></div>
-<div class="ttc" id="astruct__ebpf__extension__header_html_a37abb903576864b552ccbedfe2f9415d"><div class="ttname"><a href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">_ebpf_extension_header::version</a></div><div class="ttdeci">uint16_t version</div><div class="ttdoc">Version of the extension data structure.</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:154</div></div>
+<div class="ttc" id="astruct__ebpf__extension__header_html"><div class="ttname"><a href="struct__ebpf__extension__header.html">_ebpf_extension_header</a></div><div class="ttdoc">Header of an eBPF extension data structure. Every eBPF extension data structure must start with this ...</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:146</div></div>
+<div class="ttc" id="astruct__ebpf__extension__header_html_a0eb703712bfe98678ef9ffc1fe327282"><div class="ttname"><a href="struct__ebpf__extension__header.html#a0eb703712bfe98678ef9ffc1fe327282">_ebpf_extension_header::size</a></div><div class="ttdeci">size_t size</div><div class="ttdoc">Size of the extension data structure not including any padding.</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:148</div></div>
+<div class="ttc" id="astruct__ebpf__extension__header_html_a1434771369379cf540e1448184f639dd"><div class="ttname"><a href="struct__ebpf__extension__header.html#a1434771369379cf540e1448184f639dd">_ebpf_extension_header::total_size</a></div><div class="ttdeci">size_t total_size</div><div class="ttdoc">Total size of the extension data structure including any padding.</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:149</div></div>
+<div class="ttc" id="astruct__ebpf__extension__header_html_a37abb903576864b552ccbedfe2f9415d"><div class="ttname"><a href="struct__ebpf__extension__header.html#a37abb903576864b552ccbedfe2f9415d">_ebpf_extension_header::version</a></div><div class="ttdeci">uint16_t version</div><div class="ttdoc">Version of the extension data structure.</div><div class="ttdef"><b>Definition</b> ebpf_windows.h:147</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
