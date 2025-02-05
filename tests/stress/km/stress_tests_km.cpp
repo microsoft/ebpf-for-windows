@@ -982,8 +982,8 @@ _prep_program(thread_context& context, program_map_usage map_usage)
 
     if (map_usage == program_map_usage::USE_MAP) {
         // Get the map fd for the map for this program.
-        auto map_fd = bpf_object__find_map_fd_by_name(entry.object.get(), context.map_name.c_str());
-        if (map_fd < 0) {
+        context.map_fd = bpf_object__find_map_fd_by_name(entry.object.get(), context.map_name.c_str());
+        if (context.map_fd < 0) {
             LOG_ERROR(
                 "{}({}) FATAL ERROR: bpf_object__find_map_fd_by_name({}) failed. file_name:{}, errno:{}",
                 __func__,
@@ -994,14 +994,13 @@ _prep_program(thread_context& context, program_map_usage map_usage)
             context.succeeded = false;
             exit(-1);
         }
-        LOG_VERBOSE(
+        LOG_INFO(
             "{}({}) Opened fd:{} for map:{}, file_name:{}",
             __func__,
             context.thread_index,
             map_fd,
             context.map_name.c_str(),
             context.file_name.c_str());
-        context.map_fd = map_fd;
     }
 }
 
