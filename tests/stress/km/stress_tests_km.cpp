@@ -998,7 +998,7 @@ _prep_program(thread_context& context, program_map_usage map_usage)
             "{}({}) Opened fd:{} for map:{}, file_name:{}",
             __func__,
             context.thread_index,
-            map_fd,
+            context.map_fd,
             context.map_name.c_str(),
             context.file_name.c_str());
     }
