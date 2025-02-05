@@ -150,21 +150,20 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 #define PRAGMA_WARNING_SUPPRESS_26100 _Pragma("warning(suppress: 26100)")
 #define PRAGMA_WARNING_POP _Pragma("warning(pop)")
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)                                                \
-    ASSERT((filter_context) != NULL);                                                          \
-    net_ebpf_extension_hook_provider_remove_filter_context_from_zombie_list((filter_context)); \
-    if ((filter_context)->filter_ids != NULL) {                                                \
-        ExFreePool((filter_context)->filter_ids);                                              \
-    }                                                                                          \
-    PRAGMA_WARNING_PUSH                                                                        \
-    PRAGMA_WARNING_SUPPRESS_26100                                                              \
-    if ((filter_context)->client_contexts != NULL) {                                           \
-        ExFreePool((filter_context)->client_contexts);                                         \
-    }                                                                                          \
-    PRAGMA_WARNING_POP                                                                         \
-    if ((filter_context)->wfp_engine_handle != NULL) {                                         \
-        FwpmEngineClose((filter_context)->wfp_engine_handle);                                  \
-    }                                                                                          \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)               \
+    ASSERT((filter_context) != NULL);                         \
+    if ((filter_context)->filter_ids != NULL) {               \
+        ExFreePool((filter_context)->filter_ids);             \
+    }                                                         \
+    PRAGMA_WARNING_PUSH                                       \
+    PRAGMA_WARNING_SUPPRESS_26100                             \
+    if ((filter_context)->client_contexts != NULL) {          \
+        ExFreePool((filter_context)->client_contexts);        \
+    }                                                         \
+    PRAGMA_WARNING_POP                                        \
+    if ((filter_context)->wfp_engine_handle != NULL) {        \
+        FwpmEngineClose((filter_context)->wfp_engine_handle); \
+    }                                                         \
     ExFreePool((filter_context));
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
