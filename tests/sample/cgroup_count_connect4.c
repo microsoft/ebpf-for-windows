@@ -46,12 +46,11 @@ count_tcp_connect4(bpf_sock_addr_t* ctx)
     uint16_t key = remote_port;
     uint64_t value = 0;
     uint64_t* count = bpf_map_lookup_elem(&connect4_count_map, &key);
-    if (!count) {
-        value = 1;
-        bpf_map_update_elem(&connect4_count_map, &key, &value, 0);
-    } else {
-        *count += 1;
+    if (count != NULL) {
+        value = *count;
     }
+    ++value;
+    bpf_map_update_elem(&connect4_count_map, &key, &value, 0);
 
     // Fail all connect attempts at our port.  This ensures that we are invoked for every connect attempt as we need
     // to show steady increments in the count in our 'connect attempts' map.  Our user mode counterpart monitors this
