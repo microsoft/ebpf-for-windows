@@ -11,15 +11,6 @@ with our setup scripts. The setup scripts create an inner VM with a particular O
 the tests on. By using this nested VM structure, we are able to extract crash dumps and logs from
 any failures.
 
-# Azure Resources
-All of the azure resources are stored in the `ebpf-cicd-rg` resource group in the
-`CoreOS_LIOF_eBPF_for_Windows_Dev` subscription.
-
-The current set of pools and images are as follows:
-- Pool: `ebpf-cicd-runner-pool-server-2019`:
-  - Images:
-    - `server2025`
-
 # Image Creation and Update
 The following sections explain how one can make changes to the 1ES runner image, including
 onboarding a new OS version or updating the runner configuration scripts.
@@ -56,7 +47,7 @@ inner VM.
 `1ES Resource Management` Service Principal for this storage blob container.
 - Using the Azure Portal, create the 1ES image. Use the following parameters:
 ```
--Resource Group - ebpf-cicd-rg
+-Resource Group - <Resource group name>
 -Region - West US 2
 -Image Type - Define a custom image(1ES Managed)
 -Image - WindowsServer 2022-datacenter-g2
