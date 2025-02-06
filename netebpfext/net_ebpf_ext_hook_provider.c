@@ -113,6 +113,7 @@ _ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 
     ExWaitForRundownProtectionRelease(&rundown->protection);
     rundown->rundown_occurred = TRUE;
+
     // if (rundown->rundown_initialized == TRUE) {
     //     ExWaitForRundownProtectionRelease(&rundown->protection);
     //     rundown->rundown_occurred = TRUE;
@@ -171,8 +172,6 @@ _net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
     // if (rundown->rundown_initialized == TRUE) {
     //     return ExAcquireRundownProtection(&rundown->protection);
     // } else {
-    //     // Attempting to enter rundown without initialization is a bug.
-    //     ASSERT(FALSE);
     //     return FALSE;
     // }
 }
@@ -183,9 +182,6 @@ _net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
     ExReleaseRundownProtection(&rundown->protection);
     // if (rundown->rundown_initialized == TRUE) {
     //     ExReleaseRundownProtection(&rundown->protection);
-    // } else {
-    //     // Attempting to leave rundown without initialization is a bug.
-    //     ASSERT(FALSE);
     // }
 }
 
@@ -785,6 +781,7 @@ net_ebpf_extension_hook_provider_register(
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
+    _ebpf_ext_init_hook_rundown(&local_provider_context->rundown);
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
@@ -810,9 +807,6 @@ net_ebpf_extension_hook_provider_register(
         NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "NmrRegisterProvider", status);
         goto Exit;
     }
-
-    // Initialize rundown protection for the provider context.
-    _ebpf_ext_init_hook_rundown(&local_provider_context->rundown);
 
     *provider_context = local_provider_context;
     local_provider_context = NULL;
