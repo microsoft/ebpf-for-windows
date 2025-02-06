@@ -54,7 +54,7 @@ on:
       configurations:
         required: false
         type: string
-        default: '["Debug"]'
+        default: '["Debug", "Release"]'
 
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
