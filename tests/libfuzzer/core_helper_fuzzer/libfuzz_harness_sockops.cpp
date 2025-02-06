@@ -5,15 +5,16 @@
 
 #include "fuzz_helper_function.hpp"
 
-std::unique_ptr<bpf_sock_ops_t> _fuzz_helper_function_sock_ops;
+typedef fuzz_helper_function<bpf_sock_ops_t> fuzz_helper_function__sock_ops_t;
+std::unique_ptr<fuzz_helper_function__sock_ops_t> _fuzz_helper_function_sock_ops;
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
     // Setup fuzz_state to fuzz the general helper functions.
     _fuzz_helper_function_sock_ops =
-        std::make_unique<bpf_sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
+        std::make_unique<fuzz_helper_function__sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
 
-    // Ensure that the ebpfcore runtime is stopped before the usersim runtime.
+      that the ebpfcore runtime is stopped before the usersim runtime.
     atexit([]() { _fuzz_helper_function_sock_ops.reset(); });
     return 0;
 }

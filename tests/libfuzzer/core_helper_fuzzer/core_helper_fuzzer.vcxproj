@@ -129,8 +129,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\netebpfext_unit\netebpf_ext_helper.cpp" />
-    <ClCompile Include="libfuzz_harness_xdp.cpp" />
-    <ClCompile Include="libfuzz_harness_sockaddr.cpp" />
+    <ClCompile Include="libfuzz_harness.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">
