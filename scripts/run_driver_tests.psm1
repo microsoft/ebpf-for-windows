@@ -201,27 +201,21 @@ function Process-TestCompletion
                 Write-Log -TraceMessage $_
             }
             Remove-Item -Path $TempOutputFile -Force -ErrorAction Ignore
-        } else {
-            Write-Log "No std output from $TestCommand"
-        }
-
-        $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
-        if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
-            Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
-            Get-Content -Path $TempErrorFile | ForEach-Object {
-                Write-Log -TraceMessage $_ -ForegroundColor Red
-            }
-            Remove-Item -Path $TempErrorFile -Force -ErrorAction Ignore
-        } else {
-            Write-Log "No std error from $TestCommand"
         }
 
         $TestExitCode = $TestProcess.ExitCode
         if ($TestExitCode -ne 0) {
+            $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
+            if ((Test-Path $TempErrorFile) -and (Get-Item $TempErrorFile).Length -gt 0) {
+                Write-Log "$TestCommand Error Output:`n" -ForegroundColor Red
+                Get-Content -Path $TempErrorFile | ForEach-Object {
+                    Write-Log -TraceMessage $_ -ForegroundColor Red
+                }
+                Remove-Item -Path $TempErrorFile -Force -ErrorAction Ignore
+            }
+
             $ErrorMessage = "*** ERROR *** $TestCommand failed with $TestExitCode."
             ThrowWithErrorMessage -ErrorMessage $ErrorMessage
-        } else {
-            Write-Log "Test $TestCommand completed successfully."
         }
     }
 }
@@ -477,6 +471,7 @@ function Invoke-CICDStressTests
     } else {
         $TestArguments = "-tt=8 -td=5 -erd=1000 -er=1"
     }
+
     Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -VerboseLogs $VerboseLogs -TestHangTimeout $TestHangTimeout
 
     Pop-Location
