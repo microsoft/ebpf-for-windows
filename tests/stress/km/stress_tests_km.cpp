@@ -994,7 +994,7 @@ _prep_program(thread_context& context, program_map_usage map_usage)
             context.succeeded = false;
             exit(-1);
         }
-        LOG_INFO(
+        LOG_VERBOSE(
             "{}({}) Opened fd:{} for map:{}, file_name:{}",
             __func__,
             context.thread_index,
