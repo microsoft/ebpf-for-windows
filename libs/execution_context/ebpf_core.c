@@ -1979,7 +1979,13 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     }
     start_path.length = path_length;
     start_path.value = (uint8_t*)request->start_path;
-    next_path.length = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
+
+    result = ebpf_safe_size_t_subtract(
+        reply_length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path), &path_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    next_path.length = path_length;
     next_path.value = (uint8_t*)reply->next_path;
 
     ebpf_object_type_t object_type = EBPF_OBJECT_PROGRAM;
@@ -2012,7 +2018,13 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     }
     start_path.length = path_length;
     start_path.value = (uint8_t*)request->start_path;
-    next_path.length = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path);
+
+    result = ebpf_safe_size_t_subtract(
+        reply_length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path), &path_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    next_path.length = path_length;
     next_path.value = (uint8_t*)reply->next_path;
 
     ebpf_object_type_t object_type = request->type;
