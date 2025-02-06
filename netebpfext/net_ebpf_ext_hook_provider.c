@@ -116,8 +116,11 @@ _ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
         rundown->rundown_occurred = TRUE;
     } else {
         // Attempting to wait for rundown without initialization is a bug.
-        // ASSERT(FALSE);
+#ifdef KERNEL_MODE
         RtlFailFast(0);
+#else
+        ASSERT(FALSE);
+#endif
     }
 
     NET_EBPF_EXT_LOG_EXIT();
@@ -175,7 +178,12 @@ _net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
         // Attempting to enter rundown without initialization is a bug.
         // ASSERT(FALSE);
         // return FALSE;
+#ifdef KERNEL_MODE
         RtlFailFast(0);
+#else
+        ASSERT(FALSE);
+        return FALSE;
+#endif
     }
 }
 
@@ -187,7 +195,11 @@ _net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
     } else {
         // Attempting to leave rundown without initialization is a bug.
         // ASSERT(FALSE);
+#ifdef KERNEL_MODE
         RtlFailFast(0);
+#else
+        ASSERT(FALSE);
+#endif
     }
 }
 
