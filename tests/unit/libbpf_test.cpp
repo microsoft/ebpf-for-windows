@@ -387,30 +387,12 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
 #define BPF_LD_MAP_FD(reg, fd) \
     {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
-#define BPF_ALU64_IMM(op, reg, imm)                                     \
-    {                                                                   \
-        INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm) \
-    }
-#define BPF_MOV64_IMM(reg, imm)                                  \
-    {                                                            \
-        INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm) \
-    }
-#define BPF_MOV64_REG(dst, src)                                  \
-    {                                                            \
-        INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0 \
-    }
-#define BPF_EXIT_INSN() \
-    {                   \
-        INST_OP_EXIT    \
-    }
-#define BPF_CALL_FUNC(imm)           \
-    {                                \
-        INST_OP_CALL, 0, 0, 0, (imm) \
-    }
-#define BPF_STX_MEM(sz, dst, src, off)                              \
-    {                                                               \
-        INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0 \
-    }
+#define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
+#define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
+#define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
+#define BPF_EXIT_INSN() {INST_OP_EXIT}
+#define BPF_CALL_FUNC(imm) {INST_OP_CALL, 0, 0, 0, (imm)}
+#define BPF_STX_MEM(sz, dst, src, off) {INST_CLS_STX | INST_MODE_MEM | (sz), (dst), (src), (off), 0}
 #define BPF_W INST_SIZE_W
 #define BPF_REG_1 R1_ARG
 #define BPF_REG_2 R2_ARG

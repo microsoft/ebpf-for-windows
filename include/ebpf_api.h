@@ -96,11 +96,11 @@ extern "C"
      * @deprecated Use ebpf_enumerate_programs() instead.
      */
     __declspec(deprecated("Use ebpf_enumerate_programs() instead.")) _Must_inspect_result_ ebpf_result_t
-        ebpf_enumerate_sections(
-            _In_z_ const char* file,
-            bool verbose,
-            _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-            _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
+    ebpf_enumerate_sections(
+        _In_z_ const char* file,
+        bool verbose,
+        _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+        _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
 
     /**
      * @brief Free memory returned from \ref ebpf_enumerate_programs.
@@ -114,8 +114,8 @@ extern "C"
      * @param[in] data Memory to free.
      * @deprecated Use ebpf_free_programs() instead.
      */
-    __declspec(deprecated("Use ebpf_free_programs() instead.")) void ebpf_free_sections(
-        _In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
+    __declspec(deprecated("Use ebpf_free_programs() instead.")) void
+    ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -144,7 +144,8 @@ extern "C"
      * @param[out] error_message On failure points to a text description of
      *  the error.
      */
-    __declspec(deprecated("Use ebpf_api_elf_disassemble_program() instead.")) uint32_t ebpf_api_elf_disassemble_section(
+    __declspec(deprecated("Use ebpf_api_elf_disassemble_program() instead.")) uint32_t
+    ebpf_api_elf_disassemble_section(
         _In_z_ const char* file,
         _In_z_ const char* section,
         _Outptr_result_maybenull_z_ const char** disassembly,

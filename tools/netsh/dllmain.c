@@ -88,10 +88,7 @@ typedef struct _CMD_ENTRY_ORIGINAL
     unsigned long dwFlags;              // Flags (see CMD_FLAGS_xxx above)
     PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
 } CMD_ENTRY_ORIGINAL, *PCMD_ENTRY_ORIGINAL;
-#define CREATE_CMD_ENTRY_ORIGINAL(t, f)                           \
-    {                                                             \
-        CMD_##t, f, HLP_##t, HLP_##t##_EX, CMD_FLAG_PRIVATE, NULL \
-    }
+#define CREATE_CMD_ENTRY_ORIGINAL(t, f) {CMD_##t, f, HLP_##t, HLP_##t##_EX, CMD_FLAG_PRIVATE, NULL}
 
 typedef struct _CMD_ENTRY_LONG
 {
@@ -104,10 +101,7 @@ typedef struct _CMD_ENTRY_LONG
     PNS_OSVERSIONCHECK pOsVersionCheck; // Check for the version of the OS this command can run against
     void* pfnCustomHelpFn;
 } CMD_ENTRY_LONG, *PCMD_ENTRY_LONG;
-#define CREATE_CMD_ENTRY_LONG(t, f)                                     \
-    {                                                                   \
-        CMD_##t, f, HLP_##t, HLP_##t##_EX, CMD_FLAG_PRIVATE, NULL, NULL \
-    }
+#define CREATE_CMD_ENTRY_LONG(t, f) {CMD_##t, f, HLP_##t, HLP_##t##_EX, CMD_FLAG_PRIVATE, NULL, NULL}
 
 CMD_ENTRY_ORIGINAL g_EbpfAddCommandTableOriginal[] = {
     CREATE_CMD_ENTRY_ORIGINAL(EBPF_ADD_PROGRAM, handle_ebpf_add_program),
@@ -166,14 +160,9 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
     CREATE_CMD_GROUP_ENTRY(GROUP_SHOW, g_EbpfShowCommandTable),
 };
 #else
-#define CREATE_CMD_GROUP_ENTRY_ORIGINAL(t, s)                                            \
-    {                                                                                    \
-        CMD_##t, HLP_##t, sizeof(s) / sizeof(CMD_ENTRY_ORIGINAL), 0, (PCMD_ENTRY)s, NULL \
-    }
-#define CREATE_CMD_GROUP_ENTRY_LONG(t, s)                                            \
-    {                                                                                \
-        CMD_##t, HLP_##t, sizeof(s) / sizeof(CMD_ENTRY_LONG), 0, (PCMD_ENTRY)s, NULL \
-    }
+#define CREATE_CMD_GROUP_ENTRY_ORIGINAL(t, s) \
+    {CMD_##t, HLP_##t, sizeof(s) / sizeof(CMD_ENTRY_ORIGINAL), 0, (PCMD_ENTRY)s, NULL}
+#define CREATE_CMD_GROUP_ENTRY_LONG(t, s) {CMD_##t, HLP_##t, sizeof(s) / sizeof(CMD_ENTRY_LONG), 0, (PCMD_ENTRY)s, NULL}
 static CMD_GROUP_ENTRY g_EbpfGroupCommandsOriginal[] = {
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_ADD, g_EbpfAddCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_DELETE, g_EbpfDeleteCommandTableOriginal),
@@ -224,7 +213,8 @@ EbpfStartHelper(const GUID* parentGuid, unsigned long version)
     return status;
 }
 
-__declspec(dllexport) unsigned long InitHelperDll(unsigned long netshVersion, void* reserved)
+__declspec(dllexport) unsigned long
+InitHelperDll(unsigned long netshVersion, void* reserved)
 {
     NS_HELPER_ATTRIBUTES attributes = {0};
     UNREFERENCED_PARAMETER(netshVersion);

@@ -189,7 +189,7 @@ typedef unsigned long PFN_NUMBER;
 #define PAGE_ALIGN(Va) ((void*)((ULONG_PTR)(Va) & ~(PAGE_SIZE - 1)))
 #define BYTE_OFFSET(Va) ((unsigned long)((LONG_PTR)(Va) & (PAGE_SIZE - 1)))
 #define ADDRESS_AND_SIZE_TO_SPAN_PAGES(Va, size)                                                                \
-    (((((size)-1) >> PAGE_SHIFT) +                                                                              \
+    (((((size) - 1) >> PAGE_SHIFT) +                                                                            \
       (((((unsigned long)(size - 1) & (PAGE_SIZE - 1)) + (PtrToUlong(Va) & (PAGE_SIZE - 1)))) >> PAGE_SHIFT)) + \
      1L)
 

@@ -43,8 +43,8 @@ class _test_helper_libbpf
 class _test_handle_helper
 {
   public:
-    _test_handle_helper() : handle(ebpf_handle_invalid){};
-    _test_handle_helper(ebpf_handle_t handle) : handle(handle){};
+    _test_handle_helper() : handle(ebpf_handle_invalid) {};
+    _test_handle_helper(ebpf_handle_t handle) : handle(handle) {};
     _test_handle_helper(const _test_handle_helper& object) = delete;
     void
     operator=(const _test_handle_helper& object) = delete;
