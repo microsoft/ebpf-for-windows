@@ -73,6 +73,8 @@ $(function() {
 </div>
 </div><!-- top -->
 <div class="header">
+  <div class="summary">
+<a href="#func-members">Functions</a>  </div>
   <div class="headertitle"><div class="title">libbpf.h File Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -82,6 +84,12 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
+<tr class="memitem:a790b79f11425c20954eda1d438489036" id="r_a790b79f11425c20954eda1d438489036"><td class="memItemLeft" align="right" valign="top"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a790b79f11425c20954eda1d438489036">bpf_program__flags</a> (const struct bpf_program *prog)</td></tr>
+<tr class="memdesc:a790b79f11425c20954eda1d438489036"><td class="mdescLeft">&#160;</td><td class="mdescRight">Query the BPF program flags.  <br /></td></tr>
+<tr class="separator:a790b79f11425c20954eda1d438489036"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a35a0549ff99084e337eb764142d0c43a" id="r_a35a0549ff99084e337eb764142d0c43a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a35a0549ff99084e337eb764142d0c43a">bpf_program__set_flags</a> (struct bpf_program *prog, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags)</td></tr>
+<tr class="memdesc:a35a0549ff99084e337eb764142d0c43a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the BPF program flags. The set of flags is defined by the program type. Neither libbpf nor the eBPF runtime check the flags and only the extension that handles this program type will interpret them. See the documentation for the program type for what flags are defined for that program type.  <br /></td></tr>
+<tr class="separator:a35a0549ff99084e337eb764142d0c43a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Link-related functions</div></td></tr>
 <tr class="memitem:ab10dd31881e90cb8ba93ffb77b92308b" id="r_ab10dd31881e90cb8ba93ffb77b92308b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ab10dd31881e90cb8ba93ffb77b92308b">bpf_link__destroy</a> (struct bpf_link *link)</td></tr>
 <tr class="memdesc:ab10dd31881e90cb8ba93ffb77b92308b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean up a link.  <br /></td></tr>
@@ -1786,6 +1794,33 @@ bpf_object__unpin </dd></dl>
 
 </div>
 </div>
+<a id="a790b79f11425c20954eda1d438489036" name="a790b79f11425c20954eda1d438489036"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a790b79f11425c20954eda1d438489036">&#9670;&#160;</a></span>bpf_program__flags()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> bpf_program__flags </td>
+          <td>(</td>
+          <td class="paramtype">const struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Query the BPF program flags. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>A pointer to the BPF program. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>The flags of the BPF program that were last set by this process. </dd></dl>
+
+</div>
+</div>
 <a id="a533e13b68a34e8228fbadeecf63b658a" name="a533e13b68a34e8228fbadeecf63b658a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a533e13b68a34e8228fbadeecf63b658a">&#9670;&#160;</a></span>bpf_program__get_expected_attach_type()</h2>
 
@@ -2076,6 +2111,50 @@ bpf_object__unpin </dd></dl>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
     <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a35a0549ff99084e337eb764142d0c43a" name="a35a0549ff99084e337eb764142d0c43a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a35a0549ff99084e337eb764142d0c43a">&#9670;&#160;</a></span>bpf_program__set_flags()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_program__set_flags </td>
+          <td>(</td>
+          <td class="paramtype">struct bpf_program *&#160;</td>
+          <td class="paramname"><em>prog</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a>&#160;</td>
+          <td class="paramname"><em>flags</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Set the BPF program flags. The set of flags is defined by the program type. Neither libbpf nor the eBPF runtime check the flags and only the extension that handles this program type will interpret them. See the documentation for the program type for what flags are defined for that program type. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>A pointer to the BPF program. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>The flags to set.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
