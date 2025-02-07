@@ -122,7 +122,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_general_program_informatio
     _ebpf_program_general_program_information_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         NULL,
@@ -141,7 +141,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
     _ebpf_program_type_specific_program_information_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         NULL,
