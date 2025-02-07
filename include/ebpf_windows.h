@@ -70,9 +70,6 @@ typedef enum _ebpf_helper_function
 
 #define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
-#define EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION 1
-#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION 1
-
 // Version 1 of the eBPF extension data structures and their lengths.
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)

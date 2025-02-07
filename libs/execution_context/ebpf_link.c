@@ -59,7 +59,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_link_client_characteristics = {
     _ebpf_link_client_detach_provider,
     NULL,
     {
-        EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_HOOK_EXTENSION_IID,
         NULL,
