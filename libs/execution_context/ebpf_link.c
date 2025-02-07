@@ -215,6 +215,9 @@ _ebpf_link_client_attach_provider(
         client_dispatch_table = (void*)&_ebpf_link_dispatch_table_with_context_header;
     } else {
         client_dispatch_table = (void*)&_ebpf_link_dispatch_table;
+        // TODO: Before merging perf event array context headers must be required.
+        // status = STATUS_INVALID_PARAMETER;
+        // goto Done;
     }
 
     ebpf_lock_unlock(&link->lock, state);

@@ -30,6 +30,9 @@
     <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\ebpf_perf_event_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\ebpf_serialize.h">
       <Filter>Header Files</Filter>
     </ClInclude>

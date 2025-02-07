@@ -455,6 +455,44 @@ extern "C"
     ebpf_program_get_runtime_state(
         _In_ const void* program_context, _Outptr_ const ebpf_execution_context_state_t** state);
 
+    /**
+     * @brief Set the context_descriptor in the program context header.
+     *  Writes a pointer to the ebpf_program_t object to Slot [1].
+     *
+     *  Note: Extension must support context headers.
+     *
+     * @param[in] context_descriptor Pointer to the context descriptor for the program.
+     * @param[in,out] program_context Pointer to the program context to set the header for.
+     */
+    void
+    ebpf_program_set_header_context_descriptor(
+        _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context);
+
+    /**
+     * @brief Get the context descriptor from the program context header.
+     *  Slot [1] contains the context descriptor pointer.
+     *
+     *  Note: Extension must support context headers.
+     *
+     * @param[in] program_context Pointer to the program context.
+     * @param[out] context_descriptor Pointer to the program context to set.
+     */
+    void
+    ebpf_program_get_header_context_descriptor(
+        _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor);
+
+    /**
+     * @brief Get the data start and end pointers from the program context.
+     *
+     *  Note: Extension must support context headers.
+     *
+     * @param[in] program_context Pointer to the program context.
+     * @param[out] data_start Pointer to the start of the context data.
+     * @param[out] data_end Pointer to the end of the context data (after the last byte).
+     */
+    void
+    ebpf_program_get_context_data(
+        _In_ const void* program_context, _Outptr_ const uint8_t** data_start, _Outptr_ const uint8_t** data_end);
 #ifdef __cplusplus
 }
 #endif
