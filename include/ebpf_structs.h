@@ -408,3 +408,17 @@ struct bpf_prog_info
     uint32_t pinned_path_count;          ///< Number of pinned paths.
     uint32_t link_count;                 ///< Number of attached links.
 };
+
+/**
+ * @brief Header of an eBPF extension data structure.
+ * Every eBPF extension data structure must start with this header.
+ * New fields can be added to the end of an eBPF extension data structure
+ * without breaking backward compatibility. The version field must be
+ * updated only if the new data structure is not backward compatible.
+ */
+typedef struct _ebpf_native_module_header
+{
+    uint16_t version;  ///< Version of the extension data structure.
+    size_t size;       ///< Size of the extension data structure not including any padding.
+    size_t total_size; ///< Total size of the extension data structure including any padding.
+} ebpf_native_module_header_t;

@@ -59,12 +59,14 @@ extern "C"
      */
     typedef struct _helper_function_entry
     {
+        ebpf_native_module_header_t header;
         uint32_t helper_id;
         const char* name;
     } helper_function_entry_t;
 
     typedef struct _helper_function_data
     {
+        ebpf_native_module_header_t header;
         helper_function_t address;
         bool tail_call;
     } helper_function_data_t;
@@ -81,17 +83,20 @@ extern "C"
         // entries in the maps section.
         uint64_t zero_marker;
 
+        ebpf_native_module_header_t header;
         ebpf_map_definition_in_file_t definition;
         const char* name;
     } map_entry_t;
 
     typedef struct _map_data
     {
+        ebpf_native_module_header_t header;
         uintptr_t address;
     } map_data_t;
 
     typedef struct _program_runtime_context
     {
+        ebpf_native_module_header_t header;
         helper_function_data_t* helper_data;
         map_data_t* map_data;
     } program_runtime_context_t;
@@ -104,6 +109,7 @@ extern "C"
      */
     typedef struct _map_initial_values
     {
+        ebpf_native_module_header_t header;
         const char* name;    // Name of the map.
         size_t count;        // Number of values in the map.
         const char** values; // Array of strings containing the initial values.
@@ -118,8 +124,10 @@ extern "C"
         // DLLs put the strings into the same section, so add a marker
         // at the start of a program entry to make it easy to find
         // entries in the programs section.
-        uint64_t zero;
+        uint64_t zero_marker;
+        uint64_t zero_marker2;
 
+        ebpf_native_module_header_t header;
         uint64_t (*function)(void*, const program_runtime_context_t*); ///< Address of the program.
         const char* pe_section_name;              ///< Name of the PE section containing the program.
         const char* section_name;                 ///< Name of the section containing the program.
@@ -155,6 +163,8 @@ extern "C"
      */
     typedef struct _metadata_table
     {
+        // ebpf_native_module_header_t header;
+        // ANUSA TODO: remove the below size struct.
         size_t size; ///< Size of this structure. Used for versioning.
         void (*programs)(
             _Outptr_result_buffer_maybenull_(*count) program_entry_t** programs,
@@ -206,6 +216,73 @@ extern "C"
     {
         return swap32(value >> 32) | ((uint64_t)swap32(value & ((1ull << 32ull) - 1))) << 32;
     }
+
+#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION 1
+#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(helper_function_entry_t, name)
+#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(helper_function_entry_t)
+#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_HEADER             \
+    {EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION,      \
+     EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION 1
+#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(helper_function_data_t, tail_call)
+#define EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(helper_function_data_t)
+#define EBPF_NATIVE_HELPER_FUNCTION_DATA_HEADER             \
+    {EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION,      \
+     EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION 1
+#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
+#define EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(map_entry_t)
+#define EBPF_NATIVE_MAP_ENTRY_HEADER             \
+    {EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,      \
+     EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION 1
+#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
+#define EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(map_data_t)
+#define EBPF_NATIVE_MAP_DATA_HEADER             \
+    {EBPF_NATIVE_MAP_DATA_CURRENT_VERSION,      \
+     EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_MAP_DATA_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION 1
+#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
+#define EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE sizeof(program_entry_t)
+#define EBPF_NATIVE_PROGRAM_ENTRY_HEADER             \
+    {EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION,      \
+     EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION 1
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE \
+    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, map_data)
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE sizeof(program_runtime_context_t)
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_HEADER             \
+    {EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION,      \
+     EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION 1
+#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(map_initial_values_t, values)
+#define EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE sizeof(map_initial_values_t)
+#define EBPF_NATIVE_MAP_INITIAL_VALUES_HEADER             \
+    {EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION,      \
+     EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE}
+
+#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION 1
+#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(metadata_table_t, map_initial_values)
+#define EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE sizeof(metadata_table_t)
+#define EBPF_NATIVE_METADATA_TABLE_HEADER             \
+    {EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION,      \
+     EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE, \
+     EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE}
 
 #ifdef __cplusplus
 }
