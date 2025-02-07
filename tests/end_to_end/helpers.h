@@ -7,6 +7,7 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_platform.h"
 #include "ebpf_program_types.h"
+#include "ebpf_windows.h"
 #include "net_ebpf_ext_program_info.h"
 #include "net_ebpf_ext_xdp_hooks.h"
 #include "sample_ext_program_info.h"
@@ -283,6 +284,12 @@ typedef class _single_instance_hook : public _hook_helper
         return batch_end_function(state);
     }
 
+    const ebpf_extension_data_t*
+    get_client_data() const
+    {
+        return client_data;
+    }
+
   private:
     static NTSTATUS
     provider_attach_client_callback(
@@ -305,6 +312,8 @@ typedef class _single_instance_hook : public _hook_helper
         hook->client_binding_context = client_binding_context;
         hook->nmr_binding_handle = nmr_binding_handle;
         hook->client_dispatch_table = (ebpf_extension_dispatch_table_t*)client_dispatch;
+        hook->client_data =
+            reinterpret_cast<const ebpf_extension_data_t*>(client_registration_instance->NpiSpecificCharacteristics);
         *provider_binding_context = provider_context;
         *provider_dispatch = NULL;
         return STATUS_SUCCESS;

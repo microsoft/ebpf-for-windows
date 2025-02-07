@@ -31,9 +31,8 @@ uint16_t _supported_ebpf_extension_version[] = {
     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
 };
 
-#define EBPF_ATTACH_PROVIDER_DATA_SIZE_0 \
-    EBPF_OFFSET_OF(ebpf_attach_provider_data_t, link_type) + sizeof(enum bpf_link_type)
-size_t _ebpf_attach_provider_data_supported_size[] = {EBPF_ATTACH_PROVIDER_DATA_SIZE_0};
+#define EBPF_ATTACH_PROVIDER_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)
+size_t _ebpf_attach_provider_data_supported_size[] = {EBPF_ATTACH_PROVIDER_DATA_SIZE_1};
 
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0 EBPF_OFFSET_OF(ebpf_program_type_descriptor_t, is_privileged) + sizeof(char)
 size_t _ebpf_program_type_descriptor_supported_size[] = {EBPF_PROGRAM_TYPE_DESCRIPTOR_SIZE_0};

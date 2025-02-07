@@ -609,6 +609,15 @@ _net_ebpf_extension_sock_addr_validate_client_data(
     uint32_t compartment_id;
     *is_wildcard = FALSE;
 
+    if (client_data->header.version < EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION) {
+        result = EBPF_INVALID_ARGUMENT;
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "Attach attempt rejected. Invalid client data version.");
+        goto Exit;
+    }
+
     // SOCK_ADDR hook clients must always provide data.
     if (client_data == NULL) {
         NET_EBPF_EXT_LOG_MESSAGE(
@@ -619,8 +628,8 @@ _net_ebpf_extension_sock_addr_validate_client_data(
         goto Exit;
     }
 
-    if (client_data->header.size > 0) {
-        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->data_size > 0) {
+        if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
@@ -667,7 +676,7 @@ _net_ebpf_extension_sock_addr_create_filter_context(
     net_ebpf_extension_wfp_filter_parameters_array_t* filter_parameters_array = NULL;
     const ebpf_extension_data_t* client_data = net_ebpf_extension_hook_client_get_client_data(attaching_client);
 
-    if (client_data->header.size > 0) {
+    if (client_data->data_size > 0) {
         // Note: No need to validate the client data here, as it has already been validated by the caller.
         compartment_id = *(uint32_t*)client_data->data;
     }

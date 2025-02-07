@@ -499,7 +499,7 @@ _net_ebpf_extension_hook_provider_attach_client(
         // Check if the attach parameter is already present in the list of filter contexts.
         net_ebpf_extension_wfp_filter_context_t* matching_context = NULL;
         matching_context = net_ebpf_extension_get_matching_filter_context(
-            hook_client->client_data->header.size, hook_client->client_data->data, local_provider_context);
+            hook_client->client_data->data_size, hook_client->client_data->data, local_provider_context);
         if (matching_context != NULL) {
             // Insert the new client in the filter context.
             result = net_ebpf_ext_add_client_context(matching_context, hook_client);
@@ -532,7 +532,7 @@ _net_ebpf_extension_hook_provider_attach_client(
             // Check if the attach parameter is already present in the list of filter contexts.
             net_ebpf_extension_wfp_filter_context_t* matching_context = NULL;
             matching_context = net_ebpf_extension_get_matching_filter_context(
-                hook_client->client_data->header.size, hook_client->client_data->data, local_provider_context);
+                hook_client->client_data->data_size, hook_client->client_data->data, local_provider_context);
 
             if (matching_context != NULL) {
                 NET_EBPF_EXT_LOG_MESSAGE(

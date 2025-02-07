@@ -117,11 +117,13 @@ netebpfext_unit_invoke_xdp_program(
 TEST_CASE("classify_packet", "[netebpfext]")
 {
     NET_IFINDEX if_index = 0;
-    ebpf_extension_data_t npi_specific_characteristics = {.data = &if_index};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+        .data = &if_index,
+        .data_size = sizeof(if_index),
+    };
     test_xdp_client_context_t client_context = {};
     client_context.base.desired_attach_type = BPF_XDP_TEST;
-
-    npi_specific_characteristics.header.size = sizeof(if_index);
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
@@ -230,7 +232,9 @@ netebpfext_unit_invoke_bind_program(
 
 TEST_CASE("bind_invoke", "[netebpfext]")
 {
-    ebpf_extension_data_t npi_specific_characteristics = {};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
     test_bind_client_context_t client_context = {};
     fwp_classify_parameters_t parameters = {};
 
@@ -503,7 +507,9 @@ netebpfext_unit_invoke_sock_addr_program(
 
 TEST_CASE("sock_addr_invoke", "[netebpfext]")
 {
-    ebpf_extension_data_t npi_specific_characteristics = {};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
     test_sock_addr_client_context_t client_context = {};
     fwp_classify_parameters_t parameters = {};
 
@@ -648,7 +654,9 @@ sock_addr_thread_function(
 
 TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
 {
-    ebpf_extension_data_t npi_specific_characteristics = {};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
     test_sock_addr_client_context_t client_context = {};
     fwp_classify_parameters_t parameters = {};
     std::vector<std::jthread> threads;
@@ -696,7 +704,9 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
 // Invoke SOCK_ADDR_CONNECT concurrently with different classify parameters.
 TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
 {
-    ebpf_extension_data_t npi_specific_characteristics = {};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
     test_sock_addr_client_context_t client_context = {};
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
@@ -744,7 +754,9 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
 // Invoke SOCK_ADDR_RECV_ACCEPT concurrently with different classify parameters.
 TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
 {
-    ebpf_extension_data_t npi_specific_characteristics = {};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
     test_sock_addr_client_context_t client_context = {};
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
@@ -879,7 +891,9 @@ netebpfext_unit_invoke_sock_ops_program(
 
 TEST_CASE("sock_ops_invoke", "[netebpfext]")
 {
-    ebpf_extension_data_t npi_specific_characteristics = {};
+    ebpf_extension_data_t npi_specific_characteristics = {
+        .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
+    };
     test_sock_ops_client_context_t client_context = {};
     fwp_classify_parameters_t parameters = {};
 
