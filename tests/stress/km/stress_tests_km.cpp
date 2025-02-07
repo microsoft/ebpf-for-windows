@@ -1299,6 +1299,132 @@ _print_test_control_info(const test_control_info& test_control_info)
     }
 }
 
+TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
+{
+    // This test attempts to load the same JIT'ed ebpf program multiple times in different threads.  This test
+    // supports two modes:
+    //
+    // 1. just load, attach, detach and unload the JIT'ed programs with each event happening in a different thread
+    //    with all threads executing in parallel with the bare minimum synchronization between them.
+    //
+    // 2. Same as #1 above, but with the addition of a dedicated thread continuously unloading/reloading the provider
+    //    extension (activated via a command-line argument).
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** jit_load_attach_detach_unload_random_v4_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
+}
+
+TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
+{
+    // This test attempts to load the same native ebpf program multiple times in different threads. Specifically:
+    //
+    // - Load, attach, detach and unload the native ebpf program with each event happening in a different thread with
+    //   all threads executing in parallel with the bare minimum synchronization between them.
+    //
+    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
+    //   (if specified on the command line).
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** native_load_attach_detach_unload_random_v4_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+}
+
+TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
+{
+    // This test attempts to load a unique native ebpf program multiple times in different threads. Specifically:
+    //
+    // - Load, attach, detach and unload each native ebpf program with each event happening in a different thread with
+    //   all threads executing in parallel with the bare minimum synchronization between them.
+    //
+    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
+    //   (if specified on the command line).
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** native_unique_load_attach_detach_unload_random_v4_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    // Use a unique native driver for each 'creator' thread.
+    local_test_control_info.use_unique_native_programs = true;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+}
+
+TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
+{
+    // Test layout:
+    // 1. Create 2 'monitor' threads:
+    //    - Thread #1 loads a native ebpf SOCK_ADDR program that attaches to CGROUP/CONNECT4.
+    //      > This program monitors an IPv4 endpoint, 127.0.0.1:<target_port>. On every invocation, the program updates
+    //        the count (TCP) 'connect' attempts in the 'connect4_count_map' map at its port.
+    //    - Thread #2 loads another native ebpf SOCK_ADDR program that attaches to CGROUP/CONNECT6.
+    //      > The behavior of this program is identical to that of the v4 program (loaded by thread #1), except it is
+    //        invoked for IPv6 connection attempts ([::1]:<target_port>).
+    //
+    // 2  Until the end of test, each test thread will:
+    //    - Read the initial 'connect' count from its respective 'connect<v4|v6>_map' map.
+    //    - Attempt to (TCP) connect to its respective end-point 'n' times.  Make 'n' large enough (4096?) to try
+    //      and collide with the extension restart event.
+    //    - Read the 'connect' count its respective map after this 'burst' connect attempt.
+    //    - Ensure that the counter keeps incrementing, irrespective of the netebpfext extension being restarted any
+    //      number of times.  A stalled counter is a fatal bug and the test should return failure.
+    //
+    // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension
+    //    (if specified on the command line).
+    //
+    // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** native_invoke_v4_v6_programs_restart_extension_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    // This test needs only 2 threads (one per program).
+    local_test_control_info.threads_count = 2;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
+}
+
+TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
+{
+    // Test layout:
+    // 1. Load the "cgroup_mt_connect6.sys" native ebpf program.
+    //    - This program monitors an IPv6 endpoint, [::1]:<target_port>. On every invocation, the program returns a
+    //      specific value per the following (arbitrary) algorithm:
+    //      > (target_port % 3 == 0) : BPF_SOCK_ADDR_VERDICT_REJECT
+    //        (target_port % 2 == 0) : BPF_SOCK_ADDR_VERDICT_PROCEED
+    //        else                   : BPF_SOCK_ADDR_VERDICT_REDIRECT
+    //
+    // 2. Create the specified # of threads and for the duration of test, each thread will:
+    //    - Attempt a TCP 'connect' to the remote endpoint [::1]:<target_port + thread_context.thread_index>
+    //      continuously in a loop.
+    //      (The test set up ensures that the thread_index passed in each thread_context is unique to that thread.)
+    //
+    //    We ignore the result of the 'connect' attempt as the intent here is to test the parallel invocation of the
+    //    WFP callout and ensure this test doesn't cause kernel mode crashes.
+    //
+    // 3. If specified, start the 'extension restart' thread as well to continuously restart the netebpf extension.
+
+    _km_test_init();
+    LOG_INFO("\nStarting test *** sockaddr_invoke_program_test ***");
+    test_control_info local_test_control_info = _global_test_control_info;
+
+    _print_test_control_info(local_test_control_info);
+    _mt_sockaddr_invoke_program_test(local_test_control_info);
+}
+
+// The following code is used by the "bindmonitor_tail_call_invoke_program_test" test which is currently disabled due
+// to a potential WFP bug exposed while investigating Issue #3337.  Uncomment the following line to re-enable test.
+// #define ENABLE_TAIL_CALL_STRESS_TEST
+
+#if (defined ENABLE_TAIL_CALL_STRESS_TEST)
 static void
 _set_up_tailcall_program(bpf_object* object, const std::string& map_name)
 {
@@ -1606,127 +1732,7 @@ _mt_bindmonitor_tail_call_invoke_program_test(const test_control_info& test_cont
     WSACleanup();
 }
 
-TEST_CASE("jit_load_attach_detach_unload_random_v4_test", "[jit_mt_stress_test]")
-{
-    // This test attempts to load the same JIT'ed ebpf program multiple times in different threads.  This test
-    // supports two modes:
-    //
-    // 1. just load, attach, detach and unload the JIT'ed programs with each event happening in a different thread
-    //    with all threads executing in parallel with the bare minimum synchronization between them.
-    //
-    // 2. Same as #1 above, but with the addition of a dedicated thread continuously unloading/reloading the provider
-    //    extension (activated via a command-line argument).
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** jit_load_attach_detach_unload_random_v4_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_JIT, local_test_control_info);
-}
-
-TEST_CASE("native_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
-{
-    // This test attempts to load the same native ebpf program multiple times in different threads. Specifically:
-    //
-    // - Load, attach, detach and unload the native ebpf program with each event happening in a different thread with
-    //   all threads executing in parallel with the bare minimum synchronization between them.
-    //
-    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
-    //   (if specified on the command line).
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** native_load_attach_detach_unload_random_v4_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
-TEST_CASE("native_unique_load_attach_detach_unload_random_v4_test", "[native_mt_stress_test]")
-{
-    // This test attempts to load a unique native ebpf program multiple times in different threads. Specifically:
-    //
-    // - Load, attach, detach and unload each native ebpf program with each event happening in a different thread with
-    //   all threads executing in parallel with the bare minimum synchronization between them.
-    //
-    // - Addition of a dedicated thread continuously unloading/reloading the provider extension
-    //   (if specified on the command line).
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** native_unique_load_attach_detach_unload_random_v4_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // Use a unique native driver for each 'creator' thread.
-    local_test_control_info.use_unique_native_programs = true;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_prog_load_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
-TEST_CASE("native_invoke_v4_v6_programs_restart_extension_test", "[native_mt_stress_test]")
-{
-    // Test layout:
-    // 1. Create 2 'monitor' threads:
-    //    - Thread #1 loads a native ebpf SOCK_ADDR program that attaches to CGROUP/CONNECT4.
-    //      > This program monitors an IPv4 endpoint, 127.0.0.1:<target_port>. On every invocation, the program updates
-    //        the count (TCP) 'connect' attempts in the 'connect4_count_map' map at its port.
-    //    - Thread #2 loads another native ebpf SOCK_ADDR program that attaches to CGROUP/CONNECT6.
-    //      > The behavior of this program is identical to that of the v4 program (loaded by thread #1), except it is
-    //        invoked for IPv6 connection attempts ([::1]:<target_port>).
-    //
-    // 2  Until the end of test, each test thread will:
-    //    - Read the initial 'connect' count from its respective 'connect<v4|v6>_map' map.
-    //    - Attempt to (TCP) connect to its respective end-point 'n' times.  Make 'n' large enough (4096?) to try
-    //      and collide with the extension restart event.
-    //    - Read the 'connect' count its respective map after this 'burst' connect attempt.
-    //    - Ensure that the counter keeps incrementing, irrespective of the netebpfext extension being restarted any
-    //      number of times.  A stalled counter is a fatal bug and the test should return failure.
-    //
-    // 3. In parallel, start the 'extension restart' thread to continuously restart the netebpf extension
-    //    (if specified on the command line).
-    //
-    // NOTE: The '-tt', '-er' and the '-erd' command line parameters are not used by this test.
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** native_invoke_v4_v6_programs_restart_extension_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    // This test needs only 2 threads (one per program).
-    local_test_control_info.threads_count = 2;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_invoke_prog_stress_test(EBPF_EXECUTION_NATIVE, local_test_control_info);
-}
-
-TEST_CASE("sockaddr_invoke_program_test", "[native_mt_stress_test]")
-{
-    // Test layout:
-    // 1. Load the "cgroup_mt_connect6.sys" native ebpf program.
-    //    - This program monitors an IPv6 endpoint, [::1]:<target_port>. On every invocation, the program returns a
-    //      specific value per the following (arbitrary) algorithm:
-    //      > (target_port % 3 == 0) : BPF_SOCK_ADDR_VERDICT_REJECT
-    //        (target_port % 2 == 0) : BPF_SOCK_ADDR_VERDICT_PROCEED
-    //        else                   : BPF_SOCK_ADDR_VERDICT_REDIRECT
-    //
-    // 2. Create the specified # of threads and for the duration of test, each thread will:
-    //    - Attempt a TCP 'connect' to the remote endpoint [::1]:<target_port + thread_context.thread_index>
-    //      continuously in a loop.
-    //      (The test set up ensures that the thread_index passed in each thread_context is unique to that thread.)
-    //
-    //    We ignore the result of the 'connect' attempt as the intent here is to test the parallel invocation of the
-    //    WFP callout and ensure this test doesn't cause kernel mode crashes.
-    //
-    // 3. If specified, start the 'extension restart' thread as well to continuously restart the netebpf extension.
-
-    _km_test_init();
-    LOG_INFO("\nStarting test *** sockaddr_invoke_program_test ***");
-    test_control_info local_test_control_info = _global_test_control_info;
-
-    _print_test_control_info(local_test_control_info);
-    _mt_sockaddr_invoke_program_test(local_test_control_info);
-}
-
+// The following test is currently disabled due to a potential WFP bug exposed while investigating Issue #3337.
 TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]")
 {
     // Test layout:
@@ -1743,3 +1749,4 @@ TEST_CASE("bindmonitor_tail_call_invoke_program_test", "[native_mt_stress_test]"
     _print_test_control_info(local_test_control_info);
     _mt_bindmonitor_tail_call_invoke_program_test(local_test_control_info);
 }
+#endif // ENABLE_TAIL_CALL_STRESS_TEST
