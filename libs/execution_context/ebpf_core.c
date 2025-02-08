@@ -550,6 +550,39 @@ Done:
     EBPF_RETURN_RESULT(return_value);
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_resolve_map_value_address(
+    uint32_t count_of_maps,
+    _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
+    _Out_writes_(count_of_maps) uintptr_t* map_addresses)
+{
+    EBPF_LOG_ENTRY();
+    uint32_t map_index = 0;
+    ebpf_result_t return_value = EBPF_SUCCESS;
+
+    for (map_index = 0; map_index < count_of_maps; map_index++) {
+        ebpf_map_t* map;
+        return_value =
+            EBPF_OBJECT_REFERENCE_BY_HANDLE(map_handles[map_index], EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+
+        return_value = ebpf_map_get_value_address(map, &map_addresses[map_index]);
+
+        // First release the map reference, then check the return value.
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+
+        if (return_value != EBPF_SUCCESS) {
+            goto Done;
+        }
+    }
+
+Done:
+    EBPF_RETURN_RESULT(return_value);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 static ebpf_result_t
 _ebpf_core_protocol_resolve_map(

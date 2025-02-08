@@ -86,6 +86,14 @@ extern "C"
         const char** values; // Array of strings containing the initial values.
     } map_initial_values_t;
 
+    typedef struct _global_variable_section
+    {
+        const char* name;
+        unsigned char* address_of_map_value;
+        size_t size;
+        const void* initial_data;
+    } global_variable_section_t;
+
     /**
      * @brief Program entry.
      * This structure contains the address of the program and additional information about the program.
@@ -146,6 +154,9 @@ extern "C"
         void (*map_initial_values)(
             _Outptr_result_buffer_maybenull_(*count) map_initial_values_t** map_initial_values,
             _Out_ size_t* count); ///< Returns the list of initial values for maps in this module.
+        void (*global_variable_sections)(
+            _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections,
+            _Out_ size_t* count); ///< Returns the list of global variables in this module.
     } metadata_table_t;
 
     /**

@@ -24,7 +24,7 @@ struct
     __uint(max_entries, 1);
 } connect4_count_map SEC(".maps");
 
-const uint16_t remote_port = SOCKET_TEST_PORT;
+static const uint16_t remote_port = SOCKET_TEST_PORT;
 
 SEC("cgroup/connect4")
 int

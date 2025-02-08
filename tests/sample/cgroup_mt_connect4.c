@@ -16,8 +16,8 @@
 #include "net/ip.h"
 #include "socket_tests_common.h"
 
-const uint16_t remote_port = SOCKET_TEST_PORT;
-const uint16_t redirect_offset = 1000;
+static const uint16_t remote_port = SOCKET_TEST_PORT;
+static const uint16_t redirect_offset = 1000;
 
 SEC("cgroup/connect4")
 int

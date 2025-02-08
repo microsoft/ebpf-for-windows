@@ -253,6 +253,14 @@ class bpf_code_generator
     parse_btf_maps_section(const unsafe_string& name);
 
     /**
+     * @brief Parse BTF map information in the eBPF file.
+     *
+     * @param[in] section_name Section in the ELF file to parse maps in.
+     */
+    void
+    parse_btf_global_variable_section(const unsafe_string& name);
+
+    /**
      * @brief Parse legacy map information in the eBPF file.
      *
      * @param[in] section_name Section in the ELF file to parse maps in.
@@ -327,6 +335,12 @@ class bpf_code_generator
         ELFIO::Elf_Xword size)>
         symbol_visitor_t;
 
+    typedef struct _global_variable_section
+    {
+        size_t index;
+        std::vector<uint8_t> initial_data;
+    } global_variable_section_t;
+
     class bpf_code_generator_program
     {
       public:
@@ -364,7 +378,9 @@ class bpf_code_generator
          * @param[in] map_definitions Map definitions.
          */
         void
-        encode_instructions(std::map<unsafe_string, map_entry_t>& map_definitions);
+        encode_instructions(
+            std::map<unsafe_string, map_entry_t>& map_definitions,
+            std::map<unsafe_string, global_variable_section_t>& global_variable_sections);
 
         /**
          * @brief Get the name of a register from its index.
@@ -485,6 +501,9 @@ class bpf_code_generator
     bool
     is_section_valid(const ELFIO::section* section) const;
 
+    unsafe_string
+    get_section_name_by_index(ELFIO::Elf_Half index) const;
+
     /**
      * @brief Invoke the visitor for each symbol in the ELF file section.
      *
@@ -502,4 +521,5 @@ class bpf_code_generator
     btf_section_to_instruction_to_line_info_t section_line_info;
     std::optional<std::vector<uint8_t>> elf_file_hash;
     std::map<unsafe_string, std::vector<unsafe_string>> map_initial_values;
+    std::map<unsafe_string, global_variable_section_t> global_variable_sections;
 };

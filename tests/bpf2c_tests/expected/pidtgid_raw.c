@@ -27,6 +27,18 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "pidtgid_map"},
+    {NULL,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         12,                 // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         31,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "pidtgid.bss"},
 };
 #pragma data_seg(pop)
 
@@ -34,6 +46,26 @@ static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
     *maps = _maps;
+    *count = 2;
+}
+
+const char pidtgid_bss_initial_data[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+#pragma data_seg(push, "global_variables")
+static global_variable_section_t _global_variable_sections[] = {
+    {
+        .name = "pidtgid.bss",
+        .size = 12,
+        .initial_data = &pidtgid_bss_initial_data,
+    },
+};
+#pragma data_seg(pop)
+
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    *global_variable_sections = _global_variable_sections;
     *count = 1;
 }
 
@@ -216,4 +248,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t pidtgid_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};
