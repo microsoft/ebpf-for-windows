@@ -50,8 +50,8 @@ struct bpf_create_map_attr
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  */
-__declspec(deprecated("Use bpf_map_create() instead.")) int bpf_create_map(
-    enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags);
+__declspec(deprecated("Use bpf_map_create() instead.")) int
+bpf_create_map(enum bpf_map_type map_type, int key_size, int value_size, int max_entries, __u32 map_flags);
 
 /**
  * @brief Create a new map-in-map.
@@ -73,7 +73,8 @@ __declspec(deprecated("Use bpf_map_create() instead.")) int bpf_create_map(
  * @exception EINVAL An invalid argument was provided.
  * @exception ENOMEM Out of memory.
  */
-__declspec(deprecated("Use bpf_map_create() instead.")) int bpf_create_map_in_map(
+__declspec(deprecated("Use bpf_map_create() instead.")) int
+bpf_create_map_in_map(
     enum bpf_map_type map_type, const char* name, int key_size, int inner_map_fd, int max_entries, __u32 map_flags);
 
 /**
@@ -90,8 +91,8 @@ __declspec(deprecated("Use bpf_map_create() instead.")) int bpf_create_map_in_ma
  *
  * @deprecated Use bpf_map_create() instead.
  */
-__declspec(deprecated("Use bpf_map_create() instead.")) int bpf_create_map_xattr(
-    const struct bpf_create_map_attr* create_attr);
+__declspec(deprecated("Use bpf_map_create() instead.")) int
+bpf_create_map_xattr(const struct bpf_create_map_attr* create_attr);
 
 /** @} */
 
@@ -153,7 +154,8 @@ struct bpf_load_program_attr
  * @sa bpf_prog_load
  * @sa bpf_load_program_xattr
  */
-__declspec(deprecated("Use bpf_prog_load() instead.")) int bpf_load_program(
+__declspec(deprecated("Use bpf_prog_load() instead.")) int
+bpf_load_program(
     enum bpf_prog_type type,
     const struct bpf_insn* insns,
     size_t insns_cnt,
@@ -182,8 +184,8 @@ __declspec(deprecated("Use bpf_prog_load() instead.")) int bpf_load_program(
  * @sa bpf_prog_load
  * @sa bpf_load_program
  */
-__declspec(deprecated("Use bpf_prog_load() instead.")) int bpf_load_program_xattr(
-    const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
+__declspec(deprecated("Use bpf_prog_load() instead.")) int
+bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_buf, size_t log_buf_sz);
 
 /** @} */
 

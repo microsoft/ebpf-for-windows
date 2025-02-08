@@ -132,7 +132,7 @@ _net_ebpf_extension_xdp_create_filter_context(
     FWPM_FILTER_CONDITION condition = {0};
     net_ebpf_extension_xdp_wfp_filter_context_t* xdp_filter_context = NULL;
 
-    if (client_data->header.size > 0) {
+    if (client_data->data_size != 0) {
         // Note: No need to validate the client data here, as it has already been validated by the caller.
         if_index = *(uint32_t*)client_data->data;
     } else {
@@ -210,8 +210,17 @@ _net_ebpf_extension_xdp_validate_client_data(_In_ const ebpf_extension_data_t* c
         goto Exit;
     }
 
-    if (client_data->header.size > 0) {
-        if ((client_data->header.size != sizeof(uint32_t)) || (client_data->data == NULL)) {
+    if (client_data->header.version < EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION) {
+        result = EBPF_INVALID_ARGUMENT;
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_XDP,
+            "Attach attempt rejected. Invalid client data version.");
+        goto Exit;
+    }
+
+    if (client_data->data_size != 0) {
+        if ((client_data->data_size != sizeof(uint32_t)) || (client_data->data == NULL)) {
             result = EBPF_INVALID_ARGUMENT;
             NET_EBPF_EXT_LOG_MESSAGE(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,

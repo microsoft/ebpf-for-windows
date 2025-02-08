@@ -17,17 +17,21 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
 Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
-
-$AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-$StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+if ($SelfHostedRunnerName -eq "1ESRunner") {
+    $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
+    $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
+} else {
+    $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+    $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
 $Job = Start-Job -ScriptBlock {
     param ([Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
-           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential, 
-           [Parameter(Mandatory = $true)] [PSCustomObject] $Config, 
+           [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
+           [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
            [Parameter(Mandatory = $True)] [string] $LogFileName,

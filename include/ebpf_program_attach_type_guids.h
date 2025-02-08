@@ -41,8 +41,8 @@ extern "C"
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany)
-        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT = EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID;
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID                                     \
     {                                                                                  \
@@ -54,8 +54,8 @@ extern "C"
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany)
-        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT = EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID;
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_CONNECT_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID                                 \
     {                                                                                  \
@@ -67,8 +67,8 @@ extern "C"
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany)
-        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT = EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID;
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT =
+        EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID                                 \
     {                                                                                  \
@@ -80,8 +80,8 @@ extern "C"
      *
      * Program type: \ref EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR
      */
-    __declspec(selectany)
-        ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT = EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID;
+    __declspec(selectany) ebpf_attach_type_t EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT =
+        EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT_GUID;
 
 #define EBPF_ATTACH_TYPE_CGROUP_SOCK_OPS_GUID                                          \
     {                                                                                  \
@@ -165,8 +165,8 @@ extern "C"
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET4_RECV_ACCEPT
      *  \ref EBPF_ATTACH_TYPE_CGROUP_INET6_RECV_ACCEPT
      */
-    __declspec(selectany)
-        ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR = EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID;
+    __declspec(selectany) ebpf_program_type_t EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR =
+        EBPF_PROGRAM_TYPE_CGROUP_SOCK_ADDR_GUID;
 
 #define EBPF_PROGRAM_TYPE_SOCK_OPS_GUID                                                \
     {                                                                                  \

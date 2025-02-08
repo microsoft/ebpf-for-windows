@@ -95,6 +95,8 @@ typedef struct _ebpf_extension_data
 {
     ebpf_extension_header_t header;
     const void* data;
+    size_t data_size;
+    uint64_t prog_attach_flags;
 } ebpf_extension_data_t;
 
 typedef struct _ebpf_attach_provider_data
