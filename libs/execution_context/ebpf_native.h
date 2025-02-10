@@ -11,7 +11,7 @@
 extern "C"
 {
 #endif
-    typedef struct _ebpf_native_module ebpf_native_module_binding_context_t;
+    typedef struct _ebpf_native_program ebpf_native_module_binding_context_t;
 
     /**
      * @brief Initialize the eBPF native code module.
