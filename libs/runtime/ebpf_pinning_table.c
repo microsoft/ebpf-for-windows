@@ -336,15 +336,52 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+static bool
+_ebpf_pinning_table_match_object_type(_In_ void* filter_context, _In_ const uint8_t* key, _In_ const uint8_t* value)
+{
+    ebpf_object_type_t object_type = *(ebpf_object_type_t*)filter_context;
+    ebpf_pinning_entry_t* entry = *(ebpf_pinning_entry_t**)value;
+    UNREFERENCED_PARAMETER(key);
+
+    if (object_type == EBPF_OBJECT_UNKNOWN) {
+        return true;
+    }
+
+    return ebpf_object_get_type(entry->object) == object_type;
+}
+
+static int
+_ebpf_pinning_table_compare(_In_ const uint8_t* key1, _In_ const uint8_t* key2)
+{
+    const cxplat_utf8_string_t* str1 = *(const cxplat_utf8_string_t**)key1;
+    const cxplat_utf8_string_t* str2 = *(const cxplat_utf8_string_t**)key2;
+    size_t min_length = (str1->length < str2->length) ? str1->length : str2->length;
+
+    int result = memcmp(str1->value, str2->value, min_length);
+    if (result != 0) {
+        return result;
+    }
+
+    if (str1->length < str2->length) {
+        return -1;
+    }
+
+    if (str1->length > str2->length) {
+        return 1;
+    }
+
+    return 0;
+}
+
 _Must_inspect_result_ ebpf_result_t
 ebpf_pinning_table_get_next_path(
     _Inout_ ebpf_pinning_table_t* pinning_table,
-    ebpf_object_type_t object_type,
+    _Inout_ ebpf_object_type_t* object_type,
     _In_ const cxplat_utf8_string_t* start_path,
     _Inout_ cxplat_utf8_string_t* next_path)
 {
     EBPF_LOG_ENTRY();
-    if ((pinning_table == NULL) || (start_path == NULL) || (next_path == NULL)) {
+    if ((pinning_table == NULL) || (start_path == NULL) || (next_path == NULL) || (object_type == NULL)) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
@@ -355,29 +392,31 @@ ebpf_pinning_table_get_next_path(
     ebpf_result_t result;
     ebpf_pinning_entry_t** next_pinning_entry = NULL;
 
-    for (;;) {
-        // Get the next entry in the table.
-        cxplat_utf8_string_t* next_object_path;
-        result = ebpf_hash_table_next_key_and_value(
-            pinning_table->hash_table, previous_key, (uint8_t*)&next_object_path, (uint8_t**)&next_pinning_entry);
-        if (result != EBPF_SUCCESS) {
-            break;
-        }
-
-        // See if the entry matches the object type the caller is interested in.
-        if (object_type == ebpf_object_get_type((*next_pinning_entry)->object)) {
-            if (next_path->length < (*next_pinning_entry)->path.length) {
-                result = EBPF_INSUFFICIENT_BUFFER;
-            } else {
-                next_path->length = (*next_pinning_entry)->path.length;
-                memcpy(next_path->value, (*next_pinning_entry)->path.value, next_path->length);
-                result = EBPF_SUCCESS;
-            }
-            break;
-        }
-        previous_key = (uint8_t*)&next_object_path;
+    // Get the next entry in the table.
+    cxplat_utf8_string_t* next_object_path;
+    result = ebpf_hash_table_next_key_and_value_sorted(
+        pinning_table->hash_table,
+        previous_key,
+        _ebpf_pinning_table_compare,
+        object_type,
+        _ebpf_pinning_table_match_object_type,
+        (uint8_t*)&next_object_path,
+        (uint8_t**)&next_pinning_entry);
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
     }
 
+    if (next_path->length < (*next_pinning_entry)->path.length) {
+        result = EBPF_INSUFFICIENT_BUFFER;
+        goto Exit;
+    }
+
+    next_path->length = (*next_pinning_entry)->path.length;
+    memcpy(next_path->value, (*next_pinning_entry)->path.value, next_path->length);
+    *object_type = ebpf_object_get_type((*next_pinning_entry)->object);
+    result = EBPF_SUCCESS;
+
+Exit:
     ebpf_lock_unlock(&pinning_table->lock, state);
     EBPF_RETURN_RESULT(result);
 }

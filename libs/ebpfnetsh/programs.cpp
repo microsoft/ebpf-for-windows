@@ -316,8 +316,9 @@ _unpin_program_by_id(ebpf_id_t id)
     // Read all pin paths.  Currently we get them in a non-deterministic
     // order, so we use a std::set to sort them in code point order.
     char pinpath[EBPF_MAX_PIN_PATH_LENGTH] = "";
+    ebpf_object_type_t object_type = EBPF_OBJECT_PROGRAM;
     std::set<std::string> paths;
-    while (ebpf_get_next_pinned_program_path(pinpath, pinpath) == EBPF_SUCCESS) {
+    while (ebpf_get_next_pinned_object_path(pinpath, pinpath, sizeof(pinpath), &object_type) == EBPF_SUCCESS) {
         paths.insert(pinpath);
     }
 

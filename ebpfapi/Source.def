@@ -115,6 +115,7 @@ EXPORTS
     ebpf_free_sections = ebpf_free_programs
     ebpf_free_string
     ebpf_get_attach_type_name
+    ebpf_get_next_pinned_object_path
     ebpf_get_next_pinned_program_path
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
