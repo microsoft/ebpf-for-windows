@@ -48,6 +48,15 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
      0,
      SUBLAYER_WEIGHT_MAXIMUM}};
 
+// Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
+// contexts.
+EX_SPIN_LOCK _maige_lock = {0};
+_Guarded_by_(_maige_lock) static LIST_ENTRY _maige_zombie_list = {0};
+_Guarded_by_(_maige_lock) static LIST_ENTRY _maige_rundown_list = {0};
+uint64_t _maige_zombie_count = 0;
+uint64_t _maige_rundown_count = 0;
+uint64_t _maige_rundown_counter = 0; // always incrementing, for sanity.
+
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
 
@@ -275,6 +284,7 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
+    InitializeListHead(&local_filter_context->debug_link);
     local_filter_context->reference_count = 1; // Initial reference.
 
     // Set the first client context.
@@ -860,6 +870,9 @@ net_ebpf_ext_register_providers()
 
     NET_EBPF_EXT_LOG_ENTRY();
 
+    InitializeListHead(&_maige_zombie_list);
+    InitializeListHead(&_maige_rundown_list);
+
     status = net_ebpf_ext_xdp_register_providers();
     if (!NT_SUCCESS(status)) {
         NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
@@ -998,4 +1011,61 @@ net_ebpf_ext_remove_client_context(
     }
 
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
+}
+
+void
+maige_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+#ifdef KERNEL_MODE
+    if (!IsListEmpty(&filter_context->debug_link)) {
+        RtlFailFast(0);
+    }
+#endif
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
+    InsertHeadList(&_maige_zombie_list, &filter_context->debug_link);
+    _maige_zombie_count++;
+    ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
+}
+
+void
+maige_add_filter_context_to_rundown_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+#ifdef KERNEL_MODE
+    if (!IsListEmpty(&filter_context->debug_link)) {
+        RtlFailFast(0);
+    }
+#endif
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
+    InsertHeadList(&_maige_rundown_list, &filter_context->debug_link);
+    _maige_rundown_count++;
+    _maige_rundown_counter++;
+    ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
+}
+
+void
+maige_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    if (!IsListEmpty(&filter_context->debug_link)) {
+        KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
+        RemoveEntryList(&filter_context->debug_link);
+        ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
+#ifdef KERNEL_MODE
+    } else {
+        RtlFailFast(0);
+#endif
+    }
+}
+
+void
+maige_remove_filter_context_from_rundown_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    maige_remove_filter_context_from_debug_list(filter_context);
+    _maige_rundown_count--;
+}
+
+void
+maige_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    maige_remove_filter_context_from_debug_list(filter_context);
+    _maige_zombie_count--;
 }

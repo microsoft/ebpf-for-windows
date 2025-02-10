@@ -618,6 +618,8 @@ _net_ebpf_extension_hook_provider_attach_client(
         goto Exit;
     }
 
+    maige_add_filter_context_to_rundown_list(new_filter_context);
+
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
         new_filter_context->wildcard = TRUE;
@@ -664,6 +666,9 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
 
     // Remove the list entry from the provider's list of filter contexts.
     RemoveEntryList(&filter_context->link);
+
+    maige_remove_filter_context_from_rundown_list(filter_context);
+    maige_add_filter_context_to_zombie_list(filter_context);
 
     // Release the filter context.
     provider_context->dispatch.delete_filter_context(filter_context);
