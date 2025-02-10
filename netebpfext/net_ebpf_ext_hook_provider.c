@@ -62,7 +62,7 @@ _ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     ASSERT(rundown->rundown_initialized == FALSE);
 #ifdef KERNEL_MODE
-    if (rundown->rundown_initialized == FALSE) {
+    if (rundown->rundown_initialized == TRUE) {
         RtlFailFast(0);
     }
 #endif
