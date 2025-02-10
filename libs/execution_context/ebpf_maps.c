@@ -1979,9 +1979,14 @@ _next_lpm_map_key_and_value(
 {
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
     ebpf_core_lpm_key_t* lpm_key = (ebpf_core_lpm_key_t*)next_key;
+    ebpf_core_lpm_key_t* previous_lpm_key = (ebpf_core_lpm_key_t*)previous_key;
 
     // Validate prefix length.
     if (!lpm_key || lpm_key->prefix_length > trie_map->max_prefix) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (previous_lpm_key && previous_lpm_key->prefix_length > trie_map->max_prefix) {
         return EBPF_INVALID_ARGUMENT;
     }
 
