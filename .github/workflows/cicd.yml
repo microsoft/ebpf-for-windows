@@ -331,38 +331,38 @@ jobs:
   #     # driver tests manually gather code coverage
   #     code_coverage: false
 
-  # ossar:
-  #   # Always run this job.
-  #   needs: regular
-  #   if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-  #   uses: ./.github/workflows/ossar-scan.yml
-  #   with:
-  #     build_artifact: Build-x64
+  ossar:
+    # Always run this job.
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/ossar-scan.yml
+    with:
+      build_artifact: Build-x64
 
-  # # Additional jobs to run on pull and schedule only (skip push).
-  # # ---------------------------------------------------------------------------
-  # # Build with C++ static analyzer.
-  # analyze:
-  #   # Only run on schedule and pull request.
-  #   if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-  #   uses: ./.github/workflows/reusable-build.yml
-  #   with:
-  #     ref: ${{ github.ref }}
-  #     repository: ${{ github.repository }}
-  #     build_artifact: Build-x64-Analyze
-  #     # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
-  #     build_options: /p:Analysis='True' /p:AnalysisOnExternal='False'
+  # Additional jobs to run on pull and schedule only (skip push).
+  # ---------------------------------------------------------------------------
+  # Build with C++ static analyzer.
+  analyze:
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64-Analyze
+      # Analysis on external projects is conditional, as on small CI/CD VMs the compiler can run OOM
+      build_options: /p:Analysis='True' /p:AnalysisOnExternal='False'
 
-  # # Build with C++ address sanitizer.
-  # sanitize:
-  #   # Only run on schedule and pull request.
-  #   if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
-  #   uses: ./.github/workflows/reusable-build.yml
-  #   with:
-  #     ref: ${{ github.ref }}
-  #     repository: ${{ github.repository }}
-  #     build_artifact: Build-x64-Sanitize
-  #     build_options: /p:AddressSanitizer='True'
+  # Build with C++ address sanitizer.
+  sanitize:
+    # Only run on schedule and pull request.
+    if: github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64-Sanitize
+      build_options: /p:AddressSanitizer='True'
 
   # bpf2c_fuzzer:
   #   needs: regular
@@ -552,17 +552,17 @@ jobs:
   #     gather_dumps: true
   #     capture_etw: true
 
-  # # Additional jobs to run on a schedule only (skip push and pull request).
-  # # ---------------------------------------------------------------------------
-  # codeql:
-  #   # Only run during daily scheduled run
-  #   if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-  #   uses: ./.github/workflows/reusable-build.yml
-  #   with:
-  #     ref: ${{ github.ref }}
-  #     repository: ${{ github.repository }}
-  #     build_artifact: Build-x64-CodeQl
-  #     build_codeql: true
+  # Additional jobs to run on a schedule only (skip push and pull request).
+  # ---------------------------------------------------------------------------
+  codeql:
+    # Only run during daily scheduled run
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{ github.ref }}
+      repository: ${{ github.repository }}
+      build_artifact: Build-x64-CodeQl
+      build_codeql: true
 
 
   # # Run the complete fault injection simulator in GitHub.
