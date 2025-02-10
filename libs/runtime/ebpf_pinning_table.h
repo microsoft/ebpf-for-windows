@@ -105,7 +105,7 @@ extern "C"
      * @brief Gets the next path in the pinning table after a given path.
      *
      * @param[in, out] pinning_table Pinning table to enumerate.
-     * @param[in, out] object_type Object type, may be EBPF_OBJECT_UNKOWN.
+     * @param[in, out] object_type Object type, may be EBPF_OBJECT_UNKNOWN.
      * @param[in] start_path Path to look for an entry greater than.
      * @param[in, out] next_path Returns the next path, if one exists.
      * @retval EBPF_SUCCESS The operation was successful.
