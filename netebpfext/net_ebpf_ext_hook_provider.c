@@ -61,9 +61,11 @@ static void
 _ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     ASSERT(rundown->rundown_initialized == FALSE);
+#ifdef KERNEL_MODE
     if (rundown->rundown_initialized == FALSE) {
         RtlFailFast(0);
     }
+#endif
 
     ExInitializeRundownProtection(&rundown->protection);
     rundown->rundown_occurred = FALSE;
@@ -115,9 +117,11 @@ _ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
     NET_EBPF_EXT_LOG_ENTRY();
 
     ASSERT(rundown->rundown_initialized == TRUE);
+#ifdef KERNEL_MODE
     if (rundown->rundown_initialized == FALSE) {
         RtlFailFast(0);
     }
+#endif
     ExWaitForRundownProtectionRelease(&rundown->protection);
     rundown->rundown_occurred = TRUE;
 
@@ -171,9 +175,11 @@ _Must_inspect_result_ bool
 _net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     ASSERT(rundown->rundown_initialized == TRUE);
+#ifdef KERNEL_MODE
     if (rundown->rundown_initialized == FALSE) {
         RtlFailFast(0);
     }
+#endif
     return ExAcquireRundownProtection(&rundown->protection);
 }
 
@@ -181,9 +187,11 @@ void
 _net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     ASSERT(rundown->rundown_initialized == TRUE);
+#ifdef KERNEL_MODE
     if (rundown->rundown_initialized == FALSE) {
         RtlFailFast(0);
     }
+#endif
     ExReleaseRundownProtection(&rundown->protection);
 }
 
