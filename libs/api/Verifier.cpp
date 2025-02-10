@@ -156,7 +156,11 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
 
     // For each map in map_names, find the corresponding map descriptor and cache the map handle.
     for (auto& entry : map_names) {
-        uint32_t idx = (uint32_t)btf_map_name_to_index[entry.map_name];
+        auto btf_entry = btf_map_name_to_index.find(entry.map_name);
+        if (btf_entry == btf_map_name_to_index.end()) {
+            throw std::runtime_error(string("Map ") + entry.map_name + " not found.");
+        }
+        uint32_t idx = (uint32_t)btf_entry->second;
         auto& btf_map_descriptor = btf_map_descriptors[idx];
         // We temporarily stored BTF type ids in the descriptor's fd fields.
         int btf_type_id = btf_map_descriptor.original_fd;
