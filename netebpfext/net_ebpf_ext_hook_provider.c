@@ -10,6 +10,7 @@ typedef struct _net_ebpf_ext_hook_client_rundown
 {
     EX_RUNDOWN_REF protection;
     bool rundown_occurred;
+    bool rundown_initialized;
 } net_ebpf_ext_hook_rundown_t;
 
 struct _net_ebpf_extension_hook_provider;
@@ -41,9 +42,6 @@ typedef struct _net_ebpf_extension_hook_provider
     const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
     _Guarded_by_(lock)
         LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
-    EX_PUSH_LOCK zombie_list_lock;      ///< Lock for zombie filters list.
-    _Guarded_by_(zombie_list_lock)
-        LIST_ENTRY zombie_filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
 } net_ebpf_extension_hook_provider_t;
 
 typedef struct _net_ebpf_extension_invoke_programs_parameters
@@ -53,6 +51,21 @@ typedef struct _net_ebpf_extension_invoke_programs_parameters
     uint32_t verdict;
     ebpf_result_t result;
 } net_ebpf_extension_invoke_programs_parameters_t;
+
+/**
+ * @brief Initialize the hook rundown state.
+ *
+ * @param[in, out] rundown Pointer to the rundown object to initialize.
+ */
+static void
+_ebpf_ext_init_hook_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+{
+    ASSERT(rundown->rundown_initialized == FALSE);
+
+    ExInitializeRundownProtection(&rundown->protection);
+    rundown->rundown_occurred = FALSE;
+    rundown->rundown_initialized = TRUE;
+}
 
 /**
  * @brief Initialize the hook client rundown state.
@@ -81,8 +94,7 @@ _ebpf_ext_attach_init_rundown(net_ebpf_extension_hook_client_t* hook_client)
     }
 
     // Initialize the rundown and disable new references.
-    ExInitializeRundownProtection(&rundown->protection);
-    rundown->rundown_occurred = FALSE;
+    _ebpf_ext_init_hook_rundown(rundown);
 
 Exit:
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
@@ -95,10 +107,11 @@ Exit:
  *
  */
 static void
-_ebpf_ext_attach_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+_ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
 {
     NET_EBPF_EXT_LOG_ENTRY();
 
+    ASSERT(rundown->rundown_initialized == TRUE);
     ExWaitForRundownProtectionRelease(&rundown->protection);
     rundown->rundown_occurred = TRUE;
 
@@ -138,7 +151,7 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
     // Issue: https://github.com/microsoft/ebpf-for-windows/issues/1854
 
     // Wait for any in progress callbacks to complete.
-    _ebpf_ext_attach_wait_for_rundown(&hook_client->rundown);
+    _ebpf_ext_wait_for_rundown(&hook_client->rundown);
 
     IoFreeWorkItem(work_item);
 
@@ -149,25 +162,41 @@ _net_ebpf_extension_detach_client_completion(_In_ DEVICE_OBJECT* device_object, 
 }
 
 _Must_inspect_result_ bool
+_net_ebpf_ext_enter_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+{
+    ASSERT(rundown->rundown_initialized == TRUE);
+    return ExAcquireRundownProtection(&rundown->protection);
+}
+
+void
+_net_ebpf_ext_leave_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown)
+{
+    ASSERT(rundown->rundown_initialized == TRUE);
+    ExReleaseRundownProtection(&rundown->protection);
+}
+
+_Must_inspect_result_ bool
 net_ebpf_extension_hook_client_enter_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
-    bool status = ExAcquireRundownProtection(&rundown->protection);
-    return status;
+    return _net_ebpf_ext_enter_rundown(&hook_client->rundown);
 }
 
 void
 net_ebpf_extension_hook_client_leave_rundown(_Inout_ net_ebpf_extension_hook_client_t* hook_client)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &hook_client->rundown;
-    ExReleaseRundownProtection(&rundown->protection);
+    _net_ebpf_ext_leave_rundown(&hook_client->rundown);
+}
+
+_Must_inspect_result_ bool
+net_ebpf_extension_hook_provider_enter_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    return _net_ebpf_ext_enter_rundown(&provider_context->rundown);
 }
 
 void
 net_ebpf_extension_hook_provider_leave_rundown(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 {
-    net_ebpf_ext_hook_rundown_t* rundown = &provider_context->rundown;
-    ExReleaseRundownProtection(&rundown->protection);
+    _net_ebpf_ext_leave_rundown(&provider_context->rundown);
 }
 
 const ebpf_extension_data_t*
@@ -547,7 +576,7 @@ _net_ebpf_extension_hook_provider_attach_client(
 
     // No matching filter context found. Need to create a new filter context.
     // Acquire rundown reference on provider context. This will be released when the filter context is deleted.
-    rundown_acquired = ExAcquireRundownProtection(&local_provider_context->rundown.protection);
+    rundown_acquired = net_ebpf_extension_hook_provider_enter_rundown(local_provider_context);
     if (!rundown_acquired) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -600,7 +629,7 @@ Exit:
 
     if (status != STATUS_SUCCESS) {
         if (rundown_acquired) {
-            ExReleaseRundownProtection(&local_provider_context->rundown.protection);
+            net_ebpf_extension_hook_provider_leave_rundown(local_provider_context);
         }
     }
 
@@ -615,10 +644,6 @@ _Requires_exclusive_lock_held_(provider_context->lock) static void _net_ebpf_ext
 
     // Remove the list entry from the provider's list of filter contexts.
     RemoveEntryList(&filter_context->link);
-    // Insert the list entry to the list of zombie filter contexts.
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
-    InsertTailList(&provider_context->zombie_filter_context_list, &filter_context->link);
-    RELEASE_PUSH_LOCK_EXCLUSIVE(&provider_context->zombie_list_lock);
 
     // Release the filter context.
     provider_context->dispatch.delete_filter_context(filter_context);
@@ -716,7 +741,7 @@ net_ebpf_extension_hook_provider_unregister(
         }
         // Wait for rundown reference to become 0. This will ensure all filter contexts, hence all
         // filter are cleaned up.
-        _ebpf_ext_attach_wait_for_rundown(&provider_context->rundown);
+        _ebpf_ext_wait_for_rundown(&provider_context->rundown);
         ExFreePool(provider_context);
     }
     NET_EBPF_EXT_LOG_EXIT();
@@ -735,6 +760,9 @@ net_ebpf_extension_hook_provider_register(
     NPI_PROVIDER_CHARACTERISTICS* characteristics;
 
     NET_EBPF_EXT_LOG_ENTRY();
+
+    *provider_context = NULL;
+
     local_provider_context = (net_ebpf_extension_hook_provider_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(net_ebpf_extension_hook_provider_t), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_STATUS(
@@ -743,8 +771,7 @@ net_ebpf_extension_hook_provider_register(
     memset(local_provider_context, 0, sizeof(net_ebpf_extension_hook_provider_t));
     ExInitializePushLock(&local_provider_context->lock);
     InitializeListHead(&local_provider_context->filter_context_list);
-    ExInitializePushLock(&local_provider_context->zombie_list_lock);
-    InitializeListHead(&local_provider_context->zombie_filter_context_list);
+    _ebpf_ext_init_hook_rundown(&local_provider_context->rundown);
 
     characteristics = &local_provider_context->characteristics;
     characteristics->Length = sizeof(NPI_PROVIDER_CHARACTERISTICS);
@@ -771,10 +798,6 @@ net_ebpf_extension_hook_provider_register(
         goto Exit;
     }
 
-    // Initialize rundown protection for the provider context.
-    ExInitializeRundownProtection(&local_provider_context->rundown.protection);
-    local_provider_context->rundown.rundown_occurred = FALSE;
-
     *provider_context = local_provider_context;
     local_provider_context = NULL;
 
@@ -784,16 +807,4 @@ Exit:
     }
 
     NET_EBPF_EXT_RETURN_NTSTATUS(status);
-}
-
-void
-net_ebpf_extension_hook_provider_remove_filter_context_from_zombie_list(
-    _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
-{
-    net_ebpf_extension_hook_provider_t* local_provider_context =
-        (net_ebpf_extension_hook_provider_t*)filter_context->provider_context;
-    ASSERT(local_provider_context != NULL);
-    ACQUIRE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->zombie_list_lock);
-    RemoveEntryList(&filter_context->link);
-    RELEASE_PUSH_LOCK_EXCLUSIVE(&local_provider_context->zombie_list_lock);
 }
