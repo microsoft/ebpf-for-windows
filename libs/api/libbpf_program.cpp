@@ -476,7 +476,7 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 enum bpf_attach_type
 bpf_program__get_expected_attach_type(const struct bpf_program* program)
 {
-    return get_bpf_attach_type(&program->attach_type);
+    return ebpf_get_bpf_attach_type(&program->attach_type);
 }
 
 int
@@ -496,7 +496,7 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 enum bpf_prog_type
 bpf_program__type(const struct bpf_program* program)
 {
-    return get_bpf_program_type(&program->program_type);
+    return ebpf_get_bpf_program_type(&program->program_type);
 }
 
 int

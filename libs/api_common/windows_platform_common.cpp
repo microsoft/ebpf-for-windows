@@ -25,6 +25,10 @@
 
 #define GET_PROGRAM_INFO_REPLY_BUFFER_SIZE 4096
 
+#ifndef GUID_NULL
+const GUID GUID_NULL = {0, 0, 0, {0, 0, 0, 0, 0, 0, 0, 0}};
+#endif
+
 static thread_local ebpf_handle_t _program_under_verification = ebpf_handle_invalid;
 
 extern bool use_ebpf_store;
@@ -329,8 +333,21 @@ get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) noexcept
     return nullptr;
 }
 
+_Must_inspect_result_ ebpf_result_t
+ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type, _Out_ ebpf_attach_type_t* ebpf_attach_type) noexcept
+{
+    const ebpf_attach_type_t* result = get_ebpf_attach_type(bpf_attach_type);
+    if (result == nullptr) {
+        *ebpf_attach_type = GUID_NULL;
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    *ebpf_attach_type = *result;
+    return EBPF_SUCCESS;
+}
+
 bpf_prog_type_t
-get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type) noexcept
+ebpf_get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type) noexcept
 {
     _load_ebpf_provider_data();
 
@@ -344,7 +361,7 @@ get_bpf_program_type(_In_ const ebpf_program_type_t* ebpf_program_type) noexcept
 }
 
 bpf_attach_type_t
-get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept
+ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept
 {
     _load_ebpf_provider_data();
 
