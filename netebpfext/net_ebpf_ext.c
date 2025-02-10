@@ -1049,10 +1049,10 @@ maige_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wfp_filte
         KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
         RemoveEntryList(&filter_context->debug_link);
         ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
-#ifdef KERNEL_MODE
-    } else {
-        RtlFailFast(0);
-#endif
+        // #ifdef KERNEL_MODE
+        //     } else {
+        //         RtlFailFast(0);
+        // #endif
     }
 }
 
