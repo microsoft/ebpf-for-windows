@@ -23,6 +23,7 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
+#include <atomic>
 #include <chrono>
 #include <future>
 #include <iostream>
@@ -32,6 +33,23 @@ using namespace std::chrono_literals;
 CATCH_REGISTER_LISTENER(_watchdog)
 
 #define MULTIPLE_ATTACH_PROGRAM_COUNT 3
+
+thread_local bool _is_main_thread = false;
+
+struct test_failure : std::exception
+{
+    test_failure(const std::string& message) : message(message) {}
+    std::string message;
+};
+
+#define SAFE_REQUIRE(x)                                               \
+    if (_is_main_thread) {                                            \
+        REQUIRE(x);                                                   \
+    } else {                                                          \
+        if (!(x)) {                                                   \
+            throw test_failure("Condition failed" + std::string(#x)); \
+        }                                                             \
+    }
 
 void
 connection_test(
@@ -46,17 +64,17 @@ connection_test(
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
 
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
     const char* connect_program_name = (address_family == AF_INET) ? "authorize_connect4" : "authorize_connect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
-    REQUIRE(connect_program != nullptr);
+    SAFE_REQUIRE(connect_program != nullptr);
 
     const char* recv_accept_program_name =
         (address_family == AF_INET) ? "authorize_recv_accept4" : "authorize_recv_accept6";
     bpf_program* recv_accept_program = bpf_object__find_program_by_name(object, recv_accept_program_name);
-    REQUIRE(recv_accept_program != nullptr);
+    SAFE_REQUIRE(recv_accept_program != nullptr);
 
     PSOCKADDR local_address = nullptr;
     int local_address_length = 0;
@@ -74,14 +92,14 @@ connection_test(
     tuple.protocol = protocol;
 
     bpf_map* ingress_connection_policy_map = bpf_object__find_map_by_name(object, "ingress_connection_policy_map");
-    REQUIRE(ingress_connection_policy_map != nullptr);
+    SAFE_REQUIRE(ingress_connection_policy_map != nullptr);
     bpf_map* egress_connection_policy_map = bpf_object__find_map_by_name(object, "egress_connection_policy_map");
-    REQUIRE(egress_connection_policy_map != nullptr);
+    SAFE_REQUIRE(egress_connection_policy_map != nullptr);
 
     // Update ingress and egress policy to block loopback packet on test port.
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-    REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
-    REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
 
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
@@ -91,7 +109,7 @@ connection_test(
         (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
     int result =
         bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program)), 0, connect_attach_type, 0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
@@ -110,14 +128,14 @@ connection_test(
 
     // Update egress policy to allow packet.
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(egress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
 
     // Attach the receive/accept program at BPF_CGROUP_INET4_RECV_ACCEPT.
     bpf_attach_type recv_accept_attach_type =
         (address_family == AF_INET) ? BPF_CGROUP_INET4_RECV_ACCEPT : BPF_CGROUP_INET6_RECV_ACCEPT;
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept_program)), 0, recv_accept_attach_type, 0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Resend the packet. This time, it should be dropped by the receive/accept program.
     sender_socket.send_message_to_remote_host(message, destination_address, SOCKET_TEST_PORT);
@@ -127,7 +145,7 @@ connection_test(
 
     // Update ingress policy to allow packet.
     verdict = BPF_SOCK_ADDR_VERDICT_PROCEED;
-    REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(ingress_connection_policy_map), &tuple, &verdict, EBPF_ANY) == 0);
 
     // Resend the packet. This time, it should be allowed by both the programs and the packet should reach loopback the
     // destination.
@@ -176,84 +194,84 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
 
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* connect4_program = bpf_object__find_program_by_name(object, "authorize_connect4");
-    REQUIRE(connect4_program != nullptr);
+    SAFE_REQUIRE(connect4_program != nullptr);
 
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect4_program)),
         UNSPECIFIED_COMPARTMENT_ID,
         BPF_CGROUP_INET4_CONNECT,
         0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     ZeroMemory(&program_info, program_info_size);
-    REQUIRE(
+    SAFE_REQUIRE(
         bpf_obj_get_info_by_fd(
             bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), &program_info, &program_info_size) == 0);
-    REQUIRE(program_info.link_count == 1);
-    REQUIRE(program_info.map_ids == 0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
 
     result = bpf_prog_detach(UNSPECIFIED_COMPARTMENT_ID, BPF_CGROUP_INET4_CONNECT);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     ZeroMemory(&program_info, program_info_size);
-    REQUIRE(
+    SAFE_REQUIRE(
         bpf_obj_get_info_by_fd(
             bpf_program__fd(const_cast<const bpf_program*>(connect4_program)), &program_info, &program_info_size) == 0);
-    REQUIRE(program_info.link_count == 0);
+    SAFE_REQUIRE(program_info.link_count == 0);
 
     bpf_program* recv_accept4_program = bpf_object__find_program_by_name(object, "authorize_recv_accept4");
-    REQUIRE(recv_accept4_program != nullptr);
+    SAFE_REQUIRE(recv_accept4_program != nullptr);
 
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)),
         UNSPECIFIED_COMPARTMENT_ID,
         BPF_CGROUP_INET4_RECV_ACCEPT,
         0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
-    REQUIRE(
+    SAFE_REQUIRE(
         bpf_obj_get_info_by_fd(
             bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)), &program_info, &program_info_size) ==
         0);
-    REQUIRE(program_info.link_count == 1);
-    REQUIRE(program_info.map_ids == 0);
+    SAFE_REQUIRE(program_info.link_count == 1);
+    SAFE_REQUIRE(program_info.map_ids == 0);
 
     result = bpf_prog_detach2(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)),
         UNSPECIFIED_COMPARTMENT_ID,
         BPF_CGROUP_INET4_RECV_ACCEPT);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
-    REQUIRE(
+    SAFE_REQUIRE(
         bpf_obj_get_info_by_fd(
             bpf_program__fd(const_cast<const bpf_program*>(recv_accept4_program)), &program_info, &program_info_size) ==
         0);
-    REQUIRE(program_info.link_count == 0);
+    SAFE_REQUIRE(program_info.link_count == 0);
 
     bpf_program* connect6_program = bpf_object__find_program_by_name(object, "authorize_connect6");
-    REQUIRE(connect6_program != nullptr);
+    SAFE_REQUIRE(connect6_program != nullptr);
 
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect6_program)),
         DEFAULT_COMPARTMENT_ID,
         BPF_CGROUP_INET6_CONNECT,
         0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     bpf_program* recv_accept6_program = bpf_object__find_program_by_name(object, "authorize_recv_accept6");
-    REQUIRE(recv_accept6_program != nullptr);
+    SAFE_REQUIRE(recv_accept6_program != nullptr);
 
     result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(recv_accept6_program)),
         DEFAULT_COMPARTMENT_ID,
         BPF_CGROUP_INET6_RECV_ACCEPT,
         0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 }
 
 void
@@ -269,16 +287,16 @@ connection_monitor_test(
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
 
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     // Ring buffer event callback context.
     std::unique_ptr<ring_buffer_test_event_context_t> context = std::make_unique<ring_buffer_test_event_context_t>();
     context->test_event_count = disconnect ? 4 : 2;
 
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
-    REQUIRE(_program != nullptr);
+    SAFE_REQUIRE(_program != nullptr);
 
     uint64_t process_id = get_current_pid_tgid();
     // Ignore the thread Id.
@@ -354,25 +372,25 @@ connection_monitor_test(
 
     // Create a new ring buffer manager and subscribe to ring buffer events.
     bpf_map* ring_buffer_map = bpf_object__find_map_by_name(object, "audit_map");
-    REQUIRE(ring_buffer_map != nullptr);
+    SAFE_REQUIRE(ring_buffer_map != nullptr);
     context->ring_buffer = ring_buffer__new(
         bpf_map__fd(ring_buffer_map), (ring_buffer_sample_fn)ring_buffer_test_event_handler, context.get(), nullptr);
-    REQUIRE(context->ring_buffer != nullptr);
+    SAFE_REQUIRE(context->ring_buffer != nullptr);
 
     bpf_map* connection_map = bpf_object__find_map_by_name(object, "connection_map");
-    REQUIRE(connection_map != nullptr);
+    SAFE_REQUIRE(connection_map != nullptr);
 
     // Update connection map with loopback packet tuples.
     uint32_t verdict = BPF_SOCK_ADDR_VERDICT_REJECT;
-    REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &tuple, &verdict, EBPF_ANY) == 0);
-    REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &reverse_tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &tuple, &verdict, EBPF_ANY) == 0);
+    SAFE_REQUIRE(bpf_map_update_elem(bpf_map__fd(connection_map), &reverse_tuple, &verdict, EBPF_ANY) == 0);
 
     // Post an asynchronous receive on the receiver socket.
     receiver_socket.post_async_receive();
 
     // Attach the sockops program.
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Send loopback message to test port.
     const char* message = CLIENT_MESSAGE;
@@ -392,7 +410,7 @@ connection_monitor_test(
     }
 
     // Wait for event handler getting notifications for all connection audit events.
-    REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+    SAFE_REQUIRE(ring_buffer_event_callback.wait_for(1s) == std::future_status::ready);
 
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
@@ -471,15 +489,15 @@ TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
 
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     bpf_program* _program = bpf_object__find_program_by_name(object, "connection_monitor");
-    REQUIRE(_program != nullptr);
+    SAFE_REQUIRE(_program != nullptr);
 
     int result = bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(_program)), 0, BPF_CGROUP_SOCK_OPS, 0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 }
 
 // This function populates map polcies for multi-attach tests.
@@ -508,7 +526,7 @@ _update_map_entry_multi_attach(
     value.destination_port = proxy_port;
 
     if (add) {
-        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+        SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     } else {
         bpf_map_delete_elem(map_fd, &key);
     }
@@ -555,7 +573,7 @@ validate_connection_multi_attach(
     } else if (protocol == IPPROTO_TCP) {
         receiver_socket = new stream_server_socket_t(SOCK_STREAM, IPPROTO_TCP, receiver_port);
     } else {
-        REQUIRE(false);
+        SAFE_REQUIRE(false);
     }
     get_client_socket(family, protocol, &sender_socket);
 
@@ -617,12 +635,12 @@ multi_attach_test_common(
 
     const char* connect_program_name = (address_family == AF_INET) ? "connect_redirect4" : "connect_redirect6";
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
-    REQUIRE(connect_program != nullptr);
+    SAFE_REQUIRE(connect_program != nullptr);
 
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
-    REQUIRE(policy_map != nullptr);
+    SAFE_REQUIRE(policy_map != nullptr);
     fd_t map_fd = bpf_map__fd(policy_map);
-    REQUIRE(map_fd != ebpf_fd_invalid);
+    SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
     // Deleting the map entry will result in the program blocking the connection.
@@ -651,7 +669,7 @@ multi_attach_test_common(
 
         // Detach the program.
         int result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, attach_type);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
 
         // The packet should now be allowed.
         validate_connection_multi_attach(
@@ -660,7 +678,7 @@ multi_attach_test_common(
         // Re-attach the program.
         result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
 
         // The packet should be blocked.
         validate_connection_multi_attach(
@@ -695,9 +713,9 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         helpers[i].initialize("cgroup_sock_addr2");
         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
-        REQUIRE(objects[i] != nullptr);
+        SAFE_REQUIRE(objects[i] != nullptr);
         object_ptrs[i] = bpf_object_ptr(objects[i]);
-        REQUIRE(bpf_object__load(objects[i]) == 0);
+        SAFE_REQUIRE(bpf_object__load(objects[i]) == 0);
     }
 
     const char* connect_program_name = (address_family == AF_INET) ? "connect_redirect4" : "connect_redirect6";
@@ -705,18 +723,18 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     // Attach all the programs to the same hook (i.e. same attach parameters).
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
-        REQUIRE(connect_program != nullptr);
+        SAFE_REQUIRE(connect_program != nullptr);
         int result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
     }
 
     // Configure policy maps for all programs to "allow" the connection.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         bpf_map* policy_map = bpf_object__find_map_by_name(objects[i], "policy_map");
-        REQUIRE(policy_map != nullptr);
+        SAFE_REQUIRE(policy_map != nullptr);
         fd_t map_fd = bpf_map__fd(policy_map);
-        REQUIRE(map_fd != ebpf_fd_invalid);
+        SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
         _update_map_entry_multi_attach(
             map_fd, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), protocol, true);
     }
@@ -745,18 +763,18 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr2");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     bpf_object_ptr object_ptr(object);
 
     // Load the programs.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     // Attach the connect program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
     bpf_program* connect_program = bpf_object__find_program_by_name(object, connect_program_name);
-    REQUIRE(connect_program != nullptr);
+    SAFE_REQUIRE(connect_program != nullptr);
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id + 2, attach_type, 0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Not updating policy map for this program should mean that this program (if invoked) will block the connection.
     // Validate that the connection is allowed.
@@ -781,18 +799,18 @@ multi_attach_test_redirection(
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         helpers[i].initialize("cgroup_sock_addr2");
         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
-        REQUIRE(objects[i] != nullptr);
+        SAFE_REQUIRE(objects[i] != nullptr);
         object_ptrs[i] = bpf_object_ptr(objects[i]);
-        REQUIRE(bpf_object__load(objects[i]) == 0);
+        SAFE_REQUIRE(bpf_object__load(objects[i]) == 0);
     }
 
     // Attach all the 3 programs to the same hook (i.e. same attach parameters).
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
-        REQUIRE(connect_program != nullptr);
+        SAFE_REQUIRE(connect_program != nullptr);
         int result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
     }
 
     // Lambda function to update the policy map entry, and validate the connection.
@@ -800,9 +818,9 @@ multi_attach_test_redirection(
         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
             // Configure ith program to redirect the connection. Configure all other programs to "allow" the connection.
             bpf_map* policy_map = bpf_object__find_map_by_name(objects[i], "policy_map");
-            REQUIRE(policy_map != nullptr);
+            SAFE_REQUIRE(policy_map != nullptr);
             fd_t map_fd = bpf_map__fd(policy_map);
-            REQUIRE(map_fd != ebpf_fd_invalid);
+            SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
 
             if (i != program_index) {
                 _update_map_entry_multi_attach(
@@ -823,9 +841,9 @@ multi_attach_test_redirection(
             // If this is not the first program, configure the preceding program to block the connection.
             // That should result in the connection being blocked.
             bpf_map* policy_map = bpf_object__find_map_by_name(objects[program_index - 1], "policy_map");
-            REQUIRE(policy_map != nullptr);
+            SAFE_REQUIRE(policy_map != nullptr);
             fd_t map_fd = bpf_map__fd(policy_map);
-            REQUIRE(map_fd != ebpf_fd_invalid);
+            SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
 
             _update_map_entry_multi_attach(
                 map_fd, address_family, htons(destination_port), htons(destination_port), protocol, false);
@@ -840,11 +858,11 @@ multi_attach_test_redirection(
             // Now detach the preceding program, and validate that the connection is allowed.
             bpf_program* connect_program =
                 bpf_object__find_program_by_name(objects[program_index - 1], connect_program_name);
-            REQUIRE(connect_program != nullptr);
+            SAFE_REQUIRE(connect_program != nullptr);
 
             int result = bpf_prog_detach2(
                 bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type);
-            REQUIRE(result == 0);
+            SAFE_REQUIRE(result == 0);
 
             // The connection should now be allowed.
             validate_connection_multi_attach(
@@ -861,17 +879,17 @@ multi_attach_test_redirection(
         // Reset the whole state by detaching and re-attaching all the programs in-order.
         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
             bpf_program* program = bpf_object__find_program_by_name(objects[i], connect_program_name);
-            REQUIRE(program != nullptr);
+            SAFE_REQUIRE(program != nullptr);
             bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, attach_type);
         }
 
         // Re-attach the programs in-order.
         for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
             bpf_program* program = bpf_object__find_program_by_name(objects[i], connect_program_name);
-            REQUIRE(program != nullptr);
+            SAFE_REQUIRE(program != nullptr);
             int result = bpf_prog_attach(
                 bpf_program__fd(const_cast<const bpf_program*>(program)), compartment_id, attach_type, 0);
-            REQUIRE(result == 0);
+            SAFE_REQUIRE(result == 0);
         }
 
         // Validate that the connection is again allowed.
@@ -882,10 +900,10 @@ multi_attach_test_redirection(
             // That should result in the connection still be redirected.
 
             bpf_map* policy_map = bpf_object__find_map_by_name(objects[program_index + 1], "policy_map");
-            REQUIRE(policy_map != nullptr);
+            SAFE_REQUIRE(policy_map != nullptr);
 
             fd_t map_fd = bpf_map__fd(policy_map);
-            REQUIRE(map_fd != ebpf_fd_invalid);
+            SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
 
             // Delete the map entry to block the connection.
             _update_map_entry_multi_attach(
@@ -999,9 +1017,9 @@ multi_attach_configure_map(
     program_action_t action)
 {
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
-    REQUIRE(policy_map != nullptr);
+    SAFE_REQUIRE(policy_map != nullptr);
     fd_t map_fd = bpf_map__fd(policy_map);
-    REQUIRE(map_fd != ebpf_fd_invalid);
+    SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
 
     if (action == ACTION_ALLOW) {
         _update_map_entry_multi_attach(
@@ -1017,14 +1035,14 @@ multi_attach_configure_map(
 
         _update_map_entry_multi_attach(map_fd, address_family, htons(proxy_port), htons(proxy_port), protocol, false);
     } else {
-        REQUIRE(false);
+        SAFE_REQUIRE(false);
     }
 }
 
 static program_action_t
 _multi_attach_get_combined_verdict(program_action_t* actions, uint32_t count)
 {
-    REQUIRE(count % 2 == 0);
+    SAFE_REQUIRE(count % 2 == 0);
 
     for (uint32_t i = 0; i < count; i++) {
         if (actions[i] == ACTION_BLOCK) {
@@ -1058,9 +1076,9 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
     for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
         helpers[i].initialize("cgroup_sock_addr2");
         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
-        REQUIRE(objects[i] != nullptr);
+        SAFE_REQUIRE(objects[i] != nullptr);
         object_ptrs[i] = bpf_object_ptr(objects[i]);
-        REQUIRE(bpf_object__load(objects[i]) == 0);
+        SAFE_REQUIRE(bpf_object__load(objects[i]) == 0);
     }
 
     const char* connect_program_name = (address_family == AF_INET) ? "connect_redirect4" : "connect_redirect6";
@@ -1068,13 +1086,13 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
     // Attach all the programs.
     for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
         bpf_program* connect_program = bpf_object__find_program_by_name(objects[i], connect_program_name);
-        REQUIRE(connect_program != nullptr);
+        SAFE_REQUIRE(connect_program != nullptr);
         int result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)),
             i < program_count_per_hook ? 1 : UNSPECIFIED_COMPARTMENT_ID,
             attach_type,
             0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
     }
 
     // This loop will iterate over all the possible combinations of program actions for each program.
@@ -1101,7 +1119,7 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
                 family, address_family, proxy_port, destination_port, protocol, RESULT_DROP);
             break;
         default:
-            REQUIRE(false);
+            SAFE_REQUIRE(false);
         }
 
         // Increment the program actions.
@@ -1227,27 +1245,27 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
     struct bpf_object* object_specific = bpf_object__open(native_helpers_specific.get_file_name().c_str());
-    REQUIRE(object_specific != nullptr);
+    SAFE_REQUIRE(object_specific != nullptr);
     bpf_object_ptr object_specific_ptr(object_specific);
 
     struct bpf_object* object_wildcard = bpf_object__open(native_helpers_wildcard.get_file_name().c_str());
-    REQUIRE(object_wildcard != nullptr);
+    SAFE_REQUIRE(object_wildcard != nullptr);
     bpf_object_ptr object_wildcard_ptr(object_wildcard);
 
     // Load the programs.
-    REQUIRE(bpf_object__load(object_specific) == 0);
-    REQUIRE(bpf_object__load(object_wildcard) == 0);
+    SAFE_REQUIRE(bpf_object__load(object_specific) == 0);
+    SAFE_REQUIRE(bpf_object__load(object_wildcard) == 0);
 
     bpf_program* connect_program_specific = bpf_object__find_program_by_name(object_specific, "connect_redirect4");
-    REQUIRE(connect_program_specific != nullptr);
+    SAFE_REQUIRE(connect_program_specific != nullptr);
 
     bpf_program* connect_program_wildcard = bpf_object__find_program_by_name(object_wildcard, "connect_redirect4");
-    REQUIRE(connect_program_wildcard != nullptr);
+    SAFE_REQUIRE(connect_program_wildcard != nullptr);
 
     // Attach the program with specific compartment id first.
     result =
         bpf_prog_attach(bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, attach_type, 0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Attach the program with wildcard compartment id next.
     result = bpf_prog_attach(
@@ -1255,23 +1273,23 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
         UNSPECIFIED_COMPARTMENT_ID,
         attach_type,
         0);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // First configure both the programs to allow the connection.
     bpf_map* policy_map_specific = bpf_object__find_map_by_name(object_specific, "policy_map");
-    REQUIRE(policy_map_specific != nullptr);
+    SAFE_REQUIRE(policy_map_specific != nullptr);
 
     fd_t map_fd_specific = bpf_map__fd(policy_map_specific);
-    REQUIRE(map_fd_specific != ebpf_fd_invalid);
+    SAFE_REQUIRE(map_fd_specific != ebpf_fd_invalid);
 
     _update_map_entry_multi_attach(
         map_fd_specific, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, true);
 
     bpf_map* policy_map_wildcard = bpf_object__find_map_by_name(object_wildcard, "policy_map");
-    REQUIRE(policy_map_wildcard != nullptr);
+    SAFE_REQUIRE(policy_map_wildcard != nullptr);
 
     fd_t map_fd_wildcard = bpf_map__fd(policy_map_wildcard);
-    REQUIRE(map_fd_wildcard != ebpf_fd_invalid);
+    SAFE_REQUIRE(map_fd_wildcard != ebpf_fd_invalid);
 
     _update_map_entry_multi_attach(
         map_fd_wildcard, address_family, htons(SOCKET_TEST_PORT), htons(SOCKET_TEST_PORT), IPPROTO_TCP, true);
@@ -1375,7 +1393,7 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     // Detach the program with specific compartment id.
     result =
         bpf_prog_detach2(bpf_program__fd(const_cast<const bpf_program*>(connect_program_specific)), 1, attach_type);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Since the specific program is now detached, the connection should be correctly redirected by wildcard program.
     validate_connection_multi_attach(
@@ -1421,25 +1439,25 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr2");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     bpf_object_ptr object_ptr(object);
     uint32_t count = 0;
     ADDRESS_FAMILY address_family = AF_INET;
 
     bpf_program* connect_program = bpf_object__find_program_by_name(object, "connect_redirect4");
-    REQUIRE(connect_program != nullptr);
+    SAFE_REQUIRE(connect_program != nullptr);
 
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
     // Load the program.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     // Configure policy map to allow the connection (TCP and UDP).
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
-    REQUIRE(policy_map != nullptr);
+    SAFE_REQUIRE(policy_map != nullptr);
 
     fd_t map_fd = bpf_map__fd(policy_map);
-    REQUIRE(map_fd != ebpf_fd_invalid);
+    SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
 
     _update_map_entry_multi_attach(
         map_fd, address_family, htons(destination_port), htons(destination_port), IPPROTO_TCP, true);
@@ -1451,12 +1469,12 @@ thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, ui
         // Attach and detach the program in a loop.
         int result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
         result = bpf_prog_detach2(bpf_program__fd(connect_program), compartment_id, attach_type);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
@@ -1478,31 +1496,31 @@ thread_function_allow_block_connection(
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr2");
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
-    REQUIRE(object != nullptr);
+    SAFE_REQUIRE(object != nullptr);
     bpf_object_ptr object_ptr(object);
     uint32_t count = 0;
     socket_family_t family = socket_family_t::Dual;
 
     bpf_program* connect_program = bpf_object__find_program_by_name(object, "connect_redirect4");
-    REQUIRE(connect_program != nullptr);
+    SAFE_REQUIRE(connect_program != nullptr);
 
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
 
     // Load the program.
-    REQUIRE(bpf_object__load(object) == 0);
+    SAFE_REQUIRE(bpf_object__load(object) == 0);
 
     // Attach the program at BPF_CGROUP_INET4_CONNECT / BPF_CGROUP_INET6_CONNECT.
     int result = bpf_prog_attach(
         bpf_program__fd(const_cast<const bpf_program*>(connect_program)), compartment_id, attach_type, 0);
 
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
     // Configure policy map to allow the connection.
     bpf_map* policy_map = bpf_object__find_map_by_name(object, "policy_map");
-    REQUIRE(policy_map != nullptr);
+    SAFE_REQUIRE(policy_map != nullptr);
 
     fd_t map_fd = bpf_map__fd(policy_map);
-    REQUIRE(map_fd != ebpf_fd_invalid);
+    SAFE_REQUIRE(map_fd != ebpf_fd_invalid);
 
     // Since the default policy is to block the connection, update the policy map to allow the connection for the
     // "other" protocol. This will ensure this program does not interfere with the connections for the second thread
@@ -1546,37 +1564,46 @@ thread_function_allow_block_connection(
 
 void
 multi_attach_test_thread_function1(
-    std::stop_token token, uint32_t index, ADDRESS_FAMILY address_family, uint16_t destination_port)
+    std::stop_token token,
+    uint32_t index,
+    ADDRESS_FAMILY address_family,
+    uint16_t destination_port,
+    std::atomic<bool>& failed)
 {
     // Get the mode.
     uint32_t mode = index % 7;
     uint32_t default_compartment = 1;
     uint32_t unspecified_compartment = 0;
 
-    switch (mode) {
-    case 0:
-        __fallthrough;
-        // break;
-    case 1:
-        thread_function_invoke_connection(token, address_family, destination_port);
-        break;
-    case 2:
-        thread_function_attach_detach(token, unspecified_compartment, destination_port);
-        break;
-    case 3:
-        thread_function_attach_detach(token, default_compartment, destination_port);
-        break;
-    case 4:
-        thread_function_attach_detach(token, default_compartment, destination_port);
-        break;
-    case 5:
-        thread_function_allow_block_connection(
-            token, address_family, IPPROTO_TCP, destination_port, default_compartment);
-        break;
-    case 6:
-        thread_function_allow_block_connection(
-            token, address_family, IPPROTO_UDP, destination_port, default_compartment);
-        break;
+    try {
+        switch (mode) {
+        case 0:
+            __fallthrough;
+            // break;
+        case 1:
+            thread_function_invoke_connection(token, address_family, destination_port);
+            break;
+        case 2:
+            thread_function_attach_detach(token, unspecified_compartment, destination_port);
+            break;
+        case 3:
+            thread_function_attach_detach(token, default_compartment, destination_port);
+            break;
+        case 4:
+            thread_function_attach_detach(token, default_compartment, destination_port);
+            break;
+        case 5:
+            thread_function_allow_block_connection(
+                token, address_family, IPPROTO_TCP, destination_port, default_compartment);
+            break;
+        case 6:
+            thread_function_allow_block_connection(
+                token, address_family, IPPROTO_UDP, destination_port, default_compartment);
+            break;
+        }
+    } catch (const test_failure& e) {
+        std::cerr << "Thread " << std::this_thread::get_id() << " failed: " << e.message << std::endl;
+        failed = true;
     }
 }
 
@@ -1593,9 +1620,12 @@ TEST_CASE("multi_attach_concurrency_test1", "[multi_attach_tests][concurrent_tes
     std::vector<std::jthread> threads;
     uint32_t thread_count = 7;
     uint32_t thread_run_time = 60;
+    std::atomic<bool> failed;
 
     for (uint32_t i = 0; i < thread_count; i++) {
-        threads.emplace_back(multi_attach_test_thread_function1, i, (ADDRESS_FAMILY)AF_INET, destination_port);
+        // Can only pass variables by value, not by references, hence the need for the shared_ptr<bool>.
+        threads.emplace_back(
+            multi_attach_test_thread_function1, i, (ADDRESS_FAMILY)AF_INET, destination_port, std::ref(failed));
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(thread_run_time));
@@ -1607,29 +1637,40 @@ TEST_CASE("multi_attach_concurrency_test1", "[multi_attach_tests][concurrent_tes
     for (auto& thread : threads) {
         thread.join();
     }
+
+    SAFE_REQUIRE(!failed);
 }
 
 void
 multi_attach_test_thread_function2(
-    std::stop_token token, uint32_t index, ADDRESS_FAMILY address_family, uint16_t destination_port)
+    std::stop_token token,
+    uint32_t index,
+    ADDRESS_FAMILY address_family,
+    uint16_t destination_port,
+    std::atomic<bool>& failed)
 {
     // Get the mode.
     uint32_t mode = index % 7;
     uint32_t default_compartment = 1;
     uint32_t unspecified_compartment = 0;
 
-    switch (mode) {
-    case 0:
-        __fallthrough;
-    case 1:
-        thread_function_invoke_connection(token, address_family, destination_port);
-        break;
-    case 2:
-        thread_function_attach_detach(token, default_compartment, destination_port);
-        break;
-    case 3:
-        thread_function_attach_detach(token, unspecified_compartment, destination_port);
-        break;
+    try {
+        switch (mode) {
+        case 0:
+            __fallthrough;
+        case 1:
+            thread_function_invoke_connection(token, address_family, destination_port);
+            break;
+        case 2:
+            thread_function_attach_detach(token, default_compartment, destination_port);
+            break;
+        case 3:
+            thread_function_attach_detach(token, unspecified_compartment, destination_port);
+            break;
+        }
+    } catch (const test_failure& e) {
+        std::cerr << "Thread " << std::this_thread::get_id() << " failed: " << e.message << std::endl;
+        failed = true;
     }
 }
 
@@ -1646,9 +1687,12 @@ TEST_CASE("multi_attach_concurrency_test2", "[multi_attach_tests][concurrent_tes
     std::vector<std::jthread> threads;
     uint32_t thread_count = 4;
     uint32_t thread_run_time = 60;
+    std::atomic<bool> failed = false;
 
     for (uint32_t i = 0; i < thread_count; i++) {
-        threads.emplace_back(multi_attach_test_thread_function2, i, (ADDRESS_FAMILY)AF_INET, destination_port);
+        // Can only pass variables by value, not by references, hence the need for the shared_ptr<bool>.
+        threads.emplace_back(
+            multi_attach_test_thread_function2, i, (ADDRESS_FAMILY)AF_INET, destination_port, std::ref(failed));
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(thread_run_time));
@@ -1660,12 +1704,16 @@ TEST_CASE("multi_attach_concurrency_test2", "[multi_attach_tests][concurrent_tes
     for (auto& thread : threads) {
         thread.join();
     }
+
+    SAFE_REQUIRE(!failed);
 }
 
 int
 main(int argc, char* argv[])
 {
     WSAData data;
+
+    _is_main_thread = true;
 
     int error = WSAStartup(2, &data);
     if (error != 0) {
