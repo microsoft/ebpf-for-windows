@@ -642,7 +642,8 @@ extern "C"
      * @param[in] bpf_attach_type BPF attach type.
      * @param[out] ebpf_attach_type eBPF attach type or GUID_NULL.
      *
-     * @returns EBPF_INVALID_ARGUMENT if attach type is unknown, EBPF_SUCCESS otherwise.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The attach type is unknown.
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type, _Out_ ebpf_attach_type_t* ebpf_attach_type)
