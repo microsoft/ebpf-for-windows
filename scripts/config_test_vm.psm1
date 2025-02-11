@@ -476,14 +476,45 @@ function Import-ResultsFromVM
                 }
                 Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
 
-                Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
-                wpr.exe -stop $WorkingDirectory\$EtlFile
+                $EtlFilePath = "$WorkingDirectory\$EtlFile"
+                Write-Log "Stop KM ETW tracing, create ETL file: $EtlFilePath"
+                wpr.exe -stop $EtlFilePath
 
                 $EtlFileSize = (Get-ChildItem $WorkingDirectory\$EtlFile).Length/1MB
                 Write-Log "ETL file Size: $EtlFileSize MB"
 
-                Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                Write-Log "Compressing $EtlFilePath"
+                $EtlZipPath = "$WorkingDirectory\$EtlFile.zip"
+
+                $RetryCount = 3
+                $RetryInterval = 5 # seconds
+                for ($i = 1; $i -le $RetryCount; $i++) {
+                    Write-Log "Attempt $i Compressing kernel trace files: $EtlFilePath -> $EtlZipPath"
+
+                    # Remove it if it exists - it must have been left over from a previous run.
+                    if (Test-Path $EtlZipPath) {
+                        Remove-Item -Path $EtlZipPath -Force
+                    }
+                    Compress-File -SourcePath $EtlFilePath -DestinationPath $EtlZipPath -ErrorAction Ignore
+
+                    if (Test-Path $EtlZipPath -PathType Leaf) {
+                        $CompressedEtlFile = Get-ChildItem -Path $EtlZipPath
+                        Write-Log "Found compressed kernel mode trace file in $($EtlZipPath)"
+                        Write-Log "`tName:$($CompressedEtlFile.Name), Size:$((($CompressedEtlFile.Length) / 1MB).ToString("F2")) MB"
+                        break
+                    } else {
+                        if ($i -lt $RetryCount) {
+                            Write-Log "*** ERROR *** kernel mode trace compressed file not found. Retrying in $RetryInterval seconds..."
+                            Start-Sleep -Seconds $RetryInterval
+                        } else {
+                            $ErrorMessage = "*** ERROR *** kernel mode trace compressed file not found after $RetryCount attempts.`n`n"
+                            Write-Log $ErrorMessage
+                            # TODO - consider throwing an exception here.
+                            # throw $ErrorMessage
+                        }
+                    }
+            }
+
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
             # Copy ETL from Test VM.

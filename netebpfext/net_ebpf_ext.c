@@ -395,6 +395,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 
     return callout_id;
 }
+
 void
 net_ebpf_extension_delete_wfp_filters(
     _In_ HANDLE wfp_engine_handle,
@@ -407,6 +408,7 @@ net_ebpf_extension_delete_wfp_filters(
     ASSERT(wfp_engine_handle != NULL);
 
     for (uint32_t index = 0; index < filter_count; index++) {
+        filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
@@ -420,7 +422,6 @@ net_ebpf_extension_delete_wfp_filters(
                 "Marked WFP filter for deletion: ",
                 index,
                 filter_ids[index].id);
-            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         }
     }
     NET_EBPF_EXT_LOG_EXIT();
