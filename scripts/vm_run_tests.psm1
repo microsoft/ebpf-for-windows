@@ -687,7 +687,10 @@ function Run-KernelTestsOnVM
           [Parameter(Mandatory = $true)] [PSCustomObject] $Config)
 
     # Debug tracing
-    netsh trace start sessionname=maige_debug tracefile=C:\ebpf\maige_debug.etl provider='{394f321c-5cf4-404c-aa34-4df1428a7f9c}' level=0xff keywords=0xfffff provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff report=di ov=yes
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        netsh trace start sessionname=maige_debug tracefile=C:\ebpf\maige_debug.etl provider='{394f321c-5cf4-404c-aa34-4df1428a7f9c}' level=0xff keywords=0xfffff provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff report=di ov=yes
+    } -ErrorAction Stop
 
     # Run CICD tests on test VM.
     Invoke-CICDTestsOnVM `
@@ -718,7 +721,10 @@ function Run-KernelTestsOnVM
             -VMName $VMName
     }
 
-    netsh trace stop sessionname=maige_debug
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        netsh trace stop sessionname=maige_debug
+    } -ErrorAction Stop
 }
 
 Pop-Location
