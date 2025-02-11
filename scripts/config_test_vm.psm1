@@ -337,19 +337,34 @@ function Compress-KernelModeDumpOnVM
                 Write-Log "`tName:$($DumpFile.Name), Size:$((($DumpFile.Length) / 1MB).ToString("F2")) MB"
             }
 
-            Write-Log `
-                "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
+            $RetryCount = 3
+            $RetryInterval = 5 # seconds
 
-            Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $KernelModeDumpFileDestinationPath\km_dumps.zip
-            if (Test-Path $KernelModeDumpFileDestinationPath\km_dumps.zip -PathType Leaf) {
-                $CompressedDumpFile = get-childitem -Path $KernelModeDumpFileDestinationPath\km_dumps.zip
-                Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
-                Write-Log `
-                    "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
-            } else {
-                $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found.`n`n"
-                Write-Log $ErrorMessage
-                throw $ErrorMessage
+            for ($i = 1; $i -le $RetryCount; $i++) {
+                Write-Log "Attempt $i: Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
+
+                $compressedFilePath = "$KernelModeDumpFileDestinationPath\km_dumps.zip"
+                # Remove it if it exists - it must have been left over from a previous run.
+                if (Test-Path $compressedFilePath) {
+                    Remove-Item -Path $compressedFilePath -Force
+                }
+                Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $compressedFilePath -ErrorAction Ignore
+
+                if (Test-Path $compressedFilePath -PathType Leaf) {
+                    $CompressedDumpFile = Get-ChildItem -Path $compressedFilePath
+                    Write-Log "Found compressed kernel mode dump file in $($compressedFilePath):"
+                    Write-Log "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
+                    break
+                } else {
+                    if ($i -lt $RetryCount) {
+                        Write-Log "*** ERROR *** kernel mode dump compressed file not found. Retrying in $RetryInterval seconds..."
+                        Start-Sleep -Seconds $RetryInterval
+                    } else {
+                        $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found after $RetryCount attempts.`n`n"
+                        Write-Log $ErrorMessage
+                        throw $ErrorMessage
+                    }
+                }
             }
         } else {
             Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
