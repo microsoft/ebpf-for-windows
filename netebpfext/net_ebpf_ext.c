@@ -855,6 +855,7 @@ net_ebpf_ext_filter_change_notify(
         for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
             net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
             if (cur_filter_id->id == filter->filterId) {
+                cur_filter_id->notify_deleted = true;
                 cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
                 NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -862,7 +863,6 @@ net_ebpf_ext_filter_change_notify(
                     "Deleted WFP filter: ",
                     index,
                     cur_filter_id->id);
-
                 break;
             }
         }

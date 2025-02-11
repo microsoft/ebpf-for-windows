@@ -121,6 +121,7 @@ typedef struct _net_ebpf_ext_wfp_filter_id
     uint64_t id;
     net_ebpf_ext_wfp_filter_state_t state;
     NTSTATUS error_code;
+    bool notify_deleted : 1; ///< True if the filter context has been notified of deletion.
 } net_ebpf_ext_wfp_filter_id_t;
 
 typedef struct _net_ebpf_extension_wfp_filter_context
