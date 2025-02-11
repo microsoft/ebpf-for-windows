@@ -33,6 +33,8 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 #define MULTIPLE_ATTACH_PROGRAM_COUNT 3
 
+thread_local bool _is_main_thread = false;
+
 void
 connection_test(
     ADDRESS_FAMILY address_family,

@@ -7,7 +7,6 @@
  */
 
 #include "catch_wrapper.hpp"
-#include "misc_helper.h"
 #include "socket_helper.h"
 
 #define MAXIMUM_IP_BUFFER_SIZE 65
@@ -38,10 +37,11 @@ get_address_from_string(
             address.ss_family = AF_INET;
             INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
         }
-    } else {
-        SAFE_REQUIRE(address_info->ai_family == AF_INET6);
+    } else if (address_info->ai_family == AF_INET6) {
         address.ss_family = AF_INET6;
         INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
+    } else {
+        throw test_failure("Invalid address family");
     }
     if (address_family != nullptr) {
         *address_family = static_cast<ADDRESS_FAMILY>(address_info->ai_family);

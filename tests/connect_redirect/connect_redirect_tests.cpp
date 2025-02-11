@@ -24,6 +24,8 @@
 #include <mstcpip.h>
 #include <ntsecapi.h>
 
+thread_local bool _is_main_thread = false;
+
 CATCH_REGISTER_LISTENER(_watchdog)
 static std::string _family;
 static std::string _connection_type;
