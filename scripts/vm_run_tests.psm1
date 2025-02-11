@@ -686,6 +686,9 @@ function Run-KernelTestsOnVM
     param([Parameter(Mandatory = $true)] [string] $VMName,
           [Parameter(Mandatory = $true)] [PSCustomObject] $Config)
 
+    # Debug tracing
+    netsh trace start sessionname=maige_debug tracefile=C:\ebpf\maige_debug.etl provider='{394f321c-5cf4-404c-aa34-4df1428a7f9c}' level=0xff keywords=0xfffff provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff report=di ov=yes
+
     # Run CICD tests on test VM.
     Invoke-CICDTestsOnVM `
         -VMName $VMName `
@@ -714,6 +717,8 @@ function Run-KernelTestsOnVM
             -UserType "StandardUser" `
             -VMName $VMName
     }
+
+    netsh trace stop sessionname=maige_debug
 }
 
 Pop-Location

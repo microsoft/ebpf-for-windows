@@ -513,8 +513,32 @@ function Import-ResultsFromVM
                             # throw $ErrorMessage
                         }
                     }
-            }
+                }
 
+                for ($i = 1; $i -le $RetryCount; $i++) {
+                    $otherEtlFile = 'C:\ebpf\maige_debug.etl'
+                    $otherEtlZip = 'C:\ebpf\maige_debug.zip'
+                    if (Test-Path $otherETlFile) {
+                        Write-Log "Compressing $otherEtlFile"
+                        Compress-File -SourcePath $otherEtlFile -DestinationPath $otherEtlZip -ErrorAction Ignore
+                        if (Test-Path $otherEtlZip -PathType Leaf) {
+                            $CompressedEtlFile = Get-ChildItem -Path $otherEtlZip
+                            Write-Log "Found compressed kernel mode trace file in $($otherEtlZip)"
+                            Write-Log "`tName:$($CompressedEtlFile.Name), Size:$((($CompressedEtlFile.Length) / 1MB).ToString("F2")) MB"
+                            break
+                        } else {
+                            if ($i -lt $RetryCount) {
+                                Write-Log "*** ERROR *** kernel mode trace compressed file not found. Retrying in $RetryInterval seconds..."
+                                Start-Sleep -Seconds $RetryInterval
+                            } else {
+                                $ErrorMessage = "*** ERROR *** kernel mode trace compressed file not found after $RetryCount attempts.`n`n"
+                                Write-Log $ErrorMessage
+                                # TODO - consider throwing an exception here.
+                                # throw $ErrorMessage
+                            }
+                        }
+                    }
+                }
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
             # Copy ETL from Test VM.
@@ -522,6 +546,17 @@ function Import-ResultsFromVM
             Copy-Item `
                 -FromSession $VMSession `
                 -Path "$VMSystemDrive\eBPF\$EtlFile.zip" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -Recurse `
+                -Force `
+                -ErrorAction Ignore 2>&1 | Write-Log
+
+
+            # Copy ETL from Test VM.
+            Write-Log ("Copy $VMSystemDrive\eBPF\maige_debug.zip on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path "$VMSystemDrive\eBPF\maige_debug.zip" `
                 -Destination ".\TestLogs\$VMName\Logs" `
                 -Recurse `
                 -Force `
