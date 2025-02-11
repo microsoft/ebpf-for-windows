@@ -341,7 +341,7 @@ function Compress-KernelModeDumpOnVM
             $RetryInterval = 5 # seconds
 
             for ($i = 1; $i -le $RetryCount; $i++) {
-                Write-Log "Attempt $i: Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
+                Write-Log "Attempt $i Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
                 $compressedFilePath = "$KernelModeDumpFileDestinationPath\km_dumps.zip"
                 # Remove it if it exists - it must have been left over from a previous run.
@@ -352,7 +352,7 @@ function Compress-KernelModeDumpOnVM
 
                 if (Test-Path $compressedFilePath -PathType Leaf) {
                     $CompressedDumpFile = Get-ChildItem -Path $compressedFilePath
-                    Write-Log "Found compressed kernel mode dump file in $($compressedFilePath):"
+                    Write-Log "Found compressed kernel mode dump file in $($compressedFilePath)"
                     Write-Log "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
                     break
                 } else {
