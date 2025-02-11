@@ -1979,15 +1979,61 @@ _ebpf_core_protocol_get_next_pinned_program_path(
     }
     start_path.length = path_length;
     start_path.value = (uint8_t*)request->start_path;
-    next_path.length = reply_length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
+
+    result = ebpf_safe_size_t_subtract(
+        reply_length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path), &path_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    next_path.length = path_length;
     next_path.value = (uint8_t*)reply->next_path;
 
-    result =
-        ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, EBPF_OBJECT_PROGRAM, &start_path, &next_path);
+    ebpf_object_type_t object_type = EBPF_OBJECT_PROGRAM;
+    result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
 
     if (result == EBPF_SUCCESS) {
         reply->header.length =
             (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
+    }
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_core_protocol_get_next_pinned_object_path(
+    _In_ const ebpf_operation_get_next_pinned_object_path_request_t* request,
+    _Out_ ebpf_operation_get_next_pinned_object_path_reply_t* reply,
+    uint16_t reply_length)
+{
+    EBPF_LOG_ENTRY();
+    cxplat_utf8_string_t start_path;
+    cxplat_utf8_string_t next_path;
+
+    size_t path_length;
+    ebpf_result_t result = ebpf_safe_size_t_subtract(
+        request->header.length,
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_request_t, start_path),
+        &path_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    start_path.length = path_length;
+    start_path.value = (uint8_t*)request->start_path;
+
+    result = ebpf_safe_size_t_subtract(
+        reply_length, EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path), &path_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    next_path.length = path_length;
+    next_path.value = (uint8_t*)reply->next_path;
+
+    ebpf_object_type_t object_type = request->type;
+    result = ebpf_pinning_table_get_next_path(_ebpf_core_map_pinning_table, &object_type, &start_path, &next_path);
+
+    if (result == EBPF_SUCCESS) {
+        reply->header.length =
+            (uint16_t)next_path.length + EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path);
+        reply->type = object_type;
     }
     EBPF_RETURN_RESULT(result);
 }
@@ -2778,6 +2824,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         map_get_next_key_value_batch, previous_key, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(program_set_flags, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+        get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
