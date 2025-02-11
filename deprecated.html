@@ -106,11 +106,13 @@ $(function() {
 <dt>Global <a class="el" href="libbpf__legacy_8h.html#a62d680951c5e380caef2d82d97f12d9d">bpf_set_link_xdp_fd</a>  (int ifindex, int fd, __u32 flags)</dt>
 <dd><a class="anchor" id="_deprecated000007"></a>Use <a class="el" href="libbpf_8h.html#a21804429f974038fb1d68004fe3aeea5" title="Attach an XDP program to a given interface.">bpf_xdp_attach()</a> instead. </dd>
 <dt>Global <a class="el" href="ebpf__nethooks_8h.html#a26e7a8b44782fb6df0944e67db68f2ca">bpf_sock_addr_get_current_pid_tgid</a>  (bpf_sock_addr_t *ctx)</dt>
-<dd><a class="anchor" id="_deprecated000019"></a>Use bpf_get_current_pid_tgid instead. </dd>
+<dd><a class="anchor" id="_deprecated000020"></a>Use bpf_get_current_pid_tgid instead. </dd>
 <dt>Global <a class="el" href="ebpf__api_8h.html#aed9d014f75defbf41d3d5d5959908ab6">ebpf_enumerate_sections</a>  (const char *file, bool verbose, _Outptr_result_maybenull_ ebpf_section_info_t **infos, const char **error_message) EBPF_NO_EXCEPT</dt>
 <dd><a class="anchor" id="_deprecated000017"></a>Use <a class="el" href="ebpf__api_8h.html#af21dfceca347ab33d96dfa73505b80a6" title="Get list of programs and stats in an eBPF file.">ebpf_enumerate_programs()</a> instead.  </dd>
 <dt>Global <a class="el" href="ebpf__api_8h.html#a3d757981d14229ed50088f5a147e3117">ebpf_free_sections</a>  (ebpf_section_info_t *infos) EBPF_NO_EXCEPT</dt>
-<dd><a class="anchor" id="_deprecated000018"></a>Use <a class="el" href="ebpf__api_8h.html#a68208fc3713fb37cb6bb11c6da94eab9" title="Free memory returned from ebpf_enumerate_programs.">ebpf_free_programs()</a> instead. </dd>
+<dd><a class="anchor" id="_deprecated000018"></a>Use <a class="el" href="ebpf__api_8h.html#a68208fc3713fb37cb6bb11c6da94eab9" title="Free memory returned from ebpf_enumerate_programs.">ebpf_free_programs()</a> instead.  </dd>
+<dt>Global <a class="el" href="ebpf__api_8h.html#a1a4d8fb7669ae00087bd94620d993ba2">ebpf_get_next_pinned_program_path</a>  (const char *start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char *next_path) EBPF_NO_EXCEPT</dt>
+<dd><a class="anchor" id="_deprecated000019"></a>Use <a class="el" href="ebpf__api_8h.html#a70386f2e45de956a94f198e9954d7242" title="Retrieve the next pinned path of an eBPF object.">ebpf_get_next_pinned_object_path()</a> instead. </dd>
 </dl>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
