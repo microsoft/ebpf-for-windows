@@ -488,6 +488,9 @@ net_ebpf_extension_add_wfp_filters(
             filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
         }
         filter.weight.type = FWP_EMPTY; // auto-weight.
+        // BUG BUG - What happens if we fail below? Aren't we leaking a reference?
+        // It looks like the caller possibly handles cleanup appropriately - invoking CLEAN_UP on it?
+        // But we should take a look at the rundown path - how it is invoked relative to this?
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
@@ -825,6 +828,26 @@ net_ebpf_ext_filter_change_notify(
     NET_EBPF_EXT_LOG_ENTRY();
 
     UNREFERENCED_PARAMETER(filter_key);
+
+    if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Receieved DELETE filter callback for ID ",
+            filter->filterId);
+    } else if (callout_notification_type == FWPS_CALLOUT_NOTIFY_ADD_FILTER) {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Receieved ADD filter callback for ID ",
+            filter->filterId);
+    } else {
+        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Receieved OTHER TYPE filter callback for ID ",
+            filter->filterId);
+    }
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
