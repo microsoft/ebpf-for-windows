@@ -1016,11 +1016,6 @@ net_ebpf_ext_remove_client_context(
 void
 maige_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-#ifdef KERNEL_MODE
-    if (!IsListEmpty(&filter_context->debug_link)) {
-        RtlFailFast(0);
-    }
-#endif
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
     InsertHeadList(&_maige_zombie_list, &filter_context->debug_link);
     _maige_zombie_count++;
@@ -1030,11 +1025,6 @@ maige_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_co
 void
 maige_add_filter_context_to_rundown_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-#ifdef KERNEL_MODE
-    if (!IsListEmpty(&filter_context->debug_link)) {
-        RtlFailFast(0);
-    }
-#endif
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
     InsertHeadList(&_maige_rundown_list, &filter_context->debug_link);
     _maige_rundown_count++;
@@ -1049,10 +1039,6 @@ maige_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wfp_filte
         KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
         RemoveEntryList(&filter_context->debug_link);
         ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
-        // #ifdef KERNEL_MODE
-        //     } else {
-        //         RtlFailFast(0);
-        // #endif
     }
 }
 
