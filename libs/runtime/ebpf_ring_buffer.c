@@ -16,37 +16,38 @@ typedef struct _ebpf_ring_buffer
     ebpf_ring_descriptor_t* ring_descriptor;
 } ebpf_ring_buffer_t;
 
-/**
- * @brief Raise the CPU's IRQL to DISPATCH_LEVEL if it is below DISPATCH_LEVEL.
- * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
- * calling KeRaiseIrqlToDpcLevel() if it is not needed.
- *
- * @return The previous IRQL.
- */
-_IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) static inline KIRQL
-    _ring_raise_to_dispatch_if_needed()
-{
-    KIRQL old_irql = KeGetCurrentIrql();
-    if (old_irql < DISPATCH_LEVEL) {
-        old_irql = KeRaiseIrqlToDpcLevel();
-    }
-    return old_irql;
-}
-
-/**
- * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
- * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
- * calling KeLowerIrql() if it is not needed.
- *
- * @param[in] previous_irql The previous IRQL.
- */
-_IRQL_requires_(DISPATCH_LEVEL) static inline void _ring_lower_to_previous_irql(
-    _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
-{
-    if (previous_irql < DISPATCH_LEVEL) {
-        KeLowerIrql(previous_irql);
-    }
-}
+// FIXME: Temporarily removed to fix analyze issue.
+// /**
+//  * @brief Raise the CPU's IRQL to DISPATCH_LEVEL if it is below DISPATCH_LEVEL.
+//  * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
+//  * calling KeRaiseIrqlToDpcLevel() if it is not needed.
+//  *
+//  * @return The previous IRQL.
+//  */
+// _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) static inline KIRQL
+//     _ring_raise_to_dispatch_if_needed()
+// {
+//     KIRQL old_irql = KeGetCurrentIrql();
+//     if (old_irql < DISPATCH_LEVEL) {
+//         old_irql = KeRaiseIrqlToDpcLevel();
+//     }
+//     return old_irql;
+// }
+//
+// /**
+//  * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
+//  * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
+//  * calling KeLowerIrql() if it is not needed.
+//  *
+//  * @param[in] previous_irql The previous IRQL.
+//  */
+// _IRQL_requires_(DISPATCH_LEVEL) static inline void _ring_lower_to_previous_irql(
+//     _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
+// {
+//     if (previous_irql < DISPATCH_LEVEL) {
+//         KeLowerIrql(previous_irql);
+//     }
+// }
 
 inline static size_t
 _ring_record_size(size_t data_size)
@@ -342,7 +343,7 @@ ebpf_ring_buffer_reserve(
     size_t record_size = _ring_record_size(length);
     size_t padded_record_size = _ring_padded_size(record_size);
 
-    KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
+    // KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
     for (;;) {
         size_t consumer_offset =
             ReadULong64Acquire(&ring->consumer_offset); // could be NoFence (possible fail on nearly-full ringbuf)
@@ -375,7 +376,7 @@ ebpf_ring_buffer_reserve(
         } // else we lost the race and try again (but another process suceeded)
     }
 Done:
-    _ring_lower_to_previous_irql(irql_at_enter);
+    // _ring_lower_to_previous_irql(irql_at_enter);
     return result;
 }
 
