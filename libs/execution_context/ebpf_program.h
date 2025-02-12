@@ -51,10 +51,7 @@ extern "C"
 
     typedef struct _ebpf_core_code_context
     {
-        union
-        {
-            ebpf_native_code_context_t native_code_context;
-        };
+        ebpf_native_code_context_t native_code_context;
     } ebpf_core_code_context_t;
 
     typedef ebpf_result_t (*ebpf_program_entry_point_t)(void* context);

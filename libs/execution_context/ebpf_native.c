@@ -20,7 +20,7 @@
 static const uint32_t _ebpf_native_marker = 'entv';
 
 // Set this value if there is a need to block older version of the native driver.
-// Version 0.21.0 contains support for multiple loads of native module, which is
+// Version 0.21.0 contains support for multiple loads of a native module, which is
 // a breaking change for the NMR interface. Older native modules will not work
 // with the new eBPF runtime.
 static bpf2c_version_t _ebpf_minimum_version = {0, 21, 0};
@@ -277,22 +277,6 @@ _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
     ebpf_free(module);
 }
 
-/**
- * @brief Free all state for a given module.
- * @param[in] module The module to free.
- */
-static void
-_ebpf_native_clean_up_module_instance(_In_ ebpf_native_module_instance_t* instance)
-{
-    _ebpf_native_clean_up_maps(instance->maps, instance->map_count, false, true);
-    _ebpf_native_clean_up_programs(instance->programs, instance->program_count, true);
-
-    instance->maps = NULL;
-    instance->map_count = 0;
-    instance->programs = NULL;
-    instance->program_count = 0;
-}
-
 _Requires_lock_held_(module->lock) static ebpf_result_t _ebpf_native_unload(_Inout_ ebpf_native_module_t* module)
 {
     EBPF_LOG_ENTRY();
@@ -334,7 +318,7 @@ _Requires_exclusive_lock_held_(module->lock) static void _ebpf_native_acquire_re
     }
 }
 
-void
+static void
 _ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 {
     ebpf_lock_state_t state = 0;
