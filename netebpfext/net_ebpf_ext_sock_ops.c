@@ -47,12 +47,14 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_sock_ops_wf
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V4_CALLOUT,
      L"net eBPF sock_ops hook",
-     L"net eBPF sock_ops hook WFP filter"},
+     L"net eBPF sock_ops hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING},
     {&FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6,
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_FLOW_ESTABLISHED_V6_CALLOUT,
      L"net eBPF sock_ops hook",
-     L"net eBPF sock_ops hook WFP filter"}};
+     L"net eBPF sock_ops hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING}};
 
 #define NET_EBPF_SOCK_OPS_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_sock_ops_wfp_filter_parameters)
 

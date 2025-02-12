@@ -413,6 +413,12 @@ net_ebpf_extension_delete_wfp_filters(
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "Failed to marked WFP filter for deletion: ",
+                index,
+                filter_ids[index].id);
             filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
             filter_ids[index].error_code = status;
         } else {
@@ -478,8 +484,12 @@ net_ebpf_extension_add_wfp_filters(
         filter.displayData.name = (wchar_t*)filter_parameter->name;
         filter.displayData.description = (wchar_t*)filter_parameter->description;
         filter.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
-        filter.action.type =
-            filter_parameter->action_type ? filter_parameter->action_type : FWP_ACTION_CALLOUT_TERMINATING;
+        filter.action.type = filter_parameter->action_type;
+#ifdef KERNEL_MODE
+        if (filter_parameter->action_type == 0) {
+            RtlFailFast(0);
+        }
+#endif
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
@@ -857,6 +867,7 @@ net_ebpf_ext_filter_change_notify(
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
 
+        bool found = false;
         for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
             net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
             if (cur_filter_id->id == filter->filterId) {
@@ -868,9 +879,16 @@ net_ebpf_ext_filter_change_notify(
                     "Deleted WFP filter: ",
                     index,
                     cur_filter_id->id);
+                found = true;
                 break;
             }
         }
+#ifdef KERNEL_MODE
+        if (!found) {
+            // If we hit this, then it suggests that debugging info is potentially slightly wrong
+            RtlFailFast(0);
+        }
+#endif
         DEREFERENCE_FILTER_CONTEXT((filter_context));
     }
 

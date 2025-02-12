@@ -24,22 +24,26 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_bind_wfp_fi
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_RESOURCE_ALLOC_V4_CALLOUT,
      L"net eBPF bind hook",
-     L"net eBPF bind hook WFP filter"},
+     L"net eBPF bind hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING},
     {&FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6,
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_RESOURCE_ALLOC_V6_CALLOUT,
      L"net eBPF bind hook",
-     L"net eBPF bind hook WFP filter"},
+     L"net eBPF bind hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING},
     {&FWPM_LAYER_ALE_RESOURCE_RELEASE_V4,
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_RESOURCE_RELEASE_V4_CALLOUT,
      L"net eBPF bind hook",
-     L"net eBPF bind hook WFP filter"},
+     L"net eBPF bind hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING},
     {&FWPM_LAYER_ALE_RESOURCE_RELEASE_V6,
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_RESOURCE_RELEASE_V6_CALLOUT,
      L"net eBPF bind hook",
-     L"net eBPF bind hook WFP filter"}};
+     L"net eBPF bind hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING}};
 
 #define NET_EBPF_BIND_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_bind_wfp_filter_parameters)
 

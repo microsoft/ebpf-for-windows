@@ -465,7 +465,8 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_connect_filter_paramete
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_CONNECT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"},
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING},
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V4,
      NULL, // Default sublayer.
@@ -486,7 +487,8 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_connect_filter_paramete
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_CONNECT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"},
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING},
 
     {&FWPM_LAYER_ALE_CONNECT_REDIRECT_V6,
      &EBPF_HOOK_CGROUP_CONNECT_V6_SUBLAYER,
@@ -500,14 +502,16 @@ net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet4_recv_accept_filter_para
      NULL, // Default sublayer.
      &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"}};
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING}};
 
 net_ebpf_extension_wfp_filter_parameters_t _cgroup_inet6_recv_accept_filter_parameters[] = {
     {&FWPM_LAYER_ALE_AUTH_RECV_ACCEPT_V6,
      NULL,
      &EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V6_CALLOUT,
      L"net eBPF sock_addr hook",
-     L"net eBPF sock_addr hook WFP filter"}};
+     L"net eBPF sock_addr hook WFP filter",
+     FWP_ACTION_CALLOUT_TERMINATING}};
 
 const net_ebpf_extension_wfp_filter_parameters_array_t _net_ebpf_extension_sock_addr_wfp_filter_parameters[] = {
     {&EBPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
@@ -992,8 +996,9 @@ _net_ebpf_extension_connection_context_initialize(
 
 _Requires_exclusive_lock_held_(
     _net_ebpf_ext_sock_addr_blocked_contexts
-        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_connection_context_t*
-                                                                                       context)
+        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_
+                                                                                       net_ebpf_extension_connection_context_t*
+                                                                                           context)
 {
     bool entry_found = false;
     // Check the hash table for the entry.
