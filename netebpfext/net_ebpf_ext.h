@@ -185,7 +185,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
             }                                                                             \
             net_ebpf_extension_hook_provider_leave_rundown(                               \
                 (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
-            filter_context->rundown_released = TRUE;                                      \
+            (filter_context)->rundown_released = TRUE;                                    \
             CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
         }                                                                                 \
     }

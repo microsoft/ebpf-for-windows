@@ -501,14 +501,14 @@ net_ebpf_extension_add_wfp_filters(
             // If we hit this, then the REFERENCE_FILTER_CONTEXT is probably causing an issue?
             RtlFailFast(0);
 #endif
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmFilterAdd",
-                status,
-                "Failed to add filter",
-                (char*)filter_parameter->name);
-            result = EBPF_INVALID_ARGUMENT;
-            goto Exit;
+            // NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
+            //     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            //     "FwpmFilterAdd",
+            //     status,
+            //     "Failed to add filter",
+            //     (char*)filter_parameter->name);
+            // result = EBPF_INVALID_ARGUMENT;
+            // goto Exit;
         } else {
             local_filter_ids[index].id = local_filter_id;
             local_filter_ids[index].name = (wchar_t*)filter_parameter->name;
