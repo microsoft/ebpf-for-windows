@@ -580,7 +580,7 @@ function Invoke-ConnectRedirectTestsOnVM
         }
     }
 
-    if ($SelfHostedRunnerName -ine "1ESRunner") {
+    if ($SelfHostedRunnerName -ne "1ESRunner") {
         $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($StandardUserPassword))
         $InsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
         [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
