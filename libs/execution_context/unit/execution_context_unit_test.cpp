@@ -1296,7 +1296,7 @@ TEST_CASE("test-csum-diff", "[execution_context]")
     REQUIRE(csum == 0xb861);
 }
 
-TEST_CASE("ring_buffer_async_query", "[execution_context]")
+TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
 {
     _ebpf_core_initializer core;
     core.initialize();
@@ -2193,7 +2193,7 @@ TEST_CASE("EBPF_OPERATION_GET_OBJECT_INFO", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_OBJECT_INFO, request, reply) == EBPF_INVALID_OBJECT);
 }
 
-TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][negative]")
+TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][ring_buffer][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     ebpf_operation_ring_buffer_map_query_buffer_request_t request;
@@ -2206,7 +2206,7 @@ TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][ne
     REQUIRE(invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
-TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][negative]")
+TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][ring_buffer][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     ebpf_operation_ring_buffer_map_async_query_request_t request;

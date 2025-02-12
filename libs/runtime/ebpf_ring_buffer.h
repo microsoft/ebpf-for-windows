@@ -74,6 +74,12 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** buffer);
 
 /**
+ * @brief Get the next record in the ring buffer's data buffer, skipping any discarded records.
+ */
+const ebpf_ring_buffer_record_t*
+ebpf_ring_buffer_next_consumer_record(_Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ const uint8_t* buffer);
+
+/**
  * @brief Reserve a buffer in the ring buffer. Buffer is valid until either ebpf_ring_buffer_submit,
  * ebpf_ring_buffer_discard, or the end of the current epoch.
  *
