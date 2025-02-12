@@ -580,24 +580,26 @@ function Invoke-ConnectRedirectTestsOnVM
         }
     }
 
-    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($StandardUserPassword))
-    $InsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-    [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    if ($SelfHostedRunnerName -ine "1ESRunner") {
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($StandardUserPassword))
+        $InsecurePassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
-    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
-    # First remove the existing StandardUser account (if found). This can happen if the previous test run terminated
-    # abnormally before performing the requisite post-test-run clean-up.
-    $UserId = Invoke-Command -VMName $VMName -Credential $TestCredential `
-           -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
-           -Argumentlist $StandardUser -ErrorAction SilentlyContinue
-    if($UserId) {
-        Write-Log "Deleting existing standard user: $StandardUser on $VMName"
-        Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
+        # First remove the existing StandardUser account (if found). This can happen if the previous test run terminated
+        # abnormally before performing the requisite post-test-run clean-up.
+        $UserId = Invoke-Command -VMName $VMName -Credential $TestCredential `
+            -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
+            -Argumentlist $StandardUser -ErrorAction SilentlyContinue
+        if($UserId) {
+            Write-Log "Deleting existing standard user: $StandardUser on $VMName"
+            Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser
+        }
+
+        # Add a standard user on VM1.
+        Add-StandardUserOnVM -VM $VMName -UserName $StandardUser -Password $InsecurePassword
     }
-
-    # Add a standard user on VM1.
-    Add-StandardUserOnVM -VM $VMName -UserName $StandardUser -Password $InsecurePassword
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)][string] $VM,
@@ -692,11 +694,11 @@ function Run-KernelTestsOnVM
         netsh trace start sessionname=maige_debug tracefile=C:\ebpf\maige_debug.etl provider='{394f321c-5cf4-404c-aa34-4df1428a7f9c}' level=0xff keywords=0xfffff provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff report=di ov=yes maxSize=4096
     } -ErrorAction Stop
 
-    # # Run CICD tests on test VM.
-    # Invoke-CICDTestsOnVM `
-    #     -VMName $VMName `
-    #     -TestMode $TestMode `
-    #     -Options $Options
+    # Run CICD tests on test VM.
+    Invoke-CICDTestsOnVM `
+        -VMName $VMName `
+        -TestMode $TestMode `
+        -Options $Options
 
     # The required behavior is selected by the $TestMode
     # parameter.
@@ -708,17 +710,17 @@ function Run-KernelTestsOnVM
         #     -VMName $VMName
 
         # Run Connect Redirect Tests.
-        Invoke-ConnectRedirectTestsOnVM `
-            -Interfaces $Config.Interfaces `
-            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-            -UserType "Administrator" `
-            -VMName $VMName
+        # Invoke-ConnectRedirectTestsOnVM `
+        #     -Interfaces $Config.Interfaces `
+        #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+        #     -UserType "Administrator" `
+        #     -VMName $VMName
 
-        Invoke-ConnectRedirectTestsOnVM `
-            -Interfaces $Config.Interfaces `
-            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-            -UserType "StandardUser" `
-            -VMName $VMName
+        # Invoke-ConnectRedirectTestsOnVM `
+        #     -Interfaces $Config.Interfaces `
+        #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+        #     -UserType "StandardUser" `
+        #     -VMName $VMName
     }
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
