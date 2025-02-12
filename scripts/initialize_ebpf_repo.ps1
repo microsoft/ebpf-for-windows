@@ -16,7 +16,7 @@ $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $scriptPath\..
 
 # Define the commands to run
-$cmakeCommonArgs = "-G 'Visual Studio 17 2022' -A $Architecture"
+$cmakeCommonArgs = "-G 'Visual Studio 17 2022' -A $Architecture -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:DLL>"
 $commands = @(
     "git submodule update --init --recursive",
     "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build",

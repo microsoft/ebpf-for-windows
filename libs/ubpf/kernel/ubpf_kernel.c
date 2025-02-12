@@ -34,17 +34,6 @@
 #define strerror place_holder_strerror
 #define errno (place_holder_errno())
 
-#if !defined(NDEBUG)
-void
-_assert(const char* message, const char* file, unsigned line)
-{
-    UNREFERENCED_PARAMETER(message);
-    UNREFERENCED_PARAMETER(file);
-    UNREFERENCED_PARAMETER(line);
-    __fastfail(0);
-}
-#endif
-
 inline int
 fprintf(void* stream, const char* format, ...)
 {

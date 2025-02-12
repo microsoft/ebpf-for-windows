@@ -105,6 +105,7 @@
       <AdditionalDependencies>usersim.lib;uuid.lib;bcrypt.lib;legacy_stdio_definitions.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>ntdll.lib</IgnoreSpecificDefaultLibraries>
+      <IgnoreAllDefaultLibraries Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</IgnoreAllDefaultLibraries>
     </Link>
     <DriverSign>
       <FileDigestAlgorithm>SHA256</FileDigestAlgorithm>
@@ -134,10 +135,11 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\km;$(WDKContentRoot)\Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO;USERSIM</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <DisableSpecificWarnings>4324</DisableSpecificWarnings>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/NODEFAULTLIB:library %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Midl>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(DDK_INC_PATH)</AdditionalIncludeDirectories>
@@ -176,7 +178,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories);$(WindowsSdkDir)Include\$(WindowsTargetPlatformVersion)\km;$(WDKContentRoot)\Include\wdf\kmdf\1.15;$(SolutionDir)include;$(SolutionDir)libs\runtime;$(SolutionDir)libs\runtime\kernel;$(SolutionDir)libs\shared;$(SolutionDir)libs\shared\kernel;$(SolutionDir)external\usersim\cxplat\inc;$(SolutionDir)external\usersim\cxplat\inc\winkernel;$(SolutionDir)libs\execution_context;$(SolutionDir)external\ebpf-verifier\src;$(SolutionDir)include\kernel;$(SolutionDir)resource</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0a00;%(PreprocessorDefinitions);BINARY_COMPATIBLE=0;NT;UNICODE;_UNICODE;NDIS630;POOL_NX_OPTIN_AUTO;USERSIM</PreprocessorDefinitions>
       <ExceptionHandling>
       </ExceptionHandling>
       <DisableSpecificWarnings>4324</DisableSpecificWarnings>

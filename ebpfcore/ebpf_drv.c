@@ -451,3 +451,14 @@ _ebpf_driver_query_volume_information(_In_ WDFDEVICE device, _Inout_ IRP* irp)
     IoCompleteRequest(irp, 0);
     return status;
 }
+
+#if !defined(USERSIM)
+void
+_assert(const char* message, const char* file, unsigned line)
+{
+    UNREFERENCED_PARAMETER(message);
+    UNREFERENCED_PARAMETER(file);
+    UNREFERENCED_PARAMETER(line);
+    __fastfail(0);
+}
+#endif
