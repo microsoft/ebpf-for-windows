@@ -2499,6 +2499,8 @@ _ebpf_pe_get_map_definitions(
             for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
                  map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
+                // Issue: https://github.com/microsoft/ebpf-for-windows/issues/4168
+                // This heuristic is fragile and will break when map_entry_t changes.
                 if (entry->address != nullptr) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
                     // at the end of the section.  This entry seems to be a map name string, so we've
