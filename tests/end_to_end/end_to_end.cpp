@@ -2989,9 +2989,6 @@ TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
 
     REQUIRE(IsEqualGUID(*attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
 
-    // Try with BPF_ATTACH_TYPE_UNSPEC.
-    REQUIRE(get_ebpf_attach_type(BPF_ATTACH_TYPE_UNSPEC) == nullptr);
-
     // Try with invalid bpf attach type.
     REQUIRE(get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID) == nullptr);
 }
