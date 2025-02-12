@@ -549,6 +549,8 @@ TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_H
 
 TEST_CASE("duplicate_fd", "")
 {
+    _disable_crt_report_hook disable_hook;
+
     fd_t map_fd1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
     REQUIRE(map_fd1 > 0);
 

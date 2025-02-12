@@ -13,6 +13,7 @@
 #include "ebpf_result.h"
 
 #include <windows.h>
+#include <crtdbg.h>
 #include <future>
 #include <set>
 
@@ -56,3 +57,22 @@ ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, siz
 void
 ring_buffer_api_test_helper(
     fd_t ring_buffer_map, std::vector<std::vector<char>>& expected_records, std::function<void(int)> generate_event);
+
+class _disable_crt_report_hook
+{
+  public:
+    _disable_crt_report_hook() { previous_hook = _CrtSetReportHook(_ignore_report_hook); }
+    ~_disable_crt_report_hook() { _CrtSetReportHook(previous_hook); }
+
+  private:
+    static int
+    _ignore_report_hook(int reportType, char* message, int* returnValue)
+    {
+        UNREFERENCED_PARAMETER(reportType);
+        UNREFERENCED_PARAMETER(message);
+        // Don't show the debug window.
+        *returnValue = 0;
+        return TRUE;
+    }
+    _CRT_REPORT_HOOK previous_hook;
+};
