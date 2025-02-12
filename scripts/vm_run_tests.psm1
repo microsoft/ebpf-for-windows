@@ -708,17 +708,17 @@ function Run-KernelTestsOnVM
         #     -VMName $VMName
 
         # Run Connect Redirect Tests.
-        Invoke-ConnectRedirectTestsOnVM `
-            -Interfaces $Config.Interfaces `
-            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-            -UserType "Administrator" `
-            -VMName $VMName
-
         # Invoke-ConnectRedirectTestsOnVM `
         #     -Interfaces $Config.Interfaces `
         #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        #     -UserType "StandardUser" `
+        #     -UserType "Administrator" `
         #     -VMName $VMName
+
+        Invoke-ConnectRedirectTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+            -UserType "StandardUser" `
+            -VMName $VMName
     }
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
