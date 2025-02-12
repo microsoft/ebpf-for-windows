@@ -497,6 +497,10 @@ net_ebpf_extension_add_wfp_filters(
 
         status = FwpmFilterAdd(wfp_engine_handle, &filter, NULL, &local_filter_id);
         if (!NT_SUCCESS(status)) {
+#ifdef KERNEL_MODE
+            // If we hit this, then the REFERENCE_FILTER_CONTEXT is probably causing an issue?
+            RtlFailFast(0);
+#endif
             NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                 "FwpmFilterAdd",

@@ -142,6 +142,8 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
     bool initialized : 1;      ///< True if the filter context has been successfully initialized.
+    bool rundown_acquired : 1; ///< True if the rundown reference has been acquired.
+    bool rundown_released : 1; ///< True if the rundown reference has been released.
     HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
@@ -174,6 +176,20 @@ typedef struct _net_ebpf_extension_wfp_filter_context
         InterlockedIncrement(&(filter_context)->reference_count); \
     }
 
+#ifdef KERNEL_MODE
+#define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
+    if ((filter_context) != NULL) {                                                       \
+        if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
+            if ((filter_context)->rundown_acquired == FALSE) {                            \
+                RtlFailFast(0);                                                           \
+            }                                                                             \
+            net_ebpf_extension_hook_provider_leave_rundown(                               \
+                (net_ebpf_extension_hook_provider_t*)(filter_context)->provider_context); \
+            filter_context->rundown_released = TRUE;                                      \
+            CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
+        }                                                                                 \
+    }
+#else
 #define DEREFERENCE_FILTER_CONTEXT(filter_context)                                        \
     if ((filter_context) != NULL) {                                                       \
         if (InterlockedDecrement(&(filter_context)->reference_count) == 0) {              \
@@ -182,6 +198,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
             CLEAN_UP_FILTER_CONTEXT((filter_context));                                    \
         }                                                                                 \
     }
+#endif
 
 /**
  * @brief This function allocates and initializes a net ebpf extension WFP filter context. This should be invoked when

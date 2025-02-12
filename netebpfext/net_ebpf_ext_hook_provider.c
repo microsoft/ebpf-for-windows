@@ -619,6 +619,7 @@ _net_ebpf_extension_hook_provider_attach_client(
     }
 
     maige_add_filter_context_to_rundown_list(new_filter_context);
+    new_filter_context->rundown_acquired = TRUE;
 
     // If the attach parameter is a wildcard, set the wildcard flag in the filter context.
     if (is_wild_card_attach_parameter) {
