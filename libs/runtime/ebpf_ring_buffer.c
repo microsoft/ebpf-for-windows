@@ -153,7 +153,7 @@ _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
     return (ebpf_ring_buffer_record_t*)&ring->shared_buffer[offset % ring->length];
 }
 
-inline static _Ret_notnull_ ebpf_ring_buffer_record_t*
+inline static _Ret_maybenull_ ebpf_ring_buffer_record_t*
 _ring_next_consumer_record(_In_ ebpf_ring_buffer_t* ring)
 {
     size_t consumer_offset = ReadULong64Acquire(&ring->consumer_offset);
