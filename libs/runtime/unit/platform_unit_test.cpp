@@ -1472,7 +1472,7 @@ run_ring_buffer_stress_test(ring_buffer_stress_test_parameters_t parameters)
     REQUIRE(remaining_failed_returns == 0);
 }
 
-TEST_CASE("ring_buffer_stress_tests", "[.ring_buffer_stress]")
+TEST_CASE("ring_buffer_stress_tests", "[ring_buffer_stress]")
 {
     _test_helper test_helper;
     test_helper.initialize();
