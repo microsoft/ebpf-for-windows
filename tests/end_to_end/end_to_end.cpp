@@ -1670,6 +1670,109 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+
+    int result = ebpf_program_load(
+        SAMPLE_PATH "test_sample_ebpf_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+    REQUIRE(program_fd > 0);
+
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Pin the program and map multiple times with a shared prefix.
+    const char* prefix = "/ebpf/test/";
+    const char* paths[] = {
+        "/ebpf/test/map1",
+        "/ebpf/test/map2",
+        "/ebpf/test/program1",
+        "/ebpf/test/program2",
+    };
+    const ebpf_object_type_t object_types[] = {
+        EBPF_OBJECT_MAP,
+        EBPF_OBJECT_MAP,
+        EBPF_OBJECT_PROGRAM,
+        EBPF_OBJECT_PROGRAM,
+    };
+
+    REQUIRE(bpf_obj_pin(map_fd, paths[0]) == 0);
+    REQUIRE(bpf_obj_pin(map_fd, paths[1]) == 0);
+    REQUIRE(bpf_obj_pin(program_fd, paths[2]) == 0);
+    REQUIRE(bpf_obj_pin(program_fd, paths[3]) == 0);
+
+    char path[EBPF_MAX_PIN_PATH_LENGTH];
+    size_t expected_count = sizeof(paths) / sizeof(paths[0]);
+    const char* start_path = prefix;
+    size_t count = 0;
+
+    // Enumerate all pinned objects.
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    while (ebpf_get_next_pinned_object_path(start_path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
+        if (strncmp(path, prefix, strlen(prefix)) != 0) {
+            break;
+        }
+
+        REQUIRE(object_type == object_types[count]);
+        REQUIRE(count < expected_count);
+        REQUIRE(strcmp(path, paths[count]) == 0);
+
+        count++;
+        start_path = path;
+        object_type = EBPF_OBJECT_UNKNOWN;
+    }
+
+    REQUIRE(count == expected_count);
+
+    // Only iterate over programs.
+    start_path = prefix;
+    count = 2;
+    object_type = EBPF_OBJECT_PROGRAM;
+    while (ebpf_get_next_pinned_object_path(start_path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
+        if (strncmp(path, prefix, strlen(prefix)) != 0) {
+            break;
+        }
+
+        REQUIRE(object_type == EBPF_OBJECT_PROGRAM);
+        REQUIRE(count < expected_count);
+        REQUIRE(strcmp(path, paths[count]) == 0);
+
+        count++;
+        start_path = path;
+    }
+
+    REQUIRE(count == expected_count);
+
+    // Clean up.
+    REQUIRE(ebpf_object_unpin(paths[0]) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(paths[1]) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(paths[2]) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(paths[3]) == EBPF_SUCCESS);
+    Platform::_close(map_fd);
+    bpf_object__close(unique_object.release());
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 // This test uses ebpf_link_close() to test implicit detach.
 TEST_CASE("implicit_detach", "[end_to_end]")

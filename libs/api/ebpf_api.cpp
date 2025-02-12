@@ -3996,6 +3996,18 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_pinned_program_path(
     _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) NO_EXCEPT_TRY
 {
+    ebpf_object_type_t type = EBPF_OBJECT_PROGRAM;
+    return ebpf_get_next_pinned_object_path(start_path, next_path, EBPF_MAX_PIN_PATH_LENGTH, &type);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_get_next_pinned_object_path(
+    _In_z_ const char* start_path,
+    _Out_writes_z_(next_path_len) char* next_path,
+    size_t next_path_len,
+    _Inout_ ebpf_object_type_t* type) NO_EXCEPT_TRY
+{
     EBPF_LOG_ENTRY();
     ebpf_assert(start_path);
     ebpf_assert(next_path);
@@ -4003,18 +4015,19 @@ ebpf_get_next_pinned_program_path(
     size_t start_path_length = strlen(start_path);
 
     ebpf_protocol_buffer_t request_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_request_t, start_path) + start_path_length);
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_request_t, start_path) + start_path_length);
     ebpf_protocol_buffer_t reply_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path) + EBPF_MAX_PIN_PATH_LENGTH - 1);
-    ebpf_operation_get_next_pinned_program_path_request_t* request =
-        reinterpret_cast<ebpf_operation_get_next_pinned_program_path_request_t*>(request_buffer.data());
-    ebpf_operation_get_next_pinned_program_path_reply_t* reply =
-        reinterpret_cast<ebpf_operation_get_next_pinned_program_path_reply_t*>(reply_buffer.data());
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path) + (next_path_len - 1));
+    ebpf_operation_get_next_pinned_object_path_request_t* request =
+        reinterpret_cast<ebpf_operation_get_next_pinned_object_path_request_t*>(request_buffer.data());
+    ebpf_operation_get_next_pinned_object_path_reply_t* reply =
+        reinterpret_cast<ebpf_operation_get_next_pinned_object_path_reply_t*>(reply_buffer.data());
 
-    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH;
+    request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     reply->header.length = static_cast<uint16_t>(reply_buffer.size());
 
+    request->type = *type;
     memcpy(request->start_path, start_path, start_path_length);
 
     uint32_t error = invoke_ioctl(request_buffer, reply_buffer);
@@ -4022,13 +4035,11 @@ ebpf_get_next_pinned_program_path(
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
-    ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH);
-    size_t next_path_length =
-        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_program_path_reply_t, next_path);
-    memcpy(next_path, reply->next_path, next_path_length);
-
-    next_path[next_path_length] = '\0';
-
+    ebpf_assert(reply->header.id == ebpf_operation_id_t::EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH);
+    size_t reply_next_path_len =
+        reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path);
+    strncpy_s(next_path, next_path_len, (char*)reply->next_path, reply_next_path_len);
+    *type = reply->type;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
