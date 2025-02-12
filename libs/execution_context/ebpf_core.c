@@ -169,7 +169,7 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_global_helper_function_provider_
     _ebpf_general_helper_function_provider_detach_client,
     NULL,
     {
-        EBPF_PROGRAM_DATA_CURRENT_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         &ebpf_general_helper_function_module_id,
