@@ -486,7 +486,7 @@ function Import-ResultsFromVM
                 Write-Log "Compressing $EtlFilePath"
                 $EtlZipPath = "$WorkingDirectory\$EtlFile.zip"
 
-                $RetryCount = 3
+                $RetryCount = 5
                 $RetryInterval = 5 # seconds
                 for ($i = 1; $i -le $RetryCount; $i++) {
                     Write-Log "Attempt $i Compressing kernel trace files: $EtlFilePath -> $EtlZipPath"
@@ -561,6 +561,33 @@ function Import-ResultsFromVM
                 -Recurse `
                 -Force `
                 -ErrorAction Ignore 2>&1 | Write-Log
+
+            # If the debug zip is not present, try to copy just the trace file.
+            if (-not (Test-Path "$VMSystemDrive\eBPF\maige_debug.zip")) {
+                # Try to copy just the  ETL over, with a few retries
+                $RetryCount = 5
+                $RetryInterval = 5 # seconds
+
+                for ($i = 1; $i -le $RetryCount; $i++) {
+                    $LocalFilePath = ".\TestLogs\$VMName\Logs\maige_debug.etl"
+                    # It was leftover from a previous run.
+                    if (Test-Path $LocalFilePath) {
+                        Remove-Item -Path $LocalFilePath -Force
+                    }
+
+                    try {
+                        Copy-Item `
+                            -FromSession $VMSession `
+                            -Path "$VMSystemDrive\eBPF\maige_debug.etl" `
+                            -Destination ".\TestLogs\$VMName\Logs" `
+                            -Recurse `
+                            -Force
+                        break
+                    } catch {
+                        Write-Log "Failed to copy maige_debug.etl from $VMName to host runner."
+                    }
+                }
+            }
         }
 
         # Copy performance results from Test VM.
