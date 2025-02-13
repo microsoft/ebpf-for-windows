@@ -530,7 +530,6 @@ ebpf_ring_buffer_reserve(
             //   originally got.
             //   - This guarantees any records allocated before us are locked before we update offset.
             while (reserve_offset != ReadULong64Acquire(&ring->producer_offset)) {
-                YieldProcessor();
                 // We shouldn't have to spin long.
             }
             // Release producer offset to ensure ordering with setting the lock bit in initialize above.
