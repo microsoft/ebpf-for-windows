@@ -86,23 +86,4 @@ ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, s
     return (ebpf_ring_buffer_record_t*)(buffer + consumer % buffer_length);
 }
 
-///**
-// * @brief Locate the next available record in the ring buffer's data buffer and
-// * advance consumer offset.
-// *
-// * Skips any discarded records.
-// *
-// * @param[in] buffer Pointer to the start of the ring buffer's data buffer.
-// * @param[in] buffer_length Length of the ring buffer's data buffer.
-// * @param[in] consumer Pointer to the ring buffer's consumer offset.
-// * @param[in] producer Pointer to the ring buffer's producer offset.
-// * @return Pointer to the next record or NULL if no more records.
-// */
-// inline const ebpf_ring_buffer_record_t*
-// ebpf_ring_buffer_next_available_record(_In_ const uint8_t* buffer, size_t buffer_length, size_t* consumer, size_t*
-// producer)
-//{
-//    // TODO: Implement helper.
-//}
-
 CXPLAT_EXTERN_C_END
