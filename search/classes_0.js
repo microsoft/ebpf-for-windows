@@ -24,12 +24,13 @@ var searchData=
   ['_5febpf_5fstat_21',['_ebpf_stat',['../struct__ebpf__stat.html',1,'']]],
   ['_5febpf_5ftest_5frun_5foptions_22',['_ebpf_test_run_options',['../struct__ebpf__test__run__options.html',1,'']]],
   ['_5fethernet_5fheader_23',['_ETHERNET_HEADER',['../struct___e_t_h_e_r_n_e_t___h_e_a_d_e_r.html',1,'']]],
-  ['_5fhelper_5ffunction_5fentry_24',['_helper_function_entry',['../struct__helper__function__entry.html',1,'']]],
-  ['_5fipv4_5fheader_25',['_IPV4_HEADER',['../struct___i_p_v4___h_e_a_d_e_r.html',1,'']]],
-  ['_5fipv6_5fheader_26',['_IPV6_HEADER',['../struct___i_p_v6___h_e_a_d_e_r.html',1,'']]],
-  ['_5fmap_5fentry_27',['_map_entry',['../struct__map__entry.html',1,'']]],
-  ['_5fmap_5finitial_5fvalues_28',['_map_initial_values',['../struct__map__initial__values.html',1,'']]],
-  ['_5fmetadata_5ftable_29',['_metadata_table',['../struct__metadata__table.html',1,'']]],
-  ['_5fprogram_5fdata_5fcapabilities_30',['_program_data_capabilities',['../union__program__data__capabilities.html',1,'']]],
-  ['_5fprogram_5fentry_31',['_program_entry',['../struct__program__entry.html',1,'']]]
+  ['_5fglobal_5fvariable_5fsection_24',['_global_variable_section',['../struct__global__variable__section.html',1,'']]],
+  ['_5fhelper_5ffunction_5fentry_25',['_helper_function_entry',['../struct__helper__function__entry.html',1,'']]],
+  ['_5fipv4_5fheader_26',['_IPV4_HEADER',['../struct___i_p_v4___h_e_a_d_e_r.html',1,'']]],
+  ['_5fipv6_5fheader_27',['_IPV6_HEADER',['../struct___i_p_v6___h_e_a_d_e_r.html',1,'']]],
+  ['_5fmap_5fentry_28',['_map_entry',['../struct__map__entry.html',1,'']]],
+  ['_5fmap_5finitial_5fvalues_29',['_map_initial_values',['../struct__map__initial__values.html',1,'']]],
+  ['_5fmetadata_5ftable_30',['_metadata_table',['../struct__metadata__table.html',1,'']]],
+  ['_5fprogram_5fdata_5fcapabilities_31',['_program_data_capabilities',['../union__program__data__capabilities.html',1,'']]],
+  ['_5fprogram_5fentry_32',['_program_entry',['../struct__program__entry.html',1,'']]]
 ];

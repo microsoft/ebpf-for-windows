@@ -99,10 +99,29 @@ Data Fields</h2></td></tr>
 <tr class="memitem:a3f5e62d7ab256524c53021c43207b606" id="r_a3f5e62d7ab256524c53021c43207b606"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a3f5e62d7ab256524c53021c43207b606">map_initial_values</a> )((*count) <a class="el" href="bpf2c_8h.html#a2d64bfaad7d0350bb6caae0bc9316e70">map_initial_values_t</a> **map_initial_values, size_t *count)</td></tr>
 <tr class="memdesc:a3f5e62d7ab256524c53021c43207b606"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the list of initial values for maps in this module.  <br /></td></tr>
 <tr class="separator:a3f5e62d7ab256524c53021c43207b606"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a77a8b2b913ef4218c82c3ef9b8f963d7" id="r_a77a8b2b913ef4218c82c3ef9b8f963d7"><td class="memItemLeft" align="right" valign="top">void(*&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__metadata__table.html#a77a8b2b913ef4218c82c3ef9b8f963d7">global_variable_sections</a> )((*count) <a class="el" href="bpf2c_8h.html#a14e4423924a9315668d0313155978d1c">global_variable_section_t</a> **global_variable_sections, size_t *count)</td></tr>
+<tr class="memdesc:a77a8b2b913ef4218c82c3ef9b8f963d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the list of global variables in this module.  <br /></td></tr>
+<tr class="separator:a77a8b2b913ef4218c82c3ef9b8f963d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Metadata table for a module. This structure is returned by the module's metadata function, get_metadata_table and contains information about the module including the list of programs and maps. </p>
 </div><h2 class="groupheader">Field Documentation</h2>
+<a id="a77a8b2b913ef4218c82c3ef9b8f963d7" name="a77a8b2b913ef4218c82c3ef9b8f963d7"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a77a8b2b913ef4218c82c3ef9b8f963d7">&#9670;&#160;</a></span>global_variable_sections</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void(* _metadata_table::global_variable_sections) ((*count) <a class="el" href="bpf2c_8h.html#a14e4423924a9315668d0313155978d1c">global_variable_section_t</a> **global_variable_sections, size_t *count)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Returns the list of global variables in this module. </p>
+
+</div>
+</div>
 <a id="ab1b7a44d3c51d7293c636babe15cb184" name="ab1b7a44d3c51d7293c636babe15cb184"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab1b7a44d3c51d7293c636babe15cb184">&#9670;&#160;</a></span>hash</h2>
 
