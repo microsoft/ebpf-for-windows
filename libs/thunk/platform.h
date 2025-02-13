@@ -54,6 +54,9 @@ _get_osfhandle(int file_descriptor);
 int
 _close(int file_descriptor);
 
+int
+_dup(int file_descriptor);
+
 bool
 _is_native_program(_In_z_ const char* file_name);
 

@@ -93,6 +93,7 @@ typedef struct _ebpf_program
     size_t helper_function_count;
     uint32_t* helper_function_ids;
     bool helper_ids_set;
+    uint64_t flags;
 
     // Lock protecting the fields below.
     ebpf_lock_t lock;
@@ -122,7 +123,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_general_program_informatio
     _ebpf_program_general_program_information_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         NULL,
@@ -141,7 +142,7 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
     _ebpf_program_type_specific_program_information_detach_provider,
     NULL,
     {
-        EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
+        0,
         sizeof(NPI_REGISTRATION_INSTANCE),
         &EBPF_PROGRAM_INFO_EXTENSION_IID,
         NULL,
@@ -2695,4 +2696,16 @@ ebpf_program_get_runtime_state(_In_ const void* program_context, _Outptr_ const 
     // slot [0] contains the execution context state.
     ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
     *state = (ebpf_execution_context_state_t*)header->context_header[0];
+}
+
+uint64_t
+ebpf_program_get_flags(_In_ const ebpf_program_t* program)
+{
+    return program->flags;
+}
+
+void
+ebpf_program_set_flags(_Inout_ ebpf_program_t* program, uint64_t flags)
+{
+    program->flags = flags;
 }

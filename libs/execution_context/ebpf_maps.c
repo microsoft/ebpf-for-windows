@@ -1979,9 +1979,14 @@ _next_lpm_map_key_and_value(
 {
     ebpf_core_lpm_map_t* trie_map = EBPF_FROM_FIELD(ebpf_core_lpm_map_t, core_map, map);
     ebpf_core_lpm_key_t* lpm_key = (ebpf_core_lpm_key_t*)next_key;
+    ebpf_core_lpm_key_t* previous_lpm_key = (ebpf_core_lpm_key_t*)previous_key;
 
     // Validate prefix length.
     if (!lpm_key || lpm_key->prefix_length > trie_map->max_prefix) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (previous_lpm_key && previous_lpm_key->prefix_length > trie_map->max_prefix) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -3032,4 +3037,16 @@ ebpf_map_get_next_key_and_value_batch(
     }
 
     return result;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_get_value_address(_In_ const ebpf_map_t* map, _Out_ uintptr_t* value_address)
+{
+    if (map->ebpf_map_definition.type != BPF_MAP_TYPE_ARRAY) {
+        return EBPF_INVALID_ARGUMENT;
+    } else {
+        ebpf_core_map_t* core_map = (ebpf_core_map_t*)map;
+        *value_address = (uintptr_t)core_map->data;
+    }
+    return EBPF_SUCCESS;
 }

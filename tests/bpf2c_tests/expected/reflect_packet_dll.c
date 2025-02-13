@@ -28,7 +28,11 @@ DllMain(_In_ HMODULE hModule, unsigned int ul_reason_for_call, _In_ void* lpRese
     return TRUE;
 }
 
-__declspec(dllexport) metadata_table_t* get_metadata_table() { return &metadata_table; }
+__declspec(dllexport) metadata_table_t*
+get_metadata_table()
+{
+    return &metadata_table;
+}
 
 #include "bpf2c.h"
 
@@ -43,6 +47,14 @@ static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
     *maps = NULL;
+    *count = 0;
+}
+
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
     *count = 0;
 }
 
@@ -827,4 +839,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t reflect_packet_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

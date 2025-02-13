@@ -1074,6 +1074,169 @@ map_test(ebpf_execution_type_t execution_type)
     bpf_object__close(unique_object.release());
 }
 
+void
+global_variable_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    if (execution_type != EBPF_EXECUTION_NATIVE) {
+        // Skip this test in JIT-compiled and interpreted mode.
+        return;
+    }
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE ? "global_vars_um.dll" : "global_vars.o");
+
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_SAMPLE, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    auto rodata = bpf_object__find_map_by_name(unique_object.get(), "global_.rodata");
+    REQUIRE(rodata != nullptr);
+    auto rodata_fd = bpf_map__fd(rodata);
+    REQUIRE(rodata_fd > 0);
+
+    auto data = bpf_object__find_map_by_name(unique_object.get(), "global_.data");
+    REQUIRE(data != nullptr);
+    auto data_fd = bpf_map__fd(data);
+    REQUIRE(data_fd > 0);
+
+    auto bss = bpf_object__find_map_by_name(unique_object.get(), "global_.bss");
+    REQUIRE(bss != nullptr);
+    auto bss_fd = bpf_map__fd(bss);
+    REQUIRE(bss_fd > 0);
+
+    uint32_t key = 0;
+    uint32_t value[2] = {};
+    REQUIRE(bpf_map_lookup_elem(bss_fd, &key, value) == EBPF_SUCCESS);
+    REQUIRE(value[0] == 0);
+
+    REQUIRE(bpf_map_lookup_elem(rodata_fd, &key, value) == EBPF_SUCCESS);
+    REQUIRE(value[0] == 10);
+
+    REQUIRE(bpf_map_lookup_elem(data_fd, &key, value) == EBPF_SUCCESS);
+    REQUIRE(value[0] == 20);
+    REQUIRE(value[1] == 40);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+    uint32_t hook_result;
+    INITIALIZE_SAMPLE_CONTEXT
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    // Program should return 0 if all the map tests pass.
+    REQUIRE(hook_result >= 0);
+
+    value[0] = 0;
+    REQUIRE(bpf_map_lookup_elem(bss_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value[0] == 70);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
+}
+
+void
+global_variable_and_map_test(ebpf_execution_type_t execution_type)
+{
+    typedef struct _some_config_struct
+    {
+        int some_config_field;
+        int some_other_config_field;
+        uint64_t some_config_field_64;
+        uint64_t some_other_config_field_64;
+    } some_config_struct_t;
+
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    int result;
+    const char* error_message = nullptr;
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    bpf_link_ptr link;
+
+    if (execution_type != EBPF_EXECUTION_NATIVE) {
+        // Skip this test in JIT-compiled and interpreted mode.
+        return;
+    }
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    const char* file_name =
+        (execution_type == EBPF_EXECUTION_NATIVE ? "global_vars_and_map_um.dll" : "global_vars_and_map.o");
+
+    result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_SAMPLE, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    auto bss = bpf_object__find_map_by_name(unique_object.get(), "global_.bss");
+    REQUIRE(bss != nullptr);
+    auto bss_fd = bpf_map__fd(bss);
+    REQUIRE(bss_fd > 0);
+
+    auto some_config_map = bpf_object__find_map_by_name(unique_object.get(), "some_config_map");
+    REQUIRE(some_config_map != nullptr);
+    auto some_config_map_fd = bpf_map__fd(some_config_map);
+    REQUIRE(some_config_map_fd > 0);
+
+    uint32_t key = 0;
+    some_config_struct_t value{};
+    REQUIRE(bpf_map_lookup_elem(bss_fd, &key, &value) == EBPF_SUCCESS);
+    REQUIRE(value.some_config_field == 0);
+    REQUIRE(value.some_other_config_field == 0);
+    REQUIRE(value.some_config_field_64 == 0);
+    REQUIRE(value.some_other_config_field_64 == 0);
+
+    value.some_config_field = 10;
+    value.some_other_config_field = 20;
+    value.some_config_field_64 = 30;
+    value.some_other_config_field_64 = 40;
+
+    REQUIRE(bpf_map_update_elem(some_config_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+
+    REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
+    uint32_t hook_result;
+    INITIALIZE_SAMPLE_CONTEXT
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
+    // Program should return 0 if all the map tests pass.
+    REQUIRE(hook_result >= 0);
+
+    value = {};
+    REQUIRE(bpf_map_lookup_elem(bss_fd, &key, &value) == EBPF_SUCCESS);
+
+    REQUIRE(value.some_config_field == 10);
+    REQUIRE(value.some_other_config_field == 20);
+    REQUIRE(value.some_config_field_64 == 30);
+    REQUIRE(value.some_other_config_field_64 == 40);
+
+    hook.detach_and_close_link(&link);
+
+    bpf_object__close(unique_object.release());
+}
+
 DECLARE_ALL_TEST_CASES("droppacket", "[end_to_end]", droppacket_test);
 DECLARE_ALL_TEST_CASES("divide_by_zero", "[end_to_end]", divide_by_zero_test_um);
 DECLARE_ALL_TEST_CASES("bindmonitor", "[end_to_end]", bindmonitor_test);
@@ -1084,6 +1247,8 @@ DECLARE_ALL_TEST_CASES("negative_ring_buffer_test", "[end_to_end]", negative_rin
 DECLARE_ALL_TEST_CASES("utility-helpers", "[end_to_end]", _utility_helper_functions_test);
 DECLARE_ALL_TEST_CASES("map", "[end_to_end]", map_test);
 DECLARE_ALL_TEST_CASES("bad_map_name", "[end_to_end]", bad_map_name_um);
+DECLARE_ALL_TEST_CASES("global_variable", "[end_to_end]", global_variable_test);
+DECLARE_ALL_TEST_CASES("global_variable_and_map", "[end_to_end]", global_variable_and_map_test);
 
 TEST_CASE("enum programs", "[end_to_end]")
 {
@@ -1505,6 +1670,109 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+
+    int result = ebpf_program_load(
+        SAMPLE_PATH "test_sample_ebpf_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+    REQUIRE(program_fd > 0);
+
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Pin the program and map multiple times with a shared prefix.
+    const char* prefix = "/ebpf/test/";
+    const char* paths[] = {
+        "/ebpf/test/map1",
+        "/ebpf/test/map2",
+        "/ebpf/test/program1",
+        "/ebpf/test/program2",
+    };
+    const ebpf_object_type_t object_types[] = {
+        EBPF_OBJECT_MAP,
+        EBPF_OBJECT_MAP,
+        EBPF_OBJECT_PROGRAM,
+        EBPF_OBJECT_PROGRAM,
+    };
+
+    REQUIRE(bpf_obj_pin(map_fd, paths[0]) == 0);
+    REQUIRE(bpf_obj_pin(map_fd, paths[1]) == 0);
+    REQUIRE(bpf_obj_pin(program_fd, paths[2]) == 0);
+    REQUIRE(bpf_obj_pin(program_fd, paths[3]) == 0);
+
+    char path[EBPF_MAX_PIN_PATH_LENGTH];
+    size_t expected_count = sizeof(paths) / sizeof(paths[0]);
+    const char* start_path = prefix;
+    size_t count = 0;
+
+    // Enumerate all pinned objects.
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    while (ebpf_get_next_pinned_object_path(start_path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
+        if (strncmp(path, prefix, strlen(prefix)) != 0) {
+            break;
+        }
+
+        REQUIRE(object_type == object_types[count]);
+        REQUIRE(count < expected_count);
+        REQUIRE(strcmp(path, paths[count]) == 0);
+
+        count++;
+        start_path = path;
+        object_type = EBPF_OBJECT_UNKNOWN;
+    }
+
+    REQUIRE(count == expected_count);
+
+    // Only iterate over programs.
+    start_path = prefix;
+    count = 2;
+    object_type = EBPF_OBJECT_PROGRAM;
+    while (ebpf_get_next_pinned_object_path(start_path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
+        if (strncmp(path, prefix, strlen(prefix)) != 0) {
+            break;
+        }
+
+        REQUIRE(object_type == EBPF_OBJECT_PROGRAM);
+        REQUIRE(count < expected_count);
+        REQUIRE(strcmp(path, paths[count]) == 0);
+
+        count++;
+        start_path = path;
+    }
+
+    REQUIRE(count == expected_count);
+
+    // Clean up.
+    REQUIRE(ebpf_object_unpin(paths[0]) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(paths[1]) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(paths[2]) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(paths[3]) == EBPF_SUCCESS);
+    Platform::_close(map_fd);
+    bpf_object__close(unique_object.release());
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 // This test uses ebpf_link_close() to test implicit detach.
 TEST_CASE("implicit_detach", "[end_to_end]")
@@ -1709,6 +1977,46 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
     hook.detach_and_close_link(&link);
 }
 #endif
+
+static void
+ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? SAMPLE_PATH "test_sample_ebpf_um.dll"
+                                                                      : SAMPLE_PATH "test_sample_ebpf.o";
+    const char* error_message = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    int result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t link_fd;
+    REQUIRE(ebpf_program_attach_by_fds(program_fd, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link_fd) == EBPF_SUCCESS);
+    REQUIRE(link_fd > 0);
+    REQUIRE(ebpf_close_fd(link_fd) == EBPF_SUCCESS);
+
+    bpf_object__close(unique_object.release());
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("ebpf_program_attach_by_fds-jit", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_JIT); }
+#endif
+
+TEST_CASE("ebpf_program_attach_by_fds-native", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_NATIVE); }
 
 TEST_CASE("create_map", "[end_to_end]")
 {
@@ -2875,39 +3183,37 @@ TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
     REQUIRE(name2 == nullptr);
 }
 
-TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
+TEST_CASE("ebpf_get_ebpf_attach_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // First test a valid input.
-    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND);
-    REQUIRE(attach_type != nullptr);
+    ebpf_attach_type_t attach_type;
+    REQUIRE(ebpf_get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND, &attach_type) == EBPF_SUCCESS);
 
-    REQUIRE(IsEqualGUID(*attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
-
-    // Try with BPF_ATTACH_TYPE_UNSPEC.
-    REQUIRE(get_ebpf_attach_type(BPF_ATTACH_TYPE_UNSPEC) == nullptr);
+    REQUIRE(IsEqualGUID(attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
 
     // Try with invalid bpf attach type.
-    REQUIRE(get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID) == nullptr);
+    REQUIRE(
+        ebpf_get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID, &attach_type) == EBPF_INVALID_ARGUMENT);
 }
 
-TEST_CASE("get_bpf_program_type", "[end_to_end]")
+TEST_CASE("ebpf_get_bpf_program_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // First test a valid input.
-    REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
+    REQUIRE(ebpf_get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
 
     // Try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
-    REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_UNSPECIFIED) == BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_program_type(&EBPF_PROGRAM_TYPE_UNSPECIFIED) == BPF_PROG_TYPE_UNSPEC);
 
     // Try with invalid program type.
     GUID invalid_program_type;
     REQUIRE(UuidCreate(&invalid_program_type) == RPC_S_OK);
-    REQUIRE(get_bpf_program_type(&invalid_program_type) == BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_program_type(&invalid_program_type) == BPF_PROG_TYPE_UNSPEC);
 }
 
 TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
@@ -2930,21 +3236,21 @@ TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
     REQUIRE(program_type == nullptr);
 }
 
-TEST_CASE("get_bpf_attach_type", "[end_to_end]")
+TEST_CASE("ebpf_get_bpf_attach_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // Try with EBPF_ATTACH_TYPE_SAMPLE.
-    REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_SAMPLE) == BPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(ebpf_get_bpf_attach_type(&EBPF_ATTACH_TYPE_SAMPLE) == BPF_ATTACH_TYPE_SAMPLE);
 
     // Try with EBPF_ATTACH_TYPE_UNSPECIFIED.
-    REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_UNSPECIFIED) == BPF_ATTACH_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_attach_type(&EBPF_ATTACH_TYPE_UNSPECIFIED) == BPF_ATTACH_TYPE_UNSPEC);
 
     // Try with invalid attach type.
     GUID invalid_attach_type;
     REQUIRE(UuidCreate(&invalid_attach_type) == RPC_S_OK);
-    REQUIRE(get_bpf_attach_type(&invalid_attach_type) == BPF_ATTACH_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_attach_type(&invalid_attach_type) == BPF_ATTACH_TYPE_UNSPEC);
 }
 
 TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")

@@ -917,6 +917,31 @@ void
 ring_buffer__free(struct ring_buffer* rb);
 /** @} */
 
+/**
+ * @brief Query the BPF program flags.
+ *
+ * @param[in] prog A pointer to the BPF program.
+ * @return The flags of the BPF program that were last set by this process.
+ */
+__u32
+bpf_program__flags(const struct bpf_program* prog);
+
+/**
+ * @brief Set the BPF program flags.
+ * The set of flags is defined by the program type. Neither libbpf nor the eBPF runtime check the flags and only
+ * the extension that handles this program type will interpret them.  See the documentation for the
+ * program type for what flags are defined for that program type.
+ *
+ * @param[in] prog A pointer to the BPF program.
+ * @param[in] flags The flags to set.
+ *
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occurred, and errno was set.
+ *
+ */
+int
+bpf_program__set_flags(struct bpf_program* prog, __u32 flags);
+
 #else
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
