@@ -590,6 +590,17 @@ function Import-ResultsFromVM
             }
         }
 
+
+        # Copy ETL from Test VM.
+        Write-Log ("Copy $VMSystemDrive\eBPF\wfp_state.xml on $VMName to $pwd\TestLogs\$VMName\Logs")
+        Copy-Item `
+            -FromSession $VMSession `
+            -Path "$VMSystemDrive\eBPF\wfp_state.xml" `
+            -Destination ".\TestLogs\$VMName\Logs" `
+            -Recurse `
+            -Force `
+            -ErrorAction Ignore 2>&1 | Write-Log
+
         # Copy performance results from Test VM.
         Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
         Copy-Item `
