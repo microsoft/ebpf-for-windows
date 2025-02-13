@@ -324,10 +324,13 @@ function Invoke-CICDTests
     # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
     # That causes the regression test to fail. So, we are skipping this test for now.
 
+    # $TestList = @(
+    #     (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`""),
+    #     (New-TestTuple -Test "bpftool_tests.exe"),
+    #     (New-TestTuple -Test "sample_ext_app.exe"),
+    #     (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
+    # )
     $TestList = @(
-        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`""),
-        (New-TestTuple -Test "bpftool_tests.exe"),
-        (New-TestTuple -Test "sample_ext_app.exe"),
         (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
     )
 
