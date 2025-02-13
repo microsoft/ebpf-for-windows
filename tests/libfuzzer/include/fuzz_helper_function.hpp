@@ -528,7 +528,7 @@ template <typename context_type> class fuzz_helper_function
         _program_information_detach_provider,
         NULL,
         {
-            EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION,
+            0,
             sizeof(NPI_REGISTRATION_INSTANCE),
             &EBPF_PROGRAM_INFO_EXTENSION_IID,
             NULL,

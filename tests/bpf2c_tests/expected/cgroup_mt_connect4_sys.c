@@ -181,6 +181,14 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static GUID tcp_mt_connect4_program_type_guid = {
     0x92ec8e39, 0xaeec, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
 static GUID tcp_mt_connect4_attach_type_guid = {
@@ -334,4 +342,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t cgroup_mt_connect4_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

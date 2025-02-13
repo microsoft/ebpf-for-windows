@@ -91,6 +91,14 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 3;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t BindMonitor_helpers[] = {
     {19, "helper_id_19"},
     {20, "helper_id_20"},
@@ -598,4 +606,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t bindmonitor_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

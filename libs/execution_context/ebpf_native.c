@@ -466,6 +466,14 @@ _ebpf_native_map_initial_values_fallback(
     *count = 0;
 }
 
+static void
+_ebpf_native_global_variable_sections_fallback(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    global_variable_sections = NULL;
+    *count = 0;
+}
+
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
@@ -535,6 +543,10 @@ _ebpf_native_provider_attach_client_callback(
     // Initialize the map initial values function pointer if it is not present.
     if (!client_context->table.map_initial_values) {
         client_context->table.map_initial_values = _ebpf_native_map_initial_values_fallback;
+    }
+
+    if (!client_context->table.global_variable_sections) {
+        client_context->table.global_variable_sections = _ebpf_native_global_variable_sections_fallback;
     }
 
     ebpf_lock_create(&client_context->lock);
@@ -978,6 +990,39 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_instance_t* insta
         if (result != EBPF_SUCCESS) {
             break;
         }
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+
+static ebpf_result_t
+_ebpf_native_initialize_global_variables(_Inout_ ebpf_native_module_t* module)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    global_variable_section_t* global_variables = NULL;
+    size_t global_variable_count = 0;
+
+    // Get global variables.
+    module->table.global_variable_sections(&global_variables, &global_variable_count);
+
+    // For each entry.
+    for (size_t i = 0; i < global_variable_count; i++) {
+        ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(module, global_variables[i].name);
+        if (native_map == NULL) {
+            result = EBPF_INVALID_ARGUMENT;
+            break;
+        }
+
+        // Resolve initial value address.
+        result = ebpf_core_resolve_map_value_address(
+            1, &native_map->handle, (uintptr_t*)&global_variables[i].address_of_map_value);
+        if (result != EBPF_SUCCESS) {
+            break;
+        }
+
+        // Copy the initial value to the map.
+        memcpy(global_variables[i].address_of_map_value, global_variables[i].initial_data, global_variables[i].size);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1706,6 +1751,17 @@ ebpf_native_load_programs(
             EBPF_TRACELOG_LEVEL_VERBOSE,
             EBPF_TRACELOG_KEYWORD_NATIVE,
             "ebpf_native_load_programs: set initial map values failed",
+            module_id);
+        goto Done;
+    }
+
+    // Setup global variables.
+    result = _ebpf_native_initialize_global_variables(module);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_VERBOSE,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "ebpf_native_load_programs: resolve map value addresses failed",
             module_id);
         goto Done;
     }

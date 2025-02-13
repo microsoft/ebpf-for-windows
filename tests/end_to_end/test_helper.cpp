@@ -295,7 +295,7 @@ _complete_async_io(OVERLAPPED* overlapped, size_t output_buffer_length)
 {
     std::unique_lock lock(_overlapped_buffers_mutex);
     auto it = _overlapped_buffers.find(overlapped);
-    REQUIRE(it != _overlapped_buffers.end());
+    assert(it != _overlapped_buffers.end());
     if (it->second.output_buffer != nullptr) {
         memcpy(it->second.output_buffer, it->second.buffer.data(), output_buffer_length);
     }

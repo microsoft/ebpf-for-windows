@@ -49,6 +49,14 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 2;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static GUID callee_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 static GUID callee_attach_type_guid = {0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
 #pragma code_seg(push, "sample~1")
@@ -246,4 +254,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t tail_call_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

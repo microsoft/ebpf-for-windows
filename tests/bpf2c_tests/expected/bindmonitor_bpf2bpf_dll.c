@@ -50,6 +50,14 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 // Forward references for local functions.
 static uint64_t
 BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
@@ -518,4 +526,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t bindmonitor_bpf2bpf_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};
