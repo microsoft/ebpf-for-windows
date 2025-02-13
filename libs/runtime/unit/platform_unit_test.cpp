@@ -1174,12 +1174,13 @@ struct ring_buffer_stress_test_producer_context_t
     size_t failed_submits = 0;
     size_t failed_discards = 0;
     volatile std::atomic<bool>* stop = NULL;
+    volatile std::atomic<size_t>* barrier = NULL;
 };
 
 struct ring_buffer_stress_test_consumer_context_t
 {
     ebpf_ring_buffer_t* ring_buffer = NULL;
-    ebpf_result_t map_buffer_result = EBPF_SUCCESS;
+    uint8_t* buffer = NULL;
     size_t loop_count = 0;
     size_t record_count = 0;
     size_t locked_records = 0;
@@ -1187,7 +1188,23 @@ struct ring_buffer_stress_test_consumer_context_t
     size_t failed_returns = 0;
     size_t empty_records = 0;
     volatile std::atomic<bool>* stop = NULL;
+    volatile std::atomic<size_t>* barrier = NULL;
 };
+
+void
+_ring_buffer_test_wait_for_barrier(volatile std::atomic<size_t>* barrier)
+{
+    while (*barrier > 0) {
+        YieldProcessor();
+    }
+}
+
+void
+_ring_buffer_test_barrier(volatile std::atomic<size_t>* barrier)
+{
+    (*barrier)--;
+    _ring_buffer_test_wait_for_barrier(barrier);
+}
 
 void
 ring_buffer_stress_test_producer_output(
@@ -1199,12 +1216,16 @@ ring_buffer_stress_test_producer_output(
 
     std::vector<uint8_t> data(data_size);
 
+    _ring_buffer_test_barrier(context->barrier);
+
     while (!*context->stop) {
         context->loop_count++;
         if (ebpf_ring_buffer_output(context->ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
             context->output_count++;
         } else if (wait_us > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+        } else {
+            YieldProcessor();
         }
         if (delay_us > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
@@ -1221,8 +1242,10 @@ ring_buffer_stress_test_producer_reserve_submit(
     size_t wait_us = parameters->producer_wait_us;
     size_t delay_us = parameters->producer_delay_us;
     bool do_copy = parameters->do_copy;
-
     std::vector<uint8_t> data(data_size);
+
+    _ring_buffer_test_barrier(context->barrier);
+
     while (!*context->stop) {
         context->loop_count++;
         uint8_t* reserved_memory = nullptr;
@@ -1246,6 +1269,8 @@ ring_buffer_stress_test_producer_reserve_submit(
             }
         } else if (wait_us > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+        } else {
+            YieldProcessor();
         }
         if (delay_us > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
@@ -1259,14 +1284,12 @@ ring_buffer_stress_test_consumer(
 {
     size_t wait_us = parameters->consumer_wait_us;
     size_t delay_us = parameters->consumer_delay_us;
+    uint8_t* buffer = context->buffer;
 
-    uint8_t* buffer;
-    context->map_buffer_result = ebpf_ring_buffer_map_buffer(context->ring_buffer, &buffer);
-    if (context->map_buffer_result != EBPF_SUCCESS) {
-        return;
-    }
     // size_t consumer = 0;
     // size_t producer = 0;
+
+    _ring_buffer_test_barrier(context->barrier);
 
     while (!*context->stop) {
         context->loop_count++;
@@ -1292,6 +1315,8 @@ ring_buffer_stress_test_consumer(
             context->record_count++;
         } else if (wait_us > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+        } else {
+            YieldProcessor();
         }
         if (delay_us > 0) {
             std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
@@ -1306,19 +1331,26 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
     size_t duration_seconds = parameters->duration_seconds;
     bool use_output = parameters->use_output;
     ebpf_ring_buffer_t* ring_buffer;
+    uint8_t* buffer;
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
 
     std::atomic<bool> stop = false;
+    std::atomic<size_t> barrier(producer_threads + 2); // +2 for the consumer thread, main thread.
     ring_buffer_stress_test_consumer_context_t consumer_context;
     consumer_context.ring_buffer = ring_buffer;
+    consumer_context.buffer = buffer;
     consumer_context.stop = &stop;
+    consumer_context.barrier = &barrier;
     std::vector<ring_buffer_stress_test_producer_context_t> producer_contexts(producer_threads);
     for (auto& producer_context : producer_contexts) {
         producer_context.ring_buffer = ring_buffer;
         producer_context.stop = &stop;
+        producer_context.barrier = &barrier;
     }
 
     std::vector<std::thread> threads;
+    threads.emplace_back(std::thread(ring_buffer_stress_test_consumer, &consumer_context, parameters));
     for (size_t i = 0; i < producer_threads; i++) {
         if (use_output) {
             threads.emplace_back(
@@ -1328,8 +1360,9 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
                 std::thread(ring_buffer_stress_test_producer_reserve_submit, &producer_contexts[i], parameters));
         }
     }
-    threads.emplace_back(std::thread(ring_buffer_stress_test_consumer, &consumer_context, parameters));
 
+    // Wait to start test until all threads are ready.
+    _ring_buffer_test_barrier(&barrier);
     std::this_thread::sleep_for(std::chrono::seconds(duration_seconds));
     stop = true;
 
@@ -1398,9 +1431,6 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
     size_t remaining_locked = 0;
     size_t remaining_failed_returns = 0;
     {
-        uint8_t* buffer;
-        // size_t size = 64 * 1024;
-        REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
         auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
         while (record != nullptr) {
             remaining_records++;
@@ -1461,10 +1491,6 @@ TEST_CASE("ring_buffer_stress_tests", "[ring_buffer_stress]")
 {
     _test_helper test_helper;
     test_helper.initialize();
-    // size_t small_data_size = 10;
-    // size_t large_data_size = 1024;
-    // size_t duration_seconds = 10;
-    // double discard_rate = 0.01;
 
     // uint32_t ncpu = ebpf_get_cpu_count();
 
@@ -1584,6 +1610,8 @@ ring_buffer_speed_test_producer_output(
 
     std::vector<uint8_t> data(data_size);
 
+    _ring_buffer_test_barrier(context->barrier);
+
     while (!*context->stop) {
         context->loop_count++;
         if (ebpf_ring_buffer_output(context->ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
@@ -1601,6 +1629,8 @@ ring_buffer_speed_test_producer_reserve_submit(
     bool do_copy = parameters->do_copy;
     size_t data_size = parameters->data_size;
     bool discard = parameters->discard_rate > 0.0;
+
+    _ring_buffer_test_barrier(context->barrier);
 
     std::vector<uint8_t> data(data_size);
     while (!*context->stop) {
@@ -1635,14 +1665,12 @@ ring_buffer_speed_test_consumer(
     ring_buffer_stress_test_consumer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
 {
     size_t wait_us = parameters->consumer_wait_us;
+    uint8_t* buffer = context->buffer;
 
-    uint8_t* buffer;
-    context->map_buffer_result = ebpf_ring_buffer_map_buffer(context->ring_buffer, &buffer);
-    if (context->map_buffer_result != EBPF_SUCCESS) {
-        return;
-    }
     size_t consumer = 0;
     size_t producer = 0;
+
+    _ring_buffer_test_barrier(context->barrier);
 
     while (!*context->stop) {
         context->loop_count++;
@@ -1675,30 +1703,38 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
     size_t duration_seconds = parameters->duration_seconds;
     bool use_output = parameters->use_output;
     ebpf_ring_buffer_t* ring_buffer;
+    uint8_t* buffer;
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
 
     std::atomic<bool> stop = false;
+    std::atomic<size_t> barrier(producer_threads + 2); // +2 for the consumer thread, main thread.
     ring_buffer_stress_test_consumer_context_t consumer_context;
     consumer_context.ring_buffer = ring_buffer;
+    consumer_context.buffer = buffer;
     consumer_context.stop = &stop;
+    consumer_context.barrier = &barrier;
     std::vector<ring_buffer_stress_test_producer_context_t> producer_contexts(producer_threads);
     for (auto& producer_context : producer_contexts) {
         producer_context.ring_buffer = ring_buffer;
         producer_context.stop = &stop;
+        producer_context.barrier = &barrier;
     }
 
     std::vector<std::thread> threads;
+    threads.emplace_back(std::thread(ring_buffer_stress_test_consumer, &consumer_context, parameters));
     for (size_t i = 0; i < producer_threads; i++) {
         if (use_output) {
             threads.emplace_back(
-                std::thread(ring_buffer_speed_test_producer_output, &producer_contexts[i], parameters));
+                std::thread(ring_buffer_stress_test_producer_output, &producer_contexts[i], parameters));
         } else {
             threads.emplace_back(
-                std::thread(ring_buffer_speed_test_producer_reserve_submit, &producer_contexts[i], parameters));
+                std::thread(ring_buffer_stress_test_producer_reserve_submit, &producer_contexts[i], parameters));
         }
     }
-    threads.emplace_back(std::thread(ring_buffer_speed_test_consumer, &consumer_context, parameters));
 
+    // Wait to start test until all threads are ready.
+    _ring_buffer_test_barrier(&barrier);
     std::this_thread::sleep_for(std::chrono::seconds(duration_seconds));
     stop = true;
 
@@ -1767,9 +1803,6 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
     size_t remaining_locked = 0;
     size_t remaining_failed_returns = 0;
     {
-        uint8_t* buffer;
-        // size_t size = 64 * 1024 * 1024;
-        REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
         auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
         while (record != nullptr) {
             remaining_records++;
