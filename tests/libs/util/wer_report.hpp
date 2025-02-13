@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
+#include <crtdbg.h>
 #include <csignal>
+#include <iostream>
 #define WIN32_LEAN_AND_MEAN // Exclude rarely-used stuff from Windows headers
 #include <Windows.h>
 #include <errorrep.h>
@@ -84,8 +86,14 @@ class _wer_report
     static constexpr const wchar_t wer_event_type[] = L"Test Application Crash";
 
     static int __CRTDECL
-    _terminate_hook(int, char*, int*)
+    _terminate_hook(int reportType, char* message, int* returnValue)
     {
+        UNREFERENCED_PARAMETER(reportType);
+        UNREFERENCED_PARAMETER(returnValue);
+
+        std::cerr << message;
+        std::cerr.flush();
+
         // Convert a CRT runtime error into a SEH exception.
         RaiseException(STATUS_ASSERTION_FAILURE, 0, 0, NULL);
         return 0;
