@@ -13,6 +13,7 @@ uint32_t
 _delete_service(SC_HANDLE service_handle);
 
 extern std::function<decltype(_close)> close_handler;
+extern std::function<decltype(_dup)> dup_handler;
 extern std::function<decltype(CancelIoEx)> cancel_io_ex_handler;
 extern std::function<decltype(CloseHandle)> close_handle_handler;
 extern std::function<decltype(CreateFileW)> create_file_handler;
