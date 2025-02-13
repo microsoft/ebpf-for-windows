@@ -2226,18 +2226,7 @@ ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t**
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_offset)
 {
-    size_t producer_offset;
-    size_t old_consumer_offset;
-    size_t consumed_data_length;
-    EBPF_LOG_ENTRY();
-    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &old_consumer_offset, &producer_offset);
-    ebpf_result_t result = ebpf_safe_size_t_subtract(consumer_offset, old_consumer_offset, &consumed_data_length);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-    result = ebpf_ring_buffer_return((ebpf_ring_buffer_t*)map->data, consumed_data_length);
-Exit:
-    EBPF_RETURN_RESULT(result);
+    return ebpf_ring_buffer_return_buffer((ebpf_ring_buffer_t*)map->data, consumer_offset);
 }
 
 _Must_inspect_result_ ebpf_result_t

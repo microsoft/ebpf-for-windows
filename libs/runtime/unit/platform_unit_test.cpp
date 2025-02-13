@@ -1405,7 +1405,7 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
         while (record != nullptr) {
             remaining_records++;
             uint32_t header = record->header.length;
-            size_t record_size = header & ~(EBPF_RINGBUF_DISCARD_BIT | EBPF_RINGBUF_LOCK_BIT);
+            size_t record_length = header & ~(EBPF_RINGBUF_DISCARD_BIT | EBPF_RINGBUF_LOCK_BIT);
             if (header & EBPF_RINGBUF_LOCK_BIT) {
                 remaining_locked++;
                 break;
@@ -1414,8 +1414,8 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
                 remaining_discards++;
                 break;
             }
-            REQUIRE(record_size != 0);
-            if (ebpf_ring_buffer_return(ring_buffer, record_size) != EBPF_SUCCESS) {
+            REQUIRE(record_length != 0);
+            if (ebpf_ring_buffer_return(ring_buffer, record_length) != EBPF_SUCCESS) {
                 remaining_failed_returns++;
                 break;
             }
@@ -1774,7 +1774,7 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
         while (record != nullptr) {
             remaining_records++;
             uint32_t header = record->header.length;
-            size_t record_size = header & ~(EBPF_RINGBUF_DISCARD_BIT | EBPF_RINGBUF_LOCK_BIT);
+            size_t record_length = header & ~(EBPF_RINGBUF_DISCARD_BIT | EBPF_RINGBUF_LOCK_BIT);
             if (header & EBPF_RINGBUF_LOCK_BIT) {
                 remaining_locked++;
                 break;
@@ -1783,8 +1783,8 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
                 remaining_discards++;
                 break;
             }
-            REQUIRE(record_size != 0);
-            if (ebpf_ring_buffer_return(ring_buffer, record_size) != EBPF_SUCCESS) {
+            REQUIRE(record_length != 0);
+            if (ebpf_ring_buffer_return(ring_buffer, record_length) != EBPF_SUCCESS) {
                 remaining_failed_returns++;
                 break;
             }
