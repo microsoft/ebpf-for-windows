@@ -16,75 +16,124 @@ typedef struct _ebpf_ring_buffer
     ebpf_ring_descriptor_t* ring_descriptor;
 } ebpf_ring_buffer_t;
 
-// FIXME: Temporarily removed to fix analyze issue.
-// /**
-//  * @brief Raise the CPU's IRQL to DISPATCH_LEVEL if it is below DISPATCH_LEVEL.
-//  * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
-//  * calling KeRaiseIrqlToDpcLevel() if it is not needed.
-//  *
-//  * @return The previous IRQL.
-//  */
-// _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) static inline KIRQL
-//     _ring_raise_to_dispatch_if_needed()
-// {
-//     KIRQL old_irql = KeGetCurrentIrql();
-//     if (old_irql < DISPATCH_LEVEL) {
-//         old_irql = KeRaiseIrqlToDpcLevel();
-//     }
-//     return old_irql;
-// }
-//
-// /**
-//  * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
-//  * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
-//  * calling KeLowerIrql() if it is not needed.
-//  *
-//  * @param[in] previous_irql The previous IRQL.
-//  */
-// _IRQL_requires_(DISPATCH_LEVEL) static inline void _ring_lower_to_previous_irql(
-//     _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
-// {
-//     if (previous_irql < DISPATCH_LEVEL) {
-//         KeLowerIrql(previous_irql);
-//     }
-// }
+/**
+ * @brief Raise the CPU's IRQL to DISPATCH_LEVEL if it is below DISPATCH_LEVEL.
+ * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
+ * calling KeRaiseIrqlToDpcLevel() if it is not needed.
+ *
+ * @return The previous IRQL.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) static inline KIRQL
+    _ring_raise_to_dispatch_if_needed()
+{
+    KIRQL old_irql = KeGetCurrentIrql();
+    if (old_irql < DISPATCH_LEVEL) {
+        old_irql = KeRaiseIrqlToDpcLevel();
+    }
+    return old_irql;
+}
 
+/**
+ * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
+ * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
+ * calling KeLowerIrql() if it is not needed.
+ *
+ * @param[in] previous_irql The previous IRQL.
+ */
+_IRQL_requires_(DISPATCH_LEVEL) static inline void _ring_lower_to_previous_irql(
+    _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
+{
+    if (previous_irql < DISPATCH_LEVEL) {
+        KeLowerIrql(previous_irql);
+    }
+}
+
+/**
+ * @brief Get record size from data size (includes header).
+ *
+ * @param[in] data_size Size of the data in the record.
+ * @return Size of the record.
+ */
 inline static size_t
 _ring_record_size(size_t data_size)
 {
     return EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + data_size;
 }
 
+/**
+ * @brief Pad a size to a multiple of 8 bytes.
+ *
+ * @param[in] size Size of the record.
+ * @return Padded size of the record.
+ */
 inline static size_t
 _ring_padded_size(size_t size)
 {
     return (size + 7) & ~7;
 }
 
+/**
+ * @brief Get the total size of a record (including header and padding).
+ *
+ * @param[in] record Pointer to the record.
+ * @return Total size of the record.
+ */
 inline static size_t
 _ring_record_total_size(_In_ const ebpf_ring_buffer_record_t* record)
 {
     return _ring_padded_size(_ring_record_size(ebpf_ring_buffer_record_length(record)));
 }
 
+/**
+ * @brief Get the length of the record from the header.length.
+ *
+ * Excludes the lock and discard bits.
+ *
+ * @param[in] header_length record header.length
+ * @return Length of the record.
+ */
 inline static uint32_t
-_ring_header_length(_In_ uint32_t header)
+_ring_header_length(_In_ uint32_t header_length)
 {
-    return header & ~(EBPF_RINGBUF_LOCK_BIT | EBPF_RINGBUF_DISCARD_BIT);
+    return header_length & ~(EBPF_RINGBUF_LOCK_BIT | EBPF_RINGBUF_DISCARD_BIT);
 }
 
+/**
+ * @brief Check if the record is locked from the header.
+ *
+ * @param[in] header_length record header.length
+ * @retval true The record is locked.
+ * @retval false The record is not locked.
+ */
 inline static bool
-_ring_header_locked(_In_ uint32_t header)
+_ring_header_locked(_In_ uint32_t header_length)
 {
-    return (header & EBPF_RINGBUF_LOCK_BIT) != 0;
+    return (header_length & EBPF_RINGBUF_LOCK_BIT) != 0;
 }
 
+/**
+ * @brief Check if the record is discarded from the header.
+ *
+ * @param[in] header_length record header.length
+ * @retval true The record is discarded.
+ * @retval false The record is not discarded.
+ */
 inline static bool
-_ring_header_discarded(_In_ uint32_t header)
+_ring_header_discarded(_In_ uint32_t header_length)
 {
-    return (header & EBPF_RINGBUF_DISCARD_BIT) != 0;
+    return (header_length & EBPF_RINGBUF_DISCARD_BIT) != 0;
 }
 
+/**
+ * @brief Initialize a record with the given length.
+ *
+ * Does a no-fence write to the record length.
+ *
+ * Ensure that the producer offset is updated AFTER the initialization is flushed.
+ *
+ * @param[in, out] record Pointer to the record.
+ * @param[in] length Length of the record.
+ */
 inline static void
 _ring_record_initialize(_Inout_ ebpf_ring_buffer_record_t* record, size_t length)
 {
@@ -92,6 +141,13 @@ _ring_record_initialize(_Inout_ ebpf_ring_buffer_record_t* record, size_t length
     WriteUInt32NoFence(&record->header.length, (uint32_t)length | EBPF_RINGBUF_LOCK_BIT);
 }
 
+/**
+ * @brief Finalize a record.
+ *
+ * Unlocks the record so it can be read.
+ *
+ * @param[in, out] record Pointer to the record.
+ */
 inline static void
 _ring_record_finalize(_Inout_ ebpf_ring_buffer_record_t* record)
 {
@@ -100,6 +156,13 @@ _ring_record_finalize(_Inout_ ebpf_ring_buffer_record_t* record)
     WriteUInt32NoFence(&record->header.length, new_length);
 }
 
+/**
+ * @brief Discard a record.
+ *
+ * Marks the record as discarded so it will be skipped.
+ *
+ * @param[in, out] record Pointer to the record.
+ */
 inline static void
 _ring_record_discard(_Inout_ ebpf_ring_buffer_record_t* record)
 {
@@ -108,24 +171,48 @@ _ring_record_discard(_Inout_ ebpf_ring_buffer_record_t* record)
     WriteUInt32NoFence(&record->header.length, new_length);
 }
 
+/**
+ * @brief Get the length of the ring.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Length of the record.
+ */
 inline static size_t
 _ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
 {
     return ring->length;
 }
 
+/**
+ * @brief Get the producer offset.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Producer offset.
+ */
 inline static size_t
 _ring_get_producer_offset(_In_ const ebpf_ring_buffer_t* ring)
 {
     return ReadULong64Acquire(&ring->producer_offset) % ring->length;
 }
 
+/**
+ * @brief Get the consumer offset.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Consumer offset.
+ */
 inline static size_t
 _ring_get_consumer_offset(_In_ const ebpf_ring_buffer_t* ring)
 {
     return ReadULong64Acquire(&ring->consumer_offset) % ring->length;
 }
 
+/**
+ * @brief Get the used capacity of the ring.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Used capacity of the ring.
+ */
 inline static size_t
 _ring_get_used_capacity(_In_ const ebpf_ring_buffer_t* ring)
 {
@@ -134,6 +221,12 @@ _ring_get_used_capacity(_In_ const ebpf_ring_buffer_t* ring)
     return producer_offset - consumer_offset;
 }
 
+/**
+ * @brief Advance the producer offset.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @param[in] length Length to advance the producer offset.
+ */
 inline static void
 _ring_advance_producer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
@@ -141,6 +234,12 @@ _ring_advance_producer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
     WriteULong64Release(&ring->producer_offset, new_producer_offset);
 }
 
+/**
+ * @brief Advance the consumer offset.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @param[in] length Length to advance the consumer offset.
+ */
 inline static void
 _ring_advance_consumer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 {
@@ -148,12 +247,26 @@ _ring_advance_consumer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
     WriteULong64NoFence(&ring->consumer_offset, new_consumer_offset);
 }
 
+/**
+ * @brief Get the record at the given offset.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @param[in] offset Offset of the record.
+ * @return Pointer to the record.
+ */
 inline static _Ret_notnull_ ebpf_ring_buffer_record_t*
 _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
 {
     return (ebpf_ring_buffer_record_t*)&ring->shared_buffer[offset % ring->length];
 }
 
+/**
+ * @brief Get the next record in the ring buffer's data buffer, skipping any discarded records.
+ *
+ * @param[in] ring Pointer to the ring buffer.
+ * @param[in] buffer Pointer to the start of the ring buffer's data buffer.
+ * @return Pointer to the next record or NULL if no more records.
+ */
 inline static _Ret_maybenull_ ebpf_ring_buffer_record_t*
 _ring_next_consumer_record(_In_ ebpf_ring_buffer_t* ring)
 {
@@ -320,11 +433,14 @@ ebpf_ring_buffer_next_consumer_record(_Inout_ ebpf_ring_buffer_t* ring_buffer, _
     }
 }
 
+#pragma warning(push)
+#pragma warning( \
+    disable : 28167) // warning C28167: Code analysis incorrectly reports that the function 'ebpf_ring_buffer_reserve'
+                     // does not restore the IRQL to the value that was current at function entry.
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_reserve(
     _Inout_ ebpf_ring_buffer_t* ring, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length)
 {
-
     //  Reservation loop:
     //  - No fairness guarantee, but does guarantee progress on each race/collision
     //  - Still needs to run at dispatch (or if all threads were passive you could yield in the spin loop)
@@ -343,7 +459,7 @@ ebpf_ring_buffer_reserve(
     size_t record_size = _ring_record_size(length);
     size_t padded_record_size = _ring_padded_size(record_size);
 
-    // KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
+    KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
     for (;;) {
         size_t consumer_offset =
             ReadULong64Acquire(&ring->consumer_offset); // could be NoFence (possible fail on nearly-full ringbuf)
@@ -366,6 +482,8 @@ ebpf_ring_buffer_reserve(
             // - Only advances producer offset once the producer_offset matches the producer_reserve_offset we
             // originally got
             //   - Guarantees any records allocated before us are locked before we update offset
+            // - Technically this spin loop is the only part that needs to run at dispatch, but that would increase the
+            //   collision probability on the reserve_offset update above.
             while (_prod != ReadULong64Acquire(&ring->producer_offset)) { // could be NoFence (possible extra spins)
                 // we shouldn't have to spin long
             }
@@ -376,9 +494,10 @@ ebpf_ring_buffer_reserve(
         } // else we lost the race and try again (but another process suceeded)
     }
 Done:
-    // _ring_lower_to_previous_irql(irql_at_enter);
+    _ring_lower_to_previous_irql(irql_at_enter);
     return result;
 }
+#pragma warning(pop)
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
