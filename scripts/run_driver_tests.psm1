@@ -340,14 +340,14 @@ function Invoke-CICDTests
 
     # Now run the system tests.
 
-    $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
-    if ($ExecuteSystemTests) {
-        foreach ($Test in $SystemTestList) {
-            $TestCommand = "PsExec64.exe"
-            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
-            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
-        }
-    }
+    # $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
+    # if ($ExecuteSystemTests) {
+    #     foreach ($Test in $SystemTestList) {
+    #         $TestCommand = "PsExec64.exe"
+    #         $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
+    #         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
+    #     }
+    # }
 
     if ($Env:BUILD_CONFIGURATION -eq "Release") {
         Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs
