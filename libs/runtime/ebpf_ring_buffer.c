@@ -450,51 +450,53 @@ ebpf_ring_buffer_reserve(
     //    - CompareExchange serializes allocation (using producer_reserve_offset)
     //    - spin loop serializes offset updates between producers (ensure previous allocations are locked)
     //    - producer_offset WriteRelease serializes lock and offset update (lock before offset update)
+    size_t consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
+    size_t producer_offset = ReadULong64Acquire(&ring->producer_offset);
+    size_t used_capacity = producer_offset - consumer_offset;
     if (length > ring->length || length == 0 || length > UINT32_MAX) {
         return EBPF_INVALID_ARGUMENT;
-    } else if (_ring_get_used_capacity(ring) + length > ring->length) {
+    } else if (used_capacity + length > ring->length) {
         return EBPF_NO_MEMORY;
     }
     ebpf_result_t result = EBPF_SUCCESS;
     size_t record_size = _ring_record_size(length);
     size_t padded_record_size = _ring_padded_size(record_size);
 
-    KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
+    // KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
     for (;;) {
-        size_t consumer_offset =
-            ReadULong64Acquire(&ring->consumer_offset); // could be NoFence (possible fail on nearly-full ringbuf)
-        size_t _prod = ReadULong64Acquire(&ring->producer_reserve_offset); // could be NoFence (possible extra looping)
-        size_t _new_prod = _prod + padded_record_size;
+        // Acquire producer_offset to ensure we see the latest value before compare exchange
+        producer_offset = ReadULong64Acquire(&ring->producer_reserve_offset);
+        size_t _new_prod = producer_offset + padded_record_size;
         if (_new_prod - consumer_offset >= ring->length) {
             result = EBPF_NO_MEMORY; // Not enough space for record
             goto Done;
         } else if (
-            _prod == (uint64_t)ebpf_interlocked_compare_exchange_int64(
-                         (volatile int64_t*)&ring->producer_reserve_offset, _new_prod, _prod)) {
-            // We successfully allocated the space -- now we need to lock the record and (then) update producer offset
+            producer_offset == (uint64_t)ebpf_interlocked_compare_exchange_int64(
+                                   (volatile int64_t*)&ring->producer_reserve_offset, _new_prod, producer_offset)) {
+            // We successfully allocated the space -- now we need to lock the record and *then* update producer offset
 
-            ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, _prod);
+            ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, producer_offset);
             _ring_record_initialize(record, (uint32_t)length);
 
             // There may be multiple producers that all advanced the producer reserve offset but haven't set the locked
             // flag yet.
-            // - Need to guarantee that any reserved record behind producer_offset is locked before consumer sees it
-            // - Only advances producer offset once the producer_offset matches the producer_reserve_offset we
-            // originally got
-            //   - Guarantees any records allocated before us are locked before we update offset
-            // - Technically this spin loop is the only part that needs to run at dispatch, but that would increase the
-            //   collision probability on the reserve_offset update above.
-            while (_prod != ReadULong64Acquire(&ring->producer_offset)) { // could be NoFence (possible extra spins)
-                // we shouldn't have to spin long
+            // - We need to guarantee that any reserved record behind producer_offset is locked before consumer sees it.
+            // - We only advance producer offset once the producer_offset matches the producer_reserve_offset we
+            //   originally got.
+            //   - This guarantees any records allocated before us are locked before we update offset.
+            while (producer_offset !=
+                   ReadULong64Acquire(&ring->producer_offset)) { // could be NoFence (possible extra spins)
+                YieldProcessor();
+                // We shouldn't have to spin long.
             }
-            WriteULong64Release(
-                &ring->producer_offset, _new_prod); // Must be Release to ensure ordering with setting the lock bit.
+            // Release producer offset to ensure ordering with setting the lock bit.
+            WriteULong64Release(&ring->producer_offset, _new_prod);
             *data = record->data;
             goto Done; // we have successfully reserved record, now can write+submit/discard
         } // else we lost the race and try again (but another process suceeded)
     }
 Done:
-    _ring_lower_to_previous_irql(irql_at_enter);
+    //_ring_lower_to_previous_irql(irql_at_enter);
     return result;
 }
 #pragma warning(pop)

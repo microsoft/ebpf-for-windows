@@ -1468,6 +1468,8 @@ TEST_CASE("ring_buffer_stress_tests", "[ring_buffer_stress]")
 
     // uint32_t ncpu = ebpf_get_cpu_count();
 
+    std::cout << "== Starting stress tests ==" << std::endl;
+    std::cout << std::flush;
     const ring_buffer_stress_test_parameters_t tests_params[] = {
 #define STRINGIZE2(x) #x
 #define STRINGIZE(x) STRINGIZE2(x)
@@ -1586,6 +1588,8 @@ ring_buffer_speed_test_producer_output(
         context->loop_count++;
         if (ebpf_ring_buffer_output(context->ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
             context->output_count++;
+        } else {
+            YieldProcessor();
         }
     }
 }
@@ -1594,7 +1598,9 @@ void
 ring_buffer_speed_test_producer_reserve_submit(
     ring_buffer_stress_test_producer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
 {
+    bool do_copy = parameters->do_copy;
     size_t data_size = parameters->data_size;
+    bool discard = parameters->discard_rate > 0.0;
 
     std::vector<uint8_t> data(data_size);
     while (!*context->stop) {
@@ -1602,12 +1608,24 @@ ring_buffer_speed_test_producer_reserve_submit(
         uint8_t* reserved_memory = nullptr;
         if (ebpf_ring_buffer_reserve(context->ring_buffer, &reserved_memory, data_size) == EBPF_SUCCESS) {
             context->reserve_count++;
-            memcpy(reserved_memory, data.data(), data_size);
-            if (ebpf_ring_buffer_submit(reserved_memory) == EBPF_SUCCESS) {
-                context->submit_count++;
+            if (discard) {
+                if (ebpf_ring_buffer_discard(reserved_memory) == EBPF_SUCCESS) {
+                    context->discard_count++;
+                } else {
+                    context->failed_discards++;
+                }
             } else {
-                context->failed_submits++;
+                if (do_copy) {
+                    memcpy(reserved_memory, data.data(), data_size);
+                }
+                if (ebpf_ring_buffer_submit(reserved_memory) == EBPF_SUCCESS) {
+                    context->submit_count++;
+                } else {
+                    context->failed_submits++;
+                }
             }
+        } else {
+            YieldProcessor();
         }
     }
 }
@@ -1616,7 +1634,6 @@ void
 ring_buffer_speed_test_consumer(
     ring_buffer_stress_test_consumer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
 {
-    size_t buffer_size = 64 * 1024;
     size_t wait_us = parameters->consumer_wait_us;
 
     uint8_t* buffer;
@@ -1630,10 +1647,12 @@ ring_buffer_speed_test_consumer(
     while (!*context->stop) {
         context->loop_count++;
         ebpf_ring_buffer_query(context->ring_buffer, &consumer, &producer);
-        if (producer - consumer <= buffer_size / 2) {
-            // Wait until ring is >1/2 full, then read until empty and repeat.
+        if (producer - consumer <= 1024 * 1024) {
+            // Wait until ring has 1MB of data, then read until empty and repeat.
             if (wait_us > 0) {
                 std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+            } else {
+                YieldProcessor();
             }
             continue;
         }
@@ -1656,7 +1675,7 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
     size_t duration_seconds = parameters->duration_seconds;
     bool use_output = parameters->use_output;
     ebpf_ring_buffer_t* ring_buffer;
-    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024 * 1024) == EBPF_SUCCESS);
 
     std::atomic<bool> stop = false;
     ring_buffer_stress_test_consumer_context_t consumer_context;
@@ -1749,7 +1768,7 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
     size_t remaining_failed_returns = 0;
     {
         uint8_t* buffer;
-        // size_t size = 64 * 1024;
+        // size_t size = 64 * 1024 * 1024;
         REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
         auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
         while (record != nullptr) {
@@ -1811,21 +1830,46 @@ TEST_CASE("ring_buffer_speed_tests", "[ring_buffer_speed]")
 {
     _test_helper test_helper;
     test_helper.initialize();
+    // uint32_t ncpu = ebpf_get_cpu_count();
 
     std::cout << "== Starting speed tests ==" << std::endl;
+    // std::cout << "ncpu: " << ncpu << std::endl;
+    std::cout << std::flush;
     const ring_buffer_stress_test_parameters_t tests_params[] = {
-        RING_TEST_CASE(1, 8, 0.00, 0, 0, 0, 0, true, true, "Single producer, small data size, no delay, out"),
-        RING_TEST_CASE(4, 8, 0.00, 0, 0, 0, 0, true, true, "Multiple producers, small data size, no delay, out"),
-        RING_TEST_CASE(1, 1024, 0.00, 0, 0, 0, 0, true, true, "Single producer, large data size, no delay, out"),
-        RING_TEST_CASE(4, 1024, 0.00, 0, 0, 0, 0, true, true, "Multiple producers, large data size, no delay, out"),
-        RING_TEST_CASE(1, 4096, 0.00, 0, 0, 0, 0, true, true, "Single producer, large data size, no delay, out"),
-        RING_TEST_CASE(4, 4096, 0.00, 0, 0, 0, 0, true, true, "Multiple producers, large data size, no delay, out"),
-        RING_TEST_CASE(1, 8, 0.00, 0, 0, 0, 0, false, true, "Single producer, small data size, no delay, r/s"),
-        RING_TEST_CASE(4, 8, 0.00, 0, 0, 0, 0, false, true, "Multiple producers, small data size, no delay, r/s"),
-        RING_TEST_CASE(1, 1024, 0.00, 0, 0, 0, 0, false, true, "Single producer, large data size, no delay, r/s"),
-        RING_TEST_CASE(4, 1024, 0.00, 0, 0, 0, 0, false, true, "Multiple producers, large data size, no delay, r/s"),
-        RING_TEST_CASE(1, 4096, 0.00, 0, 0, 0, 0, false, true, "Single producer, large data size, no delay, r/s"),
-        RING_TEST_CASE(4, 4096, 0.00, 0, 0, 0, 0, false, true, "Multiple producers, large data size, no delay, r/s"),
+        RING_TEST_CASE(1, 8, 0.00, 0, 1, 0, 0, true, true, "threads=1, 16 byte record, out"),
+        RING_TEST_CASE(4, 8, 0.00, 0, 1, 0, 0, true, true, "threads=4, 16 byte record, out"),
+        RING_TEST_CASE(1, 56, 0.00, 0, 1, 0, 0, true, true, "threads=1, 64 byte record, out"),
+        RING_TEST_CASE(4, 56, 0.00, 0, 1, 0, 0, true, true, "threads=4, 64 byte record, out"),
+        RING_TEST_CASE(1, 1016, 0.00, 0, 1, 0, 0, true, true, "threads=1, 1K record, out"),
+        RING_TEST_CASE(4, 1016, 0.00, 0, 1, 0, 0, true, true, "threads=4, 1K record, out"),
+        RING_TEST_CASE(1, 4088, 0.00, 0, 1, 0, 0, true, true, "threads=1, 4K record, out"),
+        RING_TEST_CASE(4, 4088, 0.00, 0, 1, 0, 0, true, true, "threads=4, 4K record, out"),
+        RING_TEST_CASE(1, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, true, true, "threads=1, 1M record, out"),
+        RING_TEST_CASE(4, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, true, true, "threads=4, 1M record, out"),
+        RING_TEST_CASE(1, 8, 0.00, 0, 1, 0, 0, false, true, "threads=1, 16 byte record, r/s"),
+        RING_TEST_CASE(4, 8, 0.00, 0, 1, 0, 0, false, true, "threads=4, 16 byte record, r/s"),
+        RING_TEST_CASE(1, 56, 0.00, 0, 1, 0, 0, false, true, "threads=1, 64 byte record, r/s"),
+        RING_TEST_CASE(4, 56, 0.00, 0, 1, 0, 0, false, true, "threads=4, 64 byte record, r/s"),
+        RING_TEST_CASE(1, 1016, 0.00, 0, 1, 0, 0, false, true, "threads=1, 1K record, r/s"),
+        RING_TEST_CASE(4, 1016, 0.00, 0, 1, 0, 0, false, true, "threads=4, 1K record, r/s"),
+        RING_TEST_CASE(1, 4088, 0.00, 0, 1, 0, 0, false, true, "threads=1, 4K record, r/s"),
+        RING_TEST_CASE(4, 4088, 0.00, 0, 1, 0, 0, false, true, "threads=4, 4K record, r/s"),
+        RING_TEST_CASE(1, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, true, "threads=1, 1M record, r/s"),
+        RING_TEST_CASE(4, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, true, "threads=4, 1M record, r/s"),
+        RING_TEST_CASE(1, 8, 0.00, 0, 1, 0, 0, false, false, "threads=1, 16 byte record, r/s, no copy"),
+        RING_TEST_CASE(4, 8, 0.00, 0, 1, 0, 0, false, false, "threads=4, 16 byte record, r/s, no copy"),
+        RING_TEST_CASE(1, 8, 1.00, 0, 1, 0, 0, false, false, "threads=1, 16 byte record, r/s, discard"),
+        RING_TEST_CASE(4, 8, 1.00, 0, 1, 0, 0, false, false, "threads=4, 16 byte record, r/s, discard"),
+        RING_TEST_CASE(1, 56, 0.00, 0, 1, 0, 0, false, false, "threads=1, 64 byte record, r/s, no copy"),
+        RING_TEST_CASE(4, 56, 0.00, 0, 1, 0, 0, false, false, "threads=4, 64 byte record, r/s, no copy"),
+        RING_TEST_CASE(1, 56, 1.00, 0, 1, 0, 0, false, false, "threads=1, 64 byte record, r/s, discard"),
+        RING_TEST_CASE(4, 56, 1.00, 0, 1, 0, 0, false, false, "threads=4, 64 byte record, r/s, discard"),
+        RING_TEST_CASE(1, 1016, 0.00, 0, 1, 0, 0, false, false, "threads=1, 1K record, r/s, no copy"),
+        RING_TEST_CASE(4, 1016, 0.00, 0, 1, 0, 0, false, false, "threads=4, 1K record, r/s, no copy"),
+        RING_TEST_CASE(1, 4088, 0.00, 0, 1, 0, 0, false, false, "threads=1, 4K record, r/s, no copy"),
+        RING_TEST_CASE(4, 4088, 0.00, 0, 1, 0, 0, false, false, "threads=4, 4K record, r/s, no copy"),
+        RING_TEST_CASE(1, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, false, "threads=1, 1M record, r/s, no copy"),
+        RING_TEST_CASE(4, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, false, "threads=4, 1M record, r/s, no copy"),
 
 #undef RING_TEST_CASE
 #undef STRINGIZE
