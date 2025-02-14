@@ -1342,7 +1342,7 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                         "Map " + output.relocation + " doesn't exist", output.instruction_offset);
                 }
                 source = std::format(
-                    "_global_variable_sections[{}].address_of_map_value + {}",
+                    "runtime_context->global_variable_section_data[{}].address_of_map_value + {}",
                     std::to_string(global_section->second.index),
                     std::to_string(imm));
                 // As an example, this produces the following line:
@@ -1799,7 +1799,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         }
 
         output_stream << "#pragma data_seg(push, \"global_variables\")" << std::endl;
-        output_stream << "static global_variable_section_t _global_variable_sections[] = {" << std::endl;
+        output_stream << "static global_variable_section_info_t _global_variable_sections[] = {" << std::endl;
 
         for (const auto& [name, entry] : global_variable_sections_by_index) {
             output_stream << INDENT "{" << std::endl;
@@ -1812,9 +1812,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "#pragma data_seg(pop)" << std::endl;
         output_stream << std::endl;
         output_stream << "static void" << std::endl << "_get_global_variable_sections(" << std::endl;
-        output_stream << INDENT "_Outptr_result_buffer_maybenull_(*count) global_variable_section_t** "
-                                "global_variable_sections, _Out_ size_t* count)"
+        output_stream << INDENT "_Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** "
+                                "global_variable_sections,"
                       << std::endl;
+        output_stream << INDENT "_Out_ size_t* count)" << std::endl;
         output_stream << "{" << std::endl;
         output_stream << INDENT "*global_variable_sections = _global_variable_sections;" << std::endl;
         output_stream << INDENT "*count = " << std::to_string(global_variable_sections.size()) << ";" << std::endl;
@@ -1822,9 +1823,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     } else {
         output_stream << "static void" << std::endl << "_get_global_variable_sections(" << std::endl;
-        output_stream << INDENT "_Outptr_result_buffer_maybenull_(*count) global_variable_section_t** "
-                                "global_variable_sections, _Out_ size_t* count)"
+        output_stream << INDENT "_Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** "
+                                "global_variable_sections,"
                       << std::endl;
+        output_stream << INDENT "_Out_ size_t* count)" << std::endl;
         output_stream << "{" << std::endl;
         output_stream << INDENT "*global_variable_sections = NULL;" << std::endl;
         output_stream << INDENT "*count = 0;" << std::endl;

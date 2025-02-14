@@ -57,7 +57,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "pidtgid_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -82,7 +82,7 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 const char pidtgid_bss_initial_data[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #pragma data_seg(push, "global_variables")
-static global_variable_section_t _global_variable_sections[] = {
+static global_variable_section_info_t _global_variable_sections[] = {
     {
         .name = "pidtgid.bss",
         .size = 12,
@@ -93,7 +93,8 @@ static global_variable_section_t _global_variable_sections[] = {
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = _global_variable_sections;
     *count = 1;

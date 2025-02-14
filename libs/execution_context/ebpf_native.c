@@ -89,6 +89,7 @@ typedef struct _ebpf_native_module_instance
     size_t map_count;
     ebpf_native_program_t** programs;
     size_t program_count;
+    size_t global_variable_count;
 } ebpf_native_module_instance_t;
 
 static const GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
@@ -247,6 +248,7 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
         program->addresses_changed_callback_context = NULL;
         ebpf_free(program->runtime_context.helper_data);
         ebpf_free(program->runtime_context.map_data);
+        ebpf_free(program->runtime_context.global_variable_section_data);
         ebpf_free(program);
     }
 }
@@ -468,7 +470,8 @@ _ebpf_native_map_initial_values_fallback(
 
 static void
 _ebpf_native_global_variable_sections_fallback(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     global_variable_sections = NULL;
     *count = 0;
@@ -996,19 +999,31 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_instance_t* insta
 }
 
 static ebpf_result_t
-_ebpf_native_initialize_global_variables(_Inout_ ebpf_native_module_t* module)
+_ebpf_native_initialize_global_variables(
+    _Inout_ ebpf_native_module_instance_t* instance, _In_ ebpf_native_program_t* program)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    global_variable_section_t* global_variables = NULL;
+    global_variable_section_info_t* global_variables = NULL;
     size_t global_variable_count = 0;
 
-    // Get global variables.
-    module->table.global_variable_sections(&global_variables, &global_variable_count);
+    // Get global variables info.
+    instance->module->table.global_variable_sections(&global_variables, &global_variable_count);
+
+    if (global_variable_count == 0) {
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    }
+
+    // Initialize global variables data.
+    program->runtime_context.global_variable_section_data = (global_variable_section_data_t*)ebpf_allocate_with_tag(
+        global_variable_count * sizeof(global_variable_section_data_t), EBPF_POOL_TAG_NATIVE);
+    if (program->runtime_context.global_variable_section_data == NULL) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    }
 
     // For each entry.
     for (size_t i = 0; i < global_variable_count; i++) {
-        ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(module, global_variables[i].name);
+        ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, global_variables[i].name);
         if (native_map == NULL) {
             result = EBPF_INVALID_ARGUMENT;
             break;
@@ -1016,13 +1031,18 @@ _ebpf_native_initialize_global_variables(_Inout_ ebpf_native_module_t* module)
 
         // Resolve initial value address.
         result = ebpf_core_resolve_map_value_address(
-            1, &native_map->handle, (uintptr_t*)&global_variables[i].address_of_map_value);
+            1,
+            &native_map->handle,
+            (uintptr_t*)&program->runtime_context.global_variable_section_data[i].address_of_map_value);
         if (result != EBPF_SUCCESS) {
             break;
         }
 
         // Copy the initial value to the map.
-        memcpy(global_variables[i].address_of_map_value, global_variables[i].initial_data, global_variables[i].size);
+        memcpy(
+            program->runtime_context.global_variable_section_data[i].address_of_map_value,
+            global_variables[i].initial_data,
+            global_variables[i].size);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1428,6 +1448,17 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
 
+        // Setup global variables.
+        result = _ebpf_native_initialize_global_variables(instance, native_program);
+        if (result != EBPF_SUCCESS) {
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "_ebpf_native_load_programs: _ebpf_native_initialize_global_variables failed",
+                &module->client_module_id);
+            goto Done;
+        }
+
         ebpf_native_helper_address_changed_context_t* context = NULL;
 
         context = (ebpf_native_helper_address_changed_context_t*)ebpf_allocate(
@@ -1755,16 +1786,16 @@ ebpf_native_load_programs(
         goto Done;
     }
 
-    // Setup global variables.
-    result = _ebpf_native_initialize_global_variables(module);
-    if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_VERBOSE,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "ebpf_native_load_programs: resolve map value addresses failed",
-            module_id);
-        goto Done;
-    }
+    // // Setup global variables.
+    // result = _ebpf_native_initialize_global_variables(&instance);
+    // if (result != EBPF_SUCCESS) {
+    //     EBPF_LOG_MESSAGE_GUID(
+    //         EBPF_TRACELOG_LEVEL_VERBOSE,
+    //         EBPF_TRACELOG_KEYWORD_NATIVE,
+    //         "ebpf_native_load_programs: resolve map value addresses failed",
+    //         module_id);
+    //     goto Done;
+    // }
 
     module_state = ebpf_lock_lock(&module->lock);
     native_lock_acquired = true;

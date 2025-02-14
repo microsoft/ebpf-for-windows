@@ -90,12 +90,6 @@ extern "C"
         uintptr_t address;
     } map_data_t;
 
-    typedef struct _program_runtime_context
-    {
-        helper_function_data_t* helper_data;
-        map_data_t* map_data;
-    } program_runtime_context_t;
-
     /**
      * @brief Map initial values.
      * This structure contains the initial values for a map. The values are used to initialize the map when the
@@ -109,13 +103,24 @@ extern "C"
         const char** values; // Array of strings containing the initial values.
     } map_initial_values_t;
 
-    typedef struct _global_variable_section
+    typedef struct _global_variable_section_info
     {
         const char* name;
-        unsigned char* address_of_map_value;
         size_t size;
         const void* initial_data;
-    } global_variable_section_t;
+    } global_variable_section_info_t;
+
+    typedef struct _global_variable_section_data
+    {
+        unsigned char* address_of_map_value;
+    } global_variable_section_data_t;
+
+    typedef struct _program_runtime_context
+    {
+        helper_function_data_t* helper_data;
+        map_data_t* map_data;
+        global_variable_section_data_t* global_variable_section_data;
+    } program_runtime_context_t;
 
     /**
      * @brief Program entry.
@@ -178,7 +183,7 @@ extern "C"
             _Outptr_result_buffer_maybenull_(*count) map_initial_values_t** map_initial_values,
             _Out_ size_t* count); ///< Returns the list of initial values for maps in this module.
         void (*global_variable_sections)(
-            _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections,
+            _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
             _Out_ size_t* count); ///< Returns the list of global variables in this module.
     } metadata_table_t;
 

@@ -81,7 +81,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = NULL;
     *count = 0;
