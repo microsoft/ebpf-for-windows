@@ -474,13 +474,24 @@ ebpf_ring_buffer_reserve(
             _ring_record_initialize(record, (uint32_t)length);
 
             // There may be multiple producers that all advanced the producer reserve offset but haven't set the locked
-            // flag yet.
-            // - We need to guarantee that any reserved record behind producer_offset is locked before consumer sees it.
-            // - We only advance producer offset once the producer_offset matches the producer_reserve_offset we
-            //   originally got.
-            //   - This guarantees any records allocated before us are locked before we update offset.
+            // flag yet. We need the following guarantees from this race between concurrent producers:
+            // 1. Any newly reserved record is locked before consumer sees it.
+            //     - Guaranteed for the current record by the release write of the producer offset below.
+            //       - Release ensures that the locked record header is visibile before the producer offset update.
+            //     - We also need to ensure any previous records are locked before we advance offset.
+            // 2. producer offset is monotonicly increasing.
+            //
+            // To ensure both of the above we wait until the producer offset matches the offset of our record to advance
+            // the producer offset.
+            // - This guarantees (1) because if the producer offset update is visibile for the previous record, then
+            //   it's locked header is visible.
+            //   - by extension this guarantees that all newly reserved records allocated before us are already locked.
+            // - This guarantees (2) because it ensures the producer offset updates happen in order.
+            //     - We wait to update until any previous offset updates are visible, so the producer offset always
+            //       steps 1 record forward at a time.
             while (reserve_offset != ReadULong64Acquire(&ring->producer_offset)) {
-                // We shouldn't have to spin long.
+                // We shouldn't need to spin long - at dispatch the worst case is waiting for N-1 producers to update
+                // the offset.
             }
             // Release producer offset to ensure ordering with setting the lock bit in initialize above.
             WriteULong64Release(&ring->producer_offset, new_reserve_offset);
