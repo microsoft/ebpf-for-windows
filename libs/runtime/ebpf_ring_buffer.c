@@ -499,6 +499,8 @@ ebpf_ring_buffer_reserve(
             goto Done; // We have successfully reserved record, now can write+submit/discard.
         }
         // We lost the race and need to try again (but another process suceeded).
+        // Get updated consumer_offset (not needed for safety, but lessens chance of failing on mostly full buffer).
+        consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
     }
 Done:
     _ring_lower_to_previous_irql(irql_at_enter);
