@@ -1675,6 +1675,17 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
         goto Exit;
     }
 
+    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
+    // clients have detached and the filter context is being deleted.
+    if (filter_context->base.context_deleting) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
+        goto Exit;
+    }
+
     _net_ebpf_extension_sock_addr_copy_wfp_connection_fields(
         incoming_fixed_values, incoming_metadata_values, &net_ebpf_sock_addr_ctx);
 
