@@ -30,6 +30,8 @@
 #include <vector>
 #undef max
 
+#define MAXIMUM_GLOBAL_VARIABLE_SECTION_SIZE 1024 * 1024
+
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
@@ -743,8 +745,12 @@ bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
     // Extract any initial values for global variables.
     auto section = reader.sections[name.raw()];
     std::vector<std::uint8_t> data;
+    auto section_size = section->get_size();
+    if (section_size > MAXIMUM_GLOBAL_VARIABLE_SECTION_SIZE) {
+        throw bpf_code_generator_exception("global variable section is too large");
+    }
+    data.resize(section_size);
     if (section->get_data()) {
-        data.resize(section->get_size());
         memcpy(data.data(), section->get_data(), section->get_size());
     }
 
