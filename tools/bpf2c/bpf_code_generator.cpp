@@ -743,8 +743,8 @@ bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
     // Extract any initial values for global variables.
     auto section = reader.sections[name.raw()];
     std::vector<std::uint8_t> data;
-    data.resize(section->get_size());
     if (section->get_data()) {
+        data.resize(section->get_size());
         memcpy(data.data(), section->get_data(), section->get_size());
     }
 
