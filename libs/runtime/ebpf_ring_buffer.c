@@ -151,9 +151,9 @@ _ring_record_initialize(_Inout_ ebpf_ring_buffer_record_t* record, size_t length
 inline static void
 _ring_record_finalize(_Inout_ ebpf_ring_buffer_record_t* record)
 {
-    MemoryBarrier(); // Ensure all writes to the record are completed before unlocking it.
     uint32_t new_length = _ring_header_length(ReadUInt32Acquire(&record->header.length));
-    WriteUInt32NoFence(&record->header.length, new_length);
+    // Write release record header to ensure the record is unlocked AFTER the data is visible.
+    WriteUInt32Release(&record->header.length, new_length);
 }
 
 /**
@@ -184,30 +184,6 @@ _ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
 }
 
 /**
- * @brief Get the producer offset.
- *
- * @param[in] ring Pointer to the ring.
- * @return Producer offset.
- */
-inline static size_t
-_ring_get_producer_offset(_In_ const ebpf_ring_buffer_t* ring)
-{
-    return ReadULong64Acquire(&ring->producer_offset) % ring->length;
-}
-
-/**
- * @brief Get the consumer offset.
- *
- * @param[in] ring Pointer to the ring.
- * @return Consumer offset.
- */
-inline static size_t
-_ring_get_consumer_offset(_In_ const ebpf_ring_buffer_t* ring)
-{
-    return ReadULong64Acquire(&ring->consumer_offset) % ring->length;
-}
-
-/**
  * @brief Get the used capacity of the ring.
  *
  * @param[in] ring Pointer to the ring.
@@ -222,32 +198,6 @@ _ring_get_used_capacity(_In_ const ebpf_ring_buffer_t* ring)
 }
 
 /**
- * @brief Advance the producer offset.
- *
- * @param[in] ring Pointer to the ring.
- * @param[in] length Length to advance the producer offset.
- */
-inline static void
-_ring_advance_producer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
-{
-    size_t new_producer_offset = ReadULong64Acquire(&ring->producer_offset) + length;
-    WriteULong64Release(&ring->producer_offset, new_producer_offset);
-}
-
-/**
- * @brief Advance the consumer offset.
- *
- * @param[in] ring Pointer to the ring.
- * @param[in] length Length to advance the consumer offset.
- */
-inline static void
-_ring_advance_consumer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
-{
-    size_t new_consumer_offset = ReadULong64Acquire(&ring->consumer_offset) + length;
-    WriteULong64NoFence(&ring->consumer_offset, new_consumer_offset);
-}
-
-/**
  * @brief Get the record at the given offset.
  *
  * @param[in] ring Pointer to the ring.
@@ -257,7 +207,7 @@ _ring_advance_consumer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
 inline static _Ret_notnull_ ebpf_ring_buffer_record_t*
 _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
 {
-    return (ebpf_ring_buffer_record_t*)&ring->shared_buffer[offset % ring->length];
+    return (ebpf_ring_buffer_record_t*)&ring->shared_buffer[offset % _ring_get_length(ring)];
 }
 
 /**
@@ -499,9 +449,9 @@ ebpf_ring_buffer_reserve(
     size_t used_capacity = producer_offset - consumer_offset;
     size_t record_size = _ring_record_size(length);
     size_t padded_record_size = _ring_padded_size(record_size);
-    if (length > ring->length || length == 0 || length > UINT32_MAX) {
+    if (length > _ring_get_length(ring) || length == 0 || length > UINT32_MAX) {
         return EBPF_INVALID_ARGUMENT;
-    } else if (used_capacity + padded_record_size >= ring->length) {
+    } else if (used_capacity + padded_record_size >= _ring_get_length(ring)) {
         return EBPF_NO_MEMORY;
     }
     ebpf_result_t result = EBPF_SUCCESS;
@@ -511,7 +461,7 @@ ebpf_ring_buffer_reserve(
         // Acquire producer_reserve_offset to ensure we see the latest value before compare exchange.
         size_t reserve_offset = ReadULong64Acquire(&ring->producer_reserve_offset);
         size_t new_reserve_offset = reserve_offset + padded_record_size;
-        if (new_reserve_offset - consumer_offset >= ring->length) {
+        if (new_reserve_offset - consumer_offset >= _ring_get_length(ring)) {
             result = EBPF_NO_MEMORY; // Not enough space for record
             goto Done;
         } else if (
