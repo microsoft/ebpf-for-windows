@@ -547,6 +547,32 @@ _test_nested_maps(bpf_map_type type)
 TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
 TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
+TEST_CASE("duplicate_fd", "")
+{
+    _disable_crt_report_hook disable_hook;
+
+    fd_t map_fd1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd1 > 0);
+
+    uint32_t key = 0;
+    uint32_t value = 1;
+    REQUIRE(bpf_map_update_elem(map_fd1, &key, &value, 0) == 0);
+
+    fd_t map_fd2;
+    REQUIRE(ebpf_duplicate_fd(map_fd1, &map_fd2) == EBPF_SUCCESS);
+    REQUIRE(map_fd2 > 0);
+
+    REQUIRE(bpf_map_lookup_elem(map_fd2, &key, &value) == 0);
+    REQUIRE(value == 1);
+
+    REQUIRE(ebpf_close_fd(map_fd2) == EBPF_SUCCESS);
+    REQUIRE(ebpf_close_fd(map_fd2) == EBPF_FAILED);
+    REQUIRE(bpf_map_lookup_elem(map_fd2, &key, &value) == -EBADF);
+    REQUIRE(bpf_map_lookup_elem(map_fd1, &key, &value) == 0);
+
+    REQUIRE(ebpf_close_fd(map_fd1) == EBPF_SUCCESS);
+}
+
 void
 tailcall_load_test(_In_z_ const char* file_name)
 {

@@ -1978,6 +1978,46 @@ TEST_CASE("implicit_explicit_detach", "[end_to_end]")
 }
 #endif
 
+static void
+ebpf_program_attach_fds_test(ebpf_execution_type_t execution_type)
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    const char* file_name = (execution_type == EBPF_EXECUTION_NATIVE) ? SAMPLE_PATH "test_sample_ebpf_um.dll"
+                                                                      : SAMPLE_PATH "test_sample_ebpf.o";
+    const char* error_message = nullptr;
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    int result =
+        ebpf_program_load(file_name, BPF_PROG_TYPE_UNSPEC, execution_type, &unique_object, &program_fd, &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+
+    fd_t link_fd;
+    REQUIRE(ebpf_program_attach_by_fds(program_fd, &EBPF_ATTACH_TYPE_SAMPLE, nullptr, 0, &link_fd) == EBPF_SUCCESS);
+    REQUIRE(link_fd > 0);
+    REQUIRE(ebpf_close_fd(link_fd) == EBPF_SUCCESS);
+
+    bpf_object__close(unique_object.release());
+}
+
+#if !defined(CONFIG_BPF_JIT_DISABLED)
+TEST_CASE("ebpf_program_attach_by_fds-jit", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_JIT); }
+#endif
+
+TEST_CASE("ebpf_program_attach_by_fds-native", "[end_to_end]") { ebpf_program_attach_fds_test(EBPF_EXECUTION_NATIVE); }
+
 TEST_CASE("create_map", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
@@ -3143,36 +3183,37 @@ TEST_CASE("ebpf_get_program_type_name invalid types", "[end-to-end]")
     REQUIRE(name2 == nullptr);
 }
 
-TEST_CASE("get_ebpf_attach_type", "[end_to_end]")
+TEST_CASE("ebpf_get_ebpf_attach_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // First test a valid input.
-    const ebpf_attach_type_t* attach_type = get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND);
-    REQUIRE(attach_type != nullptr);
+    ebpf_attach_type_t attach_type;
+    REQUIRE(ebpf_get_ebpf_attach_type(BPF_ATTACH_TYPE_BIND, &attach_type) == EBPF_SUCCESS);
 
-    REQUIRE(IsEqualGUID(*attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
+    REQUIRE(IsEqualGUID(attach_type, EBPF_ATTACH_TYPE_BIND) != 0);
 
     // Try with invalid bpf attach type.
-    REQUIRE(get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID) == nullptr);
+    REQUIRE(
+        ebpf_get_ebpf_attach_type((bpf_attach_type_t)BPF_ATTACH_TYPE_INVALID, &attach_type) == EBPF_INVALID_ARGUMENT);
 }
 
-TEST_CASE("get_bpf_program_type", "[end_to_end]")
+TEST_CASE("ebpf_get_bpf_program_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // First test a valid input.
-    REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
+    REQUIRE(ebpf_get_bpf_program_type(&EBPF_PROGRAM_TYPE_SAMPLE) == BPF_PROG_TYPE_SAMPLE);
 
     // Try with EBPF_PROGRAM_TYPE_UNSPECIFIED.
-    REQUIRE(get_bpf_program_type(&EBPF_PROGRAM_TYPE_UNSPECIFIED) == BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_program_type(&EBPF_PROGRAM_TYPE_UNSPECIFIED) == BPF_PROG_TYPE_UNSPEC);
 
     // Try with invalid program type.
     GUID invalid_program_type;
     REQUIRE(UuidCreate(&invalid_program_type) == RPC_S_OK);
-    REQUIRE(get_bpf_program_type(&invalid_program_type) == BPF_PROG_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_program_type(&invalid_program_type) == BPF_PROG_TYPE_UNSPEC);
 }
 
 TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
@@ -3195,21 +3236,21 @@ TEST_CASE("ebpf_get_ebpf_program_type", "[end_to_end]")
     REQUIRE(program_type == nullptr);
 }
 
-TEST_CASE("get_bpf_attach_type", "[end_to_end]")
+TEST_CASE("ebpf_get_bpf_attach_type", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
     // Try with EBPF_ATTACH_TYPE_SAMPLE.
-    REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_SAMPLE) == BPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(ebpf_get_bpf_attach_type(&EBPF_ATTACH_TYPE_SAMPLE) == BPF_ATTACH_TYPE_SAMPLE);
 
     // Try with EBPF_ATTACH_TYPE_UNSPECIFIED.
-    REQUIRE(get_bpf_attach_type(&EBPF_ATTACH_TYPE_UNSPECIFIED) == BPF_ATTACH_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_attach_type(&EBPF_ATTACH_TYPE_UNSPECIFIED) == BPF_ATTACH_TYPE_UNSPEC);
 
     // Try with invalid attach type.
     GUID invalid_attach_type;
     REQUIRE(UuidCreate(&invalid_attach_type) == RPC_S_OK);
-    REQUIRE(get_bpf_attach_type(&invalid_attach_type) == BPF_ATTACH_TYPE_UNSPEC);
+    REQUIRE(ebpf_get_bpf_attach_type(&invalid_attach_type) == BPF_ATTACH_TYPE_UNSPEC);
 }
 
 TEST_CASE("test_ebpf_object_set_execution_type", "[end_to_end]")
