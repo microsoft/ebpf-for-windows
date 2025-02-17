@@ -57,12 +57,13 @@ get_file_size(const char* filename, size_t* byte_code_size) noexcept
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info(
     ebpf_handle_t handle,
-    _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
-    _Inout_ uint32_t* info_size,
+    _Inout_updates_bytes_to_opt_(*info_size, *info_size) void* info,
+    _Inout_opt_ uint32_t* info_size,
     _Out_opt_ ebpf_object_type_t* type) noexcept
 {
     EBPF_LOG_ENTRY();
-    if (info == nullptr || info_size == nullptr) {
+
+    if (info != nullptr && (info_size == nullptr || *info_size == 0)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -70,23 +71,34 @@ ebpf_object_get_info(
         return EBPF_INVALID_FD;
     }
 
-    ebpf_protocol_buffer_t request_buffer(sizeof(ebpf_operation_get_object_info_request_t) + *info_size);
-    ebpf_protocol_buffer_t reply_buffer(EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + *info_size);
+    uint32_t request_info_size = 0;
+    if (info_size != nullptr) {
+        request_info_size = *info_size;
+    }
+
+    ebpf_protocol_buffer_t request_buffer(
+        EBPF_OFFSET_OF(ebpf_operation_get_object_info_request_t, info) + request_info_size);
+    ebpf_protocol_buffer_t reply_buffer(
+        EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info) + request_info_size);
     auto request = reinterpret_cast<ebpf_operation_get_object_info_request_t*>(request_buffer.data());
     auto reply = reinterpret_cast<ebpf_operation_get_object_info_reply_t*>(reply_buffer.data());
 
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_OBJECT_INFO;
     request->handle = handle;
-    memcpy(request->info, info, *info_size);
+    if (info != nullptr) {
+        memcpy(request->info, info, *info_size);
+    }
 
     ebpf_result_t result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer, reply_buffer));
     if (result == EBPF_SUCCESS) {
-        if (type != NULL) {
+        if (type != nullptr) {
             *type = reply->type;
         }
-        *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
-        memcpy(info, reply->info, *info_size);
+        if (info != nullptr) {
+            *info_size = reply->header.length - EBPF_OFFSET_OF(ebpf_operation_get_object_info_reply_t, info);
+            memcpy(info, reply->info, *info_size);
+        }
     }
 
     EBPF_RETURN_RESULT(result);

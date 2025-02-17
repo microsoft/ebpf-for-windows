@@ -100,16 +100,9 @@ convert_to_sys_link_info(_Out_ sys_bpf_link_info_t* sys, _In_ const struct bpf_l
 static int
 obj_get_info_by_fd(_In_ sys_bpf_obj_info_attr_t* attr)
 {
-    union
-    {
-        struct bpf_map_info map;
-        struct bpf_prog_info prog;
-        struct bpf_link_info link;
-    } tmp = {};
-    uint32_t info_size = sizeof(tmp);
     ebpf_object_type_t type;
 
-    ebpf_result_t result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp, &info_size, &type);
+    ebpf_result_t result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, nullptr, 0, &type);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
@@ -117,52 +110,55 @@ obj_get_info_by_fd(_In_ sys_bpf_obj_info_attr_t* attr)
     switch (type) {
     case EBPF_OBJECT_MAP: {
         ExtensibleStruct<sys_bpf_map_info_t> info((void*)attr->info, (size_t)attr->info_len);
+        struct bpf_map_info map;
 
-        convert_to_map_info(&tmp.map, &info);
+        convert_to_map_info(&map, &info);
 
-        info_size = sizeof(tmp.map);
-        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.map, &info_size, nullptr);
+        uint32_t info_size = sizeof(map);
+        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &map, &info_size, nullptr);
         if (result != EBPF_SUCCESS) {
             return libbpf_result_err(result);
         }
 
-        convert_to_sys_map_info(&info, &tmp.map);
+        convert_to_sys_map_info(&info, &map);
         return 0;
     }
 
     case EBPF_OBJECT_PROGRAM: {
         ExtensibleStruct<sys_bpf_prog_info_t> info((void*)attr->info, (size_t)attr->info_len);
         sys_bpf_prog_info_t* sys = &info;
+        struct bpf_prog_info prog;
 
         if (sys->jited_prog_len != 0 || sys->xlated_prog_len != 0 || sys->jited_prog_insns != 0 ||
             sys->xlated_prog_insns != 0) {
             return -EINVAL;
         }
 
-        convert_to_prog_info(&tmp.prog, &info);
+        convert_to_prog_info(&prog, &info);
 
-        info_size = sizeof(tmp.prog);
-        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.prog, &info_size, nullptr);
+        uint32_t info_size = sizeof(prog);
+        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &prog, &info_size, nullptr);
         if (result != EBPF_SUCCESS) {
             return libbpf_result_err(result);
         }
 
-        convert_to_sys_prog_info(&info, &tmp.prog);
+        convert_to_sys_prog_info(&info, &prog);
         return 0;
     }
 
     case EBPF_OBJECT_LINK: {
         ExtensibleStruct<sys_bpf_link_info_t> info((void*)attr->info, (size_t)attr->info_len);
+        struct bpf_link_info link;
 
-        convert_to_link_info(&tmp.link, &info);
+        convert_to_link_info(&link, &info);
 
-        info_size = sizeof(tmp.link);
-        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &tmp.link, &info_size, nullptr);
+        uint32_t info_size = sizeof(link);
+        result = ebpf_object_get_info_by_fd((fd_t)attr->bpf_fd, &link, &info_size, nullptr);
         if (result != EBPF_SUCCESS) {
             return libbpf_result_err(result);
         }
 
-        convert_to_sys_link_info(&info, &tmp.link);
+        convert_to_sys_link_info(&info, &link);
         return 0;
     }
 
