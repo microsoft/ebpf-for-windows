@@ -929,13 +929,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
 #endif
         ASSERT(filter_context->reference_count == (long)leaked_filter_count);
-        // Remove leaked references, which should handle cleanup of this object.
-        for (uint32_t i = 0; i < leaked_filter_count; i++) {
-            DEREFERENCE_FILTER_CONTEXT(filter_context);
-        }
+        CLEAN_UP_FILTER_CONTEXT(filter_context);
 
-        // Ensure that any usage of filter_context is done prior to this point, as the memory may be released once the
-        // references are released.
         old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     }
 
@@ -1169,8 +1164,6 @@ net_ebpf_ext_remove_client_context(
 
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
-// void
-// net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 
 void
 net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ void* provider_context)
@@ -1179,11 +1172,16 @@ net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ void* provider_context
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list, &context->cleanup_list_entry);
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
-    // KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    // InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list,
-    // &provider_context->cleanup_list_entry); ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock,
-    // old_irql);
 }
+
+// void
+// net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+// {
+//     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+//     InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list,
+//     &provider_context->cleanup_list_entry); ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock,
+//     old_irql);
+// }
 
 void
 net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
