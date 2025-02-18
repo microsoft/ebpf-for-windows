@@ -309,6 +309,7 @@ jobs:
       working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
       shell: cmd
       run: |
+        set EBPF_ENABLE_WER_REPORT=yes
         cd /d ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
         powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
