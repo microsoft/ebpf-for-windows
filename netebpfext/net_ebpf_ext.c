@@ -792,8 +792,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     size_t index;
     NTSTATUS status;
     int max_retries = 10;
+#ifdef KERNEL_MODE
     LARGE_INTEGER timeout = {0};
     timeout.QuadPart = -10000000; // 1 second
+#endif
 
     if (_fwp_engine_handle != NULL) {
         // Clean up the callouts
@@ -809,8 +811,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                     NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
                 } else {
+#ifdef KERNEL_MODE
                     // Sleep for 1 second before retrying
                     KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+#endif
                 }
             }
 
@@ -825,8 +829,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                     NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
                 } else {
+#ifdef KERNEL_MODE
                     // Sleep for 1 second before retrying
                     KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+#endif
                 }
             }
         }
@@ -843,8 +849,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                     NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
                 } else {
+#ifdef KERNEL_MODE
                     // Sleep for 1 second before retrying
                     KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+#endif
                 }
             }
         }
@@ -860,8 +868,10 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
                     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
             } else {
+#ifdef KERNEL_MODE
                 // Sleep for 1 second before retrying
                 KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+#endif
             }
         }
 
@@ -882,9 +892,11 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
     }
 
+#ifdef KERNEL_MODE
     // Wait for 10 seconds to allow for WFP to issue any callbacks.
     timeout.QuadPart = -100000000;
     KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+#endif
 
     // Cleanup the leftover WFP state
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
