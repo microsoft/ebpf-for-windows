@@ -43,14 +43,12 @@ const net_ebpf_extension_wfp_filter_parameters_t _net_ebpf_extension_xdp_wfp_fil
      NULL, // Default sublayer.
      &EBPF_HOOK_INBOUND_L2_CALLOUT,
      L"net eBPF xdp hook",
-     L"net eBPF xdp hook WFP filter",
-     FWP_ACTION_CALLOUT_TERMINATING},
+     L"net eBPF xdp hook WFP filter"},
     {&FWPM_LAYER_OUTBOUND_MAC_FRAME_NATIVE,
      NULL, // Default sublayer.
      &EBPF_HOOK_OUTBOUND_L2_CALLOUT,
      L"net eBPF xdp hook",
-     L"net eBPF xdp hook WFP filter",
-     FWP_ACTION_CALLOUT_TERMINATING}};
+     L"net eBPF xdp hook WFP filter"}};
 
 #define NET_EBPF_XDP_FILTER_COUNT EBPF_COUNT_OF(_net_ebpf_extension_xdp_wfp_filter_parameters)
 

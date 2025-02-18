@@ -208,3 +208,59 @@ net_ebpf_extension_hook_expand_stack_and_invoke_programs(
  */
 net_ebpf_extension_hook_attach_capability_t
 net_ebpf_extension_hook_provider_get_attach_capability(_In_ const net_ebpf_extension_hook_provider_t* provider_context);
+
+typedef struct _net_ebpf_ext_hook_client_rundown
+{
+    EX_RUNDOWN_REF protection;
+    bool rundown_occurred;
+    bool rundown_initialized;
+} net_ebpf_ext_hook_rundown_t;
+
+struct _net_ebpf_extension_hook_provider;
+
+/**
+ * @brief Data structure representing a hook NPI client (attached eBPF program). This is returned
+ * as the provider binding context in the NMR client attach callback.
+ */
+typedef struct _net_ebpf_extension_hook_client
+{
+    HANDLE nmr_binding_handle;                     ///< NMR binding handle.
+    GUID client_module_id;                         ///< NMR module Id.
+    const void* client_binding_context;            ///< Client supplied context to be passed when invoking eBPF program.
+    const ebpf_extension_data_t* client_data;      ///< Client supplied attach parameters.
+    ebpf_program_invoke_function_t invoke_program; ///< Pointer to function to invoke eBPF program.
+    void* provider_data;                 ///< Opaque pointer to hook specific data associated with this client.
+    PIO_WORKITEM detach_work_item;       ///< Pointer to IO work item that is invoked to detach the client.
+    net_ebpf_ext_hook_rundown_t rundown; ///< Pointer to rundown object used to synchronize detach operation.
+} net_ebpf_extension_hook_client_t;
+
+typedef struct _net_ebpf_extension_hook_provider
+{
+    NPI_PROVIDER_CHARACTERISTICS characteristics;                  ///< NPI Provider characteristics.
+    net_ebpf_ext_hook_rundown_t rundown;                           ///< Rundown reference for the hook provider.
+    HANDLE nmr_provider_handle;                                    ///< NMR binding handle.
+    EX_PUSH_LOCK lock;                                             ///< Lock for serializing attach / detach calls.
+    net_ebpf_extension_hook_provider_dispatch_table_t dispatch;    ///< Hook specific dispatch table.
+    net_ebpf_extension_hook_attach_capability_t attach_capability; ///< Attach capability for specific hook provider.
+    const void* custom_data; ///< Opaque pointer to hook specific data associated for this provider.
+    _Guarded_by_(lock)
+        LIST_ENTRY filter_context_list; ///< Linked list of filter contexts that are attached to this provider.
+    LIST_ENTRY cleanup_list_entry;      ///< List entry for cleanup.
+} net_ebpf_extension_hook_provider_t;
+
+typedef struct _net_ebpf_extension_invoke_programs_parameters
+{
+    net_ebpf_extension_wfp_filter_context_t* filter_context;
+    void* program_context;
+    uint32_t verdict;
+    ebpf_result_t result;
+} net_ebpf_extension_invoke_programs_parameters_t;
+
+/**
+ * @brief Block execution of the thread until all invocations are completed.
+ *
+ * @param[in, out] rundown Rundown object to wait for.
+ *
+ */
+void
+_ebpf_ext_wait_for_rundown(_Inout_ net_ebpf_ext_hook_rundown_t* rundown);

@@ -50,12 +50,7 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
 
 // Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
 // contexts.
-EX_SPIN_LOCK _maige_lock = {0};
-_Guarded_by_(_maige_lock) static LIST_ENTRY _maige_zombie_list = {0};
-_Guarded_by_(_maige_lock) static LIST_ENTRY _maige_rundown_list = {0};
-uint64_t _maige_zombie_count = 0;
-uint64_t _maige_rundown_count = 0;
-uint64_t _maige_rundown_counter = 0; // always incrementing, for sanity.
+static net_ebpf_extension_wfp_cleanup_state_t _net_ebpf_ext_wfp_cleanup_state = {0};
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
@@ -284,7 +279,6 @@ net_ebpf_extension_wfp_filter_context_create(
     local_filter_context->client_context_count_max = client_context_count_max;
     local_filter_context->context_deleting = FALSE;
     InitializeListHead(&local_filter_context->link);
-    InitializeListHead(&local_filter_context->debug_link);
     local_filter_context->reference_count = 1; // Initial reference.
 
     // Set the first client context.
@@ -325,6 +319,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
     // lingering WFP classify callbacks will exit as it would not find any hook client associated
     // with the filter context. This is best effort & no locks are held.
     filter_context->context_deleting = TRUE;
+    net_ebpf_ext_add_filter_context_to_zombie_list(filter_context);
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -490,12 +485,8 @@ net_ebpf_extension_add_wfp_filters(
         filter.displayData.name = (wchar_t*)filter_parameter->name;
         filter.displayData.description = (wchar_t*)filter_parameter->description;
         filter.providerKey = (GUID*)&EBPF_WFP_PROVIDER;
-        filter.action.type = filter_parameter->action_type;
-#ifdef KERNEL_MODE
-        if (filter_parameter->action_type == 0) {
-            RtlFailFast(0);
-        }
-#endif
+        filter.action.type =
+            filter_parameter->action_type ? filter_parameter->action_type : FWP_ACTION_CALLOUT_TERMINATING;
         filter.action.calloutKey = *filter_parameter->callout_guid;
         filter.filterCondition = (FWPM_FILTER_CONDITION*)conditions;
         filter.numFilterConditions = condition_count;
@@ -722,6 +713,9 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
+    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
+    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list);
+
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
@@ -797,37 +791,78 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 {
     size_t index;
     NTSTATUS status;
+    int max_retries = 10;
+    LARGE_INTEGER timeout = {0};
+    timeout.QuadPart = -10000000; // 1 second
 
     if (_fwp_engine_handle != NULL) {
         // Clean up the callouts
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
-            status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
-            if (!NT_SUCCESS(status) && !WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
+
+            for (int i = 1; i <= max_retries; i++) {
+                status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
+                if (NT_SUCCESS(status) || WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
+                    break;
+                }
+
+                if (i == max_retries) {
+                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
+                } else {
+                    // Sleep for 1 second before retrying
+                    KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+                }
             }
 
-            status = FwpmCalloutDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
-            if (!NT_SUCCESS(status) && !WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
+            for (int i = 1; i <= max_retries; i++) {
+                status =
+                    FwpmCalloutDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
+                if (NT_SUCCESS(status) || WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
+                    break;
+                }
+
+                if (i == max_retries) {
+                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
+                } else {
+                    // Sleep for 1 second before retrying
+                    KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+                }
             }
         }
 
         // Clean up the sub layers.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
-            status = FwpmSubLayerDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
-            if (!NT_SUCCESS(status) && !WFP_ERROR(status, SUBLAYER_NOT_FOUND)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
+            for (int i = 1; i <= max_retries; i++) {
+                status = FwpmSubLayerDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
+                if (NT_SUCCESS(status) || WFP_ERROR(status, SUBLAYER_NOT_FOUND)) {
+                    break;
+                }
+
+                if (i == max_retries) {
+                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
+                } else {
+                    // Sleep for 1 second before retrying
+                    KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+                }
             }
         }
 
         // Clean up the providers.
-        status = FwpmProviderDeleteByKey(_fwp_engine_handle, &EBPF_WFP_PROVIDER);
-        if (!NT_SUCCESS(status) && !WFP_ERROR(status, PROVIDER_NOT_FOUND)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
+        for (int i = 1; i <= max_retries; i++) {
+            status = FwpmProviderDeleteByKey(_fwp_engine_handle, &EBPF_WFP_PROVIDER);
+            if (NT_SUCCESS(status) || WFP_ERROR(status, PROVIDER_NOT_FOUND)) {
+                break;
+            }
+
+            if (i == max_retries) {
+                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
+            } else {
+                // Sleep for 1 second before retrying
+                KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+            }
         }
 
         // Close the engine handle.
@@ -846,6 +881,70 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleDestroy", status);
         }
     }
+
+    // Wait for 10 seconds to allow for WFP to issue any callbacks.
+    timeout.QuadPart = -100000000;
+    KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+
+    // Cleanup the leftover WFP state
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+
+    // There is a WFP bug, where we may not receive filter notify delete callbacks.
+    // This is a workaround, to ensure that we handle cleanup for the filter context objects.
+    while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list)) {
+        uint32_t leaked_filter_count = 0;
+        PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list);
+        // Release lock to avoid deadlock.
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+        net_ebpf_extension_wfp_filter_context_t* filter_context =
+            CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
+
+        // It is assumed that this portion of the code executes after WFP has had sufficient time to
+        // give us the filter delete notification. It is assumed that if we have not received a deletion callback by
+        // now, we never will for this filter. Handle any remaining references here.
+        for (index = 0; index < filter_context->filter_ids_count; index++) {
+            net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
+            if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
+                // TODO - add log statement here
+                leaked_filter_count++;
+            }
+        }
+
+        // Handle last reference to the filter context here.
+#ifdef KERNEL_MODE
+        if (filter_context->reference_count != (long)leaked_filter_count) {
+            RtlFailFast(0);
+        }
+#endif
+        ASSERT(filter_context->reference_count == (long)leaked_filter_count);
+        // Remove leaked references, which should handle cleanup of this object.
+        for (uint32_t i = 0; i < leaked_filter_count; i++) {
+            DEREFERENCE_FILTER_CONTEXT(filter_context);
+        }
+
+        // Ensure that any usage of filter_context is done prior to this point, as the memory may be released once the
+        // references are released.
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    }
+
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+
+    // Iterate through the provider list and handle cleanup.
+    while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list)) {
+        PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
+        net_ebpf_extension_hook_provider_t* provider_context =
+            CONTAINING_RECORD(entry, net_ebpf_extension_hook_provider_t, cleanup_list_entry);
+
+        // Release the lock as waiting for rundown can take time.
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+        _ebpf_ext_wait_for_rundown(&provider_context->rundown);
+        ExFreePool(provider_context);
+
+        // Re-acquire the lock.
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    }
+
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 }
 
 NTSTATUS
@@ -879,11 +978,9 @@ net_ebpf_ext_filter_change_notify(
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
 
-        bool found = false;
         for (uint32_t index = 0; index < filter_context->filter_ids_count; index++) {
             net_ebpf_ext_wfp_filter_id_t* cur_filter_id = &filter_context->filter_ids[index];
             if (cur_filter_id->id == filter->filterId) {
-                cur_filter_id->notify_deleted = true;
                 cur_filter_id->state = NET_EBPF_EXT_WFP_FILTER_DELETED;
                 NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
@@ -891,16 +988,9 @@ net_ebpf_ext_filter_change_notify(
                     "Deleted WFP filter: ",
                     index,
                     cur_filter_id->id);
-                found = true;
                 break;
             }
         }
-#ifdef KERNEL_MODE
-        if (!found) {
-            // If we hit this, then it suggests that debugging info is potentially slightly wrong
-            RtlFailFast(0);
-        }
-#endif
         DEREFERENCE_FILTER_CONTEXT((filter_context));
     }
 
@@ -927,9 +1017,6 @@ net_ebpf_ext_register_providers()
     NTSTATUS status = STATUS_SUCCESS;
 
     NET_EBPF_EXT_LOG_ENTRY();
-
-    InitializeListHead(&_maige_zombie_list);
-    InitializeListHead(&_maige_rundown_list);
 
     status = net_ebpf_ext_xdp_register_providers();
     if (!NT_SUCCESS(status)) {
@@ -1070,46 +1157,34 @@ net_ebpf_ext_remove_client_context(
 
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
 }
+// void
+// net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
 
 void
-maige_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ void* provider_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
-    InsertHeadList(&_maige_zombie_list, &filter_context->debug_link);
-    _maige_zombie_count++;
-    ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
+    net_ebpf_extension_hook_provider_t* context = (net_ebpf_extension_hook_provider_t*)provider_context;
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list, &context->cleanup_list_entry);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    // KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    // InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list,
+    // &provider_context->cleanup_list_entry); ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock,
+    // old_irql);
 }
 
 void
-maige_add_filter_context_to_rundown_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
-    InsertHeadList(&_maige_rundown_list, &filter_context->debug_link);
-    _maige_rundown_count++;
-    _maige_rundown_counter++;
-    ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list, &filter_context->link);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 }
 
 void
-maige_remove_filter_context_from_debug_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    if (!IsListEmpty(&filter_context->debug_link)) {
-        KIRQL old_irql = ExAcquireSpinLockExclusive(&_maige_lock);
-        RemoveEntryList(&filter_context->debug_link);
-        ExReleaseSpinLockExclusive(&_maige_lock, old_irql);
-    }
-}
-
-void
-maige_remove_filter_context_from_rundown_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
-{
-    maige_remove_filter_context_from_debug_list(filter_context);
-    _maige_rundown_count--;
-}
-
-void
-maige_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
-{
-    maige_remove_filter_context_from_debug_list(filter_context);
-    _maige_zombie_count--;
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    RemoveEntryList(&filter_context->link);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 }
