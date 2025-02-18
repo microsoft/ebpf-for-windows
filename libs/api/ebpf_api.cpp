@@ -2070,18 +2070,7 @@ initialize_map(_Out_ ebpf_map_t* map, _In_ const map_cache_t& map_cache) noexcep
     map->map_definition.value_size = map_cache.verifier_map_descriptor.value_size;
     map->map_definition.max_entries = map_cache.verifier_map_descriptor.max_entries;
     map->map_definition.pinning = map_cache.pinning;
-
-    // Set the inner map ID if we have a real inner map fd.
-    map->map_definition.inner_map_id = EBPF_ID_NONE;
-    if (map_cache.verifier_map_descriptor.inner_map_fd != ebpf_fd_invalid) {
-        struct bpf_map_info info = {0};
-        uint32_t info_size = (uint32_t)sizeof(info);
-        if (ebpf_object_get_info_by_fd(map_cache.verifier_map_descriptor.inner_map_fd, &info, &info_size, NULL) ==
-            EBPF_SUCCESS) {
-            map->map_definition.inner_map_id = info.id;
-        }
-    }
-
+    map->map_definition.inner_map_id = map_cache.inner_id;
     map->map_id = map_cache.id;
     map->map_definition.inner_map_id = map_cache.inner_id;
     map->inner_map_original_fd = map_cache.verifier_map_descriptor.inner_map_fd;
