@@ -930,7 +930,9 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
 #endif
         ASSERT(filter_context->reference_count == (long)leaked_filter_count);
-        CLEAN_UP_FILTER_CONTEXT(filter_context);
+        for (index = 0; index < leaked_filter_count; index++) {
+            DEREFERENCE_FILTER_CONTEXT(filter_context);
+        }
 
         old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     }
