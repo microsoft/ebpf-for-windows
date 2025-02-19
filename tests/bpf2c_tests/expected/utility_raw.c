@@ -22,17 +22,18 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = NULL;
     *count = 0;
 }
 
 static helper_function_entry_t UtilityTest_helpers[] = {
-    {NULL, 23, "helper_id_23"},
-    {NULL, 22, "helper_id_22"},
-    {NULL, 24, "helper_id_24"},
-    {NULL, 25, "helper_id_25"},
+    {23, "helper_id_23"},
+    {22, "helper_id_22"},
+    {24, "helper_id_24"},
+    {25, "helper_id_25"},
 };
 
 static GUID UtilityTest_program_type_guid = {
@@ -41,7 +42,7 @@ static GUID UtilityTest_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-UtilityTest(void* context)
+UtilityTest(void* context, const program_runtime_context_t* runtime_context)
 #line 24 "sample/utility.c"
 {
 #line 24 "sample/utility.c"
@@ -121,9 +122,9 @@ UtilityTest(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=18 dst=r0 src=r0 offset=0 imm=23
 #line 31 "sample/utility.c"
-    r0 = UtilityTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 31 "sample/utility.c"
-    if ((UtilityTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 31 "sample/utility.c"
         return 0;
 #line 31 "sample/utility.c"
@@ -173,9 +174,9 @@ UtilityTest(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=32 dst=r0 src=r0 offset=0 imm=23
 #line 37 "sample/utility.c"
-    r0 = UtilityTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 37 "sample/utility.c"
-    if ((UtilityTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 37 "sample/utility.c"
         return 0;
 #line 37 "sample/utility.c"
@@ -219,9 +220,9 @@ UtilityTest(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=44 dst=r0 src=r0 offset=0 imm=23
 #line 43 "sample/utility.c"
-    r0 = UtilityTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 43 "sample/utility.c"
-    if ((UtilityTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 43 "sample/utility.c"
         return 0;
 #line 43 "sample/utility.c"
@@ -271,9 +272,9 @@ UtilityTest(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=58 dst=r0 src=r0 offset=0 imm=22
 #line 54 "sample/utility.c"
-    r0 = UtilityTest_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 54 "sample/utility.c"
-    if ((UtilityTest_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 54 "sample/utility.c"
         return 0;
 #line 54 "sample/utility.c"
@@ -351,9 +352,9 @@ UtilityTest(void* context)
     r3 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=76 dst=r0 src=r0 offset=0 imm=24
 #line 64 "sample/utility.c"
-    r0 = UtilityTest_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 64 "sample/utility.c"
-    if ((UtilityTest_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 64 "sample/utility.c"
         return 0;
 #line 64 "sample/utility.c"
@@ -434,9 +435,9 @@ UtilityTest(void* context)
     r4 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=95 dst=r0 src=r0 offset=0 imm=25
 #line 74 "sample/utility.c"
-    r0 = UtilityTest_helpers[3].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/utility.c"
-    if ((UtilityTest_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 74 "sample/utility.c"
         return 0;
 #line 74 "sample/utility.c"

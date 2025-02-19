@@ -176,7 +176,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -200,14 +200,15 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = NULL;
     *count = 0;
 }
 
 static helper_function_entry_t divide_by_zero_helpers[] = {
-    {NULL, 1, "helper_id_1"},
+    {1, "helper_id_1"},
 };
 
 static GUID divide_by_zero_program_type_guid = {
@@ -220,7 +221,7 @@ static uint16_t divide_by_zero_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-divide_by_zero(void* context)
+divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
 #line 32 "sample/undocked/divide_by_zero.c"
 {
 #line 32 "sample/undocked/divide_by_zero.c"
@@ -263,12 +264,12 @@ divide_by_zero(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=1
 #line 35 "sample/undocked/divide_by_zero.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 35 "sample/undocked/divide_by_zero.c"
-    r0 = divide_by_zero_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 35 "sample/undocked/divide_by_zero.c"
-    if ((divide_by_zero_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 35 "sample/undocked/divide_by_zero.c"
         return 0;
 #line 35 "sample/undocked/divide_by_zero.c"

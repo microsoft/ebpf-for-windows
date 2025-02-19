@@ -218,9 +218,9 @@ run_bpf_code_generator_test(const std::string& data_file)
     c_file.close();
 
     std::string compile_command = cc + std::string(" ") + cxxflags +
-                                  std::string(" -I.." SEPARATOR ".." SEPARATOR "include ") + std::string(prefix) +
-                                  std::string(".c ") + std::string(" bpf_test.cpp >") + std::string(prefix) +
-                                  std::string(".log 2>&1");
+                                  std::string(" -I.." SEPARATOR ".." SEPARATOR "include ") + std::string("/Zi ") +
+                                  std::string(prefix) + std::string(".c ") + std::string(" bpf_test.cpp >") +
+                                  std::string(prefix) + std::string(".log 2>&1");
     REQUIRE(system(compile_command.c_str()) == 0);
     std::string test_command = std::string("." SEPARATOR) + std::string(prefix) + std::string(" ") +
                                std::string(result) + std::string(" \"") + std::string(mem) + std::string("\"");

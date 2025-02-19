@@ -15,7 +15,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          4,                 // Size in bytes of a map key.
@@ -27,7 +27,7 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "some_config_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -52,7 +52,7 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 const char global__bss_initial_data[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 #pragma data_seg(push, "global_variables")
-static global_variable_section_t _global_variable_sections[] = {
+static global_variable_section_info_t _global_variable_sections[] = {
     {
         .name = "global_.bss",
         .size = 24,
@@ -63,15 +63,16 @@ static global_variable_section_t _global_variable_sections[] = {
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = _global_variable_sections;
     *count = 1;
 }
 
 static helper_function_entry_t GlobalVariableAndMapTest_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 22, "helper_id_22"},
+    {1, "helper_id_1"},
+    {22, "helper_id_22"},
 };
 
 static GUID GlobalVariableAndMapTest_program_type_guid = {
@@ -85,7 +86,7 @@ static uint16_t GlobalVariableAndMapTest_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-GlobalVariableAndMapTest(void* context)
+GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime_context)
 #line 40 "sample/undocked/global_vars_and_map.c"
 {
 #line 40 "sample/undocked/global_vars_and_map.c"
@@ -126,12 +127,12 @@ GlobalVariableAndMapTest(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=1
 #line 44 "sample/undocked/global_vars_and_map.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 44 "sample/undocked/global_vars_and_map.c"
-    r0 = GlobalVariableAndMapTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/undocked/global_vars_and_map.c"
-    if ((GlobalVariableAndMapTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/undocked/global_vars_and_map.c"
         return 0;
 #line 44 "sample/undocked/global_vars_and_map.c"
@@ -148,7 +149,7 @@ GlobalVariableAndMapTest(void* context)
     }
     // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=2
 #line 50 "sample/undocked/global_vars_and_map.c"
-    r1 = POINTER(_global_variable_sections[0].address_of_map_value + 0);
+    r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
     // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=24
 #line 50 "sample/undocked/global_vars_and_map.c"
     r2 = IMMEDIATE(24);
@@ -160,9 +161,9 @@ GlobalVariableAndMapTest(void* context)
     r4 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=22
 #line 50 "sample/undocked/global_vars_and_map.c"
-    r0 = GlobalVariableAndMapTest_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 50 "sample/undocked/global_vars_and_map.c"
-    if ((GlobalVariableAndMapTest_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 50 "sample/undocked/global_vars_and_map.c"
         return 0;
 #line 50 "sample/undocked/global_vars_and_map.c"

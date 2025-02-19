@@ -15,7 +15,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -27,7 +27,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "global_.rodata"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -39,7 +39,7 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "global_.data"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -68,7 +68,7 @@ const char global__data_initial_data[] = {20, 0, 0, 0, 40, 0, 0, 0};
 const char global__bss_initial_data[] = {0, 0, 0, 0};
 
 #pragma data_seg(push, "global_variables")
-static global_variable_section_t _global_variable_sections[] = {
+static global_variable_section_info_t _global_variable_sections[] = {
     {
         .name = "global_.rodata",
         .size = 4,
@@ -89,7 +89,8 @@ static global_variable_section_t _global_variable_sections[] = {
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = _global_variable_sections;
     *count = 3;
@@ -107,7 +108,7 @@ static uint16_t GlobalVariableTest_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-GlobalVariableTest(void* context)
+GlobalVariableTest(void* context, const program_runtime_context_t* runtime_context)
 #line 30 "sample/undocked/global_vars.c"
 {
 #line 30 "sample/undocked/global_vars.c"
@@ -132,13 +133,13 @@ GlobalVariableTest(void* context)
 
     // EBPF_OP_LDDW pc=0 dst=r1 src=r2 offset=0 imm=3
 #line 30 "sample/undocked/global_vars.c"
-    r1 = POINTER(_global_variable_sections[0].address_of_map_value + 0);
+    r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
     // EBPF_OP_LDXW pc=2 dst=r1 src=r1 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     r1 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(0));
     // EBPF_OP_LDDW pc=3 dst=r2 src=r2 offset=0 imm=2
 #line 30 "sample/undocked/global_vars.c"
-    r2 = POINTER(_global_variable_sections[1].address_of_map_value + 0);
+    r2 = POINTER(runtime_context->global_variable_section_data[1].address_of_map_value + 0);
     // EBPF_OP_LDXW pc=5 dst=r2 src=r2 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     r2 = *(uint32_t*)(uintptr_t)(r2 + OFFSET(0));
@@ -147,13 +148,13 @@ GlobalVariableTest(void* context)
     r2 += r1;
     // EBPF_OP_LDDW pc=7 dst=r1 src=r2 offset=0 imm=1
 #line 30 "sample/undocked/global_vars.c"
-    r1 = POINTER(_global_variable_sections[2].address_of_map_value + 0);
+    r1 = POINTER(runtime_context->global_variable_section_data[2].address_of_map_value + 0);
     // EBPF_OP_STXW pc=9 dst=r1 src=r2 offset=0 imm=0
 #line 30 "sample/undocked/global_vars.c"
     *(uint32_t*)(uintptr_t)(r1 + OFFSET(0)) = (uint32_t)r2;
     // EBPF_OP_LDDW pc=10 dst=r2 src=r2 offset=0 imm=2
 #line 31 "sample/undocked/global_vars.c"
-    r2 = POINTER(_global_variable_sections[1].address_of_map_value + 4);
+    r2 = POINTER(runtime_context->global_variable_section_data[1].address_of_map_value + 4);
     // EBPF_OP_LDXW pc=12 dst=r2 src=r2 offset=0 imm=0
 #line 31 "sample/undocked/global_vars.c"
     r2 = *(uint32_t*)(uintptr_t)(r2 + OFFSET(0));

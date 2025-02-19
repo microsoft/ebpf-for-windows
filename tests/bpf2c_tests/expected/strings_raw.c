@@ -22,17 +22,18 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = NULL;
     *count = 0;
 }
 
 static helper_function_entry_t StringOpsTest_helpers[] = {
-    {NULL, 29, "helper_id_29"},
-    {NULL, 27, "helper_id_27"},
-    {NULL, 23, "helper_id_23"},
-    {NULL, 28, "helper_id_28"},
+    {29, "helper_id_29"},
+    {27, "helper_id_27"},
+    {23, "helper_id_23"},
+    {28, "helper_id_28"},
 };
 
 static GUID StringOpsTest_program_type_guid = {
@@ -41,7 +42,7 @@ static GUID StringOpsTest_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-StringOpsTest(void* context)
+StringOpsTest(void* context, const program_runtime_context_t* runtime_context)
 #line 25 "sample/strings.c"
 {
 #line 25 "sample/strings.c"
@@ -127,9 +128,9 @@ StringOpsTest(void* context)
     r2 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=29
 #line 33 "sample/strings.c"
-    r0 = StringOpsTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 33 "sample/strings.c"
-    if ((StringOpsTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 33 "sample/strings.c"
         return 0;
 #line 33 "sample/strings.c"
@@ -158,9 +159,9 @@ StringOpsTest(void* context)
     r2 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=27 dst=r0 src=r0 offset=0 imm=29
 #line 37 "sample/strings.c"
-    r0 = StringOpsTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 37 "sample/strings.c"
-    if ((StringOpsTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 37 "sample/strings.c"
         return 0;
 #line 37 "sample/strings.c"
@@ -189,9 +190,9 @@ StringOpsTest(void* context)
     r2 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=29
 #line 41 "sample/strings.c"
-    r0 = StringOpsTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 41 "sample/strings.c"
-    if ((StringOpsTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 41 "sample/strings.c"
         return 0;
 #line 41 "sample/strings.c"
@@ -220,9 +221,9 @@ StringOpsTest(void* context)
     r2 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=41 dst=r0 src=r0 offset=0 imm=29
 #line 45 "sample/strings.c"
-    r0 = StringOpsTest_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 45 "sample/strings.c"
-    if ((StringOpsTest_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 45 "sample/strings.c"
         return 0;
 #line 45 "sample/strings.c"
@@ -260,9 +261,9 @@ StringOpsTest(void* context)
     r4 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=51 dst=r0 src=r0 offset=0 imm=27
 #line 49 "sample/strings.c"
-    r0 = StringOpsTest_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 49 "sample/strings.c"
-    if ((StringOpsTest_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 49 "sample/strings.c"
         return 0;
 #line 49 "sample/strings.c"
@@ -306,9 +307,9 @@ StringOpsTest(void* context)
     r4 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=23
 #line 55 "sample/strings.c"
-    r0 = StringOpsTest_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 55 "sample/strings.c"
-    if ((StringOpsTest_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 55 "sample/strings.c"
         return 0;
 #line 55 "sample/strings.c"
@@ -352,9 +353,9 @@ StringOpsTest(void* context)
     r4 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=75 dst=r0 src=r0 offset=0 imm=28
 #line 59 "sample/strings.c"
-    r0 = StringOpsTest_helpers[3].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 59 "sample/strings.c"
-    if ((StringOpsTest_helpers[3].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[3].tail_call) && (r0 == 0)) {
 #line 59 "sample/strings.c"
         return 0;
 #line 59 "sample/strings.c"
@@ -410,9 +411,9 @@ StringOpsTest(void* context)
     r4 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=92 dst=r0 src=r0 offset=0 imm=23
 #line 68 "sample/strings.c"
-    r0 = StringOpsTest_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 68 "sample/strings.c"
-    if ((StringOpsTest_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 68 "sample/strings.c"
         return 0;
 #line 68 "sample/strings.c"
