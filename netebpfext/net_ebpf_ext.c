@@ -797,6 +797,13 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     timeout.QuadPart = -10000000; // 1 second
 #endif
 
+    NET_EBPF_EXT_LOG_ENTRY();
+
+    NET_EBPF_EXT_LOG_MESSAGE(
+        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+        "net_ebpf_extension_uninitialize_wfp_components.");
+
     if (_fwp_engine_handle != NULL) {
         // Clean up the callouts
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
@@ -969,6 +976,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     }
 
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
