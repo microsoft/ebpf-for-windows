@@ -680,6 +680,8 @@ function Stop-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Stop-eBPFComponents
+        netsh trace stop sessionname=maige_debug
+        netsh wfp show state file=C:\ebpf\wfp_state.xml
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
 }
 
@@ -727,11 +729,11 @@ function Run-KernelTestsOnVM
     }
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-        netsh trace stop sessionname=maige_debug
+    # Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+    #     netsh trace stop sessionname=maige_debug
 
-        netsh wfp show state file=C:\ebpf\wfp_state.xml
-    } -ErrorAction Stop
+    #     netsh wfp show state file=C:\ebpf\wfp_state.xml
+    # } -ErrorAction Stop
 }
 
 Pop-Location
