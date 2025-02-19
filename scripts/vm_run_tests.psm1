@@ -715,7 +715,7 @@ function Run-KernelTestsOnVM
             -Interfaces $Config.Interfaces `
             -VMName $VMName
 
-        Run Connect Redirect Tests.
+        # Run Connect Redirect Tests.
         Invoke-ConnectRedirectTestsOnVM `
             -Interfaces $Config.Interfaces `
             -ConnectRedirectTestConfig $Config.ConnectRedirectTest `

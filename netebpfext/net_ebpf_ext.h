@@ -15,6 +15,7 @@
 #include "net_ebpf_ext_hook_provider.h"
 #include "net_ebpf_ext_prog_info_provider.h"
 #include "net_ebpf_ext_program_info.h"
+#include "net_ebpf_ext_structs.h"
 #include "net_ebpf_ext_tracelog.h"
 #include "netebpfext_platform.h"
 
@@ -144,12 +145,17 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     HANDLE wfp_engine_handle; ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
+/**
+ * @brief Structure that holds objects related to WFP that require cleanup.
+ */
 typedef struct _net_ebpf_extension_wfp_cleanup_state
 {
     EX_SPIN_LOCK lock;
-    LIST_ENTRY provider_context_cleanup_list;
-    LIST_ENTRY filter_zombie_list;
-    LIST_ENTRY filter_rundown_list;
+    _Guarded_by_(lock) LIST_ENTRY provider_context_cleanup_list; ///< List of provider contexts to cleanup.
+    _Guarded_by_(lock)
+        LIST_ENTRY filter_zombie_list; ///< List of filter contexts that are awaiting a WFP filter deletion callback.
+    bool signal_empty_filter_list : 1; ///< True if the WFP filter cleanup event should be signaled.
+    KEVENT wfp_filter_cleanup_event;   ///< Event to signal when no remaining WFP filters require a deletion callback.
 } net_ebpf_extension_wfp_cleanup_state_t;
 
 // Macro definition of warning suppression for 26100. This is only used in the cleanup context, for which
@@ -400,11 +406,26 @@ net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
 
-// void
-// net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
+/**
+ * @brief Add a provider context to the cleanup list.
+ *
+ * @param provider_context Provider context to add.
+ */
 void
-net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ void* provider_context);
+net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
+
+/**
+ * @brief Add a filter context to the zombie list.
+ *
+ * @param filter_context Filter context to add.
+ */
 void
 net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+
+/**
+ * @brief Remove a filter context from the zombie list.
+ *
+ * @param filter_context Filter context to remove.
+ */
 void
 net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
