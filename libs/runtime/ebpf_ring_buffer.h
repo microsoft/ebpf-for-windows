@@ -52,6 +52,16 @@ void
 ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring_buffer, _Out_ size_t* consumer, _Out_ size_t* producer);
 
 /**
+ * @brief Query the current ready and free offsets from the ring buffer.
+ *
+ * @param[in] ring_buffer Ring buffer to query.
+ * @param[out] consumer Offset of the first buffer that can be consumed.
+ * @param[out] producer Offset of the next buffer to be produced.
+ */
+void
+ebpf_ring_buffer_query_nofence(_In_ ebpf_ring_buffer_t* ring_buffer, _Out_ size_t* consumer, _Out_ size_t* producer);
+
+/**
  * @brief Mark one or more records in the ring buffer as returned to the ring.
  *
  * The length passed should be the sum of the record data lengths to return.
@@ -88,9 +98,15 @@ ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_
 
 /**
  * @brief Get the next record in the ring buffer's data buffer, skipping any discarded records.
+ *
+ * @param[in] ring_buffer Pointer to the ring buffer.
+ * @param[in] buffer Pointer to the ring buffer's data buffer.
+ * @param[out] end_offset Pointer to the offset after the last byte of this record.
+ * @return Pointer to the next record or NULL if no more records.
  */
-const ebpf_ring_buffer_record_t*
-ebpf_ring_buffer_next_consumer_record(_Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ const uint8_t* buffer);
+_Must_inspect_result_ _Ret_maybenull_ const ebpf_ring_buffer_record_t*
+ebpf_ring_buffer_next_consumer_record(
+    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ const uint8_t* buffer, _Out_ size_t* end_offset);
 
 /**
  * @brief Reserve a buffer in the ring buffer. Buffer is valid until either ebpf_ring_buffer_submit,

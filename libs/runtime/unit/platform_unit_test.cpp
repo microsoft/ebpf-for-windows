@@ -1081,8 +1081,8 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
     REQUIRE(ebpf_ring_buffer_return(ring_buffer, sent_data) == EBPF_SUCCESS);
 
-    data.resize(size - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) - 8);
-    // Fill ring
+    // Resize data to fill ring (total record size includes 8 bytes header and padding to 8 bytes)
+    data.resize((size - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data)) & ~7);
     REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
 
     ebpf_ring_buffer_destroy(ring_buffer);
@@ -1286,16 +1286,12 @@ ring_buffer_stress_test_consumer(
     size_t delay_us = parameters->consumer_delay_us;
     uint8_t* buffer = context->buffer;
 
-    // size_t consumer = 0;
-    // size_t producer = 0;
-
     _ring_buffer_test_barrier(context->barrier);
 
     while (!*context->stop) {
         context->loop_count++;
-        // ebpf_ring_buffer_query(context->ring_buffer, &consumer, &producer);
-        // auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
-        auto record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer);
+        size_t next_consumer_offset;
+        auto record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer, &next_consumer_offset);
         if (record != nullptr) {
             if (ebpf_ring_buffer_record_is_locked(record)) {
                 context->locked_records++;
@@ -1308,7 +1304,7 @@ ring_buffer_stress_test_consumer(
                     break;
                 }
             }
-            if (ebpf_ring_buffer_return(context->ring_buffer, ebpf_ring_buffer_record_length(record)) != EBPF_SUCCESS) {
+            if (ebpf_ring_buffer_return_buffer(context->ring_buffer, next_consumer_offset) != EBPF_SUCCESS) {
                 context->failed_returns++;
                 break;
             }
@@ -1431,7 +1427,8 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
     size_t remaining_locked = 0;
     size_t remaining_failed_returns = 0;
     {
-        auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+        size_t next_consumer_offset;
+        auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer, &next_consumer_offset);
         while (record != nullptr) {
             remaining_records++;
             uint32_t header = record->header.length;
@@ -1445,14 +1442,14 @@ run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* paramete
                 break;
             }
             REQUIRE(record_length != 0);
-            if (ebpf_ring_buffer_return(ring_buffer, record_length) != EBPF_SUCCESS) {
+            if (ebpf_ring_buffer_return_buffer(ring_buffer, next_consumer_offset) != EBPF_SUCCESS) {
                 remaining_failed_returns++;
                 break;
             }
             if (remaining_records > total_producer_records - consumer_records + 2) {
                 break;
             }
-            record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+            record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer, &next_consumer_offset);
         }
         std::cout << "Remaining records: " << remaining_records << std::endl;
         // std::cout << "Remaining discards: " << remaining_discards << std::endl;
@@ -1667,15 +1664,15 @@ ring_buffer_speed_test_consumer(
     size_t wait_us = parameters->consumer_wait_us;
     uint8_t* buffer = context->buffer;
 
-    size_t consumer = 0;
-    size_t producer = 0;
+    size_t consumer_offset = 0;
+    size_t producer_offset = 0;
 
     _ring_buffer_test_barrier(context->barrier);
 
     while (!*context->stop) {
         context->loop_count++;
-        ebpf_ring_buffer_query(context->ring_buffer, &consumer, &producer);
-        if (producer - consumer <= 1024 * 1024) {
+        ebpf_ring_buffer_query(context->ring_buffer, &consumer_offset, &producer_offset);
+        if (producer_offset - consumer_offset <= 1024 * 1024) {
             // Wait until ring has 1MB of data, then read until empty and repeat.
             if (wait_us > 0) {
                 std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
@@ -1684,14 +1681,15 @@ ring_buffer_speed_test_consumer(
             }
             continue;
         }
-        auto record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer);
+        size_t next_consumer_offset;
+        auto record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer, &next_consumer_offset);
         while (record != NULL) {
-            if (ebpf_ring_buffer_return(context->ring_buffer, ebpf_ring_buffer_record_length(record)) != EBPF_SUCCESS) {
+            if (ebpf_ring_buffer_return_buffer(context->ring_buffer, next_consumer_offset) != EBPF_SUCCESS) {
                 context->failed_returns++;
                 break;
             }
             context->record_count++;
-            record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer);
+            record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer, &next_consumer_offset);
         }
     }
 }
@@ -1803,7 +1801,8 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
     size_t remaining_locked = 0;
     size_t remaining_failed_returns = 0;
     {
-        auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+        size_t next_consumer_offset;
+        auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer, &next_consumer_offset);
         while (record != nullptr) {
             remaining_records++;
             uint32_t header = record->header.length;
@@ -1817,14 +1816,14 @@ run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameter
                 break;
             }
             REQUIRE(record_length != 0);
-            if (ebpf_ring_buffer_return(ring_buffer, record_length) != EBPF_SUCCESS) {
+            if (ebpf_ring_buffer_return_buffer(ring_buffer, next_consumer_offset) != EBPF_SUCCESS) {
                 remaining_failed_returns++;
                 break;
             }
             if (remaining_records > total_producer_records - consumer_records + 2) {
                 break;
             }
-            record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+            record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer, &next_consumer_offset);
         }
         std::cout << "Remaining records: " << remaining_records << std::endl;
         // std::cout << "Remaining discards: " << remaining_discards << std::endl;
