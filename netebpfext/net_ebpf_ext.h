@@ -140,8 +140,17 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
     bool initialized : 1;      ///< True if the filter context has been successfully initialized.
-    HANDLE wfp_engine_handle;  ///< WFP engine handle.
+    bool in_zombie_list : 1;
+    HANDLE wfp_engine_handle; ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
+
+typedef struct _net_ebpf_extension_wfp_cleanup_state
+{
+    EX_SPIN_LOCK lock;
+    LIST_ENTRY provider_context_cleanup_list;
+    LIST_ENTRY filter_zombie_list;
+    LIST_ENTRY filter_rundown_list;
+} net_ebpf_extension_wfp_cleanup_state_t;
 
 // Macro definition of warning suppression for 26100. This is only used in the cleanup context, for which
 // we are the only reference of the memory
@@ -150,20 +159,21 @@ typedef struct _net_ebpf_extension_wfp_filter_context
 #define PRAGMA_WARNING_SUPPRESS_26100 _Pragma("warning(suppress: 26100)")
 #define PRAGMA_WARNING_POP _Pragma("warning(pop)")
 
-#define CLEAN_UP_FILTER_CONTEXT(filter_context)               \
-    ASSERT((filter_context) != NULL);                         \
-    if ((filter_context)->filter_ids != NULL) {               \
-        ExFreePool((filter_context)->filter_ids);             \
-    }                                                         \
-    PRAGMA_WARNING_PUSH                                       \
-    PRAGMA_WARNING_SUPPRESS_26100                             \
-    if ((filter_context)->client_contexts != NULL) {          \
-        ExFreePool((filter_context)->client_contexts);        \
-    }                                                         \
-    PRAGMA_WARNING_POP                                        \
-    if ((filter_context)->wfp_engine_handle != NULL) {        \
-        FwpmEngineClose((filter_context)->wfp_engine_handle); \
-    }                                                         \
+#define CLEAN_UP_FILTER_CONTEXT(filter_context)                            \
+    net_ebpf_ext_remove_filter_context_from_zombie_list((filter_context)); \
+    ASSERT((filter_context) != NULL);                                      \
+    if ((filter_context)->filter_ids != NULL) {                            \
+        ExFreePool((filter_context)->filter_ids);                          \
+    }                                                                      \
+    PRAGMA_WARNING_PUSH                                                    \
+    PRAGMA_WARNING_SUPPRESS_26100                                          \
+    if ((filter_context)->client_contexts != NULL) {                       \
+        ExFreePool((filter_context)->client_contexts);                     \
+    }                                                                      \
+    PRAGMA_WARNING_POP                                                     \
+    if ((filter_context)->wfp_engine_handle != NULL) {                     \
+        FwpmEngineClose((filter_context)->wfp_engine_handle);              \
+    }                                                                      \
     ExFreePool((filter_context));
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
@@ -389,3 +399,12 @@ ebpf_result_t
 net_ebpf_ext_add_client_context(
     _Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context,
     _In_ const struct _net_ebpf_extension_hook_client* hook_client);
+
+// void
+// net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context);
+void
+net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ void* provider_context);
+void
+net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
+void
+net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context);
