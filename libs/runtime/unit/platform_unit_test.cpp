@@ -1031,7 +1031,7 @@ TEST_CASE("async", "[platform]")
     test(false);
 }
 
-TEST_CASE("ring_buffer_output", "[platform]")
+TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
 {
     _test_helper test_helper;
     test_helper.initialize();
@@ -1057,12 +1057,12 @@ TEST_CASE("ring_buffer_output", "[platform]")
 
     // Ring is not empty
     REQUIRE(producer != consumer);
-    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(producer == ((data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7));
     REQUIRE(consumer == 0);
 
     auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record != nullptr);
-    REQUIRE(record->header.length == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(record->header.length == data.size());
 
     REQUIRE(ebpf_ring_buffer_return(ring_buffer, record->header.length) == EBPF_SUCCESS);
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
@@ -1070,17 +1070,18 @@ TEST_CASE("ring_buffer_output", "[platform]")
     record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record == nullptr);
     REQUIRE(consumer == producer);
-    REQUIRE(producer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
-    REQUIRE(consumer == data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+    REQUIRE(consumer == ((data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7));
 
+    size_t sent_data = 0;
     data.resize(1023);
     while (ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
+        sent_data += data.size();
     }
 
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
-    REQUIRE(ebpf_ring_buffer_return(ring_buffer, (producer - consumer) % size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return(ring_buffer, sent_data) == EBPF_SUCCESS);
 
-    data.resize(size - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) - 1);
+    data.resize(size - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) - 8);
     // Fill ring
     REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
 
@@ -1088,7 +1089,7 @@ TEST_CASE("ring_buffer_output", "[platform]")
     ring_buffer = nullptr;
 }
 
-TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
+TEST_CASE("ring_buffer_reserve_submit_discard", "[platform][ring_buffer]")
 {
     _test_helper test_helper;
     test_helper.initialize();
@@ -1144,6 +1145,779 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform]")
 
     ebpf_ring_buffer_destroy(ring_buffer);
     ring_buffer = nullptr;
+}
+
+struct ring_buffer_stress_test_parameters_t
+{
+    size_t producer_threads;
+    size_t data_size;
+    double discard_rate;
+    size_t duration_seconds;
+    size_t producer_wait_us;
+    size_t consumer_wait_us;
+    size_t producer_delay_us;
+    size_t consumer_delay_us;
+    bool use_output;
+    bool do_copy;
+    const char* test_name;
+    const char* test_string;
+};
+
+struct ring_buffer_stress_test_producer_context_t
+{
+    ebpf_ring_buffer_t* ring_buffer = NULL;
+    size_t loop_count = 0;
+    size_t output_count = 0;
+    size_t reserve_count = 0;
+    size_t submit_count = 0;
+    size_t discard_count = 0;
+    size_t failed_submits = 0;
+    size_t failed_discards = 0;
+    volatile std::atomic<bool>* stop = NULL;
+    volatile std::atomic<size_t>* barrier = NULL;
+};
+
+struct ring_buffer_stress_test_consumer_context_t
+{
+    ebpf_ring_buffer_t* ring_buffer = NULL;
+    uint8_t* buffer = NULL;
+    size_t loop_count = 0;
+    size_t record_count = 0;
+    size_t locked_records = 0;
+    size_t discarded_records = 0;
+    size_t failed_returns = 0;
+    size_t empty_records = 0;
+    volatile std::atomic<bool>* stop = NULL;
+    volatile std::atomic<size_t>* barrier = NULL;
+};
+
+void
+_ring_buffer_test_wait_for_barrier(volatile std::atomic<size_t>* barrier)
+{
+    while (*barrier > 0) {
+        YieldProcessor();
+    }
+}
+
+void
+_ring_buffer_test_barrier(volatile std::atomic<size_t>* barrier)
+{
+    (*barrier)--;
+    _ring_buffer_test_wait_for_barrier(barrier);
+}
+
+void
+ring_buffer_stress_test_producer_output(
+    ring_buffer_stress_test_producer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t data_size = parameters->data_size;
+    size_t wait_us = parameters->producer_wait_us;
+    size_t delay_us = parameters->producer_delay_us;
+
+    std::vector<uint8_t> data(data_size);
+
+    _ring_buffer_test_barrier(context->barrier);
+
+    while (!*context->stop) {
+        context->loop_count++;
+        if (ebpf_ring_buffer_output(context->ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
+            context->output_count++;
+        } else if (wait_us > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+        } else {
+            YieldProcessor();
+        }
+        if (delay_us > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+        }
+    }
+}
+
+void
+ring_buffer_stress_test_producer_reserve_submit(
+    ring_buffer_stress_test_producer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t data_size = parameters->data_size;
+    double discard_rate = parameters->discard_rate;
+    size_t wait_us = parameters->producer_wait_us;
+    size_t delay_us = parameters->producer_delay_us;
+    bool do_copy = parameters->do_copy;
+    std::vector<uint8_t> data(data_size);
+
+    _ring_buffer_test_barrier(context->barrier);
+
+    while (!*context->stop) {
+        context->loop_count++;
+        uint8_t* reserved_memory = nullptr;
+        if (ebpf_ring_buffer_reserve(context->ring_buffer, &reserved_memory, data_size) == EBPF_SUCCESS) {
+            context->reserve_count++;
+            if ((static_cast<double>(ebpf_random_uint32()) / UINT32_MAX) > discard_rate) {
+                if (do_copy) {
+                    memcpy(reserved_memory, data.data(), data.size());
+                }
+                if (ebpf_ring_buffer_submit(reserved_memory) == EBPF_SUCCESS) {
+                    context->submit_count++;
+                } else {
+                    context->failed_submits++;
+                }
+            } else {
+                if (ebpf_ring_buffer_discard(reserved_memory) == EBPF_SUCCESS) {
+                    context->discard_count++;
+                } else {
+                    context->failed_discards++;
+                }
+            }
+        } else if (wait_us > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+        } else {
+            YieldProcessor();
+        }
+        if (delay_us > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+        }
+    }
+}
+
+void
+ring_buffer_stress_test_consumer(
+    ring_buffer_stress_test_consumer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t wait_us = parameters->consumer_wait_us;
+    size_t delay_us = parameters->consumer_delay_us;
+    uint8_t* buffer = context->buffer;
+
+    // size_t consumer = 0;
+    // size_t producer = 0;
+
+    _ring_buffer_test_barrier(context->barrier);
+
+    while (!*context->stop) {
+        context->loop_count++;
+        // ebpf_ring_buffer_query(context->ring_buffer, &consumer, &producer);
+        // auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
+        auto record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer);
+        if (record != nullptr) {
+            if (ebpf_ring_buffer_record_is_locked(record)) {
+                context->locked_records++;
+                break;
+            } else if (ebpf_ring_buffer_record_is_discarded(record)) {
+                context->discarded_records++;
+            } else if (record->header.length == 0) {
+                context->empty_records++;
+                if (context->empty_records > 100) {
+                    break;
+                }
+            }
+            if (ebpf_ring_buffer_return(context->ring_buffer, ebpf_ring_buffer_record_length(record)) != EBPF_SUCCESS) {
+                context->failed_returns++;
+                break;
+            }
+            context->record_count++;
+        } else if (wait_us > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+        } else {
+            YieldProcessor();
+        }
+        if (delay_us > 0) {
+            std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
+        }
+    }
+}
+
+void
+run_ring_buffer_stress_test(const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t producer_threads = parameters->producer_threads;
+    size_t duration_seconds = parameters->duration_seconds;
+    bool use_output = parameters->use_output;
+    ebpf_ring_buffer_t* ring_buffer;
+    uint8_t* buffer;
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+
+    std::atomic<bool> stop = false;
+    std::atomic<size_t> barrier(producer_threads + 2); // +2 for the consumer thread, main thread.
+    ring_buffer_stress_test_consumer_context_t consumer_context;
+    consumer_context.ring_buffer = ring_buffer;
+    consumer_context.buffer = buffer;
+    consumer_context.stop = &stop;
+    consumer_context.barrier = &barrier;
+    std::vector<ring_buffer_stress_test_producer_context_t> producer_contexts(producer_threads);
+    for (auto& producer_context : producer_contexts) {
+        producer_context.ring_buffer = ring_buffer;
+        producer_context.stop = &stop;
+        producer_context.barrier = &barrier;
+    }
+
+    std::vector<std::thread> threads;
+    threads.emplace_back(std::thread(ring_buffer_stress_test_consumer, &consumer_context, parameters));
+    for (size_t i = 0; i < producer_threads; i++) {
+        if (use_output) {
+            threads.emplace_back(
+                std::thread(ring_buffer_stress_test_producer_output, &producer_contexts[i], parameters));
+        } else {
+            threads.emplace_back(
+                std::thread(ring_buffer_stress_test_producer_reserve_submit, &producer_contexts[i], parameters));
+        }
+    }
+
+    // Wait to start test until all threads are ready.
+    _ring_buffer_test_barrier(&barrier);
+    std::this_thread::sleep_for(std::chrono::seconds(duration_seconds));
+    stop = true;
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    size_t producer_loops = 0;
+    size_t reserve_count = 0;
+    size_t submit_count = 0;
+    size_t discard_count = 0;
+    size_t output_count = 0;
+    size_t failed_submits = 0;
+    size_t failed_discards = 0;
+    size_t consumer_loops = consumer_context.loop_count;
+    size_t consumer_records = consumer_context.record_count;
+    size_t locked_records_read = consumer_context.locked_records;
+    size_t discarded_records_read = consumer_context.discarded_records;
+    size_t empty_records_read = consumer_context.empty_records;
+    size_t failed_returns = consumer_context.failed_returns;
+
+    for (size_t i = 0; i < producer_threads; i++) {
+        producer_loops += producer_contexts[i].loop_count;
+        reserve_count += producer_contexts[i].reserve_count;
+        submit_count += producer_contexts[i].submit_count;
+        discard_count += producer_contexts[i].discard_count;
+        output_count += producer_contexts[i].output_count;
+        failed_submits += producer_contexts[i].failed_submits;
+        failed_discards += producer_contexts[i].failed_discards;
+    }
+    size_t total_producer_records = submit_count + output_count;
+    CAPTURE(
+        producer_loops,
+        consumer_loops,
+        consumer_records,
+        locked_records_read,
+        discarded_records_read,
+        empty_records_read,
+        failed_returns,
+        reserve_count);
+
+    // TODO: remove debugging print statements to cout before merging.
+    std::cout << "Producer loops: " << producer_loops << std::endl;
+    std::cout << "Consumer loops: " << consumer_loops << std::endl;
+    if (use_output) {
+        CAPTURE(output_count);
+        std::cout << "Output count: " << output_count << std::endl;
+    } else {
+        CAPTURE(reserve_count, submit_count, discard_count, failed_submits, failed_discards);
+        std::cout << "Reserve count: " << reserve_count << std::endl;
+        std::cout << "Submit count: " << submit_count << std::endl;
+        std::cout << "Discard count: " << discard_count << std::endl;
+        // std::cout << "Failed submits: " << failed_submits << std::endl;
+        // std::cout << "Failed discards: " << failed_discards << std::endl;
+    }
+    std::cout << "Consumer records: " << consumer_records << std::endl;
+    // std::cout << "Locked records read: " << locked_records_read << std::endl;
+    // std::cout << "Discarded records read: " << discarded_records_read << std::endl;
+    // std::cout << "Empty records read: " << empty_records_read << std::endl;
+    // std::cout << "Failed returns: " << failed_returns << std::endl;
+    std::cout << std::flush;
+
+    // Read remaining records.
+    size_t remaining_records = 0;
+    size_t remaining_discards = 0;
+    size_t remaining_locked = 0;
+    size_t remaining_failed_returns = 0;
+    {
+        auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+        while (record != nullptr) {
+            remaining_records++;
+            uint32_t header = record->header.length;
+            size_t record_length = header & ~(EBPF_RINGBUF_DISCARD_BIT | EBPF_RINGBUF_LOCK_BIT);
+            if (header & EBPF_RINGBUF_LOCK_BIT) {
+                remaining_locked++;
+                break;
+            }
+            if (header & EBPF_RINGBUF_DISCARD_BIT) {
+                remaining_discards++;
+                break;
+            }
+            REQUIRE(record_length != 0);
+            if (ebpf_ring_buffer_return(ring_buffer, record_length) != EBPF_SUCCESS) {
+                remaining_failed_returns++;
+                break;
+            }
+            if (remaining_records > total_producer_records - consumer_records + 2) {
+                break;
+            }
+            record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+        }
+        std::cout << "Remaining records: " << remaining_records << std::endl;
+        // std::cout << "Remaining discards: " << remaining_discards << std::endl;
+        // std::cout << "Remaining locked: " << remaining_locked << std::endl;
+        // std::cout << "Remaining failed returns: " << remaining_failed_returns << std::endl;
+        std::cout << std::flush;
+        CAPTURE(remaining_records, remaining_discards, remaining_locked, remaining_failed_returns);
+    }
+
+    ebpf_ring_buffer_destroy(ring_buffer);
+
+    REQUIRE(total_producer_records == consumer_records + remaining_records);
+    REQUIRE(producer_loops > 0);
+    REQUIRE(consumer_loops > 0);
+
+    if (use_output) {
+        REQUIRE(output_count > 0);
+        REQUIRE(output_count == consumer_records + remaining_records);
+    } else {
+        REQUIRE(reserve_count > 0);
+        REQUIRE(reserve_count == submit_count + discard_count);
+        REQUIRE(submit_count == consumer_records + remaining_records);
+    }
+    REQUIRE(failed_submits == 0);
+    REQUIRE(failed_discards == 0);
+    REQUIRE(locked_records_read == 0);
+    REQUIRE(discarded_records_read == 0);
+    REQUIRE(empty_records_read == 0);
+    REQUIRE(failed_returns == 0);
+    REQUIRE(remaining_discards == 0);
+    REQUIRE(remaining_locked == 0);
+    REQUIRE(remaining_failed_returns == 0);
+}
+
+TEST_CASE("ring_buffer_stress_tests", "[ring_buffer_stress]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    // uint32_t ncpu = ebpf_get_cpu_count();
+
+    std::cout << "== Starting stress tests ==" << std::endl;
+    std::cout << std::flush;
+    const ring_buffer_stress_test_parameters_t tests_params[] = {
+#define STRINGIZE2(x) #x
+#define STRINGIZE(x) STRINGIZE2(x)
+#define RING_TEST_CASE(                                           \
+    producer_threads,                                             \
+    data_size,                                                    \
+    discard_rate,                                                 \
+    producer_wait_us,                                             \
+    consumer_wait_us,                                             \
+    producer_delay_us,                                            \
+    consumer_delay_us,                                            \
+    use_output,                                                   \
+    do_copy,                                                      \
+    test_name)                                                    \
+    {producer_threads,                                            \
+     data_size,                                                   \
+     discard_rate,                                                \
+     10,                                                          \
+     producer_wait_us,                                            \
+     consumer_wait_us,                                            \
+     producer_delay_us,                                           \
+     consumer_delay_us,                                           \
+     use_output,                                                  \
+     do_copy,                                                     \
+     test_name,                                                   \
+     "Line " STRINGIZE(__LINE__) ": { "                           \
+                                 "n=" #producer_threads ", "      \
+                                 "d=" #data_size ", "             \
+                                 "%=" #discard_rate ", "          \
+                                 "t="                             \
+                                 "10"                             \
+                                 ", "                             \
+                                 "pw_us=" #producer_wait_us ", "  \
+                                 "cw_us=" #consumer_wait_us ", "  \
+                                 "pd_us=" #producer_delay_us ", " \
+                                 "cd_us=" #consumer_delay_us ", " \
+                                 "o=" #use_output ", "            \
+                                 "cpy=" #do_copy "}"}
+        RING_TEST_CASE(1, 10, 0.01, 0, 0, 0, 0, true, false, "Single producer, small data size, no delay, out"),
+        RING_TEST_CASE(1, 10, 0.01, 0, 0, 0, 0, false, false, "Single producer, small data size, no delay, r/s"),
+        RING_TEST_CASE(4, 10, 0.01, 0, 0, 0, 0, true, false, "Multiple producers, small data size, no delay, out"),
+        RING_TEST_CASE(4, 10, 0.01, 0, 0, 0, 0, false, false, "Multiple producers, small data size, no delay, r/s"),
+        RING_TEST_CASE(1, 1024, 0.01, 0, 1, 0, 0, true, true, "Single producer, large data size, no delay, out"),
+        RING_TEST_CASE(1, 1024, 0.01, 0, 1, 0, 0, false, true, "Single producer, large data size, no delay, r/s"),
+        RING_TEST_CASE(4, 1024, 0.01, 0, 1, 0, 0, true, true, "Multiple producers, large data size, no delay, out"),
+        RING_TEST_CASE(4, 1024, 0.01, 0, 1, 0, 0, false, true, "Multiple producers, large data size, no delay, r/s"),
+        RING_TEST_CASE(1, 10, 0.01, 0, 1, 1, 0, true, true, "Single producer, small data size, with delay, out"),
+        RING_TEST_CASE(1, 10, 0.01, 0, 1, 1, 0, false, true, "Single producer, small data size, with delay, r/s"),
+        RING_TEST_CASE(4, 10, 0.01, 0, 1, 1, 0, true, true, "Multiple producers, small data size, with delay, out"),
+        RING_TEST_CASE(4, 10, 0.01, 0, 1, 1, 0, false, true, "Multiple producers, small data size, with delay, r/s"),
+        RING_TEST_CASE(1, 1024, 0.01, 0, 1, 1, 0, true, true, "Single producer, large data size, with delay, out"),
+        RING_TEST_CASE(1, 1024, 0.01, 0, 1, 1, 0, false, true, "Single producer, large data size, with delay, r/s"),
+        RING_TEST_CASE(4, 1024, 0.01, 0, 1, 1, 0, true, true, "Multiple producers, large data size, with delay, out"),
+        RING_TEST_CASE(4, 1024, 0.01, 0, 1, 1, 0, false, true, "Multiple producers, large data size, with delay, r/s"),
+        RING_TEST_CASE(1, 10, 0.01, 0, 1, 0, 1, true, true, "Single producer, small data size, consumer delay, out"),
+        RING_TEST_CASE(1, 10, 0.01, 0, 1, 0, 1, false, true, "Single producer, small data size, consumer delay, r/s"),
+        RING_TEST_CASE(4, 10, 0.01, 0, 1, 0, 1, true, true, "Multiple producers, small data size, consumer delay, out"),
+        RING_TEST_CASE(
+            4, 10, 0.01, 0, 1, 0, 1, false, true, "Multiple producers, small data size, consumer delay, r/s"),
+        RING_TEST_CASE(1, 1024, 0.01, 0, 1, 0, 1, true, true, "Single producer, large data size, consumer delay, out"),
+        RING_TEST_CASE(1, 1024, 0.01, 0, 1, 0, 1, false, true, "Single producer, large data size, consumer delay, r/s"),
+        RING_TEST_CASE(
+            4, 1024, 0.01, 0, 1, 0, 1, true, true, "Multiple producers, large data size, consumer delay, out"),
+        RING_TEST_CASE(
+            4, 1024, 0.01, 0, 1, 0, 1, false, true, "Multiple producers, large data size, consumer delay, r/s"),
+        RING_TEST_CASE(1, 1, 0.0, 0, 0, 0, 0, true, true, "Single producer, data size=1, no delay, no discard, out"),
+        RING_TEST_CASE(1, 1, 0.0, 0, 0, 0, 0, false, true, "Single producer, data size=1, no delay, no discard, r/s"),
+        RING_TEST_CASE(
+            1, 1024, 0.0, 0, 0, 0, 0, true, true, "Single producer, large data size, no delay, no discard, out"),
+        RING_TEST_CASE(
+            1, 1024, 0.0, 0, 0, 0, 0, false, true, "Single producer, large data size, no delay, no discard, r/s"),
+        RING_TEST_CASE(
+            1, 1, 0.0, 0, 0, 0, 0, true, false, "Single producer, data size=1, no delay, no discard, no copy, out"),
+        RING_TEST_CASE(
+            1, 1, 0.0, 0, 0, 0, 0, false, false, "Single producer, data size=1, no delay, no discard, no copy, r/s"),
+        RING_TEST_CASE(1, 1, 1.0, 0, 0, 0, 0, true, false, "Single producer, data size=1, no delay, all discard, out"),
+        RING_TEST_CASE(1, 1, 1.0, 0, 0, 0, 0, false, false, "Single producer, data size=1, no delay, all discard, r/s"),
+        RING_TEST_CASE(4, 1, 0.0, 0, 0, 0, 0, true, true, "Multiple producers, data size=1, no delay, no discard, out"),
+        RING_TEST_CASE(
+            4, 1, 0.0, 0, 0, 0, 0, false, true, "Multiple producers, data size=1, no delay, no discard, r/s"),
+        RING_TEST_CASE(
+            4, 1024, 0.0, 0, 0, 0, 0, true, true, "Multiple producers, large data size, no delay, no discard, out"),
+        RING_TEST_CASE(
+            4, 1024, 0.0, 0, 0, 0, 0, false, true, "Multiple producers, large data size, no delay, no discard, r/s"),
+        RING_TEST_CASE(
+            4, 1, 0.0, 0, 0, 0, 0, true, false, "Multiple producers, data size=1, no delay, no discard, no copy, out"),
+        RING_TEST_CASE(
+            4, 1, 0.0, 0, 0, 0, 0, false, false, "Multiple producers, data size=1, no delay, no discard, no copy, r/s"),
+        RING_TEST_CASE(
+            4, 1, 1.0, 0, 0, 0, 0, true, false, "Multiple producers, data size=1, no delay, all discard, out"),
+        RING_TEST_CASE(
+            4, 1, 1.0, 0, 0, 0, 0, false, false, "Multiple producers, data size=1, no delay, all discard, r/s"),
+    };
+
+    for (auto& test_params : tests_params) {
+        std::string test_name = test_params.test_name;
+        std::string test_string = test_params.test_string;
+        CAPTURE(test_name, test_string);
+        std::cout << "Pre - " << test_name << std::endl;
+        std::cout << std::flush;
+        run_ring_buffer_stress_test(&test_params);
+        std::cout << "Post - " << test_name << std::endl;
+        std::cout << std::flush;
+    }
+}
+
+void
+ring_buffer_speed_test_producer_output(
+    ring_buffer_stress_test_producer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t data_size = parameters->data_size;
+
+    std::vector<uint8_t> data(data_size);
+
+    _ring_buffer_test_barrier(context->barrier);
+
+    while (!*context->stop) {
+        context->loop_count++;
+        if (ebpf_ring_buffer_output(context->ring_buffer, data.data(), data.size()) == EBPF_SUCCESS) {
+            context->output_count++;
+        } else {
+            YieldProcessor();
+        }
+    }
+}
+
+void
+ring_buffer_speed_test_producer_reserve_submit(
+    ring_buffer_stress_test_producer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
+{
+    bool do_copy = parameters->do_copy;
+    size_t data_size = parameters->data_size;
+    bool discard = parameters->discard_rate > 0.0;
+
+    _ring_buffer_test_barrier(context->barrier);
+
+    std::vector<uint8_t> data(data_size);
+    while (!*context->stop) {
+        context->loop_count++;
+        uint8_t* reserved_memory = nullptr;
+        if (ebpf_ring_buffer_reserve(context->ring_buffer, &reserved_memory, data_size) == EBPF_SUCCESS) {
+            context->reserve_count++;
+            if (discard) {
+                if (ebpf_ring_buffer_discard(reserved_memory) == EBPF_SUCCESS) {
+                    context->discard_count++;
+                } else {
+                    context->failed_discards++;
+                }
+            } else {
+                if (do_copy) {
+                    memcpy(reserved_memory, data.data(), data_size);
+                }
+                if (ebpf_ring_buffer_submit(reserved_memory) == EBPF_SUCCESS) {
+                    context->submit_count++;
+                } else {
+                    context->failed_submits++;
+                }
+            }
+        } else {
+            YieldProcessor();
+        }
+    }
+}
+
+void
+ring_buffer_speed_test_consumer(
+    ring_buffer_stress_test_consumer_context_t* context, const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t wait_us = parameters->consumer_wait_us;
+    uint8_t* buffer = context->buffer;
+
+    size_t consumer = 0;
+    size_t producer = 0;
+
+    _ring_buffer_test_barrier(context->barrier);
+
+    while (!*context->stop) {
+        context->loop_count++;
+        ebpf_ring_buffer_query(context->ring_buffer, &consumer, &producer);
+        if (producer - consumer <= 1024 * 1024) {
+            // Wait until ring has 1MB of data, then read until empty and repeat.
+            if (wait_us > 0) {
+                std::this_thread::sleep_for(std::chrono::microseconds(wait_us));
+            } else {
+                YieldProcessor();
+            }
+            continue;
+        }
+        auto record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer);
+        while (record != NULL) {
+            if (ebpf_ring_buffer_return(context->ring_buffer, ebpf_ring_buffer_record_length(record)) != EBPF_SUCCESS) {
+                context->failed_returns++;
+                break;
+            }
+            context->record_count++;
+            record = ebpf_ring_buffer_next_consumer_record(context->ring_buffer, buffer);
+        }
+    }
+}
+
+void
+run_ring_buffer_speed_test(const ring_buffer_stress_test_parameters_t* parameters)
+{
+    size_t producer_threads = parameters->producer_threads;
+    size_t duration_seconds = parameters->duration_seconds;
+    bool use_output = parameters->use_output;
+    ebpf_ring_buffer_t* ring_buffer;
+    uint8_t* buffer;
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+
+    std::atomic<bool> stop = false;
+    std::atomic<size_t> barrier(producer_threads + 2); // +2 for the consumer thread, main thread.
+    ring_buffer_stress_test_consumer_context_t consumer_context;
+    consumer_context.ring_buffer = ring_buffer;
+    consumer_context.buffer = buffer;
+    consumer_context.stop = &stop;
+    consumer_context.barrier = &barrier;
+    std::vector<ring_buffer_stress_test_producer_context_t> producer_contexts(producer_threads);
+    for (auto& producer_context : producer_contexts) {
+        producer_context.ring_buffer = ring_buffer;
+        producer_context.stop = &stop;
+        producer_context.barrier = &barrier;
+    }
+
+    std::vector<std::thread> threads;
+    threads.emplace_back(std::thread(ring_buffer_stress_test_consumer, &consumer_context, parameters));
+    for (size_t i = 0; i < producer_threads; i++) {
+        if (use_output) {
+            threads.emplace_back(
+                std::thread(ring_buffer_stress_test_producer_output, &producer_contexts[i], parameters));
+        } else {
+            threads.emplace_back(
+                std::thread(ring_buffer_stress_test_producer_reserve_submit, &producer_contexts[i], parameters));
+        }
+    }
+
+    // Wait to start test until all threads are ready.
+    _ring_buffer_test_barrier(&barrier);
+    std::this_thread::sleep_for(std::chrono::seconds(duration_seconds));
+    stop = true;
+
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    size_t producer_loops = 0;
+    size_t reserve_count = 0;
+    size_t submit_count = 0;
+    size_t discard_count = 0;
+    size_t output_count = 0;
+    size_t failed_submits = 0;
+    size_t failed_discards = 0;
+    size_t consumer_loops = consumer_context.loop_count;
+    size_t consumer_records = consumer_context.record_count;
+    size_t locked_records_read = consumer_context.locked_records;
+    size_t discarded_records_read = consumer_context.discarded_records;
+    size_t empty_records_read = consumer_context.empty_records;
+    size_t failed_returns = consumer_context.failed_returns;
+
+    for (size_t i = 0; i < producer_threads; i++) {
+        producer_loops += producer_contexts[i].loop_count;
+        reserve_count += producer_contexts[i].reserve_count;
+        submit_count += producer_contexts[i].submit_count;
+        discard_count += producer_contexts[i].discard_count;
+        output_count += producer_contexts[i].output_count;
+        failed_submits += producer_contexts[i].failed_submits;
+        failed_discards += producer_contexts[i].failed_discards;
+    }
+    size_t total_producer_records = submit_count + output_count;
+    CAPTURE(
+        producer_loops,
+        consumer_loops,
+        consumer_records,
+        locked_records_read,
+        discarded_records_read,
+        empty_records_read,
+        failed_returns,
+        reserve_count);
+
+    // TODO: remove debugging print statements to cout before merging.
+    std::cout << "Producer loops: " << producer_loops << std::endl;
+    std::cout << "Consumer loops: " << consumer_loops << std::endl;
+    if (use_output) {
+        CAPTURE(output_count);
+        std::cout << "Output count: " << output_count << std::endl;
+    } else {
+        CAPTURE(reserve_count, submit_count, discard_count, failed_submits, failed_discards);
+        std::cout << "Reserve count: " << reserve_count << std::endl;
+        std::cout << "Submit count: " << submit_count << std::endl;
+        std::cout << "Discard count: " << discard_count << std::endl;
+        // std::cout << "Failed submits: " << failed_submits << std::endl;
+        // std::cout << "Failed discards: " << failed_discards << std::endl;
+    }
+    std::cout << "Consumer records: " << consumer_records << std::endl;
+    // std::cout << "Locked records read: " << locked_records_read << std::endl;
+    // std::cout << "Discarded records read: " << discarded_records_read << std::endl;
+    // std::cout << "Empty records read: " << empty_records_read << std::endl;
+    // std::cout << "Failed returns: " << failed_returns << std::endl;
+    std::cout << std::flush;
+
+    // Read remaining records.
+    size_t remaining_records = 0;
+    size_t remaining_discards = 0;
+    size_t remaining_locked = 0;
+    size_t remaining_failed_returns = 0;
+    {
+        auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+        while (record != nullptr) {
+            remaining_records++;
+            uint32_t header = record->header.length;
+            size_t record_length = header & ~(EBPF_RINGBUF_DISCARD_BIT | EBPF_RINGBUF_LOCK_BIT);
+            if (header & EBPF_RINGBUF_LOCK_BIT) {
+                remaining_locked++;
+                break;
+            }
+            if (header & EBPF_RINGBUF_DISCARD_BIT) {
+                remaining_discards++;
+                break;
+            }
+            REQUIRE(record_length != 0);
+            if (ebpf_ring_buffer_return(ring_buffer, record_length) != EBPF_SUCCESS) {
+                remaining_failed_returns++;
+                break;
+            }
+            if (remaining_records > total_producer_records - consumer_records + 2) {
+                break;
+            }
+            record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer);
+        }
+        std::cout << "Remaining records: " << remaining_records << std::endl;
+        // std::cout << "Remaining discards: " << remaining_discards << std::endl;
+        // std::cout << "Remaining locked: " << remaining_locked << std::endl;
+        // std::cout << "Remaining failed returns: " << remaining_failed_returns << std::endl;
+        std::cout << std::flush;
+        CAPTURE(remaining_records, remaining_discards, remaining_locked, remaining_failed_returns);
+    }
+
+    ebpf_ring_buffer_destroy(ring_buffer);
+
+    REQUIRE(total_producer_records == consumer_records + remaining_records);
+    REQUIRE(producer_loops > 0);
+    REQUIRE(consumer_loops > 0);
+
+    if (use_output) {
+        REQUIRE(output_count > 0);
+        REQUIRE(output_count == consumer_records + remaining_records);
+    } else {
+        REQUIRE(reserve_count > 0);
+        REQUIRE(reserve_count == submit_count + discard_count);
+        REQUIRE(submit_count == consumer_records + remaining_records);
+    }
+    REQUIRE(failed_submits == 0);
+    REQUIRE(failed_discards == 0);
+    REQUIRE(locked_records_read == 0);
+    REQUIRE(discarded_records_read == 0);
+    REQUIRE(empty_records_read == 0);
+    REQUIRE(failed_returns == 0);
+    REQUIRE(remaining_discards == 0);
+    REQUIRE(remaining_locked == 0);
+    REQUIRE(remaining_failed_returns == 0);
+}
+
+TEST_CASE("ring_buffer_speed_tests", "[ring_buffer_speed]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    // uint32_t ncpu = ebpf_get_cpu_count();
+
+    std::cout << "== Starting speed tests ==" << std::endl;
+    // std::cout << "ncpu: " << ncpu << std::endl;
+    std::cout << std::flush;
+    const ring_buffer_stress_test_parameters_t tests_params[] = {
+        RING_TEST_CASE(1, 8, 0.00, 0, 1, 0, 0, true, true, "threads=1, 16 byte record, out"),
+        RING_TEST_CASE(4, 8, 0.00, 0, 1, 0, 0, true, true, "threads=4, 16 byte record, out"),
+        RING_TEST_CASE(1, 56, 0.00, 0, 1, 0, 0, true, true, "threads=1, 64 byte record, out"),
+        RING_TEST_CASE(4, 56, 0.00, 0, 1, 0, 0, true, true, "threads=4, 64 byte record, out"),
+        RING_TEST_CASE(1, 1016, 0.00, 0, 1, 0, 0, true, true, "threads=1, 1K record, out"),
+        RING_TEST_CASE(4, 1016, 0.00, 0, 1, 0, 0, true, true, "threads=4, 1K record, out"),
+        RING_TEST_CASE(1, 4088, 0.00, 0, 1, 0, 0, true, true, "threads=1, 4K record, out"),
+        RING_TEST_CASE(4, 4088, 0.00, 0, 1, 0, 0, true, true, "threads=4, 4K record, out"),
+        RING_TEST_CASE(1, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, true, true, "threads=1, 1M record, out"),
+        RING_TEST_CASE(4, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, true, true, "threads=4, 1M record, out"),
+        RING_TEST_CASE(1, 8, 0.00, 0, 1, 0, 0, false, true, "threads=1, 16 byte record, r/s"),
+        RING_TEST_CASE(4, 8, 0.00, 0, 1, 0, 0, false, true, "threads=4, 16 byte record, r/s"),
+        RING_TEST_CASE(1, 56, 0.00, 0, 1, 0, 0, false, true, "threads=1, 64 byte record, r/s"),
+        RING_TEST_CASE(4, 56, 0.00, 0, 1, 0, 0, false, true, "threads=4, 64 byte record, r/s"),
+        RING_TEST_CASE(1, 1016, 0.00, 0, 1, 0, 0, false, true, "threads=1, 1K record, r/s"),
+        RING_TEST_CASE(4, 1016, 0.00, 0, 1, 0, 0, false, true, "threads=4, 1K record, r/s"),
+        RING_TEST_CASE(1, 4088, 0.00, 0, 1, 0, 0, false, true, "threads=1, 4K record, r/s"),
+        RING_TEST_CASE(4, 4088, 0.00, 0, 1, 0, 0, false, true, "threads=4, 4K record, r/s"),
+        RING_TEST_CASE(1, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, true, "threads=1, 1M record, r/s"),
+        RING_TEST_CASE(4, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, true, "threads=4, 1M record, r/s"),
+        RING_TEST_CASE(1, 8, 0.00, 0, 1, 0, 0, false, false, "threads=1, 16 byte record, r/s, no copy"),
+        RING_TEST_CASE(4, 8, 0.00, 0, 1, 0, 0, false, false, "threads=4, 16 byte record, r/s, no copy"),
+        RING_TEST_CASE(1, 8, 1.00, 0, 1, 0, 0, false, false, "threads=1, 16 byte record, r/s, discard"),
+        RING_TEST_CASE(4, 8, 1.00, 0, 1, 0, 0, false, false, "threads=4, 16 byte record, r/s, discard"),
+        RING_TEST_CASE(1, 56, 0.00, 0, 1, 0, 0, false, false, "threads=1, 64 byte record, r/s, no copy"),
+        RING_TEST_CASE(4, 56, 0.00, 0, 1, 0, 0, false, false, "threads=4, 64 byte record, r/s, no copy"),
+        RING_TEST_CASE(1, 56, 1.00, 0, 1, 0, 0, false, false, "threads=1, 64 byte record, r/s, discard"),
+        RING_TEST_CASE(4, 56, 1.00, 0, 1, 0, 0, false, false, "threads=4, 64 byte record, r/s, discard"),
+        RING_TEST_CASE(1, 1016, 0.00, 0, 1, 0, 0, false, false, "threads=1, 1K record, r/s, no copy"),
+        RING_TEST_CASE(4, 1016, 0.00, 0, 1, 0, 0, false, false, "threads=4, 1K record, r/s, no copy"),
+        RING_TEST_CASE(1, 4088, 0.00, 0, 1, 0, 0, false, false, "threads=1, 4K record, r/s, no copy"),
+        RING_TEST_CASE(4, 4088, 0.00, 0, 1, 0, 0, false, false, "threads=4, 4K record, r/s, no copy"),
+        RING_TEST_CASE(1, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, false, "threads=1, 1M record, r/s, no copy"),
+        RING_TEST_CASE(4, 1024 * 1024 - 8, 0.00, 0, 1, 0, 0, false, false, "threads=4, 1M record, r/s, no copy"),
+
+#undef RING_TEST_CASE
+#undef STRINGIZE
+#undef STRINGIZE2
+    };
+    for (auto& test_params : tests_params) {
+        std::string test_name = test_params.test_name;
+        std::string test_string = test_params.test_string;
+        CAPTURE(test_name, test_string);
+        std::cout << "Pre - " << test_name << std::endl;
+        std::cout << std::flush;
+        run_ring_buffer_speed_test(&test_params);
+        std::cout << "Post - " << test_name << std::endl;
+        std::cout << std::flush;
+    }
 }
 
 TEST_CASE("error codes", "[platform]")
