@@ -910,6 +910,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
+        filter_context->in_zombie_list = FALSE;
 
         // It is assumed that this portion of the code executes after WFP has had sufficient time to
         // give us the filter delete notification. It is assumed that if we have not received a deletion callback by
@@ -1188,13 +1189,17 @@ net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_fi
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list, &filter_context->link);
+    filter_context->in_zombie_list = TRUE;
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 }
 
 void
 net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    RemoveEntryList(&filter_context->link);
-    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    if (filter_context->in_zombie_list) {
+        KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+        RemoveEntryList(&filter_context->link);
+        filter_context->in_zombie_list = FALSE;
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    }
 }
