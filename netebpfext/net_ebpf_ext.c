@@ -1105,6 +1105,7 @@ Exit:
 void
 net_ebpf_ext_unregister_providers()
 {
+    NET_EBPF_EXT_LOG_ENTRY();
     if (_net_ebpf_xdp_providers_registered) {
         net_ebpf_ext_xdp_unregister_providers();
         _net_ebpf_xdp_providers_registered = false;
@@ -1121,6 +1122,7 @@ net_ebpf_ext_unregister_providers()
         net_ebpf_ext_sock_ops_unregister_providers();
         _net_ebpf_sock_ops_providers_registered = false;
     }
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 ebpf_result_t
