@@ -694,7 +694,7 @@ function Run-KernelTestsOnVM
         # ebpf provider='{394f321c-5cf4-404c-aa34-4df1428a7f9c}' level=0xff keywords=0xfffff
         # netebpfext provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff
         # netio provider='{EB004A05-9B1A-11D4-9123-0050047759BC}' level=0xff keywords=0xfffff
-        netsh trace start sessionname=maige_debug tracefile=C:\ebpf\maige_debug.etl provider='{EB004A05-9B1A-11D4-9123-0050047759BC}' level=0xff keywords=0xfffff provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff report=di ov=yes maxSize=4096
+        netsh trace start sessionname=maige_debug tracefile=C:\ebpf\maige_debug.etl provider='{f2f2ca01-ad02-4a07-9e90-95a2334f3692}' level=0xff keywords=0xfffff report=di ov=yes maxSize=4096
     } -ErrorAction Stop
 
     # Run CICD tests on test VM.
