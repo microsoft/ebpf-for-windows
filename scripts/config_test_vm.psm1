@@ -121,6 +121,13 @@ function Restore-AllVMs
     foreach ($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Restoring VM $VMName"
+        # TODO - remove this diagnostic code.
+        $snapshot = Get-VMSnapshot -VMName $VMName -Name 'baseline'
+        if ($snapshot) {
+            Write-Log "Found snapshot $($snapshot.Name) on $VMName"
+        } else {
+            Write-Log "No snapshot found on $VMName"
+        }
         Restore-VMSnapshot -Name 'baseline' -VMName $VMName -Confirm:$false
     }
 }
@@ -746,6 +753,10 @@ function Initialize-VM {
             try {
                 Write-Log "Checkpointing VM: $VmName"
                 Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
+                $checkpoint = Get-VMSnapshot -VMName $vmName | Where-Object { $_.Name -eq 'baseline' }
+                if ($checkpoint -eq $null) {
+                    throw "Failed to create checkpoint for VM: $VmName"
+                }
                 Write-Log "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
                 break
             } catch {
