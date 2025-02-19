@@ -680,6 +680,7 @@ function Stop-eBPFComponentsOnVM
         Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
 
         Stop-eBPFComponents
+        # debug tracing TODO remove
         netsh trace stop sessionname=maige_debug
         netsh wfp show state file=C:\ebpf\wfp_state.xml
     } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
@@ -690,7 +691,7 @@ function Run-KernelTestsOnVM
     param([Parameter(Mandatory = $true)] [string] $VMName,
           [Parameter(Mandatory = $true)] [PSCustomObject] $Config)
 
-    # Debug tracing
+    # Debug tracing TODO remove
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         # ebpf provider='{394f321c-5cf4-404c-aa34-4df1428a7f9c}' level=0xff keywords=0xfffff
@@ -709,31 +710,26 @@ function Run-KernelTestsOnVM
     # parameter.
     if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
 
-        # # Run XDP Tests.
-        # Invoke-XDPTestsOnVM `
-        #     -Interfaces $Config.Interfaces `
-        #     -VMName $VMName
+        # Run XDP Tests.
+        Invoke-XDPTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -VMName $VMName
 
-        # Run Connect Redirect Tests.
-        # Invoke-ConnectRedirectTestsOnVM `
-        #     -Interfaces $Config.Interfaces `
-        #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        #     -UserType "Administrator" `
-        #     -VMName $VMName
+        Run Connect Redirect Tests.
+        Invoke-ConnectRedirectTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+            -UserType "Administrator" `
+            -VMName $VMName
 
-        # Invoke-ConnectRedirectTestsOnVM `
-        #     -Interfaces $Config.Interfaces `
-        #     -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-        #     -UserType "StandardUser" `
-        #     -VMName $VMName
+        Invoke-ConnectRedirectTestsOnVM `
+            -Interfaces $Config.Interfaces `
+            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+            -UserType "StandardUser" `
+            -VMName $VMName
     }
 
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-    # Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-    #     netsh trace stop sessionname=maige_debug
-
-    #     netsh wfp show state file=C:\ebpf\wfp_state.xml
-    # } -ErrorAction Stop
 }
 
 Pop-Location

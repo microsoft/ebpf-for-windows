@@ -324,13 +324,10 @@ function Invoke-CICDTests
     # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
     # That causes the regression test to fail. So, we are skipping this test for now.
 
-    # $TestList = @(
-    #     (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`""),
-    #     (New-TestTuple -Test "bpftool_tests.exe"),
-    #     (New-TestTuple -Test "sample_ext_app.exe"),
-    #     (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
-    # )
     $TestList = @(
+        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`""),
+        (New-TestTuple -Test "bpftool_tests.exe"),
+        (New-TestTuple -Test "sample_ext_app.exe"),
         (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
     )
 
@@ -340,14 +337,14 @@ function Invoke-CICDTests
 
     # Now run the system tests.
 
-    # $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
-    # if ($ExecuteSystemTests) {
-    #     foreach ($Test in $SystemTestList) {
-    #         $TestCommand = "PsExec64.exe"
-    #         $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
-    #         Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
-    #     }
-    # }
+    $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
+    if ($ExecuteSystemTests) {
+        foreach ($Test in $SystemTestList) {
+            $TestCommand = "PsExec64.exe"
+            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
+            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
+        }
+    }
 
     if ($Env:BUILD_CONFIGURATION -eq "Release") {
         Invoke-Test -TestName "ebpf_performance.exe" -VerboseLogs $VerboseLogs

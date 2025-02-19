@@ -337,34 +337,19 @@ function Compress-KernelModeDumpOnVM
                 Write-Log "`tName:$($DumpFile.Name), Size:$((($DumpFile.Length) / 1MB).ToString("F2")) MB"
             }
 
-            $RetryCount = 3
-            $RetryInterval = 5 # seconds
+            Write-Log `
+                "Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
 
-            for ($i = 1; $i -le $RetryCount; $i++) {
-                Write-Log "Attempt $i Compressing kernel dump files: $KernelModeDumpFileSourcePath -> $KernelModeDumpFileDestinationPath"
-
-                $compressedFilePath = "$KernelModeDumpFileDestinationPath\km_dumps.zip"
-                # Remove it if it exists - it must have been left over from a previous run.
-                if (Test-Path $compressedFilePath) {
-                    Remove-Item -Path $compressedFilePath -Force
-                }
-                Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $compressedFilePath -ErrorAction Ignore
-
-                if (Test-Path $compressedFilePath -PathType Leaf) {
-                    $CompressedDumpFile = Get-ChildItem -Path $compressedFilePath
-                    Write-Log "Found compressed kernel mode dump file in $($compressedFilePath)"
-                    Write-Log "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
-                    break
-                } else {
-                    if ($i -lt $RetryCount) {
-                        Write-Log "*** ERROR *** kernel mode dump compressed file not found. Retrying in $RetryInterval seconds..."
-                        Start-Sleep -Seconds $RetryInterval
-                    } else {
-                        $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found after $RetryCount attempts.`n`n"
-                        Write-Log $ErrorMessage
-                        throw $ErrorMessage
-                    }
-                }
+            Compress-File -SourcePath $KernelModeDumpFileSourcePath\*.dmp -DestinationPath $KernelModeDumpFileDestinationPath\km_dumps.zip
+            if (Test-Path $KernelModeDumpFileDestinationPath\km_dumps.zip -PathType Leaf) {
+                $CompressedDumpFile = get-childitem -Path $KernelModeDumpFileDestinationPath\km_dumps.zip
+                Write-Log "Found compressed kernel mode dump file in $($KernelModeDumpFileDestinationPath):"
+                Write-Log `
+                    "`tName:$($CompressedDumpFile.Name), Size:$((($CompressedDumpFile.Length) / 1MB).ToString("F2")) MB"
+            } else {
+                $ErrorMessage = "*** ERROR *** kernel mode dump compressed file not found.`n`n"
+                Write-Log $ErrorMessage
+                throw $ErrorMessage
             }
         } else {
             Write-Log "No kernel mode dump(s) in $($KernelModeDumpFileSourcePath)."
@@ -476,69 +461,14 @@ function Import-ResultsFromVM
                 }
                 Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
 
-                $EtlFilePath = "$WorkingDirectory\$EtlFile"
-                Write-Log "Stop KM ETW tracing, create ETL file: $EtlFilePath"
-                wpr.exe -stop $EtlFilePath
+                Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+                wpr.exe -stop $WorkingDirectory\$EtlFile
 
                 $EtlFileSize = (Get-ChildItem $WorkingDirectory\$EtlFile).Length/1MB
                 Write-Log "ETL file Size: $EtlFileSize MB"
 
-                Write-Log "Compressing $EtlFilePath"
-                $EtlZipPath = "$WorkingDirectory\$EtlFile.zip"
-
-                $RetryCount = 5
-                $RetryInterval = 5 # seconds
-                for ($i = 1; $i -le $RetryCount; $i++) {
-                    Write-Log "Attempt $i Compressing kernel trace files: $EtlFilePath -> $EtlZipPath"
-
-                    # Remove it if it exists - it must have been left over from a previous run.
-                    if (Test-Path $EtlZipPath) {
-                        Remove-Item -Path $EtlZipPath -Force
-                    }
-                    Compress-File -SourcePath $EtlFilePath -DestinationPath $EtlZipPath -ErrorAction Ignore
-
-                    if (Test-Path $EtlZipPath -PathType Leaf) {
-                        $CompressedEtlFile = Get-ChildItem -Path $EtlZipPath
-                        Write-Log "Found compressed kernel mode trace file in $($EtlZipPath)"
-                        Write-Log "`tName:$($CompressedEtlFile.Name), Size:$((($CompressedEtlFile.Length) / 1MB).ToString("F2")) MB"
-                        break
-                    } else {
-                        if ($i -lt $RetryCount) {
-                            Write-Log "*** ERROR *** kernel mode trace compressed file not found. Retrying in $RetryInterval seconds..."
-                            Start-Sleep -Seconds $RetryInterval
-                        } else {
-                            $ErrorMessage = "*** ERROR *** kernel mode trace compressed file not found after $RetryCount attempts.`n`n"
-                            Write-Log $ErrorMessage
-                            # TODO - consider throwing an exception here.
-                            # throw $ErrorMessage
-                        }
-                    }
-                }
-
-                for ($i = 1; $i -le $RetryCount; $i++) {
-                    $otherEtlFile = 'C:\ebpf\maige_debug.etl'
-                    $otherEtlZip = 'C:\ebpf\maige_debug.zip'
-                    if (Test-Path $otherETlFile) {
-                        Write-Log "Compressing $otherEtlFile"
-                        Compress-File -SourcePath $otherEtlFile -DestinationPath $otherEtlZip -ErrorAction Ignore
-                        if (Test-Path $otherEtlZip -PathType Leaf) {
-                            $CompressedEtlFile = Get-ChildItem -Path $otherEtlZip
-                            Write-Log "Found compressed kernel mode trace file in $($otherEtlZip)"
-                            Write-Log "`tName:$($CompressedEtlFile.Name), Size:$((($CompressedEtlFile.Length) / 1MB).ToString("F2")) MB"
-                            break
-                        } else {
-                            if ($i -lt $RetryCount) {
-                                Write-Log "*** ERROR *** kernel mode trace compressed file not found. Retrying in $RetryInterval seconds..."
-                                Start-Sleep -Seconds $RetryInterval
-                            } else {
-                                $ErrorMessage = "*** ERROR *** kernel mode trace compressed file not found after $RetryCount attempts.`n`n"
-                                Write-Log $ErrorMessage
-                                # TODO - consider throwing an exception here.
-                                # throw $ErrorMessage
-                            }
-                        }
-                    }
-                }
+                Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
             } -ArgumentList ("eBPF", $LogFileName, $EtlFile) -ErrorAction Ignore
 
             # Copy ETL from Test VM.
@@ -550,56 +480,7 @@ function Import-ResultsFromVM
                 -Recurse `
                 -Force `
                 -ErrorAction Ignore 2>&1 | Write-Log
-
-
-            # Copy ETL from Test VM.
-            Write-Log ("Copy $VMSystemDrive\eBPF\maige_debug.zip on $VMName to $pwd\TestLogs\$VMName\Logs")
-            Copy-Item `
-                -FromSession $VMSession `
-                -Path "$VMSystemDrive\eBPF\maige_debug.zip" `
-                -Destination ".\TestLogs\$VMName\Logs" `
-                -Recurse `
-                -Force `
-                -ErrorAction Ignore 2>&1 | Write-Log
-
-            # If the debug zip is not present, try to copy just the trace file.
-            if (-not (Test-Path "$VMSystemDrive\eBPF\maige_debug.zip")) {
-                # Try to copy just the  ETL over, with a few retries
-                $RetryCount = 5
-                $RetryInterval = 5 # seconds
-
-                for ($i = 1; $i -le $RetryCount; $i++) {
-                    $LocalFilePath = ".\TestLogs\$VMName\Logs\maige_debug.etl"
-                    # It was leftover from a previous run.
-                    if (Test-Path $LocalFilePath) {
-                        Remove-Item -Path $LocalFilePath -Force
-                    }
-
-                    try {
-                        Copy-Item `
-                            -FromSession $VMSession `
-                            -Path "$VMSystemDrive\eBPF\maige_debug.etl" `
-                            -Destination ".\TestLogs\$VMName\Logs" `
-                            -Recurse `
-                            -Force
-                        break
-                    } catch {
-                        Write-Log "Failed to copy maige_debug.etl from $VMName to host runner."
-                    }
-                }
-            }
         }
-
-
-        # Copy ETL from Test VM.
-        Write-Log ("Copy $VMSystemDrive\eBPF\wfp_state.xml on $VMName to $pwd\TestLogs\$VMName\Logs")
-        Copy-Item `
-            -FromSession $VMSession `
-            -Path "$VMSystemDrive\eBPF\wfp_state.xml" `
-            -Destination ".\TestLogs\$VMName\Logs" `
-            -Recurse `
-            -Force `
-            -ErrorAction Ignore 2>&1 | Write-Log
 
         # Copy performance results from Test VM.
         Write-Log ("Copy performance results from eBPF on $VMName to $pwd\TestLogs\$VMName\Logs")
