@@ -419,6 +419,22 @@ extern "C"
         _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
+     * @brief Attach an eBPF program by program file descriptor and return
+     * the link as a file descriptor.
+     *
+     * @see ebpf_program_attach_by_fd
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_attach_by_fds(
+        fd_t program_fd,
+        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size,
+        _Out_ fd_t* link) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Detach an eBPF program from an attach point represented by
      *  the bpf_link structure.
      *
@@ -472,6 +488,17 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_close_fd(fd_t fd) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Duplicate a file descriptor.
+     *
+     * @param [in] fd File descriptor to be duplicated.
+     * @param [out] dup Duplicated file descriptor.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_duplicate_fd(fd_t fd, _Out_ fd_t* dup) EBPF_NO_EXCEPT;
 
     /**
      * @brief Get eBPF program type and expected attach type by name.
@@ -598,6 +625,49 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_write(
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get eBPF program type for the specified BPF program type.
+     *
+     * @param[in] program_type BPF program type.
+     *
+     * @returns Pointer to eBPF program type, or NULL if not found.
+     */
+    _Ret_maybenull_ const ebpf_program_type_t*
+    ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get eBPF attach type for the specified BPF attach type.
+     *
+     * @param[in] bpf_attach_type BPF attach type.
+     * @param[out] ebpf_attach_type eBPF attach type or GUID_NULL.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The attach type is unknown.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type, _Out_ ebpf_attach_type_t* ebpf_attach_type)
+        EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get BPF program type for the specified eBPF program type.
+     *
+     * @param[in] program_type eBPF program type GUID.
+     *
+     * @returns BPF program type, or BPF_PROG_TYPE_UNSPEC if not found.
+     */
+    bpf_prog_type_t
+    ebpf_get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get BPF attach type for the specified eBPF attach type.
+     *
+     * @param[in] attach_type eBPF attach type GUID.
+     *
+     * @returns BPF attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
+     */
+    bpf_attach_type_t
+    ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }
