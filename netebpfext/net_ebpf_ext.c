@@ -403,30 +403,22 @@ net_ebpf_extension_delete_wfp_filters(
     ASSERT(wfp_engine_handle != NULL);
 
     for (uint32_t index = 0; index < filter_count; index++) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Marking WFP filter for deletion: ",
-            index,
-            filter_ids[index].id);
         filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
         filter_ids[index].error_code = status;
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
             NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "Failed to marked WFP filter for deletion: ",
-                index,
+                "FwpmFilterDeleteById Failed to marked WFP filter for deletion.",
+                status,
                 filter_ids[index].id);
             filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
         } else {
             NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "Successfully deleted WFP filter",
+                "FwpmFilterDeleteById successfully marked WFP filter for deletion",
                 index,
                 filter_ids[index].id);
         }
@@ -496,32 +488,19 @@ net_ebpf_extension_add_wfp_filters(
             filter.subLayerKey = EBPF_DEFAULT_SUBLAYER;
         }
         filter.weight.type = FWP_EMPTY; // auto-weight.
-        // BUG BUG - What happens if we fail below? Aren't we leaking a reference?
-        // It looks like the caller possibly handles cleanup appropriately - invoking CLEAN_UP on it?
-        // But we should take a look at the rundown path - how it is invoked relative to this?
         REFERENCE_FILTER_CONTEXT(filter_context);
         filter.rawContext = (uint64_t)(uintptr_t)filter_context;
 
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Adding WFP filter: ",
-            index,
-            local_filter_id);
         status = FwpmFilterAdd(wfp_engine_handle, &filter, NULL, &local_filter_id);
         if (!NT_SUCCESS(status)) {
-#ifdef KERNEL_MODE
-            // If we hit this, then the REFERENCE_FILTER_CONTEXT is probably causing an issue?
-            RtlFailFast(0);
-#endif
-            // NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
-            //     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            //     "FwpmFilterAdd",
-            //     status,
-            //     "Failed to add filter",
-            //     (char*)filter_parameter->name);
-            // result = EBPF_INVALID_ARGUMENT;
-            // goto Exit;
+            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING(
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmFilterAdd",
+                status,
+                "Failed to add filter",
+                (char*)filter_parameter->name);
+            result = EBPF_INVALID_ARGUMENT;
+            goto Exit;
         } else {
             local_filter_ids[index].id = local_filter_id;
             local_filter_ids[index].name = (wchar_t*)filter_parameter->name;
@@ -805,6 +784,11 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         "net_ebpf_extension_uninitialize_wfp_components.");
 
     if (_fwp_engine_handle != NULL) {
+        // WFP operations may fail if connections are in the middle of being classified and our WFP filters or callouts
+        // are in use. Prior to this function execution, it is expected that the WFP filter objects were removed,
+        // reducing the risk of this failure to occur. However, the following cleanup functions have retry logic built
+        // in to help ensure that the WFP objects are cleaned up properly.
+
         // Clean up the callouts
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
 
@@ -899,28 +883,23 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
     }
 
-#ifdef KERNEL_MODE
-    // Wait for 10 seconds to allow for WFP to issue any callbacks.
-    NET_EBPF_EXT_LOG_MESSAGE(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-        "Sleep during cleanup to allow WFP time to process callbacks.");
-    timeout.QuadPart = -100000000;
-    KeDelayExecutionThread(KernelMode, FALSE, &timeout);
-    NET_EBPF_EXT_LOG_MESSAGE(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE, NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "Sleep completed.");
-#endif
-
-    // Cleanup the leftover WFP state
+    // If there are zombie filters, sleep to give WFP time to issue callbacks. Once this timeout completes,
+    // we assume that any remaining notifications will not be issued, and proceed with cleanup.
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-
     if (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list)) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
             "Zombie WFP Filters found. Processing cleanup.");
-        // There is a WFP bug, where we may not receive filter notify delete callbacks.
-        // This is a workaround, to ensure that we handle cleanup for the filter context objects.
+
+        // Release the lock during the sleep.
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+#ifdef KERNEL_MODE
+        // Issue sleep.
+        timeout.QuadPart = -100000000; // 10 seconds.
+        KeDelayExecutionThread(KernelMode, FALSE, &timeout);
+#endif
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
         while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list)) {
             uint32_t leaked_filter_count = 0;
             PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list);
@@ -945,12 +924,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 }
             }
 
-            // Handle last reference to the filter context here.
-#ifdef KERNEL_MODE
-            if (filter_context->reference_count != (long)leaked_filter_count) {
-                RtlFailFast(0);
-            }
-#endif
+            // Remove remaining references.
             ASSERT(filter_context->reference_count == (long)leaked_filter_count);
             for (index = 0; index < leaked_filter_count; index++) {
                 DEREFERENCE_FILTER_CONTEXT(filter_context);
@@ -989,25 +963,6 @@ net_ebpf_ext_filter_change_notify(
     UNREFERENCED_PARAMETER(filter_key);
 
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Received DELETE filter callback for ID ",
-            filter->filterId);
-    } else if (callout_notification_type == FWPS_CALLOUT_NOTIFY_ADD_FILTER) {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Received ADD filter callback for ID ",
-            filter->filterId);
-    } else {
-        NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Received OTHER TYPE filter callback for ID ",
-            filter->filterId);
-    }
-    if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
 
@@ -1018,9 +973,10 @@ net_ebpf_ext_filter_change_notify(
                 NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                    "Deleted WFP filter: ",
+                    "Received WFP filter Delete callback.",
                     index,
                     cur_filter_id->id);
+
                 break;
             }
         }
@@ -1106,6 +1062,7 @@ void
 net_ebpf_ext_unregister_providers()
 {
     NET_EBPF_EXT_LOG_ENTRY();
+
     if (_net_ebpf_xdp_providers_registered) {
         net_ebpf_ext_xdp_unregister_providers();
         _net_ebpf_xdp_providers_registered = false;
@@ -1122,6 +1079,7 @@ net_ebpf_ext_unregister_providers()
         net_ebpf_ext_sock_ops_unregister_providers();
         _net_ebpf_sock_ops_providers_registered = false;
     }
+
     NET_EBPF_EXT_LOG_EXIT();
 }
 
