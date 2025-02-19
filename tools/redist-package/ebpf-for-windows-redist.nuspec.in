@@ -5,7 +5,7 @@
 <package>
 	<metadata>
 		<title>eBPF for Windows Redist</title>
-		<id>eBPF-for-Windows-Redist</id>
+		<id>eBPF-for-Windows-Redist.{architecture}{configuration}</id>
 		<version>{version}</version>
 		<authors>eBPF for Windows Contributors</authors>
 		<owners>eBPF for Windows Contributors</owners>

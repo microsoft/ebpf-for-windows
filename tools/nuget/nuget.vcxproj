@@ -178,7 +178,7 @@ popd $(OutDir)</Command>
       <FileType>Document</FileType>
       <Outputs>$(OutDir)eBPF-for-Windows.$(Platform).$(EbpfVersion).nupkg</Outputs>
       <Command>
-        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).nuspec -Architecture $(Platform)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.nuspec.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).nuspec -Architecture $(Platform) -Configuration $(Configuration)
         powershell -NonInteractive -ExecutionPolicy Unrestricted $(SolutionDir)scripts\Set-Version.ps1 -InputFile $(SolutionDir)tools\nuget\ebpf-for-windows.props.in -OutputFile $(OutDir)ebpf-for-windows.$(Platform).props -Architecture $(Platform)
         NuGet.exe pack $(OutDir)ebpf-for-windows.$(Platform).nuspec -OutputDirectory $(OutDir)</Command>
     </CustomBuild>
