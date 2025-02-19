@@ -27,22 +27,5 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Na
 # Enable driver verifier on the eBPF platform drivers.
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 
-# Loop through each adapter and enable IPv4 and IPv6.
-$adapters = Get-NetAdapter
-foreach ($adapter in $adapters) {
-    try {
-        # Enable IPv4.
-        Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip
-
-        # Enable IPv6.
-        Enable-NetAdapterBinding -Name $adapter.Name -ComponentID ms_tcpip6
-
-        Write-Host "Enabled IPv4 and IPv6 on adapter: $($adapter.Name)"
-    } catch {
-        Write-Host "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name)"
-        throw "Failed to enable IPv4 and IPv6 on adapter: $($adapter.Name) with error $_"
-    }
-}
-
 # Reboot the machine to apply the changes.
 Restart-Computer -Force
