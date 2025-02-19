@@ -121,13 +121,6 @@ function Restore-AllVMs
     foreach ($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Restoring VM $VMName"
-        # TODO - remove this diagnostic code.
-        $snapshot = Get-VMSnapshot -VMName $VMName -Name 'baseline'
-        if ($snapshot) {
-            Write-Log "Found snapshot $($snapshot.Name) on $VMName"
-        } else {
-            Write-Log "No snapshot found on $VMName"
-        }
         Restore-VMSnapshot -Name 'baseline' -VMName $VMName -Confirm:$false
     }
 }
