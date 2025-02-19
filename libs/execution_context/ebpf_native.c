@@ -460,23 +460,6 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
     _ebpf_native_release_reference(base_object);
 }
 
-static void
-_ebpf_native_map_initial_values_fallback(
-    _Outptr_result_buffer_maybenull_(*count) map_initial_values_t** map_initial_values, _Out_ size_t* count)
-{
-    map_initial_values = NULL;
-    *count = 0;
-}
-
-static void
-_ebpf_native_global_variable_sections_fallback(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
-    _Out_ size_t* count)
-{
-    global_variable_sections = NULL;
-    *count = 0;
-}
-
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
@@ -542,15 +525,6 @@ _ebpf_native_provider_attach_client_callback(
 
     // Copy the metadata table.
     memcpy(&client_context->table, table, min(table->size, sizeof(metadata_table_t)));
-
-    // Initialize the map initial values function pointer if it is not present.
-    if (!client_context->table.map_initial_values) {
-        client_context->table.map_initial_values = _ebpf_native_map_initial_values_fallback;
-    }
-
-    if (!client_context->table.global_variable_sections) {
-        client_context->table.global_variable_sections = _ebpf_native_global_variable_sections_fallback;
-    }
 
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
@@ -1785,17 +1759,6 @@ ebpf_native_load_programs(
             module_id);
         goto Done;
     }
-
-    // // Setup global variables.
-    // result = _ebpf_native_initialize_global_variables(&instance);
-    // if (result != EBPF_SUCCESS) {
-    //     EBPF_LOG_MESSAGE_GUID(
-    //         EBPF_TRACELOG_LEVEL_VERBOSE,
-    //         EBPF_TRACELOG_KEYWORD_NATIVE,
-    //         "ebpf_native_load_programs: resolve map value addresses failed",
-    //         module_id);
-    //     goto Done;
-    // }
 
     module_state = ebpf_lock_lock(&module->lock);
     native_lock_acquired = true;
