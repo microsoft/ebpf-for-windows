@@ -878,38 +878,37 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
             uint32_t leaked_filter_count = 0;
             PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
-            if (entry != NULL) {
-                net_ebpf_extension_wfp_filter_context_t* filter_context =
-                    CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
-                if (filter_context != NULL) {
-                    filter_context->in_cleanup_list = FALSE;
+            net_ebpf_extension_wfp_filter_context_t* filter_context =
+                CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
+            filter_context->in_cleanup_list = FALSE;
 
-                    // Release lock as we process the entry. DEREFERENCE_FILTER_CONTEXT also acquires the lock.
-                    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+            // Release lock as we process the entry. DEREFERENCE_FILTER_CONTEXT also acquires the lock.
+            ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 
-                    // Anything left in the NET_EBPF_EXT_WFP_FILTER_DELETING is considered leaked. Remove the references
-                    // to allow for cleanup.
-                    for (index = 0; index < filter_context->filter_ids_count; index++) {
-                        net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
-                        if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
-                            leaked_filter_count++;
-                            NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                                NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-                                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                                "Releasing reference for leaked WFP filter.",
-                                filter_id->id);
-                        }
-                    }
-
-                    // Remove remaining references.
-                    ASSERT(filter_context->reference_count == (long)leaked_filter_count);
-                    for (index = 0; index < leaked_filter_count; index++) {
-                        DEREFERENCE_FILTER_CONTEXT(filter_context);
-                    }
-
-                    old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+            // Anything left in the NET_EBPF_EXT_WFP_FILTER_DELETING is considered leaked. Remove the references
+            // to allow for cleanup.
+            for (index = 0; index < filter_context->filter_ids_count; index++) {
+                net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
+                if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
+                    leaked_filter_count++;
+                    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                        "Releasing reference for leaked WFP filter.",
+                        filter_id->id);
                 }
             }
+
+            // Remove remaining references.
+            ASSERT(filter_context->reference_count == (long)leaked_filter_count);
+            for (index = 0; index < leaked_filter_count; index++) {
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'filter_context'.
+                DEREFERENCE_FILTER_CONTEXT(filter_context);
+#pragma warning(pop)
+            }
+
+            old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
         }
     }
 

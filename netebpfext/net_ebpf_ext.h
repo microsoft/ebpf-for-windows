@@ -166,8 +166,8 @@ typedef struct _net_ebpf_extension_wfp_cleanup_state
 #define PRAGMA_WARNING_POP _Pragma("warning(pop)")
 
 #define CLEAN_UP_FILTER_CONTEXT(filter_context)                             \
-    net_ebpf_ext_remove_filter_context_from_cleanup_list((filter_context)); \
     ASSERT((filter_context) != NULL);                                       \
+    net_ebpf_ext_remove_filter_context_from_cleanup_list((filter_context)); \
     if ((filter_context)->filter_ids != NULL) {                             \
         ExFreePool((filter_context)->filter_ids);                           \
     }                                                                       \
