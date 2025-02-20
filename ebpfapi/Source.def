@@ -79,6 +79,7 @@ EXPORTS
     bpf_program__attach_xdp
     bpf_program__autoload
     bpf_program__fd
+    bpf_program__flags
     bpf_program__get_expected_attach_type
     bpf_program__get_type=bpf_program__type
     bpf_program__insn_cnt
@@ -90,6 +91,7 @@ EXPORTS
     bpf_program__section_name
     bpf_program__set_autoload
     bpf_program__set_expected_attach_type
+    bpf_program__set_flags
     bpf_program__set_type
     bpf_program__type
     bpf_program__unload
@@ -107,12 +109,19 @@ EXPORTS
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
+    ebpf_close_fd
+    ebpf_duplicate_fd
     ebpf_enumerate_programs
     ebpf_enumerate_sections = ebpf_enumerate_programs
     ebpf_free_programs
     ebpf_free_sections = ebpf_free_programs
     ebpf_free_string
     ebpf_get_attach_type_name
+    ebpf_get_bpf_attach_type
+    ebpf_get_bpf_program_type
+    ebpf_get_ebpf_attach_type
+    ebpf_get_ebpf_program_type
+    ebpf_get_next_pinned_object_path
     ebpf_get_next_pinned_program_path
     ebpf_get_program_info_from_verifier
     ebpf_get_program_type_by_name
@@ -125,6 +134,7 @@ EXPORTS
     ebpf_object_unpin
     ebpf_program_attach
     ebpf_program_attach_by_fd
+    ebpf_program_attach_by_fds
     ebpf_program_query_info
     ebpf_ring_buffer_map_write
     ebpf_store_delete_program_information
@@ -140,5 +150,5 @@ EXPORTS
     libbpf_num_possible_cpus
     libbpf_prog_type_by_name
     libbpf_strerror
-    ring_buffer__new
     ring_buffer__free
+    ring_buffer__new

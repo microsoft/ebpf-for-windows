@@ -12,8 +12,11 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+if ($SelfHostedRunnerName -eq "1ESRunner") {
+    $TestVMCredential = Retrieve-StoredCredential -Target $Target
+} else {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+}
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json

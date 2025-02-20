@@ -323,6 +323,18 @@ extern "C"
         _Out_writes_bytes_to_(*key_and_value_length, *key_and_value_length) uint8_t* key_and_value,
         int flags);
 
+    /**
+     * @brief Get the address of the first value in the map if it is an array or
+     * return EBPF_INVALID_ARGUMENT if it is not an array map.
+     *
+     * @param[in] map Map to query.
+     * @param[out] value_address Map value address.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The provided map is not valid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_get_value_address(_In_ const ebpf_map_t* map, _Out_ uintptr_t* value_address);
+
 #ifdef __cplusplus
 }
 #endif

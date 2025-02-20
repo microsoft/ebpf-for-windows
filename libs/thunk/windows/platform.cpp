@@ -131,6 +131,13 @@ _close(int file_descriptor)
     return ::_close(file_descriptor);
 }
 
+int
+_dup(int file_descriptor)
+{
+    _invalid_parameter_suppression suppress;
+    return ::_dup(file_descriptor);
+}
+
 bool
 _is_native_program(_In_z_ const char* file_name)
 {

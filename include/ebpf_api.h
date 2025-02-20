@@ -96,11 +96,11 @@ extern "C"
      * @deprecated Use ebpf_enumerate_programs() instead.
      */
     __declspec(deprecated("Use ebpf_enumerate_programs() instead.")) _Must_inspect_result_ ebpf_result_t
-        ebpf_enumerate_sections(
-            _In_z_ const char* file,
-            bool verbose,
-            _Outptr_result_maybenull_ ebpf_section_info_t** infos,
-            _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
+    ebpf_enumerate_sections(
+        _In_z_ const char* file,
+        bool verbose,
+        _Outptr_result_maybenull_ ebpf_section_info_t** infos,
+        _Outptr_result_maybenull_z_ const char** error_message) EBPF_NO_EXCEPT;
 
     /**
      * @brief Free memory returned from \ref ebpf_enumerate_programs.
@@ -114,8 +114,8 @@ extern "C"
      * @param[in] data Memory to free.
      * @deprecated Use ebpf_free_programs() instead.
      */
-    __declspec(deprecated("Use ebpf_free_programs() instead.")) void ebpf_free_sections(
-        _In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
+    __declspec(deprecated("Use ebpf_free_programs() instead.")) void
+    ebpf_free_sections(_In_opt_ _Post_invalid_ ebpf_section_info_t* infos) EBPF_NO_EXCEPT;
 
     /**
      * @brief Convert an eBPF program to human readable byte code.
@@ -144,7 +144,8 @@ extern "C"
      * @param[out] error_message On failure points to a text description of
      *  the error.
      */
-    __declspec(deprecated("Use ebpf_api_elf_disassemble_program() instead.")) uint32_t ebpf_api_elf_disassemble_section(
+    __declspec(deprecated("Use ebpf_api_elf_disassemble_program() instead.")) uint32_t
+    ebpf_api_elf_disassemble_section(
         _In_z_ const char* file,
         _In_z_ const char* section,
         _Outptr_result_maybenull_z_ const char** disassembly,
@@ -418,6 +419,22 @@ extern "C"
         _Outptr_ struct bpf_link** link) EBPF_NO_EXCEPT;
 
     /**
+     * @brief Attach an eBPF program by program file descriptor and return
+     * the link as a file descriptor.
+     *
+     * @see ebpf_program_attach_by_fd
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_program_attach_by_fds(
+        fd_t program_fd,
+        _In_opt_ const ebpf_attach_type_t* attach_type,
+        _In_reads_bytes_opt_(attach_parameters_size) void* attach_parameters,
+        size_t attach_parameters_size,
+        _Out_ fd_t* link) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Detach an eBPF program from an attach point represented by
      *  the bpf_link structure.
      *
@@ -473,6 +490,17 @@ extern "C"
     ebpf_close_fd(fd_t fd) EBPF_NO_EXCEPT;
 
     /**
+     * @brief Duplicate a file descriptor.
+     *
+     * @param [in] fd File descriptor to be duplicated.
+     * @param [out] dup Duplicated file descriptor.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_duplicate_fd(fd_t fd, _Out_ fd_t* dup) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Get eBPF program type and expected attach type by name.
      *
      * @param[in] name Name, as if it were a section name in an ELF file.
@@ -516,10 +544,30 @@ extern "C"
      *
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MORE_KEYS No more entries found.
+     * @deprecated Use ebpf_get_next_pinned_object_path() instead.
+     */
+    __declspec(deprecated("Use ebpf_get_next_pinned_object_path() instead.")) _Must_inspect_result_ ebpf_result_t
+        ebpf_get_next_pinned_program_path(
+            _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Retrieve the next pinned path of an eBPF object.
+     *
+     * @param[in] start_path Path to look for an entry greater than or NULL.
+     * @param[out] next_path Returns the next path in lexicographical order, if one exists.
+     * @param[in] next_path_len Length of the next path buffer.
+     * @param[in, out] type On input, the type of object to retrieve or EBPF_OBJECT_UNKNOWN.
+     *                      On output, the type of the object.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval other An error occurred.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_get_next_pinned_program_path(
-        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
+    ebpf_get_next_pinned_object_path(
+        _In_z_ const char* start_path,
+        _Out_writes_z_(next_path_len) char* next_path,
+        size_t next_path_len,
+        _Inout_ ebpf_object_type_t* type) EBPF_NO_EXCEPT;
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 
@@ -577,6 +625,49 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_ring_buffer_map_write(
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get eBPF program type for the specified BPF program type.
+     *
+     * @param[in] program_type BPF program type.
+     *
+     * @returns Pointer to eBPF program type, or NULL if not found.
+     */
+    _Ret_maybenull_ const ebpf_program_type_t*
+    ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get eBPF attach type for the specified BPF attach type.
+     *
+     * @param[in] bpf_attach_type BPF attach type.
+     * @param[out] ebpf_attach_type eBPF attach type or GUID_NULL.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The attach type is unknown.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type, _Out_ ebpf_attach_type_t* ebpf_attach_type)
+        EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get BPF program type for the specified eBPF program type.
+     *
+     * @param[in] program_type eBPF program type GUID.
+     *
+     * @returns BPF program type, or BPF_PROG_TYPE_UNSPEC if not found.
+     */
+    bpf_prog_type_t
+    ebpf_get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Get BPF attach type for the specified eBPF attach type.
+     *
+     * @param[in] attach_type eBPF attach type GUID.
+     *
+     * @returns BPF attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
+     */
+    bpf_attach_type_t
+    ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) EBPF_NO_EXCEPT;
 
 #ifdef __cplusplus
 }

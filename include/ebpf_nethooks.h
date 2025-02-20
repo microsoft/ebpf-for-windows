@@ -192,7 +192,7 @@ typedef struct _bpf_sock_ops
             uint32_t remote_ip6[4];
         }; ///< Remote IP address.
         uint32_t remote_port;
-    };                       ///< Remote IP address and port stored in network byte order.
+    }; ///< Remote IP address and port stored in network byte order.
     uint8_t protocol;        ///< IP protocol.
     uint32_t compartment_id; ///< Network compartment Id.
     uint64_t interface_luid; ///< Interface LUID.

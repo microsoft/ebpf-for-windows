@@ -12,6 +12,8 @@ in order of increasing permission:
 * Release Manager
 * Project Admin
 
+Refer to [Repository roles](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization).
+
 ### Contributor
 
 The ability to read, clone, and contribute issues or
@@ -45,7 +47,7 @@ A triage driver can also manage issues and pull requests,
 including assigning them to others and assigning labels and milestones.
 This corresponds to the "Triage" role in github.
 
-Personnel: @dahavey
+Personnel: @mingxr
 
 Minimum Requirements:
 * Consistently participates in weekly triage meetings
@@ -64,7 +66,8 @@ A maintainer can also merge pull requests.
 This corresponds to the "Write" role in github.
 All maintainers should be be listed in the [CODEOWNERS file](../.github/CODEOWNERS).
 
-Personnel: @Alan-Jowett @dv-msft @gtrevi @matthewige @mtfriesen @rectified95 @saxena-anurag @shpalani
+Personnel: @Alan-Jowett @dthaler @dv-msft @LakshK98 @matthewige @mikeagun @mtfriesen
+@poornagmsft @saxena-anurag @shankarseal @vpidatala94
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -83,7 +86,7 @@ In addition to having Maintainer privileges and responsibilities,
 a release manager is also responsible for generating releases in github.
 The release manager for this project must be a Microsoft full time employee in order to build Microsoft-signed binaries that Windows will load.
 
-Personnel: @gtrevi @shpalani @matthewige
+Personnel: @Alan-Jowett @dv-msft @kumarvin123 @LakshK98 @matthewige @mikeagun @nigriMSFT @saxena-anurag @shankarseal @vpidatala94
 
 Minimum Requirements:
 * Consistently participates in weekly [triage meetings](https://github.com/microsoft/ebpf-for-windows/discussions/427)
@@ -103,7 +106,7 @@ An admin can also assign people to each of these
 roles, and have full access to all github settings.
 This corresponds to the "Admin" role in github.
 
-Personnel: @dthaler @poornagmsft @shankarseal
+Personnel: @poornagmsft @shankarseal
 
 Minimum Requirements:
 * Has acted as a maintainer
@@ -119,30 +122,52 @@ Responsibilities:
 ## Project Milestones
 
 eBPF for Windows uses monthly milestones in the format `YYMM`. So, e.g., the milestone for June, 2024 will be called 2406.
-At any time, there are four active milestones in the project. There will be a milestone for the current calendar month (`N`),
-and two others for the next two months (`N+1`), (`N+2`). And there is always a `Backlog` milestone for backlog issues to be
-addressed in the future. In the first triage meeting of a month, the previous milestone must be closed and a new `N+2` milestone must be created.
-
-During the weekly triage meetings, whenever any issue is marked with the "triaged" label, triage drivers MUST set an issue to one of the four milestones
-according to the priority of the issues.
+At any time, there will be one current milestone (for the current month) and one or more future milestones, in the project.
+A `Backlog` milestone exists for backlog issues.
+In the weekly triage meetings, new issues should be added to a milestone following guidelines in the
+[Prioritizing Issues](Governance.md#prioritizing-issues) section.
 
 ## Prioritizing Issues
 
 To help prioritize issues, the triage drivers and maintainers MUST use *special labels* to prioritize issues as follows:
 ### P1:
 This label represents highest priority. This label should be used for bugs impacting users, new features, or enhancements that are urgently
-requested by users. `P1` issues MUST be set to the *current milestone (`N`)*. If there is not enough time left in the current milestone to address
-the `P1` issue, it must be set to the *next milestone (`N+1`)*.
+requested by users. `P1` issues MUST be set to the *current milestone*.
 ### P2:
-This label is used for the next level of priority. Issues marked as `P2` can be set to milestones `N`, `N+1` (preferred) or `N+2`.
+This label is used for the next level of priority. Issues marked as `P2` can be set to the current milestone or to a future milestones (preferred).
 ### P3:
-This label is used for low priority issues. Issues marked with `P3` label can be set to any milestone including `Backlog`.
+This label is used for low priority issues. Issues marked as `P3` can be set to any future milestone or the `Backlog` milestone.
 
-In the last triage meeting of the monthly milestone, triage drivers or administrators must move all issues that do not have an active pull request
-to the next milestone. Ideally, all `P1` issues should be addressed in their designated milestones. However, if that does not happen for any reason,
-overdue `P1` issues can be moved to `N+1` milestone. Overdue `P2` issues can be moved to the `N+1` or `N+2`milestones. Finally, overdue `P3` issues can be moved to
-the `N+1`, `N+2` or `Backlog` milestones.
+## Milestone Issues Limit
+Triage managers need to ensure that the number of issues in a milestone does not exceed the capacity of the contributors
+actively working on the project. At the end of each triage meeting, the
+[Project Milestones](https://github.com/microsoft/ebpf-for-windows/milestones)
+should be checked to see if there aren't too many issues added to any given milestone.
+The issues limit for a given milestone will depend on number of contributors working on them,
+the complexities of the issues and other relevant factors as deemed important by the triage drivers.
+As a rule of thumb, the number of issues in a milestone should not exceed 3 times the number of active contributors.
+Assuming 6 - 7 active contributors, there should be no more than 20 issues per milestone.
 
+**Note:** This limit is irrespective of the issue state. Closing out an issue, does not "add room" for more issues into the milestone.
+
+A `P2` or `P3` issues must be added to the first milestone that has not reached its limit.
+A `P1` issue can only be added to the current milestone (`N`). If adding a new `P1` issue exceeds the milestone limit,
+one or more open issues must be moved to the future milestones. Open `P2` and `P3` issues in the current milestone
+must the first candidates for moving. If all the open issues in the current milestone are `P1`, the triage drivers
+must *downgrade* one or more of them to `P2` and move them to the next (`N+1`) milestone.
+
+If all existing milestones have exceeded their limit issues, a new milestone must be created to accommodate new issues.
+
+## Closing a Milestone
+In the first triage meeting of a month, the previous milestone (`N`) must be closed.
+
+Ideally, all issues should be addressed by the end of the designated milestones. However, if that does not happen for any reason,
+triage drivers or administrators must move all overdue issues that do not have an active pull request to a future milestone as follows:
+  - `P1` issues can be moved to the *next* (`N+1`) milestone. This must be done in a triage meeting, after discussing with all maintainers.
+  - `P2` issues can be moved to any of the future milestones.
+  - `P3` issues can be moved to future or `Backlog` milestones.
+
+Moving issues to future milestones should not exceed the per milestone issues limit.
 If any issue has been moved two times already, then the issue must be re-triaged for setting the appropriate priority and/or the milestone.
 
 ## Reviewing Pull Requests

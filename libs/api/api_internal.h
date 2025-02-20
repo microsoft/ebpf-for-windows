@@ -30,6 +30,7 @@ typedef struct bpf_program
     bool pinned;
     const char* log_buffer;
     uint32_t log_buffer_size;
+    uint64_t flags;
 } ebpf_program_t;
 
 typedef struct bpf_map
@@ -724,16 +725,6 @@ ebpf_program_load_bytes(
 #endif
 
 /**
- * @brief Get eBPF program type for the specified bpf program type.
- *
- * @param[in] program_type Bpf program type.
- *
- * @returns Pointer to eBPF program type, or NULL if not found.
- */
-_Ret_maybenull_ const ebpf_program_type_t*
-ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) noexcept;
-
-/**
  * @brief Get eBPF attach type for the specified bpf attach type.
  *
  * @param[in] program_type Bpf attach type.
@@ -742,26 +733,6 @@ ebpf_get_ebpf_program_type(bpf_prog_type_t bpf_program_type) noexcept;
  */
 _Ret_maybenull_ const ebpf_attach_type_t*
 get_ebpf_attach_type(bpf_attach_type_t bpf_attach_type) noexcept;
-
-/**
- * @brief Get bpf program type for the specified eBPF program type.
- *
- * @param[in] program_type eBPF program type GUID.
- *
- * @returns Bpf program type, or BPF_PROG_TYPE_UNSPEC if not found.
- */
-bpf_prog_type_t
-get_bpf_program_type(_In_ const ebpf_program_type_t* program_type) noexcept;
-
-/**
- * @brief Get bpf attach type for the specified eBPF attach type.
- *
- * @param[in] attach_type eBPF attach type GUID.
- *
- * @returns Bpf attach type, or BPF_ATTACH_TYPE_UNSPEC if not found.
- */
-bpf_attach_type_t
-get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) noexcept;
 
 /**
  * @brief Initialize the eBPF library's thread local storage.
@@ -780,3 +751,15 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
 {
     return (strcmp(prog->section_name, ".text") == 0) && (obj->programs.size() > 1);
 }
+
+/**
+ * @brief Set the flags on a program
+ *
+ * @param[in] program_fd File descriptor for the program.
+ * @param[in] flags Flags to set on the program.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;

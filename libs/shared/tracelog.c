@@ -138,8 +138,8 @@ ebpf_trace_terminate()
         ebpf_assert(!"Invalid keyword");                                               \
         break;                                                                         \
     }
-__declspec(noinline) void ebpf_log_ntstatus_api_failure(
-    ebpf_tracelog_keyword_t keyword, _In_z_ const char* api_name, NTSTATUS status)
+__declspec(noinline) void
+ebpf_log_ntstatus_api_failure(ebpf_tracelog_keyword_t keyword, _In_z_ const char* api_name, NTSTATUS status)
 {
     EBPF_LOG_NTSTATUS_API_FAILURE_KEYWORD_SWITCH(api_name, status);
 }
@@ -192,7 +192,8 @@ __declspec(noinline) void ebpf_log_ntstatus_api_failure(
         ebpf_assert(!"Invalid keyword");                                                                \
         break;                                                                                          \
     }
-__declspec(noinline) void ebpf_log_ntstatus_api_failure_message(
+__declspec(noinline) void
+ebpf_log_ntstatus_api_failure_message(
     ebpf_tracelog_keyword_t keyword, _In_z_ const char* api_name, NTSTATUS status, _In_z_ const char* message)
 {
     _EBPF_LOG_NTSTATUS_API_FAILURE_MESSAGE_STRING_KEYWORD_SWITCH(api_name, status, message);
@@ -244,8 +245,8 @@ __declspec(noinline) void ebpf_log_ntstatus_api_failure_message(
         ebpf_assert(!"Invalid keyword");                                      \
         break;                                                                \
     }
-__declspec(noinline) void ebpf_log_message(
-    ebpf_tracelog_level_t trace_level, ebpf_tracelog_keyword_t keyword, _In_z_ const char* message)
+__declspec(noinline) void
+ebpf_log_message(ebpf_tracelog_level_t trace_level, ebpf_tracelog_keyword_t keyword, _In_z_ const char* message)
 {
     switch (trace_level) {
     CASE_LOG_ALWAYS:
@@ -319,7 +320,8 @@ __declspec(noinline) void ebpf_log_message(
         ebpf_assert(!"Invalid keyword");                                                           \
         break;                                                                                     \
     }
-__declspec(noinline) void ebpf_log_message_string(
+__declspec(noinline) void
+ebpf_log_message_string(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -397,7 +399,8 @@ __declspec(noinline) void ebpf_log_message_string(
         ebpf_assert(!"Invalid keyword");                                                                \
         break;                                                                                          \
     }
-__declspec(noinline) void ebpf_log_message_utf8_string(
+__declspec(noinline) void
+ebpf_log_message_utf8_string(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -475,7 +478,8 @@ __declspec(noinline) void ebpf_log_message_utf8_string(
         ebpf_assert(!"Invalid keyword");                                                       \
         break;                                                                                 \
     }
-__declspec(noinline) void ebpf_log_message_wstring(
+__declspec(noinline) void
+ebpf_log_message_wstring(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -555,7 +559,8 @@ __declspec(noinline) void ebpf_log_message_wstring(
         ebpf_assert(!"Invalid keyword");                                                                             \
         break;                                                                                                       \
     }
-__declspec(noinline) void ebpf_log_message_guid_guid_string(
+__declspec(noinline) void
+ebpf_log_message_guid_guid_string(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -636,7 +641,8 @@ __declspec(noinline) void ebpf_log_message_guid_guid_string(
         ebpf_assert(!"Invalid keyword");                                                              \
         break;                                                                                        \
     }
-__declspec(noinline) void ebpf_log_message_guid_guid(
+__declspec(noinline) void
+ebpf_log_message_guid_guid(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -715,7 +721,8 @@ __declspec(noinline) void ebpf_log_message_guid_guid(
         ebpf_assert(!"Invalid keyword");                                                 \
         break;                                                                           \
     }
-__declspec(noinline) void ebpf_log_message_guid(
+__declspec(noinline) void
+ebpf_log_message_guid(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -793,7 +800,8 @@ __declspec(noinline) void ebpf_log_message_guid(
         ebpf_assert(!"Invalid keyword");                                                       \
         break;                                                                                 \
     }
-__declspec(noinline) void ebpf_log_message_ntstatus(
+__declspec(noinline) void
+ebpf_log_message_ntstatus(
     ebpf_tracelog_level_t trace_level, ebpf_tracelog_keyword_t keyword, _In_z_ const char* message, NTSTATUS status)
 {
     switch (trace_level) {
@@ -868,7 +876,8 @@ __declspec(noinline) void ebpf_log_message_ntstatus(
         ebpf_assert(!"Invalid keyword");                                                    \
         break;                                                                              \
     }
-__declspec(noinline) void ebpf_log_message_uint64(
+__declspec(noinline) void
+ebpf_log_message_uint64(
     ebpf_tracelog_level_t trace_level, ebpf_tracelog_keyword_t keyword, _In_z_ const char* message, uint64_t value)
 {
     switch (trace_level) {
@@ -944,7 +953,8 @@ __declspec(noinline) void ebpf_log_message_uint64(
         ebpf_assert(!"Invalid keyword");                                                                    \
         break;                                                                                              \
     }
-__declspec(noinline) void ebpf_log_message_uint64_uint64(
+__declspec(noinline) void
+ebpf_log_message_uint64_uint64(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -1023,7 +1033,8 @@ __declspec(noinline) void ebpf_log_message_uint64_uint64(
         ebpf_assert(!"Invalid keyword");                                                              \
         break;                                                                                        \
     }
-__declspec(noinline) void ebpf_log_message_binary(
+__declspec(noinline) void
+ebpf_log_message_binary(
     ebpf_tracelog_level_t trace_level,
     ebpf_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -1102,7 +1113,8 @@ __declspec(noinline) void ebpf_log_message_binary(
         ebpf_assert(!"Invalid keyword");                                                   \
         break;                                                                             \
     }
-__declspec(noinline) void ebpf_log_message_error(
+__declspec(noinline) void
+ebpf_log_message_error(
     ebpf_tracelog_level_t trace_level, ebpf_tracelog_keyword_t keyword, _In_z_ const char* message, ebpf_result_t error)
 {
     switch (trace_level) {
@@ -1139,7 +1151,8 @@ __declspec(noinline) void ebpf_log_message_error(
         TraceLoggingWideString(wstring, "Message"),                   \
         TraceLoggingString(api, "Api"),                               \
         TraceLoggingNTStatus(status));
-__declspec(noinline) void ebpf_log_ntstatus_wstring_api(
+__declspec(noinline) void
+ebpf_log_ntstatus_wstring_api(
     ebpf_tracelog_keyword_t keyword, _In_z_ const wchar_t* wstring, _In_z_ const char* api, NTSTATUS status)
 {
     switch (keyword) {

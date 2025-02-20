@@ -71,76 +71,76 @@ typedef enum _ebpf_helper_function
 #define EBPF_MAX_GENERAL_HELPER_FUNCTION 0xFFFF
 
 #define EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION 1
-#define EBPF_PROGRAM_INFORMATION_CLIENT_DATA_CURRENT_VERSION 1
+
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_extension_data_t, prog_attach_flags)
+#define EBPF_ATTACH_CLIENT_DATA_VERSION_TOTAL_SIZE sizeof(ebpf_extension_data_t)
+#define EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION                                         \
+    {                                                                                  \
+        EBPF_ATTACH_CLIENT_DATA_CURRENT_VERSION, EBPF_ATTACH_CLIENT_DATA_VERSION_SIZE, \
+            EBPF_ATTACH_CLIENT_DATA_VERSION_TOTAL_SIZE                                 \
+    }
 
 // Version 1 of the eBPF extension data structures and their lengths.
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION 1
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)
 #define EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_attach_provider_data_t)
-#define EBPF_ATTACH_PROVIDER_DATA_HEADER                                                           \
-    {                                                                                              \
-        EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION, EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE, \
-            EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE                                   \
-    }
+#define EBPF_ATTACH_PROVIDER_DATA_HEADER             \
+    {EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION,      \
+     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_SIZE, \
+     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION 1
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_program_type_descriptor_t, is_privileged)
 #define EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_type_descriptor_t)
-#define EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER                                                              \
-    {                                                                                                    \
-        EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION, EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE, \
-            EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE                                      \
-    }
+#define EBPF_PROGRAM_TYPE_DESCRIPTOR_HEADER             \
+    {EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,      \
+     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_SIZE, \
+     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION 1
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_prototype_t, implicit_context)
 #define EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_helper_function_prototype_t)
-#define EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER                                                                \
-    {                                                                                                        \
-        EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION, EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE, \
-            EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE                                        \
-    }
+#define EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER             \
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,      \
+     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE, \
+     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION 1
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_program_info_t, global_helper_prototype)
 #define EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_info_t)
-#define EBPF_PROGRAM_INFORMATION_HEADER                                                          \
-    {                                                                                            \
-        EBPF_PROGRAM_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE, \
-            EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE                                  \
-    }
+#define EBPF_PROGRAM_INFORMATION_HEADER             \
+    {EBPF_PROGRAM_INFORMATION_CURRENT_VERSION,      \
+     EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_SIZE, \
+     EBPF_PROGRAM_INFORMATION_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION 1
 #define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_helper_function_addresses_t, helper_function_address)
 #define EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_helper_function_addresses_t)
-#define EBPF_HELPER_FUNCTION_ADDRESSES_HEADER                                                                \
-    {                                                                                                        \
-        EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION, EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE, \
-            EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE                                        \
-    }
+#define EBPF_HELPER_FUNCTION_ADDRESSES_HEADER             \
+    {EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION,      \
+     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_SIZE, \
+     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION 1
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE EBPF_SIZE_INCLUDING_FIELD(ebpf_program_data_t, capabilities)
 #define EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_data_t)
-#define EBPF_PROGRAM_DATA_HEADER                                                   \
-    {                                                                              \
-        EBPF_PROGRAM_DATA_CURRENT_VERSION, EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE, \
-            EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE                           \
-    }
+#define EBPF_PROGRAM_DATA_HEADER             \
+    {EBPF_PROGRAM_DATA_CURRENT_VERSION,      \
+     EBPF_PROGRAM_DATA_CURRENT_VERSION_SIZE, \
+     EBPF_PROGRAM_DATA_CURRENT_VERSION_TOTAL_SIZE}
 
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION 1
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE \
     EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)
 #define EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE sizeof(ebpf_program_section_info_t)
-#define EBPF_PROGRAM_SECTION_INFORMATION_HEADER                                                                  \
-    {                                                                                                            \
-        EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION, EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE, \
-            EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE                                          \
-    }
+#define EBPF_PROGRAM_SECTION_INFORMATION_HEADER             \
+    {EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,      \
+     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_SIZE, \
+     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION_TOTAL_SIZE}
 
 /**
  * @brief Header of an eBPF extension data structure.

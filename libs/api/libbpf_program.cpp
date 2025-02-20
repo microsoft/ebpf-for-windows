@@ -476,7 +476,7 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path)
 enum bpf_attach_type
 bpf_program__get_expected_attach_type(const struct bpf_program* program)
 {
-    return get_bpf_attach_type(&program->attach_type);
+    return ebpf_get_bpf_attach_type(&program->attach_type);
 }
 
 int
@@ -496,7 +496,7 @@ bpf_program__set_expected_attach_type(struct bpf_program* program, enum bpf_atta
 enum bpf_prog_type
 bpf_program__type(const struct bpf_program* program)
 {
-    return get_bpf_program_type(&program->program_type);
+    return ebpf_get_bpf_program_type(&program->program_type);
 }
 
 int
@@ -753,5 +753,21 @@ bpf_prog_test_run_opts(int prog_fd, struct bpf_test_run_opts* opts)
     opts->retval = (uint32_t)options.return_value;
     opts->duration = (uint32_t)options.duration;
 
+    return 0;
+}
+
+__u32
+bpf_program__flags(const struct bpf_program* prog)
+{
+    return static_cast<uint32_t>(prog->flags);
+}
+
+int
+bpf_program__set_flags(struct bpf_program* prog, __u32 flags)
+{
+    if (prog->object->loaded) {
+        return libbpf_err(-EBUSY);
+    }
+    prog->flags = flags;
     return 0;
 }

@@ -101,7 +101,8 @@ net_ebpf_ext_trace_terminate()
 #pragma warning(push)
 #pragma warning(disable : 6262) // Function uses 'N' bytes of stack.  Consider moving some data to heap.
 
-__declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure(
+__declspec(noinline) void
+net_ebpf_ext_log_ntstatus_api_failure(
     net_ebpf_ext_tracelog_keyword_t keyword, _In_z_ const char* api_name, NTSTATUS status)
 {
     NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE_KEYWORD_SWITCH(api_name, status);
@@ -134,7 +135,8 @@ __declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure(
         break;                                                                                                        \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure_message_string(
+__declspec(noinline) void
+net_ebpf_ext_log_ntstatus_api_failure_message_string(
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* api_name,
     NTSTATUS status,
@@ -169,7 +171,8 @@ __declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure_message_string(
         break;                                                              \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message(
+__declspec(noinline) void
+net_ebpf_ext_log_message(
     net_ebpf_ext_tracelog_level_t trace_level, net_ebpf_ext_tracelog_keyword_t keyword, _In_z_ const char* message)
 {
     switch (trace_level) {
@@ -222,7 +225,8 @@ __declspec(noinline) void net_ebpf_ext_log_message(
         break;                                                                                   \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_string(
+__declspec(noinline) void
+net_ebpf_ext_log_message_string(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -278,7 +282,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_string(
         break;                                                                               \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_ntstatus(
+__declspec(noinline) void
+net_ebpf_ext_log_message_ntstatus(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -334,7 +339,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_ntstatus(
         break;                                                                          \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_bool(
+__declspec(noinline) void
+net_ebpf_ext_log_message_bool(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -390,7 +396,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_bool(
         break;                                                                             \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_pointer(
+__declspec(noinline) void
+net_ebpf_ext_log_message_pointer(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -446,7 +453,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_pointer(
         break;                                                                             \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_uint32(
+__declspec(noinline) void
+net_ebpf_ext_log_message_uint32(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -502,7 +510,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint32(
         break;                                                                             \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_uint64(
+__declspec(noinline) void
+net_ebpf_ext_log_message_uint64(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -558,7 +567,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64(
         break;                                                                                                     \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure_uint64_uint64(
+__declspec(noinline) void
+net_ebpf_ext_log_ntstatus_api_failure_uint64_uint64(
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* api_name,
     NTSTATUS status,
@@ -593,7 +603,8 @@ __declspec(noinline) void net_ebpf_ext_log_ntstatus_api_failure_uint64_uint64(
         break;                                                                                            \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_uint64_uint64(
+__declspec(noinline) void
+net_ebpf_ext_log_message_uint64_uint64(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,
@@ -652,7 +663,8 @@ __declspec(noinline) void net_ebpf_ext_log_message_uint64_uint64(
         break;                                                                                                      \
     }
 
-__declspec(noinline) void net_ebpf_ext_log_message_uint64_uint64_uint64(
+__declspec(noinline) void
+net_ebpf_ext_log_message_uint64_uint64_uint64(
     net_ebpf_ext_tracelog_level_t trace_level,
     net_ebpf_ext_tracelog_keyword_t keyword,
     _In_z_ const char* message,

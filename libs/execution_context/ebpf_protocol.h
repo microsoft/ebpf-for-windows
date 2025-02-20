@@ -35,7 +35,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_GET_NEXT_MAP_ID,
     EBPF_OPERATION_GET_NEXT_PROGRAM_ID,
     EBPF_OPERATION_GET_OBJECT_INFO,
-    EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH,
+    EBPF_OPERATION_GET_NEXT_PINNED_PROGRAM_PATH, /* deprecated */
     EBPF_OPERATION_BIND_MAP,
     EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
     EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
@@ -46,6 +46,8 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_MAP_UPDATE_ELEMENT_BATCH,
     EBPF_OPERATION_MAP_DELETE_ELEMENT_BATCH,
     EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH,
+    EBPF_OPERATION_PROGRAM_SET_FLAGS,
+    EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -349,6 +351,20 @@ typedef struct _ebpf_operation_get_next_pinned_program_path_reply
     uint8_t next_path[1];
 } ebpf_operation_get_next_pinned_program_path_reply_t;
 
+typedef struct _ebpf_operation_get_next_pinned_object_path_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_object_type_t type;
+    uint8_t start_path[1];
+} ebpf_operation_get_next_pinned_object_path_request_t;
+
+typedef struct _ebpf_operation_get_next_pinned_object_path_reply
+{
+    struct _ebpf_operation_header header;
+    ebpf_object_type_t type;
+    uint8_t next_path[1];
+} ebpf_operation_get_next_pinned_object_path_reply_t;
+
 typedef struct _ebpf_operation_get_object_info_request
 {
     struct _ebpf_operation_header header;
@@ -526,3 +542,10 @@ typedef struct _ebpf_operation_map_get_next_key_value_batch_reply
     // Data is a concatenation of key+value.
     uint8_t data[1];
 } ebpf_operation_map_get_next_key_value_batch_reply_t;
+
+typedef struct _ebpf_operation_program_set_flags_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t program_handle;
+    uint64_t flags;
+} ebpf_operation_program_set_flags_request_t;

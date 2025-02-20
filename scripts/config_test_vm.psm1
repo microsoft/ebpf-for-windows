@@ -315,7 +315,7 @@ function Compress-KernelModeDumpOnVM
 
         $KernelModeDumpFileSourcePath = "$Env:WinDir"
         $KernelModeDumpFileDestinationPath = "$Env:SystemDrive\KernelDumps"
-    
+
         # Create the compressed dump folder if doesn't exist.
         if (!(Test-Path $KernelModeDumpFileDestinationPath)) {
             Write-Log "Creating $KernelModeDumpFileDestinationPath directory."
@@ -545,151 +545,332 @@ function Initialize-NetworkInterfacesOnVMs
     }
 }
 
-function Get-ZipFileFromUrl {
-    param(
-        [Parameter(Mandatory=$True)][string] $Url,
-        [Parameter(Mandatory=$True)][string] $DownloadFilePath,
-        [Parameter(Mandatory=$True)][string] $OutputDir
-    )
+#
+# Queries registry for OS build information and logs it.
+#
+function Log-OSBuildInformationOnVM
+{
+    param([parameter(Mandatory=$true)][string] $VMName)
 
-    for ($i = 0; $i -lt 5; $i++) {
-        try {
-            Write-Log "Downloading $Url to $DownloadFilePath"
-            $ProgressPreference = 'SilentlyContinue'
-            Invoke-WebRequest -Uri $Url -OutFile $DownloadFilePath
-
-            Write-Log "Extracting $DownloadFilePath to $OutputDir"
-            Expand-Archive -Path $DownloadFilePath -DestinationPath $OutputDir -Force
-            break
-        } catch {
-            Write-Log "Iteration $i failed to download $Url. Removing $DownloadFilePath" -ForegroundColor Red
-            Remove-Item -Path $DownloadFilePath -Force -ErrorAction Ignore
-            Start-Sleep -Seconds 5
-        }
+    $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+    Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+        $buildLabEx = Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name 'BuildLabEx'
+        Write-Host "OS Build Information: $($buildLabEx.BuildLabEx)"
     }
 }
 
-function Get-LegacyRegressionTestArtifacts
-{
-    $ArifactVersionList = @("0.11.0")
-    $RegressionTestArtifactsPath = "$pwd\regression"
-    if (Test-Path -Path $RegressionTestArtifactsPath) {
-        Remove-Item -Path $RegressionTestArtifactsPath -Recurse -Force
+<#
+.SYNOPSIS
+    Helper function to execute a command on a VM.
+
+.DESCRIPTION
+    This function executes a command on a specified VM using the provided credentials.
+
+.PARAMETER VMName
+    The name of the VM to execute the command on.
+
+.PARAMETER Command
+    The command to execute on the VM.
+#>
+function Execute-CommandOnVM {
+    param (
+        [Parameter(Mandatory=$True)][string]$VMName,
+        [Parameter(Mandatory=$True)][string]$Command
+    )
+
+    try {
+        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        Write-Log "Executing command on VM: $VMName. Command: $Command"
+        $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
+            param($Command)
+            Invoke-Expression $Command
+        } -ArgumentList $Command
+        Write-Log "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
+    } catch {
+        throw "Failed to execute command on VM: $VMName with error: $_"
     }
-    mkdir $RegressionTestArtifactsPath
+}
 
-    # verify Artifacts' folder presense
-    if (-not (Test-Path -Path $RegressionTestArtifactsPath)) {
-        $ErrorMessage = "*** ERROR *** Regression test artifacts folder not found: $RegressionTestArtifactsPath)"
-        Write-Log $ErrorMessage
-        throw $ErrorMessage
+
+<#
+.SYNOPSIS
+    Helper function to create a VM.
+
+.DESCRIPTION
+    This function creates a new VM with the specified parameters.
+
+.PARAMETER VmName
+    The name of the VM to create.
+
+.PARAMETER UserPassword
+    The plain text password to use for the user accounts on the VM.
+
+.PARAMETER VhdPath
+    The path to the VHD file to use for the VM.
+
+.PARAMETER VmStoragePath
+    The storage path for the VM.
+
+.PARAMETER VMMemory
+    The amount of memory to allocate for the VM.
+
+.PARAMETER UnattendPath
+    The path to the unattend file to use for the VM. This will notably be used for configuring the user accounts and passwords.
+
+.PARAMETER VmSwitchName
+    The name of the switch to use for the VM.
+
+.EXAMPLE
+    Create-VM -VmName "MyVM" -UserPassword "Password -VhdPath "C:\MyVHD.vhd" -VmStoragePath "C:\VMStorage" -VMMemory 2GB -UnattendPath "C:\MyUnattend.xml" -VmSwitchName "VMInternalSwitch"
+#>
+function Create-VM {
+    param(
+        [Parameter(Mandatory=$True)][string]$VmName,
+        [Parameter(Mandatory=$True)][string]$UserPassword,
+        [Parameter(Mandatory=$True)][string]$VhdPath,
+        [Parameter(Mandatory=$True)][string]$VmStoragePath,
+        [Parameter(Mandatory=$True)][Int64]$VMMemory,
+        [Parameter(Mandatory=$True)][string]$UnattendPath,
+        [Parameter(Mandatory=$True)][string]$VmSwitchName
+    )
+
+    try {
+        Write-Log "Creating VM: with Name: $VmName VhdPath: $VhdPath VmStoragePath: $VmStoragePath Memory: $VMMemory UnattendPath: $UnattendPath VMSwitchName: $VmSwitchName"
+        ## Check for any pre-requisites
+        # Check that the VHD exists
+        if (-not (Test-Path -Path $VhdPath)) {
+            throw "VHD not found at $VhdPath"
+        }
+
+        ## Create the VM
+        # Create storage directory for the VM
+        Create-DirectoryIfNotExists -Path $VmStoragePath
+
+        # Move the VHD to the path
+        Write-Log "Moving $VhdPath to $VmStoragePath"
+        Move-Item -Path $VhdPath -Destination $VmStoragePath -Force
+        $VmVhdPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $VhdPath -Leaf)
+
+        # Move unattend to the path and replace placeholder strings
+        Write-Log "Moving $UnattendPath file to $VmStoragePath"
+        Move-Item -Path $UnattendPath -Destination $VmStoragePath -Force
+        $VmUnattendPath = Join-Path -Path $VmStoragePath -ChildPath (Split-Path -Path $UnattendPath -Leaf)
+        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_ADMIN_PASSWORD' -ReplaceString $UserPassword
+        Replace-PlaceholderStrings -FilePath $VmUnattendPath -SearchString 'PLACEHOLDER_STANDARDUSER_PASSWORD' -ReplaceString $UserPassword
+
+        # Configure the VHD with the unattend file.
+        Write-Log "Mounting VHD and applying unattend file"
+        $VmMountPath = Join-Path -Path $VmStoragePath -ChildPath 'mountedVhd'
+        if (-not (Test-Path -Path $VmMountPath)) {
+            New-Item -ItemType Directory -Path $VmMountPath
+        }
+        Mount-WindowsImage -ImagePath $VmVhdPath -Index 1 -Path $VmMountPath -ErrorAction Stop | Out-Null
+        Copy-Item -Path $VmUnattendPath -Destination $VmMountPath\Unattend.xml
+        Apply-WindowsUnattend -Path $VmMountPath -UnattendPath $VmMountPath\Unattend.xml -ErrorAction Stop | Out-Null
+        Dismount-WindowsImage -Path $VmMountPath -Save -ErrorAction Stop
+
+        # Create the VM
+        Write-Log "Creating the VM"
+        New-VM -Name $VmName -VhdPath $VmVhdPath -SwitchName $VmSwitchName
+        Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
+
+        if ((Get-VM -VMName $vmName) -eq $null) {
+            throw "Failed to create VM: $VMName"
+        }
+
+        Write-Log "Successfully created VM: $VMName" -ForegroundColor Green
+    } catch {
+        throw "Failed to create VM: $VmName with error: $_"
     }
+}
 
-    # Download regression test artifacts for each version.
-    foreach ($ArtifactVersion in $ArifactVersionList)
-    {
-        Write-Log "Downloading legacy regression test artifacts for version $ArtifactVersion"
-        $DownloadPath = "$RegressionTestArtifactsPath\$ArtifactVersion"
-        mkdir $DownloadPath
-        $ArtifactName = "v$ArtifactVersion/Build-x64-native-only-Release.$ArtifactVersion.zip"
-        $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
+<#
+.SYNOPSIS
+    Helper function to configure a VM after creation.
 
-        for ($i = 0; $i -lt 5; $i++) {
+.DESCRIPTION
+    This function configures a VM after it has been created, including setting the processor count, enabling the Guest Service Interface, and executing a setup script.
+
+.PARAMETER VmName
+    The name of the VM to configure.
+
+.PARAMETER VMCpuCount
+    The number of processors to allocate for the VM.
+
+.PARAMETER VMWorkingDirectory
+    The working directory on the VM to use for executing the setup script. Defaults to 'C:\ebpf_cicd'.
+
+.PARAMETER VMSetupScript
+    The path to the setup script to execute on the VM. Defaults to '.\configure_vm.ps1'.
+
+.EXAMPLE
+    Initialize-VM -VmName "MyVM" -VMCpuCount 4
+#>
+function Initialize-VM {
+    param(
+        [Parameter(Mandatory=$True)][string]$VmName,
+        [Parameter(Mandatory=$True)][int]$VMCpuCount,
+        [Parameter(Mandatory=$False)][string]$VMWorkingDirectory='C:\ebpf_cicd',
+        [Parameter(Mandatory=$False)][string]$VMSetupScript='.\configure_vm.ps1'
+    )
+
+    try {
+        Write-Log "Configuring VM: $VmName"
+        $vmList = @(
+            @{
+                Name = $VmName
+            }
+        )
+
+        # Post VM creation configuration steps.
+        Write-Log "Setting VM processor count to $VMCpuCount"
+        Set-VMProcessor -VMName $VmName -Count $VMCpuCount
+        Write-Log "Enabling Guest Service Interface"
+        Enable-VMIntegrationService -VMName $VMName -Name 'Guest Service Interface'
+
+        # Start the VM
+        Write-Log "Starting VM: $VmName"
+        Start-VM -Name $VmName
+        Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+
+        Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
+        Sleep -Seconds 60
+
+        # Copy setup script to the VM and execute it.
+        Write-Log "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
+        Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $VMSetupScript -DestinationPath "$VMWorkingDirectory\$VMSetupScript" -CreateFullPath
+        Execute-CommandOnVM -VMName $VmName -Command "cd $VMWorkingDirectory; .\$VMSetupScript"
+        Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
+        Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
+        Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
+
+        Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
+
+        # Checkpoint the VM. This can sometimes fail if other operations are in progress, so retry a few times to ensure a successful checkpoint.
+        for ($i = 0; $i -lt 5; $i += 1) {
             try {
-                # Download and extract the artifact.
-                Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\artifact.zip" -OutputDir $DownloadPath
-
-                # Extract the inner zip file.
-                Expand-Archive -Path "$DownloadPath\build-NativeOnlyRelease.zip" -DestinationPath $DownloadPath -Force
+                Write-Log "Checkpointing VM: $VmName"
+                Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
+                Write-Log "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
                 break
             } catch {
-                Write-Log -TraceMessage "Iteration $i failed to download $ArtifactUrl. Removing $DownloadPath" -ForegroundColor Red
-                Remove-Item -Path $DownloadPath -Force -ErrorAction Ignore
+                Write-Log "Failed to checkpoint VM: $VmName. Retrying..."
                 Start-Sleep -Seconds 5
+                continue
             }
         }
 
-        Move-Item -Path "$DownloadPath\NativeOnlyRelease\cgroup_sock_addr2.sys" -Destination "$RegressionTestArtifactsPath\cgroup_sock_addr2_$ArtifactVersion.sys" -Force
-        Remove-Item -Path $DownloadPath -Force -Recurse
+        Write-Log "Successfully configured VM: $VmName" -ForegroundColor Green
+    } catch {
+        throw "Failed to configure VM: $VmName with error: $_"
     }
 }
 
-function Get-RegressionTestArtifacts
-{
-    param([Parameter(Mandatory=$True)][string] $Configuration,
-          [Parameter(Mandatory=$True)][string] $ArtifactVersion)
+########## Helpers for the host machine ##########
+<#
+.SYNOPSIS
+    Extracts .zip files in the specified directory and returns paths to .vhd and .vhdx files.
 
-    $RegressionTestArtifactsPath = "$pwd\regression"
-    $OriginalPath = $pwd
-    if (Test-Path -Path $RegressionTestArtifactsPath) {
-        Remove-Item -Path $RegressionTestArtifactsPath -Recurse -Force
+.DESCRIPTION
+    This function takes an input directory as a parameter, looks inside the directory for any .zip files, extracts them, and returns a PowerShell string array of all full paths to .vhd and .vhdx files. It suppresses any output and throws errors if any exceptions are found.
+
+.PARAMETER InputDirectory
+    The directory to search for .zip files and extract them.
+
+.EXAMPLE
+    $vhdFiles = Prepare-VhdFiles -InputDirectory "C:\MyDirectory"
+#>
+function Prepare-VhdFiles {
+    param (
+        [Parameter(Mandatory=$true)][string]$InputDirectory
+    )
+
+    try {
+        $zipFiles = Get-ChildItem -Path $InputDirectory -Filter *.zip -Recurse
+        foreach ($zipFile in $zipFiles) {
+            Expand-Archive -Path $zipFile.FullName -DestinationPath $InputDirectory *> $null 2>&1
+        }
+
+        # Get all .vhd and .vhdx files
+        $vhdFiles = (Get-ChildItem -Path $InputDirectory -Recurse -Include *.vhd, *.vhdx) | Select-Object -ExpandProperty FullName
+
+        if ($vhdFiles.Count -eq 0) {
+            throw "No VHD files found in $InputDirectory"
+        }
+
+        return [string[]]$vhdFiles
     }
-    mkdir $RegressionTestArtifactsPath
-
-    # Verify artifacts' folder presence
-    if (-not (Test-Path -Path $RegressionTestArtifactsPath)) {
-        $ErrorMessage = "*** ERROR *** Regression test artifacts folder not found: $RegressionTestArtifactsPath)"
-        Write-Log $ErrorMessage
-        throw $ErrorMessage
+    catch {
+        Get-ChildItem -Path $InputDirectory -Recurse
+        throw "Failed to prepare VHD files with error: $_"
     }
-
-    # Download regression test artifacts for each version.
-    $DownloadPath = "$RegressionTestArtifactsPath"
-    $ArtifactName = "Release-v$ArtifactVersion/Build-x64.$Configuration.zip"
-    $ArtifactUrl = "https://github.com/microsoft/ebpf-for-windows/releases/download/" + $ArtifactName
-
-    if (Test-Path -Path $DownloadPath\Build-x64.$Configuration) {
-        Remove-Item -Path $DownloadPath\Build-x64.$Configuration -Recurse -Force
-    }
-
-    Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputDir $DownloadPath
-    $DownloadedArtifactPath = "$DownloadPath\Build-x64 $Configuration"
-    if (!(Test-Path -Path $DownloadedArtifactPath)) {
-        throw ("Path ""$DownloadedArtifactPath"" not found.")
-    }
-
-    # Copy all the drivers, DLLs, exe and .o files to pwd.
-    Write-Log "Copy regression test artifacts to main folder" -ForegroundColor Green
-    Push-Location $DownloadedArtifactPath
-    Get-ChildItem -Path .\* -Include *.sys | Move-Item -Destination $OriginalPath -Force
-    Get-ChildItem -Path .\* -Include *.dll | Move-Item -Destination $OriginalPath -Force
-    Get-ChildItem -Path .\* -Include *.exe | Move-Item -Destination $OriginalPath -Force
-    Get-ChildItem -Path .\* -Include *.o | Move-Item -Destination $OriginalPath -Force
-    Pop-Location
-
-    Remove-Item -Path $DownloadPath -Force -Recurse
-
-    # Delete ebpfapi.dll from the artifacts. ebpfapi.dll from the MSI installation should be used instead.
-    Remove-Item -Path ".\ebpfapi.dll" -Force
 }
 
-# Copied from https://github.com/microsoft/msquic/blob/main/scripts/prepare-machine.ps1
-function Get-CoreNetTools {
-    # Download and extract https://github.com/microsoft/corenet-ci.
-    $DownloadPath = "$pwd\corenet-ci"
-    mkdir $DownloadPath
-    Write-Log "Downloading CoreNet-CI to $DownloadPath"
-    Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputDir $DownloadPath
-    #DuoNic.
-    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
-    # Procdump.
-    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
-    # NotMyFault.
-    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\notmyfault64.exe" -Destination $pwd -Force
-    Remove-Item -Path $DownloadPath -Force -Recurse
-}
+<#
+.SYNOPSIS
+    Helper function to create a VM switch if it does not already exist.
 
-# Download and extract PSExec to run tests as SYSTEM.
-function Get-PSExec {
-    $url = "https://download.sysinternals.com/files/PSTools.zip"
-    $DownloadPath = "$pwd\psexec"
-    mkdir $DownloadPath
-    Write-Log "Downloading PSExec from $url to $DownloadPath"
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest $url -OutFile "$DownloadPath\pstools.zip"
-    cd $DownloadPath
-    Expand-Archive -Path "$DownloadPath\pstools.zip" -Force
-    cd ..
-    Move-Item -Path "$DownloadPath\PSTools\PsExec64.exe" -Destination $pwd -Force
-    Remove-Item -Path $DownloadPath -Force -Recurse
+.DESCRIPTION
+    Checks if a VM switch with the given name and type already exists. If not, it creates a new switch of the specified type.
+
+.PARAMETER SwitchName
+    The name of the switch to create.
+
+.PARAMETER SwitchType
+    The type of switch to create. Can be 'External' or 'Internal'.
+
+.EXAMPLE
+    Create-VMSwitchIfNeeded -SwitchName 'VMInternalSwitch' -SwitchType 'Internal'
+    Create-VMSwitchIfNeeded -SwitchName 'VMExternalSwitch' -SwitchType 'External'
+#>
+function Create-VMSwitchIfNeeded {
+    param (
+        [Parameter(Mandatory=$true)][string]$SwitchName,
+        [Parameter(Mandatory=$true)][string]$SwitchType
+    )
+
+    if ($SwitchType -eq 'External') {
+        # Check to see if an external switch already exists
+        $ExternalSwitches = (Get-VMSwitch -SwitchType External -ErrorAction Ignore)
+        if ($ExternalSwitches -ne $null) {
+            Write-Log "External switch already exists: $($ExternalSwitches[0].Name)"
+            return
+        }
+
+        # Try to create the external switch
+        $NetAdapterNames = (Get-NetAdapter -Name 'Ethernet*' | Where-Object { $_.Status -eq 'Up' }).Name
+        $index = 0
+        foreach ($NetAdapterName in $NetAdapterNames) {
+            try {
+                if ([string]::IsNullOrEmpty($NetAdapterName)) {
+                    continue
+                }
+                $currSwitchName = $SwitchName + '-' + $index
+                Write-Log "Attempting to creating external switch: $currSwitchName with NetAdapter: $NetAdapterName"
+                New-VMSwitch -Name $currSwitchName -NetAdapterName $NetAdapterName -AllowManagementOS $true
+                $index += 1
+            } catch {
+                Write-Log "Failed to create external switch for NetAdapter: $NetAdapterName with error: $_"
+            }
+        }
+    } elseif ($SwitchType -eq 'Internal') {
+        # Check to see if an internal switch already exists
+        $InternalSwitches = (Get-VMSwitch -SwitchType Internal -Name $SwitchName -ErrorAction Ignore)
+        if ($InternalSwitches -ne $null) {
+            Write-Log "Internal switch already exists: $($InternalSwitches[0].Name)"
+            return
+        }
+
+        # Try to create the internal switch
+        try {
+            Write-Log "Creating internal switch"
+            New-VMSwitch -Name $SwitchName -SwitchType Internal
+        } catch {
+            throw "Failed to create internal switch with error: $_"
+        }
+    } else {
+        throw "Invalid switch type: $SwitchType"
+    }
+
+    Write-Log "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }

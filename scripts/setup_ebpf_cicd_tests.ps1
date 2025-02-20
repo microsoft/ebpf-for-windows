@@ -15,10 +15,15 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 
 Push-Location $WorkingDirectory
 
-$TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
-
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
+if ($SelfHostedRunnerName -eq "1ESRunner") {
+    $TestVMCredential = Retrieve-StoredCredential -Target $Target
+} else {
+    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+}
+
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.
@@ -79,6 +84,12 @@ $Job = Start-Job -ScriptBlock {
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+    }
+
+    # Log OS build information on the test VM.
+    foreach($VM in $VMList) {
+        $VMName = $VM.Name
+        Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
     }
 
     Pop-Location
