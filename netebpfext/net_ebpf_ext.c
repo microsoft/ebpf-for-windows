@@ -319,7 +319,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
     // lingering WFP classify callbacks will exit as it would not find any hook client associated
     // with the filter context. This is best effort & no locks are held.
     filter_context->context_deleting = TRUE;
-    net_ebpf_ext_add_filter_context_to_zombie_list(filter_context);
+    net_ebpf_ext_add_filter_context_to_cleanup_list(filter_context);
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -693,7 +693,7 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
     }
 
     InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
-    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list);
+    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
     KeInitializeEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, NotificationEvent, FALSE);
 
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
@@ -862,39 +862,31 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         }
     }
 
-    // If there are zombie filters, sleep to give WFP time to issue callbacks. Once this timeout completes,
+    // If there are cleanup filters, sleep to give WFP time to issue callbacks. Once this timeout completes,
     // we assume that any remaining notifications will not be issued, and proceed with cleanup.
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    if (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list)) {
+    if (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
         NET_EBPF_EXT_LOG_MESSAGE(
             NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
             NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Zombie WFP Filters found. Processing cleanup.");
+            "Leaked WFP Filters found. Processing cleanup.");
         _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list = TRUE;
 
         // Release the lock during the sleep.
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Zombie WFP Filters found. Sleeping.");
         status = KeWaitForSingleObject(
             &_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, Executive, KernelMode, FALSE, &timeout);
-        NET_EBPF_EXT_LOG_MESSAGE(
-            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-            "Zombie WFP Filters found. Sleep completed - processing cleanup");
 
         old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-        while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list)) {
+        while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
             uint32_t leaked_filter_count = 0;
-            PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list);
+            PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
             // Release lock to avoid deadlock.
             ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
             net_ebpf_extension_wfp_filter_context_t* filter_context =
                 CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
-            filter_context->in_zombie_list = FALSE;
+            filter_context->in_cleanup_list = FALSE;
 
             // It is assumed that this portion of the code executes after WFP has had sufficient time to
             // give us the filter delete notification. It is assumed that if we have not received a deletion callback by
@@ -906,7 +898,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                     NET_EBPF_EXT_LOG_MESSAGE_UINT64(
                         NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                        "Releasing reference for Zombie WFP filter.",
+                        "Releasing reference for leaked WFP filter.",
                         filter_id->id);
                 }
             }
@@ -1148,22 +1140,22 @@ net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hoo
 }
 
 void
-net_ebpf_ext_add_filter_context_to_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_add_filter_context_to_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
-    InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list, &filter_context->link);
-    filter_context->in_zombie_list = TRUE;
+    InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list, &filter_context->link);
+    filter_context->in_cleanup_list = TRUE;
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 }
 
 void
-net_ebpf_ext_remove_filter_context_from_zombie_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+net_ebpf_ext_remove_filter_context_from_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    if (filter_context->in_zombie_list) {
+    if (filter_context->in_cleanup_list) {
         KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
         RemoveEntryList(&filter_context->link);
-        filter_context->in_zombie_list = FALSE;
-        if (IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_zombie_list) &&
+        filter_context->in_cleanup_list = FALSE;
+        if (IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list) &&
             _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list) {
             KeSetEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, 0, FALSE);
         }
