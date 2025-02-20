@@ -480,6 +480,40 @@ function Import-ResultsFromVM
                 -Recurse `
                 -Force `
                 -ErrorAction Ignore 2>&1 | Write-Log
+
+            # Try to copy just the  ETL over, with a few retries
+            $RetryCount = 5
+            $RetryInterval = 5 # seconds
+
+            for ($i = 1; $i -le $RetryCount; $i++) {
+                $LocalFilePath = ".\TestLogs\$VMName\Logs\maige_debug.etl"
+                # It was leftover from a previous run.
+                if (Test-Path $LocalFilePath) {
+                    Remove-Item -Path $LocalFilePath -Force
+                }
+
+                try {
+                    Copy-Item `
+                        -FromSession $VMSession `
+                        -Path "$VMSystemDrive\eBPF\maige_debug.etl" `
+                        -Destination ".\TestLogs\$VMName\Logs" `
+                        -Recurse `
+                        -Force
+                    break
+                } catch {
+                    Write-Log "Failed to copy maige_debug.etl from $VMName to host runner."
+                }
+            }
+
+            # Copy ETL from Test VM.
+            Write-Log ("Copy $VMSystemDrive\eBPF\wfp_state.xml on $VMName to $pwd\TestLogs\$VMName\Logs")
+            Copy-Item `
+                -FromSession $VMSession `
+                -Path "$VMSystemDrive\eBPF\wfp_state.xml" `
+                -Destination ".\TestLogs\$VMName\Logs" `
+                -Recurse `
+                -Force `
+                -ErrorAction Ignore 2>&1 | Write-Log
         }
 
         # Copy performance results from Test VM.
