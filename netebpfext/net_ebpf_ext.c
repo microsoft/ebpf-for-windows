@@ -873,6 +873,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             &_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, Executive, KernelMode, FALSE, &timeout);
         old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
 
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'filter_context' and 'filter_id'.
         // Proceed with cleanup - assume that any remaining notifications will never be issued by WFP,
         // and continue with cleaning up our internal state.
         while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
@@ -902,14 +904,12 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             // Remove remaining references.
             ASSERT(filter_context->reference_count == (long)leaked_filter_count);
             for (index = 0; index < leaked_filter_count; index++) {
-#pragma warning(push)
-#pragma warning(disable : 6001) // Using uninitialized memory 'filter_context'.
                 DEREFERENCE_FILTER_CONTEXT(filter_context);
-#pragma warning(pop)
             }
 
             old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
         }
+#pragma warning(pop)
     }
 
     // Iterate through the provider list and handle cleanup.
