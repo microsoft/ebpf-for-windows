@@ -21,7 +21,6 @@
         DetailLevel="Verbose">
       <Collectors>
         <EventCollectorId Value="EventCollector_EbpfCoreProvider">
-          <MaximumFileSize Value="2048"/>
           <EventProviders>
             <EventProviderId Value="ExecutionContext"/>
           </EventProviders>
