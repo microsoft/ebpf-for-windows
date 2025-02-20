@@ -5,7 +5,7 @@
 <package>
 	<metadata>
 		<title>eBPF for Windows SDK</title>
-		<id>eBPF-for-Windows.{architecture}</id>
+		<id>eBPF-for-Windows.{architecture}{configuration}</id>
 		<version>{version}</version>
 		<authors>eBPF for Windows Contributors</authors>
 		<owners>eBPF for Windows Contributors</owners>
