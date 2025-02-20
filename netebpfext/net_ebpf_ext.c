@@ -777,11 +777,6 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 
     NET_EBPF_EXT_LOG_ENTRY();
 
-    NET_EBPF_EXT_LOG_MESSAGE(
-        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-        "net_ebpf_extension_uninitialize_wfp_components.");
-
     if (_fwp_engine_handle != NULL) {
         // WFP operations may fail if connections are in the middle of being classified and our WFP filters or callouts
         // are in use. Prior to this function execution, it is expected that the WFP filter objects were removed,
@@ -872,25 +867,25 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             "Leaked WFP Filters found. Processing cleanup.");
         _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list = TRUE;
 
-        // Release the lock during the sleep.
+        // Allow some time for WFP to signal deletion for the filters.
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
-
         status = KeWaitForSingleObject(
             &_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, Executive, KernelMode, FALSE, &timeout);
-
         old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+
+        // Proceed with cleanup - assume that any remaining notifications will never be issued by WFP,
+        // and continue with cleaning up our internal state.
         while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
             uint32_t leaked_filter_count = 0;
             PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
-            // Release lock to avoid deadlock.
+            // Release lock to avoid deadlock in DEREFERENCE_FILTER_CONTEXT.
             ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
             net_ebpf_extension_wfp_filter_context_t* filter_context =
                 CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
             filter_context->in_cleanup_list = FALSE;
 
-            // It is assumed that this portion of the code executes after WFP has had sufficient time to
-            // give us the filter delete notification. It is assumed that if we have not received a deletion callback by
-            // now, we never will for this filter. Handle any remaining references here.
+            // Anything left in the NET_EBPF_EXT_WFP_FILTER_DELETING is considered leaked. Remove the references to
+            // allow for cleanup.
             for (index = 0; index < filter_context->filter_ids_count; index++) {
                 net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
                 if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
