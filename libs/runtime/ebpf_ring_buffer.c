@@ -351,66 +351,6 @@ ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _O
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
-{
-    EBPF_LOG_ENTRY();
-    ebpf_result_t result;
-    size_t local_length = length;
-    size_t ring_length = _ring_get_length(ring);
-
-    size_t consumer_offset = _ring_get_consumer_offset(ring);
-    // Read-acquire the producer offset to ensure we see newly initialized record headers.
-    // - The consumer should only be returning previously unlocked records, but this is necessary
-    //   to validate the return.
-    size_t producer_offset = _ring_read_producer_offset_acquire(ring);
-
-    size_t used_capacity = producer_offset - consumer_offset;
-    if ((length > ring_length) || length > used_capacity) {
-        EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_ring_buffer_return: Buffer too large",
-            ring->producer_offset,
-            ring->consumer_offset);
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    // Verify length is the sum of record data lengths.
-    while (local_length != 0) {
-        ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, consumer_offset);
-        // Read-acquire record header to ensure we see the final record data.
-        // - The producer write-releases the header to unlock to ensure any writes to the data are visible first.
-        // - Even if the record is discarded, we need to make sure it's writes are visible before it can be re-used.
-        uint32_t record_header = _ring_record_read_header_acquire(record);
-        size_t record_length = _ring_header_length(record_header);
-        size_t total_record_size = _ring_record_size(record_length);
-        if (local_length < record_length) {
-            break;
-        }
-        consumer_offset += total_record_size;
-        local_length -= record_length;
-    }
-    // Did it end on a record boundary?
-    if (local_length != 0) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_ring_buffer_return: Invalid buffer length",
-            local_length);
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    // Advanced the consumer offset to return the space to the ring.
-    _ring_set_consumer_offset(ring, consumer_offset);
-    result = EBPF_SUCCESS;
-
-Done:
-    EBPF_RETURN_RESULT(result);
-}
-
-_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring, size_t consumer_offset)
 {
     EBPF_LOG_ENTRY();

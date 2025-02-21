@@ -1042,6 +1042,7 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
     uint8_t* buffer;
     std::vector<uint8_t> data(10);
     size_t size = 64 * 1024;
+    size_t total_record_size = (data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7;
 
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, size) == EBPF_SUCCESS);
     REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
@@ -1057,20 +1058,20 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
 
     // Ring is not empty
     REQUIRE(producer != consumer);
-    REQUIRE(producer == ((data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7));
+    REQUIRE(producer == total_record_size);
     REQUIRE(consumer == 0);
 
     auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record != nullptr);
     REQUIRE(record->header.length == data.size());
 
-    REQUIRE(ebpf_ring_buffer_return(ring_buffer, record->header.length) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, total_record_size) == EBPF_SUCCESS);
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
 
     record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record == nullptr);
     REQUIRE(consumer == producer);
-    REQUIRE(consumer == ((data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7));
+    REQUIRE(consumer == total_record_size);
 
     size_t sent_data = 0;
     data.resize(1023);
@@ -1079,7 +1080,7 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
     }
 
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
-    REQUIRE(ebpf_ring_buffer_return(ring_buffer, sent_data) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, producer) == EBPF_SUCCESS);
 
     // Resize data to fill ring (total record size includes 8 bytes header and padding to 8 bytes)
     data.resize((size - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data)) & ~7);

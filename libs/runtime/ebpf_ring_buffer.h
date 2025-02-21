@@ -103,19 +103,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring_buffer, size_t consumer_offset);
 
 /**
- * @brief Mark one or more records in the ring buffer as returned to the ring.
- *
- * The length passed should be the sum of the record data lengths to return.
- *
- * @param[in, out] ring_buffer Ring buffer to update.
- * @param[in] length Length of data bytes to return to the ring buffer (excludes header and padding).
- * @retval EBPF_SUCCESS Successfully returned records to the ring buffer.
- * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
- */
-_Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring_buffer, size_t length);
-
-/**
  * @brief Get pointer to the ring buffer shared data.
  *
  * @param[in] ring_buffer Ring buffer to query.
