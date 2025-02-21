@@ -9,11 +9,11 @@
 typedef struct _ebpf_ring_buffer
 {
     size_t length;
-    volatile size_t consumer_offset;
-    volatile size_t producer_offset;
-    volatile size_t producer_reserve_offset;
-    uint8_t* shared_buffer;
-    ebpf_ring_descriptor_t* ring_descriptor;
+    volatile size_t consumer_offset;         ///< Consumer has read up to this offset.
+    volatile size_t producer_offset;         ///< Producer(s) have reserved up to this offset.
+    volatile size_t producer_reserve_offset; ///< Next record to be reserved.
+    uint8_t* shared_buffer;                  ///< Shared double-mapped buffer.
+    ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
 } ebpf_ring_buffer_t;
 
 /**
@@ -49,39 +49,162 @@ _IRQL_requires_(DISPATCH_LEVEL) static inline void _ring_lower_to_previous_irql(
 }
 
 /**
+ * @brief Read-acquire the record header.
+ *
+ * Used to check for the lock bit to ensure that all writes to the record are visible.
+ *
+ * @param[in] record Pointer to the record.
+ * @return 32 bit record header with length and locked+discard bits.
+ */
+inline static uint32_t
+_ring_record_read_header_acquire(_In_ const ebpf_ring_buffer_record_t* record)
+{
+    return ReadUInt32Acquire(&record->header.length);
+}
+
+/**
+ * @brief Get the record header (with no ordering constraints).
+ *
+ * This should only be used when the current value of the header has been read/written.
+ *
+ * @param[in] record Pointer to the record.
+ * @return 32 bit record header with length and locked+discard bits.
+ */
+inline static uint32_t
+_ring_record_read_header_nofence(_In_ const ebpf_ring_buffer_record_t* record)
+{
+    return ReadUInt32NoFence(&record->header.length);
+}
+
+/**
+ * @brief Write-release the record header.
+ *
+ * Used to unlock (submit or discard) a record and make it visible to consumers.
+ *
+ * @param[in] record Pointer to the record.
+ * @param[in] header new header value.
+ */
+inline static void
+_ring_record_write_header_release(_Inout_ ebpf_ring_buffer_record_t* record, uint32_t header)
+{
+    WriteUInt32Release(&record->header.length, header);
+}
+
+/**
+ * @brief Write the record header (without ordering constraints).
+ *
+ * Used by the producer between reserving space for the record and write-releasing the producer offset.
+ *
+ * @param[in] record Pointer to the record.
+ * @param[in] header new header value.
+ */
+inline static void
+_ring_record_write_header_nofence(_Inout_ ebpf_ring_buffer_record_t* record, uint32_t header)
+{
+    WriteUInt32NoFence(&record->header.length, header);
+}
+
+/**
+ * @brief Get the consumer offset.
+ *
+ * There is only a single consumer, so we can always no-fence read the consumer offset.
+ * - The consumer will always have the latest value to read and update.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Consumer offset.
+ */
+inline static size_t
+_ring_get_consumer_offset(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return ReadULong64NoFence(&ring->consumer_offset);
+}
+
+/**
+ * @brief Set the consumer offset.
+ *
+ * There is only a single consumer so ordering is guaranteed and we can always no-fence write.
+ * - The consumer offset should only be advanced after confirming all records have been unlocked.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @param[in] offset Offset to set.
+ */
+inline static void
+_ring_set_consumer_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t offset)
+{
+    WriteULong64NoFence(&ring->consumer_offset, offset);
+}
+
+/**
+ * @brief Get the producer offset.
+ *
+ * Uses read-acquire to ensure producers see the latest value and consumers only see initialized records.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Producer offset.
+ */
+inline static size_t
+_ring_read_producer_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return ReadULong64Acquire(&ring->producer_offset);
+}
+
+/**
+ * @brief Set the producer offset.
+ *
+ * Write-release is used to ensure initialized record headers are visible to consumers before the offset update.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @param[in] offset Offset to set.
+ */
+inline static void
+_ring_write_producer_offset_release(_Inout_ ebpf_ring_buffer_t* ring, size_t offset)
+{
+    WriteULong64Release(&ring->producer_offset, offset);
+}
+
+/**
+ * @brief Get the producer reserve offset.
+ *
+ * Uses read-acquire to ensure producers see the latest value before trying compare-exchange.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Producer reserve offset.
+ */
+inline static size_t
+_ring_read_producer_reserve_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return ReadULong64Acquire(&ring->producer_reserve_offset);
+}
+
+/**
+ * @brief Atomically advance the producer reserve offset to reserve space for a new record.
+ *
+ * Reserves space between expected_value and new_value if expected_value is returned.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @param[in] new_value New reserve offset to attempt to set.
+ * @param[in] expected_value Expected current reserve offset.
+ * @returns expected_value if the compare-exchange succeeded, otherwise the previous value.
+ */
+inline static size_t
+_ring_exchange_producer_reserve_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t new_value, size_t expected_value)
+{
+    return (uint64_t)ebpf_interlocked_compare_exchange_int64(
+        (volatile int64_t*)&ring->producer_reserve_offset, new_value, expected_value);
+}
+
+/**
  * @brief Get record size from data size (includes header).
  *
- * @param[in] data_size Size of the data in the record.
+ * Adds 8 bytes for the header and pads to 8 byte alignment.
+ *
+ * @param[in] data_length Length of the data in the record.
  * @return Size of the record.
  */
 inline static size_t
-_ring_record_size(size_t data_size)
+_ring_record_size(size_t data_length)
 {
-    return EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + data_size;
-}
-
-/**
- * @brief Pad a size to a multiple of 8 bytes.
- *
- * @param[in] size Size of the record.
- * @return Padded size of the record.
- */
-inline static size_t
-_ring_padded_size(size_t size)
-{
-    return (size + 7) & ~7;
-}
-
-/**
- * @brief Get the total size of a record (including header and padding).
- *
- * @param[in] record Pointer to the record.
- * @return Total size of the record.
- */
-inline static size_t
-_ring_record_total_size(_In_ const ebpf_ring_buffer_record_t* record)
-{
-    return _ring_padded_size(_ring_record_size(ebpf_ring_buffer_record_length(record)));
+    return ((EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + data_length) + 7) & ~7;
 }
 
 /**
@@ -89,7 +212,7 @@ _ring_record_total_size(_In_ const ebpf_ring_buffer_record_t* record)
  *
  * Excludes the lock and discard bits.
  *
- * @param[in] header_length record header.length
+ * @param[in] header_length Record header.length.
  * @return Length of the record.
  */
 inline static uint32_t
@@ -101,7 +224,7 @@ _ring_header_length(_In_ uint32_t header_length)
 /**
  * @brief Check if the record is locked from the header.
  *
- * @param[in] header_length record header.length
+ * @param[in] header_length Record header.length.
  * @retval true The record is locked.
  * @retval false The record is not locked.
  */
@@ -114,7 +237,7 @@ _ring_header_locked(_In_ uint32_t header_length)
 /**
  * @brief Check if the record is discarded from the header.
  *
- * @param[in] header_length record header.length
+ * @param[in] header_length Record header.length.
  * @retval true The record is discarded.
  * @retval false The record is not discarded.
  */
@@ -122,53 +245,6 @@ inline static bool
 _ring_header_discarded(_In_ uint32_t header_length)
 {
     return (header_length & EBPF_RINGBUF_DISCARD_BIT) != 0;
-}
-
-/**
- * @brief Initialize a record with the given length.
- *
- * Does a no-fence write to the record length.
- *
- * Ensure that the producer offset is updated AFTER the initialization is flushed.
- *
- * @param[in, out] record Pointer to the record.
- * @param[in] length Length of the record.
- */
-inline static void
-_ring_record_initialize(_Inout_ ebpf_ring_buffer_record_t* record, size_t length)
-{
-    record->header.page_offset = 0; // unused for now.
-    WriteUInt32NoFence(&record->header.length, (uint32_t)length | EBPF_RINGBUF_LOCK_BIT);
-}
-
-/**
- * @brief Finalize a record.
- *
- * Unlocks the record so it can be read.
- *
- * @param[in, out] record Pointer to the record.
- */
-inline static void
-_ring_record_finalize(_Inout_ ebpf_ring_buffer_record_t* record)
-{
-    uint32_t new_length = _ring_header_length(ReadUInt32Acquire(&record->header.length));
-    // Write release record header to ensure the record is unlocked AFTER the data is visible.
-    WriteUInt32Release(&record->header.length, new_length);
-}
-
-/**
- * @brief Discard a record.
- *
- * Marks the record as discarded so it will be skipped.
- *
- * @param[in, out] record Pointer to the record.
- */
-inline static void
-_ring_record_discard(_Inout_ ebpf_ring_buffer_record_t* record)
-{
-    uint32_t new_length = record->header.length & ~EBPF_RINGBUF_LOCK_BIT;
-    new_length |= EBPF_RINGBUF_DISCARD_BIT;
-    WriteUInt32NoFence(&record->header.length, new_length);
 }
 
 /**
@@ -181,20 +257,6 @@ inline static size_t
 _ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
 {
     return ring->length;
-}
-
-/**
- * @brief Get the used capacity of the ring.
- *
- * @param[in] ring Pointer to the ring.
- * @return Used capacity of the ring.
- */
-inline static size_t
-_ring_get_used_capacity(_In_ const ebpf_ring_buffer_t* ring)
-{
-    size_t consumer_offset = ReadULong64Acquire(&ring->consumer_offset);
-    size_t producer_offset = ReadULong64Acquire(&ring->producer_offset);
-    return producer_offset - consumer_offset;
 }
 
 /**
@@ -218,37 +280,35 @@ _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
  * @return Pointer to the next record or NULL if no more records.
  */
 _Must_inspect_result_ _Ret_maybenull_ ebpf_ring_buffer_record_t*
-_ring_next_consumer_record(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* next_offset)
+_ring_next_consumer_record(_In_ ebpf_ring_buffer_t* ring, _When_(return != NULL, _Out_) size_t* next_offset)
 {
-    size_t consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
-    size_t producer_offset = ReadULong64Acquire(&ring->producer_offset);
-    if (consumer_offset >= producer_offset) {
-        // Ring is empty.
-        return NULL;
-    }
-    // Consumer next record loop:
-    // 1. Read the record header.
-    // 2. If the the record is locked return NULL.
-    // 3. If the record is discarded, advance the consumer offset and repeat.
-    //    a. If the ring is now empty, return NULL.
-    // 4. Return the record and consumer offset after the record.
-    ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, consumer_offset);
-    uint32_t record_header = ReadUInt32Acquire(&record->header.length);
-    while (!_ring_header_locked(record_header)) {
+    size_t consumer_offset = _ring_get_consumer_offset(ring);
+    // Read-acquire the producer offset to ensure we see newly initialized record headers.
+    // - The producer write-releases the producer offset to ensure the header is initialized first.
+    size_t producer_offset = _ring_read_producer_offset_acquire(ring);
+
+    // Keep reading until we find a locked or submitted record (or the ring is empty).
+    while (producer_offset > consumer_offset) {
+        ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, consumer_offset);
+        // Read-acquire the record header to ensure the final record data is visible.
+        // - The producer write-releases the header to unlock to ensure any writes are completed first.
+        uint32_t record_header = _ring_record_read_header_acquire(record);
+
+        // If the record is locked, return NULL (records must be read in order).
+        if (_ring_header_locked(record_header)) {
+            return NULL;
+        }
+
         size_t record_length = _ring_header_length(record_header);
-        size_t total_record_size = _ring_padded_size(_ring_record_size(record_length));
+        size_t total_record_size = _ring_record_size(record_length);
         if (!_ring_header_discarded(record_header)) {
             *next_offset = consumer_offset + total_record_size;
             return record;
+        } else {
+            consumer_offset += total_record_size;
+            // Advance the consumer offset to return the discarded record space to the ring.
+            _ring_set_consumer_offset(ring, consumer_offset);
         }
-        consumer_offset += total_record_size;
-        WriteULong64NoFence(&ring->consumer_offset, consumer_offset);
-        producer_offset = ReadULong64NoFence(&ring->producer_offset);
-        if (consumer_offset >= producer_offset) {
-            return NULL;
-        }
-        record = _ring_record_at_offset(ring, consumer_offset);
-        record_header = ReadUInt32Acquire(&record->header.length);
     }
     return NULL;
 }
@@ -317,15 +377,9 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(lengt
 void
 ebpf_ring_buffer_query(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _Out_ size_t* producer)
 {
-    *consumer = ReadULong64NoFence(&ring->consumer_offset);
-    *producer = ReadULong64Acquire(&ring->producer_offset);
-}
-
-void
-ebpf_ring_buffer_query_nofence(_In_ ebpf_ring_buffer_t* ring, _Out_ size_t* consumer, _Out_ size_t* producer)
-{
-    *consumer = ReadULong64NoFence(&ring->consumer_offset);
-    *producer = ReadULong64NoFence(&ring->producer_offset);
+    *consumer = _ring_get_consumer_offset(ring);
+    // Read-acquire the producer offset to ensure any newly reserved record headers are visible after query returns.
+    *producer = _ring_read_producer_offset_acquire(ring);
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -334,8 +388,16 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
     size_t local_length = length;
+    size_t ring_length = _ring_get_length(ring);
 
-    if ((length > _ring_get_length(ring)) || length > _ring_get_used_capacity(ring)) {
+    size_t consumer_offset = _ring_get_consumer_offset(ring);
+    // Read-acquire the producer offset to ensure we see newly initialized record headers.
+    // - The consumer should only be returning previously unlocked records, but this is necessary
+    //   to validate the return.
+    size_t producer_offset = _ring_read_producer_offset_acquire(ring);
+
+    size_t used_capacity = producer_offset - consumer_offset;
+    if ((length > ring_length) || length > used_capacity) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
@@ -346,13 +408,15 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
         goto Done;
     }
 
-    size_t consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
-    // Verify count.
+    // Verify length is the sum of record data lengths.
     while (local_length != 0) {
         ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, consumer_offset);
-        uint32_t record_header = ReadUInt32Acquire(&record->header.length);
+        // Read-acquire record header to ensure we see the final record data.
+        // - The producer write-releases the header to unlock to ensure any writes to the data are visible first.
+        // - Even if the record is discarded, we need to make sure it's writes are visible before it can be re-used.
+        uint32_t record_header = _ring_record_read_header_acquire(record);
         size_t record_length = _ring_header_length(record_header);
-        size_t total_record_size = _ring_padded_size(_ring_record_size(record_length));
+        size_t total_record_size = _ring_record_size(record_length);
         if (local_length < record_length) {
             break;
         }
@@ -370,7 +434,8 @@ ebpf_ring_buffer_return(_Inout_ ebpf_ring_buffer_t* ring, size_t length)
         goto Done;
     }
 
-    WriteULong64NoFence(&ring->consumer_offset, consumer_offset);
+    // Advanced the consumer offset to return the space to the ring.
+    _ring_set_consumer_offset(ring, consumer_offset);
     result = EBPF_SUCCESS;
 
 Done:
@@ -383,8 +448,11 @@ ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring, size_t consumer
     EBPF_LOG_ENTRY();
     ebpf_result_t result;
 
-    size_t local_consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
-    size_t producer_offset = ReadULong64Acquire(&ring->producer_offset);
+    size_t local_consumer_offset = _ring_get_consumer_offset(ring);
+    // Read-acquire the producer offset to ensure we see newly initialized record headers.
+    // - The consumer should only be returning previously unlocked records, but this is necessary
+    //   to validate the return.
+    size_t producer_offset = _ring_read_producer_offset_acquire(ring);
 
     if (consumer_offset > producer_offset) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
@@ -397,11 +465,15 @@ ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring, size_t consumer
         goto Done;
     }
 
+    // Verify new consumer offset is on a record boundary.
     while (local_consumer_offset < consumer_offset) {
         ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, local_consumer_offset);
-        uint32_t record_header = ReadUInt32Acquire(&record->header.length);
+        // Read-acquire record header to ensure we see the final record data.
+        // - The producer write-releases the header to unlock to ensure any writes to the data are visible first.
+        // - Even if the record is discarded, we need to make sure it's writes are visible before it can be re-used.
+        uint32_t record_header = _ring_record_read_header_acquire(record);
         size_t record_length = _ring_header_length(record_header);
-        size_t total_record_size = _ring_padded_size(_ring_record_size(record_length));
+        size_t total_record_size = _ring_record_size(record_length);
         local_consumer_offset += total_record_size;
     }
 
@@ -415,7 +487,8 @@ ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring, size_t consumer
         goto Done;
     }
 
-    WriteULong64NoFence(&ring->consumer_offset, consumer_offset);
+    // Advanced the consumer offset to return the space to the ring.
+    _ring_set_consumer_offset(ring, consumer_offset);
     result = EBPF_SUCCESS;
 Done:
     EBPF_RETURN_RESULT(result);
@@ -434,9 +507,11 @@ ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring, _Outptr_ uint8_
 
 _Must_inspect_result_ _Ret_maybenull_ const ebpf_ring_buffer_record_t*
 ebpf_ring_buffer_next_consumer_record(
-    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ const uint8_t* buffer, _Out_ size_t* end_offset)
+    _Inout_ ebpf_ring_buffer_t* ring_buffer,
+    _In_ const uint8_t* buffer,
+    _When_(return != NULL, _Out_) size_t* next_offset)
 {
-    ebpf_ring_buffer_record_t* record = _ring_next_consumer_record(ring_buffer, end_offset);
+    ebpf_ring_buffer_record_t* record = _ring_next_consumer_record(ring_buffer, next_offset);
     if (record) {
         return (ebpf_ring_buffer_record_t*)(buffer + ((uint8_t*)record - ring_buffer->shared_buffer));
     } else {
@@ -454,55 +529,58 @@ ebpf_ring_buffer_reserve(
 {
     uint32_t record_header = (uint32_t)length | EBPF_RINGBUF_LOCK_BIT;
     size_t ring_capacity = _ring_get_length(ring);
-    size_t record_size = _ring_record_size(length);
-    size_t padded_record_size = _ring_padded_size(record_size);
-    if (padded_record_size > ring_capacity || length == 0 || length > (1ULL << 30)) {
+    size_t total_record_size = _ring_record_size(length);
+    if (total_record_size > ring_capacity || length == 0 || length >= (1ULL << 30)) {
         return EBPF_INVALID_ARGUMENT;
     }
 
-    size_t consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
-    size_t reserve_offset = ReadULong64Acquire(&ring->producer_reserve_offset);
-    size_t used_capacity = reserve_offset - consumer_offset;
-    if (used_capacity + padded_record_size > ring_capacity) {
-        return EBPF_NO_MEMORY;
+    size_t consumer_offset = _ring_get_consumer_offset(ring);
+    // Acquire producer_reserve_offset to ensure we see the latest value before checking for space.
+    // - Avoids needing to raise irql to dispatch if there is no space.
+    size_t reserve_offset = _ring_read_producer_reserve_offset_acquire(ring);
+    size_t new_reserve_offset = reserve_offset + total_record_size;
+    if (new_reserve_offset - consumer_offset > ring_capacity) {
+        return EBPF_NO_MEMORY; // Not enough space for record.
     }
-
-    //  Reservation loop:
-    //  - No fairness guarantee, but does guarantee progress on each race/collision
-    //  - Still needs to run at dispatch (or if all threads were passive you could yield in the spin loop)
-    //  - All but one of the Read/Write ops could be NoFence
-    //    - with NoFence possible extra spinning or failing when nearly full (and maybe worse fairness?)
-    //  - Synchronization:
-    //    - CompareExchange serializes allocation (using producer_reserve_offset)
-    //    - spin loop serializes offset updates between producers (ensure previous allocations are locked)
-    //    - producer_offset WriteRelease serializes lock and offset update (lock before offset update)
 
     ebpf_result_t result = EBPF_SUCCESS;
     KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
     for (;;) {
+        // Reserve loop synchronization:
+        // - Compare-exchange serializes reservations (using producer_reserve_offset).
+        //   - Checking for space before compare-exchange prevents producers from overflowing the ring.
+        // - Spin loop serializes offset updates between producers (and ensures previous allocations are locked).
+        // - producer_offset write-release serializes lock and offset update (lock before offset update).
+
         // Acquire producer_reserve_offset to ensure we see the latest value before compare exchange.
-        size_t new_reserve_offset = reserve_offset + padded_record_size;
+        // - An older value increases the chances of needing to retry the compare-exchange.
+        reserve_offset = _ring_read_producer_reserve_offset_acquire(ring);
+        new_reserve_offset = reserve_offset + total_record_size;
         if (new_reserve_offset - consumer_offset > ring_capacity) {
-            result = EBPF_NO_MEMORY; // Not enough space for record
+            result = EBPF_NO_MEMORY; // Not enough space for record.
             goto Done;
         }
-        size_t old_reserve_offset = (uint64_t)ebpf_interlocked_compare_exchange_int64(
-            (volatile int64_t*)&ring->producer_reserve_offset, new_reserve_offset, reserve_offset);
+
+        size_t old_reserve_offset = _ring_exchange_producer_reserve_offset(ring, new_reserve_offset, reserve_offset);
         if (old_reserve_offset == reserve_offset) {
             // We successfully allocated the space -- now we need to lock the record and *then* update producer offset.
 
             ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
             record->header.page_offset = 0; // unused for now.
-            WriteUInt32NoFence(&record->header.length, record_header);
+
+            // Initialize the record header.
+            // - We can no-fence write here, the write-release below ensures the locked header is visible first.
+            _ring_record_write_header_nofence(record, record_header);
 
             // There may be multiple producers that all advanced the producer reserve offset but haven't set the locked
             // flag yet. We need the following guarantees from this race between concurrent reservations:
-            // 1. Any newly reserved record is locked before the consumer first sees it.
+            // 1. Any newly reserved record is locked by the time the consumer first sees it.
             //     - It could be written and unlocked before the consumer sees it, but it can't be uninitialized.
             //     - Guaranteed for the current record by the release write of the producer offset below.
-            //       - Release ensures that the locked record header is visible before the producer offset update.
+            //       - Release ensures that the locked record header is visible no later than the producer offset
+            //         update.
             //       - The consumer can only look at records between consumer and producer offsets,
-            //         so the header will be locked before the consumer first sees it.
+            //         so the header will be locked by the time the consumer first sees it.
             //     - We also need to ensure any previous records are locked before we advance offset (explained below).
             // 2. producer offset is monotonically increasing.
             //
@@ -514,18 +592,18 @@ ebpf_ring_buffer_reserve(
             // - This guarantees (2) because it ensures the producer offset updates happen in order.
             //     - We wait to update until all previous offset updates are visible, so the producer offset always
             //       steps forward 1 record at a time.
-            while (reserve_offset != ReadULong64Acquire(&ring->producer_offset)) {
+            while (reserve_offset != _ring_read_producer_offset_acquire(ring)) {
                 // We shouldn't need to spin long - at dispatch the worst case is waiting for N-1 producers to update
                 // the offset before us.
             }
-            // Release producer offset to ensure ordering with setting the lock bit in initialize above.
-            WriteULong64Release(&ring->producer_offset, new_reserve_offset);
+            // Release producer offset to ensure lock bit is visible before offset update.
+            _ring_write_producer_offset_release(ring, new_reserve_offset);
             *data = record->data;
             goto Done; // We have successfully reserved record, now can write+submit/discard.
         }
         // We lost the race and need to try again (but another process suceeded).
-        // Get updated consumer_offset (not needed for safety, but lessens chance of failing on mostly full buffer).
-        consumer_offset = ReadULong64NoFence(&ring->consumer_offset);
+        // Get updated consumer_offset (lessens chance of failing on mostly full buffer).
+        consumer_offset = _ring_get_consumer_offset(ring);
         // Try again from the reserve offset we got from the compare exchange.
         reserve_offset = old_reserve_offset;
     }
@@ -543,7 +621,12 @@ ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
     }
     ebpf_ring_buffer_record_t* record =
         (ebpf_ring_buffer_record_t*)(data - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
-    _ring_record_finalize(record);
+    // We can no-fence read the record header since we reserved this record so we already have the latest value.
+    uint32_t header = _ring_record_read_header_nofence(record);
+    // Clear the lock and discard bits from the header.
+    header = _ring_header_length(header);
+    // Write-release record header to ensure the record is unlocked AFTER any writes to the record data are visible.
+    _ring_record_write_header_release(record, header);
     return EBPF_SUCCESS;
 }
 
@@ -555,6 +638,11 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
     }
     ebpf_ring_buffer_record_t* record =
         (ebpf_ring_buffer_record_t*)(data - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
-    _ring_record_discard(record);
+    // We can no-fence read the record header since we reserved this record so we already have the latest value.
+    uint32_t header = _ring_record_read_header_nofence(record);
+    // Clear the lock bit from the header and set the discard bit.
+    header = (header & ~EBPF_RINGBUF_LOCK_BIT) | EBPF_RINGBUF_DISCARD_BIT;
+    // Write-release the record header to ensure any writes to the discarded record are completed first.
+    _ring_record_write_header_release(record, header);
     return EBPF_SUCCESS;
 }

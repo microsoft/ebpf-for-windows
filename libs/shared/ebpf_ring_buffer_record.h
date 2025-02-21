@@ -29,14 +29,15 @@ typedef struct _ebpf_ring_buffer_record
 inline const bool
 ebpf_ring_buffer_record_is_locked(_In_ const ebpf_ring_buffer_record_t* record)
 {
+    // Uses read-acquire to ensure that if the records is unlocked and not discarded that the data is visible.
     return (ReadUInt32Acquire(&record->header.length) & EBPF_RINGBUF_LOCK_BIT) != 0;
 }
 
 /**
  * @brief Determine if the record is discarded (only valid if unlocked).
  *
- * If the record is discarded then length+header bytes are returned.
- * If the record is not discarded then length bytes are available for reading.
+ * If the record is discarded then the consumer should skip the record.
+ * If the record is not discarded then the data is valid and can be read.
  *
  * @param[in] record Pointer to the record.
  * @return True if the record is discarded.
@@ -44,13 +45,12 @@ ebpf_ring_buffer_record_is_locked(_In_ const ebpf_ring_buffer_record_t* record)
 inline const bool
 ebpf_ring_buffer_record_is_discarded(_In_ const ebpf_ring_buffer_record_t* record)
 {
+    // We check the lock bit using read-acquire before checking for discard, so we can use no-fence here.
     return (ReadUInt32NoFence(&record->header.length) & EBPF_RINGBUF_DISCARD_BIT) != 0;
 }
 
 /**
- * @brief Get the length of the record.
- *
- * Excludes the lock and discard bits.
+ * @brief Get the length of the record (only valid if unlocked).
  *
  * @param[in] record Pointer to the record.
  * @return Length of the record.
@@ -61,6 +61,14 @@ ebpf_ring_buffer_record_length(_In_ const ebpf_ring_buffer_record_t* record)
     return ReadUInt32NoFence(&record->header.length) & ~(EBPF_RINGBUF_LOCK_BIT | EBPF_RINGBUF_DISCARD_BIT);
 }
 
+/**
+ * @brief Get the total size of the record (including header and padding).
+ *
+ * Record includes 8 byte header and is padded to 8 byte alignment.
+ *
+ * @param[in] record Pointer to the record.
+ * @return Total size of the record.
+ */
 inline const uint32_t
 ebpf_ring_buffer_record_total_size(_In_ const ebpf_ring_buffer_record_t* record)
 {
