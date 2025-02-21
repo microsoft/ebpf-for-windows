@@ -2,8 +2,8 @@ var searchData=
 [
   ['ack_0',['ack',['../structtcphdr.html#a8db4a6da83ebda80ae16bd0966efb113',1,'tcphdr']]],
   ['ack_5fseq_1',['ack_seq',['../structtcphdr.html#af8695b70d6dd607dc940bedf227244d0',1,'tcphdr']]],
-  ['address_2',['address',['../struct__helper__function__entry.html#ab95deadbb8760761b4abebeb09cdee32',1,'_helper_function_entry::address'],['../struct__map__entry.html#a7efb3c8710c2310664cddc3e29df259b',1,'_map_entry::address']]],
-  ['address_5fof_5fmap_5fvalue_3',['address_of_map_value',['../struct__global__variable__section.html#a36ee1418053995fb1e41137e22312760',1,'_global_variable_section']]],
+  ['address_2',['address',['../struct__helper__function__data.html#a84fec24eecf29a25daa8038367beb97f',1,'_helper_function_data::address'],['../struct__map__data.html#a48cbd1d7401f5d3888e9a1365cd8d500',1,'_map_data::address']]],
+  ['address_5fof_5fmap_5fvalue_3',['address_of_map_value',['../struct__global__variable__section__data.html#a3b5d4bf053578a7121c85587c097c979',1,'_global_variable_section_data']]],
   ['af_5finet_4',['AF_INET',['../net_2ip_8h.html#a9930604d0e32588eae76f43ca38e7826',1,'ip.h']]],
   ['af_5finet6_5',['AF_INET6',['../net_2ip_8h.html#aa03706b2738b9a58d4985dfbe99e1bac',1,'ip.h']]],
   ['api_20reference_6',['eBPF User-Mode API Reference',['../index.html#api',1,'']]],

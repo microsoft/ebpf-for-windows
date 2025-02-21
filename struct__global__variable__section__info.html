@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>eBPF for Windows: _map_entry Struct Reference</title>
+<title>eBPF for Windows: _global_variable_section_info Struct Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -71,63 +71,58 @@ $(function() {
 <div class="header">
   <div class="summary">
 <a href="#pub-attribs">Data Fields</a>  </div>
-  <div class="headertitle"><div class="title">_map_entry Struct Reference</div></div>
+  <div class="headertitle"><div class="title">_global_variable_section_info Struct Reference</div></div>
 </div><!--header-->
 <div class="contents">
-
-<p>Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  
- <a href="struct__map__entry.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="bpf2c_8h_source.html">bpf2c.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
 Data Fields</h2></td></tr>
-<tr class="memitem:aec4ee40059e670ef9d4df83ff2673af1" id="r_aec4ee40059e670ef9d4df83ff2673af1"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#aec4ee40059e670ef9d4df83ff2673af1">zero_marker</a></td></tr>
-<tr class="separator:aec4ee40059e670ef9d4df83ff2673af1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a31187c769688bcf5b135c31b2fee8b97" id="r_a31187c769688bcf5b135c31b2fee8b97"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a31187c769688bcf5b135c31b2fee8b97">definition</a></td></tr>
-<tr class="separator:a31187c769688bcf5b135c31b2fee8b97"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9b2c00fca7e13af746057d80389477a5" id="r_a9b2c00fca7e13af746057d80389477a5"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html#a9b2c00fca7e13af746057d80389477a5">name</a></td></tr>
-<tr class="separator:a9b2c00fca7e13af746057d80389477a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6623dc649acbab5ae16fa49c824c5622" id="r_a6623dc649acbab5ae16fa49c824c5622"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__global__variable__section__info.html#a6623dc649acbab5ae16fa49c824c5622">name</a></td></tr>
+<tr class="separator:a6623dc649acbab5ae16fa49c824c5622"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1b37f7ef12e32c1d5408b9a494725bab" id="r_a1b37f7ef12e32c1d5408b9a494725bab"><td class="memItemLeft" align="right" valign="top">size_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__global__variable__section__info.html#a1b37f7ef12e32c1d5408b9a494725bab">size</a></td></tr>
+<tr class="separator:a1b37f7ef12e32c1d5408b9a494725bab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3e26dc6d1288087f2ebbc869a85f15ba" id="r_a3e26dc6d1288087f2ebbc869a85f15ba"><td class="memItemLeft" align="right" valign="top">const void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__global__variable__section__info.html#a3e26dc6d1288087f2ebbc869a85f15ba">initial_data</a></td></tr>
+<tr class="separator:a3e26dc6d1288087f2ebbc869a85f15ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
-<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded. </p>
-</div><h2 class="groupheader">Field Documentation</h2>
-<a id="a31187c769688bcf5b135c31b2fee8b97" name="a31187c769688bcf5b135c31b2fee8b97"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a31187c769688bcf5b135c31b2fee8b97">&#9670;&#160;</a></span>definition</h2>
+<h2 class="groupheader">Field Documentation</h2>
+<a id="a3e26dc6d1288087f2ebbc869a85f15ba" name="a3e26dc6d1288087f2ebbc869a85f15ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3e26dc6d1288087f2ebbc869a85f15ba">&#9670;&#160;</a></span>initial_data</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="ebpf__structs_8h.html#ab8db12973e5e476b352a3a3c7470a635">ebpf_map_definition_in_file_t</a> _map_entry::definition</td>
+          <td class="memname">const void* _global_variable_section_info::initial_data</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="a9b2c00fca7e13af746057d80389477a5" name="a9b2c00fca7e13af746057d80389477a5"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a9b2c00fca7e13af746057d80389477a5">&#9670;&#160;</a></span>name</h2>
+<a id="a6623dc649acbab5ae16fa49c824c5622" name="a6623dc649acbab5ae16fa49c824c5622"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6623dc649acbab5ae16fa49c824c5622">&#9670;&#160;</a></span>name</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">const char* _map_entry::name</td>
+          <td class="memname">const char* _global_variable_section_info::name</td>
         </tr>
       </table>
 </div><div class="memdoc">
 
 </div>
 </div>
-<a id="aec4ee40059e670ef9d4df83ff2673af1" name="aec4ee40059e670ef9d4df83ff2673af1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aec4ee40059e670ef9d4df83ff2673af1">&#9670;&#160;</a></span>zero_marker</h2>
+<a id="a1b37f7ef12e32c1d5408b9a494725bab" name="a1b37f7ef12e32c1d5408b9a494725bab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1b37f7ef12e32c1d5408b9a494725bab">&#9670;&#160;</a></span>size</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">uint64_t _map_entry::zero_marker</td>
+          <td class="memname">size_t _global_variable_section_info::size</td>
         </tr>
       </table>
 </div><div class="memdoc">

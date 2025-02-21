@@ -7,7 +7,7 @@ var searchData=
   ['implicit_5fcontext_4',['implicit_context',['../struct__ebpf__helper__function__prototype.html#a519e194f4e1c37b9e1ad379d41173c64',1,'_ebpf_helper_function_prototype']]],
   ['info_5',['info',['../structsys__bpf__obj__info__attr__t.html#ae4ee847e68a7c715cfe712d694f18041',1,'sys_bpf_obj_info_attr_t::info'],['../unionbpf__attr.html#a5167d394f58d878bde46fa44599a779d',1,'bpf_attr::info']]],
   ['info_5flen_6',['info_len',['../structsys__bpf__obj__info__attr__t.html#a0e2e5d0ddbff16ee01fa9a5d38097a18',1,'sys_bpf_obj_info_attr_t']]],
-  ['initial_5fdata_7',['initial_data',['../struct__global__variable__section.html#a57d64efa1aa1eaf489f4bd8801d02b0e',1,'_global_variable_section']]],
+  ['initial_5fdata_7',['initial_data',['../struct__global__variable__section__info.html#a3e26dc6d1288087f2ebbc869a85f15ba',1,'_global_variable_section_info']]],
   ['inner_5fid_8',['inner_id',['../struct__ebpf__map__definition__in__file.html#a0bb84e3cada95d12d3cc0a1c24061aa6',1,'_ebpf_map_definition_in_file']]],
   ['inner_5fmap_5ffd_9',['inner_map_fd',['../structbpf__create__map__attr.html#a1dd086f9bf6e270211fbdf8fb1708e1f',1,'bpf_create_map_attr::inner_map_fd'],['../structsys__bpf__map__create__attr__t.html#acd91f40f3d8485a1399f7de3ab1f4346',1,'sys_bpf_map_create_attr_t::inner_map_fd']]],
   ['inner_5fmap_5fid_10',['inner_map_id',['../struct__ebpf__map__definition__in__memory.html#a3b8e470365252209c395e43a6f6268e5',1,'_ebpf_map_definition_in_memory::inner_map_id'],['../structbpf__map__info.html#aefd5ad96b9dac363133f7eec528241d9',1,'bpf_map_info::inner_map_id']]],

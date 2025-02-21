@@ -93,13 +93,21 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__helper__function__entry.html">_helper_function_entry</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper function entry. This structure defines a helper function entry in the metadata table. The address of the helper function is written into the entry during load time. The helper_id and name are used to identify the helper function to bind to when the program is loaded.  <a href="struct__helper__function__entry.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__helper__function__data.html">_helper_function_data</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__entry.html">_map_entry</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  <a href="struct__map__entry.html#details">More...</a><br /></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__data.html">_map_data</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__map__initial__values.html">_map_initial_values</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map initial values. This structure contains the initial values for a map. The values are used to initialize the map when the program is loaded. Values are specified as strings and are converted to the appropriate type based on the map definition. Only BPF_MAP_TYPE_ARRAY_OF_MAPS and BPF_MAP_TYPE_PROG_ARRAY map types are supported.  <a href="struct__map__initial__values.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__global__variable__section.html">_global_variable_section</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__global__variable__section__info.html">_global_variable_section_info</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__global__variable__section__data.html">_global_variable_section_data</a></td></tr>
+<tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__runtime__context.html">_program_runtime_context</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__program__entry.html">_program_entry</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program entry. This structure contains the address of the program and additional information about the program.  <a href="struct__program__entry.html#details">More...</a><br /></td></tr>
@@ -133,6 +141,8 @@ Macros</h2></td></tr>
 <tr class="separator:ae7097d76cf5c7bb23224f24684898158"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa7a69f75140a2833eade65985ad2f258" id="r_aa7a69f75140a2833eade65985ad2f258"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#aa7a69f75140a2833eade65985ad2f258">htole64</a>(X)&#160;&#160;&#160;(X)</td></tr>
 <tr class="separator:aa7a69f75140a2833eade65985ad2f258"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac830dd94a45984c0ad47afc38882bdbf" id="r_ac830dd94a45984c0ad47afc38882bdbf"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#ac830dd94a45984c0ad47afc38882bdbf">UNREFERENCED_PARAMETER</a>(P)&#160;&#160;&#160;(P)</td></tr>
+<tr class="separator:ac830dd94a45984c0ad47afc38882bdbf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -141,14 +151,22 @@ Typedefs</h2></td></tr>
 <tr class="memitem:a5a615dcc4f1c8b536fd125680aa93b72" id="r_a5a615dcc4f1c8b536fd125680aa93b72"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__helper__function__entry.html">_helper_function_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a5a615dcc4f1c8b536fd125680aa93b72">helper_function_entry_t</a></td></tr>
 <tr class="memdesc:a5a615dcc4f1c8b536fd125680aa93b72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Helper function entry. This structure defines a helper function entry in the metadata table. The address of the helper function is written into the entry during load time. The helper_id and name are used to identify the helper function to bind to when the program is loaded.  <br /></td></tr>
 <tr class="separator:a5a615dcc4f1c8b536fd125680aa93b72"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f094fb022a7289457a5be6137d539e6" id="r_a1f094fb022a7289457a5be6137d539e6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__helper__function__data.html">_helper_function_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a1f094fb022a7289457a5be6137d539e6">helper_function_data_t</a></td></tr>
+<tr class="separator:a1f094fb022a7289457a5be6137d539e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fe28d06b61887b8c086b1e132383707" id="r_a4fe28d06b61887b8c086b1e132383707"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__map__entry.html">_map_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a4fe28d06b61887b8c086b1e132383707">map_entry_t</a></td></tr>
 <tr class="memdesc:a4fe28d06b61887b8c086b1e132383707"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map entry. This structure contains the address of the map and the map definition. The address is written into the entry during load time. The map definition is used to initialize the map when the program is loaded.  <br /></td></tr>
 <tr class="separator:a4fe28d06b61887b8c086b1e132383707"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af45ac346ab14cec26f631b340cd5eba6" id="r_af45ac346ab14cec26f631b340cd5eba6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__map__data.html">_map_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#af45ac346ab14cec26f631b340cd5eba6">map_data_t</a></td></tr>
+<tr class="separator:af45ac346ab14cec26f631b340cd5eba6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2d64bfaad7d0350bb6caae0bc9316e70" id="r_a2d64bfaad7d0350bb6caae0bc9316e70"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__map__initial__values.html">_map_initial_values</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a2d64bfaad7d0350bb6caae0bc9316e70">map_initial_values_t</a></td></tr>
 <tr class="memdesc:a2d64bfaad7d0350bb6caae0bc9316e70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Map initial values. This structure contains the initial values for a map. The values are used to initialize the map when the program is loaded. Values are specified as strings and are converted to the appropriate type based on the map definition. Only BPF_MAP_TYPE_ARRAY_OF_MAPS and BPF_MAP_TYPE_PROG_ARRAY map types are supported.  <br /></td></tr>
 <tr class="separator:a2d64bfaad7d0350bb6caae0bc9316e70"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a14e4423924a9315668d0313155978d1c" id="r_a14e4423924a9315668d0313155978d1c"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__global__variable__section.html">_global_variable_section</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a14e4423924a9315668d0313155978d1c">global_variable_section_t</a></td></tr>
-<tr class="separator:a14e4423924a9315668d0313155978d1c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1d69b43d3940e588f9b7b4c29d5903f8" id="r_a1d69b43d3940e588f9b7b4c29d5903f8"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__global__variable__section__info.html">_global_variable_section_info</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a1d69b43d3940e588f9b7b4c29d5903f8">global_variable_section_info_t</a></td></tr>
+<tr class="separator:a1d69b43d3940e588f9b7b4c29d5903f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7be3c6dae7de4658e983f20dc5c19fea" id="r_a7be3c6dae7de4658e983f20dc5c19fea"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__global__variable__section__data.html">_global_variable_section_data</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a7be3c6dae7de4658e983f20dc5c19fea">global_variable_section_data_t</a></td></tr>
+<tr class="separator:a7be3c6dae7de4658e983f20dc5c19fea"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0a39201ab67e6be5778bcc511e9953e6" id="r_a0a39201ab67e6be5778bcc511e9953e6"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__program__runtime__context.html">_program_runtime_context</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a></td></tr>
+<tr class="separator:a0a39201ab67e6be5778bcc511e9953e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa90fb1b455357ca56d50c4eaab83f7a0" id="r_aa90fb1b455357ca56d50c4eaab83f7a0"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__program__entry.html">_program_entry</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf2c_8h.html#aa90fb1b455357ca56d50c4eaab83f7a0">program_entry_t</a></td></tr>
 <tr class="memdesc:aa90fb1b455357ca56d50c4eaab83f7a0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Program entry. This structure contains the address of the program and additional information about the program.  <br /></td></tr>
 <tr class="separator:aa90fb1b455357ca56d50c4eaab83f7a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -348,6 +366,24 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="ac830dd94a45984c0ad47afc38882bdbf" name="ac830dd94a45984c0ad47afc38882bdbf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac830dd94a45984c0ad47afc38882bdbf">&#9670;&#160;</a></span>UNREFERENCED_PARAMETER</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define UNREFERENCED_PARAMETER</td>
+          <td>(</td>
+          <td class="paramtype">&#160;</td>
+          <td class="paramname">P</td><td>)</td>
+          <td>&#160;&#160;&#160;(P)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <h2 class="groupheader">Typedef Documentation</h2>
 <a id="ab89f9a3008e6862217c45fc719bc5869" name="ab89f9a3008e6862217c45fc719bc5869"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab89f9a3008e6862217c45fc719bc5869">&#9670;&#160;</a></span>bpf2c_version_t</h2>
@@ -365,14 +401,42 @@ Functions</h2></td></tr>
 
 </div>
 </div>
-<a id="a14e4423924a9315668d0313155978d1c" name="a14e4423924a9315668d0313155978d1c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a14e4423924a9315668d0313155978d1c">&#9670;&#160;</a></span>global_variable_section_t</h2>
+<a id="a7be3c6dae7de4658e983f20dc5c19fea" name="a7be3c6dae7de4658e983f20dc5c19fea"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7be3c6dae7de4658e983f20dc5c19fea">&#9670;&#160;</a></span>global_variable_section_data_t</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">typedef struct <a class="el" href="struct__global__variable__section.html">_global_variable_section</a> <a class="el" href="bpf2c_8h.html#a14e4423924a9315668d0313155978d1c">global_variable_section_t</a></td>
+          <td class="memname">typedef struct <a class="el" href="struct__global__variable__section__data.html">_global_variable_section_data</a> <a class="el" href="bpf2c_8h.html#a7be3c6dae7de4658e983f20dc5c19fea">global_variable_section_data_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1d69b43d3940e588f9b7b4c29d5903f8" name="a1d69b43d3940e588f9b7b4c29d5903f8"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1d69b43d3940e588f9b7b4c29d5903f8">&#9670;&#160;</a></span>global_variable_section_info_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__global__variable__section__info.html">_global_variable_section_info</a> <a class="el" href="bpf2c_8h.html#a1d69b43d3940e588f9b7b4c29d5903f8">global_variable_section_info_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1f094fb022a7289457a5be6137d539e6" name="a1f094fb022a7289457a5be6137d539e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1f094fb022a7289457a5be6137d539e6">&#9670;&#160;</a></span>helper_function_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__helper__function__data.html">_helper_function_data</a> <a class="el" href="bpf2c_8h.html#a1f094fb022a7289457a5be6137d539e6">helper_function_data_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -403,6 +467,20 @@ Functions</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef uint64_t(* helper_function_t) (uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, void *)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af45ac346ab14cec26f631b340cd5eba6" name="af45ac346ab14cec26f631b340cd5eba6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af45ac346ab14cec26f631b340cd5eba6">&#9670;&#160;</a></span>map_data_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__map__data.html">_map_data</a> <a class="el" href="bpf2c_8h.html#af45ac346ab14cec26f631b340cd5eba6">map_data_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -470,6 +548,20 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 
 <p>Program entry. This structure contains the address of the program and additional information about the program. </p>
+
+</div>
+</div>
+<a id="a0a39201ab67e6be5778bcc511e9953e6" name="a0a39201ab67e6be5778bcc511e9953e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0a39201ab67e6be5778bcc511e9953e6">&#9670;&#160;</a></span>program_runtime_context_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__program__runtime__context.html">_program_runtime_context</a> <a class="el" href="bpf2c_8h.html#a0a39201ab67e6be5778bcc511e9953e6">program_runtime_context_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
 
 </div>
 </div>
