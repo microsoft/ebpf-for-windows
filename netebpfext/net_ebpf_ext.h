@@ -141,8 +141,7 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     bool context_deleting : 1; ///< True if all the clients have been detached and the context is being deleted.
     bool wildcard : 1;         ///< True if the filter context is for wildcard filters.
     bool initialized : 1;      ///< True if the filter context has been successfully initialized.
-    bool in_cleanup_list : 1;
-    HANDLE wfp_engine_handle; ///< WFP engine handle.
+    HANDLE wfp_engine_handle;  ///< WFP engine handle.
 } net_ebpf_extension_wfp_filter_context_t;
 
 /**

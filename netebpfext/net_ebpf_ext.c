@@ -23,6 +23,7 @@ Environment:
 #include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
 
+#define XMSTO100NS(x) ((x)*10000)
 #define SUBLAYER_WEIGHT_MAXIMUM 0xFFFF
 
 // Globals.
@@ -773,7 +774,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     NTSTATUS status;
     int max_retries = 10;
     LARGE_INTEGER timeout = {0};
-    timeout.QuadPart = -100000000; // 10 seconds.
+    timeout.QuadPart = -XMSTO100NS(10000); // 10 seconds
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -867,7 +868,8 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             "Leaked WFP Filters found. Processing cleanup.");
         _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list = TRUE;
 
-        // Allow some time for WFP to signal deletion for the filters.
+        // Allow some time for WFP to signal deletion for the filters. KeWaitForSingleObject also requires dropping the
+        // IRQL level and therefore the lock.
         ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
         status = KeWaitForSingleObject(
             &_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, Executive, KernelMode, FALSE, &timeout);
@@ -882,7 +884,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
             PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
             net_ebpf_extension_wfp_filter_context_t* filter_context =
                 CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
-            filter_context->in_cleanup_list = FALSE;
+            InitializeListHead(&filter_context->link);
 
             // Release lock as we process the entry. DEREFERENCE_FILTER_CONTEXT also acquires the lock.
             ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
@@ -894,7 +896,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
                     leaked_filter_count++;
                     NET_EBPF_EXT_LOG_MESSAGE_UINT64(
-                        NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+                        NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
                         NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
                         "Releasing reference for leaked WFP filter.",
                         filter_id->id);
@@ -1143,17 +1145,16 @@ net_ebpf_ext_add_filter_context_to_cleanup_list(_Inout_ net_ebpf_extension_wfp_f
 {
     KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
     InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list, &filter_context->link);
-    filter_context->in_cleanup_list = TRUE;
     ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
 }
 
 void
 net_ebpf_ext_remove_filter_context_from_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
 {
-    if (filter_context->in_cleanup_list) {
+    if (!IsListEmpty(&filter_context->link)) {
         KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
         RemoveEntryList(&filter_context->link);
-        filter_context->in_cleanup_list = FALSE;
+        InitializeListHead(&filter_context->link);
         if (IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list) &&
             _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list) {
             KeSetEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, 0, FALSE);
