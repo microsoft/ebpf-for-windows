@@ -145,7 +145,12 @@ main(int argc, char** argv)
 
     program_entry_t* program_entries = nullptr;
     size_t program_entry_count = 0;
+    std::vector<program_runtime_context_t> runtime_contexts;
+    std::vector<std::vector<helper_function_data_t>> helper_function_array;
+
     metadata_table.programs(&program_entries, &program_entry_count);
+    runtime_contexts.resize(program_entry_count);
+    helper_function_array.resize(program_entry_count);
 
     if (program_entry_count != 1) {
         std::cerr << "Expected 1 program, found " << program_entry_count << std::endl;
@@ -157,6 +162,10 @@ main(int argc, char** argv)
         helper_function_entry_t* helper_function_entries = program_entries[i].helpers;
         size_t helper_function_entry_count = program_entries[i].helper_count;
 
+        program_runtime_context_t* runtime_context = &runtime_contexts[i];
+        helper_function_array[i].resize(helper_function_entry_count);
+        runtime_context->helper_data = helper_function_array[i].data();
+
         for (size_t j = 0; j < helper_function_entry_count; j++) {
             if (helper_function_entries[j].helper_id == -1) {
                 std::cout << "bpf_test doesn't support resolving helpers by name yet." << std::endl;
@@ -166,15 +175,15 @@ main(int argc, char** argv)
                 std::cout << "bpf_test doesn't support helper id=" << helper_function_entries[j].helper_id << std::endl;
                 return -1;
             } else {
-                helper_function_entries[j].address =
+                runtime_context->helper_data[j].address =
                     reinterpret_cast<helper_function_t>(_helper_functions[helper_function_entries[j].helper_id]);
-                if (helper_function_entries[j].address == reinterpret_cast<helper_function_t>(_unwind)) {
-                    helper_function_entries[j].tail_call = true;
+                if (runtime_context->helper_data[j].address == reinterpret_cast<helper_function_t>(_unwind)) {
+                    runtime_context->helper_data[j].tail_call = true;
                 }
             }
         }
     }
 
-    std::cout << std::hex << program_entries[0].function(memory.data()) << std::endl;
+    std::cout << std::hex << program_entries[0].function(memory.data(), &runtime_contexts[0]) << std::endl;
     return 0;
 }
