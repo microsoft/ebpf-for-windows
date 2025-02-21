@@ -16,6 +16,8 @@ typedef struct _ebpf_ring_buffer
     ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
 } ebpf_ring_buffer_t;
 
+static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
+
 /**
  * @brief Read-acquire the record header.
  *
