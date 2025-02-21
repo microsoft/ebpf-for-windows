@@ -17,38 +17,6 @@ typedef struct _ebpf_ring_buffer
 } ebpf_ring_buffer_t;
 
 /**
- * @brief Raise the CPU's IRQL to DISPATCH_LEVEL if it is below DISPATCH_LEVEL.
- * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
- * calling KeRaiseIrqlToDpcLevel() if it is not needed.
- *
- * @return The previous IRQL.
- */
-_IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) static inline KIRQL
-    _ring_raise_to_dispatch_if_needed()
-{
-    KIRQL old_irql = KeGetCurrentIrql();
-    if (old_irql < DISPATCH_LEVEL) {
-        old_irql = KeRaiseIrqlToDpcLevel();
-    }
-    return old_irql;
-}
-
-/**
- * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
- * First check if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
- * calling KeLowerIrql() if it is not needed.
- *
- * @param[in] previous_irql The previous IRQL.
- */
-_IRQL_requires_(DISPATCH_LEVEL) static inline void _ring_lower_to_previous_irql(
-    _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
-{
-    if (previous_irql < DISPATCH_LEVEL) {
-        KeLowerIrql(previous_irql);
-    }
-}
-
-/**
  * @brief Read-acquire the record header.
  *
  * Used to check for the lock bit to ensure that all writes to the record are visible.
@@ -544,7 +512,7 @@ ebpf_ring_buffer_reserve(
     }
 
     ebpf_result_t result = EBPF_SUCCESS;
-    KIRQL irql_at_enter = _ring_raise_to_dispatch_if_needed();
+    KIRQL irql_at_enter = ebpf_raise_irql_to_dispatch_if_needed();
     for (;;) {
         // Reserve loop synchronization:
         // - Compare-exchange serializes reservations (using producer_reserve_offset).
@@ -608,7 +576,7 @@ ebpf_ring_buffer_reserve(
         reserve_offset = old_reserve_offset;
     }
 Done:
-    _ring_lower_to_previous_irql(irql_at_enter);
+    ebpf_lower_irql_from_dispatch_if_needed(irql_at_enter);
     return result;
 }
 #pragma warning(pop)

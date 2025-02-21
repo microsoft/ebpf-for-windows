@@ -157,9 +157,9 @@ Producers reserve a record, then copy the data, then submit the record.
 8. Update the producer offset.
     - Uses write-release to ensure the locked header written in (6) is visible no later than the producer offset update.
 
-To prevent deadline between passive and dispatch producers, steps (5-8) must be done at dispatch.
+To prevent deadlock between passive and dispatch producers, steps (5-8) must be done at dispatch.
 
-- A dispatch-level producer interupting a passive producer between steps (6-8) would deadlock on step (5) since
+- A dispatch-level producer interupting a passive producer between steps (6-8) would hang on step (5) since
   the passive thread would never update the producer offset.
 
 The reserve algorithm ensures reserves are serialized and the consumer never sees uninitialized records.
