@@ -11,6 +11,7 @@
 #endif
 
 std::function<decltype(_close)> close_handler;
+std::function<decltype(_dup)> dup_handler;
 std::function<decltype(CancelIoEx)> cancel_io_ex_handler;
 std::function<decltype(CloseHandle)> close_handle_handler;
 std::function<decltype(CreateFileW)> create_file_handler;
@@ -112,6 +113,12 @@ int
 _close(int file_handle)
 {
     return close_handler(file_handle);
+}
+
+int
+_dup(int file_handle)
+{
+    return dup_handler(file_handle);
 }
 
 bool

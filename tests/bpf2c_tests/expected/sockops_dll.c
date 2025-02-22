@@ -45,7 +45,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          56,                // Size in bytes of a map key.
@@ -57,7 +57,7 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "connection_map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_RINGBUF, // Type of map.
          0,                    // Size in bytes of a map key.
@@ -79,10 +79,19 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 2;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t connection_monitor_helpers[] = {
-    {NULL, 19, "helper_id_19"},
-    {NULL, 1, "helper_id_1"},
-    {NULL, 11, "helper_id_11"},
+    {19, "helper_id_19"},
+    {1, "helper_id_1"},
+    {11, "helper_id_11"},
 };
 
 static GUID connection_monitor_program_type_guid = {
@@ -96,7 +105,7 @@ static uint16_t connection_monitor_maps[] = {
 
 #pragma code_seg(push, "sockops")
 static uint64_t
-connection_monitor(void* context)
+connection_monitor(void* context, const program_runtime_context_t* runtime_context)
 #line 78 "sample/sockops.c"
 {
 #line 78 "sample/sockops.c"
@@ -253,9 +262,9 @@ label_2:
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
     // EBPF_OP_CALL pc=37 dst=r0 src=r0 offset=0 imm=19
 #line 44 "sample/sockops.c"
-    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 44 "sample/sockops.c"
-    if ((connection_monitor_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 44 "sample/sockops.c"
         return 0;
 #line 44 "sample/sockops.c"
@@ -277,12 +286,12 @@ label_2:
     r2 += IMMEDIATE(-72);
     // EBPF_OP_LDDW pc=43 dst=r1 src=r1 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 26 "sample/sockops.c"
-    if ((connection_monitor_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
         return 0;
 #line 26 "sample/sockops.c"
@@ -627,9 +636,9 @@ label_3:
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
     // EBPF_OP_CALL pc=158 dst=r0 src=r0 offset=0 imm=19
 #line 67 "sample/sockops.c"
-    r0 = connection_monitor_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/sockops.c"
-    if ((connection_monitor_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 67 "sample/sockops.c"
         return 0;
 #line 67 "sample/sockops.c"
@@ -651,12 +660,12 @@ label_3:
     r2 += IMMEDIATE(-72);
     // EBPF_OP_LDDW pc=164 dst=r1 src=r1 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=166 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/sockops.c"
-    r0 = connection_monitor_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 26 "sample/sockops.c"
-    if ((connection_monitor_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 26 "sample/sockops.c"
         return 0;
 #line 26 "sample/sockops.c"
@@ -683,7 +692,7 @@ label_4:
     r2 += IMMEDIATE(-72);
     // EBPF_OP_LDDW pc=173 dst=r1 src=r1 offset=0 imm=2
 #line 100 "sample/sockops.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_MOV64_IMM pc=175 dst=r3 src=r0 offset=0 imm=72
 #line 100 "sample/sockops.c"
     r3 = IMMEDIATE(72);
@@ -692,9 +701,9 @@ label_4:
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=177 dst=r0 src=r0 offset=0 imm=11
 #line 100 "sample/sockops.c"
-    r0 = connection_monitor_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 100 "sample/sockops.c"
-    if ((connection_monitor_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 100 "sample/sockops.c"
         return 0;
 #line 100 "sample/sockops.c"
@@ -750,4 +759,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t sockops_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

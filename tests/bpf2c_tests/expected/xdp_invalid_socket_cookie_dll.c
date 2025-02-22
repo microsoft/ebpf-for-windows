@@ -50,9 +50,18 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t xdp_invalid_socket_cookie_helpers[] = {
-    {NULL, 26, "helper_id_26"},
-    {NULL, 13, "helper_id_13"},
+    {26, "helper_id_26"},
+    {13, "helper_id_13"},
 };
 
 static GUID xdp_invalid_socket_cookie_program_type_guid = {
@@ -61,7 +70,7 @@ static GUID xdp_invalid_socket_cookie_attach_type_guid = {
     0x85e0d8ef, 0x579e, 0x4931, {0xb0, 0x72, 0x8e, 0xe2, 0x26, 0xbb, 0x2e, 0x9d}};
 #pragma code_seg(push, "xdp")
 static uint64_t
-xdp_invalid_socket_cookie(void* context)
+xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtime_context)
 #line 21 "sample/xdp_invalid_socket_cookie.c"
 {
 #line 21 "sample/xdp_invalid_socket_cookie.c"
@@ -90,9 +99,9 @@ xdp_invalid_socket_cookie(void* context)
 
     // EBPF_OP_CALL pc=0 dst=r0 src=r0 offset=0 imm=26
 #line 21 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 21 "sample/xdp_invalid_socket_cookie.c"
-    if ((xdp_invalid_socket_cookie_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 21 "sample/xdp_invalid_socket_cookie.c"
         return 0;
 #line 21 "sample/xdp_invalid_socket_cookie.c"
@@ -135,9 +144,9 @@ xdp_invalid_socket_cookie(void* context)
     r3 = r0;
     // EBPF_OP_CALL pc=15 dst=r0 src=r0 offset=0 imm=13
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    r0 = xdp_invalid_socket_cookie_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 23 "sample/xdp_invalid_socket_cookie.c"
-    if ((xdp_invalid_socket_cookie_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 23 "sample/xdp_invalid_socket_cookie.c"
         return 0;
 #line 23 "sample/xdp_invalid_socket_cookie.c"
@@ -195,4 +204,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t xdp_invalid_socket_cookie_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

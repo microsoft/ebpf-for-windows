@@ -30,6 +30,8 @@
 #include <vector>
 #undef max
 
+#define MAXIMUM_GLOBAL_VARIABLE_SECTION_SIZE 1024 * 1024
+
 #if !defined(_countof)
 #define _countof(array) (sizeof(array) / sizeof(array[0]))
 #endif
@@ -232,6 +234,15 @@ bpf_code_generator::is_section_valid(const ELFIO::section* section) const
     return true;
 }
 
+bpf_code_generator::unsafe_string
+bpf_code_generator::get_section_name_by_index(ELFIO::Elf_Half index) const
+{
+    if (index >= reader.sections.size()) {
+        throw bpf_code_generator_exception("invalid section index");
+    }
+    return reader.sections[index]->get_name();
+}
+
 // This constructor is called when we are starting from an ELF file,
 // and so have function names we can use when generating code.
 bpf_code_generator::bpf_code_generator(
@@ -347,7 +358,7 @@ bpf_code_generator::generate(const bpf_code_generator::unsafe_string& program_na
 
     program.generate_labels();
     program.build_function_table();
-    program.encode_instructions(map_definitions);
+    program.encode_instructions(map_definitions, global_variable_sections);
 }
 
 std::vector<int32_t>
@@ -420,6 +431,12 @@ static bool
 _is_btf_map_section(const std::string& name)
 {
     return name == ".maps";
+}
+
+static bool
+_is_btf_global_variable_section(const std::string& name)
+{
+    return name == ".data" || name == ".rodata" || name == ".bss";
 }
 
 // Legacy (non-BTF) maps sections are identified as any section called "maps", or matching "maps/<map-name>".
@@ -500,6 +517,10 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             if (map.name.empty()) {
                 map.name = "__anonymous_" + std::to_string(++anonymous_map_count);
             }
+            // Skip the global variable maps as they are handled seperately.
+            if (map.name == ".bss" || map.name == ".data" || map.name == ".rodata") {
+                continue;
+            }
             map_offsets.insert({map.name, map_descriptors.size()});
             map_descriptors.push_back({
                 .original_fd = static_cast<int>(map.type_id),
@@ -511,7 +532,6 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
             });
         }
         auto map_name_to_index = map_offsets;
-        size_t index = 0;
 
         std::map<std::pair<size_t, size_t>, unsafe_string> map_names_by_offset;
         std::map<unsafe_string, size_t> map_names_to_values_offset;
@@ -594,7 +614,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                     }
                 }
             }
-            map_definitions[unsafe_symbol_name] = {map_definition, index++};
+            map_definitions[unsafe_symbol_name] = {map_definition, map_definitions.size()};
         }
 
         // Extract any initial values for maps.
@@ -673,6 +693,72 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
     }
 }
 
+/**
+ * @brief Given the file name and the section name, generate a libbpf compatible map name for the global variable map.
+ *
+ * @param[in] c_file_name The name of the EBPF program as a c style name.
+ * @param[in] section_name The section name.
+ * @return The libbpf compatible map name.
+ */
+static std::string
+_get_btf_global_var_map_name(
+    const bpf_code_generator::unsafe_string& c_file_name, const bpf_code_generator::unsafe_string& section_name)
+{
+    std::string c_file_name_str = c_file_name.raw();
+    // Truncate the name to at most 7 characters to match how libbpf handles map names for global variables.
+    // See: https://github.com/libbpf/libbpf/blob/444f3c0e7a0fbfeeac4b3809a184c6640ce10306/src/libbpf.c#L1839C1-L1871C5
+    // The truncated name may result in a collision, but this is the behavior on which libbpf consumers rely.
+    c_file_name_str.resize(min(c_file_name_str.size(), (size_t)7));
+    return c_file_name_str + section_name.raw();
+}
+
+void
+bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
+{
+    auto btf_section = get_required_section(".BTF");
+    std::optional<libbtf::btf_type_data> btf_data = vector_of<std::byte>(*btf_section);
+    std::vector<EbpfMapDescriptor> map_descriptors;
+
+    auto map_data = libbtf::parse_btf_map_section(btf_data.value());
+
+    bool section_has_map = false;
+
+    for (const auto& map : map_data) {
+        if (map.name != name.raw()) {
+            continue;
+        }
+        section_has_map = true;
+        ebpf_map_definition_in_file_t map_definition{};
+        map_definition.type = BPF_MAP_TYPE_ARRAY;
+        map_definition.key_size = map.key_size;
+        map_definition.value_size = map.value_size;
+        map_definition.max_entries = map.max_entries;
+        map_definition.id = map.type_id;
+
+        map_definitions[_get_btf_global_var_map_name(c_name, name)] = {map_definition, map_definitions.size()};
+    }
+
+    if (!section_has_map) {
+        return;
+    }
+
+    // Extract any initial values for global variables.
+    auto section = reader.sections[name.raw()];
+    std::vector<std::uint8_t> data;
+    auto section_size = section->get_size();
+    if (section_size > MAXIMUM_GLOBAL_VARIABLE_SECTION_SIZE) {
+        throw bpf_code_generator_exception("global variable section is too large");
+    }
+    data.resize(section_size);
+    if (section->get_data()) {
+        memcpy(data.data(), section->get_data(), section->get_size());
+    }
+
+    // Save the data for the global variable section.
+    global_variable_sections.insert(
+        {_get_btf_global_var_map_name(c_name, name), {global_variable_sections.size(), data}});
+}
+
 // Parse global data (currently map information) in the eBPF file.
 void
 bpf_code_generator::parse_global_data()
@@ -681,6 +767,8 @@ bpf_code_generator::parse_global_data()
         std::string name = section->get_name();
         if (_is_btf_map_section(name)) {
             parse_btf_maps_section(name);
+        } else if (_is_btf_global_variable_section(name)) {
+            parse_btf_global_variable_section(name);
         } else if (_is_legacy_map_section(name)) {
             parse_legacy_maps_section(name);
         }
@@ -811,6 +899,7 @@ bpf_code_generator::extract_relocations_and_maps(_In_ const struct _ebpf_api_pro
         map_section = get_optional_section(".maps");
     }
     ELFIO::const_symbol_section_accessor symbols{reader, get_required_section(".symtab")};
+    std::set<unsafe_string> global_variable_section_names{".data", ".rodata", ".bss"};
 
     unsafe_string section_name(program->section_name);
     auto relocations = get_optional_section(".rel" + section_name);
@@ -846,11 +935,23 @@ bpf_code_generator::extract_relocations_and_maps(_In_ const struct _ebpf_api_pro
                 }
                 current_program->output_instructions[(offset - current_program->offset_in_section) / sizeof(ebpf_inst)]
                     .relocation = unsafe_name;
+
+                auto relocation_section_name = get_section_name_by_index(section_index);
+
                 if (map_section && section_index == map_section->get_index()) {
                     // Check that the map exists in the list of map definitions.
                     if (map_definitions.find(unsafe_name) == map_definitions.end()) {
                         throw bpf_code_generator_exception("map not found in map definitions: " + unsafe_name);
                     }
+                } else if (
+                    global_variable_section_names.find(relocation_section_name) !=
+                    global_variable_section_names.end()) {
+                    if (!unsafe_name.empty()) {
+                        throw bpf_code_generator_exception("Global variables must be static");
+                    }
+                    current_program
+                        ->output_instructions[(offset - current_program->offset_in_section) / sizeof(ebpf_inst)]
+                        .relocation = _get_btf_global_var_map_name(c_name, relocation_section_name);
                 }
             }
         }
@@ -953,11 +1054,12 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
 
 void
 bpf_code_generator::bpf_code_generator_program::encode_instructions(
-    std::map<unsafe_string, map_entry_t>& map_definitions)
+    std::map<unsafe_string, map_entry_t>& map_definitions,
+    std::map<unsafe_string, global_variable_section_t>& global_variable_sections)
 {
     std::vector<output_instruction_t>& program_output = output_instructions;
     auto effective_program_name = !program_name.empty() ? program_name : elf_section_name;
-    auto helper_array_prefix = effective_program_name.c_identifier() + "_helpers[{}]";
+    auto helper_array_prefix = "runtime_context->helper_data[{}]";
 
     // Encode instructions
     for (size_t i = 0; i < program_output.size(); i++) {
@@ -1219,21 +1321,38 @@ bpf_code_generator::bpf_code_generator_program::encode_instructions(
                 throw bpf_code_generator_exception("invalid operand", output.instruction_offset);
             }
             std::string destination = get_register_name(inst.dst);
-            if (output.relocation.empty()) {
+            if (inst.src == INST_LD_MODE_IMM) {
                 uint64_t imm = static_cast<uint32_t>(program_output[i].instruction.imm);
                 imm <<= 32;
                 imm |= static_cast<uint32_t>(output.instruction.imm);
                 std::string source;
                 source = "(uint64_t)" + std::to_string(imm);
                 output.lines.push_back(std::format("{} = {};", destination, source));
-            } else {
+            } else if (inst.src == INST_LD_MODE_MAP_FD) {
                 std::string source;
                 auto map_definition = map_definitions.find(output.relocation);
                 if (map_definition == map_definitions.end()) {
                     throw bpf_code_generator_exception(
                         "Map " + output.relocation + " doesn't exist", output.instruction_offset);
                 }
-                source = std::format("_maps[{}].address", std::to_string(map_definition->second.index));
+                source =
+                    std::format("runtime_context->map_data[{}].address", std::to_string(map_definition->second.index));
+                output.lines.push_back(std::format("{} = POINTER({});", destination, source));
+                referenced_map_indices.insert(map_definitions[output.relocation].index);
+            } else if (inst.src == INST_LD_MODE_MAP_VALUE) {
+                std::string source;
+                uint64_t imm = static_cast<uint32_t>(program_output[i].instruction.imm);
+                auto global_section = global_variable_sections.find(output.relocation);
+                if (global_section == global_variable_sections.end()) {
+                    throw bpf_code_generator_exception(
+                        "Map " + output.relocation + " doesn't exist", output.instruction_offset);
+                }
+                source = std::format(
+                    "runtime_context->global_variable_section_data[{}].address_of_map_value + {}",
+                    std::to_string(global_section->second.index),
+                    std::to_string(imm));
+                // As an example, this produces the following line:
+                // r0 = POINTER(_global_variable_sections[1].address_of_map_value + 4);
                 output.lines.push_back(std::format("{} = POINTER({});", destination, source));
                 referenced_map_indices.insert(map_definitions[output.relocation].index);
             }
@@ -1613,7 +1732,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
-            output_stream << INDENT "{NULL," << std::endl;
+            output_stream << INDENT "{0," << std::endl;
             output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
@@ -1661,6 +1780,66 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << std::endl;
     }
 
+    // Emit global variable sections.
+    if (global_variable_sections.size() > 0) {
+        size_t global_variable_section_size = global_variable_sections.size();
+        // Sort global variable sections by index.
+        std::vector<std::tuple<bpf_code_generator::unsafe_string, global_variable_section_t>>
+            global_variable_sections_by_index(global_variable_section_size);
+        for (const auto& pair : global_variable_sections) {
+            if (pair.second.index >= global_variable_sections_by_index.size()) {
+                throw bpf_code_generator_exception("Invalid global variable section");
+            }
+            global_variable_sections_by_index[pair.second.index] = pair;
+        }
+
+        for (const auto& [name, entry] : global_variable_sections_by_index) {
+            output_stream << "const char " << name.c_identifier() << "_initial_data[] = {";
+            for (size_t i = 0; i < entry.initial_data.size(); i++) {
+                output_stream << std::to_string(entry.initial_data.at(i));
+                if (i < entry.initial_data.size() - 1) {
+                    output_stream << ", ";
+                }
+            }
+            output_stream << "};" << std::endl << std::endl;
+        }
+
+        output_stream << "#pragma data_seg(push, \"global_variables\")" << std::endl;
+        output_stream << "static global_variable_section_info_t _global_variable_sections[] = {" << std::endl;
+
+        for (const auto& [name, entry] : global_variable_sections_by_index) {
+            output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT ".name = " << name.quoted() << "," << std::endl;
+            output_stream << INDENT INDENT ".size = " << std::to_string(entry.initial_data.size()) << "," << std::endl;
+            output_stream << INDENT INDENT ".initial_data = &" << name.c_identifier() + "_initial_data," << std::endl;
+            output_stream << INDENT "}," << std::endl;
+        }
+        output_stream << "};" << std::endl;
+        output_stream << "#pragma data_seg(pop)" << std::endl;
+        output_stream << std::endl;
+        output_stream << "static void" << std::endl << "_get_global_variable_sections(" << std::endl;
+        output_stream << INDENT "_Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** "
+                                "global_variable_sections,"
+                      << std::endl;
+        output_stream << INDENT "_Out_ size_t* count)" << std::endl;
+        output_stream << "{" << std::endl;
+        output_stream << INDENT "*global_variable_sections = _global_variable_sections;" << std::endl;
+        output_stream << INDENT "*count = " << std::to_string(global_variable_sections.size()) << ";" << std::endl;
+        output_stream << "}" << std::endl;
+        output_stream << std::endl;
+    } else {
+        output_stream << "static void" << std::endl << "_get_global_variable_sections(" << std::endl;
+        output_stream << INDENT "_Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** "
+                                "global_variable_sections,"
+                      << std::endl;
+        output_stream << INDENT "_Out_ size_t* count)" << std::endl;
+        output_stream << "{" << std::endl;
+        output_stream << INDENT "*global_variable_sections = NULL;" << std::endl;
+        output_stream << INDENT "*count = 0;" << std::endl;
+        output_stream << "}" << std::endl;
+        output_stream << std::endl;
+    }
+
     // Get count of programs not including subprograms.
     size_t program_count = 0;
     for (auto& [name, program] : programs) {
@@ -1693,7 +1872,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << INDENT "{NULL, " << id << ", " << helper_name.quoted() << "}," << std::endl;
+                output_stream << INDENT "{" << id << ", " << helper_name.quoted() << "}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
@@ -1784,7 +1963,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         // Emit entry point.
         output_stream << "#pragma code_seg(push, " << program.pe_section_name.quoted() << ")" << std::endl;
-        output_stream << std::format("static uint64_t\n{}(void* context)", program_name.c_identifier()) << std::endl;
+        output_stream << std::format(
+                             "static uint64_t\n{}(void* context, const program_runtime_context_t* runtime_context)",
+                             program_name.c_identifier())
+                      << std::endl;
         output_stream << prolog_line_info << "{" << std::endl;
 
         // Emit prologue.
@@ -1805,6 +1987,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
                       << std::endl;
         output_stream << prolog_line_info << INDENT "" << program.get_register_name(10)
                       << " = (uintptr_t)((uint8_t*)stack + sizeof(stack));" << std::endl;
+        if (program.referenced_map_indices.size() == 0 && program.helper_functions.size() == 0) {
+            output_stream << prolog_line_info << INDENT "UNREFERENCED_PARAMETER(runtime_context);" << std::endl;
+        }
         output_stream << std::endl;
 
         // Emit encoded instructions.
@@ -1946,15 +2131,15 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
     output_stream << "}" << std::endl;
     output_stream << std::endl;
 
-    std::string meta_data_table = "metadata_table_t " + c_name.c_identifier() + "_metadata_table = {";
-    meta_data_table +=
-        "sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};\n";
-
-    if ((meta_data_table.size() - 1) > LINE_BREAK_WIDTH) {
-        meta_data_table.insert(meta_data_table.find_first_of("{") + 1, "\n" INDENT);
-    }
-
-    output_stream << meta_data_table;
+    output_stream << "metadata_table_t " << c_name.c_identifier() << "_metadata_table = {" << std::endl;
+    output_stream << INDENT "sizeof(metadata_table_t)," << std::endl;
+    output_stream << INDENT "_get_programs," << std::endl;
+    output_stream << INDENT "_get_maps," << std::endl;
+    output_stream << INDENT "_get_hash," << std::endl;
+    output_stream << INDENT "_get_version," << std::endl;
+    output_stream << INDENT "_get_map_initial_values," << std::endl;
+    output_stream << INDENT "_get_global_variable_sections," << std::endl;
+    output_stream << "};\n";
 }
 
 std::string

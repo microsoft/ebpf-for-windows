@@ -99,6 +99,10 @@ typedef struct _metadata_table
 {
     void (*programs)(program_entry_t** programs, size_t* count);
     void (*maps)(map_entry_t** maps, size_t* count);
+    void (*hash)(const uint8_t** hash, size_t* size);
+    void (*version)(bpf2c_version_t* version);
+    void (*map_initial_values)(map_initial_values_t** map_initial_values, size_t* count);
+    void (*global_variable_sections)(global_variable_section_t** global_variable_sections, size_t* count);
 } metadata_table_t;
 
 metadata_table_t myprogram_metadata_table = { _get_programs, _get_maps };
@@ -114,42 +118,74 @@ Each program in the generated C file is exported via a program_entry_t:
 ```c
 typedef struct _program_entry
 {
-    uint64_t (*function)(void*);
-    const char* section_name;
-    const char* program_name;
-    uint16_t* referenced_map_indices;
-    uint16_t referenced_map_count;
-    helper_function_entry_t* helpers;
-    uint16_t helper_count;
-    size_t bpf_instruction_count;
-    ebpf_program_type_t* program_type;
-    ebpf_attach_type_t* expected_attach_type;
-    const uint8_t* program_info_hash;
-    size_t program_info_hash_length;
-    const char* program_info_hash_type;
+    // DLLs put the strings into the same section, so add a marker
+    // at the start of a program entry to make it easy to find
+    // entries in the programs section.
+    uint64_t zero;
+
+    uint64_t (*function)(void*, const program_runtime_context_t*); ///< Address of the program.
+    const char* pe_section_name;              ///< Name of the PE section containing the program.
+    const char* section_name;                 ///< Name of the section containing the program.
+    const char* program_name;                 ///< Name of the program.
+    uint16_t* referenced_map_indices;         ///< List of map indices referenced by the program.
+    uint16_t referenced_map_count;            ///< Number of maps referenced by the program.
+    helper_function_entry_t* helpers;         ///< List of helper functions used by the program.
+    uint16_t helper_count;                    ///< Number of helper functions used by the program.
+    size_t bpf_instruction_count;             ///< Number of BPF instructions in the program.
+    ebpf_program_type_t* program_type;        ///< Type of the program.
+    ebpf_attach_type_t* expected_attach_type; ///< Expected attach type of the program.
+    const uint8_t* program_info_hash;         ///< Hash of the program info.
+    size_t program_info_hash_length;          ///< Length of the program info hash.
+    const char* program_info_hash_type;       ///< Type of the program info hash
 } program_entry_t;
 ```
 The program_entry t contains the hash, hash length and the hash algorithm type [(CNG)](https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers) used to generate the hash.
 
 The skeleton framework then uses NMR to publish this information to the eBPF execution context.
 
+The `program` above takes 2 arguments as input. First is a point to the program context. The second argument is a pointer to the program runtime context, which is defined as below:
+```c
+typedef struct _helper_function_data
+{
+    helper_function_t address;
+    bool tail_call;
+} helper_function_data_t;
+
+typedef struct _map_data
+{
+    uintptr_t address;
+} map_data_t;
+
+typedef struct _global_variable_section_data
+{
+    unsigned char* address_of_map_value;
+} global_variable_section_data_t;
+
+typedef struct _program_runtime_context
+{
+    helper_function_data_t* helper_data;
+    map_data_t* map_data;
+    global_variable_section_data_t* global_variable_section_data;
+} program_runtime_context_t;
+```
+The runtime context (`program_runtime_context_t`) is allocated by the eBPF runtime for each program that is loaded.
+It contains the resolved helper addresses, map addresses and map value addresses (for global variable sections) referenced by that program. This runtime context is then passed to the loaded BPF program on each invocation.
+
 ## Imported helper functions
 
-The generated C code exposes a table containing the address of each helper function, name, ID, and additional meta-data
-of the helper function. The C code generator emits a table for the helper functions referenced by the program:
+The generated C code exposes a table containing static information for each helper function. The C code generator emits
+a different table with the helper function information for each of the programs.
 
 ```c
 typedef struct _helper_function_entry
 {
-    uint64_t (*address)(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
     uint32_t helper_id;
     const char* name;
-    bool tail_call;
 } helper_function_entry_t;
 
 static helper_function_entry_t _helpers[] = {
-    { NULL, 1, "helper_id_1"},
-    { NULL, 0, "helper_id_0"},
+    { 1, "helper_id_1"},
+    { 0, "helper_id_0"},
 };
 ```
 
@@ -159,25 +195,84 @@ in the generated code are called indirectly via the address field.
 
 ## Exported maps
 
-Each map referenced by any of the eBPF programs is added as a map_entry_t:
+Each map referenced by any of the eBPF programs is added as a map_entry_t, containing static map information:
 
 ```c
 typedef struct _map_entry
 {
-    void* address;
+    // DLLs put the strings into the same section, so add a marker
+    // at the start of a map entry to make it easy to find
+    // entries in the maps section.
+    uint64_t zero_marker;
+
     ebpf_map_definition_in_file_t definition;
     const char* name;
 } map_entry_t;
 
-static map_entry_t_maps[] = {
-    { NULL, { 36, 2, 4, 8, 1,  }, "dropped_packet_map" },
-    { NULL, { 36, 2, 4, 4, 1,  }, "interface_index_map" },
+static map_entry_t _maps[] = {
+    {0,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         4,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         10,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "interface_index_map"},
+    {0,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         8,                  // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         15,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "dropped_packet_map"},
 };
 ```
 
 The skeleton then uses NMR to either create an instance of the map or obtain the address of an existing map and then
 write the address into the address field. References to the maps in the generated code are then indirect via the
 address field.
+
+### Map initial values
+
+Hash of map, array of map, and program array maps can have initial values defined. For each map that has initial
+values provided, an entry of type map_initial_values_t is added.
+
+```c
+typedef struct _map_initial_values
+{
+    const char* name;
+    size_t count;
+    const char** values;
+} map_initial_values_t;
+```
+
+The name field is the name of the map for which initial values are being provided.
+The count and values field are an array of map names to initialize the map with.
+
+### Exported global variable sections
+
+Each global section (.rodata, .data, or .bss) that is referenced by the program is added as an entry.
+
+```c
+    typedef struct _global_variable_section_info
+    {
+        const char* name;
+        size_t size;
+        const void* initial_data;
+    } global_variable_section_info_t;
+```
+
+The execution context creates an array map for each section, loads any initial data into the map, and stores the
+address of the start of the map data into the address_of_map_value field.
 
 ## Loading an eBPF program from a PE .sys file
 

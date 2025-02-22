@@ -272,6 +272,25 @@ extern "C"
     ebpf_core_update_map_with_handle(
         ebpf_handle_t map_handle, _In_ const uint8_t* key, size_t key_length, ebpf_handle_t value);
 
+    /**
+     * @brief Resolve the provided map handles to address of the first value in the map if
+     * the map is an array map or NULL if the map is not an array map.
+     *
+     * @param[in] program_handle Handle of the program to associate maps with.
+     * @param[in] count_of_maps Number of map handles.
+     * @param[in] map_handles Array of map handles containing "count_of_maps" handles.
+     * @param[out] map_addresses Array of map value addresses of size "count_of_maps"
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_OBJECT The provided handle is not valid.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_resolve_map_value_address(
+        uint32_t count_of_maps,
+        _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
+        _Out_writes_(count_of_maps) uintptr_t* map_value_addresses);
+
 #ifdef __cplusplus
 }
 #endif

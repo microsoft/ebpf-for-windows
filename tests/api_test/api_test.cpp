@@ -547,6 +547,32 @@ _test_nested_maps(bpf_map_type type)
 TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
 TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
+TEST_CASE("duplicate_fd", "")
+{
+    _disable_crt_report_hook disable_hook;
+
+    fd_t map_fd1 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd1 > 0);
+
+    uint32_t key = 0;
+    uint32_t value = 1;
+    REQUIRE(bpf_map_update_elem(map_fd1, &key, &value, 0) == 0);
+
+    fd_t map_fd2;
+    REQUIRE(ebpf_duplicate_fd(map_fd1, &map_fd2) == EBPF_SUCCESS);
+    REQUIRE(map_fd2 > 0);
+
+    REQUIRE(bpf_map_lookup_elem(map_fd2, &key, &value) == 0);
+    REQUIRE(value == 1);
+
+    REQUIRE(ebpf_close_fd(map_fd2) == EBPF_SUCCESS);
+    REQUIRE(ebpf_close_fd(map_fd2) == EBPF_FAILED);
+    REQUIRE(bpf_map_lookup_elem(map_fd2, &key, &value) == -EBADF);
+    REQUIRE(bpf_map_lookup_elem(map_fd1, &key, &value) == 0);
+
+    REQUIRE(ebpf_close_fd(map_fd1) == EBPF_SUCCESS);
+}
+
 void
 tailcall_load_test(_In_z_ const char* file_name)
 {
@@ -1009,78 +1035,6 @@ TEST_CASE("close_unload_test", "[native_tests][native_close_cleanup_tests]")
     bpf_object__close(object);
     */
 }
-
-void
-test_sock_addr_native_program_load_attach(const char* file_name)
-{
-    int result;
-    struct bpf_object* object = nullptr;
-    fd_t program_fd;
-    uint32_t old_id = 0;
-    uint32_t next_id;
-    std::string file_name_string = std::string("regression\\") + std::string(file_name);
-    const char* file_name_with_path = file_name_string.c_str();
-
-    result = _program_load_helper(file_name_with_path, BPF_PROG_TYPE_UNSPEC, EBPF_EXECUTION_ANY, &object, &program_fd);
-    REQUIRE(result == 0);
-
-    bpf_program* v4_program = bpf_object__find_program_by_name(object, "connect_redirect4");
-    REQUIRE(v4_program != nullptr);
-
-    bpf_program* v6_program = bpf_object__find_program_by_name(object, "connect_redirect6");
-    REQUIRE(v6_program != nullptr);
-
-    // Get program ids for both v4 and v6 programs.
-    struct bpf_prog_info prog_info_v4 = {0};
-    uint32_t info_len = sizeof(prog_info_v4);
-    result = bpf_obj_get_info_by_fd(bpf_program__fd(v4_program), &prog_info_v4, &info_len);
-    REQUIRE(result == 0);
-    REQUIRE(prog_info_v4.id != 0);
-
-    struct bpf_prog_info prog_info_v6 = {0};
-    info_len = sizeof(prog_info_v6);
-    result = bpf_obj_get_info_by_fd(bpf_program__fd(v6_program), &prog_info_v6, &info_len);
-    REQUIRE(result == 0);
-    REQUIRE(prog_info_v6.id != 0);
-
-    // Attach both v4 and v6 programs.
-    bpf_link* v4_link = bpf_program__attach(v4_program);
-    REQUIRE(v4_link != nullptr);
-
-    bpf_link* v6_link = bpf_program__attach(v6_program);
-    REQUIRE(v6_link != nullptr);
-
-    // Detach both v4 and v6 programs.
-    result = bpf_link__destroy(v4_link);
-    REQUIRE(result == 0);
-
-    result = bpf_link__destroy(v6_link);
-    REQUIRE(result == 0);
-
-    bpf_object__close(object);
-
-    // We have closed handles to the programs. Program should be unloaded now.
-    // Since for prog array maps, the program IDs are cleaned up asynchronously,
-    // it is possible we sometimes find some _other_ program IDs. To work around
-    // this, validate that at least the program IDs of interest are not found.
-    while (true) {
-        result = bpf_prog_get_next_id(old_id, &next_id);
-        if (result == -ENOENT) {
-            break;
-        }
-
-        REQUIRE(((result == 0) && (next_id != prog_info_v4.id) && (next_id != prog_info_v6.id)));
-        old_id = next_id;
-    }
-}
-
-#define DECLARE_REGRESSION_TEST_CASE(version)                                                         \
-    TEST_CASE("test_native_program_load_attach-regression-" #version, "[regression_tests]")           \
-    {                                                                                                 \
-        test_sock_addr_native_program_load_attach((const char*)"cgroup_sock_addr2_"##version ".sys"); \
-    }
-
-DECLARE_REGRESSION_TEST_CASE("0.11.0")
 
 TEST_CASE("ioctl_stress", "[stress]")
 {

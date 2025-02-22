@@ -20,13 +20,22 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static GUID tcp_mt_connect6_program_type_guid = {
     0x92ec8e39, 0xaeec, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
 static GUID tcp_mt_connect6_attach_type_guid = {
     0xa82e37b2, 0xaee7, 0x11ec, {0x9a, 0x30, 0x18, 0x60, 0x24, 0x89, 0xbe, 0xee}};
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
-tcp_mt_connect6(void* context)
+tcp_mt_connect6(void* context, const program_runtime_context_t* runtime_context)
 #line 27 "sample/cgroup_mt_connect6.c"
 {
 #line 27 "sample/cgroup_mt_connect6.c"
@@ -50,6 +59,8 @@ tcp_mt_connect6(void* context)
     r1 = (uintptr_t)context;
 #line 27 "sample/cgroup_mt_connect6.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 27 "sample/cgroup_mt_connect6.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_LDXW pc=0 dst=r2 src=r1 offset=44 imm=0
 #line 27 "sample/cgroup_mt_connect6.c"
@@ -171,4 +182,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t cgroup_mt_connect6_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

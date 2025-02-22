@@ -20,13 +20,22 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static GUID reflect_packet_program_type_guid = {
     0xce8ccef8, 0x4241, 0x4975, {0x98, 0x4d, 0xbb, 0x39, 0x21, 0xdf, 0xa7, 0x3c}};
 static GUID reflect_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_te~1")
 static uint64_t
-reflect_packet(void* context)
+reflect_packet(void* context, const program_runtime_context_t* runtime_context)
 #line 23 "sample/reflect_packet.c"
 {
 #line 23 "sample/reflect_packet.c"
@@ -52,6 +61,8 @@ reflect_packet(void* context)
     r1 = (uintptr_t)context;
 #line 23 "sample/reflect_packet.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 23 "sample/reflect_packet.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
 #line 23 "sample/reflect_packet.c"
@@ -801,4 +812,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t reflect_packet_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

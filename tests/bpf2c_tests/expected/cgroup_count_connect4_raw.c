@@ -15,7 +15,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          2,                 // Size in bytes of a map key.
@@ -37,9 +37,18 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 1;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t count_tcp_connect4_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 2, "helper_id_2"},
+    {1, "helper_id_1"},
+    {2, "helper_id_2"},
 };
 
 static GUID count_tcp_connect4_program_type_guid = {
@@ -52,7 +61,7 @@ static uint16_t count_tcp_connect4_maps[] = {
 
 #pragma code_seg(push, "cgroup~1")
 static uint64_t
-count_tcp_connect4(void* context)
+count_tcp_connect4(void* context, const program_runtime_context_t* runtime_context)
 #line 31 "sample/cgroup_count_connect4.c"
 {
 #line 31 "sample/cgroup_count_connect4.c"
@@ -116,12 +125,12 @@ count_tcp_connect4(void* context)
     r2 += IMMEDIATE(-2);
     // EBPF_OP_LDDW pc=9 dst=r1 src=r1 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect4.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=1
 #line 48 "sample/cgroup_count_connect4.c"
-    r0 = count_tcp_connect4_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 48 "sample/cgroup_count_connect4.c"
-    if ((count_tcp_connect4_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 48 "sample/cgroup_count_connect4.c"
         return 0;
 #line 48 "sample/cgroup_count_connect4.c"
@@ -153,15 +162,15 @@ count_tcp_connect4(void* context)
     r3 += IMMEDIATE(-16);
     // EBPF_OP_LDDW pc=19 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/cgroup_count_connect4.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=21 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/cgroup_count_connect4.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=22 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/cgroup_count_connect4.c"
-    r0 = count_tcp_connect4_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/cgroup_count_connect4.c"
-    if ((count_tcp_connect4_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/cgroup_count_connect4.c"
         return 0;
 #line 51 "sample/cgroup_count_connect4.c"
@@ -234,4 +243,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t cgroup_count_connect4_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

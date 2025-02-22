@@ -45,7 +45,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -57,7 +57,7 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -79,8 +79,17 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 2;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t callee_helpers[] = {
-    {NULL, 1, "helper_id_1"},
+    {1, "helper_id_1"},
 };
 
 static GUID callee_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -91,7 +100,7 @@ static uint16_t callee_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-callee(void* context)
+callee(void* context, const program_runtime_context_t* runtime_context)
 #line 33 "sample/undocked/tail_call_same_section.c"
 {
 #line 33 "sample/undocked/tail_call_same_section.c"
@@ -132,12 +141,12 @@ callee(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=2
 #line 38 "sample/undocked/tail_call_same_section.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
 #line 38 "sample/undocked/tail_call_same_section.c"
-    r0 = callee_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 38 "sample/undocked/tail_call_same_section.c"
-    if ((callee_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 38 "sample/undocked/tail_call_same_section.c"
         return 0;
 #line 38 "sample/undocked/tail_call_same_section.c"
@@ -168,8 +177,8 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t caller_helpers[] = {
-    {NULL, 5, "helper_id_5"},
-    {NULL, 1, "helper_id_1"},
+    {5, "helper_id_5"},
+    {1, "helper_id_1"},
 };
 
 static GUID caller_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -181,7 +190,7 @@ static uint16_t caller_maps[] = {
 
 #pragma code_seg(push, "sample~2")
 static uint64_t
-caller(void* context)
+caller(void* context, const program_runtime_context_t* runtime_context)
 #line 33 "sample/undocked/tail_call_same_section.c"
 {
 #line 33 "sample/undocked/tail_call_same_section.c"
@@ -216,15 +225,15 @@ caller(void* context)
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r2;
     // EBPF_OP_LDDW pc=2 dst=r2 src=r1 offset=0 imm=1
 #line 38 "sample/undocked/tail_call_same_section.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=9
 #line 38 "sample/undocked/tail_call_same_section.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=5
 #line 38 "sample/undocked/tail_call_same_section.c"
-    r0 = caller_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 38 "sample/undocked/tail_call_same_section.c"
-    if ((caller_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 38 "sample/undocked/tail_call_same_section.c"
         return 0;
 #line 38 "sample/undocked/tail_call_same_section.c"
@@ -237,12 +246,12 @@ caller(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=8 dst=r1 src=r1 offset=0 imm=2
 #line 41 "sample/undocked/tail_call_same_section.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=1
 #line 41 "sample/undocked/tail_call_same_section.c"
-    r0 = caller_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 41 "sample/undocked/tail_call_same_section.c"
-    if ((caller_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 41 "sample/undocked/tail_call_same_section.c"
         return 0;
 #line 41 "sample/undocked/tail_call_same_section.c"
@@ -328,4 +337,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t tail_call_same_section_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

@@ -176,7 +176,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -188,7 +188,7 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -210,10 +210,19 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 2;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t sequential0_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential0_program_type_guid = {
@@ -227,7 +236,7 @@ static uint16_t sequential0_maps[] = {
 
 #pragma code_seg(push, "sampl~35")
 static uint64_t
-sequential0(void* context)
+sequential0(void* context, const program_runtime_context_t* runtime_context)
 #line 133 "sample/undocked/tail_call_sequential.c"
 {
 #line 133 "sample/undocked/tail_call_sequential.c"
@@ -277,12 +286,12 @@ sequential0(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential0_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 133 "sample/undocked/tail_call_sequential.c"
-    if ((sequential0_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 133 "sample/undocked/tail_call_sequential.c"
@@ -332,9 +341,9 @@ sequential0(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential0_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 133 "sample/undocked/tail_call_sequential.c"
-    if ((sequential0_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 133 "sample/undocked/tail_call_sequential.c"
@@ -360,15 +369,15 @@ sequential0(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=1
 #line 133 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(1);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 133 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential0_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 133 "sample/undocked/tail_call_sequential.c"
-    if ((sequential0_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 133 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 133 "sample/undocked/tail_call_sequential.c"
@@ -389,9 +398,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential1_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential1_program_type_guid = {
@@ -405,7 +414,7 @@ static uint16_t sequential1_maps[] = {
 
 #pragma code_seg(push, "sampl~34")
 static uint64_t
-sequential1(void* context)
+sequential1(void* context, const program_runtime_context_t* runtime_context)
 #line 134 "sample/undocked/tail_call_sequential.c"
 {
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -455,12 +464,12 @@ sequential1(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential1_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 134 "sample/undocked/tail_call_sequential.c"
-    if ((sequential1_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -510,9 +519,9 @@ sequential1(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential1_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 134 "sample/undocked/tail_call_sequential.c"
-    if ((sequential1_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -538,15 +547,15 @@ sequential1(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=2
 #line 134 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(2);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 134 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential1_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 134 "sample/undocked/tail_call_sequential.c"
-    if ((sequential1_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 134 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 134 "sample/undocked/tail_call_sequential.c"
@@ -567,9 +576,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential10_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential10_program_type_guid = {
@@ -583,7 +592,7 @@ static uint16_t sequential10_maps[] = {
 
 #pragma code_seg(push, "sampl~25")
 static uint64_t
-sequential10(void* context)
+sequential10(void* context, const program_runtime_context_t* runtime_context)
 #line 143 "sample/undocked/tail_call_sequential.c"
 {
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -635,12 +644,12 @@ sequential10(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential10_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 143 "sample/undocked/tail_call_sequential.c"
-    if ((sequential10_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -693,9 +702,9 @@ sequential10(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential10_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 143 "sample/undocked/tail_call_sequential.c"
-    if ((sequential10_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -721,15 +730,15 @@ sequential10(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=11
 #line 143 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(11);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 143 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential10_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 143 "sample/undocked/tail_call_sequential.c"
-    if ((sequential10_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 143 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 143 "sample/undocked/tail_call_sequential.c"
@@ -750,9 +759,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential11_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential11_program_type_guid = {
@@ -766,7 +775,7 @@ static uint16_t sequential11_maps[] = {
 
 #pragma code_seg(push, "sampl~24")
 static uint64_t
-sequential11(void* context)
+sequential11(void* context, const program_runtime_context_t* runtime_context)
 #line 144 "sample/undocked/tail_call_sequential.c"
 {
 #line 144 "sample/undocked/tail_call_sequential.c"
@@ -818,12 +827,12 @@ sequential11(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential11_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 144 "sample/undocked/tail_call_sequential.c"
-    if ((sequential11_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 144 "sample/undocked/tail_call_sequential.c"
@@ -876,9 +885,9 @@ sequential11(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential11_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 144 "sample/undocked/tail_call_sequential.c"
-    if ((sequential11_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 144 "sample/undocked/tail_call_sequential.c"
@@ -904,15 +913,15 @@ sequential11(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=12
 #line 144 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(12);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 144 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential11_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 144 "sample/undocked/tail_call_sequential.c"
-    if ((sequential11_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 144 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 144 "sample/undocked/tail_call_sequential.c"
@@ -933,9 +942,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential12_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential12_program_type_guid = {
@@ -949,7 +958,7 @@ static uint16_t sequential12_maps[] = {
 
 #pragma code_seg(push, "sampl~23")
 static uint64_t
-sequential12(void* context)
+sequential12(void* context, const program_runtime_context_t* runtime_context)
 #line 145 "sample/undocked/tail_call_sequential.c"
 {
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -1001,12 +1010,12 @@ sequential12(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential12_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 145 "sample/undocked/tail_call_sequential.c"
-    if ((sequential12_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -1059,9 +1068,9 @@ sequential12(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential12_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 145 "sample/undocked/tail_call_sequential.c"
-    if ((sequential12_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -1087,15 +1096,15 @@ sequential12(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=13
 #line 145 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(13);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 145 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential12_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 145 "sample/undocked/tail_call_sequential.c"
-    if ((sequential12_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 145 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 145 "sample/undocked/tail_call_sequential.c"
@@ -1116,9 +1125,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential13_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential13_program_type_guid = {
@@ -1132,7 +1141,7 @@ static uint16_t sequential13_maps[] = {
 
 #pragma code_seg(push, "sampl~22")
 static uint64_t
-sequential13(void* context)
+sequential13(void* context, const program_runtime_context_t* runtime_context)
 #line 146 "sample/undocked/tail_call_sequential.c"
 {
 #line 146 "sample/undocked/tail_call_sequential.c"
@@ -1184,12 +1193,12 @@ sequential13(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential13_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 146 "sample/undocked/tail_call_sequential.c"
-    if ((sequential13_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 146 "sample/undocked/tail_call_sequential.c"
@@ -1242,9 +1251,9 @@ sequential13(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential13_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 146 "sample/undocked/tail_call_sequential.c"
-    if ((sequential13_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 146 "sample/undocked/tail_call_sequential.c"
@@ -1270,15 +1279,15 @@ sequential13(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=14
 #line 146 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(14);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 146 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential13_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 146 "sample/undocked/tail_call_sequential.c"
-    if ((sequential13_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 146 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 146 "sample/undocked/tail_call_sequential.c"
@@ -1299,9 +1308,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential14_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential14_program_type_guid = {
@@ -1315,7 +1324,7 @@ static uint16_t sequential14_maps[] = {
 
 #pragma code_seg(push, "sampl~21")
 static uint64_t
-sequential14(void* context)
+sequential14(void* context, const program_runtime_context_t* runtime_context)
 #line 147 "sample/undocked/tail_call_sequential.c"
 {
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1367,12 +1376,12 @@ sequential14(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential14_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 147 "sample/undocked/tail_call_sequential.c"
-    if ((sequential14_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1425,9 +1434,9 @@ sequential14(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential14_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 147 "sample/undocked/tail_call_sequential.c"
-    if ((sequential14_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1453,15 +1462,15 @@ sequential14(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=15
 #line 147 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(15);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 147 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential14_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 147 "sample/undocked/tail_call_sequential.c"
-    if ((sequential14_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 147 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 147 "sample/undocked/tail_call_sequential.c"
@@ -1482,9 +1491,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential15_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential15_program_type_guid = {
@@ -1498,7 +1507,7 @@ static uint16_t sequential15_maps[] = {
 
 #pragma code_seg(push, "sampl~20")
 static uint64_t
-sequential15(void* context)
+sequential15(void* context, const program_runtime_context_t* runtime_context)
 #line 148 "sample/undocked/tail_call_sequential.c"
 {
 #line 148 "sample/undocked/tail_call_sequential.c"
@@ -1550,12 +1559,12 @@ sequential15(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential15_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 148 "sample/undocked/tail_call_sequential.c"
-    if ((sequential15_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 148 "sample/undocked/tail_call_sequential.c"
@@ -1608,9 +1617,9 @@ sequential15(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential15_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 148 "sample/undocked/tail_call_sequential.c"
-    if ((sequential15_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 148 "sample/undocked/tail_call_sequential.c"
@@ -1636,15 +1645,15 @@ sequential15(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=16
 #line 148 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(16);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 148 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential15_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 148 "sample/undocked/tail_call_sequential.c"
-    if ((sequential15_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 148 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 148 "sample/undocked/tail_call_sequential.c"
@@ -1665,9 +1674,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential16_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential16_program_type_guid = {
@@ -1681,7 +1690,7 @@ static uint16_t sequential16_maps[] = {
 
 #pragma code_seg(push, "sampl~19")
 static uint64_t
-sequential16(void* context)
+sequential16(void* context, const program_runtime_context_t* runtime_context)
 #line 149 "sample/undocked/tail_call_sequential.c"
 {
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -1733,12 +1742,12 @@ sequential16(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential16_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 149 "sample/undocked/tail_call_sequential.c"
-    if ((sequential16_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -1791,9 +1800,9 @@ sequential16(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential16_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 149 "sample/undocked/tail_call_sequential.c"
-    if ((sequential16_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -1819,15 +1828,15 @@ sequential16(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=17
 #line 149 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(17);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 149 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential16_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 149 "sample/undocked/tail_call_sequential.c"
-    if ((sequential16_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 149 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 149 "sample/undocked/tail_call_sequential.c"
@@ -1848,9 +1857,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential17_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential17_program_type_guid = {
@@ -1864,7 +1873,7 @@ static uint16_t sequential17_maps[] = {
 
 #pragma code_seg(push, "sampl~18")
 static uint64_t
-sequential17(void* context)
+sequential17(void* context, const program_runtime_context_t* runtime_context)
 #line 150 "sample/undocked/tail_call_sequential.c"
 {
 #line 150 "sample/undocked/tail_call_sequential.c"
@@ -1916,12 +1925,12 @@ sequential17(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential17_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 150 "sample/undocked/tail_call_sequential.c"
-    if ((sequential17_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 150 "sample/undocked/tail_call_sequential.c"
@@ -1974,9 +1983,9 @@ sequential17(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential17_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 150 "sample/undocked/tail_call_sequential.c"
-    if ((sequential17_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 150 "sample/undocked/tail_call_sequential.c"
@@ -2002,15 +2011,15 @@ sequential17(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=18
 #line 150 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(18);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 150 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential17_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 150 "sample/undocked/tail_call_sequential.c"
-    if ((sequential17_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 150 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 150 "sample/undocked/tail_call_sequential.c"
@@ -2031,9 +2040,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential18_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential18_program_type_guid = {
@@ -2047,7 +2056,7 @@ static uint16_t sequential18_maps[] = {
 
 #pragma code_seg(push, "sampl~17")
 static uint64_t
-sequential18(void* context)
+sequential18(void* context, const program_runtime_context_t* runtime_context)
 #line 151 "sample/undocked/tail_call_sequential.c"
 {
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2099,12 +2108,12 @@ sequential18(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential18_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 151 "sample/undocked/tail_call_sequential.c"
-    if ((sequential18_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2157,9 +2166,9 @@ sequential18(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential18_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 151 "sample/undocked/tail_call_sequential.c"
-    if ((sequential18_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2185,15 +2194,15 @@ sequential18(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=19
 #line 151 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(19);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 151 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential18_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 151 "sample/undocked/tail_call_sequential.c"
-    if ((sequential18_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 151 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 151 "sample/undocked/tail_call_sequential.c"
@@ -2214,9 +2223,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential19_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential19_program_type_guid = {
@@ -2230,7 +2239,7 @@ static uint16_t sequential19_maps[] = {
 
 #pragma code_seg(push, "sampl~16")
 static uint64_t
-sequential19(void* context)
+sequential19(void* context, const program_runtime_context_t* runtime_context)
 #line 152 "sample/undocked/tail_call_sequential.c"
 {
 #line 152 "sample/undocked/tail_call_sequential.c"
@@ -2282,12 +2291,12 @@ sequential19(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential19_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 152 "sample/undocked/tail_call_sequential.c"
-    if ((sequential19_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 152 "sample/undocked/tail_call_sequential.c"
@@ -2340,9 +2349,9 @@ sequential19(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential19_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 152 "sample/undocked/tail_call_sequential.c"
-    if ((sequential19_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 152 "sample/undocked/tail_call_sequential.c"
@@ -2368,15 +2377,15 @@ sequential19(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=20
 #line 152 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 152 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential19_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 152 "sample/undocked/tail_call_sequential.c"
-    if ((sequential19_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 152 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 152 "sample/undocked/tail_call_sequential.c"
@@ -2397,9 +2406,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential2_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential2_program_type_guid = {
@@ -2413,7 +2422,7 @@ static uint16_t sequential2_maps[] = {
 
 #pragma code_seg(push, "sampl~33")
 static uint64_t
-sequential2(void* context)
+sequential2(void* context, const program_runtime_context_t* runtime_context)
 #line 135 "sample/undocked/tail_call_sequential.c"
 {
 #line 135 "sample/undocked/tail_call_sequential.c"
@@ -2463,12 +2472,12 @@ sequential2(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential2_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 135 "sample/undocked/tail_call_sequential.c"
-    if ((sequential2_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 135 "sample/undocked/tail_call_sequential.c"
@@ -2518,9 +2527,9 @@ sequential2(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential2_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 135 "sample/undocked/tail_call_sequential.c"
-    if ((sequential2_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 135 "sample/undocked/tail_call_sequential.c"
@@ -2546,15 +2555,15 @@ sequential2(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=3
 #line 135 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(3);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 135 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential2_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 135 "sample/undocked/tail_call_sequential.c"
-    if ((sequential2_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 135 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 135 "sample/undocked/tail_call_sequential.c"
@@ -2575,9 +2584,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential20_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential20_program_type_guid = {
@@ -2591,7 +2600,7 @@ static uint16_t sequential20_maps[] = {
 
 #pragma code_seg(push, "sampl~15")
 static uint64_t
-sequential20(void* context)
+sequential20(void* context, const program_runtime_context_t* runtime_context)
 #line 153 "sample/undocked/tail_call_sequential.c"
 {
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -2643,12 +2652,12 @@ sequential20(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential20_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 153 "sample/undocked/tail_call_sequential.c"
-    if ((sequential20_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -2701,9 +2710,9 @@ sequential20(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential20_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 153 "sample/undocked/tail_call_sequential.c"
-    if ((sequential20_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -2729,15 +2738,15 @@ sequential20(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=21
 #line 153 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(21);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 153 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential20_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 153 "sample/undocked/tail_call_sequential.c"
-    if ((sequential20_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 153 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 153 "sample/undocked/tail_call_sequential.c"
@@ -2758,9 +2767,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential21_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential21_program_type_guid = {
@@ -2774,7 +2783,7 @@ static uint16_t sequential21_maps[] = {
 
 #pragma code_seg(push, "sampl~14")
 static uint64_t
-sequential21(void* context)
+sequential21(void* context, const program_runtime_context_t* runtime_context)
 #line 154 "sample/undocked/tail_call_sequential.c"
 {
 #line 154 "sample/undocked/tail_call_sequential.c"
@@ -2826,12 +2835,12 @@ sequential21(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential21_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 154 "sample/undocked/tail_call_sequential.c"
-    if ((sequential21_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 154 "sample/undocked/tail_call_sequential.c"
@@ -2884,9 +2893,9 @@ sequential21(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential21_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 154 "sample/undocked/tail_call_sequential.c"
-    if ((sequential21_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 154 "sample/undocked/tail_call_sequential.c"
@@ -2912,15 +2921,15 @@ sequential21(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=22
 #line 154 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(22);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 154 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential21_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 154 "sample/undocked/tail_call_sequential.c"
-    if ((sequential21_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 154 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 154 "sample/undocked/tail_call_sequential.c"
@@ -2941,9 +2950,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential22_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential22_program_type_guid = {
@@ -2957,7 +2966,7 @@ static uint16_t sequential22_maps[] = {
 
 #pragma code_seg(push, "sampl~13")
 static uint64_t
-sequential22(void* context)
+sequential22(void* context, const program_runtime_context_t* runtime_context)
 #line 155 "sample/undocked/tail_call_sequential.c"
 {
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -3009,12 +3018,12 @@ sequential22(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential22_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 155 "sample/undocked/tail_call_sequential.c"
-    if ((sequential22_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -3067,9 +3076,9 @@ sequential22(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential22_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 155 "sample/undocked/tail_call_sequential.c"
-    if ((sequential22_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -3095,15 +3104,15 @@ sequential22(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=23
 #line 155 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(23);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 155 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential22_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 155 "sample/undocked/tail_call_sequential.c"
-    if ((sequential22_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 155 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 155 "sample/undocked/tail_call_sequential.c"
@@ -3124,9 +3133,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential23_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential23_program_type_guid = {
@@ -3140,7 +3149,7 @@ static uint16_t sequential23_maps[] = {
 
 #pragma code_seg(push, "sampl~12")
 static uint64_t
-sequential23(void* context)
+sequential23(void* context, const program_runtime_context_t* runtime_context)
 #line 156 "sample/undocked/tail_call_sequential.c"
 {
 #line 156 "sample/undocked/tail_call_sequential.c"
@@ -3192,12 +3201,12 @@ sequential23(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential23_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 156 "sample/undocked/tail_call_sequential.c"
-    if ((sequential23_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 156 "sample/undocked/tail_call_sequential.c"
@@ -3250,9 +3259,9 @@ sequential23(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential23_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 156 "sample/undocked/tail_call_sequential.c"
-    if ((sequential23_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 156 "sample/undocked/tail_call_sequential.c"
@@ -3278,15 +3287,15 @@ sequential23(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=24
 #line 156 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 156 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential23_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 156 "sample/undocked/tail_call_sequential.c"
-    if ((sequential23_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 156 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 156 "sample/undocked/tail_call_sequential.c"
@@ -3307,9 +3316,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential24_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential24_program_type_guid = {
@@ -3323,7 +3332,7 @@ static uint16_t sequential24_maps[] = {
 
 #pragma code_seg(push, "sampl~11")
 static uint64_t
-sequential24(void* context)
+sequential24(void* context, const program_runtime_context_t* runtime_context)
 #line 157 "sample/undocked/tail_call_sequential.c"
 {
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3375,12 +3384,12 @@ sequential24(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential24_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 157 "sample/undocked/tail_call_sequential.c"
-    if ((sequential24_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3436,9 +3445,9 @@ sequential24(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=26 dst=r0 src=r0 offset=0 imm=13
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential24_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 157 "sample/undocked/tail_call_sequential.c"
-    if ((sequential24_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3461,15 +3470,15 @@ sequential24(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=25
 #line 157 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 157 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential24_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 157 "sample/undocked/tail_call_sequential.c"
-    if ((sequential24_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 157 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 157 "sample/undocked/tail_call_sequential.c"
@@ -3490,9 +3499,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential25_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential25_program_type_guid = {
@@ -3506,7 +3515,7 @@ static uint16_t sequential25_maps[] = {
 
 #pragma code_seg(push, "sampl~10")
 static uint64_t
-sequential25(void* context)
+sequential25(void* context, const program_runtime_context_t* runtime_context)
 #line 158 "sample/undocked/tail_call_sequential.c"
 {
 #line 158 "sample/undocked/tail_call_sequential.c"
@@ -3558,12 +3567,12 @@ sequential25(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential25_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 158 "sample/undocked/tail_call_sequential.c"
-    if ((sequential25_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 158 "sample/undocked/tail_call_sequential.c"
@@ -3616,9 +3625,9 @@ sequential25(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential25_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 158 "sample/undocked/tail_call_sequential.c"
-    if ((sequential25_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 158 "sample/undocked/tail_call_sequential.c"
@@ -3644,15 +3653,15 @@ sequential25(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=26
 #line 158 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(26);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 158 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential25_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 158 "sample/undocked/tail_call_sequential.c"
-    if ((sequential25_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 158 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 158 "sample/undocked/tail_call_sequential.c"
@@ -3673,9 +3682,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential26_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential26_program_type_guid = {
@@ -3689,7 +3698,7 @@ static uint16_t sequential26_maps[] = {
 
 #pragma code_seg(push, "sample~9")
 static uint64_t
-sequential26(void* context)
+sequential26(void* context, const program_runtime_context_t* runtime_context)
 #line 159 "sample/undocked/tail_call_sequential.c"
 {
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -3741,12 +3750,12 @@ sequential26(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential26_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 159 "sample/undocked/tail_call_sequential.c"
-    if ((sequential26_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -3799,9 +3808,9 @@ sequential26(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential26_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 159 "sample/undocked/tail_call_sequential.c"
-    if ((sequential26_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -3827,15 +3836,15 @@ sequential26(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=27
 #line 159 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(27);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 159 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential26_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 159 "sample/undocked/tail_call_sequential.c"
-    if ((sequential26_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 159 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 159 "sample/undocked/tail_call_sequential.c"
@@ -3856,9 +3865,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential27_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential27_program_type_guid = {
@@ -3872,7 +3881,7 @@ static uint16_t sequential27_maps[] = {
 
 #pragma code_seg(push, "sample~8")
 static uint64_t
-sequential27(void* context)
+sequential27(void* context, const program_runtime_context_t* runtime_context)
 #line 160 "sample/undocked/tail_call_sequential.c"
 {
 #line 160 "sample/undocked/tail_call_sequential.c"
@@ -3924,12 +3933,12 @@ sequential27(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential27_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 160 "sample/undocked/tail_call_sequential.c"
-    if ((sequential27_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 160 "sample/undocked/tail_call_sequential.c"
@@ -3982,9 +3991,9 @@ sequential27(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential27_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 160 "sample/undocked/tail_call_sequential.c"
-    if ((sequential27_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 160 "sample/undocked/tail_call_sequential.c"
@@ -4010,15 +4019,15 @@ sequential27(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=28
 #line 160 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(28);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 160 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential27_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 160 "sample/undocked/tail_call_sequential.c"
-    if ((sequential27_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 160 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 160 "sample/undocked/tail_call_sequential.c"
@@ -4039,9 +4048,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential28_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential28_program_type_guid = {
@@ -4055,7 +4064,7 @@ static uint16_t sequential28_maps[] = {
 
 #pragma code_seg(push, "sample~7")
 static uint64_t
-sequential28(void* context)
+sequential28(void* context, const program_runtime_context_t* runtime_context)
 #line 161 "sample/undocked/tail_call_sequential.c"
 {
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4107,12 +4116,12 @@ sequential28(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential28_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 161 "sample/undocked/tail_call_sequential.c"
-    if ((sequential28_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4165,9 +4174,9 @@ sequential28(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential28_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 161 "sample/undocked/tail_call_sequential.c"
-    if ((sequential28_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4193,15 +4202,15 @@ sequential28(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=29
 #line 161 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(29);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 161 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential28_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 161 "sample/undocked/tail_call_sequential.c"
-    if ((sequential28_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 161 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 161 "sample/undocked/tail_call_sequential.c"
@@ -4222,9 +4231,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential29_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential29_program_type_guid = {
@@ -4238,7 +4247,7 @@ static uint16_t sequential29_maps[] = {
 
 #pragma code_seg(push, "sample~6")
 static uint64_t
-sequential29(void* context)
+sequential29(void* context, const program_runtime_context_t* runtime_context)
 #line 162 "sample/undocked/tail_call_sequential.c"
 {
 #line 162 "sample/undocked/tail_call_sequential.c"
@@ -4290,12 +4299,12 @@ sequential29(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential29_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 162 "sample/undocked/tail_call_sequential.c"
-    if ((sequential29_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 162 "sample/undocked/tail_call_sequential.c"
@@ -4348,9 +4357,9 @@ sequential29(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential29_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 162 "sample/undocked/tail_call_sequential.c"
-    if ((sequential29_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 162 "sample/undocked/tail_call_sequential.c"
@@ -4376,15 +4385,15 @@ sequential29(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=30
 #line 162 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(30);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 162 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential29_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 162 "sample/undocked/tail_call_sequential.c"
-    if ((sequential29_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 162 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 162 "sample/undocked/tail_call_sequential.c"
@@ -4405,9 +4414,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential3_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential3_program_type_guid = {
@@ -4421,7 +4430,7 @@ static uint16_t sequential3_maps[] = {
 
 #pragma code_seg(push, "sampl~32")
 static uint64_t
-sequential3(void* context)
+sequential3(void* context, const program_runtime_context_t* runtime_context)
 #line 136 "sample/undocked/tail_call_sequential.c"
 {
 #line 136 "sample/undocked/tail_call_sequential.c"
@@ -4471,12 +4480,12 @@ sequential3(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential3_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 136 "sample/undocked/tail_call_sequential.c"
-    if ((sequential3_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 136 "sample/undocked/tail_call_sequential.c"
@@ -4526,9 +4535,9 @@ sequential3(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential3_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 136 "sample/undocked/tail_call_sequential.c"
-    if ((sequential3_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 136 "sample/undocked/tail_call_sequential.c"
@@ -4554,15 +4563,15 @@ sequential3(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=4
 #line 136 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(4);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 136 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential3_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 136 "sample/undocked/tail_call_sequential.c"
-    if ((sequential3_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 136 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 136 "sample/undocked/tail_call_sequential.c"
@@ -4583,9 +4592,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential30_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential30_program_type_guid = {
@@ -4599,7 +4608,7 @@ static uint16_t sequential30_maps[] = {
 
 #pragma code_seg(push, "sample~5")
 static uint64_t
-sequential30(void* context)
+sequential30(void* context, const program_runtime_context_t* runtime_context)
 #line 163 "sample/undocked/tail_call_sequential.c"
 {
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -4651,12 +4660,12 @@ sequential30(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential30_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 163 "sample/undocked/tail_call_sequential.c"
-    if ((sequential30_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -4709,9 +4718,9 @@ sequential30(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential30_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 163 "sample/undocked/tail_call_sequential.c"
-    if ((sequential30_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -4737,15 +4746,15 @@ sequential30(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=31
 #line 163 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(31);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 163 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential30_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 163 "sample/undocked/tail_call_sequential.c"
-    if ((sequential30_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 163 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 163 "sample/undocked/tail_call_sequential.c"
@@ -4766,9 +4775,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential31_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential31_program_type_guid = {
@@ -4782,7 +4791,7 @@ static uint16_t sequential31_maps[] = {
 
 #pragma code_seg(push, "sample~4")
 static uint64_t
-sequential31(void* context)
+sequential31(void* context, const program_runtime_context_t* runtime_context)
 #line 164 "sample/undocked/tail_call_sequential.c"
 {
 #line 164 "sample/undocked/tail_call_sequential.c"
@@ -4834,12 +4843,12 @@ sequential31(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential31_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 164 "sample/undocked/tail_call_sequential.c"
-    if ((sequential31_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 164 "sample/undocked/tail_call_sequential.c"
@@ -4892,9 +4901,9 @@ sequential31(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential31_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 164 "sample/undocked/tail_call_sequential.c"
-    if ((sequential31_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 164 "sample/undocked/tail_call_sequential.c"
@@ -4920,15 +4929,15 @@ sequential31(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=32
 #line 164 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(32);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 164 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential31_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 164 "sample/undocked/tail_call_sequential.c"
-    if ((sequential31_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 164 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 164 "sample/undocked/tail_call_sequential.c"
@@ -4949,9 +4958,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential32_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential32_program_type_guid = {
@@ -4965,7 +4974,7 @@ static uint16_t sequential32_maps[] = {
 
 #pragma code_seg(push, "sample~3")
 static uint64_t
-sequential32(void* context)
+sequential32(void* context, const program_runtime_context_t* runtime_context)
 #line 165 "sample/undocked/tail_call_sequential.c"
 {
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -5017,12 +5026,12 @@ sequential32(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential32_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 165 "sample/undocked/tail_call_sequential.c"
-    if ((sequential32_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -5075,9 +5084,9 @@ sequential32(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential32_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 165 "sample/undocked/tail_call_sequential.c"
-    if ((sequential32_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -5103,15 +5112,15 @@ sequential32(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=33
 #line 165 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(33);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 165 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential32_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 165 "sample/undocked/tail_call_sequential.c"
-    if ((sequential32_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 165 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 165 "sample/undocked/tail_call_sequential.c"
@@ -5132,9 +5141,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential33_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential33_program_type_guid = {
@@ -5148,7 +5157,7 @@ static uint16_t sequential33_maps[] = {
 
 #pragma code_seg(push, "sample~2")
 static uint64_t
-sequential33(void* context)
+sequential33(void* context, const program_runtime_context_t* runtime_context)
 #line 166 "sample/undocked/tail_call_sequential.c"
 {
 #line 166 "sample/undocked/tail_call_sequential.c"
@@ -5200,12 +5209,12 @@ sequential33(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential33_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 166 "sample/undocked/tail_call_sequential.c"
-    if ((sequential33_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 166 "sample/undocked/tail_call_sequential.c"
@@ -5258,9 +5267,9 @@ sequential33(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential33_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 166 "sample/undocked/tail_call_sequential.c"
-    if ((sequential33_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 166 "sample/undocked/tail_call_sequential.c"
@@ -5286,15 +5295,15 @@ sequential33(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=34
 #line 166 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(34);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 166 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential33_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 166 "sample/undocked/tail_call_sequential.c"
-    if ((sequential33_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 166 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 166 "sample/undocked/tail_call_sequential.c"
@@ -5315,9 +5324,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential34_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential34_program_type_guid = {
@@ -5331,7 +5340,7 @@ static uint16_t sequential34_maps[] = {
 
 #pragma code_seg(push, "sample~1")
 static uint64_t
-sequential34(void* context)
+sequential34(void* context, const program_runtime_context_t* runtime_context)
 #line 167 "sample/undocked/tail_call_sequential.c"
 {
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -5383,12 +5392,12 @@ sequential34(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential34_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 167 "sample/undocked/tail_call_sequential.c"
-    if ((sequential34_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -5441,9 +5450,9 @@ sequential34(void* context)
     r2 = IMMEDIATE(25);
     // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=13
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential34_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 167 "sample/undocked/tail_call_sequential.c"
-    if ((sequential34_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -5469,15 +5478,15 @@ sequential34(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=31 dst=r2 src=r1 offset=0 imm=1
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=33 dst=r3 src=r0 offset=0 imm=35
 #line 167 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(35);
     // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=5
 #line 167 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential34_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 167 "sample/undocked/tail_call_sequential.c"
-    if ((sequential34_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 167 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 167 "sample/undocked/tail_call_sequential.c"
@@ -5498,9 +5507,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential4_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential4_program_type_guid = {
@@ -5514,7 +5523,7 @@ static uint16_t sequential4_maps[] = {
 
 #pragma code_seg(push, "sampl~31")
 static uint64_t
-sequential4(void* context)
+sequential4(void* context, const program_runtime_context_t* runtime_context)
 #line 137 "sample/undocked/tail_call_sequential.c"
 {
 #line 137 "sample/undocked/tail_call_sequential.c"
@@ -5564,12 +5573,12 @@ sequential4(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential4_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 137 "sample/undocked/tail_call_sequential.c"
-    if ((sequential4_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 137 "sample/undocked/tail_call_sequential.c"
@@ -5619,9 +5628,9 @@ sequential4(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential4_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 137 "sample/undocked/tail_call_sequential.c"
-    if ((sequential4_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 137 "sample/undocked/tail_call_sequential.c"
@@ -5647,15 +5656,15 @@ sequential4(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=5
 #line 137 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(5);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 137 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential4_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 137 "sample/undocked/tail_call_sequential.c"
-    if ((sequential4_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 137 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 137 "sample/undocked/tail_call_sequential.c"
@@ -5676,9 +5685,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential5_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential5_program_type_guid = {
@@ -5692,7 +5701,7 @@ static uint16_t sequential5_maps[] = {
 
 #pragma code_seg(push, "sampl~30")
 static uint64_t
-sequential5(void* context)
+sequential5(void* context, const program_runtime_context_t* runtime_context)
 #line 138 "sample/undocked/tail_call_sequential.c"
 {
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -5742,12 +5751,12 @@ sequential5(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential5_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 138 "sample/undocked/tail_call_sequential.c"
-    if ((sequential5_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -5797,9 +5806,9 @@ sequential5(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential5_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 138 "sample/undocked/tail_call_sequential.c"
-    if ((sequential5_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -5825,15 +5834,15 @@ sequential5(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=6
 #line 138 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(6);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 138 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential5_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 138 "sample/undocked/tail_call_sequential.c"
-    if ((sequential5_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 138 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 138 "sample/undocked/tail_call_sequential.c"
@@ -5854,9 +5863,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential6_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential6_program_type_guid = {
@@ -5870,7 +5879,7 @@ static uint16_t sequential6_maps[] = {
 
 #pragma code_seg(push, "sampl~29")
 static uint64_t
-sequential6(void* context)
+sequential6(void* context, const program_runtime_context_t* runtime_context)
 #line 139 "sample/undocked/tail_call_sequential.c"
 {
 #line 139 "sample/undocked/tail_call_sequential.c"
@@ -5920,12 +5929,12 @@ sequential6(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential6_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 139 "sample/undocked/tail_call_sequential.c"
-    if ((sequential6_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 139 "sample/undocked/tail_call_sequential.c"
@@ -5975,9 +5984,9 @@ sequential6(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential6_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 139 "sample/undocked/tail_call_sequential.c"
-    if ((sequential6_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 139 "sample/undocked/tail_call_sequential.c"
@@ -6003,15 +6012,15 @@ sequential6(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=7
 #line 139 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(7);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 139 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential6_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 139 "sample/undocked/tail_call_sequential.c"
-    if ((sequential6_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 139 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 139 "sample/undocked/tail_call_sequential.c"
@@ -6032,9 +6041,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential7_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential7_program_type_guid = {
@@ -6048,7 +6057,7 @@ static uint16_t sequential7_maps[] = {
 
 #pragma code_seg(push, "sampl~28")
 static uint64_t
-sequential7(void* context)
+sequential7(void* context, const program_runtime_context_t* runtime_context)
 #line 140 "sample/undocked/tail_call_sequential.c"
 {
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -6098,12 +6107,12 @@ sequential7(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential7_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 140 "sample/undocked/tail_call_sequential.c"
-    if ((sequential7_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -6153,9 +6162,9 @@ sequential7(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential7_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 140 "sample/undocked/tail_call_sequential.c"
-    if ((sequential7_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -6181,15 +6190,15 @@ sequential7(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=8
 #line 140 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(8);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 140 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential7_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 140 "sample/undocked/tail_call_sequential.c"
-    if ((sequential7_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 140 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 140 "sample/undocked/tail_call_sequential.c"
@@ -6210,9 +6219,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential8_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential8_program_type_guid = {
@@ -6226,7 +6235,7 @@ static uint16_t sequential8_maps[] = {
 
 #pragma code_seg(push, "sampl~27")
 static uint64_t
-sequential8(void* context)
+sequential8(void* context, const program_runtime_context_t* runtime_context)
 #line 141 "sample/undocked/tail_call_sequential.c"
 {
 #line 141 "sample/undocked/tail_call_sequential.c"
@@ -6276,12 +6285,12 @@ sequential8(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential8_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 141 "sample/undocked/tail_call_sequential.c"
-    if ((sequential8_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 141 "sample/undocked/tail_call_sequential.c"
@@ -6331,9 +6340,9 @@ sequential8(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential8_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 141 "sample/undocked/tail_call_sequential.c"
-    if ((sequential8_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 141 "sample/undocked/tail_call_sequential.c"
@@ -6359,15 +6368,15 @@ sequential8(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=9
 #line 141 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(9);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 141 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential8_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 141 "sample/undocked/tail_call_sequential.c"
-    if ((sequential8_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 141 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 141 "sample/undocked/tail_call_sequential.c"
@@ -6388,9 +6397,9 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential9_helpers[] = {
-    {NULL, 1, "helper_id_1"},
-    {NULL, 13, "helper_id_13"},
-    {NULL, 5, "helper_id_5"},
+    {1, "helper_id_1"},
+    {13, "helper_id_13"},
+    {5, "helper_id_5"},
 };
 
 static GUID sequential9_program_type_guid = {
@@ -6404,7 +6413,7 @@ static uint16_t sequential9_maps[] = {
 
 #pragma code_seg(push, "sampl~26")
 static uint64_t
-sequential9(void* context)
+sequential9(void* context, const program_runtime_context_t* runtime_context)
 #line 142 "sample/undocked/tail_call_sequential.c"
 {
 #line 142 "sample/undocked/tail_call_sequential.c"
@@ -6454,12 +6463,12 @@ sequential9(void* context)
     r2 += IMMEDIATE(-4);
     // EBPF_OP_LDDW pc=5 dst=r1 src=r1 offset=0 imm=2
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r1 = POINTER(_maps[1].address);
+    r1 = POINTER(runtime_context->map_data[1].address);
     // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=1
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential9_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 142 "sample/undocked/tail_call_sequential.c"
-    if ((sequential9_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 142 "sample/undocked/tail_call_sequential.c"
@@ -6509,9 +6518,9 @@ sequential9(void* context)
     r2 = IMMEDIATE(24);
     // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=13
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential9_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 142 "sample/undocked/tail_call_sequential.c"
-    if ((sequential9_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 142 "sample/undocked/tail_call_sequential.c"
@@ -6537,15 +6546,15 @@ sequential9(void* context)
     r1 = r6;
     // EBPF_OP_LDDW pc=30 dst=r2 src=r1 offset=0 imm=1
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r2 = POINTER(_maps[0].address);
+    r2 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=32 dst=r3 src=r0 offset=0 imm=10
 #line 142 "sample/undocked/tail_call_sequential.c"
     r3 = IMMEDIATE(10);
     // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=5
 #line 142 "sample/undocked/tail_call_sequential.c"
-    r0 = sequential9_helpers[2].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 142 "sample/undocked/tail_call_sequential.c"
-    if ((sequential9_helpers[2].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[2].tail_call) && (r0 == 0)) {
 #line 142 "sample/undocked/tail_call_sequential.c"
         return 0;
 #line 142 "sample/undocked/tail_call_sequential.c"
@@ -7133,4 +7142,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t tail_call_sequential_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

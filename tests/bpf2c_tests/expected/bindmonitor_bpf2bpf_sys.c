@@ -181,6 +181,15 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 // Forward references for local functions.
 static uint64_t
 BindMonitor_Callee1(uint64_t r1, uint64_t r2, uint64_t r3, uint64_t r4, uint64_t r5, uint64_t r10, void* context);
@@ -203,7 +212,7 @@ static GUID BindMonitor_Caller_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-BindMonitor_Caller(void* context)
+BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_context)
 #line 45 "sample/bindmonitor_bpf2bpf.c"
 {
 #line 45 "sample/bindmonitor_bpf2bpf.c"
@@ -229,6 +238,8 @@ BindMonitor_Caller(void* context)
     r1 = (uintptr_t)context;
 #line 45 "sample/bindmonitor_bpf2bpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 45 "sample/bindmonitor_bpf2bpf.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-16 imm=0
 #line 45 "sample/bindmonitor_bpf2bpf.c"
@@ -647,4 +658,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t bindmonitor_bpf2bpf_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

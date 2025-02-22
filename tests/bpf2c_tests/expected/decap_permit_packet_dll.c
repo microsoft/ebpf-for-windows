@@ -50,8 +50,17 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
     *count = 0;
 }
 
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = NULL;
+    *count = 0;
+}
+
 static helper_function_entry_t decapsulate_permit_packet_helpers[] = {
-    {NULL, 65536, "helper_id_65536"},
+    {65536, "helper_id_65536"},
 };
 
 static GUID decapsulate_permit_packet_program_type_guid = {
@@ -60,7 +69,7 @@ static GUID decapsulate_permit_packet_attach_type_guid = {
     0x0dccc15d, 0xa5f9, 0x4dc1, {0xac, 0x79, 0xfa, 0x25, 0xee, 0xf2, 0x15, 0xc3}};
 #pragma code_seg(push, "xdp_te~1")
 static uint64_t
-decapsulate_permit_packet(void* context)
+decapsulate_permit_packet(void* context, const program_runtime_context_t* runtime_context)
 #line 94 "sample/decap_permit_packet.c"
 {
 #line 94 "sample/decap_permit_packet.c"
@@ -289,9 +298,9 @@ decapsulate_permit_packet(void* context)
     r2 = IMMEDIATE(20);
     // EBPF_OP_CALL pc=56 dst=r0 src=r0 offset=0 imm=65536
 #line 41 "sample/decap_permit_packet.c"
-    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 41 "sample/decap_permit_packet.c"
-    if ((decapsulate_permit_packet_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 41 "sample/decap_permit_packet.c"
         return 0;
 #line 41 "sample/decap_permit_packet.c"
@@ -447,9 +456,9 @@ label_1:
     r2 = IMMEDIATE(40);
     // EBPF_OP_CALL pc=101 dst=r0 src=r0 offset=0 imm=65536
 #line 70 "sample/decap_permit_packet.c"
-    r0 = decapsulate_permit_packet_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 70 "sample/decap_permit_packet.c"
-    if ((decapsulate_permit_packet_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 70 "sample/decap_permit_packet.c"
         return 0;
 #line 70 "sample/decap_permit_packet.c"
@@ -531,4 +540,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t decap_permit_packet_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};

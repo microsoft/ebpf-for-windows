@@ -45,7 +45,7 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {NULL,
+    {0,
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -57,6 +57,18 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "pidtgid_map"},
+    {0,
+     {
+         BPF_MAP_TYPE_ARRAY, // Type of map.
+         4,                  // Size in bytes of a map key.
+         12,                 // Size in bytes of a map value.
+         1,                  // Maximum number of entries allowed in the map.
+         0,                  // Inner map index.
+         LIBBPF_PIN_NONE,    // Pinning type for the map.
+         31,                 // Identifier for a map template.
+         0,                  // The id of the inner map template.
+     },
+     "pidtgid.bss"},
 };
 #pragma data_seg(pop)
 
@@ -64,12 +76,33 @@ static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
     *maps = _maps;
+    *count = 2;
+}
+
+const char pidtgid_bss_initial_data[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+#pragma data_seg(push, "global_variables")
+static global_variable_section_info_t _global_variable_sections[] = {
+    {
+        .name = "pidtgid.bss",
+        .size = 12,
+        .initial_data = &pidtgid_bss_initial_data,
+    },
+};
+#pragma data_seg(pop)
+
+static void
+_get_global_variable_sections(
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
+{
+    *global_variable_sections = _global_variable_sections;
     *count = 1;
 }
 
 static helper_function_entry_t func_helpers[] = {
-    {NULL, 19, "helper_id_19"},
-    {NULL, 2, "helper_id_2"},
+    {19, "helper_id_19"},
+    {2, "helper_id_2"},
 };
 
 static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
@@ -80,7 +113,7 @@ static uint16_t func_maps[] = {
 
 #pragma code_seg(push, "bind")
 static uint64_t
-func(void* context)
+func(void* context, const program_runtime_context_t* runtime_context)
 #line 46 "sample/pidtgid.c"
 {
 #line 46 "sample/pidtgid.c"
@@ -137,9 +170,9 @@ func(void* context)
     r6 = r1;
     // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
 #line 47 "sample/pidtgid.c"
-    r0 = func_helpers[0].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 47 "sample/pidtgid.c"
-    if ((func_helpers[0].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
 #line 47 "sample/pidtgid.c"
         return 0;
 #line 47 "sample/pidtgid.c"
@@ -179,15 +212,15 @@ func(void* context)
     r3 += IMMEDIATE(-12);
     // EBPF_OP_LDDW pc=18 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/pidtgid.c"
-    r1 = POINTER(_maps[0].address);
+    r1 = POINTER(runtime_context->map_data[0].address);
     // EBPF_OP_MOV64_IMM pc=20 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/pidtgid.c"
     r4 = IMMEDIATE(0);
     // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/pidtgid.c"
-    r0 = func_helpers[1].address(r1, r2, r3, r4, r5, context);
+    r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/pidtgid.c"
-    if ((func_helpers[1].tail_call) && (r0 == 0)) {
+    if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
 #line 51 "sample/pidtgid.c"
         return 0;
 #line 51 "sample/pidtgid.c"
@@ -246,4 +279,11 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
 }
 
 metadata_table_t pidtgid_metadata_table = {
-    sizeof(metadata_table_t), _get_programs, _get_maps, _get_hash, _get_version, _get_map_initial_values};
+    sizeof(metadata_table_t),
+    _get_programs,
+    _get_maps,
+    _get_hash,
+    _get_version,
+    _get_map_initial_values,
+    _get_global_variable_sections,
+};
