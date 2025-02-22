@@ -1370,7 +1370,6 @@ void
 run_ring_buffer_stress_test(
     ebpf_ring_buffer_t* ring, uint8_t* buffer, const ring_buffer_stress_test_parameters_t* parameters)
 {
-    std::cout << "==" << parameters->test_name << "==" << std::endl << std::flush;
     size_t producer_threads = parameters->producer_threads;
     size_t duration_ms = parameters->duration_ms;
     bool use_output = parameters->use_output; // Producer(s) use output if true, else reserve and submit.
