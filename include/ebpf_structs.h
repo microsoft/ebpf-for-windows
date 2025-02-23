@@ -419,9 +419,10 @@ struct bpf_prog_info
  * without breaking backward compatibility. The version field must be
  * updated only if the new data structure is not backward compatible.
  */
-typedef struct _ebpf_native_module_header
-{
-    uint16_t version;  ///< Version of the extension data structure.
-    size_t size;       ///< Size of the extension data structure not including any padding.
-    size_t total_size; ///< Total size of the extension data structure including any padding.
-} ebpf_native_module_header_t;
+typedef ebpf_extension_header_t ebpf_native_module_header_t;
+// typedef struct _ebpf_native_module_header
+// {
+//     uint16_t version;  ///< Version of the extension data structure.
+//     size_t size;       ///< Size of the extension data structure not including any padding.
+//     size_t total_size; ///< Total size of the extension data structure including any padding.
+// } ebpf_native_module_header_t;

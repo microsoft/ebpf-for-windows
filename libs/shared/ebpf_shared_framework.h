@@ -14,6 +14,8 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
+#define ARRAY_ELEM_INDEX(array, index, elem_size) (((uint8_t*)array) + (index * elem_size));
+
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
 
@@ -126,6 +128,41 @@ ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info);
 bool
 ebpf_validate_helper_function_prototype_array(
     _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype, uint32_t count);
+
+// bool
+// ebpf_validate_native_program_entry_array(
+//     _In_reads_(count) const program_entry_t* native_program_entry_array, size_t count);
+
+// bool
+// ebpf_validate_native_map_entry_array(
+//     _In_reads_(count) const map_entry_t* native_map_entry_array, size_t count);
+
+// bool
+// ebpf_validate_native_map_initial_values_array(
+//     _In_reads_(count) const map_initial_values_t* native_map_initial_values_array, size_t count);
+
+// bool
+// ebpf_validate_global_variable_section_info_array(
+//     _In_reads_(count) const global_variable_section_info_t* native_global_variable_section_info_array,
+//     size_t count);
+
+bool
+ebpf_validate_object_header_native_helper_function_entry(
+    _In_ const ebpf_extension_header_t* native_helper_function_entry_header);
+
+bool
+ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t* native_map_entry_header);
+
+bool
+ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_header_t* native_program_entry_header);
+
+bool
+ebpf_validate_object_header_native_map_initial_values(
+    _In_ const ebpf_extension_header_t* native_map_initial_values_header);
+
+bool
+ebpf_validate_object_header_native_global_variable_section_info(
+    _In_ const ebpf_extension_header_t* native_global_variable_section_info_header);
 
 /**
  * @brief Helper Function to free ebpf_program_info_t.

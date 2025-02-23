@@ -171,6 +171,161 @@ typedef struct _ebpf_native_helper_address_changed_context
     ebpf_native_program_t* native_program;
 } ebpf_native_helper_address_changed_context_t;
 
+static bool
+_ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* native_helper_function_entry)
+{
+    return (
+        (native_helper_function_entry != NULL) &&
+        ebpf_validate_object_header_native_helper_function_entry(&native_helper_function_entry->header) &&
+        (native_helper_function_entry->name != NULL));
+}
+
+static bool
+_ebpf_validate_native_helper_function_entry_array(
+    _In_reads_(count) const helper_function_entry_t* native_helper_function_entry_array, uint16_t count)
+{
+    if (count > 0) {
+        // The native_helper_function_entry_array cannot be NULL.
+        if (native_helper_function_entry_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
+        size_t helper_prototype_size = native_helper_function_entry_array[0].header.total_size;
+        for (uint16_t i = 0; i < count; i++) {
+            helper_function_entry_t* helper_prototype = (helper_function_entry_t*)ARRAY_ELEM_INDEX(
+                native_helper_function_entry_array, i, helper_prototype_size);
+            if (!_ebpf_validate_native_helper_function_entry(helper_prototype)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_program_entry)
+{
+    return (
+        (native_program_entry != NULL) &&
+        ebpf_validate_object_header_native_program_entry(&native_program_entry->header) &&
+        _ebpf_validate_native_helper_function_entry_array(
+            native_program_entry->helpers, native_program_entry->helper_count));
+}
+
+bool
+ebpf_validate_native_program_entry_array(
+    _In_reads_(count) const program_entry_t* native_program_entry_array, size_t count)
+{
+    if (count > 0) {
+        // The native_program_entry_array cannot be NULL.
+        if (native_program_entry_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the program_entry_t struct.
+        size_t program_entry_size = native_program_entry_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            program_entry_t* program_entry =
+                (program_entry_t*)ARRAY_ELEM_INDEX(native_program_entry_array, i, program_entry_size);
+            if (!_ebpf_validate_native_program_entry(program_entry)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_map_entry(_In_ const map_entry_t* native_map_entry)
+{
+    return (
+        (native_map_entry != NULL) && ebpf_validate_object_header_native_map_entry(&native_map_entry->header) &&
+        (native_map_entry->name != NULL));
+}
+
+bool
+ebpf_validate_native_map_entry_array(_In_reads_(count) const map_entry_t* native_map_entry_array, size_t count)
+{
+    if (count > 0) {
+        // The native_map_entry_array cannot be NULL.
+        if (native_map_entry_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the map_entry_t struct.
+        size_t map_entry_size = native_map_entry_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEM_INDEX(native_map_entry_array, i, map_entry_size);
+            if (!_ebpf_validate_native_map_entry(map_entry)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_map_initial_values(_In_ const map_initial_values_t* native_map_initial_values)
+{
+    return (
+        (native_map_initial_values != NULL) &&
+        ebpf_validate_object_header_native_map_initial_values(&native_map_initial_values->header) &&
+        (native_map_initial_values->values != NULL));
+}
+
+bool
+ebpf_validate_native_map_initial_values_array(
+    _In_reads_(count) const map_initial_values_t* native_map_initial_values_array, size_t count)
+{
+    if (count > 0) {
+        // The native_map_initial_values_array cannot be NULL.
+        if (native_map_initial_values_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
+        size_t map_initial_values_size = native_map_initial_values_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            map_initial_values_t* map_initial_values =
+                (map_initial_values_t*)ARRAY_ELEM_INDEX(native_map_initial_values_array, i, map_initial_values_size);
+            if (!_ebpf_validate_native_map_initial_values(map_initial_values)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_global_variable_section_info(
+    _In_ const global_variable_section_info_t* native_global_variable_section_info)
+{
+    return (
+        (native_global_variable_section_info != NULL) &&
+        ebpf_validate_object_header_native_global_variable_section_info(&native_global_variable_section_info->header) &&
+        (native_global_variable_section_info->initial_data != NULL));
+}
+
+bool
+ebpf_validate_global_variable_section_info_array(
+    _In_reads_(count) const global_variable_section_info_t* native_global_variable_section_info_array, size_t count)
+{
+    if (count > 0) {
+        // The native_global_variable_section_info_array cannot be NULL.
+        if (native_global_variable_section_info_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
+        size_t global_variable_section_info_size = native_global_variable_section_info_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            global_variable_section_info_t* global_variable_section_info =
+                (global_variable_section_info_t*)ARRAY_ELEM_INDEX(
+                    native_global_variable_section_info_array, i, global_variable_section_info_size);
+            if (!_ebpf_validate_native_global_variable_section_info(global_variable_section_info)) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
     size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context);
@@ -460,6 +615,88 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
     _ebpf_native_release_reference(base_object);
 }
 
+static ebpf_result_t
+_ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_ const GUID* client_module_id)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    metadata_table_t local_table = {0};
+    bpf2c_version_t version;
+    program_entry_t* programs = NULL;
+    size_t program_count = 0;
+    map_entry_t* maps = NULL;
+    size_t map_count = 0;
+    map_initial_values_t* map_initial_values = NULL;
+    size_t map_initial_values_count = 0;
+    global_variable_section_info_t* global_variables = NULL;
+    size_t global_variable_count = 0;
+
+    if (!table || !table->programs || !table->maps) {
+        // TODO: Add trace.
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Copy the metadata table.
+    memcpy(&local_table, table, min(table->size, sizeof(metadata_table_t)));
+
+    // Check if the client module is compatible with the runtime.
+    if (local_table.size < EBPF_OFFSET_OF(metadata_table_t, version)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
+            "may be too old.",
+            client_module_id);
+        goto Done;
+    }
+
+    local_table.version(&version);
+    if (_ebpf_compare_versions(&version, &_ebpf_minimum_version) < 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "Native module version is older than _ebpf_minimum_version. Rejecting the attach request.",
+            client_module_id);
+        goto Done;
+    }
+
+    // Validate the programs.
+    local_table.programs(&programs, &program_count);
+    if (!ebpf_validate_native_program_entry_array(programs, program_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // Validate the maps.
+    local_table.maps(&maps, &map_count);
+    if (!ebpf_validate_native_map_entry_array(maps, map_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // Validate map_initial_values.
+    local_table.map_initial_values(&map_initial_values, &map_initial_values_count);
+    if (!ebpf_validate_native_map_initial_values_array(map_initial_values, map_initial_values_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // Validate global variables.
+    local_table.global_variable_sections(&global_variables, &global_variable_count);
+    if (!ebpf_validate_global_variable_section_info_array(global_variables, global_variable_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+Done:
+    return result;
+}
+
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
@@ -472,7 +709,7 @@ _ebpf_native_provider_attach_client_callback(
 {
     UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(client_binding_context);
-    UNREFERENCED_PARAMETER(client_dispatch);
+    // UNREFERENCED_PARAMETER(client_dispatch);
 
     *provider_dispatch = NULL;
     *provider_binding_context = NULL;
@@ -488,43 +725,64 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t** module = NULL;
     bool lock_acquired = false;
     metadata_table_t* table = NULL;
-    ebpf_native_module_t* client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
+    ebpf_native_module_t* client_context = NULL;
 
+    table = (metadata_table_t*)client_dispatch;
+
+    result = _ebpf_native_validate_native_module(table, client_module_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Invalid native module",
+            client_module_id);
+        goto Done;
+    }
+    // if (!table || !table->programs || !table->maps) {
+    //     result = EBPF_INVALID_ARGUMENT;
+    //     goto Done;
+    // }
+
+    client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
     if (!client_context) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
-    table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
-    if (!table || !table->programs || !table->maps) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
 
-    // Check if the client module is compatible with the runtime.
-    if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
-            "may be too old.",
-            client_module_id);
-        goto Done;
-    }
+    // // Check if the client module is compatible with the runtime.
+    // if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
+    //     result = EBPF_INVALID_ARGUMENT;
+    //     EBPF_LOG_MESSAGE_GUID(
+    //         EBPF_TRACELOG_LEVEL_ERROR,
+    //         EBPF_TRACELOG_KEYWORD_NATIVE,
+    //         "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
+    //         "may be too old.",
+    //         client_module_id);
+    //     goto Done;
+    // }
 
-    table->version(&client_context->version);
-    if (_ebpf_compare_versions(&client_context->version, &_ebpf_minimum_version) < 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "Native module version is older than _ebpf_minimum_version. Rejecting the attach request.",
-            client_module_id);
-        goto Done;
-    }
+    // table->version(&client_context->version);
+    // if (_ebpf_compare_versions(&client_context->version, &_ebpf_minimum_version) < 0) {
+    //     result = EBPF_INVALID_ARGUMENT;
+    //     EBPF_LOG_MESSAGE_GUID(
+    //         EBPF_TRACELOG_LEVEL_ERROR,
+    //         EBPF_TRACELOG_KEYWORD_NATIVE,
+    //         "Native module version is older than _ebpf_minimum_version. Rejecting the attach request.",
+    //         client_module_id);
+    //     goto Done;
+    // }
 
     // Copy the metadata table.
     memcpy(&client_context->table, table, min(table->size, sizeof(metadata_table_t)));
+    result = _ebpf_native_validate_native_module(table, client_module_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Invalid native module",
+            client_module_id);
+        goto Done;
+    }
 
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
@@ -1284,9 +1542,13 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     if (program_count == 0) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
     }
-    if (programs == NULL) {
-        return EBPF_INVALID_OBJECT;
-    }
+    // if (programs == NULL) {
+    //     return EBPF_INVALID_OBJECT;
+    // }
+
+    // if (ebpf_validate_native_program_entry_array(programs, program_count) != EBPF_SUCCESS) {
+    //     return EBPF_INVALID_OBJECT;
+    // }
 
     instance->programs = (ebpf_native_program_t**)ebpf_allocate_with_tag(
         program_count * sizeof(ebpf_native_program_t*), EBPF_POOL_TAG_NATIVE);
