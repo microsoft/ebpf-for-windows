@@ -92,8 +92,8 @@ typedef struct _ebpf_ring_buffer_record
 ### Producer functions
 
 Producers use reserve and submit to reserve space and submit completed records for reading.
-- The algorithms are described below in [Producer algorithm](#producer-algorithm).
 
+- The algorithms are described below in [Producer algorithm](#producer-algorithm).
 - `ebpf_ring_buffer_reserve` reserves a record and returns a pointer to the record data.
   - Returns `EBPF_NO_MEMORY` if there isn't enough space left for the record.
   - Wait-free with a single producer.
@@ -213,7 +213,7 @@ To submit or discard the record, the producer write-releases the header to ensur
     - It is possible later records are ready, but the consumer must read records in-order.
     - Poll the lock bit of the current record to wait for the next record.
 6. If the current record has been discarded, advance the consumer offset and goto step (3).
-4. If the current record has not been discarded, read it.
+7. If the current record has not been discarded, read it.
     - Advance the consumer offset after reading the record and goto step (3) to keep reading.
-5. WriteNoFence advance consumer offset to next record and goto step (1).
+8. WriteNoFence advance consumer offset to next record and goto step (1).
     - Add data length, header length (8 bytes), and pad to a multiple of 8 bytes.
