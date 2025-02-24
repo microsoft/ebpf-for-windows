@@ -774,7 +774,8 @@ _ebpf_native_provider_attach_client_callback(
 
     // Copy the metadata table.
     memcpy(&client_context->table, table, min(table->size, sizeof(metadata_table_t)));
-    result = _ebpf_native_validate_native_module(table, client_module_id);
+    table = NULL;
+    result = _ebpf_native_validate_native_module(&client_context->table, client_module_id);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_GUID(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -783,6 +784,8 @@ _ebpf_native_provider_attach_client_callback(
             client_module_id);
         goto Done;
     }
+
+    client_context->table.version(&client_context->version);
 
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;

@@ -1049,7 +1049,7 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
 
 void
 bpf_code_generator::bpf_code_generator_program::encode_instructions(
-    std::map<unsafe_string, map_entry_t>& map_definitions,
+    std::map<unsafe_string, map_info_t>& map_definitions,
     std::map<unsafe_string, global_variable_section_t>& global_variable_sections)
 {
     std::vector<output_instruction_t>& program_output = output_instructions;
@@ -1692,7 +1692,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         size_t map_size = map_definitions.size();
 
         // Sort maps by index.
-        std::vector<std::tuple<bpf_code_generator::unsafe_string, map_entry_t>> maps_by_index(map_size);
+        std::vector<std::tuple<bpf_code_generator::unsafe_string, map_info_t>> maps_by_index(map_size);
         for (const auto& pair : map_definitions) {
             if (pair.second.index >= maps_by_index.size()) {
                 throw bpf_code_generator_exception("Invalid map section");
@@ -1731,13 +1731,13 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             output_stream << INDENT " 0," << std::endl;
             output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION) + "," << "// Current Version."
+                          << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION) + "," << "// Current Version."
                           << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_SIZE) + ","
+                          << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE) + ","
                           << "// Struct size up to the last field." << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
-                          << std::to_string(EBPF_NATIVE_METADATA_TABLE_CURRENT_VERSION_TOTAL_SIZE) + ","
+                          << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE) + ","
                           << "// Total struct size including padding." << std::endl;
             output_stream << INDENT " }," << std::endl;
             output_stream << INDENT " {" << std::endl;
