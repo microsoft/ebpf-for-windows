@@ -29,8 +29,7 @@ int selected_program_type = 0;
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     for (int i = 1; i < *argc; i++) {
-        if ((strcmp((*argv)[i], "-helper") == 0 ||
-             strcmp((*argv)[i], "--helper") == 0) && i + 1 < *argc) {
+        if (strcmp((*argv)[i], "-helper") == 0  && i + 1 < *argc) {
             const char* helper_arg = (*argv)[i + 1];
             if (strcmp(helper_arg, "xdp") == 0) {
                 selected_program_type = 1;
