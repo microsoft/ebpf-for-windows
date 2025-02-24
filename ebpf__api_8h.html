@@ -198,6 +198,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a4285557944012dc94115df1fa73388b1" id="r_a4285557944012dc94115df1fa73388b1"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4285557944012dc94115df1fa73388b1">ebpf_object_set_execution_type</a> (_Inout_ struct bpf_object *object, <a class="el" href="ebpf__execution__type_8h.html#af58bcede64968a095964be4e78998658">ebpf_execution_type_t</a> execution_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a4285557944012dc94115df1fa73388b1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the execution type for an eBPF object file.  <br /></td></tr>
 <tr class="separator:a4285557944012dc94115df1fa73388b1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8fd822ec45ca84cf9c39d7ff52913be" id="r_ac8fd822ec45ca84cf9c39d7ff52913be"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ac8fd822ec45ca84cf9c39d7ff52913be">ebpf_object_load_native_by_fds</a> (const char *file_name, _Inout_ size_t *count_of_maps, _Out_writes_opt_(*count_of_maps) <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *map_fds, _Inout_ size_t *count_of_programs, _Out_writes_opt_(*count_of_programs) <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *program_fds) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:ac8fd822ec45ca84cf9c39d7ff52913be"><td class="mdescLeft">&#160;</td><td class="mdescRight">Load a native image from a file and return map and program file descriptors.  <br /></td></tr>
+<tr class="separator:ac8fd822ec45ca84cf9c39d7ff52913be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa82dd9cfb2ba844f7557d1eef6e4c831" id="r_aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#aa82dd9cfb2ba844f7557d1eef6e4c831">ebpf_program_attach</a> (const struct bpf_program *program, const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *attach_type, _In_reads_bytes_opt_(attach_params_size) void *attach_parameters, size_t attach_params_size, struct bpf_link **link) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program.  <br /></td></tr>
 <tr class="separator:aa82dd9cfb2ba844f7557d1eef6e4c831"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1781,6 +1784,71 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Execution type. </dd></dl>
+
+</div>
+</div>
+<a id="ac8fd822ec45ca84cf9c39d7ff52913be" name="ac8fd822ec45ca84cf9c39d7ff52913be"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac8fd822ec45ca84cf9c39d7ff52913be">&#9670;&#160;</a></span>ebpf_object_load_native_by_fds()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_object_load_native_by_fds </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>file_name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Inout_ size_t *&#160;</td>
+          <td class="paramname"><em>count_of_maps</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Out_writes_opt_ *count_of_maps <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
+          <td class="paramname"><em>map_fds</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Inout_ size_t *&#160;</td>
+          <td class="paramname"><em>count_of_programs</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Out_writes_opt_ *count_of_programs <a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> *&#160;</td>
+          <td class="paramname"><em>program_fds</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Load a native image from a file and return map and program file descriptors. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">file_name</td><td>Path to the eBPF object file. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count_of_maps</td><td>Size of map_fds. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fds</td><td>Pre-allocated array for map file descriptors. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">count_of_programs</td><td>Size of program_fds. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">program_fds</td><td>Pre-allocated array for program file descriptors.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Either count_of_maps or count_of_programs was too small. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
