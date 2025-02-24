@@ -58,7 +58,7 @@ typedef struct _ebpf_ring_buffer
 ```
 
 - Defined in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c)
-- The producer and consumer offsets are used to synchronize between producers and consumers.
+- The producer and consumer offsets are used to synchronize between producers and the consumer.
 - The producer reserve offset is used to serialize producer reservations.
 - Offsets are modulo'd by the length to get the offset of a record in the shared buffer.
 
@@ -101,7 +101,7 @@ Producers use reserve and submit to reserve space and submit completed records f
 - `ebpf_ring_buffer_submit` unlocks a record so that it can be read by the consumer
 - `ebpf_ring_buffer_discard` marks record as discarded and unlocks it so the consumer can skip it.
 - `ebpf_ring_buffer_output` calls reserve, copies the data into the record, then calls submit.
-  - *Note:* due to verifier limitations reserve/submit helper functions aren't available (only output, see #727 ).
+  - *Note:* due to verifier limitations reserve/submit helper functions aren't available (only output, see [#727](https://github.com/microsoft/ebpf-for-windows/issues/727).
 
 ### Consumer functions
 
@@ -111,8 +111,8 @@ and return the memory for reuse after reading by passing the returned `next_offs
 - `ebpf_ring_buffer_next_consumer_record` also skips over any discarded records to return the memory to the ring.
 - *Note:* Currently only the `ring_buffer_output` helper is available, so there are never discarded records.
 
-A wait handle for producers to signal waiting consumers on is implemented at the eBPF map level,
-the internal ring buffer only handles the reading and writing of records.
+A wait handle for producers to signal the consumer on is implemented at the eBPF map level,
+while the internal ring buffer only handles the reading and writing of records.
 
 ### Synchronization
 
@@ -131,7 +131,7 @@ ensure synchronization between producers and the consumer.
 4. Consumer read-acquires record headers to check the lock bit.
     - Read-acquire ensures the record data is visible before we read it (with 2 above).
 
-The above rules guarantee synchronization between producers and consumers, ensuring records are initialized
+The above rules guarantee synchronization between producers and the consumer, ensuring records are initialized
 before the consumer sees them and that the final record data is visible before the consumer reads or returns it.
 
 To serialize reservations, producers use an interlocked compare-exchange on the `producer_reserve_offset`.
@@ -146,7 +146,7 @@ Implemented in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c).
 
 Producers reserve a record, then copy the data, then submit the record.
 
-- Note: the reserve/submit/discard eBPF program helpers aren't supported yet due to verifier limitations (see #727 ).
+- Note: the reserve/submit/discard eBPF program helpers aren't supported yet due to verifier limitations (see [#727](https://github.com/microsoft/ebpf-for-windows/issues/727)).
 - The time between reserve and submit should be kept short to avoid blocking the consumer from reading later submitted records.
 
 #### Reserve algorithm

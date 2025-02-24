@@ -24,7 +24,7 @@ static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
  * Used to check for the lock bit to ensure that all writes to the record are visible.
  *
  * @param[in] record Pointer to the record.
- * @return 32 bit record header with length and locked+discard bits.
+ * @return 32 bit record header with length and lock+discard bits.
  */
 inline static uint32_t
 _ring_record_read_header_acquire(_In_ const ebpf_ring_buffer_record_t* record)
@@ -38,7 +38,7 @@ _ring_record_read_header_acquire(_In_ const ebpf_ring_buffer_record_t* record)
  * This should only be used when the current value of the header has been read/written.
  *
  * @param[in] record Pointer to the record.
- * @return 32 bit record header with length and locked+discard bits.
+ * @return 32 bit record header with length and lock+discard bits.
  */
 inline static uint32_t
 _ring_record_read_header_nofence(_In_ const ebpf_ring_buffer_record_t* record)
@@ -52,7 +52,7 @@ _ring_record_read_header_nofence(_In_ const ebpf_ring_buffer_record_t* record)
  * Used to unlock (submit or discard) a record and make it visible to consumers.
  *
  * @param[in] record Pointer to the record.
- * @param[in] header new header value.
+ * @param[in] header New header value.
  */
 inline static void
 _ring_record_write_header_release(_Inout_ ebpf_ring_buffer_record_t* record, uint32_t header)
@@ -66,7 +66,7 @@ _ring_record_write_header_release(_Inout_ ebpf_ring_buffer_record_t* record, uin
  * Used by the producer between reserving space for the record and write-releasing the producer offset.
  *
  * @param[in] record Pointer to the record.
- * @param[in] header new header value.
+ * @param[in] header New header value.
  */
 inline static void
 _ring_record_write_header_nofence(_Inout_ ebpf_ring_buffer_record_t* record, uint32_t header)
@@ -482,8 +482,8 @@ ebpf_ring_buffer_reserve(
             // - We can no-fence write here, the write-release below ensures the locked header is visible first.
             _ring_record_write_header_nofence(record, record_header);
 
-            // There may be multiple producers that all advanced the producer reserve offset but haven't set the locked
-            // flag yet. We need the following guarantees from this race between concurrent reservations:
+            // There may be multiple producers that all advanced the producer reserve offset but haven't set the lock
+            // bit yet. We need the following guarantees from this race between concurrent reservations:
             // 1. Any newly reserved record is locked by the time the consumer first sees it.
             //     - It could be written and unlocked before the consumer sees it, but it can't be uninitialized.
             //     - Guaranteed for the current record by the release write of the producer offset below.
@@ -492,7 +492,7 @@ ebpf_ring_buffer_reserve(
             //       - The consumer can only look at records between consumer and producer offsets,
             //         so the header will be locked by the time the consumer first sees it.
             //     - We also need to ensure any previous records are locked before we advance offset (explained below).
-            // 2. producer offset is monotonically increasing.
+            // 2. The producer offset is monotonically increasing.
             //
             // To ensure both of the above we wait until the producer offset matches the offset of our record to advance
             // the producer offset.
