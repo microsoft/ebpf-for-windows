@@ -29,7 +29,8 @@ int selected_program_type = 0;
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int *argc, char ***argv)
 {
     for (int i = 1; i < *argc; i++) {
-        if (strcmp((*argv)[i], "--helper") == 0 && i + 1 < *argc) {
+        if ((strcmp((*argv)[i], "-helper") == 0 ||
+             strcmp((*argv)[i], "--helper") == 0) && i + 1 < *argc) {
             const char* helper_arg = (*argv)[i + 1];
             if (strcmp(helper_arg, "xdp") == 0) {
                 selected_program_type = 1;
@@ -47,6 +48,11 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int *argc, char ***argv)
                     std::make_unique<fuzz_helper_function__sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
                 atexit([]() { _fuzz_helper_function_sock_ops.reset(); });
             }
+            // Remove the flag and its argument from argv.
+            for (int j = i; j < *argc - 2; j++) {
+                (*argv)[j] = (*argv)[j + 2];
+            }
+            *argc -= 2;
             break; // process only one occurrence
         }
     }
@@ -58,11 +64,11 @@ FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     ebpf_watchdog_timer_t watchdog_timer;
 
     if (selected_program_type == 1) {
-      return  _fuzz_helper_function_sock_ops->fuzz(data, size);
+        return _fuzz_helper_function_xdp->fuzz(data, size);
     } else if (selected_program_type == 2) {
-      return _fuzz_helper_function_sock_addr->fuzz(data, size);
+        return _fuzz_helper_function_sock_addr->fuzz(data, size);
     } else if (selected_program_type == 3) {
-      return _fuzz_helper_function_xdp->fuzz(data, size);
+        return _fuzz_helper_function_sock_ops->fuzz(data, size);
     }
 
     return 0;
