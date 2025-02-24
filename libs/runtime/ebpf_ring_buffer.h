@@ -36,7 +36,7 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
  * @param[in] data Data to copy into record.
  * @param[in] length Length of data to copy.
  * @retval EBPF_SUCCESS Successfully wrote record ring buffer.
- * @retval EBPF_INVALID_ARGUMENT length < 1, > 2^31 -1, or > ring capacity.
+ * @retval EBPF_INVALID_ARGUMENT The length is < 1, > 2^31 -1, or > ring capacity.
  * @retval EBPF_NO_MEMORY Failed to reserve space for record (ring buffer full).
  */
 _Must_inspect_result_ ebpf_result_t
@@ -50,7 +50,7 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring_buffer, _In_reads_bytes
  * @param[out] data Pointer to start of reserved buffer on success.
  * @param[in] length Length of buffer to reserve.
  * @retval EBPF_SUCCESS Successfully reserved space in the ring buffer.
- * @retval EBPF_INVALID_ARGUMENT length < 1, > 2^31 -1, or > ring capacity.
+ * @retval EBPF_INVALID_ARGUMENT The length is < 1, > 2^31 -1, or > ring capacity.
  * @retval EBPF_NO_MEMORY Failed to reserve space for record (ring buffer full).
  */
 _Must_inspect_result_ ebpf_result_t
