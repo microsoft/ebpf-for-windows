@@ -1,20 +1,32 @@
 # eBPF Ring Buffer Map
 
+ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for user-mode code.
 
-*Details to be added later.*
+*More documentation on user-mode API to be added later.*
 
+*Below implementation details of the internal ring buffer data structure are discussed.*
 
 ## Internal Ring Buffer
 
 The ebpf-for-windows ring buffer map is built on the internal ring buffer implementation in
 [ebpf_ring_buffer.h](/libs/runtime/ebpf_ring_buffer.h) and [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c).
 
-- These functions are internal to ebpf-for-windows. User code should use [libbpf.h](/include/bpf/libbpf.h).
+- These functions are internal to ebpf-for-windows. User mode code should use [libbpf.h](/include/bpf/libbpf.h).
 
 This section describes the multiple-producer single-consumer internal ring buffer implementation.
 
-### Design
-Ring memory layout:
+- [Memory layout](#memory-layout) - Double-mapped ring with producer and consumer offset.
+- [Ring buffer structure](#ring-buffer-structure) - Internal ring buffer struct.
+- [Record structure](#record-structure) - Record structure.
+- [Producer functions](#producer-functions) - Producer internal API functions.
+- [Consumer functions](#consumer-functions) - Consumer internal API functions.
+- [Synchronization](#synchronization) - Synchronization rules.
+- [Producer aglorithm](#producer-algorithm) - multiple-producer reserve/submit algorithm for emitting records.
+  - [Reserve algorithm](#reserve-algorithm)
+  - [Submit and discard](#submit-and-discard)
+- [Consumer algorithm](#consumer-algorithm) - consumer algorithm.
+
+### Memory Layout
 
 ```text
 
@@ -45,6 +57,7 @@ typedef struct _ebpf_ring_buffer
 } ebpf_ring_buffer_t;
 ```
 
+- Defined in [ebpf_ring_buffer.c](/libs/runtime/ebpf_ring_buffer.c)
 - The producer and consumer offsets are used to synchronize between producers and consumers.
 - The producer reserve offset is used to serialize producer reservations.
 - Offsets are modulo'd by the length to get the offset of a record in the shared buffer.
@@ -56,6 +69,7 @@ typedef struct _ebpf_ring_buffer
 #define EBPF_RINGBUF_DISCARD_BIT (1U << 30)
 typedef struct _ebpf_ring_buffer_record
 {
+    // This struct should match the linux ring buffer record structure for future mmap compatibility (see #4163).
     struct
     {
         uint32_t length; ///< High 2 bits are lock,discard.
@@ -65,10 +79,12 @@ typedef struct _ebpf_ring_buffer_record
 } ebpf_ring_buffer_record_t;
 ```
 
-- Record includes 8 byte header, with the first 4 bytes indicating the length and locked,discard flags.
+- Defined in [ebpf_ring_buffer_record.h](/libs/shared/ebpf_ring_buffer_record.h).
+- Record includes 8 byte header, with the first 4 bytes indicating the length and lock, discard flags.
   - `page_offset` is for future use with the submit and discard bpf helper functions.
   - 32-2 = 30 bit record length limits records to 1GB.
   - The lock and discard flag prevent the consumer from reading unfinished records.
+  - *Note:* This matches the linux record structure for future ring buffer mmap-consumer compatibility (see [#4163](https://github.com/microsoft/ebpf-for-windows/issues/4163)).
 - Records are padded to 8 byte alignment.
   - 64 bit alignment is required for acquire/release semantics on 64 bit architectures.
   - The consumer ignores and skips the padding (not included in the record length).

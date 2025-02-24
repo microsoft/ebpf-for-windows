@@ -10,10 +10,11 @@ CXPLAT_EXTERN_C_BEGIN
 
 typedef struct _ebpf_ring_buffer_record
 {
+    // This struct should match the linux ring buffer record structure for future mmap compatibility (see #4163).
     struct
     {
-        uint32_t length;
-        uint32_t page_offset;
+        uint32_t length;      ///< High 2 bits are lock,discard.
+        uint32_t page_offset; ///< Currently unused.
     } header;
     uint8_t data[1];
 } ebpf_ring_buffer_record_t;
