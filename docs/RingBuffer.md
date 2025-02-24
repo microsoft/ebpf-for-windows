@@ -83,7 +83,7 @@ typedef struct _ebpf_ring_buffer_record
 - Record includes 8 byte header, with the first 4 bytes indicating the length and lock, discard flags.
   - `page_offset` is for future use with the submit and discard bpf helper functions.
   - 32-2 = 30 bit record length limits records to 1GB.
-  - The lock and discard flag prevent the consumer from reading unfinished records.
+  - The lock and discard flags prevent the consumer from reading unfinished records.
   - *Note:* This matches the linux record structure for future ring buffer mmap-consumer compatibility (see [#4163](https://github.com/microsoft/ebpf-for-windows/issues/4163)).
 - Records are padded to 8 byte alignment.
   - 64 bit alignment is required for acquire/release semantics on 64 bit architectures.
