@@ -1315,11 +1315,13 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
         uint8_t* buffer = nullptr;
         size_t consumer_offset = 0;
         ebpf_ring_buffer_map_async_query_result_t async_query_result = {};
-        uint64_t value{};
+        volatile uint64_t value{};
     } completion;
 
     REQUIRE(
         ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
+    // Initialize consumer offset in async result used to track current position.
+    completion.async_query_result.consumer = completion.consumer_offset;
 
     REQUIRE(
         ebpf_async_set_completion_callback(

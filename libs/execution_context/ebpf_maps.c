@@ -2098,8 +2098,12 @@ static _Requires_lock_held_(ring_buffer_map->lock) void _ebpf_ring_buffer_map_si
         ebpf_core_ring_buffer_map_async_query_context_t* context = EBPF_FROM_FIELD(
             ebpf_core_ring_buffer_map_async_query_context_t, entry, ring_buffer_map->async_contexts.Flink);
         ebpf_ring_buffer_map_async_query_result_t* async_query_result = context->async_query_result;
-        ebpf_ring_buffer_query(
-            (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
+        size_t consumer;
+        ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &consumer, &async_query_result->producer);
+        if (consumer > async_query_result->consumer) {
+            // We will normally already have the latest consumer value - only update if we see an increase.
+            async_query_result->consumer = consumer;
+        }
         ebpf_list_remove_entry(&context->entry);
         ebpf_operation_ring_buffer_map_async_query_reply_t* reply =
             EBPF_FROM_FIELD(ebpf_operation_ring_buffer_map_async_query_reply_t, async_query_result, async_query_result);
@@ -2271,9 +2275,12 @@ ebpf_ring_buffer_map_async_query(
     ebpf_list_insert_tail(&ring_buffer_map->async_contexts, &context->entry);
     ring_buffer_map->async_contexts_trip_wire = true;
 
+    size_t consumer;
     // If there is already some data available in the ring buffer, indicate the results right away.
-    ebpf_ring_buffer_query(
-        (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
+    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &consumer, &async_query_result->producer);
+    if (consumer > async_query_result->consumer) {
+        async_query_result->consumer = consumer;
+    }
 
     if (async_query_result->producer != async_query_result->consumer) {
         _ebpf_ring_buffer_map_signal_async_query_complete(ring_buffer_map);

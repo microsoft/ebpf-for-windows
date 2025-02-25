@@ -120,6 +120,9 @@ Specific memory ordering semantics are followed for record headers and the produ
 ensure synchronization between producers and the consumer.
 
 - The consumer offset is only advanced by a single consumer, so doesn't have additional ordering constraints.
+    - This is true if there is only a single consumer thread, but currently the reads are done in a thread pool,
+      So the consumer uses read-acquire and write-release to ensure it always reads the latest value. This doesn't
+      impact the algorithm presented here which assumes a single consumer thread.
 
 1. Producers write-release the producer offset during reserve after locking the record.
     - Write-release ensures the locked record header is visible before the producer offset is updated.
