@@ -382,6 +382,15 @@ ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring, size_t consumer
         // - The producer write-releases the header to unlock to ensure any writes to the data are visible first.
         // - Even if the record is discarded, we need to make sure it's writes are visible before it can be re-used.
         uint32_t record_header = _ring_record_read_header_acquire(record);
+        if (_ring_header_locked(record_header)) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_MAP,
+                "ebpf_ring_buffer_return_buffer: Record is locked",
+                local_consumer_offset);
+            result = EBPF_INVALID_ARGUMENT;
+            goto Done;
+        }
         size_t record_length = _ring_header_length(record_header);
         size_t total_record_size = _ring_record_size(record_length);
         local_consumer_offset += total_record_size;
