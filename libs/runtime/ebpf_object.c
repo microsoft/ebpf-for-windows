@@ -214,7 +214,7 @@ ebpf_object_initialize(
     object->get_context_header_support = get_context_header_support_function;
     object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     // Skip invalid IDs.
-    while (object->id == 0 || object->id == EBPF_ID_NONE) {
+    while (object->id == EBPF_ID_NONE) {
         object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     }
     ebpf_list_initialize(&object->object_list_entry);

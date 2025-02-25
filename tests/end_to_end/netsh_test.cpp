@@ -809,7 +809,7 @@ TEST_CASE("show maps", "[netsh][maps]")
                   "                              Key  Value      Max  Inner\n"
                   "     ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
                   "=======  ==================  ====  =====  =======  =====  ====  ========\n"
-                  "      3                hash     4      4        1     -1     0  inner_map\n"
+                  "      3                hash     4      4        1      0     0  inner_map\n"
                   "      4       array_of_maps     4      4        1      3     0  outer_map\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
