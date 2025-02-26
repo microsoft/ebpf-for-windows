@@ -55,6 +55,7 @@ typedef struct _ebpf_native_program
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
     program_runtime_context_t runtime_context;
+    bool loaded;
 } ebpf_native_program_t;
 
 typedef enum _ebpf_native_module_state
@@ -230,7 +231,7 @@ _ebpf_native_clean_up_maps(
 }
 
 static void
-_ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* program, bool close_handle)
+_ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* program, bool force_cleanup)
 {
     if (program != NULL) {
         if (program->handle != ebpf_handle_invalid) {
@@ -244,21 +245,31 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
                 program->handle = ebpf_handle_invalid;
             }
         }
-        ebpf_free(program->addresses_changed_callback_context);
-        program->addresses_changed_callback_context = NULL;
-        ebpf_free(program->runtime_context.helper_data);
-        ebpf_free(program->runtime_context.map_data);
-        ebpf_free(program->runtime_context.global_variable_section_data);
-        ebpf_free(program);
+        if (!program->loaded || force_cleanup) {
+            // Free native_program only in the case when either the program was not loaded, hence program
+            // object did not acquire a reference to the native module, or the program was loaded
+            // and the reference to the native module is being released.
+            ebpf_free(program->addresses_changed_callback_context);
+            program->addresses_changed_callback_context = NULL;
+            ebpf_free(program->runtime_context.helper_data);
+            ebpf_free(program->runtime_context.map_data);
+            ebpf_free(program->runtime_context.global_variable_section_data);
+            ebpf_free(program);
+        }
     }
 }
 
 static void
 _ebpf_native_clean_up_programs(
-    _In_reads_(count_of_programs) ebpf_native_program_t** programs, size_t count_of_programs, bool close_handles)
+    _In_reads_(count_of_programs) ebpf_native_program_t** programs, size_t count_of_programs, bool force_cleanup)
 {
     for (uint32_t i = 0; i < count_of_programs; i++) {
-        _ebpf_native_clean_up_program(programs[i], close_handles);
+        // if (!programs[i]->loaded) {
+        //     // Clean up the program only if it was not loaded. Programs that were successfully loaded will be
+        //     // cleaned up when the reference to the program is released.
+        //     _ebpf_native_clean_up_program(programs[i], close_handles);
+        // }
+        _ebpf_native_clean_up_program(programs[i], force_cleanup);
     }
 
     ebpf_free(programs);
@@ -1482,11 +1493,12 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
+        native_program->loaded = true;
     }
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_native_clean_up_programs(instance->programs, instance->program_count, true);
+        _ebpf_native_clean_up_programs(instance->programs, instance->program_count, false);
         instance->programs = NULL;
         instance->program_count = 0;
     }
@@ -1798,7 +1810,7 @@ Done:
         }
 
         if (programs_created) {
-            _ebpf_native_clean_up_programs(instance.programs, instance.program_count, true);
+            _ebpf_native_clean_up_programs(instance.programs, instance.program_count, false);
             instance.programs = NULL;
             instance.program_count = 0;
         }
