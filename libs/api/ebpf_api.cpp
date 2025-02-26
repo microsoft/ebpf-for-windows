@@ -4344,6 +4344,11 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
                 break;
             }
 
+            if (ebpf_ring_buffer_record_is_locked(record)) {
+                // Record is locked. Wait for the record to be unlocked.
+                break;
+            }
+
             if (!ebpf_ring_buffer_record_is_discarded(record)) {
                 int callback_result = subscription->sample_callback(
                     subscription->sample_callback_context,
