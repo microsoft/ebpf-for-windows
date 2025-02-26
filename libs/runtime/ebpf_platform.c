@@ -119,6 +119,25 @@ _IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_res
     KeLowerIrql(old_irql);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL)
+KIRQL
+ebpf_raise_irql_to_dispatch_if_needed()
+{
+    KIRQL old_irql = KeGetCurrentIrql();
+    if (old_irql < DISPATCH_LEVEL) {
+        old_irql = KeRaiseIrqlToDpcLevel();
+    }
+    return old_irql;
+}
+
+_IRQL_requires_(DISPATCH_LEVEL) void ebpf_lower_irql_from_dispatch_if_needed(
+    _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql)
+{
+    if (previous_irql < DISPATCH_LEVEL) {
+        KeLowerIrql(previous_irql);
+    }
+}
+
 bool
 ebpf_should_yield_processor()
 {

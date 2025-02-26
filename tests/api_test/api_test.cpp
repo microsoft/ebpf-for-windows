@@ -470,12 +470,15 @@ divide_by_zero_test_km(ebpf_execution_type_t execution_type)
 }
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
+TEST_CASE("ringbuf_api_jit", "[test_ringbuf_api][ring_buffer]") { ring_buffer_api_test(EBPF_EXECUTION_JIT); }
 TEST_CASE("divide_by_zero_jit", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_JIT); }
 #endif
 
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api]") { ring_buffer_api_test(EBPF_EXECUTION_INTERPRET); }
+TEST_CASE("ringbuf_api_interpret", "[test_ringbuf_api][ring_buffer]")
+{
+    ring_buffer_api_test(EBPF_EXECUTION_INTERPRET);
+}
 TEST_CASE("divide_by_zero_interpret", "[divide_by_zero]") { divide_by_zero_test_km(EBPF_EXECUTION_INTERPRET); }
 #endif
 
@@ -1148,7 +1151,7 @@ typedef struct _ring_buffer_test_context
     std::promise<void> promise;
 } ring_buffer_test_context_t;
 
-TEST_CASE("test_ringbuffer_wraparound", "[stress]")
+TEST_CASE("test_ringbuffer_wraparound", "[stress][ring_buffer]")
 {
     // Load bindmonitor_ringbuf.sys.
     struct bpf_object* object = nullptr;

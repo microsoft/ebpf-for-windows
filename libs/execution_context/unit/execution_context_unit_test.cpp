@@ -1296,7 +1296,7 @@ TEST_CASE("test-csum-diff", "[execution_context]")
     REQUIRE(csum == 0xb861);
 }
 
-TEST_CASE("ring_buffer_async_query", "[execution_context]")
+TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
 {
     _ebpf_core_initializer core;
     core.initialize();
@@ -1315,11 +1315,13 @@ TEST_CASE("ring_buffer_async_query", "[execution_context]")
         uint8_t* buffer = nullptr;
         size_t consumer_offset = 0;
         ebpf_ring_buffer_map_async_query_result_t async_query_result = {};
-        uint64_t value{};
+        volatile uint64_t value{};
     } completion;
 
     REQUIRE(
         ebpf_ring_buffer_map_query_buffer(map.get(), &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
+    // Initialize consumer offset in async result used to track current position.
+    completion.async_query_result.consumer = completion.consumer_offset;
 
     REQUIRE(
         ebpf_async_set_completion_callback(
@@ -2193,7 +2195,7 @@ TEST_CASE("EBPF_OPERATION_GET_OBJECT_INFO", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_OBJECT_INFO, request, reply) == EBPF_INVALID_OBJECT);
 }
 
-TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][negative]")
+TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][ring_buffer][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     ebpf_operation_ring_buffer_map_query_buffer_request_t request;
@@ -2206,7 +2208,7 @@ TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER", "[execution_context][ne
     REQUIRE(invoke_protocol(EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_ARGUMENT);
 }
 
-TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][negative]")
+TEST_CASE("EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY", "[execution_context][ring_buffer][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     ebpf_operation_ring_buffer_map_async_query_request_t request;
