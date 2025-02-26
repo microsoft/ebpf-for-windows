@@ -55,7 +55,7 @@ typedef struct _ebpf_native_program
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
     program_runtime_context_t runtime_context;
-    bool loaded;
+    volatile int64_t reference_count;
 } ebpf_native_program_t;
 
 typedef enum _ebpf_native_module_state
@@ -139,6 +139,15 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
+
+#define EBPF_NATIVE_ACQUIRE_REFERENCE_NATIVE_PROGRAM(program) InterlockedIncrement64(&(program)->reference_count);
+
+#define EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(program)           \
+    {                                                                   \
+        if (InterlockedDecrement64(&(program)->reference_count) == 0) { \
+            _ebpf_native_clean_up_program((program));                   \
+        }                                                               \
+    }
 
 static int
 _ebpf_compare_versions(_In_ const bpf2c_version_t* lhs, _In_ const bpf2c_version_t* rhs)
@@ -231,7 +240,7 @@ _ebpf_native_clean_up_maps(
 }
 
 static void
-_ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* program, bool force_cleanup)
+_ebpf_native_clean_up_program_handle(_In_opt_ ebpf_native_program_t* program)
 {
     if (program != NULL) {
         if (program->handle != ebpf_handle_invalid) {
@@ -243,35 +252,38 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
             ebpf_assert_success(ebpf_handle_close(program->handle));
             program->handle = ebpf_handle_invalid;
         }
-        if (!program->loaded || force_cleanup) {
-            // Free native_program only in the case when either the program was not loaded, hence program
-            // object did not acquire a reference to the native module, or the program was loaded
-            // and the reference to the native module is being released.
-            ebpf_free(program->addresses_changed_callback_context);
-            program->addresses_changed_callback_context = NULL;
-            ebpf_free(program->runtime_context.helper_data);
-            ebpf_free(program->runtime_context.map_data);
-            ebpf_free(program->runtime_context.global_variable_section_data);
-            ebpf_free(program);
-        }
     }
 }
 
 static void
-_ebpf_native_clean_up_programs(
-    _In_reads_(count_of_programs) ebpf_native_program_t** programs, size_t count_of_programs, bool force_cleanup)
+_ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* program)
 {
-    for (uint32_t i = 0; i < count_of_programs; i++) {
-        // if (!programs[i]->loaded) {
-        //     // Clean up the program only if it was not loaded. Programs that were successfully loaded will be
-        //     // cleaned up when the reference to the program is released.
-        //     _ebpf_native_clean_up_program(programs[i], close_handles);
-        // }
-        _ebpf_native_clean_up_program(programs[i], force_cleanup);
+    if (program != NULL) {
+        ebpf_assert(program->handle == ebpf_handle_invalid);
+        ebpf_free(program->addresses_changed_callback_context);
+        program->addresses_changed_callback_context = NULL;
+        ebpf_free(program->runtime_context.helper_data);
+        ebpf_free(program->runtime_context.map_data);
+        ebpf_free(program->runtime_context.global_variable_section_data);
+        ebpf_free(program);
     }
-
-    ebpf_free(programs);
 }
+
+// static void
+// _ebpf_native_clean_up_programs(
+//     _In_reads_(count_of_programs) ebpf_native_program_t** programs, size_t count_of_programs, bool force_cleanup)
+// {
+//     for (uint32_t i = 0; i < count_of_programs; i++) {
+//         // if (!programs[i]->loaded) {
+//         //     // Clean up the program only if it was not loaded. Programs that were successfully loaded will be
+//         //     // cleaned up when the reference to the program is released.
+//         //     _ebpf_native_clean_up_program(programs[i], close_handles);
+//         // }
+//         _ebpf_native_clean_up_program(programs[i]);
+//     }
+
+//     ebpf_free(programs);
+// }
 
 /**
  * @brief Free all state for a given module.
@@ -342,6 +354,8 @@ _ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_program_t* binding_context)
 {
+    // Acquire reference on both native_program and the module.
+    EBPF_NATIVE_ACQUIRE_REFERENCE_NATIVE_PROGRAM(binding_context);
     _ebpf_native_acquire_reference((ebpf_native_module_t*)binding_context->module);
 }
 
@@ -421,7 +435,8 @@ ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_program_t* bin
     if (binding_context) {
         ebpf_native_module_t* module = binding_context->module;
         _ebpf_native_release_reference(module);
-        _ebpf_native_clean_up_program(binding_context, true);
+        // _ebpf_native_clean_up_program(binding_context, true);
+        EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(binding_context);
     }
 }
 
@@ -1309,13 +1324,16 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             result = EBPF_NO_MEMORY;
             goto Done;
         }
+
+        instance->programs[i]->reference_count = 1;
+        instance->programs[i]->handle = ebpf_handle_invalid;
     }
     instance->program_count = program_count;
     native_programs = instance->programs;
 
     for (uint32_t i = 0; i < program_count; i++) {
         native_programs[i]->entry = &programs[i];
-        native_programs[i]->handle = ebpf_handle_invalid;
+        // native_programs[i]->handle = ebpf_handle_invalid;
     }
 
     for (uint32_t count = 0; count < program_count; count++) {
@@ -1491,12 +1509,17 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
-        native_program->loaded = true;
+        // native_program->loaded = true;
     }
 
 Done:
     if (result != EBPF_SUCCESS) {
-        _ebpf_native_clean_up_programs(instance->programs, instance->program_count, false);
+        // Release reference for each program.
+        for (size_t i = 0; i < program_count; i++) {
+            _ebpf_native_clean_up_program_handle(native_programs[i]);
+            EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(native_programs[i]);
+        }
+        ebpf_free(instance->programs);
         instance->programs = NULL;
         instance->program_count = 0;
     }
@@ -1800,29 +1823,55 @@ Done:
         ebpf_lock_unlock(&_ebpf_native_client_table_lock, state);
         lock_acquired = false;
     }
-    if (result != EBPF_SUCCESS) {
-        if (maps_created) {
-            _ebpf_native_clean_up_maps(instance.maps, instance.map_count, true, true);
-            instance.maps = NULL;
-            instance.map_count = 0;
-        }
 
-        if (programs_created) {
-            _ebpf_native_clean_up_programs(instance.programs, instance.program_count, false);
-            instance.programs = NULL;
-            instance.program_count = 0;
+    // Release initial reference on the native programs. They will be freed when the
+    // programs are unloaded / reference count goes to 0.
+    if (programs_created) {
+        for (size_t i = 0; i < instance.program_count; i++) {
+            ebpf_assert(instance.programs[i]->reference_count > 0);
+            _ebpf_native_clean_up_program_handle(instance.programs[i]);
+            EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(instance.programs[i]);
+            instance.programs[i] = NULL;
         }
+    }
+    ebpf_free(instance.programs);
+    instance.programs = NULL;
+    instance.program_count = 0;
+
+    if (maps_created) {
+        if (result != EBPF_SUCCESS) {
+            _ebpf_native_clean_up_maps(instance.maps, instance.map_count, true, true);
+        } else {
+            // Success case. No need to close map handles. Free the map contexts.
+            _ebpf_native_clean_up_maps(instance.maps, instance.map_count, false, false);
+        }
+        instance.maps = NULL;
+        instance.map_count = 0;
+    }
+
+    if (result != EBPF_SUCCESS) {
+        // if (maps_created) {
+        //     _ebpf_native_clean_up_maps(instance.maps, instance.map_count, true, true);
+        //     instance.maps = NULL;
+        //     instance.map_count = 0;
+        // }
+
+        // if (programs_created) {
+        //     _ebpf_native_clean_up_programs(instance.programs, instance.program_count, false);
+        //     instance.programs = NULL;
+        //     instance.program_count = 0;
+        // }
 
         ebpf_free(local_service_name);
     } else {
         // Success case. No need to close program and map handles.
         // Free the map contexts.
-        _ebpf_native_clean_up_maps(instance.maps, instance.map_count, false, false);
-        instance.maps = NULL;
-        instance.map_count = 0;
+        // _ebpf_native_clean_up_maps(instance.maps, instance.map_count, false, false);
+        // instance.maps = NULL;
+        // instance.map_count = 0;
         // Free the program context array. Individual program contexts are freed when the program is unloaded.
-        ebpf_free(instance.programs);
-        instance.programs = NULL;
+        // ebpf_free(instance.programs);
+        // instance.programs = NULL;
     }
 
     if (module_referenced) {
