@@ -77,7 +77,7 @@ _ring_record_write_header_nofence(_Inout_ ebpf_ring_buffer_record_t* record, uin
 /**
  * @brief Get the consumer offset.
  *
- * The producer can always safely nofence read the consumer offset.
+ * The producer can always safely no-fence read the consumer offset.
  *
  * With a single consumer thread we can always no-fence read and write the consumer offset.
  * - The consumer will always have the latest value to read and update.
@@ -110,7 +110,7 @@ _ring_read_consumer_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 /**
  * @brief Set the consumer offset.
  *
- * There is only a single consumer so ordering is guaranteed so we should be able to nofence write.
+ * There is only a single consumer so ordering is guaranteed so we should be able to no-fence write.
  * - With the async ops, we don't have control over the calling context so need to acquire/release
  *  the consumer offset in the consumer code to ensure it is monotonically increasing.
  *
@@ -240,7 +240,7 @@ _ring_header_discarded(_In_ uint32_t header_length)
  * @brief Get the length of the ring.
  *
  * @param[in] ring Pointer to the ring.
- * @return Length of the record.
+ * @return Length of the ring.
  */
 inline static size_t
 _ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
@@ -525,7 +525,7 @@ ebpf_ring_buffer_reserve(
             // To ensure both of the above we wait until the producer offset matches the offset of our record to advance
             // the producer offset.
             // - This guarantees (1) because if the producer offset update is visible for the previous record, then
-            //   it's locked header is visible.
+            //   its locked header is visible.
             //   - by extension this guarantees that all newly reserved records allocated before us are already locked.
             // - This guarantees (2) because it ensures the producer offset updates happen in order.
             //     - We wait to update until all previous offset updates are visible, so the producer offset always

@@ -30,7 +30,7 @@ typedef struct _ebpf_ring_buffer_record
 inline const bool
 ebpf_ring_buffer_record_is_locked(_In_ const ebpf_ring_buffer_record_t* record)
 {
-    // Uses read-acquire to ensure that if the records is unlocked and not discarded that the data is visible.
+    // Uses read-acquire to ensure that if the record is unlocked and not discarded that the data is visible.
     return (ReadUInt32Acquire(&record->header.length) & EBPF_RINGBUF_LOCK_BIT) != 0;
 }
 
