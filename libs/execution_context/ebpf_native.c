@@ -240,10 +240,8 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
                 program->handle, EBPF_OBJECT_PROGRAM, (ebpf_core_object_t**)&program_object));
             ebpf_assert_success(ebpf_program_register_for_helper_changes(program_object, NULL, NULL));
             EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program_object);
-            if (close_handle) {
-                ebpf_assert_success(ebpf_handle_close(program->handle));
-                program->handle = ebpf_handle_invalid;
-            }
+            ebpf_assert_success(ebpf_handle_close(program->handle));
+            program->handle = ebpf_handle_invalid;
         }
         if (!program->loaded || force_cleanup) {
             // Free native_program only in the case when either the program was not loaded, hence program
