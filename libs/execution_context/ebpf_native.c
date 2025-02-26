@@ -1516,8 +1516,8 @@ Done:
     if (result != EBPF_SUCCESS) {
         // Release reference for each program.
         for (size_t i = 0; i < program_count; i++) {
-            _ebpf_native_clean_up_program_handle(native_programs[i]);
-            EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(native_programs[i]);
+            _ebpf_native_clean_up_program_handle(instance->programs[i]);
+            EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(instance->programs[i]);
         }
         ebpf_free(instance->programs);
         instance->programs = NULL;
