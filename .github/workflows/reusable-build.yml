@@ -149,10 +149,16 @@ jobs:
       run: |
         echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Check for Clang version
+    - name: Check for Clang version (MSVC)
       if: steps.skip_check.outputs.should_skip != 'true'
       run:
         clang.exe --version
+
+    - name: Check for Clang version (LLVM)
+      if: steps.skip_check.outputs.should_skip != 'true'
+      shell: cmd
+      run:
+        '"c:\Program Files\llvm\bin\clang.exe" --version'
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
