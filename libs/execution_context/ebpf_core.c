@@ -2229,6 +2229,8 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+    // Initialize reply consumer offset to ensure we never get an older value.
+    reply->async_query_result.consumer = request->consumer_offset;
 
     reply->header.id = EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY;
     reply->header.length = sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t);
