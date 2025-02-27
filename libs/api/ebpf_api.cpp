@@ -4041,14 +4041,14 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) NO_EXCEPT_TRY
 CATCH_NO_MEMORY_EBPF_RESULT
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_handle_from_fd(int fd, _Out_ intptr_t* handle) NO_EXCEPT_TRY
+ebpf_get_handle_from_fd(int fd, _Out_ ebpf_handle_t* handle) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    intptr_t fdHandle = intptr_t(-1);
-    if (fdHandle = Platform::_get_osfhandle(fd); fdHandle == intptr_t(-1)) {
+    ebpf_assert(handle);
+    *handle = Platform::_get_osfhandle(fd);
+    if (*handle == ebpf_handle_invalid) {
         EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(errno));
     }
-    *handle = fdHandle;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 CATCH_NO_MEMORY_EBPF_RESULT

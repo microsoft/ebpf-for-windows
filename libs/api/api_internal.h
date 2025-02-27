@@ -468,14 +468,14 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
 /**
  * @brief Get an object's handle based on its fd.
  *
- * @param[in] fd of the object.
- * @param[out] intptr_t OS basedhandle to the object.
+ * @param[in] File Descriptor of the object.
+ * @param[out] ebpf_handle_t OS based handle to the object.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_PARAMETER No such FD was found.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_handle_from_fd(int fd, _Out_ intptr_t* handle) noexcept;
+ebpf_get_handle_from_fd(int fd, _Out_ ebpf_handle_t* handle) noexcept;
 
 /**
  * @brief Look for the next link ID greater than a given ID.
