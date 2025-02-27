@@ -466,7 +466,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
 
 /**
- * @brief Get an object's handle based on it's fd.
+ * @brief Get an object's handle based on its fd.
  *
  * @param[in] fd of the object.
  * @param[out] intptr_t OS basedhandle to the object.
