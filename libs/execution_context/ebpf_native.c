@@ -142,11 +142,13 @@ ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
 #define EBPF_NATIVE_ACQUIRE_REFERENCE_NATIVE_PROGRAM(program) InterlockedIncrement64(&(program)->reference_count);
 
-#define EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(program)           \
-    {                                                                   \
-        if (InterlockedDecrement64(&(program)->reference_count) == 0) { \
-            _ebpf_native_clean_up_program((program));                   \
-        }                                                               \
+#define EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(program)               \
+    {                                                                       \
+        if ((program) != NULL) {                                            \
+            if (InterlockedDecrement64(&(program)->reference_count) == 0) { \
+                _ebpf_native_clean_up_program((program));                   \
+            }                                                               \
+        }                                                                   \
     }
 
 static int
