@@ -12,6 +12,7 @@ extern "C"
 #endif
 
     FN_HANDLE_CMD handle_ebpf_show_pins;
+    FN_HANDLE_CMD handle_ebpf_unpin;
 
 #ifdef __cplusplus
 }
