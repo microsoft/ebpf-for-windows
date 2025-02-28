@@ -63,8 +63,8 @@ permissions:
 
 jobs:
   run_test:
-    # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 120 minutes.
-    timeout-minutes: 120
+    # Due to app-verifier, unit tests take a lot longer to execute. Increase the timeout to 90 minutes.
+    timeout-minutes: 90
 
     strategy:
       matrix:
@@ -83,7 +83,7 @@ jobs:
       POST_COMMAND: ${{inputs.post_test}}
       CXPLAT_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
-      TEST_TIMEOUT: 7200 # 2 hour timeout for tests.
+      TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
 
     steps:
     - name: Harden Runner
@@ -270,7 +270,7 @@ jobs:
       shell: cmd
       run: |
           set EBPF_ENABLE_WER_REPORT=yes
-          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 16
+          OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 8
 
     - name: Run test with low resource simulation
       if: (inputs.code_coverage != true) && (inputs.fault_injection == true) && (steps.skip_check.outputs.should_skip != 'true')
