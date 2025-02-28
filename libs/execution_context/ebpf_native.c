@@ -161,10 +161,10 @@ _ebpf_compare_versions(_In_ const bpf2c_version_t* lhs, _In_ const bpf2c_version
         return 1;
     }
     ebpf_assert(lhs->major == rhs->major);
-    if (lhs->minor < rhs->major) {
+    if (lhs->minor < rhs->minor) {
         return -1;
     }
-    if (lhs->minor > rhs->major) {
+    if (lhs->minor > rhs->minor) {
         return 1;
     }
     ebpf_assert(lhs->minor == rhs->minor);
