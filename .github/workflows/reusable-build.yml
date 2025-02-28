@@ -149,10 +149,16 @@ jobs:
       run: |
         echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Check for Clang version
+    - name: Check for Clang version (MSVC)
       if: steps.skip_check.outputs.should_skip != 'true'
       run:
         clang.exe --version
+
+    - name: Check for Clang version (LLVM)
+      if: steps.skip_check.outputs.should_skip != 'true'
+      shell: cmd
+      run:
+        '"c:\Program Files\llvm\bin\clang.exe" --version'
 
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
@@ -222,7 +228,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.11.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.12.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
     - name: Prepare 1ES artifacts
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')

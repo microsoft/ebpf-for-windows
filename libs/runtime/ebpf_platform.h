@@ -239,6 +239,31 @@ extern "C"
     _IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_restores_ uint8_t old_irql);
 
     /**
+     * @brief Raise the CPU's IRQL to DISPATCH_LEVEL if it is below DISPATCH_LEVEL.
+     *
+     * First checks if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
+     * calling KeRaiseIrqlToDpcLevel() if it is not needed.
+     *
+     * @return The previous IRQL.
+     */
+    _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) KIRQL
+        ebpf_raise_irql_to_dispatch_if_needed();
+
+    /**
+     * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.
+     *
+     * First checks if the IRQL is below DISPATCH_LEVEL to avoid the overhead of
+     * calling KeLowerIrql() if it is not needed.
+     *
+     * Note: The compiler fails to verify that irql is restored, so warning C28167 may need to be disabled around
+     * functions that use this.
+     *
+     * @param[in] previous_irql The previous IRQL.
+     */
+    _IRQL_requires_(DISPATCH_LEVEL) void ebpf_lower_irql_from_dispatch_if_needed(
+        _When_(previous_irql < DISPATCH_LEVEL, _IRQL_restores_) KIRQL previous_irql);
+
+    /**
      * @brief Query the platform for the total number of CPUs.
      * @return The count of logical cores in the system.
      */
