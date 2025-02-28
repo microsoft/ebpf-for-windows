@@ -468,7 +468,7 @@ ebpf_get_link_fd_by_id(ebpf_id_t id, _Out_ int* fd) noexcept;
 /**
  * @brief Get an object's handle based on its fd.
  *
- * @param[in] File Descriptor of the object.
+ * @param[in] fd File descriptor of the object.
  * @param[out] ebpf_handle_t OS based handle to the object.
  *
  * @retval EBPF_SUCCESS The operation was successful.
