@@ -989,14 +989,12 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
 
     // (Negative) Load program with incorrect interface name.
     output = _run_netsh_command(handle_ebpf_add_program, L"droppacket.o", L"xdp", L"interface=foo", &result);
-    printf("anusa: %s\n", output.c_str());
     REQUIRE(strcmp(output.c_str(), "Interface parameter is invalid.\n") == 0);
     REQUIRE(result == ERROR_SUPPRESS_OUTPUT);
     verify_no_programs_exist();
 
     // (Negative) Load program with program type that does not support the interface parameter.
     output = _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"interface=1", &result);
-    printf("anusa: %s\n", output.c_str());
     REQUIRE(
         strcmp(
             output.c_str(), "Interface parameter is not allowed for program types that don't support interfaces.\n") ==
