@@ -49,13 +49,13 @@ bpf_link__fd(const struct bpf_link* link);
  * @param[in] link Link to pin.
  * @param[in] path Path to pin the link to.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EBUSY A pin path was previously specified.
- * @exception EEXIST Something is already pinned to the specified path.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EBUSY A pin path was previously specified.
+ * @retval -EEXIST Something is already pinned to the specified path.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_link__unpin
  */
@@ -67,11 +67,11 @@ bpf_link__pin(struct bpf_link* link, const char* path);
  *
  * @param[in] link Link to unpin.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOENT The link was not pinned.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOENT The link was not pinned.
  *
  * @sa bpf_link__pin
  */
@@ -102,7 +102,7 @@ libbpf_bpf_link_type_str(enum bpf_link_type t);
  *
  * @param[in] map Map to get a file descriptor for.
  *
- * @returns File descriptor that refers to the map.
+ * @return the file descriptor; or -EINVAL in case of an error.
  * The caller should not call _close() on the fd.
  */
 int
@@ -159,13 +159,13 @@ bpf_map__name(const struct bpf_map* map);
  * @param[in] map Map to pin.
  * @param[in] path Path to pin the map to.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EBUSY A pin path was previously specified.
- * @exception EEXIST Something is already pinned to the specified path.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EBUSY A pin path was previously specified.
+ * @retval -EEXIST Something is already pinned to the specified path.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_map_unpin
  * @sa bpf_object__pin_maps
@@ -189,11 +189,11 @@ bpf_map__type(const struct bpf_map* map);
  * @param[in] map Map to unpin.
  * @param[in] path Path from which to unpin the map.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOENT The map was not pinned.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOENT The map was not pinned.
  *
  * @sa bpf_map_pin
  * @sa bpf_object__unpin_maps
@@ -241,14 +241,12 @@ void
 bpf_object__close(struct bpf_object* object);
 
 /**
- * @brief Find a map with a given name among maps associated with an eBPF object.
- *
- * @param[in] obj The object to check.
- * @param[in] name The name to look for.
- *
- * @returns The map found, or NULL if none.
- *
- * @exception ENOENT The map was not found.
+ * @brief **bpf_object__find_map_by_name()** returns BPF map of
+ * the given name, if it exists within the passed BPF object
+ * @param obj BPF object
+ * @param name name of the BPF map
+ * @return BPF map instance, if such map exists within the BPF object;
+ * or NULL otherwise.
  */
 struct bpf_map*
 bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name);
@@ -285,11 +283,11 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
  *
  * @param[in] obj Object from which to load programs.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_object__load_xattr
  * @sa bpf_object__open
@@ -349,9 +347,10 @@ bpf_object__open(const char* path);
  * @brief Open a file without loading the programs.
  *
  * @param[in] path File name to open.
- * @param[opts] opts Options to use when opening the object, or NULL pointer for default.
- *
- * @returns Pointer to an eBPF object, or NULL on failure.
+ * @param opts options for how to load the bpf object, this parameter is
+ * optional and can be set to NULL
+ * @return pointer to the new bpf_object; or NULL is returned on error,
+ * error code is stored in errno
  */
 struct bpf_object*
 bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts);
@@ -362,12 +361,12 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
  * @param[in] object Object to pin.
  * @param[in] path Path to pin the object to.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EBUSY Something is already pinned to the specified path.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EBUSY Something is already pinned to the specified path.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_object__pin_maps
  * @sa bpf_object__pin_programs
@@ -383,12 +382,12 @@ bpf_object__pin(struct bpf_object* object, const char* path);
  * @param[in] obj Object to pin maps of.
  * @param[in] path Path to pin the maps to.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EBUSY Something is already pinned to the specified path.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EBUSY Something is already pinned to the specified path.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_map__pin
  * @sa bpf_object__pin
@@ -403,12 +402,12 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path);
  * @param[in] obj Object to pin programs of.
  * @param[in] path Path to pin the programs to.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EBUSY Something is already pinned to the specified path.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EBUSY Something is already pinned to the specified path.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_program__pin
  * @sa bpf_object__pin
@@ -449,10 +448,10 @@ bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* prog)
  * @param[in] obj Object to unpin maps of.
  * @param[in] path Path from which to unpin the maps.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EINVAL An invalid argument was provided.
+ * @retval -EINVAL An invalid argument was provided.
  *
  * @sa bpf_map__unpin
  * @sa bpf_object__pin_maps
@@ -467,10 +466,10 @@ bpf_object__unpin_maps(struct bpf_object* obj, const char* path);
  * @param[in] obj Object to unpin programs of.
  * @param[in] path Path from which to unpin the programs.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EINVAL An invalid argument was provided.
+ * @retval -EINVAL An invalid argument was provided.
  *
  * @sa bpf_program__unpin
  * @sa bpf_object__pin_programs
@@ -487,11 +486,12 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path);
  */
 
 /**
- * @brief Attach an eBPF program to a hook associated with the program's expected attach type.
+ * @brief **bpf_program__attach()** is a generic function for attaching
+ * a BPF program based on the program's expected attach type.
  *
- * @param[in] prog The program to attach.
- *
- * @returns The link created.  On error, returns NULL and sets errno.
+ * @param prog BPF program to attach.
+ * @return Reference to the newly created BPF link; or NULL is returned on error,
+ * error code is stored in errno.
  *
  * @sa bpf_link__destroy
  * @sa bpf_program__get_expected_attach_type
@@ -535,8 +535,8 @@ bpf_program__autoload(const struct bpf_program* prog);
  *
  * @param[in] prog The program to update.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  * @sa bpf_object__load
  * @sa bpf_object__load_xattr
@@ -553,8 +553,8 @@ bpf_program__set_autoload(struct bpf_program* prog, bool autoload);
  * @param[in] type Attach type.
  * @param[in] flags Flags (currently 0).
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  */
 int
@@ -566,8 +566,8 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
  * @param[in] attachable_fd File descriptor corresponding to the attach point.
  * @param[in] type Attach type.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  */
 int
@@ -580,8 +580,8 @@ bpf_prog_detach(int attachable_fd, enum bpf_attach_type type);
  * @param[in] attachable_fd File descriptor corresponding to the attach point.
  * @param[in] type Attach type.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  */
 int
@@ -651,18 +651,20 @@ const char*
 bpf_program__name(const struct bpf_program* prog);
 
 /**
- * @brief Pin a program to a specified path.
+ * @brief Pin a program to a specified path. This increments the programs
+ * reference count, allowing it to stay loaded after the process
+ * which loaded it has exited.
  *
  * @param[in] prog Program to pin.
  * @param[in] path Path to pin the program to.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EBUSY A pin path was previously specified.
- * @exception EEXIST Something is already pinned to the specified path.
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EBUSY A pin path was previously specified.
+ * @retval -EEXIST Something is already pinned to the specified path.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_object__pin
  * @sa bpf_object__pin_programs
@@ -682,31 +684,30 @@ const char*
 bpf_program__section_name(const struct bpf_program* prog);
 
 /**
- * @brief Set the expected attach type for an eBPF program.
+ * @brief **bpf_program__set_expected_attach_type()** sets the
+ * attach type of the passed BPF program. This is used for
+ * auto-detection of attachment when programs are loaded.
+ * @param prog BPF program to set the attach type for
+ * @param type attach type to set the BPF map to have
+ * @return error code; or 0 if no error. An error occurs
+ * if the object is already loaded.
  *
- * @param[in] prog Program to update.
- * @param[in] type Attach type to set.
- *
- * @sa bpf_program__attach
- * @sa bpf_program__get_expected_attach_type
- *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * This must be called before the BPF object is loaded,
+ * otherwise it has no effect and an error is returned.
  */
 int
 bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_type type);
 
 /**
- * @brief Set the program type for an eBPF program.
+ * @brief **bpf_program__set_type()** sets the program
+ * type of the passed BPF program.
+ * @param prog BPF program to set the program type for
+ * @param type program type to set the BPF map to have
+ * @return error code; or 0 if no error. An error occurs
+ * if the object is already loaded.
  *
- * @param[in] prog Program to update.
- * @param[in] type Program type to set.
- *
- * @sa bpf_program__set_expected_attach_type
- * @sa bpf_program__type
- *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * This must be called before the BPF object is loaded,
+ * otherwise it has no effect and an error is returned.
  */
 int
 bpf_program__set_type(struct bpf_program* prog, enum bpf_prog_type type);
@@ -740,11 +741,11 @@ bpf_program__unload(struct bpf_program* prog);
  * @param[in] prog Program to unpin.
  * @param[in] path Path from which to unpin the program.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOENT The program was not pinned.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOENT The program was not pinned.
  *
  * @sa bpf_object__unpin_programs
  * @sa bpf_program__pin
@@ -761,8 +762,8 @@ bpf_program__unpin(struct bpf_program* prog, const char* path);
  *                  the specified interface index.
  * @param[in] opts Options (currently unused).
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  * @sa bpf_program__attach_xdp
  * @sa bpf_xdp_detach
@@ -779,8 +780,8 @@ bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attac
  *                  the specified interface index.
  * @param[in] opts Options (currently unused).
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  * @sa bpf_link_detach
  * @sa bpf_program__attach_xdp
@@ -796,8 +797,8 @@ bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts)
  * @param[in] flags Flags (currently 0).
  * @param[out] prog_id The ID of the program attached.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  * @sa bpf_xdp_attach
  */
@@ -811,8 +812,8 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id);
  * @param[in] name The textual representation of an attach type.
  * @param[out] attach_type Returns the attach type.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  */
 int
 libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type);
@@ -848,8 +849,8 @@ libbpf_bpf_prog_type_str(enum bpf_prog_type t);
  * @param[out] prog_type Program type.
  * @param[out] expected_attach_type Expected attach type.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  */
 int
 libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type);
@@ -878,8 +879,8 @@ libbpf_get_error(const void* ptr);
  * @param[out] buf Pointer to buffer to write message into.
  * @param[in] size Size of output buffer.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  */
 int
 libbpf_strerror(int err, char* buf, size_t size);
@@ -935,8 +936,8 @@ bpf_program__flags(const struct bpf_program* prog);
  * @param[in] prog A pointer to the BPF program.
  * @param[in] flags The flags to set.
  *
- * @retval 0 The operation was successful.
- * @retval <0 An error occurred, and errno was set.
+ * @return 0, on success; negative error code, otherwise (errno is also set to
+ * the error code)
  *
  */
 int
