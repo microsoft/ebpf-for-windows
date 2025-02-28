@@ -102,7 +102,7 @@ libbpf_bpf_link_type_str(enum bpf_link_type t);
  *
  * @param[in] map Map to get a file descriptor for.
  *
- * @returns File descriptor that refers to the map.
+ * @return the file descriptor; or -EINVAL in case of an error.
  * The caller should not call _close() on the fd.
  */
 int
@@ -241,14 +241,12 @@ void
 bpf_object__close(struct bpf_object* object);
 
 /**
- * @brief Find a map with a given name among maps associated with an eBPF object.
- *
- * @param[in] obj The object to check.
- * @param[in] name The name to look for.
- *
- * @returns The map found, or NULL if none.
- *
- * @retval -ENOENT The map was not found.
+ * @brief **bpf_object__find_map_by_name()** returns BPF map of
+ * the given name, if it exists within the passed BPF object
+ * @param obj BPF object
+ * @param name name of the BPF map
+ * @return BPF map instance, if such map exists within the BPF object;
+ * or NULL otherwise.
  */
 struct bpf_map*
 bpf_object__find_map_by_name(const struct bpf_object* obj, const char* name);
@@ -349,9 +347,10 @@ bpf_object__open(const char* path);
  * @brief Open a file without loading the programs.
  *
  * @param[in] path File name to open.
- * @param[opts] opts Options to use when opening the object, or NULL pointer for default.
- *
- * @returns Pointer to an eBPF object, or NULL on failure.
+ * @param opts options for how to load the bpf object, this parameter is
+ * optional and can be set to NULL
+ * @return pointer to the new bpf_object; or NULL is returned on error,
+ * error code is stored in errno
  */
 struct bpf_object*
 bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts);
@@ -487,11 +486,12 @@ bpf_object__unpin_programs(struct bpf_object* obj, const char* path);
  */
 
 /**
- * @brief Attach an eBPF program to a hook associated with the program's expected attach type.
+ * @brief **bpf_program__attach()** is a generic function for attaching
+ * a BPF program based on the program's expected attach type.
  *
- * @param[in] prog The program to attach.
- *
- * @returns The link created.  On error, returns NULL and sets errno.
+ * @param prog BPF program to attach.
+ * @return Reference to the newly created BPF link; or NULL is returned on error,
+ * error code is stored in errno.
  *
  * @sa bpf_link__destroy
  * @sa bpf_program__get_expected_attach_type
@@ -651,7 +651,9 @@ const char*
 bpf_program__name(const struct bpf_program* prog);
 
 /**
- * @brief Pin a program to a specified path.
+ * @brief Pin a program to a specified path. This increments the programs
+ * reference count, allowing it to stay loaded after the process
+ * which loaded it has exited.
  *
  * @param[in] prog Program to pin.
  * @param[in] path Path to pin the program to.
@@ -682,31 +684,30 @@ const char*
 bpf_program__section_name(const struct bpf_program* prog);
 
 /**
- * @brief Set the expected attach type for an eBPF program.
+ * @brief **bpf_program__set_expected_attach_type()** sets the
+ * attach type of the passed BPF program. This is used for
+ * auto-detection of attachment when programs are loaded.
+ * @param prog BPF program to set the attach type for
+ * @param type attach type to set the BPF map to have
+ * @return error code; or 0 if no error. An error occurs
+ * if the object is already loaded.
  *
- * @param[in] prog Program to update.
- * @param[in] type Attach type to set.
- *
- * @sa bpf_program__attach
- * @sa bpf_program__get_expected_attach_type
- *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * This must be called before the BPF object is loaded,
+ * otherwise it has no effect and an error is returned.
  */
 int
 bpf_program__set_expected_attach_type(struct bpf_program* prog, enum bpf_attach_type type);
 
 /**
- * @brief Set the program type for an eBPF program.
+ * @brief **bpf_program__set_type()** sets the program
+ * type of the passed BPF program.
+ * @param prog BPF program to set the program type for
+ * @param type program type to set the BPF map to have
+ * @return error code; or 0 if no error. An error occurs
+ * if the object is already loaded.
  *
- * @param[in] prog Program to update.
- * @param[in] type Program type to set.
- *
- * @sa bpf_program__set_expected_attach_type
- * @sa bpf_program__type
- *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * This must be called before the BPF object is loaded,
+ * otherwise it has no effect and an error is returned.
  */
 int
 bpf_program__set_type(struct bpf_program* prog, enum bpf_prog_type type);
