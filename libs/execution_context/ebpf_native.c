@@ -55,7 +55,7 @@ typedef struct _ebpf_native_program
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
     program_runtime_context_t runtime_context;
-    volatile int64_t reference_count;
+    bool loaded;
 } ebpf_native_program_t;
 
 typedef enum _ebpf_native_module_state
@@ -139,17 +139,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
-
-#define EBPF_NATIVE_ACQUIRE_REFERENCE_NATIVE_PROGRAM(program) InterlockedIncrement64(&(program)->reference_count);
-
-#define EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(program)               \
-    {                                                                       \
-        if ((program) != NULL) {                                            \
-            if (InterlockedDecrement64(&(program)->reference_count) == 0) { \
-                _ebpf_native_clean_up_program((program));                   \
-            }                                                               \
-        }                                                                   \
-    }
 
 static int
 _ebpf_compare_versions(_In_ const bpf2c_version_t* lhs, _In_ const bpf2c_version_t* rhs)
@@ -340,8 +329,6 @@ _ebpf_native_acquire_reference(_Inout_ ebpf_native_module_t* module)
 void
 ebpf_native_acquire_reference(_Inout_ ebpf_native_program_t* binding_context)
 {
-    // Acquire reference on both native_program and the module.
-    EBPF_NATIVE_ACQUIRE_REFERENCE_NATIVE_PROGRAM(binding_context);
     _ebpf_native_acquire_reference((ebpf_native_module_t*)binding_context->module);
 }
 
@@ -419,9 +406,10 @@ void
 ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_program_t* binding_context)
 {
     if (binding_context) {
+        ebpf_assert(binding_context->loaded);
         ebpf_native_module_t* module = binding_context->module;
         _ebpf_native_release_reference(module);
-        EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(binding_context);
+        _ebpf_native_clean_up_program(binding_context);
     }
 }
 
@@ -1310,7 +1298,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
 
-        instance->programs[i]->reference_count = 1;
         instance->programs[i]->handle = ebpf_handle_invalid;
     }
     instance->program_count = program_count;
@@ -1493,6 +1480,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
+        native_program->loaded = true;
     }
 
 Done:
@@ -1500,7 +1488,9 @@ Done:
         // Release reference for each program.
         for (size_t i = 0; i < program_count; i++) {
             _ebpf_native_clean_up_program_handle(instance->programs[i]);
-            EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(instance->programs[i]);
+            if (!instance->programs[i]->loaded) {
+                _ebpf_native_clean_up_program(instance->programs[i]);
+            }
         }
         ebpf_free(instance->programs);
         instance->programs = NULL;
@@ -1811,9 +1801,10 @@ Done:
     // programs are unloaded / reference count goes to 0.
     if (programs_created) {
         for (size_t i = 0; i < instance.program_count; i++) {
-            ebpf_assert(instance.programs[i]->reference_count > 0);
             _ebpf_native_clean_up_program_handle(instance.programs[i]);
-            EBPF_NATIVE_RELEASE_REFERENCE_NATIVE_PROGRAM(instance.programs[i]);
+            if (!instance.programs[i]->loaded) {
+                _ebpf_native_clean_up_program(instance.programs[i]);
+            }
             instance.programs[i] = NULL;
         }
     }
