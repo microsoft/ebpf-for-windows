@@ -1797,11 +1797,11 @@ Done:
         lock_acquired = false;
     }
 
-    // Release initial reference on the native programs. They will be freed when the
-    // programs are unloaded / reference count goes to 0.
     if (programs_created) {
         for (size_t i = 0; i < instance.program_count; i++) {
             _ebpf_native_clean_up_program_handle(instance.programs[i]);
+            // Free native program context only if the program is not loaded. If the program
+            // is loaded, it will be freed when the ebpf program object is freed.
             if (!instance.programs[i]->loaded) {
                 _ebpf_native_clean_up_program(instance.programs[i]);
             }
