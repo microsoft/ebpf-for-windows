@@ -6,7 +6,6 @@
 #include "api_internal.h"
 #include "ebpf_api.h"
 #include "ebpf_program_types.h"
-#include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 #include "ebpf_verifier_wrapper.hpp"
 #include "elfio_wrapper.hpp"
@@ -14,6 +13,7 @@
 #include "libbtf/btf_map.h"
 #include "libbtf/btf_type_data.h"
 #undef ebpf_inst
+#include "ebpf_shared_framework.h"
 #include "platform.hpp"
 #include "windows_platform.hpp"
 #include "windows_platform_common.hpp"

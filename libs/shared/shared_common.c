@@ -1,15 +1,17 @@
 // Copyright (c) eBPF for Windows contributors
 // SPDX-License-Identifier: MIT
 
+#include "bpf2c.h"
 #include "ebpf_program_types.h"
 #include "ebpf_serialize.h"
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
-#define ARRAY_ELEM_INDEX(array, index, elem_size) (((uint8_t*)array) + (index * elem_size));
+// #define ARRAY_ELEM_INDEX(array, index, elem_size) (((uint8_t*)array) + (index * elem_size));
 
 enum _extension_object_type
 {
+    // eBPF extension object types.
     EBPF_ATTACH_PROVIDER_DATA = 0,
     EBPF_PROGRAM_TYPE_DESCRIPTOR,
     EBPF_HELPER_FUNCTION_PROTOTYPE,
@@ -17,11 +19,23 @@ enum _extension_object_type
     EBPF_HELPER_FUNCTION_ADDRESSES,
     EBPF_PROGRAM_DATA,
     EBPF_PROGRAM_SECTION,
+
+    // eBPF native module object types.
+    EBPF_NATIVE_HELPER_FUNCTION_ENTRY,
+    EBPF_NATIVE_HELPER_FUNCTION_DATA,
+    EBPF_NATIVE_MAP_ENTRY,
+    EBPF_NATIVE_MAP_DATA,
+    EBPF_NATIVE_PROGRAM_ENTRY,
+    EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT,
+    EBPF_NATIVE_MAP_INITIAL_VALUES,
+    EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO,
+    EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA,
 };
 
 // Supported version and sizes of the various extension data structures.
 
 uint16_t _supported_ebpf_extension_version[] = {
+
     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,
@@ -29,6 +43,16 @@ uint16_t _supported_ebpf_extension_version[] = {
     EBPF_HELPER_FUNCTION_ADDRESSES_CURRENT_VERSION,
     EBPF_PROGRAM_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
+
+    EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION,
+    EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION,
+    EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,
+    EBPF_NATIVE_MAP_DATA_CURRENT_VERSION,
+    EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION,
+    EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_CURRENT_VERSION,
+    EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION,
+    EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION,
+    EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_CURRENT_VERSION,
 };
 
 #define EBPF_ATTACH_PROVIDER_DATA_SIZE_1 EBPF_SIZE_INCLUDING_FIELD(ebpf_attach_provider_data_t, link_type)
@@ -60,6 +84,36 @@ size_t _ebpf_program_data_supported_size[] = {EBPF_PROGRAM_DATA_SIZE_0, EBPF_PRO
 #define EBPF_PROGRAM_SECTION_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(ebpf_program_section_info_t, bpf_attach_type)
 size_t _ebpf_program_section_supported_size[] = {EBPF_PROGRAM_SECTION_SIZE_0};
 
+#define EBPF_NATIVE_HELPER_FUNCTION_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(helper_function_entry_t, name)
+size_t _ebpf_native_helper_function_entry_supported_size[] = {EBPF_NATIVE_HELPER_FUNCTION_ENTRY_SIZE_0};
+
+#define EBPF_NATIVE_HELPER_FUNCTION_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(helper_function_data_t, tail_call)
+size_t _ebpf_native_helper_function_data_supported_size[] = {EBPF_NATIVE_HELPER_FUNCTION_DATA_SIZE_0};
+
+#define EBPF_NATIVE_MAP_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_entry_t, name)
+size_t _ebpf_native_map_entry_supported_size[] = {EBPF_NATIVE_MAP_ENTRY_SIZE_0};
+
+#define EBPF_NATIVE_MAP_DATA_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_data_t, address)
+size_t _ebpf_native_map_data_supported_size[] = {EBPF_NATIVE_MAP_DATA_SIZE_0};
+
+#define EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(program_entry_t, program_info_hash_type)
+size_t _ebpf_native_program_entry_supported_size[] = {EBPF_NATIVE_PROGRAM_ENTRY_SIZE_0};
+
+#define EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(program_runtime_context_t, global_variable_section_data)
+size_t _ebpf_native_program_runtime_context_supported_size[] = {EBPF_NATIVE_PROGRAM_RUNTIME_CONTEXT_SIZE_0};
+
+#define EBPF_NATIVE_MAP_INITIAL_VALUES_SIZE_0 EBPF_SIZE_INCLUDING_FIELD(map_initial_values_t, values)
+size_t _ebpf_native_map_initial_values_supported_size[] = {EBPF_NATIVE_MAP_INITIAL_VALUES_SIZE_0};
+
+#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(global_variable_section_info_t, initial_data)
+size_t _ebpf_native_global_variable_section_info_supported_size[] = {EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_SIZE_0};
+
+#define EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_SIZE_0 \
+    EBPF_SIZE_INCLUDING_FIELD(global_variable_section_data_t, address_of_map_value)
+size_t _ebpf_native_global_variable_section_data_supported_size[] = {EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_DATA_SIZE_0};
+
 struct _ebpf_extension_data_structure_supported_sizes
 {
     size_t* supported_sizes;
@@ -73,6 +127,19 @@ struct _ebpf_extension_data_structure_supported_sizes _ebpf_extension_type_suppo
     {_ebpf_helper_function_addresses_supported_size, EBPF_COUNT_OF(_ebpf_helper_function_addresses_supported_size)},
     {_ebpf_program_data_supported_size, EBPF_COUNT_OF(_ebpf_program_data_supported_size)},
     {_ebpf_program_section_supported_size, EBPF_COUNT_OF(_ebpf_program_section_supported_size)},
+    {_ebpf_native_helper_function_entry_supported_size,
+     EBPF_COUNT_OF(_ebpf_native_helper_function_entry_supported_size)},
+    {_ebpf_native_helper_function_data_supported_size, EBPF_COUNT_OF(_ebpf_native_helper_function_data_supported_size)},
+    {_ebpf_native_map_entry_supported_size, EBPF_COUNT_OF(_ebpf_native_map_entry_supported_size)},
+    {_ebpf_native_map_data_supported_size, EBPF_COUNT_OF(_ebpf_native_map_data_supported_size)},
+    {_ebpf_native_program_entry_supported_size, EBPF_COUNT_OF(_ebpf_native_program_entry_supported_size)},
+    {_ebpf_native_program_runtime_context_supported_size,
+     EBPF_COUNT_OF(_ebpf_native_program_runtime_context_supported_size)},
+    {_ebpf_native_map_initial_values_supported_size, EBPF_COUNT_OF(_ebpf_native_map_initial_values_supported_size)},
+    {_ebpf_native_global_variable_section_info_supported_size,
+     EBPF_COUNT_OF(_ebpf_native_global_variable_section_info_supported_size)},
+    {_ebpf_native_global_variable_section_data_supported_size,
+     EBPF_COUNT_OF(_ebpf_native_global_variable_section_data_supported_size)},
 };
 
 static bool
@@ -202,6 +269,212 @@ ebpf_validate_program_section_info(_In_ const ebpf_program_section_info_t* secti
         (section_info->section_name != NULL) && (section_info->program_type != NULL) &&
         (section_info->attach_type != NULL));
 }
+
+bool
+ebpf_validate_object_header_native_helper_function_entry(
+    _In_ const ebpf_extension_header_t* native_helper_function_entry_header)
+{
+    return (
+        (native_helper_function_entry_header != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_HELPER_FUNCTION_ENTRY, native_helper_function_entry_header));
+}
+
+bool
+ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t* native_map_entry_header)
+{
+    return (
+        (native_map_entry_header != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, native_map_entry_header));
+}
+
+bool
+ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_header_t* native_program_entry_header)
+{
+    return (
+        (native_program_entry_header != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, native_program_entry_header));
+}
+
+bool
+ebpf_validate_object_header_native_map_initial_values(
+    _In_ const ebpf_extension_header_t* native_map_initial_values_header)
+{
+    return (
+        (native_map_initial_values_header != NULL) &&
+        _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_INITIAL_VALUES, native_map_initial_values_header));
+}
+
+bool
+ebpf_validate_object_header_native_global_variable_section_info(
+    _In_ const ebpf_extension_header_t* native_global_variable_section_info_header)
+{
+    return (
+        (native_global_variable_section_info_header != NULL) &&
+        _ebpf_validate_extension_object_header(
+            EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO, native_global_variable_section_info_header));
+}
+
+// static bool
+// _ebpf_validate_native_helper_function_entry(
+//     _In_ const helper_function_entry_t* native_helper_function_entry)
+// {
+//     return (
+//         (native_helper_function_entry != NULL) &&
+//         _ebpf_validate_extension_object_header(EBPF_NATIVE_HELPER_FUNCTION_ENTRY,
+//         &native_helper_function_entry->header) && (native_helper_function_entry->name != NULL));
+// }
+
+// static bool
+// _ebpf_validate_native_helper_function_entry_array(
+//     _In_reads_(count) const helper_function_entry_t* native_helper_function_entry_array, uint16_t count)
+// {
+//     if (count > 0) {
+//         // The native_helper_function_entry_array cannot be NULL.
+//         if (native_helper_function_entry_array == NULL) {
+//             return false;
+//         }
+//         // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
+//         size_t helper_prototype_size = native_helper_function_entry_array[0].header.total_size;
+//         for (uint16_t i = 0; i < count; i++) {
+//             helper_function_entry_t* helper_prototype =
+//                 (helper_function_entry_t*)ARRAY_ELEM_INDEX(native_helper_function_entry_array, i,
+//                 helper_prototype_size);
+//             if (!_ebpf_validate_native_helper_function_entry(helper_prototype)) {
+//                 return false;
+//             }
+//         }
+//     }
+//     return true;
+// }
+
+// static bool
+// _ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_program_entry)
+// {
+//     return (
+//         (native_program_entry != NULL) &&
+//         _ebpf_validate_extension_object_header(EBPF_NATIVE_PROGRAM_ENTRY, &native_program_entry->header) &&
+//         _ebpf_validate_native_helper_function_entry_array(native_program_entry->helpers,
+//         native_program_entry->helper_count));
+// }
+
+// bool
+// ebpf_validate_native_program_entry_array(
+//     _In_reads_(count) const program_entry_t* native_program_entry_array, size_t count)
+// {
+//     if (count > 0) {
+//         // The native_program_entry_array cannot be NULL.
+//         if (native_program_entry_array == NULL) {
+//             return false;
+//         }
+//         // Use "total_size" to calculate the actual size of the program_entry_t struct.
+//         size_t program_entry_size = native_program_entry_array[0].header.total_size;
+//         for (size_t i = 0; i < count; i++) {
+//             program_entry_t* program_entry =
+//                 (program_entry_t*)ARRAY_ELEM_INDEX(native_program_entry_array, i, program_entry_size);
+//             if (!_ebpf_validate_native_program_entry(program_entry)) {
+//                 return false;
+//             }
+//         }
+//     }
+//     return true;
+// }
+
+// static
+// bool _ebpf_validate_native_map_entry(_In_ const map_entry_t* native_map_entry)
+// {
+//     return (
+//         (native_map_entry != NULL) &&
+//         _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_ENTRY, &native_map_entry->header) &&
+//         (native_map_entry->name != NULL));
+// }
+
+// bool
+// ebpf_validate_native_map_entry_array(
+//     _In_reads_(count) const map_entry_t* native_map_entry_array, size_t count)
+// {
+//     if (count > 0) {
+//         // The native_map_entry_array cannot be NULL.
+//         if (native_map_entry_array == NULL) {
+//             return false;
+//         }
+//         // Use "total_size" to calculate the actual size of the map_entry_t struct.
+//         size_t map_entry_size = native_map_entry_array[0].header.total_size;
+//         for (size_t i = 0; i < count; i++) {
+//             map_entry_t* map_entry =
+//                 (map_entry_t*)ARRAY_ELEM_INDEX(native_map_entry_array, i, map_entry_size);
+//             if (!_ebpf_validate_native_map_entry(map_entry)) {
+//                 return false;
+//             }
+//         }
+//     }
+//     return true;
+// }
+
+// static bool
+// _ebpf_validate_native_map_initial_values(_In_ const map_initial_values_t* native_map_initial_values)
+// {
+//     return (
+//         (native_map_initial_values != NULL) &&
+//         _ebpf_validate_extension_object_header(EBPF_NATIVE_MAP_INITIAL_VALUES, &native_map_initial_values->header) &&
+//         (native_map_initial_values->values != NULL));
+// }
+
+// bool
+// ebpf_validate_native_map_initial_values_array(
+//     _In_reads_(count) const map_initial_values_t* native_map_initial_values_array, size_t count)
+// {
+//     if (count > 0) {
+//         // The native_map_initial_values_array cannot be NULL.
+//         if (native_map_initial_values_array == NULL) {
+//             return false;
+//         }
+//         // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
+//         size_t map_initial_values_size = native_map_initial_values_array[0].header.total_size;
+//         for (size_t i = 0; i < count; i++) {
+//             map_initial_values_t* map_initial_values =
+//                 (map_initial_values_t*)ARRAY_ELEM_INDEX(native_map_initial_values_array, i, map_initial_values_size);
+//             if (!_ebpf_validate_native_map_initial_values(map_initial_values)) {
+//                 return false;
+//             }
+//         }
+//     }
+//     return true;
+// }
+
+// static bool
+// _ebpf_validate_native_global_variable_section_info(
+//     _In_ const global_variable_section_info_t* native_global_variable_section_info)
+// {
+//     return (
+//         (native_global_variable_section_info != NULL) &&
+//         _ebpf_validate_extension_object_header(
+//             EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO, &native_global_variable_section_info->header) &&
+//         (native_global_variable_section_info->initial_data != NULL));
+// }
+
+// bool
+// ebpf_validate_global_variable_section_info_array(
+//     _In_reads_(count) const global_variable_section_info_t* native_global_variable_section_info_array,
+//     size_t count)
+// {
+//     if (count > 0) {
+//         // The native_global_variable_section_info_array cannot be NULL.
+//         if (native_global_variable_section_info_array == NULL) {
+//             return false;
+//         }
+//         // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
+//         size_t global_variable_section_info_size =
+//             native_global_variable_section_info_array[0].header.total_size;
+//         for (size_t i = 0; i < count; i++) {
+//             global_variable_section_info_t* global_variable_section_info = (global_variable_section_info_t*)
+//                 ARRAY_ELEM_INDEX(native_global_variable_section_info_array, i, global_variable_section_info_size);
+//             if (!_ebpf_validate_native_global_variable_section_info(global_variable_section_info)) {
+//                 return false;
+//             }
+//         }
+//     }
+//     return true;
+// }
 
 ebpf_result_t
 ebpf_result_from_cxplat_status(cxplat_status_t status)

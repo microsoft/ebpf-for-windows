@@ -83,6 +83,7 @@ typedef struct _service_context
             nullptr,
         },
     };
+    metadata_table_t* table;
     bool delete_pending = false;
 } service_context_t;
 
@@ -358,10 +359,10 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
 }
 #pragma warning(pop)
 
-static struct
-{
-    int reserved;
-} _test_helper_client_dispatch_table;
+// static struct
+// {
+//     int reserved;
+// } _test_helper_client_dispatch_table;
 
 static NTSTATUS
 _test_helper_client_attach_provider(
@@ -372,10 +373,11 @@ _test_helper_client_attach_provider(
     UNREFERENCED_PARAMETER(provider_registration_instance);
     void* provider_binding_context = NULL;
     const void* provider_dispatch_table = NULL;
+    service_context_t* client_service_context = (service_context_t*)client_context;
     return NmrClientAttachProvider(
         nmr_binding_handle,
         client_context,
-        &_test_helper_client_dispatch_table,
+        client_service_context->table,
         &provider_binding_context,
         &provider_dispatch_table);
 }
@@ -404,9 +406,9 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
         return;
     }
 
-    metadata_table_t* table = get_function();
-    REQUIRE(table != nullptr);
-    context->nmr_client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = table;
+    context->table = get_function();
+    REQUIRE(context->table != nullptr);
+    // context->nmr_client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = table;
 
     REQUIRE(NT_SUCCESS(NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle)));
 
