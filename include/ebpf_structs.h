@@ -93,7 +93,7 @@ static const char* const _ebpf_pin_type_names[] = {
 };
 
 typedef uint32_t ebpf_id_t;
-#define EBPF_ID_NONE UINT32_MAX
+#define EBPF_ID_NONE 0
 
 /**
  * @brief eBPF Map Definition as it is stored in memory.

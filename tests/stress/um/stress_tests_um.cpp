@@ -29,7 +29,7 @@ _program_load(
     ebpf_execution_type_t execution_type,
     log_string_flag error_log_flag = log_string_flag::LOG_STRING_NOT_NEEDED)
 {
-    REQUIRE(file_name.size() != 0);
+    ebpf_assert(file_name.size() != 0);
 
     program_object_info local_object_info{};
     local_object_info.object.reset(bpf_object__open(file_name.c_str()));
@@ -37,10 +37,10 @@ _program_load(
         return {-errno, std::nullopt};
     }
 
-    REQUIRE(ebpf_object_set_execution_type(local_object_info.object.get(), execution_type) == EBPF_SUCCESS);
+    ebpf_assert(ebpf_object_set_execution_type(local_object_info.object.get(), execution_type) == EBPF_SUCCESS);
     struct bpf_program* program{nullptr};
     program = bpf_object__next_program(local_object_info.object.get(), nullptr);
-    REQUIRE(program != nullptr);
+    ebpf_assert(program != nullptr);
     if (prog_type != BPF_PROG_TYPE_UNSPEC) {
         bpf_program__set_type(program, prog_type);
     }
