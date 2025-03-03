@@ -35,9 +35,9 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 // Verbs
 #define CMD_GROUP_ADD L"add"
 #define CMD_GROUP_DELETE L"delete"
+#define CMD_GROUP_PIN L"pin"
 #define CMD_GROUP_SET L"set"
 #define CMD_GROUP_SHOW L"show"
-#define CMD_GROUP_PIN L"pin"
 #define CMD_GROUP_UNPIN L"unpin"
 
 // Nouns
@@ -186,9 +186,9 @@ CMD_ENTRY_LONG g_EbpfUnpinCommandTableLong[] = {
 static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
     CREATE_CMD_GROUP_ENTRY(GROUP_ADD, g_EbpfAddCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_DELETE, g_EbpfDeleteCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_PIN, g_EbpfPinCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_SET, g_EbpfSetCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_SHOW, g_EbpfShowCommandTable),
-    CREATE_CMD_GROUP_ENTRY(GROUP_PIN, g_EbpfPinCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_UNPIN, g_EbpfUnpinCommandTable),
 };
 #else
@@ -198,17 +198,17 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
 static CMD_GROUP_ENTRY g_EbpfGroupCommandsOriginal[] = {
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_ADD, g_EbpfAddCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_DELETE, g_EbpfDeleteCommandTableOriginal),
+    CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_PIN, g_EbpfPinCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_SET, g_EbpfSetCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_SHOW, g_EbpfShowCommandTableOriginal),
-    CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_PIN, g_EbpfPinCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_UNPIN, g_EbpfUnpinCommandTableOriginal),
 };
 static CMD_GROUP_ENTRY g_EbpfGroupCommandsLong[] = {
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_ADD, g_EbpfAddCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_DELETE, g_EbpfDeleteCommandTableLong),
+    CREATE_CMD_GROUP_ENTRY_LONG(GROUP_PIN, g_EbpfPinCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_SET, g_EbpfSetCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_SHOW, g_EbpfShowCommandTableLong),
-    CREATE_CMD_GROUP_ENTRY_LONG(GROUP_PIN, g_EbpfPinCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_UNPIN, g_EbpfUnpinCommandTableLong),
 };
 #endif // WINDOWS_NETSH_BUG_WORKAROUND
