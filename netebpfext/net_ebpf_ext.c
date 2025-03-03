@@ -23,7 +23,7 @@ Environment:
 #include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
 
-#define XMSTO100NS(x) ((x)*10000)
+#define SECONDSTO100NS(x) ((x)*10000000)
 #define SUBLAYER_WEIGHT_MAXIMUM 0xFFFF
 
 // Globals.
@@ -49,8 +49,7 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
      0,
      SUBLAYER_WEIGHT_MAXIMUM}};
 
-// Global objects used to store filter contexts that are being cleaned up. This is currently only used in debug
-// contexts.
+// Global object used to store state for cleanup.
 static net_ebpf_extension_wfp_cleanup_state_t _net_ebpf_ext_wfp_cleanup_state = {0};
 
 static void
@@ -411,7 +410,7 @@ net_ebpf_extension_delete_wfp_filters(
             NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "FwpmFilterDeleteById Failed to marked WFP filter for deletion.",
+                "FwpmFilterDeleteById failed to mark WFP filter for deletion.",
                 status,
                 filter_ids[index].id);
             filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
@@ -774,7 +773,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
     NTSTATUS status;
     int max_retries = 10;
     LARGE_INTEGER timeout = {0};
-    timeout.QuadPart = -XMSTO100NS(10000); // 10 seconds
+    timeout.QuadPart = -SECONDSTO100NS(10);
 
     NET_EBPF_EXT_LOG_ENTRY();
 
@@ -784,7 +783,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
         // reducing the risk of this failure to occur. However, the following cleanup functions have retry logic built
         // in to help ensure that the WFP objects are cleaned up properly.
 
-        // Clean up the callouts
+        // Clean up the callouts.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
 
             for (int i = 1; i <= max_retries; i++) {
