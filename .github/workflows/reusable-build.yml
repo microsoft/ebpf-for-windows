@@ -97,7 +97,7 @@ jobs:
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
+      uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
       with:
         egress-policy: audit
 
@@ -135,7 +135,7 @@ jobs:
 
     - name: Initialize CodeQL
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@9e8d0789d4a0fa9ceb6b1738f7e269594bdd67f0
+      uses: github/codeql-action/init@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d
       with:
         languages: 'cpp'
 
@@ -149,14 +149,20 @@ jobs:
       run: |
         echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Check for Clang version
+    - name: Check for Clang version (MSVC)
       if: steps.skip_check.outputs.should_skip != 'true'
       run:
         clang.exe --version
 
+    - name: Check for Clang version (LLVM)
+      if: steps.skip_check.outputs.should_skip != 'true'
+      shell: cmd
+      run:
+        '"c:\Program Files\llvm\bin\clang.exe" --version'
+
     - name: Cache nuget packages
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+      uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f
       env:
         cache-name: cache-nuget-modules
       with:
@@ -166,7 +172,7 @@ jobs:
     - name: Cache verifier project
       # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
       if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57
+      uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f
       env:
         cache-name: cache-verifier-project
       with:
@@ -222,7 +228,7 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: |
         cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.11.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.12.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
     - name: Prepare 1ES artifacts
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
@@ -233,7 +239,7 @@ jobs:
 
     - name: Upload 1ES artifacts
       if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: 1ES artifacts
         path: 1es/**
@@ -253,7 +259,7 @@ jobs:
 
     - name: Upload Build Output
       if: always() && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_artifact != 'none')
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
         path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
@@ -261,7 +267,7 @@ jobs:
 
     - name: Upload the MSI package
       if: inputs.build_msi == true
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
@@ -273,7 +279,7 @@ jobs:
 
     - name: Upload the NuGet package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
@@ -285,14 +291,14 @@ jobs:
 
     - name: Upload the NuGet Redist package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
         path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
 
     - name: Upload binlog
       if: (success() || failure()) && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: build-binlog-${{env.BUILD_ARTIFACT_NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
         path: out.binlog
@@ -308,7 +314,7 @@ jobs:
     - name: Upload any crash dumps
       # Upload crash dumps even if the workflow failed.
       if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       id: upload_crash_dumps
       with:
         name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
@@ -317,4 +323,4 @@ jobs:
 
     - name: Perform CodeQL Analysis
       if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@9e8d0789d4a0fa9ceb6b1738f7e269594bdd67f0
+      uses: github/codeql-action/analyze@b56ba49b26e50535fa1e7f7db0f4f7b4bf65d80d

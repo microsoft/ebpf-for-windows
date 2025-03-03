@@ -52,7 +52,8 @@ _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ siz
 
 static void
 _get_global_variable_sections(
-    _Outptr_result_buffer_maybenull_(*count) global_variable_section_t** global_variable_sections, _Out_ size_t* count)
+    _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
+    _Out_ size_t* count)
 {
     *global_variable_sections = NULL;
     *count = 0;
@@ -80,7 +81,7 @@ static GUID BindMonitor_Caller_attach_type_guid = {
     0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
 #pragma code_seg(push, "bind")
 static uint64_t
-BindMonitor_Caller(void* context)
+BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_context)
 #line 45 "sample/bindmonitor_bpf2bpf.c"
 {
 #line 45 "sample/bindmonitor_bpf2bpf.c"
@@ -106,6 +107,8 @@ BindMonitor_Caller(void* context)
     r1 = (uintptr_t)context;
 #line 45 "sample/bindmonitor_bpf2bpf.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
+#line 45 "sample/bindmonitor_bpf2bpf.c"
+    UNREFERENCED_PARAMETER(runtime_context);
 
     // EBPF_OP_STXDW pc=0 dst=r10 src=r1 offset=-16 imm=0
 #line 45 "sample/bindmonitor_bpf2bpf.c"

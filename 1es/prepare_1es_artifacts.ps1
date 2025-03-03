@@ -6,7 +6,7 @@ Import-Module ..\scripts\common.psm1 -Force -ArgumentList ($LogFileName) -Warnin
 
 # Replace the placeholder strings in the artifacts.json file with the appropriate values.
 Write-Log "Replacing placeholder strings in artifacts.json file."
-$images = ('server-2025')
+$images = ('server-23h2', 'server-2025')
 foreach ($image in $images) {
     Write-Log "Replacing placeholder strings for image $image."
     $outFileName = "artifacts_$image.json"

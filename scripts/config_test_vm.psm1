@@ -733,15 +733,10 @@ function Initialize-VM {
         Start-VM -Name $VmName
         Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
 
-        Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
-        Sleep -Seconds 60
-
         # Copy setup script to the VM and execute it.
         Write-Log "Executing VM configuration script ($VMSetupScript) on VM: $VmName"
         Copy-VMFile -VMName $VmName -FileSource Host -SourcePath $VMSetupScript -DestinationPath "$VMWorkingDirectory\$VMSetupScript" -CreateFullPath
-        Execute-CommandOnVM -VMName $VmName -Command "cd $VMWorkingDirectory; .\$VMSetupScript"
-        Write-Log "Sleeping for 1 minute to let the VM get into a steady state"
-        Sleep -Seconds 60 # Sleep for 1 minute to let the VM get into a steady state.
+        Execute-CommandOnVM -VMName $VmName -Command "Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope LocalMachine; cd $VMWorkingDirectory; .\$VMSetupScript"
         Write-Log "Successfully executed VM configuration script ($VMSetupScript) on VM: $VmName" -ForegroundColor Green
 
         Wait-AllVMsToInitialize -VMList $vmList -UserName $Admin -AdminPassword $AdminPassword
@@ -751,6 +746,10 @@ function Initialize-VM {
             try {
                 Write-Log "Checkpointing VM: $VmName"
                 Checkpoint-VM -Name $VMName -SnapshotName 'baseline'
+                $checkpoint = Get-VMSnapshot -VMName $vmName | Where-Object { $_.Name -eq 'baseline' }
+                if ($checkpoint -eq $null) {
+                    throw "Failed to create checkpoint for VM: $VmName"
+                }
                 Write-Log "Successfully added 'baseline' checkpoint for VM: $VMName" -ForegroundColor Green
                 break
             } catch {
