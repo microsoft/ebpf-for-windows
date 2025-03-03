@@ -263,7 +263,7 @@ BEGIN
 \nRemarks: Shows processes using eBPF.\
 \n"
 
-    HLP_EBPF_PIN_MAP "Pin map.\n"
+    HLP_EBPF_PIN_MAP "Pins an eBPF map.\n"
     HLP_EBPF_PIN_MAP_EX "\
 \nUsage: %1 <id> [path]\n"
 
