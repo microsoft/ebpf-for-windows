@@ -140,6 +140,17 @@ ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
 
+// Free native program context only if the program is not loaded.
+// If the program is loaded, it will be freed when the ebpf program object is freed.
+#define EBPF_NATIVE_CLEANUP_PROGRAM(program)             \
+    {                                                    \
+        _ebpf_native_clean_up_program_handle((program)); \
+        if (!(program)->loaded) {                        \
+            _ebpf_native_clean_up_program((program));    \
+        }                                                \
+        (program) = NULL;                                \
+    }
+
 static int
 _ebpf_compare_versions(_In_ const bpf2c_version_t* lhs, _In_ const bpf2c_version_t* rhs)
 {
@@ -1298,9 +1309,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             goto Done;
         }
 
+        instance->program_count++;
         instance->programs[i]->handle = ebpf_handle_invalid;
     }
-    instance->program_count = program_count;
+    ebpf_assert(instance->program_count == program_count);
     native_programs = instance->programs;
 
     for (uint32_t i = 0; i < program_count; i++) {
@@ -1486,11 +1498,8 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 Done:
     if (result != EBPF_SUCCESS) {
         // Release reference for each program.
-        for (size_t i = 0; i < program_count; i++) {
-            _ebpf_native_clean_up_program_handle(instance->programs[i]);
-            if (!instance->programs[i]->loaded) {
-                _ebpf_native_clean_up_program(instance->programs[i]);
-            }
+        for (size_t i = 0; i < instance->program_count; i++) {
+            EBPF_NATIVE_CLEANUP_PROGRAM(native_programs[i]);
         }
         ebpf_free(instance->programs);
         instance->programs = NULL;
@@ -1799,12 +1808,7 @@ Done:
 
     if (programs_created) {
         for (size_t i = 0; i < instance.program_count; i++) {
-            _ebpf_native_clean_up_program_handle(instance.programs[i]);
-            // Free native program context only if the program is not loaded. If the program
-            // is loaded, it will be freed when the ebpf program object is freed.
-            if (!instance.programs[i]->loaded) {
-                _ebpf_native_clean_up_program(instance.programs[i]);
-            }
+            EBPF_NATIVE_CLEANUP_PROGRAM(instance.programs[i]);
             instance.programs[i] = NULL;
         }
     }
@@ -1814,10 +1818,18 @@ Done:
 
     if (maps_created) {
         if (result != EBPF_SUCCESS) {
-            _ebpf_native_clean_up_maps(instance.maps, instance.map_count, true, true);
+            _ebpf_native_clean_up_maps(
+                instance.maps,
+                instance.map_count,
+                true, /* unpin */
+                true /* close_handles */);
         } else {
             // Success case. No need to close map handles. Free the map contexts.
-            _ebpf_native_clean_up_maps(instance.maps, instance.map_count, false, false);
+            _ebpf_native_clean_up_maps(
+                instance.maps,
+                instance.map_count,
+                false, /* unpin */
+                false /* close_handles */);
         }
         instance.maps = NULL;
         instance.map_count = 0;
