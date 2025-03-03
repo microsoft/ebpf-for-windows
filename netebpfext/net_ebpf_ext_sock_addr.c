@@ -992,8 +992,9 @@ _net_ebpf_extension_connection_context_initialize(
 
 _Requires_exclusive_lock_held_(
     _net_ebpf_ext_sock_addr_blocked_contexts
-        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_connection_context_t*
-                                                                                       context)
+        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_
+                                                                                       net_ebpf_extension_connection_context_t*
+                                                                                           context)
 {
     bool entry_found = false;
     // Check the hash table for the entry.
@@ -1667,6 +1668,17 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
+        goto Exit;
+    }
+
+    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
+    // clients have detached and the filter context is being deleted.
+    if (filter_context->base.context_deleting) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 
