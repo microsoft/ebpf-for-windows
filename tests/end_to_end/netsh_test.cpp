@@ -261,10 +261,10 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 308;
+    const int code_size = 305;
     const int old_code_size = 311;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1102;
+    const int code_size = 1141;
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
@@ -307,10 +307,10 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size_old[] = {73, 6, 73};
-    const int code_size_new[] = {80, 6, 78};
+    const int code_size_new[] = {86, 6, 96};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size_old[] = {413, 190, 413};
-    const int code_size_new[] = {426, 190, 426};
+    const int code_size_new[] = {444, 195, 444};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size_old[] = {116, 8, 112};
     const int code_size_new[] = {116, 8, 112};
@@ -355,9 +355,9 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size[] = {322, 339, 322, 339};
+    const int code_size[] = {327, 344, 328, 345};
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size[] = {911, 986, 911, 986};
+    const int code_size[] = {950, 1025, 950, 1025};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size[] = {308, 324, 308, 324};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -809,7 +809,7 @@ TEST_CASE("show maps", "[netsh][maps]")
                   "                              Key  Value      Max  Inner\n"
                   "     ID            Map Type  Size   Size  Entries     ID  Pins  Name\n"
                   "=======  ==================  ====  =====  =======  =====  ====  ========\n"
-                  "      3                hash     4      4        1     -1     0  inner_map\n"
+                  "      3                hash     4      4        1      0     0  inner_map\n"
                   "      4       array_of_maps     4      4        1      3     0  outer_map\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);

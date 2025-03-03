@@ -129,6 +129,7 @@ EXPORTS
     ebpf_link_close
     ebpf_object_get
     ebpf_object_get_execution_type
+    ebpf_object_load_native_by_fds
     ebpf_object_set_execution_type
     ebpf_object_unpin
     ebpf_program_attach

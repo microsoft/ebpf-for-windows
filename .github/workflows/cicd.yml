@@ -238,6 +238,24 @@ jobs:
       code_coverage: false
 
   # Run the driver tests on self-hosted runners.
+  driver_ws23h2:
+    # Only run during daily scheduled run
+    needs: regular
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      name: driver_ws23h2
+      build_artifact: Build-x64
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server23h2"]'
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
+  # Run the driver tests on self-hosted runners.
   driver_ws2025:
     # Only run during daily scheduled run
     needs: regular
@@ -288,6 +306,24 @@ jobs:
       name: driver_native_only_ws2022
       build_artifact: Build-x64-native-only
       environment: '["ebpf_cicd_tests_ws2022"]'
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+
+  driver_native_only_ws23h2:
+    # Only run during daily scheduled run
+    needs: regular_native-only
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      name: driver_native_only_ws23h2
+      build_artifact: Build-x64-native-only
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server23h2"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
