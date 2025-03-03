@@ -19,7 +19,7 @@ Set-Location $scriptPath\..
 $cmakeCommonArgs = "-G 'Visual Studio 17 2022' -A $Architecture"
 $commands = @(
     "git submodule update --init --recursive",
-    "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build",
+    "cmake $cmakeCommonArgs -S external\ebpf-verifier -B external\ebpf-verifier\build -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded$<$<CONFIG:Debug>:Debug>$<$<CONFIG:FuzzerDebug>:Debug>DLL",
     "cmake $cmakeCommonArgs -S external\catch2 -B external\catch2\build -DBUILD_TESTING=OFF",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build",
     "cmake $cmakeCommonArgs -S external\ubpf -B external\ubpf\build_fuzzer -DUBPF_ENABLE_LIBFUZZER=on",

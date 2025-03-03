@@ -1047,7 +1047,7 @@ TEST_CASE("libbpf create queue", "[libbpf]")
     REQUIRE(info.value_size == value_size);
     REQUIRE(info.max_entries == max_entries);
     REQUIRE(info.map_flags == 0);
-    REQUIRE(info.inner_map_id == -1);
+    REQUIRE(info.inner_map_id == EBPF_ID_NONE);
     REQUIRE(info.pinned_path_count == 0);
     REQUIRE(info.id > 0);
     REQUIRE(strcmp(info.name, "MapName") == 0);
@@ -1106,7 +1106,7 @@ TEST_CASE("libbpf create ringbuf", "[libbpf]")
     REQUIRE(info.value_size == 0);
     REQUIRE(info.max_entries == max_entries);
     REQUIRE(info.map_flags == 0);
-    REQUIRE(info.inner_map_id == -1);
+    REQUIRE(info.inner_map_id == EBPF_ID_NONE);
     REQUIRE(info.pinned_path_count == 0);
     REQUIRE(info.id > 0);
     REQUIRE(strcmp(info.name, "MapName") == 0);

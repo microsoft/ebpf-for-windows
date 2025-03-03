@@ -371,6 +371,27 @@ extern "C"
         EBPF_NO_EXCEPT;
 
     /**
+     * @brief Load a native image from a file and return map and program file
+     * descriptors.
+     *
+     * @param[in] file_name Path to the eBPF object file.
+     * @param[in, out] count_of_maps Size of map_fds.
+     * @param[in] map_fds Pre-allocated array for map file descriptors.
+     * @param[in, out] count_of_programs Size of program_fds.
+     * @param[in] program_fds Pre-allocated array for program file descriptors.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Either count_of_maps or count_of_programs was too small.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_object_load_native_by_fds(
+        _In_z_ const char* file_name,
+        _Inout_ size_t* count_of_maps,
+        _Out_writes_opt_(*count_of_maps) fd_t* map_fds,
+        _Inout_ size_t* count_of_programs,
+        _Out_writes_opt_(*count_of_programs) fd_t* program_fds) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Attach an eBPF program.
      *
      * @param[in] program Pointer to the eBPF program.
@@ -547,8 +568,8 @@ extern "C"
      * @deprecated Use ebpf_get_next_pinned_object_path() instead.
      */
     __declspec(deprecated("Use ebpf_get_next_pinned_object_path() instead.")) _Must_inspect_result_ ebpf_result_t
-        ebpf_get_next_pinned_program_path(
-            _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
+    ebpf_get_next_pinned_program_path(
+        _In_z_ const char* start_path, _Out_writes_z_(EBPF_MAX_PIN_PATH_LENGTH) char* next_path) EBPF_NO_EXCEPT;
 
     /**
      * @brief Retrieve the next pinned path of an eBPF object.
