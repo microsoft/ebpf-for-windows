@@ -187,31 +187,36 @@ function Export-BuildArtifactsToVMs
         if (!$VMSession) {
             throw "Failed to create PowerShell session on $VMName."
         } else {
-            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-                Write-Host "Creating working directory c:\eBPF"
-                # Create working directory c:\eBPF.
-                if(!(Test-Path "$Env:SystemDrive\eBPF")) {
-                    New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
-                }
-                Write-Host "Adding registry path"
-                # Enable EULA for all SysInternals tools.
-                $RegistryPath = 'HKCU:\Software\Sysinternals'
-                if (-not (Test-Path $RegistryPath)) {
-                    # Create the registry key if it doesn't exist
-                    New-Item -Path $RegistryPath -Force
-                }
-                Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
-                
-                # Enables full memory dump.
-                # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
-                # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
-                # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
-                Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
+            try {
+                Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+                    Write-Host "Creating working directory c:\eBPF"
+                    # Create working directory c:\eBPF.
+                    if(!(Test-Path "$Env:SystemDrive\eBPF")) {
+                        New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
+                    }
+                    Write-Host "Adding registry path"
+                    # Enable EULA for all SysInternals tools.
+                    $RegistryPath = 'HKCU:\Software\Sysinternals'
+                    if (-not (Test-Path $RegistryPath)) {
+                        # Create the registry key if it doesn't exist
+                        New-Item -Path $RegistryPath -Force
+                    }
+                    Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
 
-                Write-Host "Completed...."
-                return $Env:SystemDrive
+                    # Enables full memory dump.
+                    # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
+                    # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
+                    # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
+                    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
+
+                    Write-Host "Completed...."
+                    return $Env:SystemDrive
+                }
+                $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
+            } catch {
+                Write-Log "Failed on $VMName. Error: $_"
+                throw $_
             }
-            $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
         }
         Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
         Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
