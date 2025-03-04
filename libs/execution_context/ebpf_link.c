@@ -487,9 +487,8 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     link->nmr_client_handle = NULL;
 
     ebpf_program_detach_link(link->program, link);
-    //
-    // remove extra ref on attached program
-    //
+
+    // Remove extra reference on attached program.
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link->program);
 
     ebpf_free((void*)link->client_data.data);
