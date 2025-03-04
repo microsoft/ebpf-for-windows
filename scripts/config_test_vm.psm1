@@ -188,10 +188,12 @@ function Export-BuildArtifactsToVMs
             throw "Failed to create PowerShell session on $VMName."
         } else {
             Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+                Write-Host "Creating working directory c:\eBPF"
                 # Create working directory c:\eBPF.
                 if(!(Test-Path "$Env:SystemDrive\eBPF")) {
                     New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
                 }
+                Write-Host "Adding registry path"
                 # Enable EULA for all SysInternals tools.
                 $RegistryPath = 'HKCU:\Software\Sysinternals'
                 if (-not (Test-Path $RegistryPath)) {
@@ -206,6 +208,7 @@ function Export-BuildArtifactsToVMs
                 # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
                 Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
 
+                Write-Host "Completed...."
                 return $Env:SystemDrive
             }
             $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
