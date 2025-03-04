@@ -203,11 +203,11 @@ function Export-BuildArtifactsToVMs
                     }
                     Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
 
-                    # Enables full memory dump.
-                    # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
-                    # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
-                    # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
-                    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
+                    # # Enables full memory dump.
+                    # # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
+                    # # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
+                    # # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
+                    # Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
 
                     Write-Host "Completed...."
                     return $Env:SystemDrive
