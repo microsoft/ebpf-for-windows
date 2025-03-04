@@ -432,9 +432,8 @@ Done:
 
         if (link_attached_to_program) {
             ebpf_program_detach_link(program, link);
-            //
-            // decrement program refcount
-            //
+
+            // Decrement the program refcount.
             EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
             link_attached_to_program = false;
             link->program = NULL;
