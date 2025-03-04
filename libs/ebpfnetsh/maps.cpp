@@ -152,6 +152,9 @@ unsigned long
 handle_ebpf_unpin_map(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    //
+    // unpin map from a specific pin path
+    //
     return handle_ebpf_pinunpin_map_common(
         machine, argv, current_index, argc, flags, data, done, [](auto, auto pinpath) {
             return ebpf_object_unpin(pinpath);

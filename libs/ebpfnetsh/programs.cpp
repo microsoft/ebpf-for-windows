@@ -307,6 +307,7 @@ handle_ebpf_add_program(
 
 // Given a program ID, unpin the program from all paths to which
 // it is currently pinned.
+// Unpins program from all its paths
 static unsigned long
 _unpin_program_by_id(ebpf_id_t id)
 {
@@ -918,6 +919,9 @@ unsigned long
 handle_ebpf_unpin_program(
     LPCWSTR machine, LPWSTR* argv, DWORD current_index, DWORD argc, DWORD flags, LPCVOID data, BOOL* done)
 {
+    //
+    // unpin program from a specific pin path (not all paths)
+    //
     return handle_ebpf_pinunpin_program_common(
         machine, argv, current_index, argc, flags, data, done, [](auto, auto pinpath) {
             return ebpf_object_unpin(pinpath);
