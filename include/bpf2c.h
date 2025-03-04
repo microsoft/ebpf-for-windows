@@ -78,10 +78,10 @@ extern "C"
      */
     typedef struct _map_entry
     {
-        // DLLs put the strings into the same section, so add a marker
-        // at the start of a map entry to make it easy to find
-        // entries in the maps section.
-        uint64_t zero_marker;
+        // DLLs put the strings into the same section with 8 or 16
+        // byte alignment, so add a 16-byte marker at the start of a map
+        // entry to make it easy to find entries in the maps section.
+        uint64_t zero_marker[2];
 
         ebpf_native_module_header_t header;
         ebpf_map_definition_in_file_t definition;

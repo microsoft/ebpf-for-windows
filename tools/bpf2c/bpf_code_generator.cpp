@@ -1734,7 +1734,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             stream_width += 2; // Add space for the trailing ", "
 
             output_stream << INDENT "{" << std::endl;
-            output_stream << INDENT " 0," << std::endl;
+            output_stream << INDENT " {0, 0}," << std::endl;
             output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
                           << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION) + "," << "// Current Version."
