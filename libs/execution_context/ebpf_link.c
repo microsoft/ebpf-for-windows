@@ -372,9 +372,8 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
 
     // Attach the program to the link.
     ebpf_program_attach_link(program, link);
-    //
-    // add extra ref on the attached program
-    //
+
+    // Add an extra reference on the attached program.
     EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program);
     link_attached_to_program = true;
 
