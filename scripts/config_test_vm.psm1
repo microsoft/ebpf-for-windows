@@ -194,14 +194,14 @@ function Export-BuildArtifactsToVMs
                     if(!(Test-Path "$Env:SystemDrive\eBPF")) {
                         New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
                     }
-                    Write-Host "Adding registry path"
-                    # Enable EULA for all SysInternals tools.
-                    $RegistryPath = 'HKCU:\Software\Sysinternals'
-                    if (-not (Test-Path $RegistryPath)) {
-                        # Create the registry key if it doesn't exist
-                        New-Item -Path $RegistryPath -Force
-                    }
-                    Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
+                    # Write-Host "Adding registry path"
+                    # # Enable EULA for all SysInternals tools.
+                    # $RegistryPath = 'HKCU:\Software\Sysinternals'
+                    # if (-not (Test-Path $RegistryPath)) {
+                    #     # Create the registry key if it doesn't exist
+                    #     New-Item -Path $RegistryPath -Force
+                    # }
+                    # Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
 
                     # # Enables full memory dump.
                     # # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
