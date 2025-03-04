@@ -218,17 +218,27 @@ function Export-BuildArtifactsToVMs
                 throw $_
             }
         }
-        Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
-        Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
-
-        Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            cd $Env:SystemDrive\eBPF
-            &tar @("xf", "ebpf.tgz")
+        try {
+            Write-Log "Copying $tempFileName to $VMSystemDrive\eBPF on $VMName"
+            Copy-Item -ToSession $VMSession -Path $tempFileName -Destination "$VMSystemDrive\eBPF\ebpf.tgz" -Force 2>&1 -ErrorAction Stop | Write-Log
+            Write-Log "Copied $tempFileName to $VMSystemDrive\eBPF on $VMName"
+        } catch {
+            Write-Log "Failed to copy $tempFileName to $VMSystemDrive\eBPF on $VMName. Error: $_"
+            throw $_
         }
-        Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
-        Write-Log "Export completed." -ForegroundColor Green
+
+        try {
+            Write-Log "Unpacking $tempFileName to $VMSystemDrive\eBPF on $VMName"
+            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+                cd $Env:SystemDrive\eBPF
+                &tar @("xf", "ebpf.tgz")
+            }
+            Write-Log "Unpacked $tempFileName to $VMSystemDrive\eBPF on $VMName"
+            Write-Log "Export completed." -ForegroundColor Green
+        } catch {
+            Write-Log "Failed to unpack $tempFileName to $VMSystemDrive\eBPF on $VMName. Error: $_"
+            throw $_
+        }
     }
 
     Remove-Item -Force $tempFileName
