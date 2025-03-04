@@ -180,6 +180,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a4cf291f6e969c275fc6d6e184f45779a" id="r_a4cf291f6e969c275fc6d6e184f45779a"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a4cf291f6e969c275fc6d6e184f45779a">ebpf_object_unpin</a> (const char *path) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a4cf291f6e969c275fc6d6e184f45779a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Unpin the object from the specified path.  <br /></td></tr>
 <tr class="separator:a4cf291f6e969c275fc6d6e184f45779a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6afd2002f42beba3e9d07a553b6aa56c" id="r_a6afd2002f42beba3e9d07a553b6aa56c"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a6afd2002f42beba3e9d07a553b6aa56c">ebpf_object_get_info_by_fd</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> bpf_fd, _Inout_updates_bytes_to_opt_(*info_size, *info_size) void *info, _Inout_opt_ uint32_t *info_size, _Out_opt_ <a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a> *type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a6afd2002f42beba3e9d07a553b6aa56c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Obtain information about the eBPF object referred to by bpf_fd. This function populates up to info_len bytes of info, which will be in one of the following formats depending on the eBPF object type of bpf_fd:  <br /></td></tr>
+<tr class="separator:a6afd2002f42beba3e9d07a553b6aa56c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ee898f156a37c884b16087465df51c0" id="r_a1ee898f156a37c884b16087465df51c0"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a1ee898f156a37c884b16087465df51c0">ebpf_api_unlink_program</a> (<a class="el" href="ebpf__api_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a> link_handle) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a1ee898f156a37c884b16087465df51c0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Detach the eBPF program from the link.  <br /></td></tr>
 <tr class="separator:a1ee898f156a37c884b16087465df51c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1784,6 +1787,69 @@ Variables</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Execution type. </dd></dl>
+
+</div>
+</div>
+<a id="a6afd2002f42beba3e9d07a553b6aa56c" name="a6afd2002f42beba3e9d07a553b6aa56c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a6afd2002f42beba3e9d07a553b6aa56c">&#9670;&#160;</a></span>ebpf_object_get_info_by_fd()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_object_get_info_by_fd </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
+          <td class="paramname"><em>bpf_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Inout_updates_bytes_to_opt_ *, *info_size void *&#160;</td>
+          <td class="paramname"><em>info</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Inout_opt_ uint32_t *&#160;</td>
+          <td class="paramname"><em>info_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_Out_opt_ <a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a> *&#160;</td>
+          <td class="paramname"><em>type</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Obtain information about the eBPF object referred to by bpf_fd. This function populates up to info_len bytes of info, which will be in one of the following formats depending on the eBPF object type of bpf_fd: </p>
+<ul>
+<li>struct <a class="el" href="structbpf__link__info.html" title="eBPF link information. This structure can be retrieved by calling bpf_obj_get_info_by_fd on a link fd...">bpf_link_info</a></li>
+<li>struct <a class="el" href="structbpf__map__info.html" title="eBPF map information. This structure can be retrieved by calling bpf_obj_get_info_by_fd on a map fd.">bpf_map_info</a></li>
+<li>struct <a class="el" href="structbpf__prog__info.html" title="eBPF program information. This structure can be retrieved by calling bpf_obj_get_info_by_fd on a prog...">bpf_prog_info</a></li>
+</ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">bpf_fd</td><td>File descriptor referring to an eBPF object. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">info</td><td>Pointer to memory in which to write the info obtained. On input, contains any additional parameters to use. May be NULL in order to only retrieve the type of the object. </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">info_size</td><td>On input, contains the maximum number of bytes to write into the info. On output, contains the actual number of bytes written. May be NULL if info is NULL. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">type</td><td>Optional type of the object.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>One or more parameters are wrong. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
