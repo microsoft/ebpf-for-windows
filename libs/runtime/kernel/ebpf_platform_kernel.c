@@ -19,11 +19,10 @@ static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
 {
     EBPF_LOG_ENTRY();
     NTSTATUS status;
-    size_t requested_page_count = length / PAGE_SIZE;
 
     ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
     MDL* source_mdl = NULL;
@@ -34,7 +33,7 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
-    if (length % PAGE_SIZE != 0 || length > MAXUINT32 / 2) {
+    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 - header_length) / 2 || (header_length % PAGE_SIZE) != 0) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -44,6 +43,11 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         goto Done;
     }
 
+    size_t header_pages = header_length / PAGE_SIZE;
+    size_t data_pages = length / PAGE_SIZE;
+    size_t requested_page_count = header_pages + data_pages;
+    uint32_t total_mapped_size = (uint32_t)(header_length + length * 2);
+
     // Allocate pages using ebpf_map_memory.
     ring_descriptor->memory = ebpf_map_memory(requested_page_count * PAGE_SIZE);
     if (!ring_descriptor->memory) {
@@ -52,9 +56,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
     source_mdl = ring_descriptor->memory;
 
-    // Create a MDL big enough to double map the pages.
-    ring_descriptor->memory_descriptor_list =
-        IoAllocateMdl(NULL, (uint32_t)(requested_page_count * 2 * PAGE_SIZE), FALSE, FALSE, NULL);
+    // Create a MDL big enough to include the header and double-mapped pages
+    ring_descriptor->memory_descriptor_list = IoAllocateMdl(NULL, total_mapped_size, FALSE, FALSE, NULL);
     if (!ring_descriptor->memory_descriptor_list) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
@@ -62,12 +65,12 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     }
     new_mdl = ring_descriptor->memory_descriptor_list;
 
+    // Copy header + first mapping to new mdl, then mirror the data pages.
     memcpy(MmGetMdlPfnArray(new_mdl), MmGetMdlPfnArray(source_mdl), sizeof(PFN_NUMBER) * requested_page_count);
-
     memcpy(
         MmGetMdlPfnArray(new_mdl) + requested_page_count,
-        MmGetMdlPfnArray(source_mdl),
-        sizeof(PFN_NUMBER) * requested_page_count);
+        MmGetMdlPfnArray(source_mdl) + header_pages,
+        sizeof(PFN_NUMBER) * data_pages);
 
 #pragma warning(push)
 #pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
@@ -135,6 +138,46 @@ ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
         return NULL;
     }
 }
+
+_Ret_maybenull_ void*
+ebpf_ring_map_user(_In_ const ebpf_ring_descriptor_t* ring, size_t writable_pages)
+{
+    void* base_address = NULL;
+    size_t header_length = PAGE_SIZE + 2; // Assuming header length is defined elsewhere
+    size_t header_pages = header_length / PAGE_SIZE;
+
+    // Validate that the number of writable pages is less than the header length
+    if (writable_pages >= header_pages) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_BASE,
+            "Number of writable pages exceeds header length",
+            writable_pages);
+        return NULL;
+    }
+
+    __try {
+        base_address = MmMapLockedPagesSpecifyCache(
+            ring->memory_descriptor_list, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
+        if (base_address) {
+            // Change the protection of the specified number of pages to read/write.
+            for (size_t i = 0; i < writable_pages; i++) {
+                NTSTATUS status = MmProtectMdlSystemAddress(ring->memory_descriptor_list, PAGE_READWRITE);
+                if (!NT_SUCCESS(status)) {
+                    EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
+                    MmUnmapLockedPages(base_address, ring->memory_descriptor_list);
+                    base_address = NULL;
+                    break;
+                }
+            }
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+        base_address = NULL;
+    }
+    return base_address;
+}
+
 // There isn't an official API to query this information from kernel.
 // Use NtQuerySystemInformation with struct + header from winternl.h.
 

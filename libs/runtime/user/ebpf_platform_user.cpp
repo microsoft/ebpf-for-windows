@@ -52,6 +52,7 @@ struct _ebpf_ring_descriptor
     void* primary_view;
     void* secondary_view;
     size_t length;
+    size_t header_length;
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -59,7 +60,7 @@ typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 // https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t length)
+ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
 {
     EBPF_LOG_ENTRY();
     bool result = false;
@@ -70,6 +71,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     void* view1 = nullptr;
     void* view2 = nullptr;
 
+    size_t total_mapped_size = header_length + length * 2;
+
     // Skip fault injection for this VirtualAlloc2 OS API, as ebpf_allocate already does that.
     GetSystemInfo(&sysInfo);
 
@@ -78,7 +81,8 @@ ebpf_allocate_ring_buffer_memory(size_t length)
         return nullptr;
     }
 
-    if ((length % sysInfo.dwAllocationGranularity) != 0) {
+    if ((length % sysInfo.dwAllocationGranularity) != 0 || (length > (MAXUINT64 - header_length) / 2) ||
+        (header_length % sysInfo.dwAllocationGranularity) != 0) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_BASE,
@@ -91,13 +95,14 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     if (!descriptor) {
         goto Exit;
     }
+    descriptor->header_length = header_length;
     descriptor->length = length;
 
     //
     // Reserve a placeholder region where the buffer will be mapped.
     //
-    placeholder1 = reinterpret_cast<uint8_t*>(
-        VirtualAlloc2(nullptr, nullptr, 2 * length, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
+    placeholder1 = reinterpret_cast<uint8_t*>(VirtualAlloc2(
+        nullptr, nullptr, total_mapped_size, MEM_RESERVE | MEM_RESERVE_PLACEHOLDER, PAGE_NOACCESS, nullptr, 0));
 
     if (placeholder1 == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualAlloc2);
@@ -110,32 +115,32 @@ ebpf_allocate_ring_buffer_memory(size_t length)
 #pragma warning(disable : 28160) // Passing MEM_RELEASE and a non-zero dwSize parameter to VirtualFree is not allowed.
                                  // This results in the failure of this call.
     //
-    // Split the placeholder region into two regions of equal size.
+    // Split the part of the placeholder region after the header into two regions of equal size.
     //
-    result = VirtualFree(placeholder1, length, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
+    result = VirtualFree(placeholder1, header_length + length, MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER);
     if (result == FALSE) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, VirtualFree);
         goto Exit;
     }
 #pragma warning(pop)
-    placeholder2 = placeholder1 + length;
+    placeholder2 = placeholder1 + header_length + length;
 
     //
     // Create a pagefile-backed section for the buffer.
     //
 
     section = CreateFileMapping(
-        INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<unsigned long>(length), nullptr);
+        INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, static_cast<unsigned long>(header_length + length), nullptr);
     if (section == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFileMapping);
         goto Exit;
     }
 
     //
-    // Map the section into the first placeholder region.
+    // Map the header + data into the first placeholder region.
     //
-    view1 =
-        MapViewOfFile3(section, nullptr, placeholder1, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
+    view1 = MapViewOfFile3(
+        section, nullptr, placeholder1, 0, header_length + length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
     if (view1 == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
         goto Exit;
@@ -147,10 +152,10 @@ ebpf_allocate_ring_buffer_memory(size_t length)
     placeholder1 = nullptr;
 
     //
-    // Map the section into the second placeholder region.
+    // Map the data a second time into the second placeholder region.
     //
-    view2 =
-        MapViewOfFile3(section, nullptr, placeholder2, 0, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
+    view2 = MapViewOfFile3(
+        section, nullptr, placeholder2, header_length, length, MEM_REPLACE_PLACEHOLDER, PAGE_READWRITE, nullptr, 0);
     if (view2 == nullptr) {
         EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile3);
         goto Exit;
@@ -220,6 +225,14 @@ _Ret_maybenull_ void*
 ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
 {
     EBPF_LOG_ENTRY();
+    EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
+}
+
+_Ret_maybenull_ void*
+ebpf_ring_map_user(_In_ const ebpf_ring_descriptor_t* ring, size_t writable_pages)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(writable_pages); // not used in user mode (always writable).
     EBPF_RETURN_POINTER(void*, ebpf_ring_descriptor_get_base_address(ring));
 }
 
