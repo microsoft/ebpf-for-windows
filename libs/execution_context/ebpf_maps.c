@@ -2551,6 +2551,22 @@ ebpf_map_query_buffer(
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, _In_ ebpf_handle_t wait_handle, uint64_t flags)
+{
+    //TODO (before merge): use ebpf_map_get_table() to get the table.
+    if (map->ebpf_map_definition.type != EBPF_MAP_TYPE_RING_BUFFER &&
+        map->ebpf_map_definition.type != EBPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_set_wait_handle not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return ebpf_ring_buffer_set_wait_handle((ebpf_ring_buffer_t*)map->data, wait_handle, flags);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_map_async_query(
     _Inout_ ebpf_map_t* map,
     uint64_t index,

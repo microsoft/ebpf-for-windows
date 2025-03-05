@@ -207,6 +207,20 @@ extern "C"
         _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
+     * @brief Set the wait handle for a map.
+     *
+     * @param[in] map Ring buffer map to set the wait handle for.
+     * @param[in] index Index of the buffer to set the wait handle for.
+     * @param[in] wait_handle Handle to notify when new data is available.
+     * @param[in] flags Flags to set for the wait handle.
+     * @retval EBPF_SUCCESS Successfully set the wait handle.
+     * @retval EBPF_INVALID_ARGUMENT Unable to set the wait handle.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_set_wait_handle(
+        _In_ const ebpf_map_t* map, _In_ ebpf_handle_t wait_handle, uint64_t flags);
+
+    /**
      * @brief Issue an asynchronous query to perf event array map.
      *
      * @param[in, out] map Map to issue async query on.

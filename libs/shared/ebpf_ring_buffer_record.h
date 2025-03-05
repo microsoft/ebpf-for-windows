@@ -5,6 +5,12 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
+#define EBPF_RING_BUFFER_CONSUMER_PAGE_SIZE 4096
+#define EBPF_RING_BUFFER_PRODUCER_PAGE_SIZE 4096
+// TODO (before merging): sort out header size
+// #define EBPF_RING_BUFFER_HEADER_SIZE (EBPF_RING_BUFFER_CONSUMER_PAGE_SIZE + EBPF_RING_BUFFER_PRODUCER_PAGE_SIZE)
+#define EBPF_RING_BUFFER_HEADER_SIZE (64 * 1024)
+
 #define EBPF_RINGBUF_LOCK_BIT (1U << 31)
 #define EBPF_RINGBUF_DISCARD_BIT (1U << 30)
 // Max record size is 32 bit length - 2 bits for lock+discard.
@@ -95,7 +101,8 @@ ebpf_ring_buffer_next_record(_In_ const uint8_t* buffer, size_t buffer_length, s
     if (producer == consumer) {
         return NULL;
     }
-    return (ebpf_ring_buffer_record_t*)(buffer + consumer % buffer_length);
+    // TODO (before merging): sort out header size
+    return (ebpf_ring_buffer_record_t*)(buffer + EBPF_RING_BUFFER_HEADER_SIZE + consumer % buffer_length);
 }
 
 CXPLAT_EXTERN_C_END

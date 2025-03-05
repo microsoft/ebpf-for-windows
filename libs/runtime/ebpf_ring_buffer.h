@@ -8,16 +8,30 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
+enum ebpf_ringbuf_notify_flags
+{
+    EBPF_RINGBUF_FLAG_NO_WAKEUP = (1ULL << 0),
+    EBPF_RINGBUF_FLAG_FORCE_WAKEUP = (1ULL << 1),
+};
+
+typedef struct _ebpf_ring_buffer_consumer_page
+{
+    volatile size_t consumer_offset; ///< Consumer has read up to this offset.
+} ebpf_ring_buffer_consumer_page_t;
+
+typedef struct _ebpf_ring_buffer_producer_page
+{
+    volatile size_t producer_offset; ///< Producer(s) have reserved up to this offset.
+    uint64_t reserved[15];           // Remainder of first two cache lines reserved for internal use.
+} ebpf_ring_buffer_producer_page_t;
+
+// ebpf_ring_buffer_t should be made opaque instead of being in ebpf_ring_buffer.h (#4144).
 typedef struct _ebpf_ring_buffer
 {
     size_t length;
-    volatile size_t consumer_offset;         ///< Consumer has read up to this offset.
-    volatile size_t producer_offset;         ///< Producer(s) have reserved up to this offset.
-    volatile size_t producer_reserve_offset; ///< Next record to be reserved.
-    uint8_t* shared_buffer;                  ///< Shared double-mapped buffer.
+    uint8_t* shared_buffer;                  ///< Shared double-mapped buffer with consumer+producer page header.
     ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
 } ebpf_ring_buffer_t;
-// ebpf_ring_buffer_t should be made opaque instead of being in ebpf_ring_buffer.h (#4144).
 
 static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
 
@@ -64,6 +78,18 @@ ebpf_ring_buffer_allocate_ring(
  */
 void
 ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring);
+
+/**
+ * @brief Set the wait handle for the ring buffer.
+ *
+ * This is used to notify the consumer when a record is available.
+ *
+ * @param[in, out] ring_buffer Ring buffer to update.
+ * @param[in] notify_handle Handle to notify the consumer.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_set_notify_handle(
+    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t notify_handle, uint64_t flags);
 
 /**
  * @brief Write out a variable sized record to the ring buffer.
@@ -117,24 +143,36 @@ ebpf_ring_buffer_reserve_exclusive(
  *
  * Clears the lock bit in the record header.
  *
+ * Flags:
+ * - EBPF_RINGBUF_FLAG_NO_WAKEUP: No notification of new data availability.
+ * - EBPF_RINGBUF_FLAG_FORCE_WAKEUP: Notification of new data availability is sent unconditionally.
+ * - 0: Adaptive notification of new data availability is sent.
+ *
  * @param[in] data Pointer to buffer to submit.
+ * @param[in] flags Flags to control notification.
  * @retval EBPF_SUCCESS Record successfully submitted.
  * @retval EBPF_INVALID_ARGUMENT Invalid record (data == NULL).
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data);
+ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data, uint64_t flags);
 
 /**
  * @brief Discard a previously reserved record.
  *
  * Tells the consumer to skip this record when reading and unlocks it.
  *
+ * Flags:
+ * - EBPF_RINGBUF_FLAG_NO_WAKEUP: No notification of new data availability.
+ * - EBPF_RINGBUF_FLAG_FORCE_WAKEUP: Notification of new data availability is sent unconditionally.
+ * - 0: Adaptive notification of new data availability is sent.
+ *
  * @param[in] data Pointer to buffer to submit.
+ * @param[in] flags Flags to control notification.
  * @retval EBPF_SUCCESS Successfully discarded space in the ring buffer.
  * @retval EBPF_INVALID_ARGUMENT Unable to discard space in the ring buffer.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data);
+ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data, uint64_t flags);
 
 /**
  * @brief Query the current producer and consumer offsets from the ring buffer.
@@ -183,5 +221,49 @@ ebpf_ring_buffer_next_consumer_record(
     _Inout_ ebpf_ring_buffer_t* ring_buffer,
     _In_ const uint8_t* buffer,
     _When_(return != NULL, _Out_) size_t* next_offset);
+
+/**
+ * @brief Get the ring buffer consumer page in the shared buffer.
+ *
+ * This is the page that contains the consumer offset.
+ *
+ * @param[in] ring_buffer Ring buffer to query.
+ * @return Pointer to the ring buffer consumer page.
+ */
+_Must_inspect_result_ ebpf_ring_buffer_consumer_page_t*
+ebpf_ring_buffer_shared_consumer_page(_In_ const ebpf_ring_buffer_t* ring_buffer);
+
+/**
+ * @brief Get the ring buffer producer page in the shared buffer.
+ *
+ * This is the page that contains the producer offset.
+ *
+ * @param[in] ring_buffer Ring buffer to query.
+ * @return Pointer to the ring buffer producer page.
+ */
+_Must_inspect_result_ ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_shared_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer);
+
+/**
+ * @brief Get the ring buffer consumer page in the mapped buffer.
+ *
+ * This is the page that contains the consumer offset.
+ *
+ * @param[in] buffer Pointer to the mapped buffer.
+ * @return Pointer to the ring buffer consumer page.
+ */
+_Must_inspect_result_ ebpf_ring_buffer_consumer_page_t*
+ebpf_ring_buffer_mapped_consumer_page(_In_ const uint8_t* buffer);
+
+/**
+ * @brief Get the ring buffer producer page in the mapped buffer.
+ *
+ * This is the page that contains the producer offset.
+ *
+ * @param[in] buffer Pointer to the mapped buffer.
+ * @return Pointer to the ring buffer producer page.
+ */
+_Must_inspect_result_ ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_mapped_producer_page(_In_ const uint8_t* buffer);
 
 CXPLAT_EXTERN_C_END
