@@ -189,24 +189,21 @@ function Export-BuildArtifactsToVMs
         } else {
             try {
                 Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-                    #check if systemdrive is empty
-                    if ($Env:SystemDrive -eq "") {
-                        Write-Host "SystemDrive is empty. Setting it to C:"
-                        $drive = "C:"
-                    } else {
-                        $drive = $Env:SystemDrive
-                    }
-                    Write-Host "Creating working directory $drive\eBPF"
+                    # #check if systemdrive is empty
+                    # if ($Env:SystemDrive -eq "") {
+                    #     Write-Host "SystemDrive is empty. Setting it to C:"
+                    #     $drive = "C:"
+                    # } else {
+                    #     $drive = $Env:SystemDrive
+                    # }
+                    Write-Host "Creating working directory $Env:SystemDrive\eBPF"
                     # Create working directory c:\eBPF.
-                    New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
+                    New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF" -ErrorAction Ignore
 
                     Write-Host "Adding registry path"
                     # Enable EULA for all SysInternals tools.
                     $RegistryPath = 'HKCU:\Software\Sysinternals'
-                    if (-not (Test-Path $RegistryPath)) {
-                        # Create the registry key if it doesn't exist
-                        New-Item -Path $RegistryPath -Force
-                    }
+                    New-Item -Path $RegistryPath -Force -ErrorAction Ignore
                     Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
 
                     # Enables full memory dump.
