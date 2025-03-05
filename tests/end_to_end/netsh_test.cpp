@@ -1091,3 +1091,104 @@ TEST_CASE("show processes", "[netsh][processes]")
         REQUIRE(result == NO_ERROR);
     }
 }
+
+TEST_CASE("pin/unpin program", "[netsh][pin]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+    int result = 0;
+    auto output =
+        _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"pinpath=bindmonitor", &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    const char prefix[] = "Loaded with ID";
+    REQUIRE(output.substr(0, sizeof(prefix) - 1) == "Loaded with ID");
+
+    // Get program ID.
+    auto id = strtoul(output.c_str() + output.rfind(' '), nullptr, 10);
+    auto sid = std::to_wstring(id);
+    _run_netsh_command(handle_ebpf_pin_program, sid.c_str(), L"bindmonitorpin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    output = _run_netsh_command(handle_ebpf_show_pins, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == std::format(
+                      "\n"
+                      "     ID     Type  Path\n"
+                      "=======  =======  ==============\n"
+                      "      {0}  Program  bindmonitor\n"
+                      "      {0}  Program  bindmonitorpin\n",
+                      id));
+
+    _run_netsh_command(handle_ebpf_unpin_program, sid.c_str(), L"random", nullptr, &result);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    _run_netsh_command(handle_ebpf_unpin_program, sid.c_str(), L"bindmonitorpin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    output = _run_netsh_command(handle_ebpf_show_pins, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == std::format(
+                      "\n"
+                      "     ID     Type  Path\n"
+                      "=======  =======  ==============\n"
+                      "      {}  Program  bindmonitor\n",
+                      id));
+
+    _run_netsh_command(handle_ebpf_delete_program, sid.c_str(), nullptr, nullptr, &result);
+}
+
+TEST_CASE("pin/unpin map", "[netsh][pin]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+    int result = 0;
+    auto output =
+        _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"pinpath=bindmonitor", &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    const char prefix[] = "Loaded with ID";
+    REQUIRE(output.substr(0, sizeof(prefix) - 1) == "Loaded with ID");
+    auto pid = strtoul(output.c_str() + output.rfind(' '), nullptr, 10);
+
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Grab the first map ID.
+    auto digit = output.find_first_of("123456789");
+    auto id = strtoul(output.c_str() + digit, nullptr, 10);
+    REQUIRE(id > 0);
+    auto sid = std::to_wstring(id);
+
+    auto offset = output.find("audit_map", digit + 1);
+    REQUIRE(offset != std::string::npos);
+    auto pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 0);
+
+    // Pin map with default name (map name)
+    output = _run_netsh_command(handle_ebpf_pin_map, sid.c_str(), nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 1);
+
+    // Pin map with custom name
+    output = _run_netsh_command(handle_ebpf_pin_map, sid.c_str(), L"custompin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 2);
+
+    // Unpin twice
+    output = _run_netsh_command(handle_ebpf_unpin_map, sid.c_str(), nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    output = _run_netsh_command(handle_ebpf_unpin_map, sid.c_str(), L"custompin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 0);
+
+    _run_netsh_command(handle_ebpf_delete_program, std::to_wstring(pid).c_str(), nullptr, nullptr, &result);
+}
