@@ -206,6 +206,19 @@ extern "C"
         _In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
+     * @brief Set the notify handle for a ring buffer map.
+     *
+     * @param[in] map Ring buffer map to set the notify handle for.
+     * @param[in] notify_handle Handle to notify when the ring buffer is full.
+     * @param[in] flags Flags to set for the notify handle.
+     * @retval EBPF_SUCCESS Successfully set the notify handle.
+     * @retval EBPF_INVALID_ARGUMENT Unable to set the notify handle.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_set_notify_handle(
+        _In_ const ebpf_map_t* map, _In_ ebpf_handle_t notify_handle, uint64_t flags);
+
+    /**
      * @brief Return consumed buffer back to the ring buffer map.
      *
      * @param[in] map Ring buffer map.

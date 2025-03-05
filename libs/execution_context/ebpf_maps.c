@@ -2233,6 +2233,12 @@ ebpf_ring_buffer_map_query_buffer(_In_ const ebpf_map_t* map, _Outptr_ uint8_t**
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_set_notify_handle(_In_ const ebpf_map_t* map, _In_ ebpf_handle_t notify_handle, uint64_t flags)
+{
+    return ebpf_ring_buffer_set_notify_handle((ebpf_ring_buffer_t*)map->data, notify_handle, flags);
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t consumer_offset)
 {
     return ebpf_ring_buffer_return_buffer((ebpf_ring_buffer_t*)map->data, consumer_offset);
