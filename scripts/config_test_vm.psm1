@@ -212,7 +212,7 @@ function Export-BuildArtifactsToVMs
                     # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
                     # Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1 -ErrorAction Ignore
 
-                    Write-Host "Completed...."
+                    # Write-Host "Completed...."
                     return $Env:SystemDrive
                 }
                 $VMSystemDrive = Invoke-Command -Session $VMSession -ScriptBlock {return $Env:SystemDrive}
