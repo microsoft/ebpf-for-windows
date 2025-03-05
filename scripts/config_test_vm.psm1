@@ -199,10 +199,6 @@ function Export-BuildArtifactsToVMs
                     Write-Host "Creating working directory $drive\eBPF"
                     # Create working directory c:\eBPF.
                     New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
-                    if (!(Test-Path "$drive\eBPF")) {
-                        Write-Host "Failed to create $drive\eBPF directory."
-                        throw "Failed to create $drive\eBPF directory."
-                    }
 
                     Write-Host "Adding registry path"
                     # Enable EULA for all SysInternals tools.
