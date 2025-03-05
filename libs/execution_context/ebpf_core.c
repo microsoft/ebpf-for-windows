@@ -2079,6 +2079,25 @@ _ebpf_core_protocol_get_next_pinned_object_path(
     EBPF_RETURN_RESULT(result);
 }
 
+_Must_inspect_result_ ebpf_result_t
+_ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_handle_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_map_t* map = NULL;
+
+    ebpf_result_t result =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    result = ebpf_map_set_wait_handle(map, request->index, request->wait_handle, request->flags);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(result);
+}
+
 static ebpf_result_t
 _ebpf_core_protocol_bind_map(_In_ const ebpf_operation_bind_map_request_t* request)
 {
@@ -2883,6 +2902,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
         authorize_native_module, PROTOCOL_NATIVE_MODE | PROTOCOL_PRIVILEGED_OPERATION),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
         get_code_integrity_state, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_wait_handle, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
