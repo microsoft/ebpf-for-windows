@@ -2,9 +2,75 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_epoch.h"
+#include "ebpf_handle.h"
 #include "ebpf_ring_buffer.h"
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_tracelog.h"
+
+typedef struct _ring_producer_page
+{
+    volatile size_t producer_offset;         ///< Producer(s) have reserved up to this offset.
+    ebpf_handle_t wait_handle;               ///< Handle to wait the producer thread.
+    uint64_t pad[6];                         // Pad producer_reserve_offset into next cache line.
+    volatile size_t producer_reserve_offset; ///< Next record to be reserved.
+} _ring_producer_page_t;
+
+inline static uint8_t*
+_ring_record_get_buffer(_In_ const ebpf_ring_buffer_record_t* record)
+{
+    return (uint8_t*)record - ((uintptr_t)record % PAGE_SIZE) - (record->header.page_offset * PAGE_SIZE) -
+           EBPF_RING_BUFFER_HEADER_SIZE;
+}
+
+inline static _ring_producer_page_t*
+_ring_buffer_producer_page(_In_ const uint8_t* buffer)
+{
+    return (_ring_producer_page_t*)(buffer + EBPF_RING_BUFFER_CONSUMER_PAGE_SIZE);
+}
+
+inline static ebpf_ring_buffer_consumer_page_t*
+_ring_buffer_consumer_page(_In_ const uint8_t* buffer)
+{
+    return (ebpf_ring_buffer_consumer_page_t*)buffer;
+}
+
+inline static ebpf_ring_buffer_consumer_page_t*
+_ring_consumer_page(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return (ebpf_ring_buffer_consumer_page_t*)(void*)ring->shared_buffer;
+}
+
+inline static _ring_producer_page_t*
+_ring_producer_page(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return (_ring_producer_page_t*)(void*)(ring->shared_buffer + EBPF_RING_BUFFER_CONSUMER_PAGE_SIZE);
+}
+
+inline static uint8_t*
+_ring_data_pages(_In_ const ebpf_ring_buffer_t* ring)
+{
+    // Note: for platform_kernel we have page granularity, but for platform_user we have allocation unit granularity.
+    // TODO (before merging): sort out header size
+    return ring->shared_buffer + EBPF_RING_BUFFER_HEADER_SIZE;
+}
+
+inline static volatile size_t*
+_ring_consumer_offset(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return &(_ring_consumer_page(ring)->consumer_offset);
+}
+
+inline static volatile size_t*
+_ring_producer_offset(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return &(_ring_producer_page(ring)->producer_offset);
+}
+
+inline static volatile size_t*
+_ring_producer_reserve_offset(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return &(_ring_producer_page(ring)->producer_reserve_offset);
+}
 
 /**
  * @brief Read-acquire the record header.
@@ -78,7 +144,7 @@ _ring_record_write_header_nofence(_Inout_ ebpf_ring_buffer_record_t* record, uin
 inline static size_t
 _ring_read_consumer_offset_nofence(_In_ const ebpf_ring_buffer_t* ring)
 {
-    return ReadULong64Acquire(&ring->consumer_offset);
+    return ReadULong64NoFence(_ring_consumer_offset(ring));
 }
 
 /**
@@ -92,7 +158,7 @@ _ring_read_consumer_offset_nofence(_In_ const ebpf_ring_buffer_t* ring)
 inline static size_t
 _ring_read_consumer_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 {
-    return ReadULong64Acquire(&ring->consumer_offset);
+    return ReadULong64Acquire(_ring_consumer_offset(ring));
 }
 
 /**
@@ -108,7 +174,7 @@ _ring_read_consumer_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 inline static void
 _ring_write_consumer_offset_release(_Inout_ ebpf_ring_buffer_t* ring, size_t offset)
 {
-    WriteULong64Release(&ring->consumer_offset, offset);
+    WriteULong64Release(_ring_consumer_offset(ring), offset);
 }
 
 /**
@@ -122,7 +188,7 @@ _ring_write_consumer_offset_release(_Inout_ ebpf_ring_buffer_t* ring, size_t off
 inline static size_t
 _ring_read_producer_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 {
-    return ReadULong64Acquire(&ring->producer_offset);
+    return ReadULong64Acquire(_ring_producer_offset(ring));
 }
 
 /**
@@ -136,7 +202,7 @@ _ring_read_producer_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 inline static void
 _ring_write_producer_offset_release(_Inout_ ebpf_ring_buffer_t* ring, size_t offset)
 {
-    WriteULong64Release(&ring->producer_offset, offset);
+    WriteULong64Release(_ring_producer_offset(ring), offset);
 }
 
 /**
@@ -150,7 +216,7 @@ _ring_write_producer_offset_release(_Inout_ ebpf_ring_buffer_t* ring, size_t off
 inline static size_t
 _ring_read_producer_reserve_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 {
-    return ReadULong64Acquire(&ring->producer_reserve_offset);
+    return ReadULong64Acquire(_ring_producer_reserve_offset(ring));
 }
 
 /**
@@ -164,7 +230,7 @@ _ring_read_producer_reserve_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 inline static size_t
 _ring_read_producer_reserve_offset_nofence(_In_ const ebpf_ring_buffer_t* ring)
 {
-    return ReadULong64Acquire(&ring->producer_reserve_offset);
+    return ReadULong64Acquire(_ring_producer_reserve_offset(ring));
 }
 
 /**
@@ -179,7 +245,7 @@ _ring_read_producer_reserve_offset_nofence(_In_ const ebpf_ring_buffer_t* ring)
 inline static void
 _ring_write_producer_reserve_offset_nofence(_Inout_ ebpf_ring_buffer_t* ring, size_t offset)
 {
-    WriteULong64NoFence(&ring->producer_reserve_offset, offset);
+    WriteULong64NoFence(_ring_producer_reserve_offset(ring), offset);
 }
 
 /**
@@ -196,7 +262,7 @@ inline static size_t
 _ring_exchange_producer_reserve_offset(_Inout_ ebpf_ring_buffer_t* ring, size_t new_value, size_t expected_value)
 {
     return (uint64_t)ebpf_interlocked_compare_exchange_int64(
-        (volatile int64_t*)&ring->producer_reserve_offset, new_value, expected_value);
+        (volatile int64_t*)_ring_producer_reserve_offset(ring), new_value, expected_value);
 }
 
 /**
@@ -275,7 +341,34 @@ _ring_get_length(_In_ const ebpf_ring_buffer_t* ring)
 inline static _Ret_notnull_ ebpf_ring_buffer_record_t*
 _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
 {
-    return (ebpf_ring_buffer_record_t*)&ring->shared_buffer[offset % _ring_get_length(ring)];
+    return (ebpf_ring_buffer_record_t*)&_ring_data_pages(ring)[offset % _ring_get_length(ring)];
+}
+
+inline static void
+_ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
+{
+    _ring_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
+    ebpf_handle_t wait_handle = ebpf_handle_invalid;
+    if (flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP) {
+        wait_handle = producer_page->wait_handle;
+    } else if (!(flags & EBPF_RINGBUF_FLAG_NO_WAKEUP)) {
+        // Notify only if ring might not be empty.
+        if (producer_page->wait_handle != ebpf_handle_invalid) {
+            ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
+            // Notify the producer that a record is available.
+            // TODO (before merge): nofence or acquire for consumer offset?
+            size_t consumer_offset = ReadULong64NoFence(&consumer_page->consumer_offset);
+            size_t producer_offset = ReadULong64Acquire(&producer_page->producer_offset);
+            if (producer_offset != consumer_offset) {
+                wait_handle = producer_page->wait_handle;
+            }
+        }
+    }
+
+    if (wait_handle != ebpf_handle_invalid) {
+        // Notify the consumer that new data is available.
+        KeSetEvent((HANDLE)wait_handle, 0, false);
+    }
 }
 
 /**
@@ -326,12 +419,14 @@ ebpf_ring_buffer_allocate_ring(_Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) eb
         return EBPF_INVALID_ARGUMENT;
     }
 
-    ring->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
+    ring->ring_descriptor = ebpf_allocate_ring_buffer_memory(EBPF_RING_BUFFER_HEADER_SIZE, capacity);
     if (!ring->ring_descriptor) {
         return EBPF_NO_MEMORY;
     }
     ring->shared_buffer = ebpf_ring_descriptor_get_base_address(ring->ring_descriptor);
     ring->length = capacity;
+    _ring_producer_page_t* producer_page = _ring_producer_page(ring);
+    producer_page->wait_handle = ebpf_handle_invalid;
 
     return EBPF_SUCCESS;
 }
@@ -339,6 +434,11 @@ ebpf_ring_buffer_allocate_ring(_Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) eb
 void
 ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring)
 {
+    _ring_producer_page_t* producer_page = _ring_producer_page(ring);
+    if (producer_page->wait_handle != ebpf_handle_invalid) {
+        ebpf_handle_close(producer_page->wait_handle);
+        producer_page->wait_handle = ebpf_handle_invalid;
+    }
     ebpf_free_ring_buffer_memory(ring->ring_descriptor);
     ring->ring_descriptor = NULL;
     ring->shared_buffer = NULL;
@@ -386,6 +486,28 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_set_wait_handle(
+    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t wait_handle, uint64_t flags)
+{
+    UNREFERENCED_PARAMETER(flags);
+    // TODO (before merging): Check if wait handle is valid and sort out where to take ref.
+    _ring_producer_page_t* producer_page = _ring_producer_page(ring_buffer);
+    ebpf_handle_t old_wait_handle = producer_page->wait_handle;
+    producer_page->wait_handle = wait_handle;
+    if (old_wait_handle != ebpf_handle_invalid) {
+        ebpf_handle_close(old_wait_handle);
+    }
+    return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_handle_t
+ebpf_ring_buffer_get_wait_handle(_Inout_ ebpf_ring_buffer_t* ring_buffer)
+{
+    _ring_producer_page_t* producer_page = _ring_producer_page(ring_buffer);
+    return producer_page->wait_handle;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     uint8_t* record_data;
@@ -394,7 +516,7 @@ ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(lengt
         return result;
     }
     memcpy(record_data, data, length);
-    return ebpf_ring_buffer_submit(record_data);
+    return ebpf_ring_buffer_submit(record_data, 0);
 }
 
 void
@@ -422,8 +544,8 @@ ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring, size_t consumer
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_MAP,
             "ebpf_ring_buffer_return_buffer: Offset too large",
-            ring->producer_offset,
-            ring->consumer_offset);
+            *_ring_producer_offset(ring),
+            *_ring_consumer_offset(ring));
         result = EBPF_INVALID_ARGUMENT;
         goto Done;
     }
@@ -538,7 +660,7 @@ ebpf_ring_buffer_reserve(
             // We successfully allocated the space -- now we need to lock the record and *then* update producer offset.
 
             ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
-            record->header.page_offset = 0; // unused for now.
+            record->header.page_offset = (uint32_t)reserve_offset / PAGE_SIZE;
 
             // Initialize the record header.
             // - We can no-fence write here, the write-release below ensures the locked header is visible first.
@@ -632,7 +754,7 @@ ebpf_ring_buffer_reserve_exclusive(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
+ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data, uint64_t flags)
 {
     if (!data) {
         return EBPF_INVALID_ARGUMENT;
@@ -644,12 +766,15 @@ ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)
     // Clear the lock and discard bits from the header.
     header = _ring_header_length(header);
     // Write-release record header to ensure the record is unlocked AFTER any writes to the record data are visible.
+    uint8_t* buffer = _ring_record_get_buffer(record);
     _ring_record_write_header_release(record, header);
+
+    _ring_buffer_notify_consumer(buffer, flags);
     return EBPF_SUCCESS;
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
+ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data, uint64_t flags)
 {
     if (!data) {
         return EBPF_INVALID_ARGUMENT;
@@ -661,6 +786,30 @@ ebpf_ring_buffer_discard(_Frees_ptr_opt_ uint8_t* data)
     // Clear the lock bit from the header and set the discard bit.
     header = (header & ~EBPF_RINGBUF_LOCK_BIT) | EBPF_RINGBUF_DISCARD_BIT;
     // Write-release the record header to ensure any writes to the discarded record are completed first.
+    uint8_t* buffer = _ring_record_get_buffer(record); // Get buffer address before we unlock the record.
     _ring_record_write_header_release(record, header);
+
+    _ring_buffer_notify_consumer(buffer, flags);
     return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_ring_buffer_consumer_page_t*
+ebpf_ring_buffer_shared_consumer_page(_In_ const ebpf_ring_buffer_t* ring_buffer)
+{
+    return _ring_consumer_page(ring_buffer);
+}
+_Must_inspect_result_ ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_shared_producer_page(_In_ const ebpf_ring_buffer_t* ring_buffer)
+{
+    return (ebpf_ring_buffer_producer_page_t*)_ring_producer_page(ring_buffer);
+}
+_Must_inspect_result_ ebpf_ring_buffer_consumer_page_t*
+ebpf_ring_buffer_mapped_consumer_page(_In_ const uint8_t* buffer)
+{
+    return _ring_buffer_consumer_page(buffer);
+}
+_Must_inspect_result_ ebpf_ring_buffer_producer_page_t*
+ebpf_ring_buffer_mapped_producer_page(_In_ const uint8_t* buffer)
+{
+    return (ebpf_ring_buffer_producer_page_t*)_ring_buffer_producer_page(buffer);
 }

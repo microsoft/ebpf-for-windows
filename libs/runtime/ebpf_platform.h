@@ -138,7 +138,7 @@ extern "C"
      * @return Pointer to an ebpf_memory_descriptor_t on success, NULL on failure.
      */
     _Ret_maybenull_ ebpf_ring_descriptor_t*
-    ebpf_allocate_ring_buffer_memory(size_t length);
+    ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length);
 
     /**
      * @brief Release physical memory previously allocated via ebpf_allocate_ring_buffer_memory.
@@ -168,6 +168,18 @@ extern "C"
      */
     _Ret_maybenull_ void*
     ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring);
+
+    /**
+     * @brief Create a mapping in the calling process of the ring buffer.
+     *
+     * This mapping allows the caller write access to the first writable_pages pages.
+     *
+     * @param[in] ring Ring buffer to map.
+     * @param[in] writable_pages Number of header pages that should be user-writable.
+     * @return Pointer to the base of the ring buffer.
+     */
+    _Ret_maybenull_ void*
+    ebpf_ring_map_user(_In_ const ebpf_ring_descriptor_t* ring, size_t writable_pages);
 
     /**
      * @brief Allocate and copy a UTF-8 string.
