@@ -189,11 +189,17 @@ function Export-BuildArtifactsToVMs
         } else {
             try {
                 Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-                    Write-Host "Creating working directory c:\eBPF"
-                    # Create working directory c:\eBPF.
-                    if(!(Test-Path "$Env:SystemDrive\eBPF")) {
-                        New-Item -ItemType Directory -Path "$Env:SystemDrive\eBPF"
+                    #check if systemdrive is empty
+                    if ($Env:SystemDrive -eq "") {
+                        Write-Host "SystemDrive is empty. Setting it to C:"
+                        $drive = "C:"
+                    } else {
+                        $drive = $Env:SystemDrive
                     }
+                    Write-Host "Creating working directory $drive\eBPF"
+                    # Create working directory c:\eBPF.
+                    New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
+
                     # Write-Host "Adding registry path"
                     # # Enable EULA for all SysInternals tools.
                     # $RegistryPath = 'HKCU:\Software\Sysinternals'
