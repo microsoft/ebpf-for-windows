@@ -1392,6 +1392,11 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
     REQUIRE(completion.value == value);
 }
 
+TEST_CASE("ring_buffer_sync_query", "[execution_context][ring_buffer]")
+{
+    // TODO: implementme
+}
+
 TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_array][negative]")
 {
     _ebpf_core_initializer core;
