@@ -190,33 +190,32 @@ function Export-BuildArtifactsToVMs
             try {
                 Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
                     try {
+                        # Check if systemdrive is empty.
+                        if ($Env:SystemDrive -eq "") {
+                            Write-Host "SystemDrive is empty. Setting it to C:"
+                            $drive = "C:"
+                        } else {
+                            $drive = $Env:SystemDrive
+                        }
+                        Write-Host "Creating working directory $drive\eBPF"
+                        # Create working directory c:\eBPF.
+                        New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
 
-                    # #check if systemdrive is empty
-                    if ($Env:SystemDrive -eq "") {
-                        Write-Host "SystemDrive is empty. Setting it to C:"
-                        $drive = "C:"
-                    } else {
-                        $drive = $Env:SystemDrive
-                    }
-                    Write-Host "Creating working directory $drive\eBPF"
-                    # Create working directory c:\eBPF.
-                    New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
+                        Write-Host "Adding registry path"
+                        # Enable EULA for all SysInternals tools.
+                        $RegistryPath = 'HKCU:\Software\Sysinternals'
+                        New-Item -Path $RegistryPath -Force -ErrorAction Ignore
+                        Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1 -ErrorAction Ignore
 
-                    Write-Host "Adding registry path"
-                    # Enable EULA for all SysInternals tools.
-                    $RegistryPath = 'HKCU:\Software\Sysinternals'
-                    New-Item -Path $RegistryPath -Force -ErrorAction Ignore
-                    Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1 -ErrorAction Ignore
+                        # # Enables full memory dump.
+                        # # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
+                        # # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
+                        # # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
+                        # $RegistryPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl'
+                        # New-Item -Path $RegistryPath -Force -ErrorAction Ignore
+                        # Set-ItemProperty -Path $RegistryPath -Name 'CrashDumpEnabled' -Value 1 -ErrorAction Ignore
 
-                    # Enables full memory dump.
-                    # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
-                    # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
-                    # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
-                    $RegistryPath = 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl'
-                    New-Item -Path $RegistryPath -Force -ErrorAction Ignore
-                    Set-ItemProperty -Path $RegistryPath -Name 'CrashDumpEnabled' -Value 1 -ErrorAction Ignore
-
-                    Write-Host "Completed...."
+                        Write-Host "Completed...."
                     } catch {
                         Write-Host "Failed $_"
                     }
