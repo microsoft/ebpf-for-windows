@@ -199,21 +199,25 @@ function Export-BuildArtifactsToVMs
                     Write-Host "Creating working directory $drive\eBPF"
                     # Create working directory c:\eBPF.
                     New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
+                    if (!(Test-Path "$drive\eBPF")) {
+                        Write-Host "Failed to create $drive\eBPF directory."
+                        throw "Failed to create $drive\eBPF directory."
+                    }
 
-                    # Write-Host "Adding registry path"
-                    # # Enable EULA for all SysInternals tools.
-                    # $RegistryPath = 'HKCU:\Software\Sysinternals'
-                    # if (-not (Test-Path $RegistryPath)) {
-                    #     # Create the registry key if it doesn't exist
-                    #     New-Item -Path $RegistryPath -Force
-                    # }
-                    # Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
+                    Write-Host "Adding registry path"
+                    # Enable EULA for all SysInternals tools.
+                    $RegistryPath = 'HKCU:\Software\Sysinternals'
+                    if (-not (Test-Path $RegistryPath)) {
+                        # Create the registry key if it doesn't exist
+                        New-Item -Path $RegistryPath -Force
+                    }
+                    Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
 
-                    # # Enables full memory dump.
-                    # # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
-                    # # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
-                    # # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
-                    # Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
+                    # Enables full memory dump.
+                    # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
+                    # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
+                    # https://learn.microsoft.com/en-us/troubleshoot/windows-server/performance/memory-dump-file-options
+                    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl' -Name 'CrashDumpEnabled' -Value 1
 
                     Write-Host "Completed...."
                     return $Env:SystemDrive
