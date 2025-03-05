@@ -771,7 +771,7 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 {
     size_t index;
     NTSTATUS status;
-    int max_retries = 10;
+    const int max_retries = 10;
     LARGE_INTEGER timeout = {0};
     timeout.QuadPart = -SECONDSTO100NS(10);
 
