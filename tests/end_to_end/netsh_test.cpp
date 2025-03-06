@@ -289,10 +289,6 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             array     4      4        1  port_map\n"
                                         "             array     4      4        1  inner_map\n";
 
-    // print the output for debugging if the test fails.
-    std::cout << "Output:\n" << output << "\n";
-    // std::cerr << "Expected:\n" << std::vformat(expected_output, std::make_format_args(code_size)) << "\n";
-
     REQUIRE(
         (output == std::vformat(expected_output, std::make_format_args(code_size)) ||
          output == std::vformat(expected_output, std::make_format_args(old_code_size))));
@@ -339,8 +335,6 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                                         "          Map Type  Size   Size  Entries  Name\n"
                                         "==================  ====  =====  =======  ========\n"
                                         "        prog_array     4      4       10  map\n";
-
-    std::cout << "Output:\n" << output << "\n";
 
     REQUIRE(
         (output == std::vformat(

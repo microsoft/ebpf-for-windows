@@ -7,8 +7,6 @@
 #include "ebpf_shared_framework.h"
 #include "ebpf_tracelog.h"
 
-// #define ARRAY_ELEM_INDEX(array, index, elem_size) (((uint8_t*)array) + (index * elem_size));
-
 enum _extension_object_type
 {
     // eBPF extension object types.
@@ -35,7 +33,7 @@ enum _extension_object_type
 // Supported version and sizes of the various extension data structures.
 
 uint16_t _supported_ebpf_extension_version[] = {
-
+    // eBPF extension object versions.
     EBPF_ATTACH_PROVIDER_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_TYPE_DESCRIPTOR_CURRENT_VERSION,
     EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION,
@@ -44,6 +42,7 @@ uint16_t _supported_ebpf_extension_version[] = {
     EBPF_PROGRAM_DATA_CURRENT_VERSION,
     EBPF_PROGRAM_SECTION_INFORMATION_CURRENT_VERSION,
 
+    // eBPF native module object versions.
     EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION,
     EBPF_NATIVE_HELPER_FUNCTION_DATA_CURRENT_VERSION,
     EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION,

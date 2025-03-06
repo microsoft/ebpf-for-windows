@@ -359,11 +359,6 @@ _Requires_lock_not_held_(_service_path_to_context_mutex) static void _unload_all
 }
 #pragma warning(pop)
 
-// static struct
-// {
-//     int reserved;
-// } _test_helper_client_dispatch_table;
-
 static NTSTATUS
 _test_helper_client_attach_provider(
     _In_ HANDLE nmr_binding_handle,
