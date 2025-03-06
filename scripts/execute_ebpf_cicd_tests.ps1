@@ -69,9 +69,7 @@ $Job = Start-Job -ScriptBlock {
         Run-KernelTestsOnVM -VMName $TestVMName -Config $Config
 
         # Stop eBPF components on test VMs.
-        # Stopping the eBPF components is temporarily disabled, while we debug known issues with NetEbpfExt service stop hanging.
-        # See task #4199
-        # Stop-eBPFComponentsOnVM -VMName $TestVMName
+        Stop-eBPFComponentsOnVM -VMName $TestVMName
     } catch [System.Management.Automation.RemoteException] {
         # Next, generate kernel dump.
         Write-Log $_.Exception.Message
