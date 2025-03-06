@@ -1180,7 +1180,7 @@ TEST_CASE("pin/unpin map", "[netsh][pin]")
     pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
     REQUIRE(pins == 2);
 
-    // Unpin twice
+    // Unpin twice.
     output = _run_netsh_command(handle_ebpf_unpin_map, sid.c_str(), nullptr, nullptr, &result);
     REQUIRE(result == EBPF_SUCCESS);
     output = _run_netsh_command(handle_ebpf_unpin_map, sid.c_str(), L"custompin", nullptr, &result);
