@@ -15,7 +15,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                         // Current Version.
+         80,                        // Struct size up to the last field.
+         80,                        // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_HASH_OF_MAPS, // Type of map.
          4,                         // Size in bytes of a map key.
@@ -27,7 +33,13 @@ static map_entry_t _maps[] = {
          11,                        // The id of the inner map template.
      },
      "outer_map"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -39,7 +51,13 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "port_map"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -71,8 +89,16 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t lookup_update_helpers[] = {
-    {1, "helper_id_1"},
-    {2, "helper_id_2"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
+    },
 };
 
 static GUID lookup_update_program_type_guid = {
@@ -236,6 +262,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         lookup_update,
         "sample~1",
         "sample_ext",

@@ -30,7 +30,11 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t decapsulate_permit_packet_helpers[] = {
-    {65536, "helper_id_65536"},
+    {
+     {1, 40, 40}, // Version header.
+     65536,
+     "helper_id_65536",
+    },
 };
 
 static GUID decapsulate_permit_packet_program_type_guid = {
@@ -472,6 +476,7 @@ label_3:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         decapsulate_permit_packet,
         "xdp_te~1",
         "xdp_test/decapsulate_reflect",

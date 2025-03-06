@@ -30,8 +30,16 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t xdp_invalid_socket_cookie_helpers[] = {
-    {26, "helper_id_26"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     26,
+     "helper_id_26",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID xdp_invalid_socket_cookie_program_type_guid = {
@@ -136,6 +144,7 @@ xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtim
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         xdp_invalid_socket_cookie,
         "xdp",
         "xdp",

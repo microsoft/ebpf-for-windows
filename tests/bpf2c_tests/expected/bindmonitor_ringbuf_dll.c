@@ -45,7 +45,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                    // Current Version.
+         80,                   // Struct size up to the last field.
+         80,                   // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_RINGBUF, // Type of map.
          0,                    // Size in bytes of a map key.
@@ -77,7 +83,11 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t bind_monitor_helpers[] = {
-    {11, "helper_id_11"},
+    {
+     {1, 40, 40}, // Version header.
+     11,
+     "helper_id_11",
+    },
 };
 
 static GUID bind_monitor_program_type_guid = {
@@ -174,6 +184,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_monitor,
         "bind",
         "bind",
