@@ -1172,7 +1172,7 @@ TEST_CASE("pin/unpin map", "[netsh][pin]")
     pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
     REQUIRE(pins == 1);
 
-    // Pin map with custom name
+    // Pin map with custom name.
     output = _run_netsh_command(handle_ebpf_pin_map, sid.c_str(), L"custompin", nullptr, &result);
     REQUIRE(result == EBPF_SUCCESS);
     output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
