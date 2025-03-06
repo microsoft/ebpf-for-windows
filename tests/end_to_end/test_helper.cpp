@@ -83,7 +83,7 @@ typedef struct _service_context
             nullptr,
         },
     };
-    metadata_table_t* table;
+    metadata_table_t* table = nullptr;
     bool delete_pending = false;
 } service_context_t;
 
