@@ -3,7 +3,6 @@
 
 #include "ebpf_api.h"
 
-#include <crtdbg.h> // For _CrtSetReportMode
 #include <cstdlib>
 #include <io.h>
 #include <stdint.h>
@@ -16,10 +15,9 @@ class _invalid_parameter_suppression
   public:
     _invalid_parameter_suppression()
     {
-        _CrtSetReportMode(_CRT_ASSERT, 0);
-        previous_handler = _set_invalid_parameter_handler(_ignore_invalid_parameter);
+        previous_handler = _set_thread_local_invalid_parameter_handler(_ignore_invalid_parameter);
     }
-    ~_invalid_parameter_suppression() { _set_invalid_parameter_handler(previous_handler); }
+    ~_invalid_parameter_suppression() { _set_thread_local_invalid_parameter_handler(previous_handler); }
 
   private:
     static void
