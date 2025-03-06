@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -146,7 +146,7 @@ _bpf2c_npi_client_attach_provider(
     // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
@@ -191,10 +191,26 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t StringOpsTest_helpers[] = {
-    {29, "helper_id_29"},
-    {27, "helper_id_27"},
-    {23, "helper_id_23"},
-    {28, "helper_id_28"},
+    {
+     {1, 40, 40}, // Version header.
+     29,
+     "helper_id_29",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     27,
+     "helper_id_27",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     23,
+     "helper_id_23",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     28,
+     "helper_id_28",
+    },
 };
 
 static GUID StringOpsTest_program_type_guid = {
@@ -618,6 +634,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         StringOpsTest,
         "bind",
         "bind",

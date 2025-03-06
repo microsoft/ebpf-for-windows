@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -146,7 +146,7 @@ _bpf2c_npi_client_attach_provider(
     // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
     // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
@@ -338,6 +338,7 @@ program4(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         program1,
         "bind_4",
         "bind_4",
@@ -352,6 +353,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         program2,
         "bind_3",
         "bind_3",
@@ -366,6 +368,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         program3,
         "bind_2",
         "bind_2",
@@ -380,6 +383,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         program4,
         "bind_1",
         "bind_1",
