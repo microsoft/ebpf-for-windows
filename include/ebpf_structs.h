@@ -415,14 +415,8 @@ struct bpf_prog_info
  * This however has an exception for some of the structs that mandatorily
  * require a specific number of starting bytes to be zero. In such cases,
  * the header must be placed after the required zero starting bytes.
- * New fields can be added to the end of an eBPF extension data structure
- * without breaking backward compatibility. The version field must be
- * updated only if the new data structure is not backward compatible.
+ * New fields can be added to the end of the data structure without breaking
+ * backward compatibility. The version field must be updated only if the new
+ * data structure is not backward compatible.
  */
 typedef ebpf_extension_header_t ebpf_native_module_header_t;
-// typedef struct _ebpf_native_module_header
-// {
-//     uint16_t version;  ///< Version of the extension data structure.
-//     size_t size;       ///< Size of the extension data structure not including any padding.
-//     size_t total_size; ///< Total size of the extension data structure including any padding.
-// } ebpf_native_module_header_t;

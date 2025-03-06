@@ -129,23 +129,6 @@ bool
 ebpf_validate_helper_function_prototype_array(
     _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype, uint32_t count);
 
-// bool
-// ebpf_validate_native_program_entry_array(
-//     _In_reads_(count) const program_entry_t* native_program_entry_array, size_t count);
-
-// bool
-// ebpf_validate_native_map_entry_array(
-//     _In_reads_(count) const map_entry_t* native_map_entry_array, size_t count);
-
-// bool
-// ebpf_validate_native_map_initial_values_array(
-//     _In_reads_(count) const map_initial_values_t* native_map_initial_values_array, size_t count);
-
-// bool
-// ebpf_validate_global_variable_section_info_array(
-//     _In_reads_(count) const global_variable_section_info_t* native_global_variable_section_info_array,
-//     size_t count);
-
 bool
 ebpf_validate_object_header_native_helper_function_entry(
     _In_ const ebpf_extension_header_t* native_helper_function_entry_header);

@@ -2520,15 +2520,6 @@ typedef struct _ebpf_pe_context
     const bounded_buffer* data_buffer;
 } ebpf_pe_context_t;
 
-// static uint32_t _get_string_length(_In_ const char* str) noexcept
-// {
-//     uint32_t length = 0;
-//     while (str[length] != '\0' && length < EBPF_MAX_PIN_PATH_LENGTH) {
-//         length++;
-//     }
-//     return length;
-// }
-
 static int // Returns 0 on success, 1 on error.
 _ebpf_pe_get_map_definitions(
     _Inout_ void* context,
