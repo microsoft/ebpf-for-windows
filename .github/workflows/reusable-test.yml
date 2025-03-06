@@ -144,7 +144,7 @@ jobs:
       # Add cache entry for any choco packages that are installed.
       # The cache key is based on the hash of this file so if any choco packages are added or removed, the cache will be invalidated.
       if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
-      uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f
+      uses: actions/cache@d4323d4df104b026a6aa633fdb11d772146be0bf
       env:
         cache-name: cache-choco-packages
       with:
@@ -183,7 +183,7 @@ jobs:
 
     - name: Download build artifact
       if: (steps.skip_check.outputs.should_skip != 'true') && success()
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       id: download_artifact
       with:
         name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -346,7 +346,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 1
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.check_coverage.outputs.files_exists == 'true')
-      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
+      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
       id: upload_code_coverage_report_1
       continue-on-error: true
       with:
@@ -361,7 +361,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 2
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
-      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
+      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
       id: upload_code_coverage_report_2
       continue-on-error: true
       with:
@@ -376,7 +376,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 3
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
-      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
+      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
       id: upload_code_coverage_report_3
       continue-on-error: true
       with:
@@ -391,7 +391,7 @@ jobs:
 
     - name: Upload Report to Codecov attempt 4
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
-      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
+      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
       id: upload_code_coverage_report_4
       continue-on-error: true
       with:

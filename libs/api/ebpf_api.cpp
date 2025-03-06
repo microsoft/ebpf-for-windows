@@ -4273,13 +4273,11 @@ CATCH_NO_MEMORY_EBPF_RESULT
 _Must_inspect_result_ ebpf_result_t
 ebpf_object_get_info_by_fd(
     fd_t bpf_fd,
-    _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
-    _Inout_ uint32_t* info_size,
+    _Inout_updates_bytes_to_opt_(*info_size, *info_size) void* info,
+    _Inout_opt_ uint32_t* info_size,
     _Out_opt_ ebpf_object_type_t* type) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
-    ebpf_assert(info);
-    ebpf_assert(info_size);
 
     ebpf_handle_t handle = _get_handle_from_file_descriptor(bpf_fd);
     if (handle == ebpf_handle_invalid) {
