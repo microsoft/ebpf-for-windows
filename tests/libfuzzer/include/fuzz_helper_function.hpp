@@ -194,11 +194,7 @@ template <typename context_type> class fuzz_helper_function
             }
             case EBPF_ARGUMENT_TYPE_PTR_TO_CTX:
                 // Put the context into the argument (all program contexts must support header, so subtract it out).
-                struct _ctx_header
-                {
-                    EBPF_CONTEXT_HEADER;
-                };
-                argument[arg_count] = (uint64_t)&context - sizeof(_ctx_header);
+                argument[arg_count] = (uint64_t)&context - EBPF_CONTEXT_HEADER_SIZE;
                 break;
             case EBPF_ARGUMENT_TYPE_PTR_TO_MAP: {
                 // Put a map pointer into the argument.
