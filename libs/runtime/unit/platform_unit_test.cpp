@@ -10,8 +10,10 @@
 #include "ebpf_epoch.h"
 #include "ebpf_hash_table.h"
 #include "ebpf_nethooks.h"
+#include "ebpf_perf_event_array.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
+#include "ebpf_program.h"
 #include "ebpf_program_types.h"
 #include "ebpf_random.h"
 #include "ebpf_ring_buffer.h"
@@ -199,6 +201,23 @@ typedef class _ebpf_epoch_scope
     ebpf_epoch_state_t epoch_state;
     bool in_epoch;
 } ebpf_epoch_scope_t;
+
+struct scoped_cpu_affinity
+{
+    scoped_cpu_affinity(uint32_t i) : old_affinity_mask{}
+    {
+        affinity_set = ebpf_set_current_thread_cpu_affinity(i, &old_affinity_mask) == EBPF_SUCCESS;
+        REQUIRE(affinity_set);
+    }
+    ~scoped_cpu_affinity()
+    {
+        if (affinity_set) {
+            ebpf_restore_current_thread_cpu_affinity(&old_affinity_mask);
+        }
+    }
+    GROUP_AFFINITY old_affinity_mask;
+    bool affinity_set = false;
+};
 
 TEST_CASE("hash_table_test", "[platform]")
 {
@@ -1062,6 +1081,7 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
 
     auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record != nullptr);
+
     REQUIRE(record->header.length == data.size());
 
     REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, total_record_size) == EBPF_SUCCESS);
@@ -1591,6 +1611,494 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
         run_ring_buffer_stress_test(ring_buffer, buffer, &test_params);
     }
     ebpf_ring_buffer_destroy(ring_buffer);
+}
+
+const static size_t PERF_RECORD_HEADER_SIZE = EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data);
+
+size_t
+_perf_record_size(size_t data_size)
+{
+    return (PERF_RECORD_HEADER_SIZE + data_size + 7) & ~7;
+}
+
+TEST_CASE("context_descriptor_header", "[platform][perf_event_array]")
+{
+    // Confirm context descriptor header in program context works as expected.
+
+    struct context_t
+    {
+        uint8_t* data;
+        uint8_t* data_end;
+    };
+    // Full context includes EBPF_CONTEXT_HEADER plus the program accessible portion.
+    struct full_context_t
+    {
+        EBPF_CONTEXT_HEADER;
+        context_t ctx;
+    } context;
+
+    // ctx points to the bpf-program accessible portion (just after the header).
+    void* ctx = &context.ctx;
+
+    // The context descriptor tells the platform where to find the data pointers.
+    ebpf_context_descriptor_t context_descriptor = {
+        sizeof(context_t), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
+    ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
+
+    const ebpf_context_descriptor_t* test_ctx_descriptor;
+    ebpf_program_get_header_context_descriptor(ctx, &test_ctx_descriptor);
+    REQUIRE(test_ctx_descriptor == &context_descriptor);
+
+    const uint8_t *data_start, *data_end;
+
+    context_descriptor = {
+        sizeof(context.ctx), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
+    context.ctx.data = (uint8_t*)((void*)0x0123456789abcdef);
+    context.ctx.data_end = (uint8_t*)((void*)0xfedcba9876543210);
+    ebpf_program_get_context_data(ctx, &data_start, &data_end);
+    REQUIRE(data_start == context.ctx.data);
+    REQUIRE(data_end == context.ctx.data_end);
+}
+
+/**
+ * @brief Run a test on perf_event_output using the given parameters.
+ *
+ * Assumes the perf_event_array is already created and mapped.
+ *
+ * Pins the current thread to the target cpu_id during the test.
+ *
+ * @param[in] perf_event_array Pointer to the perf_event_array.
+ * @param[in] buffer Pointer to the mapped buffer for cpu_id.
+ * @param[in] size Size of the mapped buffer.
+ * @param[in] cpu_id CPU id to use (and temporarily pin to).
+ * @param[in] flags perf_event_output flags to use.
+ * @param[in] data Data to write to the perf_event_array.
+ * @param[in] length Length of the data to write.
+ * @param[in] ctx_data data pointer in the simulated program context.
+ * @param[in] ctx_data_length Length of the program context data (<0 if no data pointer, <-1 if no ctx header).
+ * @param[in] expected_result Expected result of the perf_event_output call.
+ * @param[in] consume Whether to return the space to buffer after the test.
+ */
+void
+_test_perf_event_output(
+    ebpf_perf_event_array_t* perf_event_array,
+    _In_reads_(size) uint8_t* buffer,
+    size_t size,
+    uint32_t cpu_id,
+    uint64_t flags,
+    _In_reads_(length) uint8_t* data,
+    size_t length,
+    _In_reads_(ctx_data_length) uint8_t* ctx_data,
+    int64_t ctx_data_length,
+    ebpf_result_t expected_result,
+    bool consume = true)
+{
+    // context_t - Simple program context with data pointers.
+    struct context_t
+    {
+        uint8_t* data = (uint8_t*)((void*)42);
+        uint8_t* data_end = (uint8_t*)((void*)47);
+        uint8_t ctx_extra[8] = {0};
+    };
+    // full_context_t - Context with header (needed to find context descriptor).
+    struct full_context_t
+    {
+        EBPF_CONTEXT_HEADER;
+        context_t ctx;
+    } full_context = {0};
+    // ctx points to the bpf-program accessible portion (just after the header).
+    context_t* ctx = &full_context.ctx;
+
+    // Put some data in the program context (which we should never see in the output).
+    for (int i = 0; i < sizeof(ctx->ctx_extra); i++) {
+        ctx->ctx_extra[i] = static_cast<uint8_t>(192 + i % 64);
+    }
+
+    // Initialize context descriptor for the test program context.
+    ebpf_context_descriptor_t context_descriptor = {
+        sizeof(context_t), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
+
+    full_context.context_header[1] = (uint64_t)&context_descriptor;
+    ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
+
+    // ctx_data_length cases:
+    //  <-1: No context header (unsafe to use with capture length in flags).
+    //   -1: No context data pointer.
+    //  >=0: Data pointer in context.
+
+    // If ctx_data_length is < -1, then there is no context header.
+    // perf_event_output has no way to know if the context header is present or not,
+    // so only programs where the extension has context header support can call
+    // perf_event_output with the CTXLEN field set in the flags.
+
+    if (ctx_data_length <= -2) { // -2: No ctx header (do NOT use -2 with capture length specified).
+        full_context.context_header[1] = 0;
+        ctx_data = nullptr;
+        ctx_data_length = 0;
+    } else if (ctx_data_length < 0) { // -1: No ctx data pointer (capture length returns error).
+        ctx_data = nullptr;
+        ctx_data_length = 0;
+        context_descriptor.data = -1;
+        context_descriptor.end = -1;
+    } else {
+        const uint8_t *data_start, *data_end;
+        ebpf_program_get_context_data(ctx, &data_start, &data_end);
+        REQUIRE(data_start == ctx->data);
+        REQUIRE(data_end == ctx->data_end);
+    }
+    ctx->data = ctx_data;
+    ctx->data_end = ctx_data + ctx_data_length;
+
+    bool use_current_cpu = (flags & EBPF_MAP_FLAG_INDEX_MASK) == EBPF_MAP_FLAG_CURRENT_CPU;
+    size_t capture_length = (flags & EBPF_MAP_FLAG_CTXLEN_MASK) >> EBPF_MAP_FLAG_CTXLEN_SHIFT;
+
+    // Capture the relevant test parameters.
+    CAPTURE(cpu_id, use_current_cpu, size, ctx_data_length, length, capture_length, expected_result, consume);
+
+    // perf_event_array only allows writing to the current cpu, so we pin to the requested cpu for the test.
+    scoped_cpu_affinity affinity(cpu_id);
+
+    size_t old_consumer, old_producer;
+    size_t new_consumer, new_producer;
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &old_consumer, &old_producer);
+    CAPTURE(
+        ctx,
+        flags,
+        data,
+        ctx_data,
+        old_consumer,
+        old_producer,
+        ctx->data,
+        ctx->data_end,
+        context_descriptor.size,
+        context_descriptor.data,
+        context_descriptor.end);
+    if (use_current_cpu) {
+        REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data, length, NULL) == expected_result);
+    } else {
+        KIRQL old_irql = ebpf_raise_irql(DISPATCH_LEVEL);
+        REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data, length, NULL) == expected_result);
+        ebpf_lower_irql(old_irql);
+    }
+
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &new_consumer, &new_producer);
+
+    CAPTURE(old_consumer, old_producer, new_consumer, new_producer);
+
+    if (expected_result == EBPF_SUCCESS) {
+        // Verify the new producer offset (padded to 8 bytes).
+        size_t expected_record_size = _perf_record_size(length + capture_length);
+        REQUIRE(new_producer == old_producer + expected_record_size);
+
+        // Verify the record just written.
+        auto record = ebpf_ring_buffer_next_record(buffer, size, new_consumer, new_producer);
+        REQUIRE(record != nullptr);
+        REQUIRE(!ebpf_ring_buffer_record_is_locked(record));
+        size_t record_length = ebpf_ring_buffer_record_length(record);
+        size_t record_size = ebpf_ring_buffer_record_total_size(record);
+        REQUIRE(record_length == (length + capture_length));
+        REQUIRE(record_size == _perf_record_size(length + capture_length));
+        REQUIRE(memcmp(record->data, data, length) == 0);
+        if (ctx_data) {
+            REQUIRE(memcmp(record->data + length, ctx_data, capture_length) == 0);
+        }
+
+        if (consume) {
+            REQUIRE(
+                ebpf_perf_event_array_return_buffer(perf_event_array, cpu_id, new_consumer + record_size) ==
+                EBPF_SUCCESS);
+            size_t final_consumer, final_producer;
+            ebpf_perf_event_array_query(perf_event_array, cpu_id, &final_consumer, &final_producer);
+            CAPTURE(final_consumer, final_producer);
+            REQUIRE((final_producer - final_consumer) == (old_producer - old_consumer));
+            REQUIRE(final_producer == new_producer);
+        } else {
+            size_t final_consumer, final_producer;
+            ebpf_perf_event_array_query(perf_event_array, cpu_id, &final_consumer, &final_producer);
+            REQUIRE(final_consumer == new_consumer);
+            REQUIRE(final_producer == new_producer);
+        }
+    } else {
+        // Verify that the producer and consumer offsets have not changed.
+        REQUIRE(new_consumer == old_consumer);
+        REQUIRE(new_producer == old_producer);
+    }
+}
+
+TEST_CASE("perf_event_output", "[platform][perf_event_array]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    scoped_cpu_affinity affinity(0); // Pin to cpu 0 for the test.
+    size_t consumer;
+    size_t producer;
+    ebpf_perf_event_array_t* perf_event_array;
+    ebpf_perf_event_array_opts_t opts = {0};
+
+    uint8_t* buffer;
+    std::vector<uint8_t> data(10);
+    size_t size = 64 * 1024;
+    struct
+    {
+        int x = 0;
+    } test_ctx;
+    void* ctx = &test_ctx;
+    uint32_t cpu_id = 0;
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+
+    REQUIRE(ebpf_perf_event_array_create(&perf_event_array, size, &opts) == EBPF_SUCCESS);
+    _Analysis_assume_(perf_event_array != nullptr); // This is missed by Analyze build, but asserted by REQUIRE above.
+    REQUIRE(ebpf_perf_event_array_map_buffer(perf_event_array, cpu_id, &buffer) == EBPF_SUCCESS);
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+
+    // Ring is empty.
+    REQUIRE(producer == consumer);
+    REQUIRE(consumer == 0);
+
+    REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size(), NULL) == EBPF_SUCCESS);
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+
+    // Ring is not empty.
+    REQUIRE(producer == _perf_record_size(data.size()));
+    REQUIRE(consumer == 0);
+
+    auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
+    REQUIRE(record != nullptr);
+    REQUIRE(!ebpf_ring_buffer_record_is_locked(record));
+
+    size_t record_length = ebpf_ring_buffer_record_length(record);
+
+    size_t record_size = _perf_record_size(record_length);
+    REQUIRE(record->header.length == data.size());
+
+    REQUIRE(ebpf_perf_event_array_return_buffer(perf_event_array, cpu_id, record_size) == EBPF_SUCCESS);
+
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+    REQUIRE(consumer == producer);
+    REQUIRE(producer == record_size);
+
+    record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
+    REQUIRE(record == nullptr);
+
+    size_t write_count = 0;
+
+    data.resize(1023);
+    while (ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size(), NULL) == EBPF_SUCCESS) {
+        if (++write_count > 1000) {
+            INFO("Too many writes to perf_event_array.");
+            REQUIRE(false);
+        }
+    }
+
+    ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+    REQUIRE(ebpf_perf_event_array_return_buffer(perf_event_array, cpu_id, producer) == EBPF_SUCCESS);
+
+    data.resize((size - _perf_record_size(0) - 1) & ~7); // remaining space rounded down to multiple of 8
+    // Fill ring.
+    REQUIRE(ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size(), NULL) == EBPF_SUCCESS);
+
+    ebpf_perf_event_array_destroy(perf_event_array);
+    perf_event_array = nullptr;
+}
+
+TEST_CASE("perf_event_output_percpu", "[platform][perf_event_array]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    size_t consumer;
+    size_t producer;
+    ebpf_perf_event_array_t* perf_event_array;
+    ebpf_perf_event_array_opts_t opts = {0};
+
+    uint8_t* buffer;
+    std::vector<uint8_t> data(10);
+    size_t size = 64 * 1024;
+    struct
+    {
+        int x = 0;
+    } test_ctx;
+    // There is no ctx header, but this test doesn't use ctx data anyways.
+    void* ctx = &test_ctx;
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+
+    REQUIRE(ebpf_perf_event_array_create(&perf_event_array, size, &opts) == EBPF_SUCCESS);
+
+    uint32_t cpu_count = ebpf_get_cpu_count();
+    for (uint32_t cpu_id = 0; cpu_id < cpu_count; cpu_id++) {
+        // Set CPU affinity to the current CPU.
+        scoped_cpu_affinity affinity(cpu_id);
+
+        // Output an event.
+        REQUIRE(
+            ebpf_perf_event_array_output(ctx, perf_event_array, flags, data.data(), data.size(), NULL) == EBPF_SUCCESS);
+
+        size_t record_size = _perf_record_size(data.size());
+
+        // Query all CPU buffers and ensure only the current CPU has data.
+        for (uint32_t query_cpu_id = 0; query_cpu_id < cpu_count; query_cpu_id++) {
+            REQUIRE(ebpf_perf_event_array_map_buffer(perf_event_array, query_cpu_id, &buffer) == EBPF_SUCCESS);
+            ebpf_perf_event_array_query(perf_event_array, query_cpu_id, &consumer, &producer);
+
+            if (query_cpu_id == cpu_id) {
+                // The current CPU should have the data.
+                REQUIRE((producer - consumer) == record_size);
+                // Return the space.
+                REQUIRE(ebpf_perf_event_array_return_buffer(perf_event_array, cpu_id, producer) == EBPF_SUCCESS);
+            } else {
+                // Other CPUs should not have data.
+                REQUIRE(producer == consumer);
+            }
+        }
+    }
+
+    ebpf_perf_event_array_destroy(perf_event_array);
+    perf_event_array = nullptr;
+}
+
+TEST_CASE("perf_event_output_capture", "[platform][perf_event_array]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    ebpf_perf_event_array_t* perf_event_array;
+    ebpf_perf_event_array_opts_t opts = {0};
+
+    std::vector<uint8_t*> buffers;
+    std::vector<uint8_t> data(1024);
+    std::vector<uint8_t> ctx_data(1024);
+    // Initialize data.
+    for (int i = 0; i < data.size(); i++) {
+        data[i] = static_cast<uint8_t>(0 + i % 64);
+    }
+    for (int i = 0; i < ctx_data.size(); i++) {
+        ctx_data[i] = static_cast<uint8_t>(64 + i % 64);
+    }
+
+    size_t size = 64 * 1024;
+
+    REQUIRE(ebpf_perf_event_array_create(&perf_event_array, size, &opts) == EBPF_SUCCESS);
+    uint32_t ring_count = ebpf_perf_event_array_get_ring_count(perf_event_array);
+
+    for (uint32_t i = 0; i < ring_count; i++) {
+        uint8_t* buffer;
+        REQUIRE(ebpf_perf_event_array_map_buffer(perf_event_array, i, &buffer) == EBPF_SUCCESS);
+        buffers.push_back(buffer);
+
+        size_t consumer, producer;
+        ebpf_perf_event_array_query(perf_event_array, i, &consumer, &producer);
+
+        // Ensure ring is empty.
+        REQUIRE(producer == consumer);
+        REQUIRE(consumer == 0);
+    }
+
+    struct _test_params
+    {
+        uint32_t cpu_id;
+        bool use_current_cpu;
+        int64_t ctx_data_length;
+        size_t data_length;
+        uint32_t capture_length;
+        ebpf_result_t expected_result;
+        const char* test_string;
+    } test_params[] = {
+#define STRINGIZE2(x) #x
+#define STRINGIZE(x) STRINGIZE2(x)
+#define PERF_TEST_CASE(cpu, use_current_cpu, ctx_data_len, data_len, capture_len, expected)                           \
+    {cpu,                                                                                                             \
+     use_current_cpu,                                                                                                 \
+     ctx_data_len,                                                                                                    \
+     data_len,                                                                                                        \
+     capture_len,                                                                                                     \
+     expected,                                                                                                        \
+     "Line " STRINGIZE(__LINE__) ": {" #cpu ", " #use_current_cpu ", " #ctx_data_len ", " #data_len ", " #capture_len \
+                                 ", " #expected "}"}
+        // Tests with no context header.
+        // - Note: Context headers are now required for all extensions,
+        //   so these tests just validate that without CTXLEN the context header isn't used.
+        PERF_TEST_CASE(0, true, -2, 0, 0, EBPF_INVALID_ARGUMENT),
+        PERF_TEST_CASE(0, true, -2, 1, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, true, -2, 8, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, false, -2, 10, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, false, -2, 1024, 0, EBPF_SUCCESS),
+        // Auto CPU tests with no ctx_data.
+        PERF_TEST_CASE(0, true, -1, 1, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, true, -1, 1, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, -1, 8, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, -1, 10, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, -1, 1024, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, true, -1, 10, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, true, -1, 1024, 0, EBPF_SUCCESS),
+        // Manual CPU selection tests (no ctx_data).
+        PERF_TEST_CASE(0, false, -1, 10, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, false, -1, 10, 0, EBPF_SUCCESS),
+        // Empty ctx_data tests.
+        PERF_TEST_CASE(0, true, 0, 10, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, 0, 1024, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, true, 0, 1024, 0, EBPF_SUCCESS),
+        // Tests with ctx_data but no capture request.
+        PERF_TEST_CASE(0, true, 8, 10, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, 8, 1024, 0, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, false, 8, 1024, 0, EBPF_SUCCESS),
+        // Tests with no data but with capture.
+        PERF_TEST_CASE(0, true, 8, 0, 8, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, 1024, 0, 8, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, false, 1024, 0, 1024, EBPF_SUCCESS),
+        // Tests with data and capture.
+        PERF_TEST_CASE(0, true, 8, 10, 8, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, 1024, 1024, 8, EBPF_SUCCESS),
+        PERF_TEST_CASE(0, true, 1024, 1024, 1024, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, true, 1024, 1024, 8, EBPF_SUCCESS),
+        PERF_TEST_CASE(1, false, 1024, 1024, 8, EBPF_SUCCESS),
+        // Invalid data length tests.
+        PERF_TEST_CASE(0, true, 0, size, 0, EBPF_INVALID_ARGUMENT),
+        PERF_TEST_CASE(0, true, 0, size + 1, 0, EBPF_INVALID_ARGUMENT),
+        // Invalid capture requests.
+        PERF_TEST_CASE(0, true, -1, 10, 1, EBPF_OPERATION_NOT_SUPPORTED),
+        PERF_TEST_CASE(0, true, 0, 10, 1, EBPF_INVALID_ARGUMENT),
+        PERF_TEST_CASE(1, true, 0, 10, 1, EBPF_INVALID_ARGUMENT),
+        PERF_TEST_CASE(1, false, 0, 10, 1, EBPF_INVALID_ARGUMENT),
+        PERF_TEST_CASE(0, false, 10, 10, 11, EBPF_INVALID_ARGUMENT),
+#undef PERF_TEST_CASE
+#undef STRINGIZE
+#undef STRINGIZE2
+    };
+    size_t test_count = sizeof(test_params) / sizeof(test_params[0]);
+
+    // Run the tests, verifying before and after state for each call to perf_event_output.
+    for (int test_index = 0; test_index < test_count; test_index++) {
+        auto* test = &test_params[test_index];
+        const char* test_string = test->test_string;
+        CAPTURE(test_index, test_string);
+        uint64_t test_flags = test->use_current_cpu ? EBPF_MAP_FLAG_CURRENT_CPU : test->cpu_id;
+        if (test->capture_length > 0) {
+            test_flags |= ((uint64_t)test->capture_length << EBPF_MAP_FLAG_CTXLEN_SHIFT) & EBPF_MAP_FLAG_CTXLEN_MASK;
+        }
+        _test_perf_event_output(
+            perf_event_array,
+            buffers[test->cpu_id],
+            size,
+            test->cpu_id,
+            test_flags,
+            data.data(),
+            test->data_length,
+            ctx_data.data(),
+            test->ctx_data_length,
+            test->expected_result);
+    }
+
+    // Ensure all rings are empty.
+    for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+        CAPTURE(cpu_id);
+        size_t consumer, producer;
+        ebpf_perf_event_array_query(perf_event_array, cpu_id, &consumer, &producer);
+        // Ensure ring is empty.
+        CHECK(producer == consumer);
+        auto record = ebpf_ring_buffer_next_record(buffers[cpu_id], size, consumer, producer);
+        CHECK(record == nullptr);
+    }
+
+    ebpf_perf_event_array_destroy(perf_event_array);
+    perf_event_array = nullptr;
 }
 
 TEST_CASE("error codes", "[platform]")

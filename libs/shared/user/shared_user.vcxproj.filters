@@ -16,17 +16,20 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\tracelog.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_serialize.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shared_common.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\tracelog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ebpf_perf_event_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>

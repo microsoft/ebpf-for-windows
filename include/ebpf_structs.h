@@ -21,20 +21,22 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_ARRAY = 2,  ///< Array, where the map key is the array index.
     BPF_MAP_TYPE_PROG_ARRAY =
         3, ///< Array of program fds usable with bpf_tail_call, where the map key is the array index.
-    BPF_MAP_TYPE_PERCPU_HASH = 4,      ///< Per-CPU hash table.
-    BPF_MAP_TYPE_PERCPU_ARRAY = 5,     ///< Per-CPU array.
-    BPF_MAP_TYPE_HASH_OF_MAPS = 6,     ///< Hash table, where the map value is another map.
-    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,    ///< Array, where the map value is another map.
-    BPF_MAP_TYPE_LRU_HASH = 8,         ///< Least-recently-used hash table.
-    BPF_MAP_TYPE_LPM_TRIE = 9,         ///< Longest prefix match trie.
-    BPF_MAP_TYPE_QUEUE = 10,           ///< Queue.
-    BPF_MAP_TYPE_LRU_PERCPU_HASH = 11, ///< Per-CPU least-recently-used hash table.
-    BPF_MAP_TYPE_STACK = 12,           ///< Stack.
-    BPF_MAP_TYPE_RINGBUF = 13          ///< Ring buffer.
+    BPF_MAP_TYPE_PERCPU_HASH = 4,       ///< Per-CPU hash table.
+    BPF_MAP_TYPE_PERCPU_ARRAY = 5,      ///< Per-CPU array.
+    BPF_MAP_TYPE_HASH_OF_MAPS = 6,      ///< Hash table, where the map value is another map.
+    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,     ///< Array, where the map value is another map.
+    BPF_MAP_TYPE_LRU_HASH = 8,          ///< Least-recently-used hash table.
+    BPF_MAP_TYPE_LPM_TRIE = 9,          ///< Longest prefix match trie.
+    BPF_MAP_TYPE_QUEUE = 10,            ///< Queue.
+    BPF_MAP_TYPE_LRU_PERCPU_HASH = 11,  ///< Per-CPU least-recently-used hash table.
+    BPF_MAP_TYPE_STACK = 12,            ///< Stack.
+    BPF_MAP_TYPE_RINGBUF = 13,          ///< Ring buffer.
+    BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
 } ebpf_map_type_t;
 
-#define BPF_MAP_TYPE_PER_CPU(X) \
-    ((X) == BPF_MAP_TYPE_PERCPU_HASH || (X) == BPF_MAP_TYPE_PERCPU_ARRAY || (X) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+#define BPF_MAP_TYPE_PER_CPU(X)                                                                                    \
+    ((X) == BPF_MAP_TYPE_PERCPU_HASH || (X) == BPF_MAP_TYPE_PERCPU_ARRAY || (X) == BPF_MAP_TYPE_LRU_PERCPU_HASH || \
+     (X) == BPF_MAP_TYPE_PERF_EVENT_ARRAY)
 
 static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_UNSPEC),
@@ -51,6 +53,7 @@ static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_LRU_PERCPU_HASH),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_STACK),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_RINGBUF),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PERF_EVENT_ARRAY),
 };
 
 static const char* const _ebpf_map_display_names[] = {
@@ -68,6 +71,7 @@ static const char* const _ebpf_map_display_names[] = {
     "lru_percpu_hash",
     "stack",
     "ringbuf",
+    "perf_event_array",
 };
 
 typedef enum ebpf_map_option
@@ -166,6 +170,7 @@ typedef enum
     BPF_FUNC_strnlen_s = 29,                 ///< \ref bpf_strnlen_s
     BPF_FUNC_ktime_get_boot_ms = 30,         ///< \ref bpf_ktime_get_boot_ms
     BPF_FUNC_ktime_get_ms = 31,              ///< \ref bpf_ktime_get_ms
+    BPF_FUNC_perf_event_output = 32,         ///< \ref bpf_perf_event_output
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
@@ -408,3 +413,12 @@ struct bpf_prog_info
     uint32_t pinned_path_count;          ///< Number of pinned paths.
     uint32_t link_count;                 ///< Number of attached links.
 };
+
+/* BPF_FUNC_perf_event_output flags. */
+#define EBPF_MAP_FLAG_INDEX_MASK 0xffffffffULL
+#define EBPF_MAP_FLAG_INDEX_SHIFT 0
+#define EBPF_MAP_FLAG_CURRENT_CPU EBPF_MAP_FLAG_INDEX_MASK
+/* BPF_FUNC_perf_event_output for program types with data pointer in context */
+#define EBPF_MAP_FLAG_CTXLEN_SHIFT 32
+#define EBPF_MAP_FLAG_CTXLEN_MAX (0xfffffULL)
+#define EBPF_MAP_FLAG_CTXLEN_MASK (EBPF_MAP_FLAG_CTXLEN_MAX << EBPF_MAP_FLAG_CTXLEN_SHIFT)
