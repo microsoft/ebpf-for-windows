@@ -35,8 +35,10 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 // Verbs
 #define CMD_GROUP_ADD L"add"
 #define CMD_GROUP_DELETE L"delete"
+#define CMD_GROUP_PIN L"pin"
 #define CMD_GROUP_SET L"set"
 #define CMD_GROUP_SHOW L"show"
+#define CMD_GROUP_UNPIN L"unpin"
 
 // Nouns
 #define CMD_EBPF_SHOW_DISASSEMBLY L"disassembly"
@@ -52,6 +54,11 @@ DllMain(HMODULE moduleHandle, unsigned long reasonForCall, void* reserved)
 
 #define CMD_EBPF_SHOW_SECTIONS L"sections"
 #define CMD_EBPF_SHOW_VERIFICATION L"verification"
+
+#define CMD_EBPF_PIN_MAP L"map"
+#define CMD_EBPF_PIN_PROGRAM L"program"
+#define CMD_EBPF_UNPIN_MAP L"map"
+#define CMD_EBPF_UNPIN_PROGRAM L"program"
 
 // Define this to work around a recent regression introduced in Windows
 // until it is fixed.
@@ -141,6 +148,25 @@ CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_SECTIONS, handle_ebpf_show_sections),
     CREATE_CMD_ENTRY_LONG(EBPF_SHOW_VERIFICATION, handle_ebpf_show_verification),
 };
+
+CMD_ENTRY_ORIGINAL g_EbpfPinCommandTableOriginal[] = {
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_PIN_MAP, handle_ebpf_pin_map),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_PIN_PROGRAM, handle_ebpf_pin_program),
+};
+CMD_ENTRY_LONG g_EbpfPinCommandTableLong[] = {
+    CREATE_CMD_ENTRY_LONG(EBPF_PIN_MAP, handle_ebpf_pin_map),
+    CREATE_CMD_ENTRY_LONG(EBPF_PIN_PROGRAM, handle_ebpf_pin_program),
+};
+
+CMD_ENTRY_ORIGINAL g_EbpfUnpinCommandTableOriginal[] = {
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_UNPIN_MAP, handle_ebpf_unpin_map),
+    CREATE_CMD_ENTRY_ORIGINAL(EBPF_UNPIN_PROGRAM, handle_ebpf_unpin_program),
+};
+CMD_ENTRY_LONG g_EbpfUnpinCommandTableLong[] = {
+    CREATE_CMD_ENTRY_LONG(EBPF_UNPIN_MAP, handle_ebpf_unpin_map),
+    CREATE_CMD_ENTRY_LONG(EBPF_UNPIN_PROGRAM, handle_ebpf_unpin_program),
+};
+
 #endif // WINDOWS_NETSH_BUG_WORKAROUND
 
 #define HLP_GROUP_ADD 1100
@@ -151,13 +177,19 @@ CMD_ENTRY_LONG g_EbpfShowCommandTableLong[] = {
 #define HLP_GROUP_SET_EX 1105
 #define HLP_GROUP_SHOW 1106
 #define HLP_GROUP_SHOW_EX 1107
+#define HLP_GROUP_PIN 1108
+#define HLP_GROUP_PIN_EX 1109
+#define HLP_GROUP_UNPIN 1110
+#define HLP_GROUP_UNPIN_EX 1111
 
 #ifndef WINDOWS_NETSH_BUG_WORKAROUND
 static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
     CREATE_CMD_GROUP_ENTRY(GROUP_ADD, g_EbpfAddCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_DELETE, g_EbpfDeleteCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_PIN, g_EbpfPinCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_SET, g_EbpfSetCommandTable),
     CREATE_CMD_GROUP_ENTRY(GROUP_SHOW, g_EbpfShowCommandTable),
+    CREATE_CMD_GROUP_ENTRY(GROUP_UNPIN, g_EbpfUnpinCommandTable),
 };
 #else
 #define CREATE_CMD_GROUP_ENTRY_ORIGINAL(t, s) \
@@ -166,14 +198,18 @@ static CMD_GROUP_ENTRY g_EbpfGroupCommands[] = {
 static CMD_GROUP_ENTRY g_EbpfGroupCommandsOriginal[] = {
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_ADD, g_EbpfAddCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_DELETE, g_EbpfDeleteCommandTableOriginal),
+    CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_PIN, g_EbpfPinCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_SET, g_EbpfSetCommandTableOriginal),
     CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_SHOW, g_EbpfShowCommandTableOriginal),
+    CREATE_CMD_GROUP_ENTRY_ORIGINAL(GROUP_UNPIN, g_EbpfUnpinCommandTableOriginal),
 };
 static CMD_GROUP_ENTRY g_EbpfGroupCommandsLong[] = {
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_ADD, g_EbpfAddCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_DELETE, g_EbpfDeleteCommandTableLong),
+    CREATE_CMD_GROUP_ENTRY_LONG(GROUP_PIN, g_EbpfPinCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_SET, g_EbpfSetCommandTableLong),
     CREATE_CMD_GROUP_ENTRY_LONG(GROUP_SHOW, g_EbpfShowCommandTableLong),
+    CREATE_CMD_GROUP_ENTRY_LONG(GROUP_UNPIN, g_EbpfUnpinCommandTableLong),
 };
 #endif // WINDOWS_NETSH_BUG_WORKAROUND
 
