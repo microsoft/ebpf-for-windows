@@ -192,16 +192,16 @@ function Export-BuildArtifactsToVMs
                     try {
                         # Check if systemdrive is empty.
                         if ($Env:SystemDrive -eq "") {
-                            Write-Host "SystemDrive is empty. Setting it to C:"
+                            # Write-Host "SystemDrive is empty. Setting it to C:"
                             $drive = "C:"
                         } else {
                             $drive = $Env:SystemDrive
                         }
-                        Write-Host "Creating working directory $drive\eBPF"
+                        # Write-Host "Creating working directory $drive\eBPF"
                         # Create working directory c:\eBPF.
                         New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
 
-                        Write-Host "Adding registry path"
+                        # Write-Host "Adding registry path"
                         # Enable EULA for all SysInternals tools.
                         $RegistryPath = 'HKCU:\Software\Sysinternals'
                         New-Item -Path $RegistryPath -Force -ErrorAction Ignore
