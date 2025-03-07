@@ -1194,4 +1194,4 @@ TEST_CASE("pin/unpin map", "[netsh][pin]")
 
     _run_netsh_command(handle_ebpf_delete_program, std::to_wstring(pid).c_str(), nullptr, nullptr, &result);
 }
-#endif
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
