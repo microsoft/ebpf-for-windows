@@ -2469,13 +2469,8 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     if (supports_context_header) {
         ebpf_program_set_runtime_state(&execution_context_state, program_context);
     } else {
-        ebpf_get_execution_context_state(&execution_context_state);
-        return_value = ebpf_state_store(
-            ebpf_program_get_state_index(), (uintptr_t)&execution_context_state, &execution_context_state);
-        if (return_value != EBPF_SUCCESS) {
-            goto Done;
-        }
-        state_stored = true;
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
     }
 
     uint64_t start_time = cxplat_query_time_since_boot_precise(false);
