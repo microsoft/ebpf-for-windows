@@ -10,7 +10,7 @@
 typedef struct _ring_producer_page
 {
     volatile size_t producer_offset;         ///< Producer(s) have reserved up to this offset.
-    ebpf_handle_t notify_handle;             ///< Handle to notify the producer thread.
+    ebpf_handle_t wait_handle;               ///< Handle to wait the producer thread.
     uint64_t pad[6];                         // Pad producer_reserve_offset into next cache line.
     volatile size_t producer_reserve_offset; ///< Next record to be reserved.
 } _ring_producer_page_t;
@@ -347,30 +347,32 @@ _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
 inline static void
 _ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
 {
+    UNREFERENCED_PARAMETER(buffer);
+    UNREFERENCED_PARAMETER(flags);
     return;
-    // ebpf_handle_t notify_handle = ebpf_handle_invalid;
+    // ebpf_handle_t wait_handle = ebpf_handle_invalid;
     // if (flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP) {
     //     _ring_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
-    //     notify_handle = producer_page->notify_handle;
+    //     wait_handle = producer_page->wait_handle;
     // } else if (!(flags & EBPF_RINGBUF_FLAG_NO_WAKEUP)) {
     //     // Notify only if ring might not be empty.
     //     _ring_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
 
-    //    if (producer_page->notify_handle != ebpf_handle_invalid) {
+    //    if (producer_page->wait_handle != ebpf_handle_invalid) {
     //        ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
     //        // Notify the producer that a record is available.
     //        // TODO (before merge): nofence or acquire for consumer offset?
     //        size_t consumer_offset = ReadULong64NoFence(&consumer_page->consumer_offset);
     //        size_t producer_offset = ReadULong64Acquire(&consumer_page->consumer_offset);
     //        if (producer_offset != consumer_offset) {
-    //            notify_handle = producer_page->notify_handle;
+    //            wait_handle = producer_page->wait_handle;
     //        }
     //    }
     //}
 
-    // if (notify_handle != ebpf_handle_invalid) {
+    // if (wait_handle != ebpf_handle_invalid) {
     //     // Notify the consumer that new data is available.
-    //     KeSetEvent((HANDLE)notify_handle, 0, false);
+    //     KeSetEvent((HANDLE)wait_handle, 0, false);
     // }
 }
 
@@ -429,7 +431,7 @@ ebpf_ring_buffer_allocate_ring(_Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) eb
     ring->shared_buffer = ebpf_ring_descriptor_get_base_address(ring->ring_descriptor);
     ring->length = capacity;
     _ring_producer_page_t* producer_page = _ring_producer_page(ring);
-    producer_page->notify_handle = ebpf_handle_invalid;
+    producer_page->wait_handle = ebpf_handle_invalid;
 
     return EBPF_SUCCESS;
 }
@@ -438,9 +440,9 @@ void
 ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring)
 {
     _ring_producer_page_t* producer_page = _ring_producer_page(ring);
-    if (producer_page->notify_handle != ebpf_handle_invalid) {
-        ebpf_handle_close(producer_page->notify_handle);
-        producer_page->notify_handle = ebpf_handle_invalid;
+    if (producer_page->wait_handle != ebpf_handle_invalid) {
+        ebpf_handle_close(producer_page->wait_handle);
+        producer_page->wait_handle = ebpf_handle_invalid;
     }
     ebpf_free_ring_buffer_memory(ring->ring_descriptor);
     ring->ring_descriptor = NULL;
@@ -489,18 +491,25 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring)
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_set_notify_handle(
-    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t notify_handle, uint64_t flags)
+ebpf_ring_buffer_set_wait_handle(
+    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t wait_handle, uint64_t flags)
 {
     UNREFERENCED_PARAMETER(flags);
-    // TODO (before merging): Check if notify_handle is valid and sort out where to take ref.
+    // TODO (before merging): Check if wait handle is valid and sort out where to take ref.
     _ring_producer_page_t* producer_page = _ring_producer_page(ring_buffer);
-    ebpf_handle_t old_notify_handle = producer_page->notify_handle;
-    producer_page->notify_handle = notify_handle;
-    if (old_notify_handle != ebpf_handle_invalid) {
-        ebpf_handle_close(old_notify_handle);
+    ebpf_handle_t old_wait_handle = producer_page->wait_handle;
+    producer_page->wait_handle = wait_handle;
+    if (old_wait_handle != ebpf_handle_invalid) {
+        ebpf_handle_close(old_wait_handle);
     }
     return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_handle_t
+ebpf_ring_buffer_get_wait_handle(_Inout_ ebpf_ring_buffer_t* ring_buffer)
+{
+    _ring_producer_page_t* producer_page = _ring_producer_page(ring_buffer);
+    return producer_page->wait_handle;
 }
 
 _Must_inspect_result_ ebpf_result_t

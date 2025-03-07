@@ -8,7 +8,7 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
-enum ebpf_ringbuf_notify_flags
+enum ebpf_ringbuf_wait_flags
 {
     EBPF_RINGBUF_FLAG_NO_WAKEUP = (1ULL << 0),
     EBPF_RINGBUF_FLAG_FORCE_WAKEUP = (1ULL << 1),
@@ -85,11 +85,22 @@ ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring);
  * This is used to notify the consumer when a record is available.
  *
  * @param[in, out] ring_buffer Ring buffer to update.
- * @param[in] notify_handle Handle to notify the consumer.
+ * @param[in] wait_handle Handle to notify the consumer.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_set_notify_handle(
-    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t notify_handle, uint64_t flags);
+ebpf_ring_buffer_set_wait_handle(
+    _Inout_ ebpf_ring_buffer_t* ring_buffer, _In_ ebpf_handle_t wait_handle, uint64_t flags);
+
+/**
+ * @brief Get the wait handle for the ring buffer.
+ *
+ * This is used to notify the consumer when a record is available.
+ *
+ * @param[in] ring_buffer Ring buffer to update.
+ * @return Handle to notify the consumer.
+ */
+_Must_inspect_result_ ebpf_handle_t
+ebpf_ring_buffer_get_wait_handle(_In_ ebpf_ring_buffer_t* ring_buffer);
 
 /**
  * @brief Write out a variable sized record to the ring buffer.
