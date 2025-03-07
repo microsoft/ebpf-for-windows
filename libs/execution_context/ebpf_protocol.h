@@ -48,7 +48,8 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH,
     EBPF_OPERATION_PROGRAM_SET_FLAGS,
     EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH,
-    EBPF_OPERATION_MAP_SET_NOTIFY_HANDLE,
+    EBPF_OPERATION_MAP_SET_WAIT_HANDLE,
+    EBPF_OPERATION_MAP_GET_WAIT_HANDLE,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -551,11 +552,24 @@ typedef struct _ebpf_operation_program_set_flags_request
     uint64_t flags;
 } ebpf_operation_program_set_flags_request_t;
 
-typedef struct _ebpf_operation_map_set_notify_handle_request
+typedef struct _ebpf_operation_map_set_wait_handle_request
 {
     struct _ebpf_operation_header header;
     ebpf_handle_t map_handle;
-    ebpf_handle_t notify_handle;
+    ebpf_handle_t wait_handle;
     uint64_t index;
     uint64_t flags;
-} ebpf_operation_map_set_notify_handle_request_t;
+} ebpf_operation_map_set_wait_handle_request_t;
+
+typedef struct _ebpf_operation_map_get_wait_handle_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint64_t index;
+} ebpf_operation_map_get_wait_handle_request_t;
+
+typedef struct _ebpf_operation_map_get_wait_handle_reply
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t wait_handle;
+} ebpf_operation_map_get_wait_handle_reply_t;

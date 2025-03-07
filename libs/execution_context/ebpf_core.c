@@ -2072,7 +2072,7 @@ _ebpf_core_protocol_get_next_pinned_object_path(
 }
 
 _Must_inspect_result_ ebpf_result_t
-_ebpf_core_protocol_map_set_notify_handle(_In_ const ebpf_operation_map_set_notify_handle_request_t* request)
+_ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_handle_request_t* request)
 {
     EBPF_LOG_ENTRY();
     ebpf_map_t* map = NULL;
@@ -2088,12 +2088,43 @@ _ebpf_core_protocol_map_set_notify_handle(_In_ const ebpf_operation_map_set_noti
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_CORE,
-            "set notify handle operation called on a map that is not of the ring buffer type.",
+            "set wait handle operation called on a map that is not of the ring buffer type.",
             result);
         goto Done;
     }
 
-    result = ebpf_ring_buffer_map_set_notify_handle(map, request->notify_handle, request->flags);
+    result = ebpf_ring_buffer_map_set_wait_handle(map, request->wait_handle, request->flags);
+
+Done:
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    EBPF_RETURN_RESULT(result);
+}
+
+_Must_inspect_result_ ebpf_result_t
+_ebpf_core_protocol_map_get_wait_handle(
+    _In_ const ebpf_operation_map_get_wait_handle_request_t* request,
+    _Out_ ebpf_operation_map_get_wait_handle_reply_t* reply)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_map_t* map = NULL;
+
+    ebpf_result_t result =
+        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
+    }
+
+    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_CORE,
+            "get wait handle operation called on a map that is not of the ring buffer type.",
+            result);
+        goto Done;
+    }
+
+    result = ebpf_ring_buffer_map_get_wait_handle(map, &reply->wait_handle);
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
@@ -2896,7 +2927,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(program_set_flags, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_notify_handle, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_wait_handle, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(map_get_wait_handle, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
