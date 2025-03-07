@@ -197,7 +197,7 @@ function Export-BuildArtifactsToVMs
                         } else {
                             $drive = $Env:SystemDrive
                         }
-                        Write-Host "Creating working directory $drive\eBPF"
+                        # Write-Host "Creating working directory $drive\eBPF"
                         # Create working directory c:\eBPF.
                         New-Item -ItemType Directory -Path "$drive\eBPF" -ErrorAction Ignore
 
