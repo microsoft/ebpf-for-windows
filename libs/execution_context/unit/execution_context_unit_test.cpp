@@ -2348,7 +2348,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
         EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
 
     ebpf_program_data_t _test_program_data = {
-        EBPF_PROGRAM_DATA_HEADER, &_test_program_info, &helper_function_addresses};
+        EBPF_PROGRAM_DATA_HEADER, &_test_program_info, &helper_function_addresses, nullptr, nullptr, nullptr, 0, true};
 
     auto provider_attach_client_callback =
         [](HANDLE, void*, const NPI_REGISTRATION_INSTANCE*, void*, const void*, void**, const void**) -> NTSTATUS {

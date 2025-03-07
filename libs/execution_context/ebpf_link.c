@@ -105,18 +105,8 @@ _ebpf_link_instance_invoke_batch_end(_Inout_ void* state);
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state);
 
-// Dispatch table when program information provider does not support context header.
-static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
-    EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT,
-    EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT, // Count of functions. This should be updated when new functions
-                                                     // are added.
-    _ebpf_link_instance_invoke,
-    _ebpf_link_instance_invoke_batch_begin,
-    _ebpf_link_instance_invoke_batch,
-    _ebpf_link_instance_invoke_batch_end,
-};
-
 // Dispatch table when program information provider supports context header.
+// Note: Context header support is now mandatory.
 static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table_with_context_header = {
     EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT,
     EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT, // Count of functions. This should be updated when new functions
@@ -211,11 +201,13 @@ _ebpf_link_client_attach_provider(
     link->link_type = attach_provider_data->link_type;
     link->bpf_attach_type = attach_provider_data->bpf_attach_type;
 
-    if (ebpf_program_supports_context_header(link->program)) {
-        client_dispatch_table = (void*)&_ebpf_link_dispatch_table_with_context_header;
-    } else {
-        client_dispatch_table = (void*)&_ebpf_link_dispatch_table;
+    if (!ebpf_program_supports_context_header(link->program)) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "Attach provider does not support context headers.");
+        status = STATUS_INVALID_PARAMETER;
+        goto Done;
     }
+    client_dispatch_table = (void*)&_ebpf_link_dispatch_table_with_context_header;
 
     ebpf_lock_unlock(&link->lock, state);
     lock_held = false;
