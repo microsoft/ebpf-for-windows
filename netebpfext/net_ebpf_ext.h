@@ -164,7 +164,8 @@ typedef struct _net_ebpf_extension_wfp_filter_context
     if ((filter_context)->wfp_engine_handle != NULL) {        \
         FwpmEngineClose((filter_context)->wfp_engine_handle); \
     }                                                         \
-    ExFreePool((filter_context));
+    ExFreePool(((uint8_t*)filter_context - 64));
+// Note: We need to subtract the header from the context to get the pointer to free.
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
     if ((filter_context) != NULL) {                               \

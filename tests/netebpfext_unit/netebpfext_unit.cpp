@@ -83,6 +83,12 @@ typedef struct _test_xdp_client_context
     xdp_test_action_t xdp_action;
 } test_xdp_client_context_t;
 
+typedef struct _test_xdp_client_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    test_xdp_client_context_t context;
+} test_xdp_client_context_header_t;
+
 // This callback occurs when netebpfext gets a packet and submits it to our dummy
 // eBPF program to handle.
 _Must_inspect_result_ ebpf_result_t
@@ -122,31 +128,32 @@ TEST_CASE("classify_packet", "[netebpfext]")
         .data = &if_index,
         .data_size = sizeof(if_index),
     };
-    test_xdp_client_context_t client_context = {};
-    client_context.base.desired_attach_type = BPF_XDP_TEST;
+    test_xdp_client_context_header_t client_context_header = {0};
+    test_xdp_client_context_t* client_context = &client_context_header.context;
+    client_context->base.desired_attach_type = BPF_XDP_TEST;
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_xdp_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
     // Classify an inbound packet that should pass.
-    client_context.xdp_action = XDP_TEST_ACTION_PASS;
+    client_context->xdp_action = XDP_TEST_ACTION_PASS;
     FWP_ACTION_TYPE result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify an inbound packet that should be hairpinned.
-    client_context.xdp_action = XDP_TEST_ACTION_TX;
+    client_context->xdp_action = XDP_TEST_ACTION_TX;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify an inbound packet that should be dropped.
-    client_context.xdp_action = XDP_TEST_ACTION_DROP;
+    client_context->xdp_action = XDP_TEST_ACTION_DROP;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify an inbound packet when eBPF program invocation failed.
-    client_context.xdp_action = XDP_TEST_ACTION_FAILURE;
+    client_context->xdp_action = XDP_TEST_ACTION_FAILURE;
     result = helper.classify_test_packet(&FWPM_LAYER_INBOUND_MAC_FRAME_NATIVE, if_index);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
@@ -220,6 +227,12 @@ typedef struct test_bind_client_context_t
     bind_action_t bind_action;
 } test_bind_client_context_t;
 
+typedef struct test_bind_client_context_header_t
+{
+    EBPF_CONTEXT_HEADER;
+    test_bind_client_context_t context;
+} test_bind_client_context_header_t;
+
 _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_bind_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
@@ -235,28 +248,29 @@ TEST_CASE("bind_invoke", "[netebpfext]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_bind_client_context_t client_context = {};
+    test_bind_client_context_header_t client_context_header = {0};
+    test_bind_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_bind_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Classify a bind that should be allowed.
-    client_context.bind_action = BIND_PERMIT;
+    client_context->bind_action = BIND_PERMIT;
     FWP_ACTION_TYPE result = helper.test_bind_ipv4(&parameters); // TODO(issue #526): support IPv6.
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify a bind that should be redirected.
-    client_context.bind_action = BIND_REDIRECT;
+    client_context->bind_action = BIND_REDIRECT;
     result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify a bind that should be blocked.
-    client_context.bind_action = BIND_DENY;
+    client_context->bind_action = BIND_DENY;
     result = helper.test_bind_ipv4(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
 }
@@ -412,6 +426,12 @@ typedef struct test_sock_addr_client_context_t
     bool validate_sock_addr_entries = true;
 } test_sock_addr_client_context_t;
 
+typedef struct test_sock_addr_client_context_header_t
+{
+    EBPF_CONTEXT_HEADER;
+    test_sock_addr_client_context_t context;
+} test_sock_addr_client_context_header_t;
+
 static inline sock_addr_test_action_t
 _get_sock_addr_action(uint16_t destination_port)
 {
@@ -510,19 +530,20 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_addr_client_context_t client_context = {};
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Classify operations that should be allowed.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
-    client_context.validate_sock_addr_entries = true;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->validate_sock_addr_entries = true;
 
     FWP_ACTION_TYPE result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
@@ -537,7 +558,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Classify operations that should be blocked.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_BLOCK;
 
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
@@ -552,7 +573,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_BLOCK);
 
     // Classify operations for redirect.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_REDIRECT;
 
     result = helper.test_cgroup_inet4_connect(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
@@ -561,7 +582,7 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Test eBPF program invocation failure.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_FAILURE;
 
     result = helper.test_cgroup_inet4_recv_accept(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);
@@ -577,8 +598,8 @@ TEST_CASE("sock_addr_invoke", "[netebpfext]")
 
     // Test reauthorization flag.
     // Classify operations that should be allowed.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
-    client_context.validate_sock_addr_entries = true;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->validate_sock_addr_entries = true;
 
     parameters.reauthorization_flag = FWP_CONDITION_FLAG_IS_REAUTHORIZE;
 
@@ -657,7 +678,8 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_addr_client_context_t client_context = {};
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
     std::vector<std::jthread> threads;
     std::atomic<size_t> failure_count = 0;
@@ -665,13 +687,13 @@ TEST_CASE("sock_addr_invoke_concurrent1", "[netebpfext_concurrent]")
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
-    client_context.validate_sock_addr_entries = false;
+    client_context->validate_sock_addr_entries = false;
 
     // Classify operations that should be allowed.
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_PERMIT;
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     for (uint32_t i = 0; i < thread_count; i++) {
@@ -707,7 +729,8 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_addr_client_context_t client_context = {};
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
     std::atomic<size_t> failure_count = 0;
@@ -715,10 +738,10 @@ TEST_CASE("sock_addr_invoke_concurrent2", "[netebpfext_concurrent]")
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
-    client_context.validate_sock_addr_entries = false;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
+    client_context->validate_sock_addr_entries = false;
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     parameters.resize(thread_count);
@@ -757,7 +780,8 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_addr_client_context_t client_context = {};
+    test_sock_addr_client_context_header_t client_context_header = {0};
+    test_sock_addr_client_context_t* client_context = &client_context_header.context;
     std::vector<std::jthread> threads;
     std::vector<fwp_classify_parameters_t> parameters;
     std::atomic<size_t> failure_count = 0;
@@ -765,10 +789,10 @@ TEST_CASE("sock_addr_invoke_concurrent3", "[netebpfext_concurrent]")
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_addr_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
-    client_context.sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
-    client_context.validate_sock_addr_entries = false;
+    client_context->sock_addr_action = SOCK_ADDR_TEST_ACTION_ROUND_ROBIN;
+    client_context->validate_sock_addr_entries = false;
 
     uint32_t thread_count = 2 * ebpf_get_cpu_count();
     parameters.resize(thread_count);
@@ -879,6 +903,12 @@ typedef struct test_sock_ops_client_context_t
     uint32_t sock_ops_action;
 } test_sock_ops_client_context_t;
 
+typedef struct test_sock_ops_client_context_header_t
+{
+    EBPF_CONTEXT_HEADER;
+    test_sock_ops_client_context_t context;
+} test_sock_ops_client_context_header_t;
+
 _Must_inspect_result_ ebpf_result_t
 netebpfext_unit_invoke_sock_ops_program(
     _In_ const void* client_binding_context, _In_ const void* context, _Out_ uint32_t* result)
@@ -894,18 +924,19 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
     ebpf_extension_data_t npi_specific_characteristics = {
         .header = EBPF_ATTACH_CLIENT_DATA_HEADER_VERSION,
     };
-    test_sock_ops_client_context_t client_context = {};
+    test_sock_ops_client_context_header_t client_context_header = {0};
+    test_sock_ops_client_context_t* client_context = &client_context_header.context;
     fwp_classify_parameters_t parameters = {};
 
     netebpf_ext_helper_t helper(
         &npi_specific_characteristics,
         (_ebpf_extension_dispatch_function)netebpfext_unit_invoke_sock_ops_program,
-        (netebpfext_helper_base_client_context_t*)&client_context);
+        (netebpfext_helper_base_client_context_t*)client_context);
 
     netebpfext_initialize_fwp_classify_parameters(&parameters);
 
     // Do some operations that return success.
-    client_context.sock_ops_action = 0;
+    client_context->sock_ops_action = 0;
 
     FWP_ACTION_TYPE result = helper.test_sock_ops_v4(&parameters);
     REQUIRE(result == FWP_ACTION_PERMIT);
@@ -914,7 +945,7 @@ TEST_CASE("sock_ops_invoke", "[netebpfext]")
     REQUIRE(result == FWP_ACTION_PERMIT);
 
     // Do some operations that return failure.
-    client_context.sock_ops_action = -1;
+    client_context->sock_ops_action = -1;
 
     result = helper.test_sock_ops_v4(&parameters);
     REQUIRE(result == FWP_ACTION_BLOCK);

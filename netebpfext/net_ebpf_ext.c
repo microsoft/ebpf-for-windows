@@ -231,6 +231,12 @@ static HANDLE _fwp_engine_handle;
 // WFP component management related utility functions.
 //
 
+typedef struct _net_ebpf_extension_wfp_filter_context_header
+{
+    EBPF_CONTEXT_HEADER;
+    net_ebpf_extension_wfp_filter_context_t context;
+} net_ebpf_extension_wfp_filter_context_header_t;
+
 _Must_inspect_result_ ebpf_result_t
 net_ebpf_extension_wfp_filter_context_create(
     size_t filter_context_size,
@@ -241,6 +247,7 @@ net_ebpf_extension_wfp_filter_context_create(
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result = EBPF_SUCCESS;
     net_ebpf_extension_wfp_filter_context_t* local_filter_context = NULL;
+    net_ebpf_extension_wfp_filter_context_header_t* filter_context_header = NULL;
     uint32_t client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_SINGLE_ATTACH;
 
     NET_EBPF_EXT_LOG_ENTRY();
@@ -252,13 +259,17 @@ net_ebpf_extension_wfp_filter_context_create(
         client_context_count_max = NET_EBPF_EXT_MAX_CLIENTS_PER_HOOK_MULTI_ATTACH;
     }
 
-    // Allocate buffer for WFP filter context.
-    local_filter_context = (net_ebpf_extension_wfp_filter_context_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, filter_context_size, NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, local_filter_context, "local_filter_context", result);
+    size_t total_context_size =
+        filter_context_size + EBPF_OFFSET_OF(net_ebpf_extension_wfp_filter_context_header_t, context);
 
-    memset(local_filter_context, 0, filter_context_size);
+    // Allocate buffer for WFP filter context.
+    filter_context_header = (net_ebpf_extension_wfp_filter_context_header_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, total_context_size, NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, filter_context_header, "filter_context_header", result);
+
+    memset(filter_context_header, 0, total_context_size);
+    local_filter_context = &filter_context_header->context;
 
     local_filter_context->client_contexts = (net_ebpf_extension_hook_client_t**)ExAllocatePoolUninitialized(
         NonPagedPoolNx,

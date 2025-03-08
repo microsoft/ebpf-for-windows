@@ -203,6 +203,15 @@ ebpf_helper_function_prototype_t ebpf_core_helper_function_prototype_array[] = {
      EBPF_RETURN_TYPE_INTEGER,
      {0}},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER, BPF_FUNC_ktime_get_ms, "bpf_ktime_get_ms", EBPF_RETURN_TYPE_INTEGER, {0}},
+    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
+     BPF_FUNC_perf_event_output,
+     "bpf_perf_event_output",
+     EBPF_RETURN_TYPE_INTEGER,
+     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX,
+      EBPF_ARGUMENT_TYPE_PTR_TO_MAP,
+      EBPF_ARGUMENT_TYPE_ANYTHING,
+      EBPF_ARGUMENT_TYPE_PTR_TO_READABLE_MEM,
+      EBPF_ARGUMENT_TYPE_CONST_SIZE}},
 };
 
 #ifdef __cplusplus

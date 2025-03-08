@@ -19,52 +19,34 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\ebpf_hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_epoch.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_hash_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_object.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_pinning_table.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_trampoline.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ebpf_handle_user.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="ebpf_platform_user.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\ebpf_state.c">
+    <ClCompile Include="..\ebpf_async.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_bitmap.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_async.c">
+    <ClCompile Include="..\ebpf_crypto_hash.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_ring_buffer.c">
+    <ClCompile Include="..\ebpf_epoch.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_error.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ebpf_native_user.c">
+    <ClCompile Include="..\ebpf_hash_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_interlocked.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ebpf_crypto_hash.c">
+    <ClCompile Include="..\ebpf_object.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_perf_event_array.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_pinning_table.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_platform.c">
@@ -73,14 +55,41 @@
     <ClCompile Include="..\ebpf_random.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\shared\tracelog.c">
+    <ClCompile Include="..\ebpf_ring_buffer.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_state.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ebpf_trampoline.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\ebpf_work_queue.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\shared\tracelog.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ebpf_handle_user.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ebpf_native_user.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ebpf_platform_user.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_async.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ebpf_bitmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\ebpf_epoch.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -90,34 +99,28 @@
     <ClInclude Include="..\ebpf_object.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\ebpf_perf_event_array.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\ebpf_pinning_table.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_platform.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="framework.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ebpf_state.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ebpf_bitmap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\ebpf_async.h">
+    <ClInclude Include="..\ebpf_random.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_ring_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\ebpf_random.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat.h">
+    <ClInclude Include="..\ebpf_state.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\ebpf_work_queue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="framework.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,17 +6,18 @@
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\shared\tracelog.c" />
-    <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_async.c" />
+    <ClCompile Include="..\ebpf_bitmap.c" />
     <ClCompile Include="..\ebpf_crypto_hash.c" />
     <ClCompile Include="..\ebpf_epoch.c" />
     <ClCompile Include="..\ebpf_error.c" />
-    <ClCompile Include="..\ebpf_platform.c" />
-    <ClCompile Include="..\ebpf_random.c" />
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_interlocked.c" />
     <ClCompile Include="..\ebpf_object.c" />
+    <ClCompile Include="..\ebpf_perf_event_array.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
+    <ClCompile Include="..\ebpf_platform.c" />
+    <ClCompile Include="..\ebpf_random.c" />
     <ClCompile Include="..\ebpf_ring_buffer.c" />
     <ClCompile Include="..\ebpf_state.c" />
     <ClCompile Include="..\ebpf_trampoline.c" />
@@ -24,12 +25,15 @@
     <ClCompile Include="ebpf_handle_user.c" />
     <ClCompile Include="ebpf_native_user.c" />
     <ClCompile Include="ebpf_platform_user.cpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="..\..\..\external\usersim\cxplat\inc\cxplat.h" />
-    <ClInclude Include="..\ebpf_bitmap.h" />
     <ClInclude Include="..\ebpf_async.h" />
+    <ClInclude Include="..\ebpf_bitmap.h" />
     <ClInclude Include="..\ebpf_epoch.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />
+    <ClInclude Include="..\ebpf_perf_event_array.h" />
     <ClInclude Include="..\ebpf_pinning_table.h" />
     <ClInclude Include="..\ebpf_platform.h" />
     <ClInclude Include="..\ebpf_random.h" />
