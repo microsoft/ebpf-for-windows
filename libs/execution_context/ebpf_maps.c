@@ -2796,16 +2796,22 @@ ebpf_map_get_info(
     _In_ const ebpf_map_t* map, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {
     // High volume call - Skip entry/exit logging.
-    struct bpf_map_info* info = (struct bpf_map_info*)buffer;
+    struct bpf_map_info local_map = {0};
+    struct bpf_map_info* info = &local_map;
+
+    if (*info_size == 0) {
+        *info_size = sizeof(*info);
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "ebpf_map_get_info buffer length is 0.");
+        EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+    }
 
     if (*info_size < sizeof(*info)) {
         EBPF_LOG_MESSAGE_UINT64_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_LEVEL_WARNING,
             EBPF_TRACELOG_KEYWORD_MAP,
-            "ebpf_map_get_info buffer too small",
+            "ebpf_map_get_info output buffer too small",
             *info_size,
             sizeof(*info));
-        return EBPF_INSUFFICIENT_BUFFER;
     }
 
     info->id = map->object.id;
@@ -2823,9 +2829,17 @@ ebpf_map_get_info(
         info->inner_map_id = EBPF_ID_NONE;
     }
     info->pinned_path_count = map->object.pinned_path_count;
+    ebpf_assert(sizeof(info->name) >= map->name.length);
     strncpy_s(info->name, sizeof(info->name), (char*)map->name.value, map->name.length);
+    if (map->name.length < sizeof(info->name)) {
+        memset(info->name + map->name.length, 0, sizeof(info->name) - map->name.length);
+    }
 
-    *info_size = sizeof(*info);
+    // Copy the local map info to the user supplied buffer, as much as will fit.
+    uint16_t out_size = min(sizeof(*info), *info_size);
+    memcpy(buffer, info, out_size);
+    *info_size = out_size;
+
     return EBPF_SUCCESS;
 }
 

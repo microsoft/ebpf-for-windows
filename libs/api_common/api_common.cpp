@@ -116,14 +116,19 @@ query_map_definition(
 {
     bpf_map_info info = {0};
     uint32_t info_size = sizeof(info);
-    ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size, NULL);
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size, &object_type);
     if (result == EBPF_SUCCESS) {
-        *id = info.id;
-        *type = info.type;
-        *key_size = info.key_size;
-        *value_size = info.value_size;
-        *max_entries = info.max_entries;
-        *inner_map_id = info.inner_map_id;
+        if (object_type != EBPF_OBJECT_MAP) {
+            result = EBPF_INVALID_ARGUMENT;
+        } else {
+            *id = info.id;
+            *type = info.type;
+            *key_size = info.key_size;
+            *value_size = info.value_size;
+            *max_entries = info.max_entries;
+            *inner_map_id = info.inner_map_id;
+        }
     }
     return result;
 }
