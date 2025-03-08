@@ -1404,7 +1404,7 @@ _ebpf_test_tail_call(_In_z_ const char* filename, uint32_t expected_result)
     REQUIRE(error == 0);
 
     // Is bpf_tail_call expected to work?
-    // Verify stack unwind occured.
+    // Verify stack unwind occurred.
     if ((int)expected_result >= 0) {
         REQUIRE(value == 0);
     } else {

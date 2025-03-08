@@ -16,7 +16,7 @@
  *                  the specified interface index.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @deprecated Use bpf_xdp_attach() instead.
  *
@@ -84,7 +84,7 @@ struct bpf_object_load_attr
  * @param[in] attr Structure with load attributes.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @deprecated Use bpf_object__load() instead.
  *
@@ -120,7 +120,7 @@ bpf_object__next(struct bpf_object* prev);
  * @param[in] obj Object with programs to be unloaded.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @deprecated Use bpf_object__close() instead.
  *
@@ -151,7 +151,7 @@ bpf_object__unload(struct bpf_object* obj);
  * bpf_object__close() on the object returned.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @deprecated Use bpf_object__open() and bpf_object__load() instead.
  *
