@@ -13,8 +13,8 @@
  *
  * @param[in] link_fd File descriptor of link to detach.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -EBADF The file descriptor was not found.
  *
@@ -45,8 +45,8 @@ bpf_link_get_fd_by_id(__u32 id);
  * @param[in] start_id ID to look for an ID after. The start_id need not exist.
  * @param[out] next_id Pointer to where to write the next ID.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -ENOENT No more IDs found.
  */
@@ -92,8 +92,8 @@ bpf_map_create(
  * @param[in] fd File descriptor of map to update.
  * @param[in] key Pointer to key to look up.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -EBADF The file descriptor was not found.
@@ -123,8 +123,8 @@ bpf_map_get_fd_by_id(__u32 id);
  * @param[in] start_id ID to look for an ID after. The start_id need not exist.
  * @param[out] next_id Pointer to where to write the next ID.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -ENOENT No more IDs found.
  */
@@ -141,8 +141,8 @@ bpf_map_get_next_id(__u32 start_id, __u32* next_id);
  * @param[out] next_key Pointer to memory in which to write the
  * next key.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -EBADF The file descriptor was not found.
@@ -160,8 +160,8 @@ bpf_map_get_next_key(int fd, const void* key, void* next_key);
  * @param[out] value Pointer to memory in which to write the
  * value.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -EBADF The file descriptor was not found.
@@ -179,8 +179,8 @@ bpf_map_lookup_elem(int fd, const void* key, void* value);
  * @param[in] value Pointer to value.
  * @param[in] flags Flags (currently 0).
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -EBADF The file descriptor was not found.
@@ -348,8 +348,8 @@ bpf_obj_get(const char* pathname);
  * @param[in, out] info_len On input, contains the maximum number of bytes to
  * write into the info.  On output, contains the actual number of bytes written.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  * @retval -EFAULT A pointer passed in the input info was invalid.
  */
 int
@@ -409,8 +409,8 @@ bpf_prog_get_fd_by_id(__u32 id);
  * @param[in] start_id ID to look for an ID after. The start_id need not exist.
  * @param[out] next_id Pointer to where to write the next ID.
  *
- * @return 0, on success; negative error code, otherwise (errno is also set to
- * the error code)
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occured, and errno was set.
  *
  * @retval -ENOENT No more IDs found.
  */
