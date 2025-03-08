@@ -50,7 +50,7 @@ bpf_link__fd(const struct bpf_link* link);
  * @param[in] path Path to pin the link to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EBUSY A pin path was previously specified.
  * @retval -EEXIST Something is already pinned to the specified path.
@@ -68,7 +68,7 @@ bpf_link__pin(struct bpf_link* link, const char* path);
  * @param[in] link Link to unpin.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -ENOENT The link was not pinned.
@@ -160,7 +160,7 @@ bpf_map__name(const struct bpf_map* map);
  * @param[in] path Path to pin the map to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EBUSY A pin path was previously specified.
  * @retval -EEXIST Something is already pinned to the specified path.
@@ -190,7 +190,7 @@ bpf_map__type(const struct bpf_map* map);
  * @param[in] path Path from which to unpin the map.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -ENOENT The map was not pinned.
@@ -284,7 +284,7 @@ bpf_object__find_program_by_name(const struct bpf_object* obj, const char* name)
  * @param[in] obj Object from which to load programs.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -ENOMEM Out of memory.
@@ -362,7 +362,7 @@ bpf_object__open_file(const char* path, const struct bpf_object_open_opts* opts)
  * @param[in] path Path to pin the object to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EBUSY Something is already pinned to the specified path.
  * @retval -EINVAL An invalid argument was provided.
@@ -383,7 +383,7 @@ bpf_object__pin(struct bpf_object* object, const char* path);
  * @param[in] path Path to pin the maps to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EBUSY Something is already pinned to the specified path.
  * @retval -EINVAL An invalid argument was provided.
@@ -403,7 +403,7 @@ bpf_object__pin_maps(struct bpf_object* obj, const char* path);
  * @param[in] path Path to pin the programs to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EBUSY Something is already pinned to the specified path.
  * @retval -EINVAL An invalid argument was provided.
@@ -449,7 +449,7 @@ bpf_object__prev_program(const struct bpf_object* obj, struct bpf_program* prog)
  * @param[in] path Path from which to unpin the maps.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  *
@@ -467,7 +467,7 @@ bpf_object__unpin_maps(struct bpf_object* obj, const char* path);
  * @param[in] path Path from which to unpin the programs.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  *
@@ -536,7 +536,7 @@ bpf_program__autoload(const struct bpf_program* prog);
  * @param[in] prog The program to update.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @sa bpf_object__load
  * @sa bpf_object__load_xattr
@@ -554,7 +554,7 @@ bpf_program__set_autoload(struct bpf_program* prog, bool autoload);
  * @param[in] flags Flags (currently 0).
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  */
 int
@@ -567,7 +567,7 @@ bpf_prog_attach(int prog_fd, int attachable_fd, enum bpf_attach_type type, unsig
  * @param[in] type Attach type.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  */
 int
@@ -581,7 +581,7 @@ bpf_prog_detach(int attachable_fd, enum bpf_attach_type type);
  * @param[in] type Attach type.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  */
 int
@@ -659,7 +659,7 @@ bpf_program__name(const struct bpf_program* prog);
  * @param[in] path Path to pin the program to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EBUSY A pin path was previously specified.
  * @retval -EEXIST Something is already pinned to the specified path.
@@ -742,7 +742,7 @@ bpf_program__unload(struct bpf_program* prog);
  * @param[in] path Path from which to unpin the program.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @retval -EINVAL An invalid argument was provided.
  * @retval -ENOENT The program was not pinned.
@@ -763,7 +763,7 @@ bpf_program__unpin(struct bpf_program* prog, const char* path);
  * @param[in] opts Options (currently unused).
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @sa bpf_program__attach_xdp
  * @sa bpf_xdp_detach
@@ -781,7 +781,7 @@ bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attac
  * @param[in] opts Options (currently unused).
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @sa bpf_link_detach
  * @sa bpf_program__attach_xdp
@@ -798,7 +798,7 @@ bpf_xdp_detach(int ifindex, __u32 flags, const struct bpf_xdp_attach_opts* opts)
  * @param[out] prog_id The ID of the program attached.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  * @sa bpf_xdp_attach
  */
@@ -813,7 +813,7 @@ bpf_xdp_query_id(int ifindex, int flags, __u32* prog_id);
  * @param[out] attach_type Returns the attach type.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  */
 int
 libbpf_attach_type_by_name(const char* name, enum bpf_attach_type* attach_type);
@@ -850,7 +850,7 @@ libbpf_bpf_prog_type_str(enum bpf_prog_type t);
  * @param[out] expected_attach_type Expected attach type.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  */
 int
 libbpf_prog_type_by_name(const char* name, enum bpf_prog_type* prog_type, enum bpf_attach_type* expected_attach_type);
@@ -880,7 +880,7 @@ libbpf_get_error(const void* ptr);
  * @param[in] size Size of output buffer.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  */
 int
 libbpf_strerror(int err, char* buf, size_t size);
@@ -937,7 +937,7 @@ bpf_program__flags(const struct bpf_program* prog);
  * @param[in] flags The flags to set.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
  */
 int
