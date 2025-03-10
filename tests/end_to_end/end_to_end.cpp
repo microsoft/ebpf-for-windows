@@ -1670,6 +1670,62 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+static void
+_verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const char* canonical_path)
+{
+    // Pin the fd to the original path.
+    REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
+
+    // Look up id for the fd.
+    bpf_prog_info info = {};
+    uint32_t info_size = sizeof(info);
+    int result = bpf_obj_get_info_by_fd(fd, &info, &info_size);
+    REQUIRE(result == 0);
+    ebpf_id_t id = info.id;
+
+    // TODO(#4273): Verify it has exactly one path pinned.
+    // REQUIRE(info.pinned_path_count == 1);
+
+    // Look up the actual path pinned.
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    char path[EBPF_MAX_PIN_PATH_LENGTH] = "";
+    while (ebpf_get_next_pinned_object_path(path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
+        int fd2 = bpf_obj_get(path);
+        if (fd2 < 0) {
+            continue;
+        }
+        if ((bpf_obj_get_info_by_fd(fd2, &info, &info_size) == 0) && (info.id == id)) {
+            // Verify the path is what we expect.
+            REQUIRE(strcmp(path, canonical_path) == 0);
+        }
+        Platform::_close(fd2);
+    }
+
+    // Verify we can unpin it by the original path.
+    REQUIRE(ebpf_object_unpin(original_path) == EBPF_SUCCESS);
+}
+
+TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Verify pin path canonicalization.
+    _verify_canonical_path(map_fd, "\\ebpf\\1", "C:\\ebpf\\1");
+    _verify_canonical_path(map_fd, "/ebpf/./1", "C:\\ebpf\\1");
+    _verify_canonical_path(map_fd, "/ebpf//1", "C:\\ebpf\\1");
+    _verify_canonical_path(map_fd, "/ebpf/test/../1", "C:\\ebpf\\1");
+
+    // Windows supports both case-sensitive and case-insensitive file systems.
+    // We currently treat pin paths as case-sensitive, like Linux does.
+    _verify_canonical_path(map_fd, "/EBPF//1", "C:\\EBPF\\1");
+
+    Platform::_close(map_fd);
+}
+
 TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
 {
     _test_helper_end_to_end test_helper;
