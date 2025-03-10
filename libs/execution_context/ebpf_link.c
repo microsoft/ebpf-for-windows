@@ -88,8 +88,7 @@ _ebpf_link_instance_invoke_batch(
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end(_Inout_ void* state);
 
-// Dispatch table when program information provider supports context header.
-// Note: Context header support is mandatory.
+// Dispatch table.
 static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
     EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT,
     EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT, // Count of functions. This should be updated when new functions

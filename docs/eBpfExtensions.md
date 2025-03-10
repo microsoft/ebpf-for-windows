@@ -101,7 +101,8 @@ structure from provided data and context buffers.
 context structure and populates the returned data and context buffers.
 * `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
 * `capabilities`: 32-bit integer describing the optional capabilities / features supported by the extension.
-    * Note that none are currently defined and capabilities should be zero.
+    * No capabilities are currently defined.
+    * The first bit is reserved and must be zero.
 
 #### `EBPF_CONTEXT_HEADER` eBPF Program Context Header
 

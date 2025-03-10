@@ -446,6 +446,15 @@ _ebpf_program_type_specific_program_information_attach_provider(
         goto Done;
     }
 
+    if (extension_program_data->capabilities.reserved != 0) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Program information provider capabilities reserved field is not zero.");
+        status = STATUS_INVALID_PARAMETER;
+        goto Done;
+    }
+
     if (ebpf_duplicate_utf8_string(&hash_algorithm, &program->parameters.program_info_hash_type) != EBPF_SUCCESS) {
         status = STATUS_NO_MEMORY;
         goto Done;
@@ -1520,6 +1529,15 @@ ebpf_program_invoke(
 
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
+
+    if (program->extension_program_data->capabilities.reserved != 0) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "Non-zero reserved bits",
+            program->extension_program_data->capabilities.reserved);
+        return EBPF_INVALID_ARGUMENT;
+    }
 
     // set runtime state in context header.
     ebpf_program_set_runtime_state(execution_state, context);
