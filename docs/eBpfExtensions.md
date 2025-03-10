@@ -101,21 +101,19 @@ structure from provided data and context buffers.
 context structure and populates the returned data and context buffers.
 * `required_irql`: IRQL at which the eBPF program is invoked by bpf_prog_test_run_opts.
 * `capabilities`: 32-bit integer describing the optional capabilities / features supported by the extension.
-   * `supports_context_header`: Required flag indicating extension supports adding a context header at the start of each context passed to the eBPF program. This flag must be set.
+    * Note that none are currently defined and capabilities should be zero.
 
-**Capabilities**
+#### `EBPF_CONTEXT_HEADER` eBPF Program Context Header
 
-`supports_context_header`:
-
-Flag indicating that extension supports adding a context header at the start of each context passed to the eBPF program.
-This is required for all extensions to support so the core can store runtime state needed by helpers.
-To support this feature, the extension can use the macro `EBPF_CONTEXT_HEADER` to include
+Extensions are required to add a context header at the start of each context passed to the eBPF program.
+This is required for all extensions to support for runtime state needed by helpers.
+To support this, the extension can use the macro `EBPF_CONTEXT_HEADER` to include
 the context header at the start of the program context structure. The context pointer passed to the
-eBPF program points immediately after the context header.
+eBPF program should point immediately after the context header.
 
 *Example*
 
-Below is an example of a sample extension where it is now including eBPF context header at the start of the original
+Below is an example of a sample extension including the eBPF context header at the start of the original
 context structure:
 
 ```c

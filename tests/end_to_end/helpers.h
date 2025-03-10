@@ -752,8 +752,6 @@ static ebpf_program_data_t _mock_xdp_program_data = {
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy,
-    0,
-    {.supports_context_header = true},
 };
 
 // XDP_TEST.
@@ -764,8 +762,6 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy,
-    0,
-    {.supports_context_header = true},
 };
 
 // Bind.
@@ -848,7 +844,7 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     .program_info = &_ebpf_bind_program_info,
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // SOCK_ADDR.
@@ -1005,7 +1001,7 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .context_create = &_ebpf_sock_addr_context_create,
     .context_destroy = &_ebpf_sock_addr_context_destroy,
     .required_irql = DISPATCH_LEVEL,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // SOCK_OPS.
@@ -1110,7 +1106,7 @@ static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // Sample extension.
@@ -1139,9 +1135,7 @@ static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
     &_sample_ebpf_ext_helper_function_address_table,
     &_test_global_helper_function_address_table,
     _sample_test_context_create,
-    _sample_test_context_destroy,
-    0,
-    {.supports_context_header = true}};
+    _sample_test_context_destroy};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 

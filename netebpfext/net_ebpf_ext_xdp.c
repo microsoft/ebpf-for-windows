@@ -94,7 +94,7 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     .context_create = _ebpf_xdp_context_create,
     .context_destroy = _ebpf_xdp_context_delete,
     .required_irql = DISPATCH_LEVEL,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // Set the program type as the provider module id.
