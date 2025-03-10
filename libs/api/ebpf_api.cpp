@@ -183,9 +183,16 @@ _get_wstring_from_string(std::string& text) noexcept(false)
     return wide;
 }
 
-// Canonicalize a string formatted as a filesystem path.
-std::string
-ebpf_canonicalize_path(_In_z_ const char* text, _Out_ uint32_t* error_code) noexcept
+/**
+ * @brief Canonicalize a path using filesystem canonicalization rules.
+ *
+ * @param[in] path Path string to canonicalize.
+ * @param[out] error_code Zero on success, non-zero Win32 error code on failure.
+ *
+ * @returns Canonicalized path, or error message on failure.
+ */
+static std::string
+_canonicalize_path(_In_z_ const char* text, _Out_ uint32_t* error_code) noexcept
 {
     // Convert to canonical form.
     try {
@@ -1290,7 +1297,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
 
     ebpf_assert(path);
     uint32_t return_value;
-    std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
+    std::string canonical_path = _canonicalize_path(path, &return_value);
     if (return_value != ERROR_SUCCESS) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
@@ -1324,7 +1331,7 @@ ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
     EBPF_LOG_ENTRY();
     ebpf_assert(path);
     uint32_t return_value;
-    std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
+    std::string canonical_path = _canonicalize_path(path, &return_value);
     if (return_value != ERROR_SUCCESS) {
         ebpf_result_t result = win32_error_code_to_ebpf_result(return_value);
         EBPF_RETURN_RESULT(result);
