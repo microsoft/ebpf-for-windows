@@ -183,6 +183,26 @@ _get_wstring_from_string(std::string& text) noexcept(false)
     return wide;
 }
 
+// Canonicalize a string formatted as a filesystem path.
+std::string
+ebpf_canonicalize_path(_In_z_ const char* path, _Out_ uint32_t* error_code) noexcept
+{
+    // Replace all forward slashes with backslashes.
+    std::string text(path);
+    std::replace(text.begin(), text.end(), '/', '\\');
+
+    // Convert to canonical form.
+    try {
+        std::filesystem::path p(text);
+        p = std::filesystem::canonical(p);
+        *error_code = ERROR_SUCCESS;
+        return p.string();
+    } catch (const std::filesystem::filesystem_error&) {
+        *error_code = GetLastError();
+        return "";
+    }
+}
+
 _Requires_lock_not_held_(_ebpf_state_mutex) inline static ebpf_map_t* _get_ebpf_map_from_handle(
     ebpf_handle_t map_handle) NO_EXCEPT_TRY
 {
@@ -264,17 +284,22 @@ _create_map(
     ebpf_operation_create_map_reply_t reply;
     std::string map_name;
     size_t map_name_size;
+    size_t buffer_size;
 
     ebpf_assert(map_definition);
     ebpf_assert(map_handle);
 
     if (name != nullptr) {
-        map_name = std::string(name);
+        map_name = ebpf_canonicalize_path(name, &return_value);
+        if (return_value != ERROR_SUCCESS) {
+            result = win32_error_code_to_ebpf_result(return_value);
+            goto Exit;
+        }
     }
     *map_handle = ebpf_handle_invalid;
     map_name_size = map_name.size();
 
-    size_t buffer_size = offsetof(ebpf_operation_create_map_request_t, data) + map_name_size;
+    buffer_size = offsetof(ebpf_operation_create_map_request_t, data) + map_name_size;
     request_buffer.resize(buffer_size);
 
     request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request_buffer.data());
@@ -1273,6 +1298,13 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
     ebpf_handle_t handle;
 
     ebpf_assert(path);
+    uint32_t return_value;
+    std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
+    if (return_value != ERROR_SUCCESS) {
+        result = win32_error_code_to_ebpf_result(return_value);
+        EBPF_RETURN_RESULT(result);
+    }
+
     if (fd <= 0) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
@@ -1282,14 +1314,14 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
         EBPF_RETURN_RESULT(EBPF_INVALID_FD);
     }
 
-    auto path_length = strlen(path);
+    auto path_length = canonical_path.length();
     ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, path) + path_length);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UPDATE_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = handle;
-    std::copy(path, path + path_length, request->path);
+    std::copy(canonical_path.c_str(), canonical_path.c_str() + path_length, request->path);
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
 
     EBPF_RETURN_RESULT(result);
@@ -1301,14 +1333,21 @@ ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(path);
-    auto path_length = strlen(path);
+    uint32_t return_value;
+    std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
+    if (return_value != ERROR_SUCCESS) {
+        ebpf_result_t result = win32_error_code_to_ebpf_result(return_value);
+        EBPF_RETURN_RESULT(result);
+    }
+
+    auto path_length = canonical_path.length();
     ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, path) + path_length);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UPDATE_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = UINT64_MAX;
-    std::copy(path, path + path_length, request->path);
+    std::copy(canonical_path.c_str(), canonical_path.c_str() + path_length, request->path);
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer)));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -1328,13 +1367,20 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TR
                 : EBPF_ALREADY_PINNED);
     }
     if (path != nullptr) {
+        uint32_t return_value;
+        std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
+        if (return_value != ERROR_SUCCESS) {
+            ebpf_result_t result = win32_error_code_to_ebpf_result(return_value);
+            EBPF_RETURN_RESULT(result);
+        }
+
         // If pin path is already set, the pin path provided now should be same
         // as the one previously set.
-        if (map->pin_path != nullptr && strcmp(path, map->pin_path) != 0) {
+        if (map->pin_path != nullptr && strcmp(canonical_path.c_str(), map->pin_path) != 0) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
         ebpf_free(map->pin_path);
-        map->pin_path = cxplat_duplicate_string(path);
+        map->pin_path = cxplat_duplicate_string(canonical_path.c_str());
         if (map->pin_path == nullptr) {
             EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
         }
