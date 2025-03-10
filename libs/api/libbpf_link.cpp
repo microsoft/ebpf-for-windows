@@ -16,12 +16,7 @@ bpf_link__pin(struct bpf_link* link, const char* path)
         return libbpf_err(-EBUSY);
     }
 
-    uint32_t error_code;
-    std::string canonical_path = ebpf_canonicalize_path(path, &error_code);
-    if (error_code != 0) {
-        return libbpf_err(-EINVAL);
-    }
-    link->pin_path = cxplat_duplicate_string(canonical_path.c_str());
+    link->pin_path = cxplat_duplicate_string(path);
     if (!link->pin_path) {
         return libbpf_err(-ENOMEM);
     }
