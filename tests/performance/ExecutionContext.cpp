@@ -286,14 +286,6 @@ static ebpf_program_test_state_t* _ebpf_program_test_state_instance = nullptr;
 static ebpf_map_test_state_t* _ebpf_map_test_state_instance = nullptr;
 static ebpf_map_lpm_trie_test_state_t* _ebpf_map_lpm_trie_test_state_instance = nullptr;
 
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-static void
-_ebpf_program_invoke()
-{
-    _ebpf_program_test_state_instance->test(nullptr);
-}
-#endif
-
 static void
 _map_find_read_test(uint32_t cpu_id)
 {

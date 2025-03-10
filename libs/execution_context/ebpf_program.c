@@ -1530,6 +1530,12 @@ ebpf_program_invoke(
     // High volume call - Skip entry/exit logging.
     const ebpf_program_t* current_program = program;
 
+    if (context == NULL) {
+        EBPF_LOG_MESSAGE_STRING(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_PROGRAM, "Null program context", "NULL");
+        return EBPF_INVALID_ARGUMENT;
+    }
+
     if (program->extension_program_data->capabilities.reserved != 0) {
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
