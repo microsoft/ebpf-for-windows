@@ -75,7 +75,24 @@ $Job = Start-Job -ScriptBlock {
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
     # Export build artifacts to the test VMs.
-    Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
+    # Attempt with a few retries
+    $RetryCount = 0
+    $MaxRetryCount = 5
+    $RetryInterval = 5
+    while ($RetryCount -lt $MaxRetryCount) {
+        try {
+            Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
+            break
+        } catch {
+            Write-Log "Exporting build artifacts to VMs failed. Retrying in $RetryInterval seconds."
+            Start-Sleep -Seconds $RetryInterval
+            $RetryCount++
+            if ($RetryCount -eq $MaxRetryCount) {
+                Write-Log "Exporting build artifacts to VMs failed after $MaxRetryCount attempts."
+                throw
+            }
+        }
+    }
 
     # Configure network adapters on VMs.
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
