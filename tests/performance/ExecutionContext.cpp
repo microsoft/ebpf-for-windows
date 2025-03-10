@@ -290,7 +290,12 @@ static ebpf_map_lpm_trie_test_state_t* _ebpf_map_lpm_trie_test_state_instance = 
 static void
 _ebpf_program_invoke()
 {
-    _ebpf_program_test_state_instance->test(nullptr);
+    struct
+    {
+        EBPF_CONTEXT_HEADER;
+        uint64_t unused;
+    } context = {0};
+    _ebpf_program_test_state_instance->test(&context.unused);
 }
 #endif
 
