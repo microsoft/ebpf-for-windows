@@ -1719,6 +1719,10 @@ TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
     _verify_canonical_path(map_fd, "/ebpf//1", "C:\\ebpf\\1");
     _verify_canonical_path(map_fd, "/ebpf/test/../1", "C:\\ebpf\\1");
 
+    // Windows supports both case-sensitive and case-insensitive file systems.
+    // We currently treat pin paths as case-sensitive, like Linux does.
+    _verify_canonical_path(map_fd, "/EBPF//1", "C:\\EBPF\\1");
+
     Platform::_close(map_fd);
 }
 
