@@ -185,21 +185,17 @@ _get_wstring_from_string(std::string& text) noexcept(false)
 
 // Canonicalize a string formatted as a filesystem path.
 std::string
-ebpf_canonicalize_path(_In_z_ const char* path, _Out_ uint32_t* error_code) noexcept
+ebpf_canonicalize_path(_In_z_ const char* text, _Out_ uint32_t* error_code) noexcept
 {
-    // Replace all forward slashes with backslashes.
-    std::string text(path);
-    std::replace(text.begin(), text.end(), '/', '\\');
-
     // Convert to canonical form.
     try {
         std::filesystem::path p(text);
-        p = std::filesystem::canonical(p);
+        p = std::filesystem::absolute(p);
         *error_code = ERROR_SUCCESS;
         return p.string();
-    } catch (const std::filesystem::filesystem_error&) {
+    } catch (const std::filesystem::filesystem_error& e) {
         *error_code = GetLastError();
-        return "";
+        return e.what();
     }
 }
 
@@ -284,22 +280,17 @@ _create_map(
     ebpf_operation_create_map_reply_t reply;
     std::string map_name;
     size_t map_name_size;
-    size_t buffer_size;
 
     ebpf_assert(map_definition);
     ebpf_assert(map_handle);
 
     if (name != nullptr) {
-        map_name = ebpf_canonicalize_path(name, &return_value);
-        if (return_value != ERROR_SUCCESS) {
-            result = win32_error_code_to_ebpf_result(return_value);
-            goto Exit;
-        }
+        map_name = std::string(name);
     }
     *map_handle = ebpf_handle_invalid;
     map_name_size = map_name.size();
 
-    buffer_size = offsetof(ebpf_operation_create_map_request_t, data) + map_name_size;
+    size_t buffer_size = offsetof(ebpf_operation_create_map_request_t, data) + map_name_size;
     request_buffer.resize(buffer_size);
 
     request = reinterpret_cast<ebpf_operation_create_map_request_t*>(request_buffer.data());
@@ -1301,8 +1292,7 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
     uint32_t return_value;
     std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
     if (return_value != ERROR_SUCCESS) {
-        result = win32_error_code_to_ebpf_result(return_value);
-        EBPF_RETURN_RESULT(result);
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
     if (fd <= 0) {
