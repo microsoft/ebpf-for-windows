@@ -1149,10 +1149,12 @@ TEST_CASE("program", "[execution_context]")
             program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
-    sample_program_context_t ctx{0};
+    sample_program_context_header_t ctx_header{0};
+    sample_program_context_t* ctx = &ctx_header.context;
+
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
-    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), &ctx, &result, &state);
+    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), ctx, &result, &state);
     REQUIRE(ebpf_result == EBPF_SUCCESS);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
