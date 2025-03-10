@@ -3440,10 +3440,10 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
         REQUIRE(hook_result == 42);
     }
 
-    // Reload the extension with changed context_header support.
+    // Reload the extension with non-zero reserved bits in capabilities.
     {
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
-        changed_program_data.capabilities.value = 0;
+        changed_program_data.capabilities.reserved = 1;
 
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);
