@@ -1546,8 +1546,8 @@ TEST_CASE("map_pinning_test", "[end_to_end]")
     single_instance_hook_t hook(EBPF_PROGRAM_TYPE_BIND, EBPF_ATTACH_TYPE_BIND);
     REQUIRE(hook.initialize() == EBPF_SUCCESS);
 
-    std::string process_maps_name = "bindmonitor::process_map";
-    std::string limit_maps_name = "bindmonitor::limits_map";
+    std::string process_maps_name = "bindmonitor/process_map";
+    std::string limit_maps_name = "bindmonitor/limits_map";
 
     REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "process_map") != nullptr);
     REQUIRE(bpf_object__find_map_by_name(unique_object.get(), "limits_map") != nullptr);
@@ -1673,6 +1673,88 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+static void
+_verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const char* canonical_path)
+{
+    // Pin the fd to the original path.
+    REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
+
+    // Look up id for the fd.
+    bpf_prog_info info = {};
+    uint32_t info_size = sizeof(info);
+    int result = bpf_obj_get_info_by_fd(fd, &info, &info_size);
+    REQUIRE(result == 0);
+    ebpf_id_t id = info.id;
+
+    // TODO(#4273): Verify it has exactly one path pinned.
+    // REQUIRE(info.pinned_path_count == 1);
+
+    // Look up the actual path pinned.
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    char path[EBPF_MAX_PIN_PATH_LENGTH] = "";
+    while (ebpf_get_next_pinned_object_path(path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
+        int fd2 = bpf_obj_get(path);
+        if (fd2 < 0) {
+            continue;
+        }
+        if ((bpf_obj_get_info_by_fd(fd2, &info, &info_size) == 0) && (info.id == id)) {
+            // Verify the path is what we expect.
+            REQUIRE(strcmp(path, canonical_path) == 0);
+        }
+        Platform::_close(fd2);
+    }
+
+    // Verify we can unpin it by the original path.
+    REQUIRE(ebpf_object_unpin(original_path) == EBPF_SUCCESS);
+}
+
+TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Verify pin path canonicalization.
+    _verify_canonical_path(map_fd, "BPF:\\.\\my\\pin\\path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "BPF:/./my/pin/path", "BPF:\\my\\pin\\path");
+
+    // Try Linux-style absolute paths.
+    _verify_canonical_path(map_fd, "/sys/fs/bpf/my/pin/path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "/sys/fs/bpf/My/Pin/Path", "BPF:\\My\\Pin\\Path");
+
+    // Try Linux-style relative paths.
+    _verify_canonical_path(map_fd, "my/pin/path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my/pin/./path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my/pin//path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my/pin/./././path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my/pin/oops/../path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my/pin/oops/again/../../path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "My/Pin/Path", "BPF:\\My\\Pin\\Path");
+
+    // Try Windows-style relative paths.
+    _verify_canonical_path(map_fd, "my\\pin\\path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my\\pin\\.\\path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my\\pin\\oops\\..\\path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "my\\pin\\path\\oops\\..", "BPF:\\my\\pin\\path");
+
+    // Try a Windows-style absolute path without the device.
+    _verify_canonical_path(map_fd, "\\my\\pin\\path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "\\sys\\fs\\bpf\\my\\pin\\path", "BPF:\\my\\pin\\path");
+
+    // Try a legacy eBPF-for-Windows path.
+    _verify_canonical_path(map_fd, "/ebpf/global/my/pin/path", "BPF:\\my\\pin\\path");
+
+    // Verify invalid paths fail.
+    REQUIRE(ebpf_object_pin(map_fd, "..") == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_object_pin(map_fd, "/..") == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_object_pin(map_fd, "/mypinpath/../..") == EBPF_INVALID_ARGUMENT);
+    REQUIRE(ebpf_object_pin(map_fd, "C:\\") == EBPF_INVALID_ARGUMENT);
+
+    Platform::_close(map_fd);
+}
+
 TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
 {
     _test_helper_end_to_end test_helper;
@@ -1706,12 +1788,14 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     REQUIRE(map_fd > 0);
 
     // Pin the program and map multiple times with a shared prefix.
-    const char* prefix = "/ebpf/test/";
+    // We use canonical paths here so we can verify that what is
+    // enumerated is identical to the paths we pinned.
+    const char* prefix = "BPF:\\";
     const char* paths[] = {
-        "/ebpf/test/map1",
-        "/ebpf/test/map2",
-        "/ebpf/test/program1",
-        "/ebpf/test/program2",
+        "BPF:\\map1",
+        "BPF:\\map2",
+        "BPF:\\program1",
+        "BPF:\\program2",
     };
     const ebpf_object_type_t object_types[] = {
         EBPF_OBJECT_MAP,
