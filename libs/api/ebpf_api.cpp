@@ -1357,20 +1357,13 @@ ebpf_map_pin(_In_ struct bpf_map* map, _In_opt_z_ const char* path) NO_EXCEPT_TR
                 : EBPF_ALREADY_PINNED);
     }
     if (path != nullptr) {
-        uint32_t return_value;
-        std::string canonical_path = ebpf_canonicalize_path(path, &return_value);
-        if (return_value != ERROR_SUCCESS) {
-            ebpf_result_t result = win32_error_code_to_ebpf_result(return_value);
-            EBPF_RETURN_RESULT(result);
-        }
-
         // If pin path is already set, the pin path provided now should be same
         // as the one previously set.
-        if (map->pin_path != nullptr && strcmp(canonical_path.c_str(), map->pin_path) != 0) {
+        if (map->pin_path != nullptr && strcmp(path, map->pin_path) != 0) {
             EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
         }
         ebpf_free(map->pin_path);
-        map->pin_path = cxplat_duplicate_string(canonical_path.c_str());
+        map->pin_path = cxplat_duplicate_string(path);
         if (map->pin_path == nullptr) {
             EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
         }
