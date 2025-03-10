@@ -83,7 +83,7 @@ typedef class _ebpf_program_test_state
         ebpf_epoch_enter(&epoch_state);
         ebpf_get_execution_context_state(&state);
         // Since this is perf test, not checking the result.
-        (void)ebpf_program_invoke(program, false, context, &result, &state);
+        (void)ebpf_program_invoke(program, context, &result, &state);
         ebpf_epoch_exit(&epoch_state);
     }
 

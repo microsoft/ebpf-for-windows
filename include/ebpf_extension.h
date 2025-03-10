@@ -129,3 +129,4 @@ typedef struct _ebpf_execution_context_state
 } ebpf_execution_context_state_t;
 
 #define EBPF_CONTEXT_HEADER uint64_t context_header[8]
+#define EBPF_CONTEXT_HEADER_SIZE (sizeof(uint64_t) * 8)

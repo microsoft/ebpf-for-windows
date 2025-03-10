@@ -461,7 +461,6 @@ TEST_CASE("pinning_test", "[platform]")
                     some_object->signal.signal();
                 },
                 NULL,
-                NULL,
                 NULL);
             if (return_value == EBPF_SUCCESS) {
                 finalized = false;

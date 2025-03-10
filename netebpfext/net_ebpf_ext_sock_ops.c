@@ -120,7 +120,7 @@ static ebpf_program_data_t _ebpf_sock_ops_program_data = {
     .context_create = &_ebpf_sock_ops_context_create,
     .context_destroy = &_ebpf_sock_ops_context_destroy,
     .required_irql = DISPATCH_LEVEL,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // Set the program type as the provider module id.

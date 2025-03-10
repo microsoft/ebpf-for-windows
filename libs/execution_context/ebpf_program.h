@@ -200,7 +200,6 @@ extern "C"
      * @brief Invoke an ebpf_program_t instance.
      *
      * @param[in] program Program to invoke.
-     * @param[in] use_context_header Whether to use a context header to store state information.
      * @param[in,out] context Pointer to eBPF context for this program.
      * @param[out] result Output from the program.
      * @param[in] execution_state Execution context state.
@@ -211,7 +210,6 @@ extern "C"
     _Must_inspect_result_ ebpf_result_t
     ebpf_program_invoke(
         _In_ const ebpf_program_t* program,
-        bool use_context_header,
         _Inout_ void* context,
         _Out_ uint32_t* result,
         _Inout_ ebpf_execution_context_state_t* execution_state);
@@ -437,16 +435,6 @@ extern "C"
     ebpf_program_get_state_index();
 
     /**
-     * @brief Get whether the program information provider supports the context header.
-     *
-     * @param[in] program Pointer to the program object.
-     *
-     * @retval true The program supports the context header.
-     * @retval false The program does not support the context header.
-     */
-    bool
-    ebpf_program_supports_context_header(_In_ const ebpf_program_t* program);
-
     /**
      * @brief Set the runtime state in the program context.
      *

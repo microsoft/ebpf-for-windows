@@ -1149,10 +1149,12 @@ TEST_CASE("program", "[execution_context]")
             program.get(), EBPF_CODE_JIT, nullptr, reinterpret_cast<uint8_t*>(test_function), PAGE_SIZE) ==
         EBPF_SUCCESS);
     uint32_t result = 0;
-    sample_program_context_t ctx{0};
+    sample_program_context_header_t ctx_header{0};
+    sample_program_context_t* ctx = &ctx_header.context;
+
     ebpf_execution_context_state_t state{};
     ebpf_get_execution_context_state(&state);
-    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), false, &ctx, &result, &state);
+    ebpf_result_t ebpf_result = ebpf_program_invoke(program.get(), ctx, &result, &state);
     REQUIRE(ebpf_result == EBPF_SUCCESS);
     REQUIRE(result == TEST_FUNCTION_RETURN);
 
@@ -2348,7 +2350,7 @@ TEST_CASE("INVALID_PROGRAM_DATA", "[execution_context][negative]")
         EBPF_HELPER_FUNCTION_ADDRESSES_HEADER, EBPF_COUNT_OF(helper_functions), (uint64_t*)helper_functions};
 
     ebpf_program_data_t _test_program_data = {
-        EBPF_PROGRAM_DATA_HEADER, &_test_program_info, &helper_function_addresses};
+        EBPF_PROGRAM_DATA_HEADER, &_test_program_info, &helper_function_addresses, nullptr, nullptr, nullptr, 0, {0}};
 
     auto provider_attach_client_callback =
         [](HANDLE, void*, const NPI_REGISTRATION_INSTANCE*, void*, const void*, void**, const void**) -> NTSTATUS {

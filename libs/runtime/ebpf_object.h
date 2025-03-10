@@ -94,21 +94,14 @@ extern "C"
  * @brief Macro to initialize an object and record the file and line number of the reference.
  *EBPF_OBJECT_INITIALIZE
  */
-#define EBPF_OBJECT_INITIALIZE(                \
-    object,                                    \
-    object_type,                               \
-    free_function,                             \
-    zero_ref_function,                         \
-    get_program_type_function,                 \
-    get_context_header_support_function)       \
-    ebpf_object_initialize(                    \
-        (ebpf_core_object_t*)(object),         \
-        (object_type),                         \
-        (free_function),                       \
-        (zero_ref_function),                   \
-        (get_program_type_function),           \
-        (get_context_header_support_function), \
-        EBPF_FILE_ID,                          \
+#define EBPF_OBJECT_INITIALIZE(object, object_type, free_function, zero_ref_function, get_program_type_function) \
+    ebpf_object_initialize(                                                                                      \
+        (ebpf_core_object_t*)(object),                                                                           \
+        (object_type),                                                                                           \
+        (free_function),                                                                                         \
+        (zero_ref_function),                                                                                     \
+        (get_program_type_function),                                                                             \
+        EBPF_FILE_ID,                                                                                            \
         __LINE__)
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
@@ -119,7 +112,6 @@ extern "C"
     typedef void (*ebpf_zero_ref_count_t)(ebpf_core_object_t* object);
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
     typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
-    typedef const bool (*ebpf_object_get_context_header_support_t)(_In_ const ebpf_core_object_t* object);
 
     /**
      * @brief Base object for all reference counted eBPF objects. This struct is embedded as the first entry in all
@@ -147,12 +139,10 @@ extern "C"
         ebpf_zero_ref_count_t zero_ref_count; ///< Function to notify the object that the reference count has reached
                                               ///< zero.
         ebpf_object_get_program_type_t get_program_type; ///< Function to get the program type of this object.
-        ebpf_object_get_context_header_support_t
-            get_context_header_support;               ///< Function to get context header support for this object.
-        ebpf_id_t id;                                 ///< ID of this object.
-        ebpf_list_entry_t object_list_entry;          ///< Entry in the object list.
-        volatile int32_t pinned_path_count;           ///< Number of pinned paths for this object.
-        struct _ebpf_epoch_work_item* free_work_item; ///< Work item to free this object when the epoch ends.
+        ebpf_id_t id;                                    ///< ID of this object.
+        ebpf_list_entry_t object_list_entry;             ///< Entry in the object list.
+        volatile int32_t pinned_path_count;              ///< Number of pinned paths for this object.
+        struct _ebpf_epoch_work_item* free_work_item;    ///< Work item to free this object when the epoch ends.
     } ebpf_core_object_t;
 
     /**
@@ -192,7 +182,6 @@ extern "C"
         _In_ ebpf_free_object_t free_function,
         _In_opt_ ebpf_zero_ref_count_t zero_ref_count_function,
         ebpf_object_get_program_type_t get_program_type_function,
-        ebpf_object_get_context_header_support_t get_context_header_support_function,
         ebpf_file_id_t file_id,
         uint32_t line);
 

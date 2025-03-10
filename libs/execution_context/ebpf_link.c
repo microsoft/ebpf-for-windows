@@ -76,14 +76,7 @@ _ebpf_link_instance_invoke(
     _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_with_context_header(
-    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result);
-
-static ebpf_result_t
 _ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_size) void* state);
-
-static ebpf_result_t
-_ebpf_link_instance_invoke_batch_begin_with_context_header(size_t state_size, _Out_writes_(state_size) void* state);
 
 static ebpf_result_t
 _ebpf_link_instance_invoke_batch(
@@ -93,19 +86,9 @@ _ebpf_link_instance_invoke_batch(
     _In_ const void* state);
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_with_context_header(
-    _In_ const void* extension_client_binding_context,
-    _Inout_ void* program_context,
-    _Out_ uint32_t* result,
-    _In_ const void* state);
-
-static ebpf_result_t
 _ebpf_link_instance_invoke_batch_end(_Inout_ void* state);
 
-static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state);
-
-// Dispatch table when program information provider does not support context header.
+// Dispatch table.
 static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table = {
     EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT,
     EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT, // Count of functions. This should be updated when new functions
@@ -114,17 +97,6 @@ static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table =
     _ebpf_link_instance_invoke_batch_begin,
     _ebpf_link_instance_invoke_batch,
     _ebpf_link_instance_invoke_batch_end,
-};
-
-// Dispatch table when program information provider supports context header.
-static const ebpf_extension_program_dispatch_table_t _ebpf_link_dispatch_table_with_context_header = {
-    EBPF_LINK_DISPATCH_TABLE_VERSION_CURRENT,
-    EBPF_LINK_DISPATCH_TABLE_FUNCTION_COUNT_CURRENT, // Count of functions. This should be updated when new functions
-                                                     // are added.
-    _ebpf_link_instance_invoke_with_context_header,
-    _ebpf_link_instance_invoke_batch_begin_with_context_header,
-    _ebpf_link_instance_invoke_batch_with_context_header,
-    _ebpf_link_instance_invoke_batch_end_with_context_header,
 };
 
 // Assert that the invoke function is aligned with ebpf_extension_dispatch_table_t->function.
@@ -211,11 +183,7 @@ _ebpf_link_client_attach_provider(
     link->link_type = attach_provider_data->link_type;
     link->bpf_attach_type = attach_provider_data->bpf_attach_type;
 
-    if (ebpf_program_supports_context_header(link->program)) {
-        client_dispatch_table = (void*)&_ebpf_link_dispatch_table_with_context_header;
-    } else {
-        client_dispatch_table = (void*)&_ebpf_link_dispatch_table;
-    }
+    client_dispatch_table = (void*)&_ebpf_link_dispatch_table;
 
     ebpf_lock_unlock(&link->lock, state);
     lock_held = false;
@@ -319,8 +287,7 @@ ebpf_link_create(
 
     // Note: This must be the last thing done in this function as it inserts the object into the global list.
     // After this point, the object can be accessed by other threads.
-    ebpf_result_t result =
-        EBPF_OBJECT_INITIALIZE(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL, NULL, NULL);
+    ebpf_result_t result = EBPF_OBJECT_INITIALIZE(&local_link->object, EBPF_OBJECT_LINK, _ebpf_link_free, NULL, NULL);
     if (result != EBPF_SUCCESS) {
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "ebpf_object_initialize failed for link", result);
@@ -520,83 +487,6 @@ _ebpf_link_instance_invoke_batch_begin(size_t state_size, _Out_writes_(state_siz
 {
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     bool epoch_entered = false;
-    ebpf_result_t return_value;
-    if (state_size < sizeof(ebpf_execution_context_state_t)) {
-        return_value = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    memset(execution_context_state, 0, sizeof(ebpf_execution_context_state_t));
-
-    ebpf_get_execution_context_state(execution_context_state);
-    return_value = ebpf_state_store(ebpf_program_get_state_index(), (uintptr_t)state, execution_context_state);
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    ebpf_epoch_enter((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
-    epoch_entered = true;
-
-Done:
-    if (return_value != EBPF_SUCCESS && epoch_entered) {
-        ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
-    }
-
-    return return_value;
-}
-
-static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end(_Inout_ void* state)
-{
-    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
-    ebpf_assert_success(ebpf_state_store(ebpf_program_get_state_index(), 0, execution_context_state));
-    ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
-    return EBPF_SUCCESS;
-}
-
-static ebpf_result_t
-_ebpf_link_instance_invoke_batch(
-    _In_ const void* client_binding_context,
-    _Inout_ void* program_context,
-    _Out_ uint32_t* result,
-    _In_ const void* state)
-{
-    // No function entry exit traces as this is a high volume function.
-    ebpf_result_t return_value;
-    ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
-
-    return_value =
-        ebpf_program_invoke(link->program, false, program_context, result, (ebpf_execution_context_state_t*)state);
-
-    EBPF_RETURN_RESULT(return_value);
-}
-
-static ebpf_result_t
-_ebpf_link_instance_invoke_with_context_header(
-    _In_ const void* extension_client_binding_context, _Inout_ void* program_context, _Out_ uint32_t* result)
-{
-    ebpf_execution_context_state_t state = {0};
-    ebpf_result_t return_value;
-    return_value =
-        _ebpf_link_instance_invoke_batch_begin_with_context_header(sizeof(ebpf_execution_context_state_t), &state);
-
-    if (return_value != EBPF_SUCCESS) {
-        goto Done;
-    }
-
-    return_value = _ebpf_link_instance_invoke_batch_with_context_header(
-        extension_client_binding_context, program_context, result, &state);
-    (void)_ebpf_link_instance_invoke_batch_end_with_context_header(&state);
-
-Done:
-    return return_value;
-}
-
-static ebpf_result_t
-_ebpf_link_instance_invoke_batch_begin_with_context_header(size_t state_size, _Out_writes_(state_size) void* state)
-{
-    ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
-    bool epoch_entered = false;
     ebpf_result_t return_value = EBPF_SUCCESS;
     if (state_size < sizeof(ebpf_execution_context_state_t)) {
         return_value = EBPF_INVALID_ARGUMENT;
@@ -617,7 +507,7 @@ Done:
 }
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state)
+_ebpf_link_instance_invoke_batch_end(_Inout_ void* state)
 {
     ebpf_execution_context_state_t* execution_context_state = (ebpf_execution_context_state_t*)state;
     ebpf_epoch_exit((ebpf_epoch_state_t*)(execution_context_state->epoch_state));
@@ -625,7 +515,7 @@ _ebpf_link_instance_invoke_batch_end_with_context_header(_Inout_ void* state)
 }
 
 static ebpf_result_t
-_ebpf_link_instance_invoke_batch_with_context_header(
+_ebpf_link_instance_invoke_batch(
     _In_ const void* client_binding_context,
     _Inout_ void* program_context,
     _Out_ uint32_t* result,
@@ -635,8 +525,7 @@ _ebpf_link_instance_invoke_batch_with_context_header(
     ebpf_result_t return_value;
     ebpf_link_t* link = (ebpf_link_t*)client_binding_context;
 
-    return_value =
-        ebpf_program_invoke(link->program, true, program_context, result, (ebpf_execution_context_state_t*)state);
+    return_value = ebpf_program_invoke(link->program, program_context, result, (ebpf_execution_context_state_t*)state);
 
     EBPF_RETURN_RESULT(return_value);
 }
