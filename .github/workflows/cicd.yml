@@ -644,7 +644,9 @@ jobs:
 
   performance:
     needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # TODO - revert this
+    # if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: km_performance
