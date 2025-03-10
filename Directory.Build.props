@@ -85,7 +85,7 @@
   <!-- Select the best version of clang available. -->
   <!-- If $(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe exists, set ClangExe to that value -->
   <PropertyGroup Condition="Exists('$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe')">
-    <ClangExec>$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe</ClangExec>
+    <ClangExec>"$(VsInstallRoot)\VC\Tools\Llvm\bin\clang.exe"</ClangExec>
   </PropertyGroup>
   <!-- If $(ProgramFiles)\LLVM\bin\clang.exe exists, set ClangExe to that value -->
   <PropertyGroup Condition="Exists('$(ProgramFiles)\LLVM\bin\clang.exe')">
@@ -93,7 +93,7 @@
   </PropertyGroup>
   <!-- If $(SolutionDir)packages\llvm.tools\clang.exe exists, set ClangExe to that value -->
   <PropertyGroup Condition="Exists('$(SolutionDir)packages\llvm.tools\clang.exe')">
-    <ClangExec>$(SolutionDir)packages\llvm.tools\clang.exe</ClangExec>
+    <ClangExec>"$(SolutionDir)packages\llvm.tools\clang.exe"</ClangExec>
   </PropertyGroup>
   <!-- Set /allpdata only for the x64 platform. -->
   <PropertyGroup Condition="'$(Platform)'=='x64'">
