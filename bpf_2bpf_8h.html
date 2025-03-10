@@ -176,13 +176,8 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBADF</td><td>The file descriptor was not found.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBADF</td><td>The file descriptor was not found.</td></tr>
   </table>
   </dd>
 </dl>
@@ -216,9 +211,9 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the link. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>No link with the specified ID was found. </td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">-ENOENT</td><td>No link with the specified ID was found. </td></tr>
   </table>
   </dd>
 </dl>
@@ -262,13 +257,8 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>No more IDs found. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-ENOENT</td><td>No more IDs found. </td></tr>
   </table>
   </dd>
 </dl>
@@ -338,10 +328,10 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>
@@ -444,15 +434,10 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-EBADF</td><td>The file descriptor was not found. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>
@@ -483,9 +468,9 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the map. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>No map with the specified ID was found. </td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">-ENOENT</td><td>No map with the specified ID was found. </td></tr>
   </table>
   </dd>
 </dl>
@@ -529,13 +514,8 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>No more IDs found. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-ENOENT</td><td>No more IDs found. </td></tr>
   </table>
   </dd>
 </dl>
@@ -586,15 +566,10 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-EBADF</td><td>The file descriptor was not found. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>
@@ -807,15 +782,10 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-EBADF</td><td>The file descriptor was not found. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>
@@ -942,11 +912,13 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">EBADF</td><td>The file descriptor was not found. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory. </td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-EBADF</td><td>The file descriptor was not found. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1029,8 +1001,8 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
     <tr><td class="paramname">-EFAULT</td><td>A pointer passed in the input info was invalid. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1074,7 +1046,7 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1125,7 +1097,7 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1156,9 +1128,9 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the program. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>No program with the specified ID was found. </td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">-ENOENT</td><td>No program with the specified ID was found. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1202,13 +1174,8 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>No more IDs found. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-ENOENT</td><td>No more IDs found. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1278,11 +1245,11 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A new file descriptor that refers to the program. The caller should call _close() on the fd to close this when done. A negative value indicates an error occurred and errno was set.</dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EACCES</td><td>The program failed verification. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>One or more parameters are incorrect. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">-EACCES</td><td>The program failed verification. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>One or more parameters are incorrect. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1292,7 +1259,7 @@ Functions</h2></td></tr>
 <dd>
 <a class="el" href="libbpf_8h.html#a473872ff7ab53d1ed593e7abd206f31a" title="Close an eBPF object.">bpf_object__close</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="bpf_program__attach() is a generic function for attaching a BPF program based on the program&#39;s expect...">bpf_program__attach</a> </dd></dl>
 
 </div>
 </div>

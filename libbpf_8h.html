@@ -145,7 +145,7 @@ Functions</h2></td></tr>
 <tr class="memdesc:a473872ff7ab53d1ed593e7abd206f31a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Close an eBPF object.  <br /></td></tr>
 <tr class="separator:a473872ff7ab53d1ed593e7abd206f31a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a72b67f6c7dc1ec49224ba9c2c60ca175" id="r_a72b67f6c7dc1ec49224ba9c2c60ca175"><td class="memItemLeft" align="right" valign="top">struct <a class="el" href="bpf__helpers__platform_8h.html#a1d98f863fc6ebf789b378348438181ca">bpf_map</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a72b67f6c7dc1ec49224ba9c2c60ca175">bpf_object__find_map_by_name</a> (const struct bpf_object *obj, const char *name)</td></tr>
-<tr class="memdesc:a72b67f6c7dc1ec49224ba9c2c60ca175"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find a map with a given name among maps associated with an eBPF object.  <br /></td></tr>
+<tr class="memdesc:a72b67f6c7dc1ec49224ba9c2c60ca175"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="libbpf_8h.html#a72b67f6c7dc1ec49224ba9c2c60ca175" title="bpf_object__find_map_by_name() returns BPF map of the given name, if it exists within the passed BPF ...">bpf_object__find_map_by_name()</a></b> returns BPF map of the given name, if it exists within the passed BPF object  <br /></td></tr>
 <tr class="separator:a72b67f6c7dc1ec49224ba9c2c60ca175"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a751c311d3c0ee870aadac9386574aad2" id="r_a751c311d3c0ee870aadac9386574aad2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a751c311d3c0ee870aadac9386574aad2">bpf_object__find_map_fd_by_name</a> (const struct bpf_object *obj, const char *name)</td></tr>
 <tr class="memdesc:a751c311d3c0ee870aadac9386574aad2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Find a map with a given name among maps associated with an eBPF object.  <br /></td></tr>
@@ -194,7 +194,7 @@ Functions</h2></td></tr>
 <tr class="separator:a707d517a9861144008ed57e717ac174a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Program-related functions</div></td></tr>
 <tr class="memitem:a2cb6f5b42c072f676cb0b90b606779b4" id="r_a2cb6f5b42c072f676cb0b90b606779b4"><td class="memItemLeft" align="right" valign="top">struct bpf_link *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4">bpf_program__attach</a> (const struct bpf_program *prog)</td></tr>
-<tr class="memdesc:a2cb6f5b42c072f676cb0b90b606779b4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to a hook associated with the program's expected attach type.  <br /></td></tr>
+<tr class="memdesc:a2cb6f5b42c072f676cb0b90b606779b4"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="bpf_program__attach() is a generic function for attaching a BPF program based on the program&#39;s expect...">bpf_program__attach()</a></b> is a generic function for attaching a BPF program based on the program's expected attach type.  <br /></td></tr>
 <tr class="separator:a2cb6f5b42c072f676cb0b90b606779b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4ae7e281e91ef6de40ae064c9d432ede" id="r_a4ae7e281e91ef6de40ae064c9d432ede"><td class="memItemLeft" align="right" valign="top">struct bpf_link *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a4ae7e281e91ef6de40ae064c9d432ede">bpf_program__attach_xdp</a> (struct bpf_program *prog, int ifindex)</td></tr>
 <tr class="memdesc:a4ae7e281e91ef6de40ae064c9d432ede"><td class="mdescLeft">&#160;</td><td class="mdescRight">Attach an eBPF program to an XDP hook.  <br /></td></tr>
@@ -230,16 +230,16 @@ Functions</h2></td></tr>
 <tr class="memdesc:a949f7fce5258cf85c22204a3202d8e5a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the function name of an eBPF program.  <br /></td></tr>
 <tr class="separator:a949f7fce5258cf85c22204a3202d8e5a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afdd9d5fdcf93964e5cdee24c2c1ca89f" id="r_afdd9d5fdcf93964e5cdee24c2c1ca89f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f">bpf_program__pin</a> (struct bpf_program *prog, const char *path)</td></tr>
-<tr class="memdesc:afdd9d5fdcf93964e5cdee24c2c1ca89f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pin a program to a specified path.  <br /></td></tr>
+<tr class="memdesc:afdd9d5fdcf93964e5cdee24c2c1ca89f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Pin a program to a specified path. This increments the programs reference count, allowing it to stay loaded after the process which loaded it has exited.  <br /></td></tr>
 <tr class="separator:afdd9d5fdcf93964e5cdee24c2c1ca89f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afc04693f20b33b79a9dffcbdc75e2ea4" id="r_afc04693f20b33b79a9dffcbdc75e2ea4"><td class="memItemLeft" align="right" valign="top">const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#afc04693f20b33b79a9dffcbdc75e2ea4">bpf_program__section_name</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:afc04693f20b33b79a9dffcbdc75e2ea4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Gets the ELF section name of an eBPF program, if any.  <br /></td></tr>
 <tr class="separator:afc04693f20b33b79a9dffcbdc75e2ea4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a25396259cabd7f6a45eb3c392ce3dc72" id="r_a25396259cabd7f6a45eb3c392ce3dc72"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72">bpf_program__set_expected_attach_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a> type)</td></tr>
-<tr class="memdesc:a25396259cabd7f6a45eb3c392ce3dc72"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the expected attach type for an eBPF program.  <br /></td></tr>
+<tr class="memdesc:a25396259cabd7f6a45eb3c392ce3dc72"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="bpf_program__set_expected_attach_type() sets the attach type of the passed BPF program....">bpf_program__set_expected_attach_type()</a></b> sets the attach type of the passed BPF program. This is used for auto-detection of attachment when programs are loaded.  <br /></td></tr>
 <tr class="separator:a25396259cabd7f6a45eb3c392ce3dc72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a85680f4c5e04b167ba7a269cf92c8391" id="r_a85680f4c5e04b167ba7a269cf92c8391"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a85680f4c5e04b167ba7a269cf92c8391">bpf_program__set_type</a> (struct bpf_program *prog, enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a> type)</td></tr>
-<tr class="memdesc:a85680f4c5e04b167ba7a269cf92c8391"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the program type for an eBPF program.  <br /></td></tr>
+<tr class="memdesc:a85680f4c5e04b167ba7a269cf92c8391"><td class="mdescLeft">&#160;</td><td class="mdescRight"><b><a class="el" href="libbpf_8h.html#a85680f4c5e04b167ba7a269cf92c8391" title="bpf_program__set_type() sets the program type of the passed BPF program.">bpf_program__set_type()</a></b> sets the program type of the passed BPF program.  <br /></td></tr>
 <tr class="separator:a85680f4c5e04b167ba7a269cf92c8391"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a789393546ed103be96e012387b12bdcf" id="r_a789393546ed103be96e012387b12bdcf"><td class="memItemLeft" align="right" valign="top">enum <a class="el" href="ebpf__structs_8h.html#a0f8242763b15ec665eaa47c6add861a0">bpf_prog_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf">bpf_program__type</a> (const struct bpf_program *prog)</td></tr>
 <tr class="memdesc:a789393546ed103be96e012387b12bdcf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the program type for an eBPF program.  <br /></td></tr>
@@ -410,16 +410,11 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBUSY</td><td>A pin path was previously specified. </td></tr>
-    <tr><td class="paramname">EEXIST</td><td>Something is already pinned to the specified path. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBUSY</td><td>A pin path was previously specified. </td></tr>
+    <tr><td class="paramname">-EEXIST</td><td>Something is already pinned to the specified path. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -453,14 +448,9 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOENT</td><td>The link was not pinned.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOENT</td><td>The link was not pinned.</td></tr>
   </table>
   </dd>
 </dl>
@@ -491,7 +481,7 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>File descriptor that refers to the map. The caller should not call _close() on the fd. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>the file descriptor; or -EINVAL in case of an error. The caller should not call _close() on the fd. </dd></dl>
 
 </div>
 </div>
@@ -651,16 +641,11 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBUSY</td><td>A pin path was previously specified. </td></tr>
-    <tr><td class="paramname">EEXIST</td><td>Something is already pinned to the specified path. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBUSY</td><td>A pin path was previously specified. </td></tr>
+    <tr><td class="paramname">-EEXIST</td><td>Something is already pinned to the specified path. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -734,14 +719,9 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOENT</td><td>The map was not pinned.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOENT</td><td>The map was not pinned.</td></tr>
   </table>
   </dd>
 </dl>
@@ -831,21 +811,15 @@ Functions</h2></td></tr>
       </table>
 </div><div class="memdoc">
 
-<p>Find a map with a given name among maps associated with an eBPF object. </p>
+<p><b><a class="el" href="libbpf_8h.html#a72b67f6c7dc1ec49224ba9c2c60ca175" title="bpf_object__find_map_by_name() returns BPF map of the given name, if it exists within the passed BPF ...">bpf_object__find_map_by_name()</a></b> returns BPF map of the given name, if it exists within the passed BPF object </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">obj</td><td>The object to check. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>The name to look for.</td></tr>
+    <tr><td class="paramname">obj</td><td>BPF object </td></tr>
+    <tr><td class="paramname">name</td><td>name of the BPF map </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The map found, or NULL if none.</dd></dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">ENOENT</td><td>The map was not found. </td></tr>
-  </table>
-  </dd>
-</dl>
+<dl class="section return"><dt>Returns</dt><dd>BPF map instance, if such map exists within the BPF object; or NULL otherwise. </dd></dl>
 
 </div>
 </div>
@@ -953,14 +927,9 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1136,11 +1105,11 @@ Functions</h2></td></tr>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">path</td><td>File name to open. </td></tr>
-    <tr><td class="paramdir"></td><td class="paramname">[opts]</td><td>opts Options to use when opening the object, or NULL pointer for default.</td></tr>
+    <tr><td class="paramdir"></td><td class="paramname">opts</td><td>options for how to load the bpf object, this parameter is optional and can be set to NULL </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>Pointer to an eBPF object, or NULL on failure. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>pointer to the new bpf_object; or NULL is returned on error, error code is stored in errno </dd></dl>
 
 </div>
 </div>
@@ -1181,15 +1150,10 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBUSY</td><td>Something is already pinned to the specified path. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBUSY</td><td>Something is already pinned to the specified path. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1240,15 +1204,10 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBUSY</td><td>Something is already pinned to the specified path. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBUSY</td><td>Something is already pinned to the specified path. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1297,19 +1256,14 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBUSY</td><td>Something is already pinned to the specified path. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBUSY</td><td>Something is already pinned to the specified path. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f" title="Pin a program to a specified path.">bpf_program__pin</a> </dd>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f" title="Pin a program to a specified path. This increments the programs reference count, allowing it to stay ...">bpf_program__pin</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a854b1fd0041c09fd70dbfa6103483216" title="Pin an eBPF object to a specified path.">bpf_object__pin</a> </dd>
 <dd>
@@ -1432,13 +1386,8 @@ Functions</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1487,13 +1436,8 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1556,7 +1500,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1600,7 +1544,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1651,7 +1595,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1674,19 +1618,19 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Attach an eBPF program to a hook associated with the program's expected attach type. </p>
+<p><b><a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="bpf_program__attach() is a generic function for attaching a BPF program based on the program&#39;s expect...">bpf_program__attach()</a></b> is a generic function for attaching a BPF program based on the program's expected attach type. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>The program to attach.</td></tr>
+    <tr><td class="paramname">prog</td><td>BPF program to attach. </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The link created. On error, returns NULL and sets errno.</dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>Reference to the newly created BPF link; or NULL is returned on error, error code is stored in errno.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#ab10dd31881e90cb8ba93ffb77b92308b" title="Clean up a link.">bpf_link__destroy</a> </dd>
 <dd>
 <a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
+<a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="bpf_program__set_expected_attach_type() sets the attach type of the passed BPF program....">bpf_program__set_expected_attach_type</a> </dd>
 <dd>
 <a class="el" href="ebpf__api_8h.html#abc700a48b16468b970f12fd3b545081b">ebpf_link_close</a> </dd></dl>
 
@@ -1729,7 +1673,7 @@ bpf_object__unpin </dd></dl>
 <dl class="section return"><dt>Returns</dt><dd>The link created. On error, returns NULL and sets errno.</dd></dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#ab10dd31881e90cb8ba93ffb77b92308b" title="Clean up a link.">bpf_link__destroy</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
+<a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="bpf_program__attach() is a generic function for attaching a BPF program based on the program&#39;s expect...">bpf_program__attach</a> </dd>
 <dd>
 <a class="el" href="ebpf__api_8h.html#abc700a48b16468b970f12fd3b545081b">ebpf_link_close</a> </dd></dl>
 
@@ -1845,9 +1789,9 @@ bpf_object__unpin </dd></dl>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Expected attach type.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="bpf_program__attach() is a generic function for attaching a BPF program based on the program&#39;s expect...">bpf_program__attach</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="bpf_program__set_expected_attach_type() sets the attach type of the passed BPF program....">bpf_program__set_expected_attach_type</a> </dd></dl>
 
 </div>
 </div>
@@ -1963,7 +1907,7 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Pin a program to a specified path. </p>
+<p>Pin a program to a specified path. This increments the programs reference count, allowing it to stay loaded after the process which loaded it has exited. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to pin. </td></tr>
@@ -1974,16 +1918,11 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EBUSY</td><td>A pin path was previously specified. </td></tr>
-    <tr><td class="paramname">EEXIST</td><td>Something is already pinned to the specified path. </td></tr>
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOMEM</td><td>Out of memory.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EBUSY</td><td>A pin path was previously specified. </td></tr>
+    <tr><td class="paramname">-EEXIST</td><td>Something is already pinned to the specified path. </td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOMEM</td><td>Out of memory.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2058,7 +1997,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2096,24 +2035,16 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Set the expected attach type for an eBPF program. </p>
+<p><b><a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="bpf_program__set_expected_attach_type() sets the attach type of the passed BPF program....">bpf_program__set_expected_attach_type()</a></b> sets the attach type of the passed BPF program. This is used for auto-detection of attachment when programs are loaded. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to update. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Attach type to set.</td></tr>
+    <tr><td class="paramname">prog</td><td>BPF program to set the attach type for </td></tr>
+    <tr><td class="paramname">type</td><td>attach type to set the BPF map to have </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a2cb6f5b42c072f676cb0b90b606779b4" title="Attach an eBPF program to a hook associated with the program&#39;s expected attach type.">bpf_program__attach</a> </dd>
-<dd>
-<a class="el" href="libbpf_8h.html#a533e13b68a34e8228fbadeecf63b658a" title="Get the expected attach type for an eBPF program.">bpf_program__get_expected_attach_type</a></dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
-  </table>
-  </dd>
-</dl>
+<dl class="section return"><dt>Returns</dt><dd>error code; or 0 if no error. An error occurs if the object is already loaded.</dd></dl>
+<p>This must be called before the BPF object is loaded, otherwise it has no effect and an error is returned. </p>
 
 </div>
 </div>
@@ -2187,24 +2118,16 @@ bpf_object__unpin </dd></dl>
       </table>
 </div><div class="memdoc">
 
-<p>Set the program type for an eBPF program. </p>
+<p><b><a class="el" href="libbpf_8h.html#a85680f4c5e04b167ba7a269cf92c8391" title="bpf_program__set_type() sets the program type of the passed BPF program.">bpf_program__set_type()</a></b> sets the program type of the passed BPF program. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">prog</td><td>Program to update. </td></tr>
-    <tr><td class="paramdir">[in]</td><td class="paramname">type</td><td>Program type to set.</td></tr>
+    <tr><td class="paramname">prog</td><td>BPF program to set the program type for </td></tr>
+    <tr><td class="paramname">type</td><td>program type to set the BPF map to have </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a25396259cabd7f6a45eb3c392ce3dc72" title="Set the expected attach type for an eBPF program.">bpf_program__set_expected_attach_type</a> </dd>
-<dd>
-<a class="el" href="libbpf_8h.html#a789393546ed103be96e012387b12bdcf" title="Get the program type for an eBPF program.">bpf_program__type</a></dd></dl>
-<dl class="retval"><dt>Return values</dt><dd>
-  <table class="retval">
-    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
-  </table>
-  </dd>
-</dl>
+<dl class="section return"><dt>Returns</dt><dd>error code; or 0 if no error. An error occurs if the object is already loaded.</dd></dl>
+<p>This must be called before the BPF object is loaded, otherwise it has no effect and an error is returned. </p>
 
 </div>
 </div>
@@ -2302,20 +2225,15 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="exception"><dt>Exceptions</dt><dd>
-  <table class="exception">
-    <tr><td class="paramname">EINVAL</td><td>An invalid argument was provided. </td></tr>
-    <tr><td class="paramname">ENOENT</td><td>The program was not pinned.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
+    <tr><td class="paramname">-EINVAL</td><td>An invalid argument was provided. </td></tr>
+    <tr><td class="paramname">-ENOENT</td><td>The program was not pinned.</td></tr>
   </table>
   </dd>
 </dl>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="libbpf_8h.html#a707d517a9861144008ed57e717ac174a" title="Unpin all programs associated with an eBPF object from a specified path.">bpf_object__unpin_programs</a> </dd>
 <dd>
-<a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f" title="Pin a program to a specified path.">bpf_program__pin</a> </dd></dl>
+<a class="el" href="libbpf_8h.html#afdd9d5fdcf93964e5cdee24c2c1ca89f" title="Pin a program to a specified path. This increments the programs reference count, allowing it to stay ...">bpf_program__pin</a> </dd></dl>
 
 </div>
 </div>
@@ -2370,7 +2288,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2425,7 +2343,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2481,7 +2399,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set.</td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set.</td></tr>
   </table>
   </dd>
 </dl>
@@ -2526,7 +2444,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -2733,7 +2651,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
@@ -2784,7 +2702,7 @@ bpf_object__unpin </dd></dl>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
-    <tr><td class="paramname">&lt;0</td><td>An error occured, and errno was set. </td></tr>
+    <tr><td class="paramname">&lt;0</td><td>An error occurred, and errno was set. </td></tr>
   </table>
   </dd>
 </dl>
