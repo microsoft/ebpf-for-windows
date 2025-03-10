@@ -1683,7 +1683,7 @@ _verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const ch
     REQUIRE(result == 0);
     ebpf_id_t id = info.id;
 
-    // TODO(#xxx): Verify it has exactly one path pinned.
+    // TODO(#4273): Verify it has exactly one path pinned.
     // REQUIRE(info.pinned_path_count == 1);
 
     // Look up the actual path pinned.
