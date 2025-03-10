@@ -725,3 +725,14 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
+
+/**
+ * @brief Canonicalize a path using filesystem canonicalization rules.
+ *
+ * @param[in] path Path string to canonicalize.
+ * @param[out] error_code Zero on success, non-zero Win32 error code on failure.
+ *
+ * @returns Canonicalized path, or empty string on failure.
+ */
+std::string
+ebpf_canonicalize_path(_In_z_ const char* path, _Out_ uint32_t* error_code) noexcept;
