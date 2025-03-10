@@ -74,23 +74,18 @@ $Job = Start-Job -ScriptBlock {
     # Get all VMs to ready state.
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-    # Export build artifacts to the test VMs.
-    # Attempt with a few retries
-    $RetryCount = 0
+    # Export build artifacts to the test VMs. Attempt with a few retries.
     $MaxRetryCount = 5
-    $RetryInterval = 5
-    while ($RetryCount -lt $MaxRetryCount) {
+    for ($i = 0; $i -lt $MaxRetryCount; $i += 1) {
         try {
             Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
             break
         } catch {
-            Write-Log "Exporting build artifacts to VMs failed. Retrying in $RetryInterval seconds."
-            Start-Sleep -Seconds $RetryInterval
-            $RetryCount++
-            if ($RetryCount -eq $MaxRetryCount) {
-                Write-Log "Exporting build artifacts to VMs failed after $MaxRetryCount attempts."
+            if ($i -eq $MaxRetryCount) {
+                Write-Log "Export-BuildArtifactsToVMs failed after $MaxRetryCount attempts."
                 throw
             }
+            Write-Log "Export-BuildArtifactsToVMs failed. Retrying..."
         }
     }
 
