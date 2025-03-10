@@ -1670,6 +1670,65 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     ebpf_test_pinned_map_enum();
 }
 
+static void
+_verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const char* canonical_path)
+{
+    REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin(canonical_path) == EBPF_SUCCESS);
+}
+
+TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
+    REQUIRE(hook.initialize() == EBPF_SUCCESS);
+    program_info_provider_t sample_program_info;
+    REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
+
+    bpf_object_ptr unique_object;
+    fd_t program_fd;
+    const char* error_message = nullptr;
+
+    int result = ebpf_program_load(
+        SAMPLE_PATH "test_sample_ebpf_um.dll",
+        BPF_PROG_TYPE_UNSPEC,
+        EBPF_EXECUTION_NATIVE,
+        &unique_object,
+        &program_fd,
+        &error_message);
+
+    if (error_message) {
+        printf("ebpf_program_load failed with %s\n", error_message);
+        ebpf_free((void*)error_message);
+    }
+    REQUIRE(result == 0);
+    REQUIRE(program_fd > 0);
+
+    fd_t map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "test_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Verify we cannot pin illegal paths.
+    const char* illegal_paths[] = {
+        "/../1",
+        "../2",
+        "/ebpf/../../3",
+        "//4",
+    };
+    for (int i = 0; i < RTL_NUMBER_OF(illegal_paths); i++) {
+        REQUIRE(bpf_obj_pin(map_fd, illegal_paths[i]) == -EINVAL);
+    }
+
+    // Verify pin path canonicalization.
+    _verify_canonical_path(map_fd, "\\ebpf\\1", "/ebpf/1");
+    _verify_canonical_path(map_fd, "/ebpf/./1", "/ebpf/1");
+    _verify_canonical_path(map_fd, "/ebpf/test/../1", "/ebpf/1");
+
+    Platform::_close(map_fd);
+    bpf_object__close(unique_object.release());
+}
+
 TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
 {
     _test_helper_end_to_end test_helper;
