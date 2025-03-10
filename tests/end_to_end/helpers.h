@@ -752,6 +752,8 @@ static ebpf_program_data_t _mock_xdp_program_data = {
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy,
+    0,
+    {0},
 };
 
 // XDP_TEST.
@@ -762,6 +764,8 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     nullptr,
     _xdp_context_create,
     _xdp_context_destroy,
+    0,
+    {0},
 };
 
 // Bind.
@@ -1135,7 +1139,10 @@ static ebpf_program_data_t _test_ebpf_sample_extension_program_data = {
     &_sample_ebpf_ext_helper_function_address_table,
     &_test_global_helper_function_address_table,
     _sample_test_context_create,
-    _sample_test_context_destroy};
+    _sample_test_context_destroy,
+    0,
+    {0},
+};
 
 #define TEST_EBPF_SAMPLE_EXTENSION_NPI_PROVIDER_VERSION 0
 
