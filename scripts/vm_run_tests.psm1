@@ -589,8 +589,8 @@ function Invoke-ConnectRedirectTestsOnVM
     # First remove the existing StandardUser account (if found). This can happen if the previous test run terminated
     # abnormally before performing the requisite post-test-run clean-up.
     $UserId = Invoke-Command -VMName $VMName -Credential $TestCredential `
-           -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
-           -Argumentlist $StandardUser -ErrorAction SilentlyContinue
+        -ScriptBlock {param ($StandardUser) Get-LocalUser -Name "$StandardUser"} `
+        -Argumentlist $StandardUser -ErrorAction SilentlyContinue
     if($UserId) {
         Write-Log "Deleting existing standard user: $StandardUser on $VMName"
         Remove-StandardUserOnVM -VM $VMName -UserName $StandardUser

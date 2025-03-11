@@ -23,6 +23,7 @@ Environment:
 #include "net_ebpf_ext_sock_ops.h"
 #include "net_ebpf_ext_xdp.h"
 
+#define SECONDSTO100NS(x) ((x)*10000000)
 #define SUBLAYER_WEIGHT_MAXIMUM 0xFFFF
 
 // Globals.
@@ -47,6 +48,9 @@ static net_ebpf_ext_sublayer_info_t _net_ebpf_ext_sublayers[] = {
      L"Sub-Layer for use by eBPF connect redirect callouts",
      0,
      SUBLAYER_WEIGHT_MAXIMUM}};
+
+// Global object used to store state for cleanup.
+static net_ebpf_extension_wfp_cleanup_state_t _net_ebpf_ext_wfp_cleanup_state = {0};
 
 static void
 _net_ebpf_ext_flow_delete(uint16_t layer_id, uint32_t callout_id, uint64_t flow_context);
@@ -315,6 +319,7 @@ net_ebpf_extension_wfp_filter_context_cleanup(_Frees_ptr_ net_ebpf_extension_wfp
     // lingering WFP classify callbacks will exit as it would not find any hook client associated
     // with the filter context. This is best effort & no locks are held.
     filter_context->context_deleting = TRUE;
+    net_ebpf_ext_add_filter_context_to_cleanup_list(filter_context);
     DEREFERENCE_FILTER_CONTEXT(filter_context);
 }
 
@@ -385,6 +390,7 @@ net_ebpf_extension_get_callout_id_for_hook(net_ebpf_extension_hook_id_t hook_id)
 
     return callout_id;
 }
+
 void
 net_ebpf_extension_delete_wfp_filters(
     _In_ HANDLE wfp_engine_handle,
@@ -397,20 +403,24 @@ net_ebpf_extension_delete_wfp_filters(
     ASSERT(wfp_engine_handle != NULL);
 
     for (uint32_t index = 0; index < filter_count; index++) {
+        filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         status = FwpmFilterDeleteById(wfp_engine_handle, filter_ids[index].id);
+        filter_ids[index].error_code = status;
         if (!NT_SUCCESS(status)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmFilterDeleteById", status);
+            NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
+                NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
+                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                "FwpmFilterDeleteById failed to mark WFP filter for deletion.",
+                status,
+                filter_ids[index].id);
             filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETE_FAILED;
-            filter_ids[index].error_code = status;
         } else {
             NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                 NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                "Marked WFP filter for deletion: ",
+                "FwpmFilterDeleteById successfully marked WFP filter for deletion",
                 index,
                 filter_ids[index].id);
-            filter_ids[index].state = NET_EBPF_EXT_WFP_FILTER_DELETING;
         }
     }
     NET_EBPF_EXT_LOG_EXIT();
@@ -682,6 +692,10 @@ net_ebpf_extension_initialize_wfp_components(_Inout_ void* device_object)
         goto Exit;
     }
 
+    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
+    InitializeListHead(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
+    KeInitializeEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, NotificationEvent, FALSE);
+
     status = FwpmEngineOpen(NULL, RPC_C_AUTHN_WINNT, NULL, NULL, &_fwp_engine_handle);
     NET_EBPF_EXT_BAIL_ON_API_FAILURE_STATUS(NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmEngineOpen", status);
     is_engine_opened = TRUE;
@@ -757,37 +771,73 @@ net_ebpf_extension_uninitialize_wfp_components(void)
 {
     size_t index;
     NTSTATUS status;
+    const int max_retries = 10;
+    LARGE_INTEGER timeout = {0};
+    timeout.QuadPart = -SECONDSTO100NS(10);
+
+    NET_EBPF_EXT_LOG_ENTRY();
 
     if (_fwp_engine_handle != NULL) {
-        // Clean up the callouts
+        // WFP operations may fail if connections are in the middle of being classified and our WFP filters or callouts
+        // are in use. Prior to this function execution, it is expected that the WFP filter objects were removed,
+        // reducing the risk of this failure to occur. However, the following cleanup functions have retry logic built
+        // in to help ensure that the WFP objects are cleaned up properly.
+
+        // Clean up the callouts.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_wfp_callout_states); index++) {
-            status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
-            if (!NT_SUCCESS(status) && !WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
+
+            for (int i = 1; i <= max_retries; i++) {
+                status = FwpsCalloutUnregisterById(_net_ebpf_ext_wfp_callout_states[index].assigned_callout_id);
+                if (NT_SUCCESS(status) || WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
+                    break;
+                }
+
+                if (i == max_retries) {
+                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsCalloutUnregisterById", status);
+                }
             }
 
-            status = FwpmCalloutDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
-            if (!NT_SUCCESS(status) && !WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
+            for (int i = 1; i <= max_retries; i++) {
+                status =
+                    FwpmCalloutDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_wfp_callout_states[index].callout_guid);
+                if (NT_SUCCESS(status) || WFP_ERROR(status, CALLOUT_NOT_FOUND)) {
+                    break;
+                }
+
+                if (i == max_retries) {
+                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmCalloutDeleteByKey", status);
+                }
             }
         }
 
         // Clean up the sub layers.
         for (index = 0; index < EBPF_COUNT_OF(_net_ebpf_ext_sublayers); index++) {
-            status = FwpmSubLayerDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
-            if (!NT_SUCCESS(status) && !WFP_ERROR(status, SUBLAYER_NOT_FOUND)) {
-                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
+            for (int i = 1; i <= max_retries; i++) {
+                status = FwpmSubLayerDeleteByKey(_fwp_engine_handle, _net_ebpf_ext_sublayers[index].sublayer_guid);
+                if (NT_SUCCESS(status) || WFP_ERROR(status, SUBLAYER_NOT_FOUND)) {
+                    break;
+                }
+
+                if (i == max_retries) {
+                    NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmSubLayerDeleteByKey", status);
+                }
             }
         }
 
         // Clean up the providers.
-        status = FwpmProviderDeleteByKey(_fwp_engine_handle, &EBPF_WFP_PROVIDER);
-        if (!NT_SUCCESS(status) && !WFP_ERROR(status, PROVIDER_NOT_FOUND)) {
-            NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
-                NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
+        for (int i = 1; i <= max_retries; i++) {
+            status = FwpmProviderDeleteByKey(_fwp_engine_handle, &EBPF_WFP_PROVIDER);
+            if (NT_SUCCESS(status) || WFP_ERROR(status, PROVIDER_NOT_FOUND)) {
+                break;
+            }
+
+            if (i == max_retries) {
+                NET_EBPF_EXT_LOG_NTSTATUS_API_FAILURE(
+                    NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpmProviderDeleteByKey", status);
+            }
         }
 
         // Close the engine handle.
@@ -806,6 +856,81 @@ net_ebpf_extension_uninitialize_wfp_components(void)
                 NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION, "FwpsInjectionHandleDestroy", status);
         }
     }
+
+    // If there are cleanup filters, sleep to give WFP time to issue callbacks. Once this timeout completes,
+    // we assume that any remaining notifications will not be issued, and proceed with cleanup.
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    if (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
+        NET_EBPF_EXT_LOG_MESSAGE(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+            "Leaked WFP Filters found. Processing cleanup.");
+        _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list = TRUE;
+
+        // Allow some time for WFP to signal deletion for the filters. KeWaitForSingleObject also requires dropping the
+        // IRQL level and therefore the lock.
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+        status = KeWaitForSingleObject(
+            &_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, Executive, KernelMode, FALSE, &timeout);
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+
+#pragma warning(push)
+#pragma warning(disable : 6001) // Using uninitialized memory 'filter_context' and 'filter_id'.
+        // Proceed with cleanup - assume that any remaining notifications will never be issued by WFP,
+        // and continue with cleaning up our internal state.
+        while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list)) {
+            uint32_t leaked_filter_count = 0;
+            PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list);
+            net_ebpf_extension_wfp_filter_context_t* filter_context =
+                CONTAINING_RECORD(entry, net_ebpf_extension_wfp_filter_context_t, link);
+            InitializeListHead(&filter_context->link);
+
+            // Release lock as we process the entry. DEREFERENCE_FILTER_CONTEXT also acquires the lock.
+            ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+
+            // Anything left in the NET_EBPF_EXT_WFP_FILTER_DELETING is considered leaked. Remove the references
+            // to allow for cleanup.
+            for (index = 0; index < filter_context->filter_ids_count; index++) {
+                net_ebpf_ext_wfp_filter_id_t* filter_id = &filter_context->filter_ids[index];
+                if (filter_id->state == NET_EBPF_EXT_WFP_FILTER_DELETING) {
+                    leaked_filter_count++;
+                    NET_EBPF_EXT_LOG_MESSAGE_UINT64(
+                        NET_EBPF_EXT_TRACELOG_LEVEL_WARNING,
+                        NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
+                        "Releasing reference for leaked WFP filter.",
+                        filter_id->id);
+                }
+            }
+
+            // Remove remaining references.
+            ASSERT(filter_context->reference_count == (long)leaked_filter_count);
+            for (index = 0; index < leaked_filter_count; index++) {
+                DEREFERENCE_FILTER_CONTEXT(filter_context);
+            }
+
+            old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+        }
+#pragma warning(pop)
+    }
+
+    // Iterate through the provider list and handle cleanup.
+    while (!IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list)) {
+        PLIST_ENTRY entry = RemoveHeadList(&_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list);
+        net_ebpf_extension_hook_provider_t* provider_context =
+            CONTAINING_RECORD(entry, net_ebpf_extension_hook_provider_t, cleanup_list_entry);
+
+        // Release the lock as waiting for rundown can take time.
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+        _ebpf_ext_wait_for_rundown(&provider_context->rundown);
+        ExFreePool(provider_context);
+
+        // Re-acquire the lock.
+        old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    }
+
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 NTSTATUS
@@ -815,6 +940,7 @@ net_ebpf_ext_filter_change_notify(
     NET_EBPF_EXT_LOG_ENTRY();
 
     UNREFERENCED_PARAMETER(filter_key);
+
     if (callout_notification_type == FWPS_CALLOUT_NOTIFY_DELETE_FILTER) {
         net_ebpf_extension_wfp_filter_context_t* filter_context =
             (net_ebpf_extension_wfp_filter_context_t*)(uintptr_t)filter->context;
@@ -826,7 +952,7 @@ net_ebpf_ext_filter_change_notify(
                 NET_EBPF_EXT_LOG_MESSAGE_UINT64_UINT64(
                     NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
                     NET_EBPF_EXT_TRACELOG_KEYWORD_EXTENSION,
-                    "Deleted WFP filter: ",
+                    "Received WFP filter delete callback.",
                     index,
                     cur_filter_id->id);
 
@@ -914,6 +1040,8 @@ Exit:
 void
 net_ebpf_ext_unregister_providers()
 {
+    NET_EBPF_EXT_LOG_ENTRY();
+
     if (_net_ebpf_xdp_providers_registered) {
         net_ebpf_ext_xdp_unregister_providers();
         _net_ebpf_xdp_providers_registered = false;
@@ -930,6 +1058,8 @@ net_ebpf_ext_unregister_providers()
         net_ebpf_ext_sock_ops_unregister_providers();
         _net_ebpf_sock_ops_providers_registered = false;
     }
+
+    NET_EBPF_EXT_LOG_EXIT();
 }
 
 ebpf_result_t
@@ -998,4 +1128,36 @@ net_ebpf_ext_remove_client_context(
     }
 
     ExReleaseSpinLockExclusive(&filter_context->lock, old_irql);
+}
+
+void
+net_ebpf_ext_add_provider_context_to_cleanup_list(_Inout_ net_ebpf_extension_hook_provider_t* provider_context)
+{
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    InsertTailList(
+        &_net_ebpf_ext_wfp_cleanup_state.provider_context_cleanup_list, &provider_context->cleanup_list_entry);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+}
+
+void
+net_ebpf_ext_add_filter_context_to_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+    InsertTailList(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list, &filter_context->link);
+    ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+}
+
+void
+net_ebpf_ext_remove_filter_context_from_cleanup_list(_Inout_ net_ebpf_extension_wfp_filter_context_t* filter_context)
+{
+    if (!IsListEmpty(&filter_context->link)) {
+        KIRQL old_irql = ExAcquireSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock);
+        RemoveEntryList(&filter_context->link);
+        InitializeListHead(&filter_context->link);
+        if (IsListEmpty(&_net_ebpf_ext_wfp_cleanup_state.filter_cleanup_list) &&
+            _net_ebpf_ext_wfp_cleanup_state.signal_empty_filter_list) {
+            KeSetEvent(&_net_ebpf_ext_wfp_cleanup_state.wfp_filter_cleanup_event, 0, FALSE);
+        }
+        ExReleaseSpinLockExclusive(&_net_ebpf_ext_wfp_cleanup_state.lock, old_irql);
+    }
 }
