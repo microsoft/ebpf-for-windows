@@ -2428,8 +2428,7 @@ _ebpf_core_protocol_perf_event_array_map_write_data(
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    result =
-        ebpf_perf_event_output_simple(map, (uint32_t)EBPF_MAP_FLAG_CURRENT_CPU, (uint8_t*)request->data, data_length);
+    result = ebpf_perf_event_output_simple(map, (uint8_t*)request->data, data_length);
 
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);

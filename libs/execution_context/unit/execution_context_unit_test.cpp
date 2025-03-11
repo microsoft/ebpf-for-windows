@@ -8,7 +8,6 @@
 #include "ebpf_core.h"
 #include "ebpf_maps.h"
 #include "ebpf_object.h"
-#include "ebpf_perf_event_array.h"
 #include "ebpf_program.h"
 #include "ebpf_ring_buffer.h"
 #include "helpers.h"
@@ -1405,6 +1404,44 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
     REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
 }
 
+TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+    // TODO (before merge): implementme
+}
+
+TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+
+    // size_t producer_offset = 0;
+    size_t consumer_offset = 0;
+    uint8_t* buffer = nullptr;
+    REQUIRE(ebpf_perf_event_array_map_query_buffer(map.get(), 0, &buffer, &consumer_offset) == EBPF_SUCCESS);
+
+    // TODO (before merge): implementme
+}
+
 TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]")
 {
     _ebpf_core_initializer core;
@@ -1486,10 +1523,11 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
 
     struct
     {
-        int x = 0;
-    } test_ctx;
-    // There is no ctx header, but this test doesn't use ctx data anyways.
-    void* ctx = &test_ctx;
+        EBPF_CONTEXT_HEADER; // Unused for this test.
+        int unused;
+    } context{0};
+
+    void* ctx = &context.unused;
 
     // Write a single record.
     uint64_t value = 1;

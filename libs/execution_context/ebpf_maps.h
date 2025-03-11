@@ -290,16 +290,16 @@ extern "C"
     /**
      * @brief Write out a variable sized record to the perf event array.
      *
+     * Writes a record to the ring for the current CPU.
+     *
      * @param[in, out] perf_event_array Perf event array to write to.
-     * @param[in] cpu_id CPU ring to write to (or (uint32_t)-1 for auto).
      * @param[in] data Data to copy into record.
      * @param[in] length Length of data to copy.
      * @retval EBPF_SUCCESS Successfully wrote record ring buffer.
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_output_simple(
-        _Inout_ ebpf_map_t* map, uint32_t cpu_id, _In_reads_bytes_(length) uint8_t* data, size_t length);
+    ebpf_perf_event_output_simple(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
      * @brief Write out a variable sized record to the perf event array map.
