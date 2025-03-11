@@ -1545,7 +1545,7 @@ ebpf_program_invoke(
         return EBPF_INVALID_ARGUMENT;
     }
 
-    // set runtime state in context header.
+    // Set runtime state in context header.
     ebpf_program_set_runtime_state(execution_state, context);
 
     // Top-level tail caller(1) + tail callees(33).
@@ -2435,7 +2435,7 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
     ebpf_epoch_enter(&epoch_state);
     in_epoch = true;
 
-    // set runtime state in context header.
+    // Set runtime state in context header.
     ebpf_program_set_runtime_state(&execution_context_state, program_context);
 
     uint64_t start_time = cxplat_query_time_since_boot_precise(false);
