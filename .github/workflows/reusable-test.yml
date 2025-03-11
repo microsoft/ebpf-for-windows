@@ -351,10 +351,11 @@ jobs:
       continue-on-error: true
       with:
         files: ebpf_for_windows.xml
-        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         functionalities: fix
         root_dir: ${{github.workspace}}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Wait on failure 1
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_1.outcome == 'failure')
@@ -367,10 +368,11 @@ jobs:
       continue-on-error: true
       with:
         files: ebpf_for_windows.xml
-        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         functionalities: fix
         root_dir: ${{github.workspace}}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Wait on failure 2
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_2.outcome == 'failure')
@@ -383,10 +385,11 @@ jobs:
       continue-on-error: true
       with:
         files: ebpf_for_windows.xml
-        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         functionalities: fix
         root_dir: ${{github.workspace}}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Wait on failure 3
       if: (steps.skip_check.outputs.should_skip != 'true') && (steps.upload_code_coverage_report_3.outcome == 'failure')
@@ -399,10 +402,11 @@ jobs:
       continue-on-error: true
       with:
         files: ebpf_for_windows.xml
-        token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         functionalities: fix
         root_dir: ${{github.workspace}}
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Fail if code coverage upload fails
       if: (steps.skip_check.outputs.should_skip != 'true')
