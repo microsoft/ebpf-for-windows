@@ -14,7 +14,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\ebpf_perf_event_array.h" />
     <ClInclude Include="..\ebpf_ring_buffer.h" />
     <ClInclude Include="..\ebpf_serialize.h" />
     <ClInclude Include="..\ebpf_shared_framework.h" />

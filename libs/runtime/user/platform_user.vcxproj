@@ -14,7 +14,6 @@
     <ClCompile Include="..\ebpf_hash_table.c" />
     <ClCompile Include="..\ebpf_interlocked.c" />
     <ClCompile Include="..\ebpf_object.c" />
-    <ClCompile Include="..\ebpf_perf_event_array.c" />
     <ClCompile Include="..\ebpf_pinning_table.c" />
     <ClCompile Include="..\ebpf_platform.c" />
     <ClCompile Include="..\ebpf_random.c" />
@@ -33,7 +32,6 @@
     <ClInclude Include="..\ebpf_epoch.h" />
     <ClInclude Include="..\ebpf_handle.h" />
     <ClInclude Include="..\ebpf_object.h" />
-    <ClInclude Include="..\ebpf_perf_event_array.h" />
     <ClInclude Include="..\ebpf_pinning_table.h" />
     <ClInclude Include="..\ebpf_platform.h" />
     <ClInclude Include="..\ebpf_random.h" />
