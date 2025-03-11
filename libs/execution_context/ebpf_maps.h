@@ -290,7 +290,7 @@ extern "C"
     /**
      * @brief Write out a variable sized record to the perf event array.
      *
-     * Writes a record to the ring for the current CPU.
+     * Writes a simple record to the ring for the current CPU.
      *
      * @param[in, out] perf_event_array Perf event array to write to.
      * @param[in] data Data to copy into record.
@@ -302,9 +302,16 @@ extern "C"
     ebpf_perf_event_output_simple(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
-     * @brief Write out a variable sized record to the perf event array map.
+     * @brief Write out a variable sized record to the perf event array map with ctx and flags.
      *
+     * Flags is used to select the CPU to write to and the context data to copy.
+     * - EBPF_MAP_FLAG_INDEX_MASK - Mask for specifying cpu.
+     *   - EBPF_MAP_FLAG_CURRENT_CPU - Select current cpu.
+     * - EBPF_MAP_FLAG_CTXLEN_MASK - Mask for specifying context length.
+     *
+     * @param[in] ctx bpf program Context to copy data from.
      * @param[in, out] map Pointer to map of type EBPF_MAP_TYPE_PERF_EVENT_ARRAY.
+     * @param[in] flags Flags to select cpu and how much context data to copy.
      * @param[in] data Data of record to write into perf event array map.
      * @param[in] length Length of data.
      * @retval EBPF_SUCCESS Successfully wrote record into perf event array.
