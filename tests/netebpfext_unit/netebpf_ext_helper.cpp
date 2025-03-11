@@ -39,8 +39,7 @@ netebpfext_initialize_fwp_classify_parameters(_Out_ fwp_classify_parameters_t* p
 
 _netebpf_ext_helper::_netebpf_ext_helper(bool initialize_platform)
     : _netebpf_ext_helper(nullptr, nullptr, nullptr, initialize_platform)
-{
-}
+{}
 
 _netebpf_ext_helper::_netebpf_ext_helper(
     _In_opt_ const void* npi_specific_characteristics,
@@ -69,17 +68,17 @@ _netebpf_ext_helper::_netebpf_ext_helper(
 
     ndis_handle_initialized = true;
 
-    if (!NT_SUCCESS(net_ebpf_ext_register_providers())) {
-        return;
-    }
-
-    provider_registered = true;
-
     if (!NT_SUCCESS(net_ebpf_extension_initialize_wfp_components(device_object))) {
         return;
     }
 
     wfp_initialized = true;
+
+    if (!NT_SUCCESS(net_ebpf_ext_register_providers())) {
+        return;
+    }
+
+    provider_registered = true;
 
     nmr_program_info_client_handle = std::make_unique<nmr_client_registration_t>(&program_info_client, this);
 
@@ -104,12 +103,12 @@ _netebpf_ext_helper::~_netebpf_ext_helper()
         nmr_program_info_client_handle.reset(nullptr);
     }
 
-    if (wfp_initialized) {
-        net_ebpf_extension_uninitialize_wfp_components();
-    }
-
     if (provider_registered) {
         net_ebpf_ext_unregister_providers();
+    }
+
+    if (wfp_initialized) {
+        net_ebpf_extension_uninitialize_wfp_components();
     }
 
     if (ndis_handle_initialized) {
