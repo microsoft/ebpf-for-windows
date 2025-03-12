@@ -672,7 +672,7 @@ ebpf_api_elf_enumerate_programs(
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_NO_MEMORY Out of memory.
  * @retval EBPF_VERIFICATION_FAILED The program failed verification.
- * @retval EBPF_FAILED Some other error occured.
+ * @retval EBPF_FAILED Some other error occurred.
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(
