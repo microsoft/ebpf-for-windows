@@ -179,7 +179,8 @@ typedef struct _net_ebpf_extension_wfp_cleanup_state
     if ((filter_context)->wfp_engine_handle != NULL) {                      \
         FwpmEngineClose((filter_context)->wfp_engine_handle);               \
     }                                                                       \
-    ExFreePool((filter_context));
+    ExFreePool(((uint8_t*)filter_context - 64));
+//TODO (before merge): remove -64 (from old version of ctx header support).
 
 #define REFERENCE_FILTER_CONTEXT(filter_context)                  \
     if ((filter_context) != NULL) {                               \

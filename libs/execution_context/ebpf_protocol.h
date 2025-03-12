@@ -48,6 +48,9 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH,
     EBPF_OPERATION_PROGRAM_SET_FLAGS,
     EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH,
+    EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_QUERY_BUFFER,
+    EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_ASYNC_QUERY,
+    EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_WRITE_DATA,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -421,6 +424,44 @@ typedef struct _ebpf_operation_ring_buffer_map_write_data_request
     ebpf_handle_t map_handle;
     uint8_t data[1];
 } ebpf_operation_ring_buffer_map_write_data_request_t;
+
+typedef struct _ebpf_operation_perf_event_array_map_query_buffer_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint32_t cpu_id;
+} ebpf_operation_perf_event_array_map_query_buffer_request_t;
+
+typedef struct _ebpf_operation_perf_event_array_map_query_buffer_reply
+{
+    struct _ebpf_operation_header header;
+    // Address to user-space read-only buffer for the ring-buffer records.
+    uint64_t buffer_address;
+    // The current consumer offset, so that subsequent reads can start from here.
+    size_t consumer_offset;
+} ebpf_operation_perf_event_array_map_query_buffer_reply_t;
+
+typedef struct _ebpf_operation_perf_event_array_map_async_query_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint32_t cpu_id;
+    // Offset till which the consumer has read data so far.
+    size_t consumer_offset;
+} ebpf_operation_perf_event_array_map_async_query_request_t;
+
+typedef struct _ebpf_operation_perf_event_array_map_async_query_reply
+{
+    struct _ebpf_operation_header header;
+    ebpf_perf_event_array_map_async_query_result_t async_query_result;
+} ebpf_operation_perf_event_array_map_async_query_reply_t;
+
+typedef struct _ebpf_operation_perf_event_array_map_write_data_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint8_t data[1];
+} ebpf_operation_perf_event_array_map_write_data_request_t;
 
 typedef struct _ebpf_operation_load_native_module_request
 {
