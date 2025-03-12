@@ -24,17 +24,25 @@
 #define HLP_EBPF_SHOW_PINS_EX 120
 #define HLP_EBPF_SHOW_PROCESSES 121
 #define HLP_EBPF_SHOW_PROCESSES_EX 122
+#define HLP_EBPF_PIN_MAP 123
+#define HLP_EBPF_PIN_MAP_EX 124
+#define HLP_EBPF_PIN_PROGRAM 125
+#define HLP_EBPF_PIN_PROGRAM_EX 126
+#define HLP_EBPF_UNPIN_MAP 127
+#define HLP_EBPF_UNPIN_MAP_EX 128
+#define HLP_EBPF_UNPIN_PROGRAM 129
+#define HLP_EBPF_UNPIN_PROGRAM_EX 130
+
+#define EBPF_FILE_DESCRIPTION "eBPF for Windows Netsh Helper"
+#define EBPF_FILE_NAME "ebpfnetsh.dll"
 
 // Next default values for new objects
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE 123
+#define _APS_NEXT_RESOURCE_VALUE 131
 #define _APS_NEXT_COMMAND_VALUE 40001
 #define _APS_NEXT_CONTROL_VALUE 1001
 #define _APS_NEXT_SYMED_VALUE 101
 #endif
 #endif
-
-#define EBPF_FILE_DESCRIPTION "eBPF for Windows Netsh Helper"
-#define EBPF_FILE_NAME "ebpfnetsh.dll"
