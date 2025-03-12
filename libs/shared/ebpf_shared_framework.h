@@ -14,7 +14,7 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
-#define ARRAY_ELEM_INDEX(array, index, elem_size) (((uint8_t*)array) + (index * elem_size));
+#define ARRAY_ELEMENT_INDEX(array, index, element_size) (((uint8_t*)array) + (index * element_size));
 
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))

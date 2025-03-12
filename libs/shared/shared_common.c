@@ -199,8 +199,8 @@ ebpf_validate_helper_function_prototype_array(
         // Use "total_size" to calculate the actual size of the ebpf_helper_function_prototype_t struct.
         size_t helper_prototype_size = helper_prototype_array[0].header.total_size;
         for (uint32_t i = 0; i < count; i++) {
-            ebpf_helper_function_prototype_t* helper_prototype =
-                (ebpf_helper_function_prototype_t*)ARRAY_ELEM_INDEX(helper_prototype_array, i, helper_prototype_size);
+            ebpf_helper_function_prototype_t* helper_prototype = (ebpf_helper_function_prototype_t*)ARRAY_ELEMENT_INDEX(
+                helper_prototype_array, i, helper_prototype_size);
             if (!_ebpf_validate_helper_function_prototype(helper_prototype)) {
                 return false;
             }
@@ -415,7 +415,7 @@ _duplicate_helper_function_prototype_array(
 
     for (uint32_t i = 0; i < count; i++) {
         ebpf_helper_function_prototype_t* helper_prototype =
-            (ebpf_helper_function_prototype_t*)ARRAY_ELEM_INDEX(helper_prototype_array, i, helper_prototype_size);
+            (ebpf_helper_function_prototype_t*)ARRAY_ELEMENT_INDEX(helper_prototype_array, i, helper_prototype_size);
         memcpy(&local_helper_prototype_array[i], helper_prototype, helper_prototype_size);
         local_helper_prototype_array[i].header.version = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION;
         local_helper_prototype_array[i].header.size = EBPF_HELPER_FUNCTION_PROTOTYPE_CURRENT_VERSION_SIZE;

@@ -206,7 +206,7 @@ _ebpf_validate_native_helper_function_entry_array(
         // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
         size_t helper_prototype_size = native_helper_function_entry_array[0].header.total_size;
         for (uint16_t i = 0; i < count; i++) {
-            helper_function_entry_t* helper_prototype = (helper_function_entry_t*)ARRAY_ELEM_INDEX(
+            helper_function_entry_t* helper_prototype = (helper_function_entry_t*)ARRAY_ELEMENT_INDEX(
                 native_helper_function_entry_array, i, helper_prototype_size);
             if (!_ebpf_validate_native_helper_function_entry(helper_prototype)) {
                 return false;
@@ -239,7 +239,7 @@ _ebpf_validate_native_program_entry_array(
         size_t program_entry_size = native_program_entry_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
             program_entry_t* program_entry =
-                (program_entry_t*)ARRAY_ELEM_INDEX(native_program_entry_array, i, program_entry_size);
+                (program_entry_t*)ARRAY_ELEMENT_INDEX(native_program_entry_array, i, program_entry_size);
             if (!_ebpf_validate_native_program_entry(program_entry)) {
                 return false;
             }
@@ -267,7 +267,7 @@ _ebpf_validate_native_map_entry_array(_In_reads_(count) const map_entry_t* nativ
         // Use "total_size" to calculate the actual size of the map_entry_t struct.
         size_t map_entry_size = native_map_entry_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
-            map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEM_INDEX(native_map_entry_array, i, map_entry_size);
+            map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(native_map_entry_array, i, map_entry_size);
             if (!_ebpf_validate_native_map_entry(map_entry)) {
                 return false;
             }
@@ -298,7 +298,7 @@ _ebpf_validate_native_map_initial_values_array(
         size_t map_initial_values_size = native_map_initial_values_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
             map_initial_values_t* map_initial_values =
-                (map_initial_values_t*)ARRAY_ELEM_INDEX(native_map_initial_values_array, i, map_initial_values_size);
+                (map_initial_values_t*)ARRAY_ELEMENT_INDEX(native_map_initial_values_array, i, map_initial_values_size);
             if (!_ebpf_validate_native_map_initial_values(map_initial_values)) {
                 return false;
             }
@@ -330,7 +330,7 @@ _ebpf_validate_global_variable_section_info_array(
         size_t global_variable_section_info_size = native_global_variable_section_info_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
             global_variable_section_info_t* global_variable_section_info =
-                (global_variable_section_info_t*)ARRAY_ELEM_INDEX(
+                (global_variable_section_info_t*)ARRAY_ELEMENT_INDEX(
                     native_global_variable_section_info_array, i, global_variable_section_info_size);
             if (!_ebpf_validate_native_global_variable_section_info(global_variable_section_info)) {
                 return false;
@@ -986,7 +986,7 @@ _ebpf_native_initialize_maps(
 
     for (uint32_t i = 0; i < map_count; i++) {
         // Copy the map_entry_t from native module to ebpf_native_map_t.
-        map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEM_INDEX(maps, i, map_entry_size);
+        map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(maps, i, map_entry_size);
         memcpy(&native_maps[i].entry, map_entry, map_entry_size);
         map_entry_t* entry = &native_maps[i].entry;
 
@@ -1280,7 +1280,8 @@ _ebpf_native_initialize_global_variables(
     for (size_t i = 0; i < global_variable_count; i++) {
         global_variable_section_info_t local_global_section_info = {0};
         global_variable_section_info_t* global_variable_section_info =
-            (global_variable_section_info_t*)ARRAY_ELEM_INDEX(global_variables, i, global_variable_section_info_size);
+            (global_variable_section_info_t*)ARRAY_ELEMENT_INDEX(
+                global_variables, i, global_variable_section_info_size);
 
         // Copy the global variable section info.
         memcpy(&local_global_section_info, global_variable_section_info, global_variable_section_info_size);
@@ -1506,7 +1507,7 @@ _ebpf_native_resolve_helpers_for_program(
         for (uint16_t i = 0; i < helper_count; i++) {
             helper_function_entry_t local_helper_entry = {0};
             helper_function_entry_t* entry =
-                (helper_function_entry_t*)ARRAY_ELEM_INDEX(helper_info, i, helper_entry_size);
+                (helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
             memcpy(&local_helper_entry, entry, helper_entry_size);
 
             helper_ids[i] = local_helper_entry.helper_id;
@@ -1571,7 +1572,7 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
     size_t program_entry_size = programs[0].header.total_size;
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
-        program_entry_t* entry = (program_entry_t*)ARRAY_ELEM_INDEX(programs, count, program_entry_size);
+        program_entry_t* entry = (program_entry_t*)ARRAY_ELEMENT_INDEX(programs, count, program_entry_size);
         memcpy(&native_program->program_entry, entry, program_entry_size);
         entry = NULL;
 
@@ -1589,7 +1590,7 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
             size_t helper_entry_size = helper_info[0].header.total_size;
             for (uint32_t i = 0; i < native_program->program_entry.helper_count; i++) {
                 helper_function_entry_t* helper_entry =
-                    (helper_function_entry_t*)ARRAY_ELEM_INDEX(helper_info, i, helper_entry_size);
+                    (helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
                 memcpy(&native_program->program_entry.helpers[i], helper_entry, helper_entry_size);
                 helper_entry = NULL;
             }
