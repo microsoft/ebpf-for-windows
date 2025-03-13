@@ -55,13 +55,15 @@ function Invoke-CICDTestsOnVM
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
 
-    if ($VMName -eq "runner_vm") {
+    if (($TestMode.ToLower() -eq "performance") -and ($VMName -eq "runner_vm")) {
         Write-Log "Executing special steps for 1ES runner..."
         Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
-            # Reset any verifier settings (as this will have perf impact.
+            # Reset any verifier settings (as this will have perf impact).
             verifier /reset
             shutdown /r /t 1
         } -ErrorAction Stop
+
+        Write-Log "Wait for VMS..."
 
         Wait-AllVMsToInitialize `
             -VMList @($VMName) `
