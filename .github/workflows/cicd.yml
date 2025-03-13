@@ -199,154 +199,47 @@ jobs:
       gather_dumps: true
       capture_etw: true
 
-  # Run the driver tests on self-hosted runners.
-  driver_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
+  driver_tests:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_ws2019
+      name: driver_${{ matrix.environment }}
       build_artifact: Build-x64
-      environment: '["ebpf_cicd_tests_ws2019"]'
-      # driver test copies dumps to testlog folder.
+      environment: ${{ matrix.environment }}
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
-      # driver tests manually gather code coverage
       code_coverage: false
 
-  # Run the driver tests on self-hosted runners.
-  driver_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
+  driver_native_only_tests:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_ws2022
-      build_artifact: Build-x64
-      environment: '["ebpf_cicd_tests_ws2022"]'
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-
-  # Run the driver tests on self-hosted runners.
-  driver_ws23h2:
-    # Only run during daily scheduled run
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_ws23h2
-      build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server23h2"]'
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-
-  # Run the driver tests on self-hosted runners.
-  driver_ws2025:
-    # Only run during daily scheduled run
-    needs: regular
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_ws2025
-      build_artifact: Build-x64
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025"]'
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-
-  # Run the native-only driver tests on self-hosted runners.
-  driver_native_only_ws2019:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_native_only_ws2019
+      name: driver_${{ matrix.environment }}
       build_artifact: Build-x64-native-only
-      environment: '["ebpf_cicd_tests_ws2019"]'
-      # driver test copies dumps to testlog folder.
+      environment: ${{ matrix.environment }}
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
-      # driver tests manually gather code coverage
       code_coverage: false
-      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
-
-  driver_native_only_ws2022:
-    # Always run this job.
-    # Only run this on repos that have self-host runners.
-    needs: regular_native-only
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_native_only_ws2022
-      build_artifact: Build-x64-native-only
-      environment: '["ebpf_cicd_tests_ws2022"]'
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
-
-  driver_native_only_ws23h2:
-    # Only run during daily scheduled run
-    needs: regular_native-only
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_native_only_ws23h2
-      build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server23h2"]'
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
-
-  driver_native_only_ws2025:
-    # Only run during daily scheduled run
-    needs: regular_native-only
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_native_only_ws2025
-      build_artifact: Build-x64-native-only
-      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2025"]'
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   # Run the regression driver tests on self-hosted runners (only for 2022).
   regression_driver_ws2022:
