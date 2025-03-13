@@ -24,6 +24,8 @@
 #include <mstcpip.h>
 #include <ntsecapi.h>
 
+thread_local bool _is_main_thread = false;
+
 CATCH_REGISTER_LISTENER(_watchdog)
 static std::string _family;
 static std::string _connection_type;
@@ -72,7 +74,7 @@ _impersonate_user()
 {
     printf("Impersonating user [%s].\n", _user_name.c_str());
     bool result = ImpersonateLoggedOnUser(_globals.user_token);
-    REQUIRE(result == true);
+    SAFE_REQUIRE(result == true);
 }
 
 uint64_t
@@ -84,14 +86,14 @@ _get_current_thread_authentication_id()
     uint64_t authentication_id;
 
     bool result = GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, nullptr, 0, (unsigned long*)&size);
-    REQUIRE(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
+    SAFE_REQUIRE(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
 
     privileges = (TOKEN_GROUPS_AND_PRIVILEGES*)malloc(size);
-    REQUIRE(privileges != nullptr);
+    SAFE_REQUIRE(privileges != nullptr);
 
     result =
         GetTokenInformation(thread_token_handle, TokenGroupsAndPrivileges, privileges, size, (unsigned long*)&size);
-    REQUIRE(result == true);
+    SAFE_REQUIRE(result == true);
 
     authentication_id = *(uint64_t*)&privileges->AuthenticationId;
 
@@ -139,7 +141,7 @@ _log_on_user(std::string& user_name, std::string& password)
             int error = GetLastError();
             printf("error = %d\n", error);
         }
-        REQUIRE(result == true);
+        SAFE_REQUIRE(result == true);
     }
 
     return token;
@@ -156,7 +158,7 @@ _get_ip_proto_from_connection_type(connection_type_t connection_type)
         return IPPROTO_UDP;
     }
 
-    REQUIRE(false);
+    SAFE_REQUIRE(false);
     return IPPROTO_MAX;
 }
 
@@ -192,26 +194,26 @@ _initialize_test_globals()
     if (_remote_ip_v4 != "") {
         get_address_from_string(
             _remote_ip_v4, _globals.addresses[socket_family_t::IPv4].remote_address, false, &family);
-        REQUIRE(family == AF_INET);
+        SAFE_REQUIRE(family == AF_INET);
         get_address_from_string(_remote_ip_v4, _globals.addresses[socket_family_t::Dual].remote_address, true, &family);
-        REQUIRE(family == AF_INET);
+        SAFE_REQUIRE(family == AF_INET);
         v4_addresses++;
     }
     if (_local_ip_v4 != "") {
         get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::IPv4].local_address, false, &family);
-        REQUIRE(family == AF_INET);
+        SAFE_REQUIRE(family == AF_INET);
         get_address_from_string(_local_ip_v4, _globals.addresses[socket_family_t::Dual].local_address, true, &family);
-        REQUIRE(family == AF_INET);
+        SAFE_REQUIRE(family == AF_INET);
         v4_addresses++;
     }
     if (_vip_v4 != "") {
         get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::IPv4].vip_address, false, &family);
-        REQUIRE(family == AF_INET);
+        SAFE_REQUIRE(family == AF_INET);
         get_address_from_string(_vip_v4, _globals.addresses[socket_family_t::Dual].vip_address, true, &family);
-        REQUIRE(family == AF_INET);
+        SAFE_REQUIRE(family == AF_INET);
         v4_addresses++;
     }
-    REQUIRE((v4_addresses == 0 || v4_addresses == 3));
+    SAFE_REQUIRE((v4_addresses == 0 || v4_addresses == 3));
     _globals.attach_v4_program = (v4_addresses != 0);
     IN4ADDR_SETLOOPBACK((PSOCKADDR_IN)&_globals.addresses[socket_family_t::IPv4].loopback_address);
     IN6ADDR_SETV4MAPPED(
@@ -224,20 +226,20 @@ _initialize_test_globals()
     if (_remote_ip_v6 != "") {
         get_address_from_string(
             _remote_ip_v6, _globals.addresses[socket_family_t::IPv6].remote_address, false, &family);
-        REQUIRE(family == AF_INET6);
+        SAFE_REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
     if (_local_ip_v6 != "") {
         get_address_from_string(_local_ip_v6, _globals.addresses[socket_family_t::IPv6].local_address, false, &family);
-        REQUIRE(family == AF_INET6);
+        SAFE_REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
     if (_vip_v6 != "") {
         get_address_from_string(_vip_v6, _globals.addresses[socket_family_t::IPv6].vip_address, false, &family);
-        REQUIRE(family == AF_INET6);
+        SAFE_REQUIRE(family == AF_INET6);
         v6_addresses++;
     }
-    REQUIRE((v6_addresses == 0 || v6_addresses == 3));
+    SAFE_REQUIRE((v6_addresses == 0 || v6_addresses == 3));
     _globals.attach_v6_program = (v6_addresses != 0);
     IN6ADDR_SETLOOPBACK((PSOCKADDR_IN6)&_globals.addresses[socket_family_t::IPv6].loopback_address);
 
@@ -249,27 +251,27 @@ _initialize_test_globals()
     native_module_helper_t helper;
     helper.initialize("cgroup_sock_addr2");
     _globals.bpf_object.reset(bpf_object__open(helper.get_file_name().c_str()));
-    REQUIRE(_globals.bpf_object.get() != nullptr);
-    REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
+    SAFE_REQUIRE(_globals.bpf_object.get() != nullptr);
+    SAFE_REQUIRE(bpf_object__load(_globals.bpf_object.get()) == 0);
     if (_globals.attach_v4_program) {
         printf("Attaching IPv4 program\n");
         bpf_program* connect_program_v4 =
             bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect4");
-        REQUIRE(connect_program_v4 != nullptr);
+        SAFE_REQUIRE(connect_program_v4 != nullptr);
 
         result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program_v4)), 0, BPF_CGROUP_INET4_CONNECT, 0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
     }
     if (_globals.attach_v6_program) {
         printf("Attaching IPv6 program\n");
         bpf_program* connect_program_v6 =
             bpf_object__find_program_by_name(_globals.bpf_object.get(), "connect_redirect6");
-        REQUIRE(connect_program_v6 != nullptr);
+        SAFE_REQUIRE(connect_program_v6 != nullptr);
 
         result = bpf_prog_attach(
             bpf_program__fd(const_cast<const bpf_program*>(connect_program_v6)), 0, BPF_CGROUP_INET6_CONNECT, 0);
-        REQUIRE(result == 0);
+        SAFE_REQUIRE(result == 0);
     }
 
     printf("Done initializing globals.\n");
@@ -280,29 +282,29 @@ static void
 _validate_audit_map_entry(uint64_t authentication_id)
 {
     bpf_map* audit_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "audit_map");
-    REQUIRE(audit_map != nullptr);
+    SAFE_REQUIRE(audit_map != nullptr);
 
     fd_t map_fd = bpf_map__fd(audit_map);
 
     uint64_t process_id = get_current_pid_tgid();
     sock_addr_audit_entry_t entry = {0};
     int result = bpf_map_lookup_elem(map_fd, &process_id, &entry);
-    REQUIRE(result == 0);
+    SAFE_REQUIRE(result == 0);
 
-    REQUIRE(process_id == entry.process_id);
-    REQUIRE(entry.logon_id == authentication_id);
+    SAFE_REQUIRE(process_id == entry.process_id);
+    SAFE_REQUIRE(entry.logon_id == authentication_id);
     SECURITY_LOGON_SESSION_DATA* data = NULL;
     result = LsaGetLogonSessionData((PLUID)&entry.logon_id, &data);
-    REQUIRE(result == ERROR_SUCCESS);
+    SAFE_REQUIRE(result == ERROR_SUCCESS);
 
     if (_globals.user_type == user_type_t::ADMINISTRATOR) {
-        REQUIRE(entry.is_admin == 1);
+        SAFE_REQUIRE(entry.is_admin == 1);
     } else {
-        REQUIRE(entry.is_admin == 0);
+        SAFE_REQUIRE(entry.is_admin == 0);
     }
 
-    REQUIRE(entry.local_port != 0);
-    REQUIRE(entry.socket_cookie != 0);
+    SAFE_REQUIRE(entry.local_port != 0);
+    SAFE_REQUIRE(entry.socket_cookie != 0);
 
     LsaFreeReturnBuffer(data);
 }
@@ -318,7 +320,7 @@ _update_policy_map(
     bool add)
 {
     bpf_map* policy_map = bpf_object__find_map_by_name(_globals.bpf_object.get(), "policy_map");
-    REQUIRE(policy_map != nullptr);
+    SAFE_REQUIRE(policy_map != nullptr);
 
     fd_t map_fd = bpf_map__fd(policy_map);
 
@@ -346,9 +348,9 @@ _update_policy_map(
     value.destination_port = htons(proxy_port);
 
     if (add) {
-        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
+        SAFE_REQUIRE(bpf_map_update_elem(map_fd, &key, &value, 0) == 0);
     } else {
-        REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
+        SAFE_REQUIRE(bpf_map_delete_elem(map_fd, &key) == 0);
     }
 }
 
@@ -382,7 +384,7 @@ update_policy_map_and_test_connection(
         impersonation_helper_t helper(_globals.user_type);
 
         authentication_id = _get_current_thread_authentication_id();
-        REQUIRE(authentication_id != 0);
+        SAFE_REQUIRE(authentication_id != 0);
 
         // Try to send and receive message to "destination". It should succeed.
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
@@ -402,8 +404,8 @@ update_policy_map_and_test_connection(
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);
         }
-        REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-        REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
+        SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
+        SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
     }
 
     _validate_audit_map_entry(authentication_id);
@@ -425,7 +427,7 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
         impersonation_helper_t helper(_globals.user_type);
 
         authentication_id = _get_current_thread_authentication_id();
-        REQUIRE(authentication_id != 0);
+        SAFE_REQUIRE(authentication_id != 0);
 
         sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::FAILURE);
@@ -742,6 +744,8 @@ int
 main(int argc, char* argv[])
 {
     Catch::Session session;
+
+    _is_main_thread = true;
 
     // Use Catch's composite command line parser.
     using namespace Catch::Clara;

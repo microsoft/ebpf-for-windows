@@ -23,7 +23,6 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
-#include <atomic>
 #include <chrono>
 #include <future>
 #include <iostream>
@@ -35,21 +34,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 #define MULTIPLE_ATTACH_PROGRAM_COUNT 3
 
 thread_local bool _is_main_thread = false;
-
-struct test_failure : std::exception
-{
-    test_failure(const std::string& message) : message(message) {}
-    std::string message;
-};
-
-#define SAFE_REQUIRE(x)                                               \
-    if (_is_main_thread) {                                            \
-        REQUIRE(x);                                                   \
-    } else {                                                          \
-        if (!(x)) {                                                   \
-            throw test_failure("Condition failed" + std::string(#x)); \
-        }                                                             \
-    }
 
 void
 connection_test(
