@@ -37,10 +37,11 @@ get_address_from_string(
             address.ss_family = AF_INET;
             INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
         }
-    } else {
-        REQUIRE(address_info->ai_family == AF_INET6);
+    } else if (address_info->ai_family == AF_INET6) {
         address.ss_family = AF_INET6;
         INETADDR_SET_ADDRESS((PSOCKADDR)&address, INETADDR_ADDRESS(address_info->ai_addr));
+    } else {
+        throw "Invalid address family";
     }
     if (address_family != nullptr) {
         *address_family = static_cast<ADDRESS_FAMILY>(address_info->ai_family);
@@ -130,8 +131,7 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 _client_socket::_client_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
-{
-}
+{}
 
 void
 _client_socket::close()
@@ -272,8 +272,7 @@ _datagram_client_socket::send_message_to_remote_host(
 
 void
 _datagram_client_socket::cancel_send_message()
-{
-}
+{}
 
 void
 _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)

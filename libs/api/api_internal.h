@@ -502,32 +502,6 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_get_next_program_id(ebpf_id_t start_id, ebpf_id_t _Out_* next_id) noexcept;
 
 /**
- * @brief Obtain information about the eBPF object referred to by bpf_fd.
- * This function populates up to info_len bytes of info, which will
- * be in one of the following formats depending on the eBPF object type of
- * bpf_fd:
- *
- * * struct bpf_link_info
- * * struct bpf_map_info
- * * struct bpf_prog_info
- *
- * @param[in] bpf_fd File descriptor referring to an eBPF object.
- * @param[in, out] info Pointer to memory in which to write the info obtained.
- * On input, contains any additional parameters to use.
- * @param[in, out] info_size On input, contains the maximum number of bytes to
- * write into the info.  On output, contains the actual number of bytes written.
- *
- * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
- */
-_Must_inspect_result_ ebpf_result_t
-ebpf_object_get_info_by_fd(
-    fd_t bpf_fd,
-    _Inout_updates_bytes_to_(*info_size, *info_size) void* info,
-    _Inout_ uint32_t* info_size,
-    _Out_opt_ ebpf_object_type_t* type) noexcept;
-
-/**
  * @brief Pin an object to the specified path.
  * @param[in] fd File descriptor to the object.
  * @param[in] path Path to pin the object to.
@@ -698,7 +672,7 @@ ebpf_api_elf_enumerate_programs(
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_NO_MEMORY Out of memory.
  * @retval EBPF_VERIFICATION_FAILED The program failed verification.
- * @retval EBPF_FAILED Some other error occured.
+ * @retval EBPF_FAILED Some other error occurred.
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(
