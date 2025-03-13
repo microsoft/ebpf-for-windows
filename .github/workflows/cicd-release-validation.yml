@@ -350,7 +350,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["ebpf_cicd_tests_ws2019"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -367,7 +367,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: '["ebpf_cicd_tests_ws2019"]'
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
