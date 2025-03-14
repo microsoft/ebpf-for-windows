@@ -60,7 +60,7 @@ function Invoke-CICDTestsOnVM
         Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
             # Reset any verifier settings (as this will have perf impact).
             verifier /reset
-            shutdown /r /t 1
+            Restart-Computer -Force
         } -ErrorAction Stop
 
         Write-Log "Wait for VMS..."
