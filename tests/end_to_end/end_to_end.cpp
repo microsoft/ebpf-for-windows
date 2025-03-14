@@ -1759,12 +1759,14 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     REQUIRE(map_fd > 0);
 
     // Pin the program and map multiple times with a shared prefix.
-    const char* prefix = "/ebpf/test/";
+    // We use canonical paths here so we can verify that what is
+    // enumerated is identical to the paths we pinned.
+    const char* prefix = "C:\\ebpf\\test\\";
     const char* paths[] = {
-        "/ebpf/test/map1",
-        "/ebpf/test/map2",
-        "/ebpf/test/program1",
-        "/ebpf/test/program2",
+        "C:\\ebpf\\test\\map1",
+        "C:\\ebpf\\test\\map2",
+        "C:\\ebpf\\test\\program1",
+        "C:\\ebpf\\test\\program2",
     };
     const ebpf_object_type_t object_types[] = {
         EBPF_OBJECT_MAP,
