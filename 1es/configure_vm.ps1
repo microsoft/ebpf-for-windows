@@ -25,6 +25,7 @@ New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -ErrorActio
 New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Name "CrashDumpEnabled" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
 
 # Enable driver verifier on the eBPF platform drivers.
+verifier /reset
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 
 # Reboot the machine to apply the changes.
