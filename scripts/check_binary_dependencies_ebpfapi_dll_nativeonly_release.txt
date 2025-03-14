@@ -14,6 +14,10 @@ api-ms-win-crt-runtime-l1-1-0.dll
 api-ms-win-crt-heap-l1-1-0.dll
 api-ms-win-crt-filesystem-l1-1-0.dll
 api-ms-win-crt-string-l1-1-0.dll
+api-ms-win-crt-locale-l1-1-0.dll
+api-ms-win-core-heap-l2-1-0.dll
+api-ms-win-core-localization-l1-2-0.dll
+api-ms-win-core-file-l1-2-2.dll
 api-ms-win-core-processthreads-l1-1-0.dll
 api-ms-win-core-synch-l1-1-0.dll
 api-ms-win-eventing-provider-l1-1-0.dll

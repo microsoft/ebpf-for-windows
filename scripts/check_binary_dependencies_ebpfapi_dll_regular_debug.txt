@@ -27,6 +27,12 @@ api-ms-win-core-processthreads-l1-1-1.dll
 api-ms-win-core-profile-l1-1-0.dll
 api-ms-win-core-interlocked-l1-1-0.dll
 api-ms-win-core-heap-l1-1-0.dll
+api-ms-win-core-localization-l1-2-0.dll
+api-ms-win-core-processenvironment-l1-1-0.dll
+api-ms-win-core-file-l1-2-0.dll
+api-ms-win-core-file-l1-2-2.dll
+api-ms-win-core-file-l2-1-0.dll
+api-ms-win-core-file-l2-1-2.dll
 KERNEL32.dll
 ADVAPI32.dll
 dbghelp.dll
