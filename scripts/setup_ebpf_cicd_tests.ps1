@@ -39,15 +39,18 @@ foreach($VM in $VMList) {
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
-
     # Download the release artifacts for regression tests.
     Get-RegressionTestArtifacts -ArtifactVersion $RegressionArtifactsVersion -Configuration $RegressionArtifactsConfiguration
 }
 
 if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
-
     # Download the release artifacts for legacy regression tests.
     Get-LegacyRegressionTestArtifacts
+}
+
+if ($TestMode -eq "Performance") {
+    # Disable verifier
+    Disable-VerifierOnVms -VMList $VMList -UserName $TestVMCredential.UserName -AdminPassword $TestVMCredential.Password
 }
 
 Get-CoreNetTools

@@ -591,6 +591,24 @@ function Execute-CommandOnVM {
     }
 }
 
+function Disable-VerifierOnVms {
+    param([Parameter(Mandatory=$True)]$VMList,
+          [Parameter(Mandatory=$True)][string] $UserName,
+          [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
+
+    foreach ($VM in $VMList) {
+        $VMName = $VM.Name
+        Write-Log "Disabling verifier on VM: $VMName"
+        $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /reset"
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /volatile /removedriver ebpfcore.sys"
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /volatile /removedriver netebpfext.sys"
+        Execute-CommandOnVM -VMName $VMName -Command "Restart-Computer -Force"
+    }
+
+    Wait-AllVMsToInitialize -VMList $VMList -UserName $UserName -AdminPassword $AdminPassword
+}
+
 
 <#
 .SYNOPSIS
