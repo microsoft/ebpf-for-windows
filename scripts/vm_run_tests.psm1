@@ -65,8 +65,9 @@ function Invoke-CICDTestsOnVM
 
         Write-Log "Wait for VMS..."
 
+        $vmList = @('runner_vm')
         Wait-AllVMsToInitialize `
-            -VMList @($VMName) `
+            -VMList $vmList `
             -UserName $Admin `
             -AdminPassword $AdminPassword
         Write-Log "Completed special steps for 1ES runner..."
