@@ -65,7 +65,10 @@ function Invoke-CICDTestsOnVM
 
         Write-Log "Wait for VMS..."
 
-        $vmList = @('runner_vm')
+        # Named list with name field
+        $vmList = @(
+            @{ Name = "runner_vm" }
+        )
         Wait-AllVMsToInitialize `
             -VMList $vmList `
             -UserName $Admin `
