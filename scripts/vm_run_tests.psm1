@@ -16,6 +16,7 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($Admin, $AdminPassword, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 #
 # Generate kernel dump.
@@ -53,6 +54,27 @@ function Invoke-CICDTestsOnVM
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+
+    # if (($TestMode.ToLower() -eq "performance") -and ($VMName -eq "runner_vm")) {
+    #     Write-Log "Executing special steps for 1ES runner..."
+    #     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
+    #         # Reset any verifier settings (as this will have perf impact).
+    #         verifier /reset
+    #         Restart-Computer -Force
+    #     } -ErrorAction Stop
+
+    #     Write-Log "Wait for VMS..."
+
+    #     # Named list with name field
+    #     $vmList = @(
+    #         @{ Name = "runner_vm" }
+    #     )
+    #     Wait-AllVMsToInitialize `
+    #         -VMList $vmList `
+    #         -UserName $Admin `
+    #         -AdminPassword $AdminPassword
+    #     Write-Log "Completed special steps for 1ES runner..."
+    # }
 
     Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
         param([Parameter(Mandatory = $True)] [string] $WorkingDirectory,

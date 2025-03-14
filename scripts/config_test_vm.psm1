@@ -199,7 +199,7 @@ function Export-BuildArtifactsToVMs
                     New-Item -Path $RegistryPath -Force
                 }
                 Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
-                
+
                 # Enables full memory dump.
                 # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
                 # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
@@ -589,6 +589,24 @@ function Execute-CommandOnVM {
     } catch {
         throw "Failed to execute command on VM: $VMName with error: $_"
     }
+}
+
+function Disable-VerifierOnVms {
+    param([Parameter(Mandatory=$True)]$VMList,
+          [Parameter(Mandatory=$True)][string] $UserName,
+          [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
+
+    foreach ($VM in $VMList) {
+        $VMName = $VM.Name
+        Write-Log "Disabling verifier on VM: $VMName"
+        $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /reset"
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /removedriver ebpfcore.sys"
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /removedriver netebpfext.sys"
+        Execute-CommandOnVM -VMName $VMName -Command "Restart-Computer -Force"
+    }
+
+    Wait-AllVMsToInitialize -VMList $VMList -UserName $UserName -AdminPassword $AdminPassword
 }
 
 

@@ -58,6 +58,14 @@ $Job = Start-Job -ScriptBlock {
             $TestHangTimeout,
             $UserModeDumpFolder) `
         -WarningAction SilentlyContinue
+    Import-Module $WorkingDirectory\config_test_vm.psm1 `
+        -Force `
+        -ArgumentList (
+            $AdminTestVMCredential.UserName,
+            $AdminTestVMCredential.Password,
+            $WorkingDirectory,
+            $LogFileName) `
+        -WarningAction SilentlyContinue
 
     $VMList = $Config.VMMap.$SelfHostedRunnerName
     # currently one VM runs per runner.
@@ -81,6 +89,12 @@ $Job = Start-Job -ScriptBlock {
         # Throw to ensure the job is marked as failed.
         throw $_.Exception.Message
     }
+
+    # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
+    Wait-AllVMsToInitialize `
+        -VMList $VMList `
+        -UserName $AdminTestVMCredential.UserName `
+        -AdminPassword $AdminTestVMCredential.Password
 
     Pop-Location
 } -ArgumentList (

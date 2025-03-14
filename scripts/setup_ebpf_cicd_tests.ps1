@@ -39,13 +39,11 @@ foreach($VM in $VMList) {
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
-
     # Download the release artifacts for regression tests.
     Get-RegressionTestArtifacts -ArtifactVersion $RegressionArtifactsVersion -Configuration $RegressionArtifactsConfiguration
 }
 
 if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
-
     # Download the release artifacts for legacy regression tests.
     Get-LegacyRegressionTestArtifacts
 }
@@ -74,8 +72,25 @@ $Job = Start-Job -ScriptBlock {
     # Get all VMs to ready state.
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-    # Export build artifacts to the test VMs.
-    Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
+    if ($TestMode -eq "Performance") {
+        # Disable verifier
+        Disable-VerifierOnVms -VMList $VMList -UserName $TestVMCredential.UserName -AdminPassword $TestVMCredential.Password
+    }
+
+    # Export build artifacts to the test VMs. Attempt with a few retries.
+    $MaxRetryCount = 5
+    for ($i = 0; $i -lt $MaxRetryCount; $i += 1) {
+        try {
+            Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
+            break
+        } catch {
+            if ($i -eq $MaxRetryCount) {
+                Write-Log "Export-BuildArtifactsToVMs failed after $MaxRetryCount attempts."
+                throw
+            }
+            Write-Log "Export-BuildArtifactsToVMs failed. Retrying..."
+        }
+    }
 
     # Configure network adapters on VMs.
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
