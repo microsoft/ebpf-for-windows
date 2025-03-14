@@ -48,11 +48,6 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
     Get-LegacyRegressionTestArtifacts
 }
 
-if ($TestMode -eq "Performance") {
-    # Disable verifier
-    Disable-VerifierOnVms -VMList $VMList -UserName $TestVMCredential.UserName -AdminPassword $TestVMCredential.Password
-}
-
 Get-CoreNetTools
 Get-PSExec
 
@@ -76,6 +71,11 @@ $Job = Start-Job -ScriptBlock {
 
     # Get all VMs to ready state.
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
+
+    if ($TestMode -eq "Performance") {
+        # Disable verifier
+        Disable-VerifierOnVms -VMList $VMList -UserName $TestVMCredential.UserName -AdminPassword $TestVMCredential.Password
+    }
 
     # Export build artifacts to the test VMs. Attempt with a few retries.
     $MaxRetryCount = 5

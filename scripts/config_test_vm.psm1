@@ -601,8 +601,8 @@ function Disable-VerifierOnVms {
         Write-Log "Disabling verifier on VM: $VMName"
         $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
         Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /reset"
-        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /volatile /removedriver ebpfcore.sys"
-        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /volatile /removedriver netebpfext.sys"
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /removedriver ebpfcore.sys"
+        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /removedriver netebpfext.sys"
         Execute-CommandOnVM -VMName $VMName -Command "Restart-Computer -Force"
     }
 
