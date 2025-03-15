@@ -408,3 +408,15 @@ struct bpf_prog_info
     uint32_t pinned_path_count;          ///< Number of pinned paths.
     uint32_t link_count;                 ///< Number of attached links.
 };
+
+/**
+ * @brief Header of an eBPF native module data structure.
+ * Every eBPF native module data structure must start with this header.
+ * This however has an exception for some of the structs that mandatorily
+ * require a specific number of starting bytes to be zero. In such cases,
+ * the header must be placed after the required zero starting bytes.
+ * New fields can be added to the end of the data structure without breaking
+ * backward compatibility. The version field must be updated only if the new
+ * data structure is not backward compatible.
+ */
+typedef ebpf_extension_header_t ebpf_native_module_header_t;

@@ -774,6 +774,7 @@ label_3:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         reflect_packet,
         "xdp_te~1",
         "xdp_test/reflect",

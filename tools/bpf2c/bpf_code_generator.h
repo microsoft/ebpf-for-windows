@@ -302,11 +302,11 @@ class bpf_code_generator
         size_t index;
     } helper_function_t;
 
-    typedef struct _map_entry
+    typedef struct _map_info
     {
         ebpf_map_definition_in_file_t definition;
         size_t index;
-    } map_entry_t;
+    } map_info_t;
 
     typedef struct _output_instruction
     {
@@ -379,7 +379,7 @@ class bpf_code_generator
          */
         void
         encode_instructions(
-            std::map<unsafe_string, map_entry_t>& map_definitions,
+            std::map<unsafe_string, map_info_t>& map_definitions,
             std::map<unsafe_string, global_variable_section_t>& global_variable_sections);
 
         /**
@@ -515,7 +515,7 @@ class bpf_code_generator
     int pe_section_name_counter{};
     std::map<unsafe_string, bpf_code_generator_program> programs;
     ELFIO::elfio reader;
-    std::map<unsafe_string, map_entry_t> map_definitions;
+    std::map<unsafe_string, map_info_t> map_definitions;
     unsafe_string c_name;
     unsafe_string path;
     btf_section_to_instruction_to_line_info_t section_line_info;

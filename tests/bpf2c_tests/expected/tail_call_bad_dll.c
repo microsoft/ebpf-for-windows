@@ -45,7 +45,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                       // Current Version.
+         80,                      // Struct size up to the last field.
+         80,                      // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -57,7 +63,13 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -125,8 +137,16 @@ callee(void* context, const program_runtime_context_t* runtime_context)
 #line __LINE__ __FILE__
 
 static helper_function_entry_t caller_helpers[] = {
-    {5, "helper_id_5"},
-    {1, "helper_id_1"},
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
 };
 
 static GUID caller_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -238,6 +258,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         callee,
         "sample~1",
         "sample_ext/0",
@@ -252,6 +273,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         caller,
         "sample~2",
         "sample_ext",

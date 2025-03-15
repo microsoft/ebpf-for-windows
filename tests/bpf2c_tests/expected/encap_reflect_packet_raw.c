@@ -30,8 +30,16 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t encap_reflect_packet_helpers[] = {
-    {65536, "helper_id_65536"},
-    {10, "helper_id_10"},
+    {
+     {1, 40, 40}, // Version header.
+     65536,
+     "helper_id_65536",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     10,
+     "helper_id_10",
+    },
 };
 
 static GUID encap_reflect_packet_program_type_guid = {
@@ -1173,6 +1181,7 @@ label_5:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         encap_reflect_packet,
         "xdp_te~1",
         "xdp_test/encap_reflect",
