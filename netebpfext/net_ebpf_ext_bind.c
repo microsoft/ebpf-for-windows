@@ -68,7 +68,7 @@ static ebpf_program_data_t _ebpf_bind_program_data = {
     .context_create = _ebpf_bind_context_create,
     .context_destroy = _ebpf_bind_context_destroy,
     .required_irql = PASSIVE_LEVEL,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // Set the program type as the provider module id.
@@ -437,7 +437,7 @@ _ebpf_bind_context_create(
 {
     NET_EBPF_EXT_LOG_ENTRY();
     ebpf_result_t result;
-    bind_context_header_t* context_header = NULL;
+    bind_context_header_t* bind_context_header = NULL;
     bind_md_t* bind_context = NULL;
 
     *context = NULL;
@@ -449,12 +449,12 @@ _ebpf_bind_context_create(
         goto Exit;
     }
 
-    context_header = (bind_context_header_t*)ExAllocatePoolUninitialized(
+    bind_context_header = (bind_context_header_t*)ExAllocatePoolUninitialized(
         NonPagedPoolNx, sizeof(bind_context_header_t), NET_EBPF_EXTENSION_POOL_TAG);
     NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
-        NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, context_header, "bind_context", result);
+        NET_EBPF_EXT_TRACELOG_KEYWORD_BIND, bind_context_header, "bind_context_header", result);
 
-    bind_context = &context_header->context;
+    bind_context = &bind_context_header->context;
     // Copy the context from the caller.
     memcpy(bind_context, context_in, sizeof(bind_md_t));
 
@@ -468,13 +468,13 @@ _ebpf_bind_context_create(
     }
 
     *context = bind_context;
-    context_header = NULL;
+    bind_context_header = NULL;
     result = EBPF_SUCCESS;
 
 Exit:
-    if (context_header) {
-        ExFreePool(context_header);
-        context_header = NULL;
+    if (bind_context_header) {
+        ExFreePool(bind_context_header);
+        bind_context_header = NULL;
     }
     NET_EBPF_EXT_RETURN_RESULT(result);
 }
@@ -491,13 +491,13 @@ _ebpf_bind_context_destroy(
 
     bind_md_t* bind_context = (bind_md_t*)context;
     bind_md_t* bind_context_out = (bind_md_t*)context_out;
-    bind_context_header_t* header = NULL;
+    bind_context_header_t* bind_context_header = NULL;
 
     if (!bind_context) {
         goto Exit;
     }
 
-    header = CONTAINING_RECORD(bind_context, bind_context_header_t, context);
+    bind_context_header = CONTAINING_RECORD(bind_context, bind_context_header_t, context);
 
     if (context_out != NULL && *context_size_out >= sizeof(bind_md_t)) {
         // Copy the context to the caller.
@@ -519,7 +519,7 @@ _ebpf_bind_context_destroy(
         *data_size_out = 0;
     }
 
-    ExFreePool(header);
+    ExFreePool(bind_context_header);
 
 Exit:
     NET_EBPF_EXT_LOG_EXIT();

@@ -83,7 +83,7 @@ typedef class _ebpf_program_test_state
         ebpf_epoch_enter(&epoch_state);
         ebpf_get_execution_context_state(&state);
         // Since this is perf test, not checking the result.
-        (void)ebpf_program_invoke(program, false, context, &result, &state);
+        (void)ebpf_program_invoke(program, context, &result, &state);
         ebpf_epoch_exit(&epoch_state);
     }
 
@@ -290,7 +290,12 @@ static ebpf_map_lpm_trie_test_state_t* _ebpf_map_lpm_trie_test_state_instance = 
 static void
 _ebpf_program_invoke()
 {
-    _ebpf_program_test_state_instance->test(nullptr);
+    struct
+    {
+        EBPF_CONTEXT_HEADER;
+        uint64_t unused;
+    } context = {0};
+    _ebpf_program_test_state_instance->test(&context.unused);
 }
 #endif
 
