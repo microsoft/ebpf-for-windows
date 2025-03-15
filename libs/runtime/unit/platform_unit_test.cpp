@@ -1115,7 +1115,7 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform][ring_buffer]")
     REQUIRE(mem1 != nullptr);
     // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
     // to fail with error warning C6001: Using uninitialized memory 'mem1'.
-    ebpf_result_t result = ebpf_ring_buffer_submit(mem1);
+    ebpf_result_t result = ebpf_ring_buffer_submit(mem1, 0);
     // Workaround for code analysis failure:
     // C28193: 'result' holds a value that must be examined.
     if (result != EBPF_SUCCESS) {
@@ -1127,7 +1127,7 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform][ring_buffer]")
     REQUIRE(mem2 != nullptr);
     // Wrapping ebpf_ring_buffer_submit in a REQUIRE macro causes code analysis
     // to fail with error warning C6001: Using uninitialized memory 'mem1'.
-    result = ebpf_ring_buffer_discard(mem2);
+    result = ebpf_ring_buffer_discard(mem2, 0);
     // Workaround for code analysis failure:
     // C28193: 'result' holds a value that must be examined.
     if (result != EBPF_SUCCESS) {
@@ -1296,13 +1296,13 @@ ring_buffer_stress_test_producer_reserve_submit(
                 if (do_copy) {
                     memcpy(record_data, data.data(), data.size());
                 }
-                if (ebpf_ring_buffer_submit(record_data) == EBPF_SUCCESS) {
+                if (ebpf_ring_buffer_submit(record_data, 0) == EBPF_SUCCESS) {
                     context->submit_count++;
                 } else {
                     context->failed_submits++;
                 }
             } else {
-                if (ebpf_ring_buffer_discard(record_data) == EBPF_SUCCESS) {
+                if (ebpf_ring_buffer_discard(record_data, 0) == EBPF_SUCCESS) {
                     context->discard_count++;
                 } else {
                     context->failed_discards++;
@@ -1590,6 +1590,35 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
         CAPTURE(test_name, test_string);
         run_ring_buffer_stress_test(ring_buffer, buffer, &test_params);
     }
+    ebpf_ring_buffer_destroy(ring_buffer);
+}
+
+TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+    ebpf_ring_buffer_t* ring_buffer;
+    uint8_t* buffer;
+    REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+
+    // KEVENT event;
+    // KeInitializeEvent(&event, SynchronizationEvent, FALSE);
+    //// get handle to KEVENT
+    // ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(&event); //FIXME: sort out handle
+
+    // std::vector<uint8_t> data(10);
+    // size_t size = 64 * 1024;
+    // size_t total_record_size = (data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7;
+
+    // ebpf_ring_buffer_set_notify_handle(ring_buffer, handle, 0);
+    // REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+    //// Require that event has already been notified.
+    // REQUIRE(KeReadStateEvent(&event) != 0);
+    // KeClearEvent(&event);
+
+    //// TODO: Add more test cases.
+
     ebpf_ring_buffer_destroy(ring_buffer);
 }
 
