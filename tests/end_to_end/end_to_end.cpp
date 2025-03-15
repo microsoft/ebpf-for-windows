@@ -438,10 +438,11 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_update_elem(dropped_packet_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     // Test that we drop the packet and increment the map
-    xdp_md_t ctx0{packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX};
+    xdp_md_header_t ctx0_header{{0}, {packet0.data(), packet0.data() + packet0.size(), 0, TEST_IFINDEX}};
+    xdp_md_t* ctx0 = &ctx0_header.context;
 
-    uint32_t hook_result;
-    REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx0, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_DROP);
 
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
@@ -454,10 +455,11 @@ droppacket_test(ebpf_execution_type_t execution_type)
 
     // Create a normal (not 0-byte) UDP packet.
     auto packet10 = prepare_udp_packet(10, ETHERNET_TYPE_IPV4);
-    xdp_md_t ctx10{packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX};
+    xdp_md_header_t ctx10_header{{0}, {packet10.data(), packet10.data() + packet10.size(), 0, TEST_IFINDEX}};
+    xdp_md_t* ctx10 = &ctx10_header.context;
 
     // Test that we don't drop the normal packet.
-    REQUIRE(hook.fire(&ctx10, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx10, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
 
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
@@ -469,7 +471,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.attach_link(program_fd, &if_index, sizeof(if_index), &link) == EBPF_SUCCESS);
 
     // Fire a 0-length UDP packet on the interface index in the map, which should be dropped.
-    REQUIRE(hook.fire(&ctx0, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx0, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_DROP);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 1);
@@ -488,7 +490,7 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(hook.batch_begin(sizeof(state), state) == EBPF_SUCCESS);
     // Process 10 packets in batch mode.
     for (int i = 0; i < 10; i++) {
-        REQUIRE(hook.batch_invoke(&ctx0, &hook_result, state) == EBPF_SUCCESS);
+        REQUIRE(hook.batch_invoke(ctx0, &hook_result, state) == EBPF_SUCCESS);
         REQUIRE(hook_result == XDP_DROP);
     }
     REQUIRE(hook.batch_end(state) == EBPF_SUCCESS);
@@ -499,8 +501,9 @@ droppacket_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_delete_elem(dropped_packet_map_fd, &key) == EBPF_SUCCESS);
 
     // Fire a 0-length packet on any interface that is not in the map, which should be allowed.
-    xdp_md_t ctx4{packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1};
-    REQUIRE(hook.fire(&ctx4, &hook_result) == EBPF_SUCCESS);
+    xdp_md_header_t ctx4_header{{0}, {packet0.data(), packet0.data() + packet0.size(), 0, if_index + 1}};
+    xdp_md_t* ctx4 = &ctx4_header.context;
+    REQUIRE(hook.fire(ctx4, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
     REQUIRE(bpf_map_lookup_elem(dropped_packet_map_fd, &key, &value) == EBPF_SUCCESS);
     REQUIRE(value == 0);
@@ -544,7 +547,7 @@ divide_by_zero_test_um(ebpf_execution_type_t execution_type)
     // Empty context (not used by the eBPF program).
     INITIALIZE_SAMPLE_CONTEXT;
 
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
@@ -1027,7 +1030,7 @@ _utility_helper_functions_test(ebpf_execution_type_t execution_type)
     // Dummy context (not used by the eBPF program).
     INITIALIZE_SAMPLE_CONTEXT
 
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 0);
 
@@ -1063,7 +1066,7 @@ map_test(ebpf_execution_type_t execution_type)
     REQUIRE(result == 0);
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
     INITIALIZE_SAMPLE_CONTEXT
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     // Program should return 0 if all the map tests pass.
@@ -1135,7 +1138,7 @@ global_variable_test(ebpf_execution_type_t execution_type)
     REQUIRE(value[1] == 40);
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
     INITIALIZE_SAMPLE_CONTEXT
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     // Program should return 0 if all the map tests pass.
@@ -1218,7 +1221,7 @@ global_variable_and_map_test(ebpf_execution_type_t execution_type)
     REQUIRE(bpf_map_update_elem(some_config_map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
 
     REQUIRE(hook.attach_link(program_fd, nullptr, 0, &link) == EBPF_SUCCESS);
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
     INITIALIZE_SAMPLE_CONTEXT
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     // Program should return 0 if all the map tests pass.
@@ -2102,13 +2105,14 @@ _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY ad
     udp_packet_t packet(address_family);
     packet.set_destination_port(ntohs(REFLECTION_TEST_PORT));
 
-    xdp_md_t ctx{packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX};
+    xdp_md_header_t ctx_header{{0}, {packet.data(), packet.data() + packet.size(), 0, TEST_IFINDEX}};
+    xdp_md_t* ctx = &ctx_header.context;
 
-    uint32_t hook_result;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx->data);
     REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
     REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
 
@@ -2158,11 +2162,11 @@ _xdp_encap_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAM
     // Dummy context (not used by the eBPF program).
     xdp_md_helper_t ctx(packet.packet());
 
-    uint32_t hook_result;
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    uint32_t hook_result = 0;
+    REQUIRE(hook.fire(ctx.get_ctx(), &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_TX);
 
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.context.data);
     REQUIRE(memcmp(ethernet_header->Destination, _test_source_mac.data(), sizeof(ethernet_header->Destination)) == 0);
     REQUIRE(memcmp(ethernet_header->Source, _test_destination_mac.data(), sizeof(ethernet_header->Source)) == 0);
 
@@ -2290,12 +2294,12 @@ _xdp_decapsulate_permit_packet_test(ebpf_execution_type_t execution_type, ADDRES
     uint8_t* inner_ip_header = packet.packet().data() + offset;
     std::vector<uint8_t> inner_ip_datagram(inner_ip_header, packet.packet().data() + packet.packet().size());
 
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
     xdp_md_helper_t ctx(packet.packet());
-    REQUIRE(hook.fire(&ctx, &hook_result) == EBPF_SUCCESS);
+    REQUIRE(hook.fire(ctx.get_ctx(), &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == XDP_PASS);
 
-    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.data);
+    ebpf::ETHERNET_HEADER* ethernet_header = reinterpret_cast<ebpf::ETHERNET_HEADER*>(ctx.context.data);
 
     if (address_family == AF_INET) {
         ebpf::IPV4_HEADER* ipv4_header = reinterpret_cast<ebpf::IPV4_HEADER*>(ethernet_header + 1);
@@ -2411,7 +2415,7 @@ _map_reuse_test(ebpf_execution_type_t execution_type)
     REQUIRE(info.name[0] == 0);
 
     INITIALIZE_SAMPLE_CONTEXT
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
 
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2521,7 +2525,7 @@ _auto_pinned_maps_test(ebpf_execution_type_t execution_type)
     REQUIRE(port_map_fd > 0);
 
     INITIALIZE_SAMPLE_CONTEXT
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
 
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2594,7 +2598,7 @@ TEST_CASE("auto_pinned_maps_custom_path", "[end_to_end]")
     REQUIRE(port_map_fd > 0);
 
     INITIALIZE_SAMPLE_CONTEXT
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
 
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2705,7 +2709,7 @@ _map_reuse_2_test(ebpf_execution_type_t execution_type)
     program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
     INITIALIZE_SAMPLE_CONTEXT
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
 
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -2781,7 +2785,7 @@ _map_reuse_3_test(ebpf_execution_type_t execution_type)
     program_helper.initialize(file_name, BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_ANY, nullptr, 0, hook);
 
     INITIALIZE_SAMPLE_CONTEXT
-    uint32_t hook_result;
+    uint32_t hook_result = 0;
 
     REQUIRE(hook.fire(ctx, &hook_result) == EBPF_SUCCESS);
     REQUIRE(hook_result == 200);
@@ -3436,10 +3440,10 @@ extension_reload_test_common(_In_ const char* file_name, ebpf_execution_type_t e
         REQUIRE(hook_result == 42);
     }
 
-    // Reload the extension with changed context_header support.
+    // Reload the extension with non-zero reserved bits in capabilities.
     {
         ebpf_program_data_t changed_program_data = _test_ebpf_sample_extension_program_data;
-        changed_program_data.capabilities.value = 0;
+        changed_program_data.capabilities.reserved = 1;
 
         single_instance_hook_t hook(EBPF_PROGRAM_TYPE_SAMPLE, EBPF_ATTACH_TYPE_SAMPLE);
         REQUIRE(hook.initialize() == EBPF_SUCCESS);

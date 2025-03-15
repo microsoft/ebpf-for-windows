@@ -96,7 +96,7 @@ static ebpf_program_data_t _sample_ebpf_extension_program_data = {
     .context_create = &_sample_context_create,
     .context_destroy = &_sample_context_destroy,
     DISPATCH_LEVEL,
-    true};
+    {0}};
 
 NPI_MODULEID DECLSPEC_SELECTANY _sample_ebpf_extension_program_info_provider_moduleid = {
     sizeof(NPI_MODULEID), MIT_GUID, EBPF_PROGRAM_TYPE_SAMPLE_GUID};

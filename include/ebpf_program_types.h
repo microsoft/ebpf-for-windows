@@ -81,7 +81,7 @@ typedef union _program_data_capabilities
     uint32_t value;
     struct
     {
-        bool supports_context_header : 1; // Program supports context header.
+        bool reserved : 1; // Reserved (must be zero).
     };
 } program_data_capabilities_t;
 

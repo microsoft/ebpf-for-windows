@@ -1075,7 +1075,12 @@ TEST_CASE("ioctl_stress", "[stress]")
                     uint32_t key = 0;
                     uint32_t value;
                     bpf_test_run_opts opts = {};
-                    bind_md_t ctx = {};
+                    struct
+                    {
+                        EBPF_CONTEXT_HEADER;
+                        bind_md_t context;
+                    } ctx_header = {0};
+                    bind_md_t* ctx = &ctx_header.context;
                     int result;
                     switch (test_case) {
                     case 0:
@@ -1106,10 +1111,10 @@ TEST_CASE("ioctl_stress", "[stress]")
                         // Run the program to trigger a ring buffer event
                         std::string app_id = "api_test.exe";
 
-                        opts.ctx_in = &ctx;
-                        opts.ctx_size_in = sizeof(ctx);
-                        opts.ctx_out = &ctx;
-                        opts.ctx_size_out = sizeof(ctx);
+                        opts.ctx_in = ctx;
+                        opts.ctx_size_in = sizeof(*ctx);
+                        opts.ctx_out = ctx;
+                        opts.ctx_size_out = sizeof(*ctx);
                         opts.data_in = app_id.data();
                         opts.data_size_in = static_cast<uint32_t>(app_id.size());
                         opts.data_out = app_id.data();
