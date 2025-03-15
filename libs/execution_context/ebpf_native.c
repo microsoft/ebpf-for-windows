@@ -664,10 +664,7 @@ _ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_
 
     if (!table || !table->programs || !table->maps) {
         EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "The metadata table size is invalid",
-            client_module_id);
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "The metadata table is invalid", client_module_id);
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -710,6 +707,11 @@ _ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_
     local_table.programs(&programs, &program_count);
     if (!_ebpf_validate_native_program_entry_array(programs, program_count)) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_native_program_entry_array failed.",
+            client_module_id);
         goto Done;
     }
 
@@ -717,6 +719,11 @@ _ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_
     local_table.maps(&maps, &map_count);
     if (!_ebpf_validate_native_map_entry_array(maps, map_count)) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_native_map_entry_array failed.",
+            client_module_id);
         goto Done;
     }
 
@@ -724,6 +731,11 @@ _ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_
     local_table.map_initial_values(&map_initial_values, &map_initial_values_count);
     if (!_ebpf_validate_native_map_initial_values_array(map_initial_values, map_initial_values_count)) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_native_map_initial_values_array failed.",
+            client_module_id);
         goto Done;
     }
 
@@ -731,6 +743,11 @@ _ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_
     local_table.global_variable_sections(&global_variables, &global_variable_count);
     if (!_ebpf_validate_global_variable_section_info_array(global_variables, global_variable_count)) {
         result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_global_variable_section_info_array failed.",
+            client_module_id);
         goto Done;
     }
 
@@ -768,16 +785,6 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t* client_context = NULL;
 
     table = (metadata_table_t*)client_dispatch;
-
-    result = _ebpf_native_validate_native_module(table, client_module_id);
-    if (result != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "_ebpf_native_client_attach_callback: Invalid native module",
-            client_module_id);
-        goto Done;
-    }
 
     client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
     if (!client_context) {
