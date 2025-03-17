@@ -513,8 +513,6 @@ function Invoke-CICDPerformanceTests
         Release\bpf_performance_runner.exe -i tests.yml -e .sys -r | Tee-Object -FilePath $WorkingDirectory\bpf_performance_native.csv
     }
 
-    Write-Log "Completed eBPF kernel mode performance tests."
-
     Pop-Location
 }
 

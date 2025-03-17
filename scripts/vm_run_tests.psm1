@@ -16,7 +16,6 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($Admin, $AdminPassword, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 #
 # Generate kernel dump.
