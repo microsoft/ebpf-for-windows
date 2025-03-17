@@ -600,9 +600,11 @@ function Disable-VerifierOnVms {
         $VMName = $VM.Name
         Write-Log "Disabling verifier on VM: $VMName"
         try {
-            $command = "verifier.exe /reset; shutdown /r /t 1"
+            $command = "verifier.exe /reset; Restart-Computer -Force"
             Execute-CommandOnVM -VMName $VMName -Command $command
-            # Execute-CommandOnVM -VMName $VMName -Command "Restart-Computer -Force"
+
+            # Give the VM some time to issue the reboot.
+            Start-Sleep -Seconds 30
         } catch {
             # Do nothing - the command may error once the reboot is triggered, but this is not a fatal error.
             Write-Log "Treating error as non-fatal while disabling verifier on VM: $VMName Error: $_"
