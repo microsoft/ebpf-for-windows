@@ -600,8 +600,19 @@ function Disable-VerifierOnVms {
         $VMName = $VM.Name
         Write-Log "Disabling verifier on VM: $VMName"
         try {
+$scriptBlock = @"
+$physicalDisks = Get-PhysicalDisk | Select-Object DeviceID, MediaType, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}
+$volumes = Get-Volume | Select-Object DriveLetter, FileSystemLabel, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="SizeRemaining(GB)";Expression={[math]::Round($_.SizeRemaining / 1GB, 2)}}
+Write-Output "Physical Disks:"
+$physicalDisks | Format-Table -AutoSize
+Write-Output "Volumes:"
+$volumes | Format-Table -AutoSize
+"@
+Execute-CommandOnVM -VMName $VMName -Command $scriptBlock
+
             $command = "verifier.exe /reset; Restart-Computer -Force"
             Execute-CommandOnVM -VMName $VMName -Command $command
+
         } catch {
             # Do nothing - the command may error once the reboot is triggered, but this is not a fatal error.
             Write-Log "Treating error as non-fatal while disabling verifier on VM: $VMName Error: $_"

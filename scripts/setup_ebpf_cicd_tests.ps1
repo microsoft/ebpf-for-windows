@@ -131,6 +131,20 @@ Remove-Job -Job $Job -Force
 
 Pop-Location
 
+# TODO - remove this
+# Get physical disk information and convert size to GB
+$physicalDisks = Get-PhysicalDisk | Select-Object DeviceID, MediaType, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}
+
+# Get volume information and convert size to GB
+$volumes = Get-Volume | Select-Object DriveLetter, FileSystemLabel, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="SizeRemaining(GB)";Expression={[math]::Round($_.SizeRemaining / 1GB, 2)}}
+
+# Display the results
+Write-Output "Physical Disks:"
+$physicalDisks | Format-Table -AutoSize
+
+Write-Output "Volumes:"
+$volumes | Format-Table -AutoSize
+
 if ($JobTimedOut) {
     exit 1
 }
