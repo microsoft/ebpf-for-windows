@@ -10,7 +10,7 @@ std::unique_ptr<fuzz_helper_function__sock_addr_t> _fuzz_helper_function_sock_ad
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
-    // Setup fuzz_state to fuzz the general helper functions.
+    // Set up fuzz_state to fuzz the general helper functions.
     _fuzz_helper_function_sock_addr =
         std::make_unique<fuzz_helper_function__sock_addr_t>(ebpf_general_helper_function_module_id.Guid);
 

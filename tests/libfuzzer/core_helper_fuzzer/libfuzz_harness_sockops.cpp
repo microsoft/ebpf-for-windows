@@ -10,11 +10,10 @@ std::unique_ptr<fuzz_helper_function__sock_ops_t> _fuzz_helper_function_sock_ops
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
 {
-    // Setup fuzz_state to fuzz the general helper functions.
+    // Set up fuzz_state to fuzz the general helper functions.
     _fuzz_helper_function_sock_ops =
         std::make_unique<fuzz_helper_function__sock_ops_t>(ebpf_general_helper_function_module_id.Guid);
 
-      that the ebpfcore runtime is stopped before the usersim runtime.
     atexit([]() { _fuzz_helper_function_sock_ops.reset(); });
     return 0;
 }
