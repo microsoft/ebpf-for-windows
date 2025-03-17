@@ -583,7 +583,7 @@ function Execute-CommandOnVM {
         Write-Log "Executing command on VM: $VMName. Command: $Command"
         $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
             param($Command)
-            Invoke-Expression $Command
+            Invoke-Expression -command `"$Command`"
         } -ArgumentList $Command
         Write-Log "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
     } catch {
@@ -611,6 +611,7 @@ function Disable-VerifierOnVms {
         }
     }
 
+    Write-Log "Waiting for all VMs to be in ready state after disabling verifier"
     Wait-AllVMsToInitialize -VMList $VMList -UserName $UserName -AdminPassword $AdminPassword
 }
 
