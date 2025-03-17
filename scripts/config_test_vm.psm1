@@ -600,9 +600,9 @@ function Disable-VerifierOnVms {
         $VMName = $VM.Name
         Write-Log "Disabling verifier on VM: $VMName"
         try {
-
-        $command = "verifier.exe /removedriver ebpfcore.sys; verifier.exe /removedriver netebpfext.sys; Restart-Computer -Force"
-        Execute-CommandOnVM -VMName $VMName -Command $command
+            $command = "verifier.exe /removedriver ebpfcore.sys; verifier.exe /removedriver netebpfext.sys"
+            Execute-CommandOnVM -VMName $VMName -Command $command
+            Execute-CommandOnVM -VMName $VMName -Command "Restart-Computer -Force"
         } catch {
             # Do nothing - the command may error once the reboot is triggered, but this is not a fatal error.
             Write-Log "Treating error as non-fatal while disabling verifier on VM: $VMName Error: $_"
