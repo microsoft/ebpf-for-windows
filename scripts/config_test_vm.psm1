@@ -599,11 +599,8 @@ function Disable-VerifierOnVms {
     foreach ($VM in $VMList) {
         $VMName = $VM.Name
         Write-Log "Disabling verifier on VM: $VMName"
-        $TestCredential = New-Credential -Username $UserName -AdminPassword $AdminPassword
-        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /reset"
-        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /removedriver ebpfcore.sys"
-        Execute-CommandOnVM -VMName $VMName -Command "verifier.exe /removedriver netebpfext.sys"
-        Execute-CommandOnVM -VMName $VMName -Command "Restart-Computer -Force"
+        $command = "verifier.exe /reset; verifier.exe /removedriver ebpfcore.sys; verifier.exe /removedriver netebpfext.sys; Restart-Computer -Force"
+        Execute-CommandOnVM -VMName $VMName -Command $command
     }
 
     Wait-AllVMsToInitialize -VMList $VMList -UserName $UserName -AdminPassword $AdminPassword
