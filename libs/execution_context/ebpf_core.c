@@ -2190,17 +2190,6 @@ _ebpf_core_protocol_map_query_buffer(
     }
     reference_taken = TRUE;
 
-    ebpf_map_type_t map_type = ebpf_map_get_definition(map)->type;
-    if (!(map_type == BPF_MAP_TYPE_RINGBUF || map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY)) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "write data operation called on a map that is not of the ring buffer or perf event array type.",
-            result);
-        goto Exit;
-    }
-
     result = ebpf_map_query_buffer(
         map, request->index, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
 
@@ -2230,17 +2219,6 @@ _ebpf_core_protocol_map_async_query(
         goto Exit;
     }
     reference_taken = TRUE;
-
-    ebpf_map_type_t map_type = ebpf_map_get_definition(map)->type;
-    if (!(map_type == BPF_MAP_TYPE_RINGBUF || map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY)) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "async query operation called on a map that is not of the ring buffer or perf event array type.",
-            result);
-        goto Exit;
-    }
 
     // Return buffer already consumed by caller in previous notification.
     result = ebpf_map_return_buffer(map, request->index, request->consumer_offset);
@@ -2276,16 +2254,6 @@ _ebpf_core_protocol_map_write_data(_In_ const ebpf_operation_map_write_data_requ
     }
     reference_taken = TRUE;
 
-    ebpf_map_type_t map_type = ebpf_map_get_definition(map)->type;
-    if (!(map_type == BPF_MAP_TYPE_RINGBUF || map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY)) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "write data operation called on a map that is not of the ring buffer or perf event array type.",
-            result);
-        goto Exit;
-    }
     result = ebpf_safe_size_t_subtract(
         request->header.length, EBPF_OFFSET_OF(ebpf_operation_map_write_data_request_t, data), &data_length);
     if (result != EBPF_SUCCESS) {

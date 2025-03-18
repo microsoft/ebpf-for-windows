@@ -225,34 +225,31 @@ typedef struct _ebpf_core_lpm_key
     uint8_t prefix[1];
 } ebpf_core_lpm_key_t;
 
-typedef struct _ebpf_core_ring_buffer_map
+typedef struct _ebpf_core_map_async_contexts
 {
-    ebpf_core_map_t core_map;
     ebpf_lock_t lock;
     // Flag that is set the first time an async operation is queued to the map.
     // This flag only transitions from off -> on. When this flag is set,
     // updates to the map acquire the lock and check the async_contexts list.
     // Note that queueing an async operation thus causes a perf degradation
     // for all subsequent updates, so should only be allowed by admin.
-    bool async_contexts_trip_wire;
-    ebpf_list_entry_t async_contexts;
-} ebpf_core_ring_buffer_map_t;
+    bool trip_wire;
+    ebpf_list_entry_t contexts;
+} ebpf_core_map_async_contexts_t;
 
-typedef struct _ebpf_core_ring_buffer_map_async_query_context
+typedef struct _ebpf_core_ring_buffer_map
 {
-    ebpf_list_entry_t entry;
-    ebpf_core_ring_buffer_map_t* ring_buffer_map;
-    ebpf_map_async_query_result_t* async_query_result;
-    void* async_context;
-} ebpf_core_ring_buffer_map_async_query_context_t;
+    ebpf_core_map_t core_map;
+    ebpf_core_map_async_contexts_t async;
+} ebpf_core_ring_buffer_map_t;
 
 typedef struct _ebpf_core_perf_ring
 {
     ebpf_ring_buffer_t ring;
     volatile size_t lost_records;
-    ebpf_lock_t lock;
-    ebpf_list_entry_t async_contexts;
-    uint64_t pad[6];
+    ebpf_core_map_async_contexts_t async;
+    uint32_t pad1;
+    uint64_t pad2[4];
 } ebpf_core_perf_ring_t;
 
 typedef struct _ebpf_core_perf_event_array_map
@@ -266,8 +263,8 @@ typedef struct _ebpf_core_perf_event_array_map
     // for all subsequent updates, so should only be allowed by admin.
     // Note that we use a single trip wire for the perf array, so once
     // one ring receives an async request the whole perf array uses async.
-    bool async_contexts_trip_wire;
-    uint64_t pad[3];
+    uint32_t pad1;
+    uint64_t pad2[3];
     ebpf_core_perf_ring_t rings[1];
 } ebpf_core_perf_event_array_map_t;
 
@@ -276,14 +273,14 @@ static_assert(
     sizeof(ebpf_core_perf_event_array_map_t) % EBPF_CACHE_LINE_SIZE == 0,
     "ebpf_core_perf_event_array_map_t is not cache aligned.");
 
-typedef struct _ebpf_core_perf_event_array_map_async_query_context
+typedef struct _ebpf_core_map_async_query_context
 {
     ebpf_list_entry_t entry;
-    ebpf_core_perf_event_array_map_t* perf_event_array_map;
-    uint32_t cpu_id;
+    ebpf_core_map_t* map;
+    uint64_t index;
     ebpf_map_async_query_result_t* async_query_result;
     void* async_context;
-} ebpf_core_perf_event_array_map_async_query_context_t;
+} ebpf_core_map_async_query_context_t;
 
 /**
  * Core map structure for BPF_MAP_TYPE_QUEUE and BPF_MAP_TYPE_STACK
@@ -435,13 +432,17 @@ typedef struct _ebpf_map_metadata_table
         _Inout_opt_ uint8_t** next_value);
     ebpf_result_t (*query_buffer)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** data, _Out_ uint64_t* consumer_offset);
+    ebpf_result_t (*return_buffer)(_In_ const ebpf_core_map_t* map, uint64_t index, uint64_t consumer_offset);
+    ebpf_result_t (*write_data)(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t data_size);
     ebpf_result_t (*async_query)(
-        _In_ ebpf_core_map_t* map,
+        _In_ const ebpf_core_map_t* map,
         uint64_t index,
         _Inout_ ebpf_map_async_query_result_t* async_query_result,
         _Inout_ void* async_context);
-    ebpf_result_t (*return_buffer)(_In_ const ebpf_core_map_t* map, uint64_t index, uint64_t consumer_offset);
-    ebpf_result_t (*write_data)(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t data_size);
+    void (*query)(
+        _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result);
+    void (*async_query_complete)(_In_ const ebpf_core_map_t* map, uint64_t index);
+    void (*async_query_cancel)(_In_ _Frees_ptr_ void* cancel_context);
     int zero_length_key : 1;
     int zero_length_value : 1;
     int per_cpu : 1;
@@ -2112,101 +2113,171 @@ _update_circular_map_entry(
     return result;
 }
 
-static void
-_ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
+inline static ebpf_result_t
+_map_async_query(
+    _In_ const ebpf_core_map_t* map,
+    uint64_t index,
+    _Inout_ ebpf_core_map_async_contexts_t* async_contexts,
+    _Inout_ ebpf_map_async_query_result_t* async_query_result,
+    _Inout_ void* async_context)
 {
     EBPF_LOG_ENTRY();
-    ebpf_core_ring_buffer_map_async_query_context_t* context =
-        (ebpf_core_ring_buffer_map_async_query_context_t*)cancel_context;
-    ebpf_core_ring_buffer_map_t* ring_buffer_map = context->ring_buffer_map;
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->lock);
-    ebpf_list_remove_entry(&context->entry);
-    ebpf_lock_unlock(&ring_buffer_map->lock, state);
-    ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
-    ebpf_free(context);
-    EBPF_LOG_EXIT();
-}
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
-static _Requires_lock_held_(ring_buffer_map->lock) void _ebpf_ring_buffer_map_signal_async_query_complete(
-    _Inout_ ebpf_core_ring_buffer_map_t* ring_buffer_map)
-{
-    EBPF_LOG_ENTRY();
-    // Skip if no async_contexts have ever been queued.
-    if (!ring_buffer_map->async_contexts_trip_wire) {
-        return;
+    ebpf_result_t result = EBPF_PENDING;
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&async_contexts->lock);
+
+    // Fail the async query as there is already another async query operation queued.
+    if (!ebpf_list_is_empty(&async_contexts->contexts)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
     }
 
-    ebpf_core_map_t* map = &ring_buffer_map->core_map;
-    while (!ebpf_list_is_empty(&ring_buffer_map->async_contexts)) {
-        ebpf_core_ring_buffer_map_async_query_context_t* context = EBPF_FROM_FIELD(
-            ebpf_core_ring_buffer_map_async_query_context_t, entry, ring_buffer_map->async_contexts.Flink);
+    // Allocate and initialize the async query context and queue it up.
+    ebpf_core_map_async_query_context_t* context =
+        ebpf_allocate_with_tag(sizeof(ebpf_core_map_async_query_context_t), EBPF_POOL_TAG_ASYNC);
+    if (!context) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+    ebpf_list_initialize(&context->entry);
+    context->map = (ebpf_core_map_t*)map;
+    context->index = index;
+    context->async_query_result = async_query_result;
+    context->async_context = async_context;
+
+    ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, context, table->async_query_cancel));
+
+    ebpf_list_insert_tail(&async_contexts->contexts, &context->entry);
+    async_contexts->trip_wire = true;
+
+    // If there is already some data available in the ring buffer, indicate the results right away.
+    size_t consumer = async_query_result->consumer;
+    table->query(map, index, async_query_result);
+    if (consumer > async_query_result->consumer) {
+        // Keep the latest consumer offset.
+        async_query_result->consumer = consumer;
+    }
+    if (async_query_result->producer > async_query_result->consumer) {
+        table->async_query_complete(map, index);
+    }
+
+Exit:
+    ebpf_lock_unlock(&async_contexts->lock, state);
+
+    EBPF_RETURN_RESULT(result);
+}
+
+static _Requires_lock_held_(async_contexts->lock) void _map_async_query_complete(
+    _In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map_async_contexts_t* async_contexts)
+{
+    EBPF_LOG_ENTRY();
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+    // Skip if no async_contexts have ever been queued.
+    if (!async_contexts->trip_wire) {
+        return;
+    }
+    while (!ebpf_list_is_empty(&async_contexts->contexts)) {
+        ebpf_core_map_async_query_context_t* context =
+            EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, async_contexts->contexts.Flink);
         ebpf_map_async_query_result_t* async_query_result = context->async_query_result;
-        size_t consumer;
-        ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &consumer, &async_query_result->producer);
-        if (consumer > async_query_result->consumer) {
-            // We will normally already have the latest consumer value - only update if we see an increase.
-            async_query_result->consumer = consumer;
-        }
+        table->query(map, context->index, async_query_result);
         ebpf_list_remove_entry(&context->entry);
+
         ebpf_operation_map_async_query_reply_t* reply =
             EBPF_FROM_FIELD(ebpf_operation_map_async_query_reply_t, async_query_result, async_query_result);
         ebpf_async_complete(context->async_context, sizeof(*reply), EBPF_SUCCESS);
         ebpf_free(context);
         context = NULL;
     }
+    EBPF_LOG_EXIT();
+}
+
+static void
+_map_async_query_cancel(
+    _Inout_ ebpf_core_map_async_contexts_t* async_contexts, _In_ ebpf_core_map_async_query_context_t* context)
+{
+    ebpf_lock_state_t state = ebpf_lock_lock(&async_contexts->lock);
+    ebpf_list_remove_entry(&context->entry);
+    ebpf_lock_unlock(&async_contexts->lock, state);
+    ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
+    ebpf_free(context);
+}
+
+static void
+_query_ring_buffer_map(
+    _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result)
+{
+    UNREFERENCED_PARAMETER(index);
+    ebpf_ring_buffer_query(
+        (ebpf_ring_buffer_t*)map->data, &async_query_result->consumer, &async_query_result->producer);
+}
+
+static void
+_query_perf_event_array_map(
+    _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result)
+{
+    ebpf_core_perf_event_array_map_t* perf_event_array_map =
+        EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
+    ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[(uint32_t)index];
+    ebpf_ring_buffer_query(&ring->ring, &async_query_result->consumer, &async_query_result->producer);
+    async_query_result->lost_count = ring->lost_records;
+}
+
+static void
+_ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_core_map_async_query_context_t* context = (ebpf_core_map_async_query_context_t*)cancel_context;
+    ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, context->map);
+    _map_async_query_cancel(&ring_buffer_map->async, context);
+    EBPF_LOG_EXIT();
+}
+
+static _Requires_lock_held_(
+    EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map)
+        ->async
+        .lock) void _ebpf_ring_buffer_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
+{
+    UNREFERENCED_PARAMETER(index);
+    ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
+    _map_async_query_complete(map, &ring_buffer_map->async);
 }
 
 static void
 _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
 {
     EBPF_LOG_ENTRY();
-    ebpf_core_perf_event_array_map_async_query_context_t* context =
-        (ebpf_core_perf_event_array_map_async_query_context_t*)cancel_context;
-    uint32_t cpu_id = context->cpu_id;
-    ebpf_core_perf_event_array_map_t* perf_event_array_map = context->perf_event_array_map;
+    ebpf_core_map_async_query_context_t* context = (ebpf_core_map_async_query_context_t*)cancel_context;
+    uint32_t cpu_id = (uint32_t)context->index;
+    ebpf_core_perf_event_array_map_t* perf_event_array_map =
+        EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, context->map);
     ebpf_assert(cpu_id < perf_event_array_map->ring_count);
 
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    ebpf_list_remove_entry(&context->entry);
-    ebpf_lock_unlock(&ring->lock, state);
-    ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
-    ebpf_free(context);
+    _map_async_query_cancel(&ring->async, context);
     EBPF_LOG_EXIT();
 }
 
-static _Requires_lock_held_(perf_event_array_map->rings[cpu_id].lock) void _ebpf_perf_event_array_map_signal_async_query_complete(
-    _Inout_ ebpf_core_perf_event_array_map_t* perf_event_array_map, uint32_t cpu_id)
+static _Requires_lock_held_(
+    EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map)
+        ->rings[(uint32_t)index]
+        .async
+        .lock) void _ebpf_perf_event_array_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
-    EBPF_LOG_ENTRY();
-    // Skip if no async_contexts have ever been queued.
-    if (!perf_event_array_map->async_contexts_trip_wire) {
-        return;
-    }
+    ebpf_core_perf_event_array_map_t* perf_event_array_map =
+        EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
+    uint32_t cpu_id = (uint32_t)index;
     ebpf_assert(cpu_id < perf_event_array_map->ring_count);
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
-    while (!ebpf_list_is_empty(&ring->async_contexts)) {
-        ebpf_core_perf_event_array_map_async_query_context_t* context =
-            EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_async_query_context_t, entry, ring->async_contexts.Flink);
-        ebpf_map_async_query_result_t* async_query_result = context->async_query_result;
-
-        async_query_result->lost_count = ring->lost_records;
-        ebpf_ring_buffer_query(&ring->ring, &async_query_result->consumer, &async_query_result->producer);
-        ebpf_list_remove_entry(&context->entry);
-
-        ebpf_operation_map_async_query_reply_t* reply =
-            EBPF_FROM_FIELD(ebpf_operation_map_async_query_reply_t, async_query_result, async_query_result);
-        ebpf_async_complete(context->async_context, sizeof(*reply), EBPF_SUCCESS);
-        ebpf_free(context);
-        context = NULL;
-    }
+    _map_async_query_complete(&perf_event_array_map->core_map, &ring->async);
 }
 
 static ebpf_result_t
 _query_buffer_ring_buffer_map(
-    _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
+    _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
     UNREFERENCED_PARAMETER(index);
     size_t producer_offset;
@@ -2216,69 +2287,27 @@ _query_buffer_ring_buffer_map(
 
 static ebpf_result_t
 _async_query_ring_buffer_map(
-    _Inout_ ebpf_map_t* map,
+    _In_ const ebpf_core_map_t* map,
     uint64_t index,
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
     _Inout_ void* async_context)
 {
     UNREFERENCED_PARAMETER(index);
-    ebpf_result_t result = EBPF_PENDING;
-    EBPF_LOG_ENTRY();
 
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->lock);
-
-    // Fail the async query as there is already another async query operation queued.
-    if (!ebpf_list_is_empty(&ring_buffer_map->async_contexts)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    // Allocate and initialize the async query context and queue it up.
-    ebpf_core_ring_buffer_map_async_query_context_t* context =
-        ebpf_allocate_with_tag(sizeof(ebpf_core_ring_buffer_map_async_query_context_t), EBPF_POOL_TAG_ASYNC);
-    if (!context) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-    ebpf_list_initialize(&context->entry);
-    context->ring_buffer_map = ring_buffer_map;
-    context->async_query_result = async_query_result;
-    context->async_context = async_context;
-
-    ebpf_assert_success(
-        ebpf_async_set_cancel_callback(async_context, context, _ebpf_ring_buffer_map_cancel_async_query));
-
-    ebpf_list_insert_tail(&ring_buffer_map->async_contexts, &context->entry);
-    ring_buffer_map->async_contexts_trip_wire = true;
-
-    size_t consumer;
-    // If there is already some data available in the ring buffer, indicate the results right away.
-    ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, &consumer, &async_query_result->producer);
-    if (consumer > async_query_result->consumer) {
-        async_query_result->consumer = consumer;
-    }
-
-    if (async_query_result->producer != async_query_result->consumer) {
-        _ebpf_ring_buffer_map_signal_async_query_complete(ring_buffer_map);
-    }
-
-Exit:
-    ebpf_lock_unlock(&ring_buffer_map->lock, state);
-
-    EBPF_RETURN_RESULT(result);
+    ebpf_core_map_async_contexts_t* async_contexts = &ring_buffer_map->async;
+    return _map_async_query(map, index, async_contexts, async_query_result, async_context);
 }
 
 static ebpf_result_t
-_return_buffer_ring_buffer_map(_In_ const ebpf_map_t* map, uint64_t index, size_t consumer_offset)
+_return_buffer_ring_buffer_map(_In_ const ebpf_core_map_t* map, uint64_t index, size_t consumer_offset)
 {
     UNREFERENCED_PARAMETER(index);
     return ebpf_ring_buffer_return_buffer((ebpf_ring_buffer_t*)map->data, consumer_offset);
 }
 
 static ebpf_result_t
-_write_data_ring_buffer_map(_Inout_ ebpf_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t length)
+_write_data_ring_buffer_map(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t length)
 {
     UNREFERENCED_PARAMETER(flags);
     return ebpf_ring_buffer_map_output(map, data, length);
@@ -2286,7 +2315,7 @@ _write_data_ring_buffer_map(_Inout_ ebpf_map_t* map, uint64_t flags, _In_ uint8_
 
 static ebpf_result_t
 _query_buffer_perf_event_array_map(
-    _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
+    _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
@@ -2303,60 +2332,21 @@ _query_buffer_perf_event_array_map(
 
 static ebpf_result_t
 _async_query_perf_event_array_map(
-    _In_ const ebpf_map_t* map,
+    _In_ const ebpf_core_map_t* map,
     uint64_t index,
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
     _Inout_ void* async_context)
 {
-    ebpf_result_t result = EBPF_PENDING;
-    EBPF_LOG_ENTRY();
-
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-
-    // Fail the async query as there is already another async query operation queued.
-    if (!ebpf_list_is_empty(&ring->async_contexts)) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Exit;
-    }
-
-    // Allocate and initialize the async query context and queue it up.
-    ebpf_core_perf_event_array_map_async_query_context_t* context =
-        ebpf_allocate_with_tag(sizeof(ebpf_core_perf_event_array_map_async_query_context_t), EBPF_POOL_TAG_ASYNC);
-    if (!context) {
-        result = EBPF_NO_MEMORY;
-        goto Exit;
-    }
-    ebpf_list_initialize(&context->entry);
-    context->perf_event_array_map = perf_event_array_map;
-    context->cpu_id = cpu_id;
-    context->async_query_result = async_query_result;
-    context->async_context = async_context;
-
-    ebpf_assert_success(
-        ebpf_async_set_cancel_callback(async_context, context, _ebpf_perf_event_array_map_cancel_async_query));
-
-    ebpf_list_insert_tail(&ring->async_contexts, &context->entry);
-    perf_event_array_map->async_contexts_trip_wire = true;
-
-    // If there is already some data available in the cpu ring, indicate the results right away.
-    ebpf_ring_buffer_query(&ring->ring, &async_query_result->consumer, &async_query_result->producer);
-    if (async_query_result->producer != async_query_result->consumer) {
-        _ebpf_perf_event_array_map_signal_async_query_complete(perf_event_array_map, cpu_id);
-    }
-
-Exit:
-    ebpf_lock_unlock(&ring->lock, state);
-
-    EBPF_RETURN_RESULT(result);
+    ebpf_core_map_async_contexts_t* async_contexts = &ring->async;
+    return _map_async_query(map, index, async_contexts, async_query_result, async_context);
 }
 
 static ebpf_result_t
-_return_buffer_perf_event_array_map(_In_ const ebpf_map_t* map, uint64_t index, size_t consumer_offset)
+_return_buffer_perf_event_array_map(_In_ const ebpf_core_map_t* map, uint64_t index, size_t consumer_offset)
 {
     EBPF_LOG_ENTRY();
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
@@ -2369,7 +2359,7 @@ _return_buffer_perf_event_array_map(_In_ const ebpf_map_t* map, uint64_t index, 
 }
 
 static ebpf_result_t
-_write_data_perf_event_array_map(_Inout_ ebpf_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t length)
+_write_data_perf_event_array_map(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t length)
 {
     UNREFERENCED_PARAMETER(flags);
     return ebpf_perf_event_array_map_output_simple(map, data, length);
@@ -2386,20 +2376,21 @@ _delete_ring_buffer_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
     // Snap the async context list.
     ebpf_list_entry_t temp_list;
     ebpf_list_initialize(&temp_list);
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->lock);
-    ebpf_list_entry_t* first_entry = ring_buffer_map->async_contexts.Flink;
-    if (!ebpf_list_is_empty(&ring_buffer_map->async_contexts)) {
-        ebpf_list_remove_entry(&ring_buffer_map->async_contexts);
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->async.lock);
+    ebpf_list_entry_t* first_entry = ring_buffer_map->async.contexts.Flink;
+    if (!ebpf_list_is_empty(&ring_buffer_map->async.contexts)) {
+        ebpf_list_remove_entry(&ring_buffer_map->async.contexts);
         ebpf_list_append_tail_list(&temp_list, first_entry);
     }
-    ebpf_lock_unlock(&ring_buffer_map->lock, state);
+    ebpf_lock_unlock(&ring_buffer_map->async.lock, state);
     // Cancel all pending async query operations.
     for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list; temp_entry = temp_entry->Flink) {
-        ebpf_core_ring_buffer_map_async_query_context_t* context =
-            EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_async_query_context_t, entry, temp_entry);
+        ebpf_core_map_async_query_context_t* context =
+            EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
         ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
     }
     ebpf_epoch_free(ring_buffer_map);
+    EBPF_LOG_EXIT();
 }
 
 static ebpf_result_t
@@ -2436,7 +2427,7 @@ _create_ring_buffer_map(
     }
     ring_buffer = (ebpf_ring_buffer_t*)ring_buffer_map->core_map.data;
 
-    ebpf_list_initialize(&ring_buffer_map->async_contexts);
+    ebpf_list_initialize(&ring_buffer_map->async.contexts);
 
     *map = &ring_buffer_map->core_map;
     ring_buffer = NULL;
@@ -2463,9 +2454,9 @@ ebpf_ring_buffer_map_output(_Inout_ ebpf_core_map_t* map, _In_reads_bytes_(lengt
 
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
 
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->lock);
-    _ebpf_ring_buffer_map_signal_async_query_complete(ring_buffer_map);
-    ebpf_lock_unlock(&ring_buffer_map->lock, state);
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring_buffer_map->async.lock);
+    _ebpf_ring_buffer_map_signal_async_query_complete(map, 0);
+    ebpf_lock_unlock(&ring_buffer_map->async.lock, state);
 
 Exit:
     EBPF_RETURN_RESULT(result);
@@ -2485,7 +2476,6 @@ ebpf_map_query_buffer(
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
-
     return table->query_buffer(map, index, buffer, consumer_offset);
 }
 
@@ -2521,7 +2511,6 @@ ebpf_map_return_buffer(_In_ const ebpf_map_t* map, uint64_t flags, size_t length
             map->ebpf_map_definition.type);
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
-
     return table->return_buffer(map, flags, length);
 }
 
@@ -2557,19 +2546,19 @@ _delete_perf_event_array_map(_In_ _Post_invalid_ ebpf_core_map_t* map)
         ebpf_list_entry_t temp_list;
         ebpf_list_initialize(&temp_list);
 
-        ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-        ebpf_list_entry_t* first_entry = ring->async_contexts.Flink;
-        if (!ebpf_list_is_empty(&ring->async_contexts)) {
-            ebpf_list_remove_entry(&ring->async_contexts);
+        ebpf_lock_state_t state = ebpf_lock_lock(&ring->async.lock);
+        ebpf_list_entry_t* first_entry = ring->async.contexts.Flink;
+        if (!ebpf_list_is_empty(&ring->async.contexts)) {
+            ebpf_list_remove_entry(&ring->async.contexts);
             ebpf_list_append_tail_list(&temp_list, first_entry);
         }
-        ebpf_lock_unlock(&ring->lock, state);
+        ebpf_lock_unlock(&ring->async.lock, state);
 
         // Cancel all pending async query operations.
         for (ebpf_list_entry_t* temp_entry = temp_list.Flink; temp_entry != &temp_list;
              temp_entry = temp_entry->Flink) {
-            ebpf_core_perf_event_array_map_async_query_context_t* context =
-                EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_async_query_context_t, entry, temp_entry);
+            ebpf_core_map_async_query_context_t* context =
+                EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, temp_entry);
             ebpf_async_complete(context->async_context, 0, EBPF_CANCELED);
         }
         ebpf_ring_buffer_free_ring_memory(&ring->ring);
@@ -2619,8 +2608,8 @@ _create_perf_event_array_map(
             perf_event_array_map->ring_count = cpu_i;
             goto Exit;
         }
-        ebpf_list_initialize(&ring->async_contexts);
-        ebpf_lock_create(&ring->lock);
+        ebpf_list_initialize(&ring->async.contexts);
+        ebpf_lock_create(&ring->async.lock);
     }
 
     result = EBPF_SUCCESS;
@@ -2661,9 +2650,9 @@ ebpf_perf_event_array_map_output_simple(_Inout_ ebpf_map_t* map, _In_reads_bytes
     memcpy(record_data, data, length);
     result = ebpf_ring_buffer_submit(record_data);
 
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    _ebpf_perf_event_array_map_signal_async_query_complete(perf_event_array_map, cpu_id);
-    ebpf_lock_unlock(&ring->lock, state);
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring->async.lock);
+    _ebpf_perf_event_array_map_signal_async_query_complete(&perf_event_array_map->core_map, cpu_id);
+    ebpf_lock_unlock(&ring->async.lock, state);
 
 Exit:
     ebpf_lower_irql_from_dispatch_if_needed(irql_at_enter);
@@ -2744,9 +2733,9 @@ ebpf_perf_event_array_map_output(
     }
     result = ebpf_ring_buffer_submit(record_data);
 
-    ebpf_lock_state_t state = ebpf_lock_lock(&ring->lock);
-    _ebpf_perf_event_array_map_signal_async_query_complete(perf_event_array_map, cpu_id);
-    ebpf_lock_unlock(&ring->lock, state);
+    ebpf_lock_state_t state = ebpf_lock_lock(&ring->async.lock);
+    _ebpf_perf_event_array_map_signal_async_query_complete(&perf_event_array_map->core_map, cpu_id);
+    ebpf_lock_unlock(&ring->async.lock, state);
 
 Exit:
     if (irql_at_enter < DISPATCH_LEVEL) {
@@ -2886,6 +2875,9 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .delete_map = _delete_ring_buffer_map,
         .query_buffer = _query_buffer_ring_buffer_map,
         .async_query = _async_query_ring_buffer_map,
+        .query = _query_ring_buffer_map,
+        .async_query_cancel = _ebpf_ring_buffer_map_cancel_async_query,
+        .async_query_complete = _ebpf_ring_buffer_map_signal_async_query_complete,
         .return_buffer = _return_buffer_ring_buffer_map,
         .write_data = _write_data_ring_buffer_map,
         .zero_length_key = true,
@@ -2897,6 +2889,9 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .delete_map = _delete_perf_event_array_map,
         .query_buffer = _query_buffer_perf_event_array_map,
         .async_query = _async_query_perf_event_array_map,
+        .query = _query_perf_event_array_map,
+        .async_query_cancel = _ebpf_perf_event_array_map_cancel_async_query,
+        .async_query_complete = _ebpf_perf_event_array_map_signal_async_query_complete,
         .return_buffer = _return_buffer_perf_event_array_map,
         .write_data = _write_data_perf_event_array_map,
         .zero_length_key = true,

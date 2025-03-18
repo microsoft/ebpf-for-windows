@@ -92,6 +92,23 @@ typedef class _ebpf_async_wrapper
     HANDLE _event;
 } ebpf_async_wrapper_t;
 
+struct scoped_cpu_affinity
+{
+    scoped_cpu_affinity(uint32_t i) : old_affinity_mask{}
+    {
+        affinity_set = ebpf_set_current_thread_cpu_affinity(i, &old_affinity_mask) == EBPF_SUCCESS;
+        REQUIRE(affinity_set);
+    }
+    ~scoped_cpu_affinity()
+    {
+        if (affinity_set) {
+            ebpf_restore_current_thread_cpu_affinity(&old_affinity_mask);
+        }
+    }
+    GROUP_AFFINITY old_affinity_mask;
+    bool affinity_set = false;
+};
+
 class _ebpf_core_initializer
 {
   public:
@@ -1341,7 +1358,9 @@ TEST_CASE("ring_buffer_async_query", "[execution_context][ring_buffer]")
                 auto async_query_result = &completion->async_query_result;
                 auto record = ebpf_ring_buffer_next_record(
                     completion->buffer, sizeof(uint64_t), async_query_result->consumer, async_query_result->producer);
-                completion->value = *(uint64_t*)(record->data);
+                if (!ebpf_ring_buffer_record_is_locked(record)) {
+                    completion->value = *(uint64_t*)(record->data);
+                }
                 REQUIRE(result == EBPF_SUCCESS);
             }) == EBPF_SUCCESS);
 
@@ -1403,6 +1422,147 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
     REQUIRE(ebpf_map_peek_entry(map.get(), 0, nullptr, 0) == EBPF_OPERATION_NOT_SUPPORTED);
 }
 
+struct perf_event_array_test_async_context_t
+{
+    uint8_t* buffer;
+    uint32_t cpu_id;
+    size_t consumer_offset = 0; // Offset of the consumer.
+    size_t offset_mismatch_count = 0;
+    size_t callback_count = 0;   // Number of callbacks received.
+    size_t record_count = 0;     // Number of records consumed.
+    size_t bad_record_count = 0; // Number of invalid records seen.
+    size_t empty_callbacks = 0;  // Number of times we got a callback but there was no record.
+    size_t discard_count = 0;    // Number of discarded records seen (should always be zero for perf event array).
+    size_t locked_count =
+        0; // Number of times we stopped reading because we saw a locked record instead of reaching the producer offset.
+    size_t lost_count = 0;   // Number of lost records.
+    size_t cancel_count = 0; // Number of times we were canceled.
+    uint64_t value = 0;      // Value of the record consumed.
+    ebpf_map_async_query_result_t async_query_result = {0};
+};
+
+/**
+ * @brief Callback function for async query completion.
+ *
+ * Collects counts for verifying the test.
+ *
+ * @param context The test context.
+ * @param output_buffer_length The length of the output buffer.
+ * @param result The result of the async query.
+ */
+void
+perf_event_array_test_async_complete(_Inout_ void* context, size_t output_buffer_length, ebpf_result_t result)
+{
+    UNREFERENCED_PARAMETER(output_buffer_length);
+    auto test_context = reinterpret_cast<perf_event_array_test_async_context_t*>(context);
+    auto async_query_result = &test_context->async_query_result;
+    test_context->callback_count++;
+    test_context->lost_count += async_query_result->lost_count;
+
+    if (result != EBPF_SUCCESS) {
+        REQUIRE(result == EBPF_CANCELED);
+        test_context->cancel_count++;
+        return;
+    }
+
+    if (async_query_result->consumer != test_context->consumer_offset) {
+        test_context->offset_mismatch_count++;
+        test_context->consumer_offset = async_query_result->consumer;
+    }
+    size_t consumer_offset = test_context->consumer_offset;
+    size_t producer_offset = async_query_result->producer;
+
+    size_t record_count = 0;
+    size_t discard_count = 0; // This should always be zero for perf event array.
+    while (auto record =
+               ebpf_ring_buffer_next_record(test_context->buffer, sizeof(uint64_t), consumer_offset, producer_offset)) {
+        if (ebpf_ring_buffer_record_is_locked(record)) {
+            test_context->locked_count++;
+            break;
+        }
+        if (ebpf_ring_buffer_record_is_discarded(record)) {
+            discard_count++; // Should always be zero for perf event array.
+        } else {
+            record_count++;
+        }
+        if (ebpf_ring_buffer_record_length(record) != sizeof(uint64_t)) {
+            test_context->bad_record_count++;
+        } else {
+            test_context->value = *(uint64_t*)(record->data);
+        }
+        consumer_offset += ebpf_ring_buffer_record_total_size(record);
+    }
+    test_context->consumer_offset = consumer_offset;
+    test_context->record_count += record_count;
+    test_context->discard_count += discard_count;
+    if (record_count == 0) {
+        test_context->empty_callbacks++;
+    }
+}
+
+TEST_CASE("perf_event_array_output", "[execution_context][perf_event_array]")
+{
+    _ebpf_core_initializer core;
+    core.initialize();
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    map_ptr map;
+    {
+        ebpf_map_t* local_map;
+        cxplat_utf8_string_t map_name = {0};
+        REQUIRE(
+            ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
+        map.reset(local_map);
+    }
+    uint32_t cpu_id = 0;
+    scoped_cpu_affinity cpu_affinity(cpu_id);
+
+    struct
+    {
+        EBPF_CONTEXT_HEADER; // Unused for this test.
+        int unused;
+    } context{0};
+
+    void* ctx = &context.unused;
+
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+
+    perf_event_array_test_async_context_t completion;
+    REQUIRE(ebpf_map_query_buffer(map.get(), cpu_id, &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
+    REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);
+    REQUIRE(completion.consumer_offset == 0);
+    // Initialize consumer offset in async result used to track current position.
+    completion.async_query_result.consumer = completion.consumer_offset;
+
+    uint64_t value = 1;
+    REQUIRE(
+        ebpf_perf_event_array_map_output(ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) ==
+        EBPF_SUCCESS);
+
+    ebpf_result_t result = ebpf_map_async_query(map.get(), cpu_id, &completion.async_query_result, &completion);
+    if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
+        REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
+    }
+    REQUIRE(result == EBPF_PENDING);
+
+    REQUIRE(completion.callback_count == 1);
+    REQUIRE(completion.lost_count == 0);
+    REQUIRE(completion.record_count == 1);
+    REQUIRE(completion.empty_callbacks == 0);
+    REQUIRE(completion.discard_count == 0);
+    REQUIRE(completion.locked_count == 0);
+    REQUIRE(completion.offset_mismatch_count == 0);
+    REQUIRE(completion.bad_record_count == 0);
+    REQUIRE(completion.cancel_count == 0);
+    uint64_t producer_offset = completion.async_query_result.producer;
+    uint64_t consumer_offset = completion.async_query_result.consumer;
+    REQUIRE(consumer_offset == 0);
+    REQUIRE(completion.consumer_offset == producer_offset);
+    REQUIRE(producer_offset == ((EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + sizeof(uint64_t) + 7) & ~7));
+    REQUIRE(ebpf_map_return_buffer(map.get(), cpu_id, completion.consumer_offset - consumer_offset) == EBPF_SUCCESS);
+
+    REQUIRE(completion.value == value);
+}
+
 TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_array]")
 {
     _ebpf_core_initializer core;
@@ -1437,6 +1597,29 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     size_t consumer_offset = 0;
     uint8_t* buffer = nullptr;
     REQUIRE(ebpf_map_query_buffer(map.get(), 0, &buffer, &consumer_offset) == EBPF_SUCCESS);
+    // uint64_t capture_length = 10;
+
+    // uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU | ((capture_length << EBPF_MAP_FLAG_CTXLEN_SHIFT) &
+    // EBPF_MAP_FLAG_CTXLEN_MASK);
+
+    // std::vector<uint8_t> test_context_data(64);
+    // struct
+    //{
+    //     EBPF_CONTEXT_HEADER; // Unused for this test.
+    //     uint8_t* data;
+    //     uint8_t* data_end;
+    // } context{0};
+    // context.data = test_context_data.data();
+    // context.data_end = test_context_data.data() + test_context_data.size();
+
+    // void* ctx = &context.data;
+
+    // ebpf_context_descriptor_t context_descriptor = {0};
+    // context_descriptor.size = sizeof(context);
+    // context_descriptor.data = 0;
+    // context_descriptor.end = EBPF_OFFSET_OF(decltype(context), data_end) - EBPF_OFFSET_OF(decltype(context), data);
+
+    // ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
 
     // TODO (before merge): implementme
 }
@@ -1496,7 +1679,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
                         async_query_result->producer);
                     if (record == nullptr) {
                         completion->norecord_count++;
-                    } else {
+                    } else if (!ebpf_ring_buffer_record_is_locked(record)) {
                         completion->record_count++;
                         completion->value = *(uint64_t*)(record->data);
                     }
@@ -2389,7 +2572,7 @@ TEST_CASE("EBPF_OPERATION_GET_OBJECT_INFO", "[execution_context][negative]")
     REQUIRE(invoke_protocol(EBPF_OPERATION_GET_OBJECT_INFO, request, reply) == EBPF_INVALID_OBJECT);
 }
 
-TEST_CASE("EBPF_OPERATION_MAP_QUERY_BUFFER", "[execution_context][ring_buffer][negative]")
+TEST_CASE("EBPF_OPERATION_MAP_QUERY_BUFFER", "[execution_context][ring_buffer][perf_event_array][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     ebpf_operation_map_query_buffer_request_t request;
@@ -2399,10 +2582,10 @@ TEST_CASE("EBPF_OPERATION_MAP_QUERY_BUFFER", "[execution_context][ring_buffer][n
     REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_OBJECT);
 
     request.map_handle = map_handles.begin()->second;
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_QUERY_BUFFER, request, reply) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_QUERY_BUFFER, request, reply) == EBPF_OPERATION_NOT_SUPPORTED);
 }
 
-TEST_CASE("EBPF_OPERATION_MAP_ASYNC_QUERY", "[execution_context][ring_buffer][negative]")
+TEST_CASE("EBPF_OPERATION_MAP_ASYNC_QUERY", "[execution_context][ring_buffer][perf_event_array][negative]")
 {
     NEGATIVE_TEST_PROLOG();
     ebpf_operation_map_async_query_request_t request;
@@ -2413,7 +2596,7 @@ TEST_CASE("EBPF_OPERATION_MAP_ASYNC_QUERY", "[execution_context][ring_buffer][ne
     REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_OBJECT);
 
     request.map_handle = map_handles["BPF_MAP_TYPE_HASH"];
-    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_INVALID_ARGUMENT);
+    REQUIRE(invoke_protocol(EBPF_OPERATION_MAP_ASYNC_QUERY, request, reply, &async) == EBPF_OPERATION_NOT_SUPPORTED);
 }
 
 TEST_CASE("EBPF_OPERATION_LOAD_NATIVE_MODULE short header", "[execution_context][negative]")
