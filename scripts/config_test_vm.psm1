@@ -601,11 +601,11 @@ function Disable-VerifierOnVms {
         Write-Log "Disabling verifier on VM: $VMName"
         try {
 $scriptBlock = @"
-$physicalDisks = Get-PhysicalDisk | Select-Object DeviceID, MediaType, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}
-$volumes = Get-Volume | Select-Object DriveLetter, FileSystemLabel, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="SizeRemaining(GB)";Expression={[math]::Round($_.SizeRemaining / 1GB, 2)}}
-Write-Output "Physical Disks:"
+$physicalDisks = Get-PhysicalDisk | Select-Object DeviceID, MediaType, @{Name=`"Size(GB)`";Expression={[math]::Round($_.Size / 1GB, 2)}}
+$volumes = Get-Volume | Select-Object DriveLetter, FileSystemLabel, @{Name=`"Size(GB)`";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name=`"SizeRemaining(GB)`";Expression={[math]::Round($_.SizeRemaining / 1GB, 2)}}
+Write-Output `"Physical Disks:`"
 $physicalDisks | Format-Table -AutoSize
-Write-Output "Volumes:"
+Write-Output `"Volumes:`"
 $volumes | Format-Table -AutoSize
 "@
 Execute-CommandOnVM -VMName $VMName -Command $scriptBlock
@@ -827,6 +827,15 @@ function Prepare-VhdFiles {
 
         if ($vhdFiles.Count -eq 0) {
             throw "No VHD files found in $InputDirectory"
+        }
+
+        # Resize the VHDs - use up to 75% of the total disk space
+        $currentDiskSize = (Get-PhysicalDisk | Measure-Object -Property Size -Sum).Sum
+        $newSize = [math]::Round($currentDiskSize * 0.75)
+        $perVMSize = [math]::Round($newSize / $vhdFiles.Count)
+        foreach ($vhdFile in $vhdFiles) {
+            Write-Log "Resizing VHD: $vhdFile to size: $perVMSize bytes"
+            Resize-VHD -Path $vhdFile -SizeBytes $perVMSize
         }
 
         return [string[]]$vhdFiles
