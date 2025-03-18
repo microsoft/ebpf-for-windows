@@ -195,7 +195,6 @@ ebpf_object_initialize(
     _In_ ebpf_free_object_t free_function,
     _In_opt_ ebpf_zero_ref_count_t zero_ref_count_function,
     ebpf_object_get_program_type_t get_program_type_function,
-    ebpf_object_get_context_header_support_t get_context_header_support_function,
     ebpf_file_id_t file_id,
     uint32_t line)
 {
@@ -211,7 +210,6 @@ ebpf_object_initialize(
     object->free_function = free_function;
     object->zero_ref_count = zero_ref_count_function;
     object->get_program_type = get_program_type_function;
-    object->get_context_header_support = get_context_header_support_function;
     object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     // Skip invalid IDs.
     while (object->id == EBPF_ID_NONE) {
