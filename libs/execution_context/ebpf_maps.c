@@ -441,8 +441,6 @@ typedef struct _ebpf_map_metadata_table
         _Inout_ void* async_context);
     void (*query)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result);
-    void (*async_query_complete)(_In_ const ebpf_core_map_t* map, uint64_t index);
-    void (*async_query_cancel)(_In_ _Frees_ptr_ void* cancel_context);
     int zero_length_key : 1;
     int zero_length_value : 1;
     int per_cpu : 1;
@@ -2113,13 +2111,20 @@ _update_circular_map_entry(
     return result;
 }
 
+typedef void
+map_async_query_complete_t(_In_ const ebpf_core_map_t* map, uint64_t index);
+typedef void
+map_async_query_cancel_t(_In_ _Frees_ptr_ void* cancel_context);
+
 inline static ebpf_result_t
 _map_async_query(
     _In_ const ebpf_core_map_t* map,
     uint64_t index,
     _Inout_ ebpf_core_map_async_contexts_t* async_contexts,
     _Inout_ ebpf_map_async_query_result_t* async_query_result,
-    _Inout_ void* async_context)
+    _Inout_ void* async_context,
+    _In_ map_async_query_complete_t* complete_callback,
+    _In_ map_async_query_cancel_t* cancel_callback)
 {
     EBPF_LOG_ENTRY();
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
@@ -2147,7 +2152,7 @@ _map_async_query(
     context->async_query_result = async_query_result;
     context->async_context = async_context;
 
-    ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, context, table->async_query_cancel));
+    ebpf_assert_success(ebpf_async_set_cancel_callback(async_context, context, cancel_callback));
 
     ebpf_list_insert_tail(&async_contexts->contexts, &context->entry);
     async_contexts->trip_wire = true;
@@ -2160,7 +2165,7 @@ _map_async_query(
         async_query_result->consumer = consumer;
     }
     if (async_query_result->producer > async_query_result->consumer) {
-        table->async_query_complete(map, index);
+        complete_callback(map, index);
     }
 
 Exit:
@@ -2169,8 +2174,17 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
-static _Requires_lock_held_(async_contexts->lock) void _map_async_query_complete(
-    _In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map_async_contexts_t* async_contexts)
+/**
+ * @brief Helper function to complete the async query.
+ *
+ * @note Requires that async_contexts->lock is held.
+ *       Missing the SAL annotation due to the indirect calling.
+ *
+ * @param[in] map Pointer to the map.
+ * @param[in,out] async_contexts Pointer to the async contexts.
+ */
+static void
+_map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map_async_contexts_t* async_contexts)
 {
     EBPF_LOG_ENTRY();
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
@@ -2235,10 +2249,17 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
     EBPF_LOG_EXIT();
 }
 
-static _Requires_lock_held_(
-    EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map)
-        ->async
-        .lock) void _ebpf_ring_buffer_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
+/**
+ * @brief Signal the completion of an async query for a ring buffer map.
+ *
+ * @note Requires that ring_buffer_map->async.lock is held.
+ *       Due to the indirect calling not enforced by SAL.
+ *
+ * @param[in] map Pointer to the ring buffer map.
+ * @param[in] index Unused for ring buffer.
+ */
+static void
+_ebpf_ring_buffer_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
     UNREFERENCED_PARAMETER(index);
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
@@ -2260,18 +2281,23 @@ _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_cont
     EBPF_LOG_EXIT();
 }
 
-static _Requires_lock_held_(
-    EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map)
-        ->rings[(uint32_t)index]
-        .async
-        .lock) void _ebpf_perf_event_array_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
+/**
+ * @brief Signal the completion of an async query for a perf ring.
+ *
+ * @note Requires that ring->async.lock is held.
+ *       Due to the indirect calling not enforced by SAL.
+ *
+ * @param[in] map Pointer to the perf event array map.
+ * @param[in] index cpu_id for ring to signal.
+ */
+static void
+_ebpf_perf_event_array_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
     uint32_t cpu_id = (uint32_t)index;
     ebpf_assert(cpu_id < perf_event_array_map->ring_count);
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-
     _map_async_query_complete(&perf_event_array_map->core_map, &ring->async);
 }
 
@@ -2296,7 +2322,14 @@ _async_query_ring_buffer_map(
 
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
     ebpf_core_map_async_contexts_t* async_contexts = &ring_buffer_map->async;
-    return _map_async_query(map, index, async_contexts, async_query_result, async_context);
+    return _map_async_query(
+        map,
+        index,
+        async_contexts,
+        async_query_result,
+        async_context,
+        _ebpf_ring_buffer_map_signal_async_query_complete,
+        _ebpf_ring_buffer_map_cancel_async_query);
 }
 
 static ebpf_result_t
@@ -2342,7 +2375,14 @@ _async_query_perf_event_array_map(
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
     ebpf_core_map_async_contexts_t* async_contexts = &ring->async;
-    return _map_async_query(map, index, async_contexts, async_query_result, async_context);
+    return _map_async_query(
+        map,
+        index,
+        async_contexts,
+        async_query_result,
+        async_context,
+        _ebpf_perf_event_array_map_signal_async_query_complete,
+        _ebpf_perf_event_array_map_cancel_async_query);
 }
 
 static ebpf_result_t
@@ -2876,8 +2916,6 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .query_buffer = _query_buffer_ring_buffer_map,
         .async_query = _async_query_ring_buffer_map,
         .query = _query_ring_buffer_map,
-        .async_query_cancel = _ebpf_ring_buffer_map_cancel_async_query,
-        .async_query_complete = _ebpf_ring_buffer_map_signal_async_query_complete,
         .return_buffer = _return_buffer_ring_buffer_map,
         .write_data = _write_data_ring_buffer_map,
         .zero_length_key = true,
@@ -2890,8 +2928,6 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .query_buffer = _query_buffer_perf_event_array_map,
         .async_query = _async_query_perf_event_array_map,
         .query = _query_perf_event_array_map,
-        .async_query_cancel = _ebpf_perf_event_array_map_cancel_async_query,
-        .async_query_complete = _ebpf_perf_event_array_map_signal_async_query_complete,
         .return_buffer = _return_buffer_perf_event_array_map,
         .write_data = _write_data_perf_event_array_map,
         .zero_length_key = true,

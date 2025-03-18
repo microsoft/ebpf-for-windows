@@ -12,7 +12,6 @@
 #include "ebpf_nethooks.h"
 #include "ebpf_pinning_table.h"
 #include "ebpf_platform.h"
-#include "ebpf_program.h"
 #include "ebpf_program_types.h"
 #include "ebpf_random.h"
 #include "ebpf_ring_buffer.h"
@@ -1063,7 +1062,6 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
 
     auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
     REQUIRE(record != nullptr);
-
     REQUIRE(record->header.length == data.size());
 
     REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, total_record_size) == EBPF_SUCCESS);

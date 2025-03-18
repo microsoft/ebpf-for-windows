@@ -1424,8 +1424,8 @@ TEST_CASE("perf_event_array_unsupported_ops", "[execution_context][perf_event_ar
 
 struct perf_event_array_test_async_context_t
 {
-    uint8_t* buffer;
-    uint32_t cpu_id;
+    uint8_t* buffer = NULL;
+    uint32_t cpu_id = 0;
     size_t consumer_offset = 0; // Offset of the consumer.
     size_t offset_mismatch_count = 0;
     size_t callback_count = 0;   // Number of callbacks received.
@@ -1527,6 +1527,7 @@ TEST_CASE("perf_event_array_output", "[execution_context][perf_event_array]")
     uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
 
     perf_event_array_test_async_context_t completion;
+    completion.cpu_id = cpu_id;
     REQUIRE(ebpf_map_query_buffer(map.get(), cpu_id, &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
     REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);
     REQUIRE(completion.consumer_offset == 0);
