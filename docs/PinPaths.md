@@ -96,3 +96,13 @@ in between good and bad.
 | RemoteFile    | Y      | Y   | Y       | Y     | N   |
 | FileAPIs      | Y      | N   | Y       | N     | Y   |
 | CaseSensitive | N      | N   | Y       | Y     | Y   |
+
+## Decision
+
+Based on the evaluation matrix, the Virtual form
+("BPF:\my\pin\path") will be the canonical form.
+
+In addition, for portability, the Linux form ("/sys/fs/bpf/my/pin/path")
+will be accepted as valid, as will the older eBPF for Windows
+path ("/ebpf/global/my/pin/path").  These will be canonicalized
+to "BPF:\my\pin\path" internally.
