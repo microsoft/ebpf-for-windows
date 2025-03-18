@@ -27,5 +27,10 @@ New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl" -Na
 # Enable driver verifier on the eBPF platform drivers.
 verifier /standard /bootmode persistent /driver ebpfcore.sys netebpfext.sys sample_ebpf_ext.sys
 
+# Resize the VM disk to use all available space.
+$disk = Get-Disk | Where-Object PartitionStyle -Eq 'GPT'
+$partition = $disk | Get-Partition | Where-Object Type -Eq 'Basic'
+$partition | Resize-Partition -Size ( $disk | Get-Disk | Select-Object -ExpandProperty Size )
+
 # Reboot the machine to apply the changes.
 Restart-Computer -Force

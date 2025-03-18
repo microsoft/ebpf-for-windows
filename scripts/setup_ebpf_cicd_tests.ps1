@@ -39,13 +39,11 @@ foreach($VM in $VMList) {
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
-
     # Download the release artifacts for regression tests.
     Get-RegressionTestArtifacts -ArtifactVersion $RegressionArtifactsVersion -Configuration $RegressionArtifactsConfiguration
 }
 
 if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
-
     # Download the release artifacts for legacy regression tests.
     Get-LegacyRegressionTestArtifacts
 }
@@ -74,8 +72,25 @@ $Job = Start-Job -ScriptBlock {
     # Get all VMs to ready state.
     Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
-    # Export build artifacts to the test VMs.
-    Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
+    if ($TestMode -eq "Performance") {
+        # Disable verifier
+        Disable-VerifierOnVms -VMList $VMList -UserName $TestVMCredential.UserName -AdminPassword $TestVMCredential.Password
+    }
+
+    # Export build artifacts to the test VMs. Attempt with a few retries.
+    $MaxRetryCount = 5
+    for ($i = 0; $i -lt $MaxRetryCount; $i += 1) {
+        try {
+            Export-BuildArtifactsToVMs -VMList $VMList -ErrorAction Stop
+            break
+        } catch {
+            if ($i -eq $MaxRetryCount) {
+                Write-Log "Export-BuildArtifactsToVMs failed after $MaxRetryCount attempts."
+                throw
+            }
+            Write-Log "Export-BuildArtifactsToVMs failed. Retrying..."
+        }
+    }
 
     # Configure network adapters on VMs.
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
@@ -115,6 +130,20 @@ $JobTimedOut = `
 Remove-Job -Job $Job -Force
 
 Pop-Location
+
+# TODO - remove this
+# Get physical disk information and convert size to GB
+$physicalDisks = Get-PhysicalDisk | Select-Object DeviceID, MediaType, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}
+
+# Get volume information and convert size to GB
+$volumes = Get-Volume | Select-Object DriveLetter, FileSystemLabel, @{Name="Size(GB)";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name="SizeRemaining(GB)";Expression={[math]::Round($_.SizeRemaining / 1GB, 2)}}
+
+# Display the results
+Write-Output "Physical Disks:"
+$physicalDisks | Format-Table -AutoSize
+
+Write-Output "Volumes:"
+$volumes | Format-Table -AutoSize
 
 if ($JobTimedOut) {
     exit 1

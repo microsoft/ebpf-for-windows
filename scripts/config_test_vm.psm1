@@ -199,7 +199,7 @@ function Export-BuildArtifactsToVMs
                     New-Item -Path $RegistryPath -Force
                 }
                 Set-ItemProperty -Path $RegistryPath -Name 'EulaAccepted' -Value 1
-                
+
                 # Enables full memory dump.
                 # NOTE: This needs a VM with an explicitly created page file of *AT LEAST* (physical_memory + 1MB) in size.
                 # The default value of the 'CrashDumpEnabled' key is 7 ('automatic' sizing of dump file size (system determined)).
@@ -583,12 +583,43 @@ function Execute-CommandOnVM {
         Write-Log "Executing command on VM: $VMName. Command: $Command"
         $result = Invoke-Command -VMName $VMName -Credential $VmCredential -ScriptBlock {
             param($Command)
-            Invoke-Expression $Command
+            Invoke-Expression -command `"$Command`"
         } -ArgumentList $Command
         Write-Log "Successfully executed command on VM: $VMName. Command: $Command. Result: $result"
     } catch {
         throw "Failed to execute command on VM: $VMName with error: $_"
     }
+}
+
+function Disable-VerifierOnVms {
+    param([Parameter(Mandatory=$True)]$VMList,
+          [Parameter(Mandatory=$True)][string] $UserName,
+          [Parameter(Mandatory=$True)][SecureString] $AdminPassword)
+
+    foreach ($VM in $VMList) {
+        $VMName = $VM.Name
+        Write-Log "Disabling verifier on VM: $VMName"
+        try {
+# $scriptBlock = @"
+# $physicalDisks = Get-PhysicalDisk | Select-Object DeviceID, MediaType, @{Name=`"Size(GB)`";Expression={[math]::Round($_.Size / 1GB, 2)}}
+# $volumes = Get-Volume | Select-Object DriveLetter, FileSystemLabel, @{Name=`"Size(GB)`";Expression={[math]::Round($_.Size / 1GB, 2)}}, @{Name=`"SizeRemaining(GB)`";Expression={[math]::Round($_.SizeRemaining / 1GB, 2)}}
+# Write-Output `"Physical Disks:`"
+# $physicalDisks | Format-Table -AutoSize
+# Write-Output `"Volumes:`"
+# $volumes | Format-Table -AutoSize
+# "@
+# Execute-CommandOnVM -VMName $VMName -Command $scriptBlock
+            $command = "verifier.exe /reset; Restart-Computer -Force"
+            Execute-CommandOnVM -VMName $VMName -Command $command
+
+        } catch {
+            # Do nothing - the command may error once the reboot is triggered, but this is not a fatal error.
+            Write-Log "Treating error as non-fatal while disabling verifier on VM: $VMName Error: $_"
+        }
+    }
+
+    Write-Log "Waiting for all VMs to be in ready state after disabling verifier"
+    Wait-AllVMsToInitialize -VMList $VMList -UserName $UserName -AdminPassword $AdminPassword
 }
 
 
@@ -795,6 +826,15 @@ function Prepare-VhdFiles {
 
         if ($vhdFiles.Count -eq 0) {
             throw "No VHD files found in $InputDirectory"
+        }
+
+        # Resize the VHDs - use up to 75% of the total disk space
+        $currentDiskSize = (Get-PhysicalDisk | Measure-Object -Property Size -Sum).Sum
+        $newSize = [math]::Round($currentDiskSize * 0.75)
+        $perVMSize = [math]::Round($newSize / $vhdFiles.Count)
+        foreach ($vhdFile in $vhdFiles) {
+            Write-Log "Resizing VHD: $vhdFile to size: $perVMSize bytes"
+            Resize-VHD -Path $vhdFile -SizeBytes $perVMSize
         }
 
         return [string[]]$vhdFiles
