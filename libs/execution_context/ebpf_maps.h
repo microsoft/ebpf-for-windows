@@ -193,43 +193,60 @@ extern "C"
         _Inout_ uint16_t* info_size);
 
     /**
-     * @brief Get pointer to the ring buffer map's shared data.
+     * @brief Get pointer to the shared data for a map.
      *
-     * @param[in] map Ring buffer map to query.
-     * @param[out] buffer Pointer to ring buffer data.
-     * @param[out] consumer_offset Offset of consumer in ring buffer data.
-     * @retval EBPF_SUCCESS Successfully mapped the ring buffer.
-     * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
+     * @param[in] map Map to query.
+     * @param[in] index index of buffer to query.
+     * @param[out] buffer Pointer to the data.
+     * @param[out] consumer_offset Offset of consumer in data.
+     * @retval EBPF_SUCCESS Successfully mapped the buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the buffer.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_query_buffer(
-        _In_ const ebpf_map_t* map, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
+    ebpf_map_query_buffer(
+        _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
-     * @brief Return consumed buffer back to the ring buffer map.
+     * @brief Issue an asynchronous query to perf event array map.
      *
-     * @param[in] map Ring buffer map.
-     * @param[in] length Length of bytes to return to the ring buffer.
-     * @retval EBPF_SUCCESS Successfully returned records to the ring buffer.
-     * @retval EBPF_INVALID_ARGUMENT Unable to return records to the ring buffer.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_return_buffer(_In_ const ebpf_map_t* map, size_t length);
-
-    /**
-     * @brief Issue an asynchronous query to ring buffer map.
-     *
-     * @param[in, out] map Ring buffer map to issue the async query on.
+     * @param[in, out] map Map to issue async query on.
+     * @param[in] index Index of buffer to query.
      * @param[in, out] async_query_result Pointer to structure for storing result of the async query.
      * @param[in, out] async_context Async context associated with the query.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_ring_buffer_map_async_query(
+    ebpf_map_async_query(
         _Inout_ ebpf_map_t* map,
-        _Inout_ ebpf_ring_buffer_map_async_query_result_t* async_query_result,
+        uint64_t index,
+        _Inout_ ebpf_map_async_query_result_t* async_query_result,
         _Inout_ void* async_context);
+
+    /**
+     * @brief Return consumed buffer back to the map.
+     *
+     * @param[in] map Map to return buffer to.
+     * @param[in] index buffer index in map.
+     * @param[in] length Length of bytes to return.
+     * @retval EBPF_SUCCESS Successfully returned buffer to the map.
+     * @retval EBPF_INVALID_ARGUMENT Unable to return buffer to map.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_return_buffer(_In_ const ebpf_map_t* map, uint64_t index, size_t length);
+
+    /**
+     * @brief Write out a variable sized record to the map.
+     *
+     * @param[in, out] map Map to write to.
+     * @param[in] flags Flags to control the write.
+     * @param[in] data Data to copy into record.
+     * @param[in] length Length of data to copy.
+     * @retval EBPF_SUCCESS Successfully wrote record ring buffer.
+     * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_write_data(_Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
      * @brief Write out a variable sized record to the ring buffer map.
@@ -245,49 +262,6 @@ extern "C"
     ebpf_ring_buffer_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
-     * @brief Get pointer to the perf event array's shared data for a specific cpu.
-     *
-     * @param[in] map Perf event array map to query.
-     * @param[in] cpu_id CPU ID to query.
-     * @param[out] buffer Pointer to perf event array data.
-     * @param[out] consumer_offset Offset of consumer in perf event array data.
-     * @retval EBPF_SUCCESS Successfully mapped the perf event array.
-     * @retval EBPF_INVALID_ARGUMENT Unable to map the perf event array.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_array_map_query_buffer(
-        _In_ const ebpf_map_t* map, uint32_t cpu_id, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
-
-    /**
-     * @brief Return consumed buffer back to the perf event array map.
-     *
-     * @param[in] map Perf event array map.
-     * @param[in] cpu_id CPU ID to return buffer space to.
-     * @param[in] length Length of bytes to return to the perf event array.
-     * @retval EBPF_SUCCESS Successfully returned records to the perf event array.
-     * @retval EBPF_INVALID_ARGUMENT Unable to return records to the perf event array.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_array_map_return_buffer(_In_ const ebpf_map_t* map, uint32_t cpu_id, size_t length);
-
-    /**
-     * @brief Issue an asynchronous query to perf event array map.
-     *
-     * @param[in, out] map Perf event array map to issue the async query on.
-     * @param[in] cpu_id CPU ID to query.
-     * @param[in, out] async_query_result Pointer to structure for storing result of the async query.
-     * @param[in, out] async_context Async context associated with the query.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Insufficient memory to complete this operation.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_array_map_async_query(
-        _Inout_ ebpf_map_t* map,
-        uint32_t cpu_id,
-        _Inout_ ebpf_perf_event_array_map_async_query_result_t* async_query_result,
-        _Inout_ void* async_context);
-
-    /**
      * @brief Write out a variable sized record to the perf event array.
      *
      * Writes a simple record to the ring for the current CPU.
@@ -299,7 +273,8 @@ extern "C"
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_output_simple(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
+    ebpf_perf_event_array_map_output_simple(
+        _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
      * @brief Write out a variable sized record to the perf event array map with ctx and flags.
@@ -319,7 +294,7 @@ extern "C"
      */
     EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_output(
+    ebpf_perf_event_array_map_output(
         _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**

@@ -4392,7 +4392,7 @@ typedef struct _ebpf_ring_buffer_subscription
     void* sample_callback_context;
     ring_buffer_sample_fn sample_callback;
     uint8_t* buffer;
-    ebpf_operation_ring_buffer_map_async_query_reply_t reply;
+    ebpf_operation_map_async_query_reply_t reply;
     _Write_guarded_by_(lock) async_ioctl_completion_t* async_ioctl_completion;
     _Write_guarded_by_(lock) bool async_ioctl_failed;
 } ebpf_ring_buffer_subscription_t;
@@ -4451,8 +4451,8 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
             EBPF_RETURN_RESULT(result);
         }
 
-        ebpf_operation_ring_buffer_map_async_query_reply_t* reply = &subscription->reply;
-        ebpf_ring_buffer_map_async_query_result_t* async_query_result = &reply->async_query_result;
+        ebpf_operation_map_async_query_reply_t* reply = &subscription->reply;
+        ebpf_map_async_query_result_t* async_query_result = &reply->async_query_result;
         consumer = async_query_result->consumer;
         producer = async_query_result->producer;
         for (;;) {
@@ -4502,12 +4502,13 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
             }
 
             // Then, post the async IOCTL.
-            ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
+            ebpf_operation_map_async_query_request_t async_query_request{
                 sizeof(async_query_request),
-                ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+                ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
                 subscription->ring_buffer_map_handle,
+                0,
                 consumer};
-            memset(&subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
+            memset(&subscription->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
                 subscription->reply,
@@ -4592,23 +4593,24 @@ ebpf_ring_buffer_map_subscribe(
         }
 
         // Get user-mode address to ring buffer shared data.
-        ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
+        ebpf_operation_map_query_buffer_request_t query_buffer_request{
             sizeof(query_buffer_request),
-            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
-            local_subscription->ring_buffer_map_handle};
-        ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
+            ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER,
+            local_subscription->ring_buffer_map_handle,
+            0};
+        ebpf_operation_map_query_buffer_reply_t query_buffer_reply{};
         result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
-        ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER);
+        ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER);
         local_subscription->buffer =
             reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
 
         // Initialize the async IOCTL operation.
         local_subscription->sample_callback_context = sample_callback_context;
         local_subscription->sample_callback = sample_callback;
-        memset(&local_subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
+        memset(&local_subscription->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
         result = initialize_async_ioctl_operation(
             local_subscription.get(),
             _ebpf_ring_buffer_map_async_query_completion,
@@ -4618,10 +4620,11 @@ ebpf_ring_buffer_map_subscribe(
         }
 
         // Issue the async query IOCTL.
-        ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
+        ebpf_operation_map_async_query_request_t async_query_request{
             sizeof(async_query_request),
-            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+            ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
             local_subscription->ring_buffer_map_handle,
+            0,
             query_buffer_reply.consumer_offset};
         result = win32_error_code_to_ebpf_result(invoke_ioctl(
             async_query_request,
@@ -4655,7 +4658,7 @@ ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
     ebpf_protocol_buffer_t request_buffer;
-    ebpf_operation_ring_buffer_map_write_data_request_t* request;
+    ebpf_operation_map_write_data_request_t* request;
 
     if (!data || !data_length) {
         return EBPF_INVALID_ARGUMENT;
@@ -4688,10 +4691,10 @@ ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void
             EBPF_RETURN_RESULT(result);
         }
 
-        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data) + data_length);
-        request = reinterpret_cast<_ebpf_operation_ring_buffer_map_write_data_request*>(request_buffer.data());
+        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_map_write_data_request_t, data) + data_length);
+        request = reinterpret_cast<_ebpf_operation_map_write_data_request*>(request_buffer.data());
         request->header.length = static_cast<uint16_t>(request_buffer.size());
-        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_WRITE_DATA;
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_WRITE_DATA;
         request->map_handle = (uint64_t)map_handle;
         std::copy((uint8_t*)data, (uint8_t*)data + data_length, request->data);
 
@@ -4763,7 +4766,7 @@ typedef struct _ebpf_perf_event_array_subscription
     perf_buffer_lost_fn lost_callback;
     uint8_t* buffer;
     uint32_t cpu_id;
-    ebpf_operation_perf_event_array_map_async_query_reply_t reply;
+    ebpf_operation_map_async_query_reply_t reply;
     _Write_guarded_by_(lock) async_ioctl_completion_t* async_ioctl_completion;
     _Write_guarded_by_(lock) bool async_ioctl_failed;
 } ebpf_perf_event_array_subscription_t;
@@ -4826,8 +4829,8 @@ _ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_conte
             EBPF_RETURN_RESULT(result);
         }
 
-        ebpf_operation_perf_event_array_map_async_query_reply_t* reply = &subscription->reply;
-        ebpf_perf_event_array_map_async_query_result_t* async_query_result = &reply->async_query_result;
+        ebpf_operation_map_async_query_reply_t* reply = &subscription->reply;
+        ebpf_map_async_query_result_t* async_query_result = &reply->async_query_result;
         consumer = async_query_result->consumer;
         producer = async_query_result->producer;
         lost_count = async_query_result->lost_count;
@@ -4878,13 +4881,13 @@ _ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_conte
             }
 
             // Then, post the async IOCTL.
-            ebpf_operation_perf_event_array_map_async_query_request_t async_query_request{
+            ebpf_operation_map_async_query_request_t async_query_request{
                 sizeof(async_query_request),
-                ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+                ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
                 subscription->perf_event_array_map_handle,
                 cpu_id,
                 consumer};
-            memset(&subscription->reply, 0, sizeof(ebpf_operation_perf_event_array_map_async_query_reply_t));
+            memset(&subscription->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
                 subscription->reply,

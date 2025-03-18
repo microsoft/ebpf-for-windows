@@ -26,18 +26,12 @@ typedef struct _ebpf_map_info
 typedef intptr_t ebpf_handle_t;
 extern __declspec(selectany) const ebpf_handle_t ebpf_handle_invalid = (ebpf_handle_t)-1;
 
-typedef struct _ebpf_ring_buffer_map_async_query_result
-{
-    size_t producer;
-    size_t consumer;
-} ebpf_ring_buffer_map_async_query_result_t;
-
-typedef struct _ebpf_perf_event_array_map_async_query_result
+typedef struct _ebpf_map_async_query_result
 {
     size_t producer;
     size_t consumer;
     size_t lost_count;
-} ebpf_perf_event_array_map_async_query_result_t;
+} ebpf_map_async_query_result_t;
 
 typedef enum _ebpf_object_type
 {

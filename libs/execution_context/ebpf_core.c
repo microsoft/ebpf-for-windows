@@ -2176,72 +2176,46 @@ _ebpf_core_protocol_get_object_info(
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_ring_buffer_map_query_buffer(
-    _In_ const ebpf_operation_ring_buffer_map_query_buffer_request_t* request,
-    _Out_ ebpf_operation_ring_buffer_map_query_buffer_reply_t* reply)
+_ebpf_core_protocol_map_query_buffer(
+    _In_ const ebpf_operation_map_query_buffer_request_t* request, _Out_ ebpf_operation_map_query_buffer_reply_t* reply)
 {
     EBPF_LOG_ENTRY();
 
     ebpf_map_t* map = NULL;
+    bool reference_taken = FALSE;
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+    reference_taken = TRUE;
 
-    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+    ebpf_map_type_t map_type = ebpf_map_get_definition(map)->type;
+    if (!(map_type == BPF_MAP_TYPE_RINGBUF || map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY)) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_CORE,
-            "query buffer operation called on a map that is not of the ring buffer type.",
+            "write data operation called on a map that is not of the ring buffer or perf event array type.",
             result);
         goto Exit;
     }
 
-    result =
-        ebpf_ring_buffer_map_query_buffer(map, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
+    result = ebpf_map_query_buffer(
+        map, request->index, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
 
 Exit:
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    if (reference_taken) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    }
     EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_perf_event_array_map_query_buffer(
-    _In_ const ebpf_operation_perf_event_array_map_query_buffer_request_t* request,
-    _Out_ ebpf_operation_perf_event_array_map_query_buffer_reply_t* reply)
-{
-    EBPF_LOG_ENTRY();
-
-    ebpf_map_t* map = NULL;
-    ebpf_result_t result =
-        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "perf event array query buffer operation called on a map that is not of the perf event array type.",
-            result);
-        goto Exit;
-    }
-    result = ebpf_perf_event_array_map_query_buffer(
-        map, request->cpu_id, (uint8_t**)(uintptr_t*)&reply->buffer_address, &reply->consumer_offset);
-
-Exit:
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    EBPF_RETURN_RESULT(result);
-}
-
-static ebpf_result_t
-_ebpf_core_protocol_ring_buffer_map_async_query(
-    _In_ const ebpf_operation_ring_buffer_map_async_query_request_t* request,
-    _Inout_ ebpf_operation_ring_buffer_map_async_query_reply_t* reply,
+_ebpf_core_protocol_map_async_query(
+    _In_ const ebpf_operation_map_async_query_request_t* request,
+    //_Inout_updates_bytes_(reply_length) ebpf_operation_map_async_query_reply_t* reply,
+    _Inout_ ebpf_operation_map_async_query_reply_t* reply,
     uint16_t reply_length,
     _Inout_ void* async_context)
 {
@@ -2257,27 +2231,29 @@ _ebpf_core_protocol_ring_buffer_map_async_query(
     }
     reference_taken = TRUE;
 
-    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+    ebpf_map_type_t map_type = ebpf_map_get_definition(map)->type;
+    if (!(map_type == BPF_MAP_TYPE_RINGBUF || map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY)) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_CORE,
-            "async query operation called on a map that is not of the ring buffer type.",
+            "async query operation called on a map that is not of the ring buffer or perf event array type.",
             result);
         goto Exit;
     }
 
     // Return buffer already consumed by caller in previous notification.
-    result = ebpf_ring_buffer_map_return_buffer(map, request->consumer_offset);
+    result = ebpf_map_return_buffer(map, request->index, request->consumer_offset);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+
     // Initialize reply consumer offset to ensure we never get an older value.
     reply->async_query_result.consumer = request->consumer_offset;
 
-    reply->header.id = EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY;
-    reply->header.length = sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t);
-    result = ebpf_ring_buffer_map_async_query(map, &reply->async_query_result, async_context);
+    reply->header.id = EBPF_OPERATION_MAP_ASYNC_QUERY;
+    reply->header.length = sizeof(ebpf_operation_map_async_query_reply_t);
+    result = ebpf_map_async_query(map, request->index, &reply->async_query_result, async_context);
 
 Exit:
     if (reference_taken) {
@@ -2287,34 +2263,39 @@ Exit:
 }
 
 static ebpf_result_t
-_ebpf_core_protocol_ring_buffer_map_write_data(_In_ const ebpf_operation_ring_buffer_map_write_data_request_t* request)
+_ebpf_core_protocol_map_write_data(_In_ const ebpf_operation_map_write_data_request_t* request)
 {
     ebpf_map_t* map = NULL;
+    bool reference_taken = FALSE;
     size_t data_length = 0;
+
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_RINGBUF) {
+    reference_taken = TRUE;
+
+    ebpf_map_type_t map_type = ebpf_map_get_definition(map)->type;
+    if (!(map_type == BPF_MAP_TYPE_RINGBUF || map_type == BPF_MAP_TYPE_PERF_EVENT_ARRAY)) {
         result = EBPF_INVALID_ARGUMENT;
         EBPF_LOG_MESSAGE_ERROR(
             EBPF_TRACELOG_LEVEL_ERROR,
             EBPF_TRACELOG_KEYWORD_CORE,
-            "write data operation called on a map that is not of the ring buffer type.",
+            "write data operation called on a map that is not of the ring buffer or perf event array type.",
             result);
         goto Exit;
     }
     result = ebpf_safe_size_t_subtract(
-        request->header.length,
-        EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data),
-        &data_length);
+        request->header.length, EBPF_OFFSET_OF(ebpf_operation_map_write_data_request_t, data), &data_length);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
-    result = ebpf_ring_buffer_map_output(map, (uint8_t*)request->data, data_length);
+    result = ebpf_map_write_data(map, 0, (uint8_t*)request->data, data_length);
 Exit:
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    if (reference_taken) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    }
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2353,86 +2334,6 @@ _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
     } else {
         return value;
     }
-}
-
-static ebpf_result_t
-_ebpf_core_protocol_perf_event_array_map_async_query(
-    _In_ const ebpf_operation_perf_event_array_map_async_query_request_t* request,
-    _Inout_updates_bytes_(reply_length) ebpf_operation_perf_event_array_map_async_query_reply_t* reply,
-    uint16_t reply_length,
-    _Inout_ void* async_context)
-{
-    UNREFERENCED_PARAMETER(reply_length);
-
-    ebpf_map_t* map = NULL;
-    bool reference_taken = FALSE;
-
-    ebpf_result_t result =
-        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-    reference_taken = TRUE;
-
-    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "perf event array async query operation called on a map that is not of the perf event array type.",
-            result);
-        goto Exit;
-    }
-
-    // Return buffer already consumed by caller in previous notification.
-    result = ebpf_perf_event_array_map_return_buffer(map, request->cpu_id, request->consumer_offset);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-
-    reply->header.id = EBPF_OPERATION_PERF_EVENT_ARRAY_MAP_ASYNC_QUERY;
-    reply->header.length = sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t);
-    result = ebpf_perf_event_array_map_async_query(map, request->cpu_id, &reply->async_query_result, async_context);
-
-Exit:
-    if (reference_taken) {
-        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    }
-    return result;
-}
-
-static ebpf_result_t
-_ebpf_core_protocol_perf_event_array_map_write_data(
-    _In_ const ebpf_operation_perf_event_array_map_write_data_request_t* request)
-{
-    ebpf_map_t* map = NULL;
-    size_t data_length = 0;
-    ebpf_result_t result =
-        EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-    if (ebpf_map_get_definition(map)->type != BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_CORE,
-            "perf event array write data operation called on a map that is not of the perf event array type.",
-            result);
-        goto Exit;
-    }
-    result = ebpf_safe_size_t_subtract(
-        request->header.length,
-        EBPF_OFFSET_OF(ebpf_operation_perf_event_array_map_write_data_request_t, data),
-        &data_length);
-    if (result != EBPF_SUCCESS) {
-        goto Exit;
-    }
-    result = ebpf_perf_event_output_simple(map, (uint8_t*)request->data, data_length);
-
-Exit:
-    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
-    EBPF_RETURN_RESULT(result);
 }
 
 static int64_t
@@ -2720,7 +2621,7 @@ static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
-    return -ebpf_perf_event_output(ctx, map, flags, data, length);
+    return -ebpf_perf_event_array_map_output(ctx, map, flags, data, length);
 }
 
 static int
@@ -2978,9 +2879,9 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_program_path, start_path, next_path, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(bind_map, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(ring_buffer_map_query_buffer, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(ring_buffer_map_async_query, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(ring_buffer_map_write_data, data, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(map_query_buffer, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(map_async_query, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(map_write_data, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(load_native_module, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_VARIABLE_REPLY(load_native_programs, data, PROTOCOL_NATIVE_MODE),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY_ASYNC(program_test_run, data, data, PROTOCOL_ALL_MODES),
@@ -2991,9 +2892,6 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(program_set_flags, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(perf_event_array_map_query_buffer, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY_ASYNC(perf_event_array_map_async_query, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(perf_event_array_map_write_data, data, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
