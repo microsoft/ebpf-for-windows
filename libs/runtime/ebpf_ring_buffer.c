@@ -320,8 +320,7 @@ _ring_next_consumer_record(_In_ ebpf_ring_buffer_t* ring, _When_(return != NULL,
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_initialize_ring(
-    _Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) ebpf_ring_buffer_t* ring, size_t capacity)
+ebpf_ring_buffer_allocate_ring(_Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) ebpf_ring_buffer_t* ring, size_t capacity)
 {
     if ((capacity & ~(capacity - 1)) != capacity) {
         return EBPF_INVALID_ARGUMENT;
@@ -357,7 +356,7 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
         goto Error;
     }
 
-    result = ebpf_ring_buffer_initialize_ring(local_ring_buffer, capacity);
+    result = ebpf_ring_buffer_allocate_ring(local_ring_buffer, capacity);
 
     if (result != EBPF_SUCCESS) {
         goto Error;
@@ -503,7 +502,7 @@ ebpf_ring_buffer_reserve(
     uint32_t record_header = (uint32_t)length | EBPF_RINGBUF_LOCK_BIT;
     size_t ring_capacity = _ring_get_length(ring);
     size_t total_record_size = _ring_record_size(length);
-    if (total_record_size > ring_capacity || length == 0 || length >= (1ULL << 30)) {
+    if (total_record_size > ring_capacity || length == 0 || length > EBPF_RINGBUF_MAX_RECORD_SIZE) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -601,7 +600,7 @@ ebpf_ring_buffer_reserve_exclusive(
     uint32_t record_header = (uint32_t)length | EBPF_RINGBUF_LOCK_BIT;
     size_t ring_capacity = _ring_get_length(ring);
     size_t total_record_size = _ring_record_size(length);
-    if (total_record_size > ring_capacity || length == 0 || length >= (1ULL << 30)) {
+    if (total_record_size > ring_capacity || length == 0 || length >= EBPF_RINGBUF_MAX_RECORD_SIZE) {
         return EBPF_INVALID_ARGUMENT;
     }
 

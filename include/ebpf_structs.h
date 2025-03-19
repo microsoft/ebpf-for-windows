@@ -418,7 +418,7 @@ struct bpf_prog_info
 #define EBPF_MAP_FLAG_INDEX_MASK 0xffffffffULL
 #define EBPF_MAP_FLAG_INDEX_SHIFT 0
 #define EBPF_MAP_FLAG_CURRENT_CPU EBPF_MAP_FLAG_INDEX_MASK
-/* BPF_FUNC_perf_event_output for program types with data pointer in context */
+/* BPF_FUNC_perf_event_output flags for program types with data pointer in context */
 #define EBPF_MAP_FLAG_CTXLEN_SHIFT 32
 #define EBPF_MAP_FLAG_CTXLEN_MAX (0xfffffULL)
 #define EBPF_MAP_FLAG_CTXLEN_MASK (EBPF_MAP_FLAG_CTXLEN_MAX << EBPF_MAP_FLAG_CTXLEN_SHIFT)

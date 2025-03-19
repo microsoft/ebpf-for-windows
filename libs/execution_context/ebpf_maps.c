@@ -439,7 +439,7 @@ typedef struct _ebpf_map_metadata_table
         uint64_t index,
         _Inout_ ebpf_map_async_query_result_t* async_query_result,
         _Inout_ void* async_context);
-    void (*query)(
+    void (*query_ring_buffer)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _Inout_ ebpf_map_async_query_result_t* async_query_result);
     int zero_length_key : 1;
     int zero_length_value : 1;
@@ -2159,7 +2159,7 @@ _map_async_query(
 
     // If there is already some data available in the ring buffer, indicate the results right away.
     size_t consumer = async_query_result->consumer;
-    table->query(map, index, async_query_result);
+    table->query_ring_buffer(map, index, async_query_result);
     if (consumer > async_query_result->consumer) {
         // Keep the latest consumer offset.
         async_query_result->consumer = consumer;
@@ -2196,7 +2196,7 @@ _map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map
         ebpf_core_map_async_query_context_t* context =
             EBPF_FROM_FIELD(ebpf_core_map_async_query_context_t, entry, async_contexts->contexts.Flink);
         ebpf_map_async_query_result_t* async_query_result = context->async_query_result;
-        table->query(map, context->index, async_query_result);
+        table->query_ring_buffer(map, context->index, async_query_result);
         ebpf_list_remove_entry(&context->entry);
 
         ebpf_operation_map_async_query_reply_t* reply =
@@ -2642,7 +2642,7 @@ _create_perf_event_array_map(
     uint32_t cpu_i;
     for (cpu_i = 0; cpu_i < perf_event_array_map->ring_count; cpu_i++) {
         ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_i];
-        result = ebpf_ring_buffer_initialize_ring(&ring->ring, map_definition->max_entries);
+        result = ebpf_ring_buffer_allocate_ring(&ring->ring, map_definition->max_entries);
         if (result != EBPF_SUCCESS) {
             // Failed to allocate ring, only free the rings we created.
             perf_event_array_map->ring_count = cpu_i;
@@ -2915,7 +2915,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .delete_map = _delete_ring_buffer_map,
         .query_buffer = _query_buffer_ring_buffer_map,
         .async_query = _async_query_ring_buffer_map,
-        .query = _query_ring_buffer_map,
+        .query_ring_buffer = _query_ring_buffer_map,
         .return_buffer = _return_buffer_ring_buffer_map,
         .write_data = _write_data_ring_buffer_map,
         .zero_length_key = true,
@@ -2927,7 +2927,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .delete_map = _delete_perf_event_array_map,
         .query_buffer = _query_buffer_perf_event_array_map,
         .async_query = _async_query_perf_event_array_map,
-        .query = _query_perf_event_array_map,
+        .query_ring_buffer = _query_perf_event_array_map,
         .return_buffer = _return_buffer_perf_event_array_map,
         .write_data = _write_data_perf_event_array_map,
         .zero_length_key = true,

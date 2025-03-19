@@ -40,7 +40,7 @@ void
 ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
 
 /**
- * @brief Initialize a pre-allocated ring buffer struct.
+ * @brief Initialize a pre-allocated ring buffer struct by allocating the ring.
  *
  * @note This is used by perf event array to initialize the ring buffer in the perf ring.
  * Use ebpf_ring_buffer_create to create a new ring buffer.
@@ -51,7 +51,7 @@ ebpf_ring_buffer_destroy(_Frees_ptr_opt_ ebpf_ring_buffer_t* ring_buffer);
  * @retval EBPF_NO_MEMORY Unable to allocate ring buffer.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_initialize_ring(
+ebpf_ring_buffer_allocate_ring(
     _Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) ebpf_ring_buffer_t* ring, size_t capacity);
 
 /**
