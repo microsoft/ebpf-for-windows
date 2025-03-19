@@ -154,9 +154,6 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a26e7a8b44782fb6df0944e67db68f2ca" id="r_a26e7a8b44782fb6df0944e67db68f2ca"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a26e7a8b44782fb6df0944e67db68f2ca">bpf_sock_addr_get_current_pid_tgid</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx)</td></tr>
-<tr class="memdesc:a26e7a8b44782fb6df0944e67db68f2ca"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get current pid and tgid (sock_addr specific only).  <br /></td></tr>
-<tr class="separator:a26e7a8b44782fb6df0944e67db68f2ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a64775b27bf65ea4c8fa5c8e951b60006" id="r_a64775b27bf65ea4c8fa5c8e951b60006"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__nethooks_8h.html#a64775b27bf65ea4c8fa5c8e951b60006">bpf_sock_addr_set_redirect_context</a> (<a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *ctx, void *data, uint32_t data_size)</td></tr>
 <tr class="memdesc:a64775b27bf65ea4c8fa5c8e951b60006"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set a context for consumption by a user-mode application (sock_addr specific only). This function is not supported for the recv_accept hooks.  <br /></td></tr>
 <tr class="separator:a64775b27bf65ea4c8fa5c8e951b60006"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -465,35 +462,6 @@ Functions</h2></td></tr>
 </div>
 </div>
 <h2 class="groupheader">Function Documentation</h2>
-<a id="a26e7a8b44782fb6df0944e67db68f2ca" name="a26e7a8b44782fb6df0944e67db68f2ca"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a26e7a8b44782fb6df0944e67db68f2ca">&#9670;&#160;</a></span>bpf_sock_addr_get_current_pid_tgid()</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">uint64_t bpf_sock_addr_get_current_pid_tgid </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="ebpf__nethooks_8h.html#ab2c7c42768b8ecf6dd6ee52c302a10a0">bpf_sock_addr_t</a> *&#160;</td>
-          <td class="paramname"><em>ctx</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-<p>Get current pid and tgid (sock_addr specific only). </p>
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000020">Deprecated:</a></b></dt><dd>Use bpf_get_current_pid_tgid instead.</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>Pointer to bpf_sock_addr_t context.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>a 64-bit integer containing the current tgid and pid, and created as such:</dd></dl>
-<p><em>current_task</em>\ <b>-&gt;tgid &lt;&lt; 32 |</b> <em>current_task</em>\ <b>-&gt;pid</b>. </p>
-
-</div>
-</div>
 <a id="a64775b27bf65ea4c8fa5c8e951b60006" name="a64775b27bf65ea4c8fa5c8e951b60006"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a64775b27bf65ea4c8fa5c8e951b60006">&#9670;&#160;</a></span>bpf_sock_addr_set_redirect_context()</h2>
 
