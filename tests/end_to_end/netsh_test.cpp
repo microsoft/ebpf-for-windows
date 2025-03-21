@@ -227,7 +227,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size = 1064;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1768;
+    const int code_size = 1784;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 1120;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -261,10 +261,10 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 305;
+    const int code_size = 312;
     const int old_code_size = 311;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1141;
+    const int code_size = 1152;
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
@@ -307,10 +307,10 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size_old[] = {73, 6, 73};
-    const int code_size_new[] = {86, 6, 96};
+    const int code_size_new[] = {90, 6, 100};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size_old[] = {413, 190, 413};
-    const int code_size_new[] = {444, 195, 444};
+    const int code_size_new[] = {448, 195, 448};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size_old[] = {116, 8, 112};
     const int code_size_new[] = {116, 8, 112};
@@ -355,9 +355,9 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size[] = {327, 344, 328, 345};
+    const int code_size[] = {333, 350, 333, 350};
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size[] = {950, 1025, 950, 1025};
+    const int code_size[] = {961, 1036, 961, 1036};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size[] = {308, 324, 308, 324};
 #elif defined(_M_ARM64) && !defined(NDEBUG)

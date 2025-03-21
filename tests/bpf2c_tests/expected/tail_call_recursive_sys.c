@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -140,17 +140,11 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
-    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
@@ -176,7 +170,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                       // Current Version.
+         80,                      // Struct size up to the last field.
+         80,                      // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -188,7 +188,13 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -220,9 +226,21 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t recurse_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID recurse_program_type_guid = {0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
@@ -387,6 +405,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         recurse,
         "sample~1",
         "sample_ext",
@@ -428,6 +447,7 @@ static const char* _map_initial_string_table[] = {
 
 static map_initial_values_t _map_initial_values_array[] = {
     {
+        .header = {1, 48, 48},
         .name = "map",
         .count = 3,
         .values = _map_initial_string_table,

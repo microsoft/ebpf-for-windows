@@ -11,6 +11,7 @@
 // Example:
 // .\scripts\generate_expected_bpf2c_output.ps1 .\x64\Debug\
 
+#include "bpf2c.h"
 #include "bpf_code_generator.h"
 #include "ebpf_api.h"
 #include "ebpf_version.h"
@@ -1054,7 +1055,7 @@ bpf_code_generator::bpf_code_generator_program::build_function_table()
 
 void
 bpf_code_generator::bpf_code_generator_program::encode_instructions(
-    std::map<unsafe_string, map_entry_t>& map_definitions,
+    std::map<unsafe_string, map_info_t>& map_definitions,
     std::map<unsafe_string, global_variable_section_t>& global_variable_sections)
 {
     std::vector<output_instruction_t>& program_output = output_instructions;
@@ -1697,7 +1698,7 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         size_t map_size = map_definitions.size();
 
         // Sort maps by index.
-        std::vector<std::tuple<bpf_code_generator::unsafe_string, map_entry_t>> maps_by_index(map_size);
+        std::vector<std::tuple<bpf_code_generator::unsafe_string, map_info_t>> maps_by_index(map_size);
         for (const auto& pair : map_definitions) {
             if (pair.second.index >= maps_by_index.size()) {
                 throw bpf_code_generator_exception("Invalid map section");
@@ -1732,7 +1733,19 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto stream_width = static_cast<std::streamsize>(std::floor(width) + 1);
             stream_width += 2; // Add space for the trailing ", "
 
-            output_stream << INDENT "{0," << std::endl;
+            output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT " {0, 0}," << std::endl;
+            output_stream << INDENT " {" << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION) + "," << "// Current Version."
+                          << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_SIZE) + ","
+                          << "// Struct size up to the last field." << std::endl;
+            output_stream << INDENT INDENT " " << std::left << std::setw(stream_width)
+                          << std::to_string(EBPF_NATIVE_MAP_ENTRY_CURRENT_VERSION_TOTAL_SIZE) + ","
+                          << "// Total struct size including padding." << std::endl;
+            output_stream << INDENT " }," << std::endl;
             output_stream << INDENT " {" << std::endl;
             output_stream << INDENT INDENT " " << std::left << std::setw(stream_width) << map_type + ","
                           << "// Type of map." << std::endl;
@@ -1809,6 +1822,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
 
         for (const auto& [name, entry] : global_variable_sections_by_index) {
             output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT ".header = {" << EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION
+                          << ", " << EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_SIZE << ", "
+                          << EBPF_NATIVE_GLOBAL_VARIABLE_SECTION_INFO_CURRENT_VERSION_TOTAL_SIZE << "}," << std::endl;
             output_stream << INDENT INDENT ".name = " << name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT ".size = " << std::to_string(entry.initial_data.size()) << "," << std::endl;
             output_stream << INDENT INDENT ".initial_data = &" << name.c_identifier() + "_initial_data," << std::endl;
@@ -1872,7 +1888,14 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             }
 
             for (const auto& [helper_name, id] : index_ordered_helpers) {
-                output_stream << INDENT "{" << id << ", " << helper_name.quoted() << "}," << std::endl;
+                output_stream << INDENT "{" << std::endl;
+                output_stream << INDENT " {" << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION << ", "
+                              << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_SIZE << ", "
+                              << EBPF_NATIVE_HELPER_FUNCTION_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
+                              << " // Version header." << std::endl;
+                output_stream << INDENT " " << id << "," << std::endl;
+                output_stream << INDENT " " << helper_name.quoted() << "," << std::endl;
+                output_stream << INDENT "}," << std::endl;
             }
 
             output_stream << "};" << std::endl;
@@ -2025,6 +2048,10 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
             auto program_info_hash_name = program_name.c_identifier() + "_program_info_hash";
             output_stream << INDENT "{" << std::endl;
             output_stream << INDENT INDENT << "0," << std::endl;
+            output_stream << INDENT INDENT "{" << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION << ", "
+                          << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_SIZE << ", "
+                          << EBPF_NATIVE_PROGRAM_ENTRY_CURRENT_VERSION_TOTAL_SIZE << "},"
+                          << " // Version header." << std::endl;
             output_stream << INDENT INDENT << program_name.c_identifier() << "," << std::endl;
             output_stream << INDENT INDENT << program.pe_section_name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << program.elf_section_name.quoted() << "," << std::endl;
@@ -2104,6 +2131,9 @@ bpf_code_generator::emit_c_code(std::ostream& output_stream)
         output_stream << "static map_initial_values_t _map_initial_values_array[] = {" << std::endl;
         for (const auto& [name, values] : map_initial_values) {
             output_stream << INDENT "{" << std::endl;
+            output_stream << INDENT INDENT << ".header = {" << EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION << ", "
+                          << EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_SIZE << ", "
+                          << EBPF_NATIVE_MAP_INITIAL_VALUES_CURRENT_VERSION_TOTAL_SIZE << "}," << std::endl;
             output_stream << INDENT INDENT << ".name = " << name.quoted() << "," << std::endl;
             output_stream << INDENT INDENT << ".count = " << values.size() << "," << std::endl;
             output_stream << INDENT INDENT << ".values = "

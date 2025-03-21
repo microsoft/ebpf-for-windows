@@ -2536,22 +2536,25 @@ _ebpf_pe_get_map_definitions(
     ebpf_pe_context_t* pe_context = (ebpf_pe_context_t*)context;
     if (section_name == "maps") {
         // bpf2c generates a section that has map names shorter than sizeof(map_entry_t)
-        // at the start of the section.  Skip over them looking for the map_entry_t
-        // which starts with an 8-byte-aligned NULL pointer where the previous
-        // byte (if any) is also 00, and the following 8 bytes are non-NULL.
+        // at the start of the section. Sometimes the strings are 8-byte-aligned, and
+        // at other times, they are 16-byte-aligned. Skip over them looking for the
+        // map_entry_t which starts with an 8-byte-aligned NULL pointer where the previous
+        // byte (if any) is also 00, and the following 8 bytes are also NULL. The next 8 bytes
+        // are not not NULL though.
         uint32_t map_offset = 0;
         uint64_t zero = 0;
-        while (map_offset + 16 < section_header.Misc.VirtualSize &&
+        while (map_offset + 24 < section_header.Misc.VirtualSize &&
                (memcmp(buffer->buf + map_offset, &zero, sizeof(zero)) != 0 ||
+                memcmp(buffer->buf + map_offset + 8, &zero, sizeof(zero)) != 0 ||
                 (map_offset > 0 && buffer->buf[map_offset - 1] != 0) ||
-                memcmp(buffer->buf + map_offset + 8, &zero, sizeof(zero)) == 0)) {
+                memcmp(buffer->buf + map_offset + 16, &zero, sizeof(zero)) == 0)) {
             map_offset += 8;
         }
         if (pe_context->object != nullptr) {
             for (int map_index = 0; map_offset + sizeof(map_entry_t) <= section_header.Misc.VirtualSize;
                  map_offset += sizeof(map_entry_t), map_index++) {
                 map_entry_t* entry = (map_entry_t*)(buffer->buf + map_offset);
-                if (entry->zero_marker != 0) {
+                if (entry->zero_marker[0] != 0 || entry->zero_marker[1] != 0) {
                     // bpf2c generates a section that has map names longer than sizeof(map_entry_t)
                     // at the end of the section. This entry seems to be a map name string, so we've
                     // reached the end of the maps.

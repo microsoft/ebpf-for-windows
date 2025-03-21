@@ -15,7 +15,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                       // Current Version.
+         80,                      // Struct size up to the last field.
+         80,                      // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -47,9 +53,21 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t bind_test_callee0_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee0_program_type_guid = {
@@ -248,9 +266,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee1_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee1_program_type_guid = {
@@ -449,9 +479,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee10_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee10_program_type_guid = {
@@ -650,9 +692,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee11_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee11_program_type_guid = {
@@ -851,9 +905,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee12_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee12_program_type_guid = {
@@ -1052,9 +1118,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee13_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee13_program_type_guid = {
@@ -1253,9 +1331,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee14_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee14_program_type_guid = {
@@ -1454,9 +1544,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee15_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee15_program_type_guid = {
@@ -1655,9 +1757,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee16_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee16_program_type_guid = {
@@ -1856,9 +1970,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee17_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee17_program_type_guid = {
@@ -2057,9 +2183,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee18_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee18_program_type_guid = {
@@ -2258,9 +2396,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee19_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee19_program_type_guid = {
@@ -2459,9 +2609,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee2_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee2_program_type_guid = {
@@ -2660,9 +2822,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee20_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee20_program_type_guid = {
@@ -2861,9 +3035,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee21_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee21_program_type_guid = {
@@ -3062,9 +3248,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee22_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee22_program_type_guid = {
@@ -3263,9 +3461,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee23_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee23_program_type_guid = {
@@ -3464,9 +3674,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee24_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee24_program_type_guid = {
@@ -3665,9 +3887,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee25_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee25_program_type_guid = {
@@ -3866,9 +4100,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee26_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee26_program_type_guid = {
@@ -4067,9 +4313,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee27_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee27_program_type_guid = {
@@ -4268,9 +4526,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee28_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee28_program_type_guid = {
@@ -4469,9 +4739,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee29_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee29_program_type_guid = {
@@ -4670,9 +4952,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee3_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee3_program_type_guid = {
@@ -4871,9 +5165,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee30_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee30_program_type_guid = {
@@ -5072,9 +5378,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee31_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee31_program_type_guid = {
@@ -5273,9 +5591,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee32_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee32_program_type_guid = {
@@ -5474,9 +5804,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee33_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee33_program_type_guid = {
@@ -5675,7 +6017,11 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee34_helpers[] = {
-    {12, "helper_id_12"},
+    {
+     {1, 40, 40}, // Version header.
+     12,
+     "helper_id_12",
+    },
 };
 
 static GUID bind_test_callee34_program_type_guid = {
@@ -5777,9 +6123,21 @@ bind_test_callee34(void* context, const program_runtime_context_t* runtime_conte
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee4_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee4_program_type_guid = {
@@ -5978,9 +6336,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee5_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee5_program_type_guid = {
@@ -6179,9 +6549,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee6_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee6_program_type_guid = {
@@ -6380,9 +6762,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee7_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee7_program_type_guid = {
@@ -6581,9 +6975,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee8_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee8_program_type_guid = {
@@ -6782,9 +7188,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_callee9_helpers[] = {
-    {14, "helper_id_14"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_callee9_program_type_guid = {
@@ -6983,9 +7401,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t bind_test_caller_helpers[] = {
-    {12, "helper_id_12"},
-    {5, "helper_id_5"},
-    {13, "helper_id_13"},
+    {
+     {1, 40, 40}, // Version header.
+     12,
+     "helper_id_12",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
 };
 
 static GUID bind_test_caller_program_type_guid = {
@@ -7178,6 +7608,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee0,
         "bind/0",
         "bind/0",
@@ -7192,6 +7623,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee1,
         "bind/1",
         "bind/1",
@@ -7206,6 +7638,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee10,
         "bind/10",
         "bind/10",
@@ -7220,6 +7653,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee11,
         "bind/11",
         "bind/11",
@@ -7234,6 +7668,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee12,
         "bind/12",
         "bind/12",
@@ -7248,6 +7683,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee13,
         "bind/13",
         "bind/13",
@@ -7262,6 +7698,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee14,
         "bind/14",
         "bind/14",
@@ -7276,6 +7713,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee15,
         "bind/15",
         "bind/15",
@@ -7290,6 +7728,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee16,
         "bind/16",
         "bind/16",
@@ -7304,6 +7743,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee17,
         "bind/17",
         "bind/17",
@@ -7318,6 +7758,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee18,
         "bind/18",
         "bind/18",
@@ -7332,6 +7773,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee19,
         "bind/19",
         "bind/19",
@@ -7346,6 +7788,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee2,
         "bind/2",
         "bind/2",
@@ -7360,6 +7803,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee20,
         "bind/20",
         "bind/20",
@@ -7374,6 +7818,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee21,
         "bind/21",
         "bind/21",
@@ -7388,6 +7833,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee22,
         "bind/22",
         "bind/22",
@@ -7402,6 +7848,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee23,
         "bind/23",
         "bind/23",
@@ -7416,6 +7863,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee24,
         "bind/24",
         "bind/24",
@@ -7430,6 +7878,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee25,
         "bind/25",
         "bind/25",
@@ -7444,6 +7893,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee26,
         "bind/26",
         "bind/26",
@@ -7458,6 +7908,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee27,
         "bind/27",
         "bind/27",
@@ -7472,6 +7923,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee28,
         "bind/28",
         "bind/28",
@@ -7486,6 +7938,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee29,
         "bind/29",
         "bind/29",
@@ -7500,6 +7953,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee3,
         "bind/3",
         "bind/3",
@@ -7514,6 +7968,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee30,
         "bind/30",
         "bind/30",
@@ -7528,6 +7983,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee31,
         "bind/31",
         "bind/31",
@@ -7542,6 +7998,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee32,
         "bind/32",
         "bind/32",
@@ -7556,6 +8013,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee33,
         "bind/33",
         "bind/33",
@@ -7570,6 +8028,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee34,
         "bind/34",
         "bind/34",
@@ -7584,6 +8043,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee4,
         "bind/4",
         "bind/4",
@@ -7598,6 +8058,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee5,
         "bind/5",
         "bind/5",
@@ -7612,6 +8073,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee6,
         "bind/6",
         "bind/6",
@@ -7626,6 +8088,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee7,
         "bind/7",
         "bind/7",
@@ -7640,6 +8103,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee8,
         "bind/8",
         "bind/8",
@@ -7654,6 +8118,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_callee9,
         "bind/9",
         "bind/9",
@@ -7668,6 +8133,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         bind_test_caller,
         "bind",
         "bind",
@@ -7741,6 +8207,7 @@ static const char* _bind_tail_call_map_initial_string_table[] = {
 
 static map_initial_values_t _map_initial_values_array[] = {
     {
+        .header = {1, 48, 48},
         .name = "bind_tail_call_map",
         .count = 35,
         .values = _bind_tail_call_map_initial_string_table,
