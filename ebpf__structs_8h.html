@@ -148,6 +148,9 @@ Typedefs</h2></td></tr>
 <tr class="separator:a35a5dda657202d3aa5cdbc41f809714f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac2f0847a6885cc3784a2e61d7ddf51b8" id="r_ac2f0847a6885cc3784a2e61d7ddf51b8"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__structs_8h.html#aac6b4c09fa267f53c1d213551e0ccd5a">bpf_attach_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#ac2f0847a6885cc3784a2e61d7ddf51b8">bpf_attach_type_t</a></td></tr>
 <tr class="separator:ac2f0847a6885cc3784a2e61d7ddf51b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aad26cd2213fd7fc727eaba471841fa62" id="r_aad26cd2213fd7fc727eaba471841fa62"><td class="memItemLeft" align="right" valign="top">typedef <a class="el" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#aad26cd2213fd7fc727eaba471841fa62">ebpf_native_module_header_t</a></td></tr>
+<tr class="memdesc:aad26cd2213fd7fc727eaba471841fa62"><td class="mdescLeft">&#160;</td><td class="mdescRight">Header of an eBPF native module data structure. Every eBPF native module data structure must start with this header. This however has an exception for some of the structs that mandatorily require a specific number of starting bytes to be zero. In such cases, the header must be placed after the required zero starting bytes. New fields can be added to the end of the data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible.  <br /></td></tr>
+<tr class="separator:aad26cd2213fd7fc727eaba471841fa62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
 Enumerations</h2></td></tr>
@@ -501,6 +504,22 @@ Enumerations</h2></td></tr>
         </tr>
       </table>
 </div><div class="memdoc">
+
+</div>
+</div>
+<a id="aad26cd2213fd7fc727eaba471841fa62" name="aad26cd2213fd7fc727eaba471841fa62"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aad26cd2213fd7fc727eaba471841fa62">&#9670;&#160;</a></span>ebpf_native_module_header_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef <a class="el" href="ebpf__windows_8h.html#a6a63738b9e73c3786834b0128ce196e7">ebpf_extension_header_t</a> <a class="el" href="ebpf__structs_8h.html#aad26cd2213fd7fc727eaba471841fa62">ebpf_native_module_header_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Header of an eBPF native module data structure. Every eBPF native module data structure must start with this header. This however has an exception for some of the structs that mandatorily require a specific number of starting bytes to be zero. In such cases, the header must be placed after the required zero starting bytes. New fields can be added to the end of the data structure without breaking backward compatibility. The version field must be updated only if the new data structure is not backward compatible. </p>
 
 </div>
 </div>
