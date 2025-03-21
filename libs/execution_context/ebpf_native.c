@@ -206,7 +206,7 @@ _ebpf_validate_native_helper_function_entry_array(
         // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
         size_t helper_prototype_size = native_helper_function_entry_array[0].header.total_size;
         for (uint16_t i = 0; i < count; i++) {
-            helper_function_entry_t* helper_prototype = (helper_function_entry_t*)ARRAY_ELEMENT_INDEX(
+            const helper_function_entry_t* helper_prototype = (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(
                 native_helper_function_entry_array, i, helper_prototype_size);
             if (!_ebpf_validate_native_helper_function_entry(helper_prototype)) {
                 return false;
@@ -240,8 +240,8 @@ _ebpf_validate_native_program_entry_array(
         // Use "total_size" to calculate the actual size of the program_entry_t struct.
         size_t program_entry_size = native_program_entry_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
-            program_entry_t* program_entry =
-                (program_entry_t*)ARRAY_ELEMENT_INDEX(native_program_entry_array, i, program_entry_size);
+            const program_entry_t* program_entry =
+                (const program_entry_t*)ARRAY_ELEMENT_INDEX(native_program_entry_array, i, program_entry_size);
             if (!_ebpf_validate_native_program_entry(program_entry)) {
                 return false;
             }
@@ -271,7 +271,8 @@ _ebpf_validate_native_map_entry_array(_In_reads_(count) const map_entry_t* nativ
         // Use "total_size" to calculate the actual size of the map_entry_t struct.
         size_t map_entry_size = native_map_entry_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
-            map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(native_map_entry_array, i, map_entry_size);
+            const map_entry_t* map_entry =
+                (const map_entry_t*)ARRAY_ELEMENT_INDEX(native_map_entry_array, i, map_entry_size);
             if (!_ebpf_validate_native_map_entry(map_entry)) {
                 return false;
             }
@@ -303,8 +304,8 @@ _ebpf_validate_native_map_initial_values_array(
         // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
         size_t map_initial_values_size = native_map_initial_values_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
-            map_initial_values_t* map_initial_values =
-                (map_initial_values_t*)ARRAY_ELEMENT_INDEX(native_map_initial_values_array, i, map_initial_values_size);
+            const map_initial_values_t* map_initial_values = (const map_initial_values_t*)ARRAY_ELEMENT_INDEX(
+                native_map_initial_values_array, i, map_initial_values_size);
             if (!_ebpf_validate_native_map_initial_values(map_initial_values)) {
                 return false;
             }
@@ -337,8 +338,8 @@ _ebpf_validate_global_variable_section_info_array(
         // Use "total_size" to calculate the actual size of the global_variable_section_info_t struct.
         size_t global_variable_section_info_size = native_global_variable_section_info_array[0].header.total_size;
         for (size_t i = 0; i < count; i++) {
-            global_variable_section_info_t* global_variable_section_info =
-                (global_variable_section_info_t*)ARRAY_ELEMENT_INDEX(
+            const global_variable_section_info_t* global_variable_section_info =
+                (const global_variable_section_info_t*)ARRAY_ELEMENT_INDEX(
                     native_global_variable_section_info_array, i, global_variable_section_info_size);
             if (!_ebpf_validate_native_global_variable_section_info(global_variable_section_info)) {
                 return false;
@@ -791,10 +792,9 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_lock_state_t state = 0;
     ebpf_native_module_t** module = NULL;
     bool lock_acquired = false;
-    metadata_table_t* table = NULL;
     ebpf_native_module_t* client_context = NULL;
 
-    table = (metadata_table_t*)client_dispatch;
+    const metadata_table_t* table = (const metadata_table_t*)client_dispatch;
 
     client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
     if (!client_context) {
@@ -1304,7 +1304,7 @@ _ebpf_native_initialize_global_variables(
         memcpy(&local_global_section_info, global_variable_section_info, global_variable_section_info_size);
         global_variable_section_info = NULL;
 
-        ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, local_global_section_info.name);
+        const ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, local_global_section_info.name);
         if (native_map == NULL) {
             result = EBPF_INVALID_ARGUMENT;
             break;
@@ -1523,8 +1523,8 @@ _ebpf_native_resolve_helpers_for_program(
         // Iterate over the helper indices to get all the helper ids.
         for (uint16_t i = 0; i < helper_count; i++) {
             helper_function_entry_t local_helper_entry = {0};
-            helper_function_entry_t* entry =
-                (helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
+            const helper_function_entry_t* entry =
+                (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
             memcpy(&local_helper_entry, entry, helper_entry_size);
 
             helper_ids[i] = local_helper_entry.helper_id;
