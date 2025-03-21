@@ -137,17 +137,11 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
-    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
         nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:

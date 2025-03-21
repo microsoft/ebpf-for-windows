@@ -212,6 +212,8 @@ _ebpf_validate_native_helper_function_entry_array(
                 return false;
             }
         }
+    } else if (native_helper_function_entry_array != NULL) {
+        return false;
     }
     return true;
 }
@@ -244,6 +246,8 @@ _ebpf_validate_native_program_entry_array(
                 return false;
             }
         }
+    } else if (native_program_entry_array != NULL) {
+        return false;
     }
     return true;
 }
@@ -272,6 +276,8 @@ _ebpf_validate_native_map_entry_array(_In_reads_(count) const map_entry_t* nativ
                 return false;
             }
         }
+    } else if (native_map_entry_array != NULL) {
+        return false;
     }
     return true;
 }
@@ -303,6 +309,8 @@ _ebpf_validate_native_map_initial_values_array(
                 return false;
             }
         }
+    } else if (native_map_initial_values_array != NULL) {
+        return false;
     }
     return true;
 }
@@ -336,6 +344,8 @@ _ebpf_validate_global_variable_section_info_array(
                 return false;
             }
         }
+    } else if (native_global_variable_section_info_array != NULL) {
+        return false;
     }
     return true;
 }
@@ -1579,14 +1589,14 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
     size_t program_entry_size = programs[0].header.total_size;
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
-        program_entry_t* entry = (program_entry_t*)ARRAY_ELEMENT_INDEX(programs, count, program_entry_size);
+        const program_entry_t* entry = (program_entry_t*)ARRAY_ELEMENT_INDEX(programs, count, program_entry_size);
         memcpy(&native_program->program_entry, entry, program_entry_size);
         entry = NULL;
 
         // Make a deep copy of each versioned sub-struct. Currently, helper info is the only
         // versioned sub-struct.
         if (native_program->program_entry.helper_count > 0) {
-            helper_function_entry_t* helper_info = native_program->program_entry.helpers;
+            const helper_function_entry_t* helper_info = native_program->program_entry.helpers;
             native_program->program_entry.helpers = (helper_function_entry_t*)ebpf_allocate_with_tag(
                 native_program->program_entry.helper_count * sizeof(helper_function_entry_t), EBPF_POOL_TAG_NATIVE);
             if (native_program->program_entry.helpers == NULL) {
@@ -1596,8 +1606,8 @@ _ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance
             // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
             size_t helper_entry_size = helper_info[0].header.total_size;
             for (uint32_t i = 0; i < native_program->program_entry.helper_count; i++) {
-                helper_function_entry_t* helper_entry =
-                    (helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
+                const helper_function_entry_t* helper_entry =
+                    (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
                 memcpy(&native_program->program_entry.helpers[i], helper_entry, helper_entry_size);
                 helper_entry = NULL;
             }

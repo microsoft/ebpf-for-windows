@@ -403,7 +403,6 @@ _preprocess_load_native_module(_Inout_ service_context_t* context)
 
     context->table = get_function();
     REQUIRE(context->table != nullptr);
-    // context->nmr_client_characteristics.ClientRegistrationInstance.NpiSpecificCharacteristics = table;
 
     REQUIRE(NT_SUCCESS(NmrRegisterClient(&context->nmr_client_characteristics, context, &context->nmr_client_handle)));
 
