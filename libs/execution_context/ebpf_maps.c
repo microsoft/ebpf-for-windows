@@ -2114,8 +2114,9 @@ _update_circular_map_entry(
 typedef void
 map_async_query_complete_t(
     _In_ _Requires_lock_held_(
-        ((ebpf_core_ring_buffer_map_t*)map)->async.lock ||
-        ((ebpf_core_perf_event_array_map_t*)map)->rings[(uint32_t)index].async.lock) const ebpf_core_map_t* map,
+        (EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map))->async.lock ||
+        (EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map))->rings[(uint32_t)index].async.lock)
+        const ebpf_core_map_t* map,
     uint64_t index);
 typedef void
 map_async_query_cancel_t(_In_ _Frees_ptr_ ebpf_core_map_async_query_context_t* cancel_context);
@@ -2196,13 +2197,15 @@ Exit:
 /**
  * @brief Helper function to complete the async query.
  *
+ * @note Requires that async_contexts->lock is held.
+ *  Missing SAL annotation due to the multiple callers passing different types.
+ *  The only two possible callers do have the SAL annotation.
+ *
  * @param[in] map Pointer to the map.
  * @param[in,out] async_contexts Pointer to the async contexts.
  */
 static void
-_map_async_query_complete(
-    _In_ const ebpf_core_map_t* map,
-    _Inout_ _Requires_lock_held_(async_contexts->lock) ebpf_core_map_async_contexts_t* async_contexts)
+_map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map_async_contexts_t* async_contexts)
 {
     EBPF_LOG_ENTRY();
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
@@ -2731,6 +2734,10 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_perf_event_array_map_output_with_capture(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
+    if (flags == EBPF_MAP_FLAG_CURRENT_CPU) {
+        // Automatic CPU selection and no data capture.
+        return ebpf_perf_event_array_map_output(map, data, length);
+    }
 
     ebpf_result_t result = EBPF_SUCCESS;
 
