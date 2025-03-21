@@ -60,10 +60,26 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t UtilityTest_helpers[] = {
-    {23, "helper_id_23"},
-    {22, "helper_id_22"},
-    {24, "helper_id_24"},
-    {25, "helper_id_25"},
+    {
+     {1, 40, 40}, // Version header.
+     23,
+     "helper_id_23",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     22,
+     "helper_id_22",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     24,
+     "helper_id_24",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     25,
+     "helper_id_25",
+    },
 };
 
 static GUID UtilityTest_program_type_guid = {
@@ -547,6 +563,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         UtilityTest,
         "bind",
         "bind",

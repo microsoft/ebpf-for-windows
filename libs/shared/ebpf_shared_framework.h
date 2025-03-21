@@ -14,6 +14,8 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
+#define ARRAY_ELEMENT_INDEX(array, index, element_size) (((uint8_t*)array) + (index * element_size));
+
 #define EBPF_COUNT_OF(arr) (sizeof(arr) / sizeof(arr[0]))
 #define EBPF_FROM_FIELD(s, m, o) (s*)((uint8_t*)o - EBPF_OFFSET_OF(s, m))
 
@@ -126,6 +128,57 @@ ebpf_validate_program_info(_In_ const ebpf_program_info_t* program_info);
 bool
 ebpf_validate_helper_function_prototype_array(
     _In_reads_(count) const ebpf_helper_function_prototype_t* helper_prototype, uint32_t count);
+
+/**
+ * @brief Validate the extension header for native module helper function entry.
+ * @param[in] native_helper_function_entry_header Pointer to extension header for
+ *            native helper function entry.
+
+ * @returns true if validation succeeds, false otherwise.
+ */
+bool
+ebpf_validate_object_header_native_helper_function_entry(
+    _In_ const ebpf_extension_header_t* native_helper_function_entry_header);
+
+/**
+ * @brief Validate the extension header for native module map entry structure.
+ * @param[in] native_map_entry_header Pointer to extension header for native map entry.
+
+ * @returns true if validation succeeds, false otherwise.
+ */
+bool
+ebpf_validate_object_header_native_map_entry(_In_ const ebpf_extension_header_t* native_map_entry_header);
+
+/**
+ * @brief Validate the extension header for native module program entry structure.
+ * @param[in] native_program_entry_header Pointer to extension header for native program entry.
+
+ * @returns true if validation succeeds, false otherwise.
+ */
+bool
+ebpf_validate_object_header_native_program_entry(_In_ const ebpf_extension_header_t* native_program_entry_header);
+
+/**
+ * @brief Validate the extension header for native map initial values structure.
+ * @param[in] native_map_initial_values_header Pointer to extension header for native map
+ *            initial values structure.
+
+ * @returns true if validation succeeds, false otherwise.
+ */
+bool
+ebpf_validate_object_header_native_map_initial_values(
+    _In_ const ebpf_extension_header_t* native_map_initial_values_header);
+
+/**
+ * @brief Validate the extension header for native global variable section info structure.
+ * @param[in] native_global_variable_section_info_header Pointer to extension header for
+ *            global variable section info structure
+
+ * @returns true if validation succeeds, false otherwise.
+ */
+bool
+ebpf_validate_object_header_native_global_variable_section_info(
+    _In_ const ebpf_extension_header_t* native_global_variable_section_info_header);
 
 /**
  * @brief Helper Function to free ebpf_program_info_t.

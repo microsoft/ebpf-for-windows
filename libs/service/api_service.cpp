@@ -150,11 +150,11 @@ static ebpf_result_t
 _resolve_maps_in_byte_code(
     ebpf_handle_t program_handle, _In_reads_(instruction_count) ebpf_inst* instructions, uint32_t instruction_count)
 {
-    // Create parallel vectors indexed by # of occurrence in the instructions.
-    std::vector<size_t> instruction_offsets; // 0-based instruction number.
-    std::vector<fd_t> map_fds;               // map_fd used in the bytecode.
+    std::vector<std::pair<size_t, fd_t>> instruction_offsets; // instruction offsets at which map_fds are referenced.
+    std::map<fd_t, uint64_t> map_fds;                         // map_fds and their addresses.
 
-    for (size_t index = 0; index < instruction_count; index++) {
+    size_t index = 0;
+    for (index = 0; index < instruction_count; index++) {
         ebpf_inst& first_instruction = instructions[index];
         if (first_instruction.opcode != INST_OP_LDDW_IMM) {
             continue;
@@ -170,8 +170,8 @@ _resolve_maps_in_byte_code(
         }
 
         fd_t map_fd = static_cast<fd_t>(first_instruction.imm);
-        instruction_offsets.push_back(index - 1);
-        map_fds.push_back(map_fd);
+        instruction_offsets.push_back({index - 1, map_fd});
+        map_fds[map_fd] = 0;
     }
 
     if (map_fds.empty()) {
@@ -190,24 +190,33 @@ _resolve_maps_in_byte_code(
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->program_handle = program_handle;
 
-    for (size_t index = 0; index < map_fds.size(); index++) {
-        request->map_handle[index] = get_map_handle(map_fds[index]);
+    index = 0;
+    for (const auto& [map_fd, address] : map_fds) {
+        request->map_handle[index++] = get_map_handle(map_fd);
     }
 
+    // Send the request to the kernel, to resolve the map handles to addresses.
     uint32_t result = invoke_ioctl(request_buffer, reply_buffer);
     if (result != ERROR_SUCCESS) {
         return win32_error_code_to_ebpf_result(result);
     }
 
-    for (size_t index = 0; index < map_fds.size(); index++) {
-        ebpf_inst& first_instruction = instructions[instruction_offsets[index]];
-        ebpf_inst& second_instruction = instructions[instruction_offsets[index] + 1];
+    // Retrieve the map addresses from the reply.
+    index = 0;
+    for (auto& [map_fd, address] : map_fds) {
+        map_fds[map_fd] = reply->address[index++];
+    }
+
+    // Replace the map fds in the instructions with the addresses.
+    for (index = 0; index < instruction_offsets.size(); index++) {
+        ebpf_inst& first_instruction = instructions[instruction_offsets[index].first];
+        ebpf_inst& second_instruction = instructions[instruction_offsets[index].first + 1];
 
         // Clear LD_MAP flag
         first_instruction.src = 0;
 
         // Replace handle with address
-        uint64_t new_imm = reply->address[index];
+        uint64_t new_imm = map_fds[instruction_offsets[index].second];
         first_instruction.imm = static_cast<uint32_t>(new_imm);
         second_instruction.imm = static_cast<uint32_t>(new_imm >> 32);
     }

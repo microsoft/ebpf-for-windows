@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -140,17 +140,11 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
-    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
@@ -176,7 +170,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                       // Current Version.
+         80,                      // Struct size up to the last field.
+         80,                      // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -208,8 +208,16 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t BindMonitor_Callee0_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee0_program_type_guid = {
@@ -381,8 +389,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee1_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee1_program_type_guid = {
@@ -554,8 +570,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee10_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee10_program_type_guid = {
@@ -727,8 +751,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee11_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee11_program_type_guid = {
@@ -900,8 +932,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee12_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee12_program_type_guid = {
@@ -1073,8 +1113,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee13_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee13_program_type_guid = {
@@ -1246,8 +1294,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee14_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee14_program_type_guid = {
@@ -1419,8 +1475,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee15_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee15_program_type_guid = {
@@ -1592,8 +1656,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee16_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee16_program_type_guid = {
@@ -1765,8 +1837,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee17_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee17_program_type_guid = {
@@ -1938,8 +2018,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee18_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee18_program_type_guid = {
@@ -2111,8 +2199,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee19_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee19_program_type_guid = {
@@ -2284,8 +2380,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee2_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee2_program_type_guid = {
@@ -2457,8 +2561,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee20_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee20_program_type_guid = {
@@ -2630,8 +2742,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee21_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee21_program_type_guid = {
@@ -2803,8 +2923,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee22_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee22_program_type_guid = {
@@ -2976,8 +3104,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee23_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee23_program_type_guid = {
@@ -3149,8 +3285,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee24_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee24_program_type_guid = {
@@ -3322,8 +3466,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee25_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee25_program_type_guid = {
@@ -3495,8 +3647,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee26_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee26_program_type_guid = {
@@ -3668,8 +3828,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee27_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee27_program_type_guid = {
@@ -3841,8 +4009,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee28_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee28_program_type_guid = {
@@ -4014,8 +4190,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee29_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee29_program_type_guid = {
@@ -4187,8 +4371,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee3_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee3_program_type_guid = {
@@ -4360,8 +4552,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee30_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee30_program_type_guid = {
@@ -4533,8 +4733,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee31_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee31_program_type_guid = {
@@ -4744,8 +4952,16 @@ BindMonitor_Callee32(void* context, const program_runtime_context_t* runtime_con
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee4_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee4_program_type_guid = {
@@ -4917,8 +5133,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee5_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee5_program_type_guid = {
@@ -5090,8 +5314,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee6_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee6_program_type_guid = {
@@ -5263,8 +5495,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee7_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee7_program_type_guid = {
@@ -5436,8 +5676,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee8_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee8_program_type_guid = {
@@ -5609,8 +5857,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Callee9_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Callee9_program_type_guid = {
@@ -5784,8 +6040,16 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t BindMonitor_Caller_helpers[] = {
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID BindMonitor_Caller_program_type_guid = {
@@ -5914,6 +6178,7 @@ BindMonitor_Caller(void* context, const program_runtime_context_t* runtime_conte
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee0,
         "bind/0",
         "bind/0",
@@ -5928,6 +6193,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee1,
         "bind/1",
         "bind/1",
@@ -5942,6 +6208,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee10,
         "bind/10",
         "bind/10",
@@ -5956,6 +6223,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee11,
         "bind/11",
         "bind/11",
@@ -5970,6 +6238,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee12,
         "bind/12",
         "bind/12",
@@ -5984,6 +6253,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee13,
         "bind/13",
         "bind/13",
@@ -5998,6 +6268,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee14,
         "bind/14",
         "bind/14",
@@ -6012,6 +6283,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee15,
         "bind/15",
         "bind/15",
@@ -6026,6 +6298,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee16,
         "bind/16",
         "bind/16",
@@ -6040,6 +6313,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee17,
         "bind/17",
         "bind/17",
@@ -6054,6 +6328,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee18,
         "bind/18",
         "bind/18",
@@ -6068,6 +6343,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee19,
         "bind/19",
         "bind/19",
@@ -6082,6 +6358,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee2,
         "bind/2",
         "bind/2",
@@ -6096,6 +6373,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee20,
         "bind/20",
         "bind/20",
@@ -6110,6 +6388,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee21,
         "bind/21",
         "bind/21",
@@ -6124,6 +6403,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee22,
         "bind/22",
         "bind/22",
@@ -6138,6 +6418,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee23,
         "bind/23",
         "bind/23",
@@ -6152,6 +6433,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee24,
         "bind/24",
         "bind/24",
@@ -6166,6 +6448,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee25,
         "bind/25",
         "bind/25",
@@ -6180,6 +6463,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee26,
         "bind/26",
         "bind/26",
@@ -6194,6 +6478,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee27,
         "bind/27",
         "bind/27",
@@ -6208,6 +6493,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee28,
         "bind/28",
         "bind/28",
@@ -6222,6 +6508,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee29,
         "bind/29",
         "bind/29",
@@ -6236,6 +6523,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee3,
         "bind/3",
         "bind/3",
@@ -6250,6 +6538,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee30,
         "bind/30",
         "bind/30",
@@ -6264,6 +6553,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee31,
         "bind/31",
         "bind/31",
@@ -6278,6 +6568,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee32,
         "bind/32",
         "bind/32",
@@ -6292,6 +6583,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee4,
         "bind/4",
         "bind/4",
@@ -6306,6 +6598,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee5,
         "bind/5",
         "bind/5",
@@ -6320,6 +6613,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee6,
         "bind/6",
         "bind/6",
@@ -6334,6 +6628,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee7,
         "bind/7",
         "bind/7",
@@ -6348,6 +6643,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee8,
         "bind/8",
         "bind/8",
@@ -6362,6 +6658,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Callee9,
         "bind/9",
         "bind/9",
@@ -6376,6 +6673,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         BindMonitor_Caller,
         "bind",
         "bind",

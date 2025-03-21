@@ -337,13 +337,6 @@ _ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
     return sock_addr_ctx->transport_endpoint_handle;
 }
 
-static uint64_t
-_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
-{
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return (sock_addr_ctx->process_id << 32 | _get_thread_id());
-}
-
 static int
 _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
 {
@@ -555,8 +548,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -992,9 +984,8 @@ _net_ebpf_extension_connection_context_initialize(
 
 _Requires_exclusive_lock_held_(
     _net_ebpf_ext_sock_addr_blocked_contexts
-        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_
-                                                                                       net_ebpf_extension_connection_context_t*
-                                                                                           context)
+        .lock) static bool _net_ebpf_ext_find_and_remove_connection_context_locked(_In_ net_ebpf_extension_connection_context_t*
+                                                                                       context)
 {
     bool entry_found = false;
     // Check the hash table for the entry.

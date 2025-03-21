@@ -79,17 +79,11 @@ static const ebpf_program_section_info_t _ebpf_bind_section_info[] = {
 
 enum _sock_addr_helper_functions
 {
-    SOCK_ADDR_HELPER_GET_CURRENT_PID_TGID,
     SOCK_ADDR_HELPER_SET_REDIRECT_CONTEXT,
 };
 
 // CGROUP_SOCK_ADDR extension specific helper function prototypes.
 static const ebpf_helper_function_prototype_t _sock_addr_ebpf_extension_helper_function_prototype[] = {
-    {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
-     BPF_FUNC_sock_addr_get_current_pid_tgid,
-     "bpf_sock_addr_get_current_pid_tgid",
-     EBPF_RETURN_TYPE_INTEGER,
-     {EBPF_ARGUMENT_TYPE_PTR_TO_CTX}},
     {EBPF_HELPER_FUNCTION_PROTOTYPE_HEADER,
      BPF_FUNC_sock_addr_set_redirect_context,
      "bpf_sock_addr_set_redirect_context",

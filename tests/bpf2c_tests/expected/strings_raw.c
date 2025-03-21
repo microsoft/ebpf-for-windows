@@ -30,10 +30,26 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t StringOpsTest_helpers[] = {
-    {29, "helper_id_29"},
-    {27, "helper_id_27"},
-    {23, "helper_id_23"},
-    {28, "helper_id_28"},
+    {
+     {1, 40, 40}, // Version header.
+     29,
+     "helper_id_29",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     27,
+     "helper_id_27",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     23,
+     "helper_id_23",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     28,
+     "helper_id_28",
+    },
 };
 
 static GUID StringOpsTest_program_type_guid = {
@@ -457,6 +473,7 @@ label_2:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         StringOpsTest,
         "bind",
         "bind",

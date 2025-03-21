@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -140,17 +140,11 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
-    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
@@ -176,7 +170,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -208,14 +208,46 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t test_utility_helpers_helpers[] = {
-    {6, "helper_id_6"},
-    {7, "helper_id_7"},
-    {9, "helper_id_9"},
-    {8, "helper_id_8"},
-    {19, "helper_id_19"},
-    {30, "helper_id_30"},
-    {31, "helper_id_31"},
-    {2, "helper_id_2"},
+    {
+     {1, 40, 40}, // Version header.
+     6,
+     "helper_id_6",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     7,
+     "helper_id_7",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     9,
+     "helper_id_9",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     8,
+     "helper_id_8",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     19,
+     "helper_id_19",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     30,
+     "helper_id_30",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     31,
+     "helper_id_31",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
+    },
 };
 
 static GUID test_utility_helpers_program_type_guid = {
@@ -503,6 +535,7 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         test_utility_helpers,
         "sample~1",
         "sample_ext",

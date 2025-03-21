@@ -2062,12 +2062,15 @@ ebpf_program_get_info(
 {
     EBPF_LOG_ENTRY();
     const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
-    struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
-    if (*output_buffer_size < sizeof(*output_info)) {
-        EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
-    }
 
-    if (input_buffer_size < sizeof(*input_info)) {
+    // The input buffer must be large enough to hold the map IDs.
+    if (input_buffer_size < EBPF_OFFSET_OF(struct bpf_prog_info, name)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "ebpf_program_get_info input buffer smaller than minimum required size.",
+            input_buffer_size,
+            EBPF_OFFSET_OF(struct bpf_prog_info, name));
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
@@ -2092,17 +2095,38 @@ ebpf_program_get_info(
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "User mode map_ids buffer invalid or too small.",
+                (uint64_t)((uintptr_t)map_ids));
             EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
         }
     }
 
+    struct bpf_prog_info local_program = {0};
+    struct bpf_prog_info* output_info = &local_program;
+
+    if (*output_buffer_size < sizeof(*output_info)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "ebpf_program_get_info output buffer too small.",
+            *output_buffer_size,
+            sizeof(*output_info));
+    }
+
     memset(output_info, 0, sizeof(*output_info));
     output_info->id = program->object.id;
+    size_t program_name_length = program->parameters.program_name.length;
     strncpy_s(
         output_info->name,
         sizeof(output_info->name),
         (char*)program->parameters.program_name.value,
-        program->parameters.program_name.length);
+        program_name_length);
+    if (program_name_length < sizeof(output_info->name)) {
+        memset(output_info->name + program_name_length, 0, sizeof(output_info->name) - program_name_length);
+    }
     output_info->nr_map_ids = program->count_of_maps;
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
@@ -2111,7 +2135,11 @@ ebpf_program_get_info(
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 
-    *output_buffer_size = sizeof(*output_info);
+    // Copy the local map info to the user supplied buffer, as much as will fit.
+    uint16_t out_size = min(sizeof(*output_info), *output_buffer_size);
+    memcpy(output_buffer, output_info, out_size);
+    *output_buffer_size = out_size;
+
     EBPF_RETURN_RESULT(result);
 }
 
