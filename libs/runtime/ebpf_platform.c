@@ -119,9 +119,8 @@ _IRQL_requires_max_(HIGH_LEVEL) void ebpf_lower_irql(_In_ _Notliteral_ _IRQL_res
     KeLowerIrql(old_irql);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL)
-KIRQL
-ebpf_raise_irql_to_dispatch_if_needed()
+_IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _When_(return < DISPATCH_LEVEL, _IRQL_raises_(DISPATCH_LEVEL)) KIRQL
+    ebpf_raise_irql_to_dispatch_if_needed()
 {
     KIRQL old_irql = KeGetCurrentIrql();
     if (old_irql < DISPATCH_LEVEL) {

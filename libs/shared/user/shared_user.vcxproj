@@ -2,8 +2,8 @@
 <!--                                                                                                                     Copyright (c) eBPF for Windows contributors                                                                                    SPDX-License-Identifier: MIT                                                                                         -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="..\shared_common.c" />
     <ClCompile Include="..\ebpf_serialize.c" />
+    <ClCompile Include="..\shared_common.c" />
     <ClCompile Include="..\tracelog.c" />
   </ItemGroup>
   <ItemGroup>

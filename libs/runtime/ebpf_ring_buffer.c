@@ -6,18 +6,6 @@
 #include "ebpf_ring_buffer_record.h"
 #include "ebpf_tracelog.h"
 
-typedef struct _ebpf_ring_buffer
-{
-    size_t length;
-    volatile size_t consumer_offset;         ///< Consumer has read up to this offset.
-    volatile size_t producer_offset;         ///< Producer(s) have reserved up to this offset.
-    volatile size_t producer_reserve_offset; ///< Next record to be reserved.
-    uint8_t* shared_buffer;                  ///< Shared double-mapped buffer.
-    ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
-} ebpf_ring_buffer_t;
-
-static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
-
 /**
  * @brief Read-acquire the record header.
  *
@@ -166,6 +154,35 @@ _ring_read_producer_reserve_offset_acquire(_In_ const ebpf_ring_buffer_t* ring)
 }
 
 /**
+ * @brief Get the producer reserve offset with no-fence.
+ *
+ * Only use this when the latest offset is known (with exclusive access).
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Producer reserve offset.
+ */
+inline static size_t
+_ring_read_producer_reserve_offset_nofence(_In_ const ebpf_ring_buffer_t* ring)
+{
+    return ReadULong64Acquire(&ring->producer_reserve_offset);
+}
+
+/**
+ * @brief Set the producer reserve offset with no-fence.
+ *
+ * This is unsafe to use with multiple producer threads/CPUs.
+ * Exclusive reserve uses this before write-releasing the producer offset.
+ *
+ * @param[in] ring Pointer to the ring.
+ * @return Producer reserve offset.
+ */
+inline static void
+_ring_write_producer_reserve_offset_nofence(_Inout_ ebpf_ring_buffer_t* ring, size_t offset)
+{
+    WriteULong64NoFence(&ring->producer_reserve_offset, offset);
+}
+
+/**
  * @brief Atomically advance the producer reserve offset to reserve space for a new record.
  *
  * Reserves space between expected_value and new_value if expected_value is returned.
@@ -303,6 +320,31 @@ _ring_next_consumer_record(_In_ ebpf_ring_buffer_t* ring, _When_(return != NULL,
 }
 
 _Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_allocate_ring(_Out_writes_bytes_(sizeof(ebpf_ring_buffer_t)) ebpf_ring_buffer_t* ring, size_t capacity)
+{
+    if ((capacity & ~(capacity - 1)) != capacity) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ring->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
+    if (!ring->ring_descriptor) {
+        return EBPF_NO_MEMORY;
+    }
+    ring->shared_buffer = ebpf_ring_descriptor_get_base_address(ring->ring_descriptor);
+    ring->length = capacity;
+
+    return EBPF_SUCCESS;
+}
+
+void
+ebpf_ring_buffer_free_ring_memory(_Inout_ ebpf_ring_buffer_t* ring)
+{
+    ebpf_free_ring_buffer_memory(ring->ring_descriptor);
+    ring->ring_descriptor = NULL;
+    ring->shared_buffer = NULL;
+}
+
+_Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
 {
     EBPF_LOG_ENTRY();
@@ -314,19 +356,11 @@ ebpf_ring_buffer_create(_Outptr_ ebpf_ring_buffer_t** ring, size_t capacity)
         goto Error;
     }
 
-    if ((capacity & ~(capacity - 1)) != capacity) {
-        result = EBPF_INVALID_ARGUMENT;
+    result = ebpf_ring_buffer_allocate_ring(local_ring_buffer, capacity);
+
+    if (result != EBPF_SUCCESS) {
         goto Error;
     }
-
-    local_ring_buffer->length = capacity;
-
-    local_ring_buffer->ring_descriptor = ebpf_allocate_ring_buffer_memory(capacity);
-    if (!local_ring_buffer->ring_descriptor) {
-        result = EBPF_NO_MEMORY;
-        goto Error;
-    }
-    local_ring_buffer->shared_buffer = ebpf_ring_descriptor_get_base_address(local_ring_buffer->ring_descriptor);
 
     *ring = local_ring_buffer;
     local_ring_buffer = NULL;
@@ -468,7 +502,7 @@ ebpf_ring_buffer_reserve(
     uint32_t record_header = (uint32_t)length | EBPF_RINGBUF_LOCK_BIT;
     size_t ring_capacity = _ring_get_length(ring);
     size_t total_record_size = _ring_record_size(length);
-    if (total_record_size > ring_capacity || length == 0 || length >= (1ULL << 30)) {
+    if (total_record_size > ring_capacity || length == 0 || length > EBPF_RINGBUF_MAX_RECORD_SIZE) {
         return EBPF_INVALID_ARGUMENT;
     }
 
@@ -550,6 +584,52 @@ Done:
     return result;
 }
 #pragma warning(pop)
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_reserve_exclusive(
+    _Inout_ ebpf_ring_buffer_t* ring, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length)
+{
+    //  Exclusive Reserve notes:
+    //  - This function should only be called by a single thread/CPU currently.
+    //    - A single consumer can be concurrently reading.
+    //    - Assumes we already have seen the latest producer_reserve_offset and producer_offset.
+    //  - Synchronization:
+    //    - producer_offset write-release ensures record is locked before producer offset is updated.
+    //    - With only a single producer we skip the loops and directly update the offsets.
+
+    uint32_t record_header = (uint32_t)length | EBPF_RINGBUF_LOCK_BIT;
+    size_t ring_capacity = _ring_get_length(ring);
+    size_t total_record_size = _ring_record_size(length);
+    if (total_record_size > ring_capacity || length == 0 || length >= EBPF_RINGBUF_MAX_RECORD_SIZE) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    size_t consumer_offset = _ring_read_consumer_offset_nofence(ring);
+    // Read producer_reserve_offset.
+    // - We can use no-fence because exclusive reserve assumes we already have the latest value in this CPU.
+    size_t reserve_offset = _ring_read_producer_reserve_offset_nofence(ring);
+    size_t new_reserve_offset = reserve_offset + total_record_size;
+    if (new_reserve_offset - consumer_offset > ring_capacity) {
+        return EBPF_NO_MEMORY; // Not enough space for record.
+    }
+
+    // Update reserve offset.
+    // - This is a no-fence write, the producer offset write-release below ensures this is visible first.
+    _ring_write_producer_reserve_offset_nofence(ring, new_reserve_offset);
+
+    ebpf_ring_buffer_record_t* record = _ring_record_at_offset(ring, reserve_offset);
+    record->header.page_offset = 0; // unused for now.
+
+    // Initialize the record header.
+    // - We can no-fence write here, the write-release below ensures the locked header is visible first.
+    _ring_record_write_header_nofence(record, record_header);
+
+    // Release producer offset to ensure lock bit is visible before offset update.
+    _ring_write_producer_offset_release(ring, new_reserve_offset);
+
+    *data = record->data;
+    return EBPF_SUCCESS;
+}
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_submit(_Frees_ptr_opt_ uint8_t* data)

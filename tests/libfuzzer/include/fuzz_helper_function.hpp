@@ -411,6 +411,15 @@ template <typename context_type> class fuzz_helper_function
                 64 * 1024,
             },
         },
+        {
+            "BPF_MAP_TYPE_PERF_EVENT_ARRAY",
+            {
+                BPF_MAP_TYPE_PERF_EVENT_ARRAY,
+                0,
+                4,
+                64 * 1024,
+            },
+        },
     };
 
     uintptr_t
