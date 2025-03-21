@@ -104,8 +104,8 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
 
     std::string expected_output = "\n\n     ID     Type  Path\n";
     expected_output += "=======  =======  ==============\n";
-    expected_output += std::format("{:>7s}  Program  map_in_map\n", id);
-    expected_output += std::format("{:>7s}  Program  pin2\n", id);
+    expected_output += std::format("{:>7s}  Program  BPF:\\map_in_map\n", id);
+    expected_output += std::format("{:>7s}  Program  BPF:\\pin2\n", id);
 
     output = run_command("netsh ebpf show pins", &result);
     REQUIRE(output == expected_output);
@@ -114,9 +114,9 @@ TEST_CASE("prog load map_in_map", "[prog][load]")
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
     REQUIRE(
         output == "\nUnpinned " + id +
-                      " from map_in_map\n"
+                      " from BPF:\\map_in_map\n"
                       "Unpinned " +
-                      id + " from pin2\n");
+                      id + " from BPF:\\pin2\n");
     REQUIRE(result == 0);
 
     output = run_command("bpftool prog show", &result);
@@ -154,7 +154,7 @@ TEST_CASE("prog attach by interface alias", "[prog][load]")
     &result); REQUIRE(result == 0);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from droppacket\n");
+    REQUIRE(output == "\nUnpinned " + id + " from BPF:\\droppacket\n");
     REQUIRE(result == 0);
 
     output = run_command("bpftool prog show", &result);
@@ -183,14 +183,14 @@ TEST_CASE("map create", "[map]")
                   "Found 2 elements\n");
     REQUIRE(status == 0);
 
-    REQUIRE(ebpf_object_unpin("FileName") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("BPF:\\FileName") == EBPF_SUCCESS);
 }
 
 TEST_CASE("map show pinned", "[map]")
 {
     int status;
     std::string output =
-        run_command("bpftool map create \\\\test_map type hash key 4 value 4 entries 10 name testing", &status);
+        run_command("bpftool map create test_map type hash key 4 value 4 entries 10 name testing", &status);
     REQUIRE(output == "");
     REQUIRE(status == 0);
 
@@ -199,11 +199,11 @@ TEST_CASE("map show pinned", "[map]")
     std::string id = std::to_string(atoi(output.c_str()));
     REQUIRE(output == id + ": hash  name testing  flags 0x0\n\tkey 4B  value 4B  max_entries 10\n");
 
-    output = run_command("bpftool map show pinned \\\\test_map", &status);
+    output = run_command("bpftool map show pinned BPF:\\test_map", &status);
     REQUIRE(status == 0);
     REQUIRE(output == id + ": hash  name testing  flags 0x0\n\tkey 4B  value 4B  max_entries 10\n");
 
-    REQUIRE(ebpf_object_unpin("\\\\test_map") == EBPF_SUCCESS);
+    REQUIRE(ebpf_object_unpin("BPF:\\test_map") == EBPF_SUCCESS);
 }
 
 TEST_CASE("prog show id 1", "[prog][show]")
@@ -262,7 +262,7 @@ TEST_CASE("prog prog run", "[prog][load]")
     REQUIRE(output.find("Return value: 42, duration (average): ") != std::string::npos);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from test_sample_ebpf\n");
+    REQUIRE(output == "\nUnpinned " + id + " from BPF:\\test_sample_ebpf\n");
     REQUIRE(result == 0);
 
     output = run_command("bpftool prog show", &result);
