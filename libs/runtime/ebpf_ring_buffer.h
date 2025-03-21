@@ -17,6 +17,7 @@ typedef struct _ebpf_ring_buffer
     uint8_t* shared_buffer;                  ///< Shared double-mapped buffer.
     ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
 } ebpf_ring_buffer_t;
+// ebpf_ring_buffer_t should be made opaque instead of being in ebpf_ring_buffer.h (#4144).
 
 static_assert(sizeof(size_t) == 8, "size_t must be 8 bytes");
 
