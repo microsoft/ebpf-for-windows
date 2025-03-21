@@ -2714,7 +2714,7 @@ ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(lengt
 
     uint8_t* record_data;
     ebpf_result_t result = ebpf_ring_buffer_reserve_exclusive(&ring->ring, &record_data, length);
-    if (result == EBPF_SUCCESS) {
+    if (result != EBPF_SUCCESS) {
         ring->lost_records++;
         goto Exit;
     }
