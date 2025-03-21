@@ -477,9 +477,10 @@ extern "C"
 
     /**
      * @brief Set the context_descriptor in the program context header.
-     *  Writes a pointer to the ebpf_program_t object to Slot [1].
      *
-     *  @note Extension must support context headers.
+     * Writes a pointer to the ebpf_program_t object to Slot [1].
+     *
+     * @note Extension must support context headers.
      *
      * @param[in] context_descriptor Pointer to the context descriptor for the program.
      * @param[in,out] program_context Pointer to the program context to set the header for.
@@ -490,9 +491,10 @@ extern "C"
 
     /**
      * @brief Get the context descriptor from the program context header.
-     *  Slot [1] contains the context descriptor pointer.
      *
-     *  @note Extension must support context headers.
+     * Slot [1] contains the context descriptor pointer.
+     *
+     * @note Extension must support context headers.
      *
      * @param[in] program_context Pointer to the program context.
      * @param[out] context_descriptor Pointer to the program context to set.
@@ -504,7 +506,7 @@ extern "C"
     /**
      * @brief Get the data start and end pointers from the program context.
      *
-     *  @note Extension must support context headers.
+     * @note Extension must support context headers.
      *
      * @param[in] program_context Pointer to the program context.
      * @param[out] data_start Pointer to the start of the context data. Must be non-null.

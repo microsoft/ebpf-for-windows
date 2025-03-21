@@ -25,7 +25,7 @@ bind_monitor(bind_md_t* ctx)
 {
     size_t ctx_data_len = ctx->app_id_end - ctx->app_id_start;
     uint64_t flags =
-        EBPF_MAP_FLAG_CURRENT_CPU | ((ctx_data_len << EBPF_MAP_FLAG_CTXLEN_SHIFT) & EBPF_MAP_FLAG_CTXLEN_MASK);
+        EBPF_MAP_FLAG_CURRENT_CPU | ((ctx_data_len << EBPF_MAP_FLAG_CTX_LENGTH_SHIFT) & EBPF_MAP_FLAG_CTX_LENGTH_MASK);
     uint32_t value = bpf_get_prandom_u32();
     switch (ctx->operation) {
     case BIND_OPERATION_BIND:

@@ -95,8 +95,8 @@ ebpf_ring_buffer_reserve(
     _Inout_ ebpf_ring_buffer_t* ring_buffer, _Outptr_result_bytebuffer_(length) uint8_t** data, size_t length);
 
 /**
- * @brief Reserve a record in an exclusive ring buffer. Data buffer is valid until either ebpf_ring_buffer_submit,
- * ebpf_ring_buffer_discard, or the end of the current epoch.
+ * @brief Reserve a record with exclusive access to a ring buffer. Data buffer is valid until either
+ * ebpf_ring_buffer_submit, ebpf_ring_buffer_discard, or the end of the current epoch.
  *
  * @note This function must only be called by a single thread, or by a single CPU at dispatch.
  * It assumes the latest producer reserve offset was already seen on this CPU.

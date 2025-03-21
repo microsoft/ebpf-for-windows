@@ -1,6 +1,6 @@
 # Perf Event Array
 
-This document describes the in-progress support for the bpf map type BPF_MAP_TYPE_PERF_EVENT_ARRAY.
+This document describes the in-progress support for the bpf map type BPF_MAP_TYPE_PERF_EVENT_ARRAY ([#658](https://github.com/microsoft/ebpf-for-windows/issues/658)).
 
 ## Background
 

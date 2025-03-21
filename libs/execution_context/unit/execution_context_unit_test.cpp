@@ -1543,8 +1543,8 @@ TEST_CASE("perf_event_array_output", "[execution_context][perf_event_array]")
 
     uint64_t value = 1;
     REQUIRE(
-        ebpf_perf_event_array_map_output(ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) ==
-        EBPF_SUCCESS);
+        ebpf_perf_event_array_map_output_with_capture(
+            ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
 
     ebpf_result_t result = ebpf_map_async_query(map.get(), cpu_id, &completion.async_query_result, &completion);
     if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
@@ -1575,7 +1575,8 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
 {
     _ebpf_core_initializer core;
     core.initialize();
-    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, 64 * 1024};
+    constexpr uint32_t buffer_size = 64 * 1024;
+    ebpf_map_definition_in_memory_t map_definition{BPF_MAP_TYPE_PERF_EVENT_ARRAY, 0, 0, buffer_size};
     map_ptr map;
     {
         ebpf_map_t* local_map;
@@ -1584,30 +1585,75 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
             ebpf_map_create(&map_name, &map_definition, (uintptr_t)ebpf_handle_invalid, &local_map) == EBPF_SUCCESS);
         map.reset(local_map);
     }
-    uint32_t cpu_id = 0;
-    scoped_cpu_affinity cpu_affinity(cpu_id);
 
-    std::vector<uint8_t> test_context_data(64);
-    struct
-    {
-        EBPF_CONTEXT_HEADER; // Unused for this test.
-        uint8_t* data;
-        uint8_t* data_end;
-    } context{0};
-    context.data = test_context_data.data();
-    context.data_end = test_context_data.data() + test_context_data.size();
+    uint32_t ring_count = ebpf_get_cpu_count();
+    std::vector<perf_event_array_test_async_context_t> completions(ring_count);
 
-    void* ctx = &context.data;
-    ebpf_context_descriptor_t context_descriptor = {0};
-    context_descriptor.size = sizeof(context);
-    context_descriptor.data = 0;
-    context_descriptor.end = EBPF_OFFSET_OF(decltype(context), data_end) - EBPF_OFFSET_OF(decltype(context), data);
+    // Map each ring and set up completion callbacks.
+    for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+        auto& completion = completions[cpu_id];
+        completion.cpu_id = cpu_id;
+        completion.buffer_size = buffer_size;
 
-    ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
+        // Map the ring buffer for the current CPU.
+        REQUIRE(
+            ebpf_map_query_buffer(map.get(), cpu_id, &completion.buffer, &completion.consumer_offset) == EBPF_SUCCESS);
 
-    // uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+        // Initialize the async query result.
+        completion.async_query_result.consumer = completion.consumer_offset;
 
-    // TODO (before merge): implementme
+        // Set up the completion callback.
+        REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);
+
+        // Start the async query.
+        ebpf_result_t result = ebpf_map_async_query(map.get(), cpu_id, &completion.async_query_result, &completion);
+        if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
+            REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
+        }
+        REQUIRE(result == EBPF_PENDING);
+    }
+
+    // Write the CPU ID to each ring.
+    for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+        scoped_cpu_affinity cpu_affinity(cpu_id);
+
+        struct
+        {
+            EBPF_CONTEXT_HEADER; // Unused for this test.
+            int unused;
+        } context{0};
+
+        void* ctx = &context.unused;
+
+        uint64_t value = cpu_id;
+        uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
+
+        REQUIRE(
+            ebpf_perf_event_array_map_output_with_capture(
+                ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
+    }
+
+    // Verify the value written to each ring.
+    for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+        auto& completion = completions[cpu_id];
+
+        REQUIRE(completion.callback_count == 1);
+        REQUIRE(completion.record_count == 1);
+        REQUIRE(completion.value == cpu_id);
+        REQUIRE(completion.lost_count == 0);
+        REQUIRE(completion.empty_callbacks == 0);
+        REQUIRE(completion.discard_count == 0);
+        REQUIRE(completion.locked_count == 0);
+        REQUIRE(completion.offset_mismatch_count == 0);
+        REQUIRE(completion.bad_record_count == 0);
+        REQUIRE(completion.cancel_count == 0);
+
+        // Return the buffer space.
+        REQUIRE(
+            ebpf_map_return_buffer(
+                map.get(), cpu_id, completion.consumer_offset - completion.async_query_result.consumer) ==
+            EBPF_SUCCESS);
+    }
 }
 
 TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_array]")
@@ -1653,8 +1699,8 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
 
     uint64_t capture_length = 10;
-    uint64_t flags =
-        EBPF_MAP_FLAG_CURRENT_CPU | ((capture_length << EBPF_MAP_FLAG_CTXLEN_SHIFT) & EBPF_MAP_FLAG_CTXLEN_MASK);
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU |
+                     ((capture_length << EBPF_MAP_FLAG_CTX_LENGTH_SHIFT) & EBPF_MAP_FLAG_CTX_LENGTH_MASK);
 
     perf_event_array_test_async_context_t completion;
     completion.cpu_id = cpu_id;
@@ -1667,8 +1713,8 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
 
     uint64_t value = 1;
     REQUIRE(
-        ebpf_perf_event_array_map_output(ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) ==
-        EBPF_SUCCESS);
+        ebpf_perf_event_array_map_output_with_capture(
+            ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
 
     ebpf_result_t result = ebpf_map_async_query(map.get(), cpu_id, &completion.async_query_result, &completion);
     if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
@@ -1676,45 +1722,84 @@ TEST_CASE("perf_event_array_output_capture", "[execution_context][perf_event_arr
     }
     REQUIRE(result == EBPF_PENDING);
 
-    // uint64_t total_data_length = sizeof(value) + capture_length;
-    // CAPTURE(
-    //     capture_length,
-    //     completion.callback_count,
-    //     completion.lost_count,
-    //     completion.record_count,
-    //     completion.empty_callbacks,
-    //     completion.discard_count,
-    //     completion.locked_count,
-    //     completion.offset_mismatch_count,
-    //     completion.bad_record_count,
-    //     completion.cancel_count,
-    //     completion.consumer_offset,
-    //     completion.async_query_result.consumer,
-    //     completion.async_query_result.producer
-    //);
+    uint64_t total_data_length = sizeof(value) + capture_length;
+    CAPTURE(
+        capture_length,
+        completion.callback_count,
+        completion.lost_count,
+        completion.record_count,
+        completion.empty_callbacks,
+        completion.discard_count,
+        completion.locked_count,
+        completion.offset_mismatch_count,
+        completion.bad_record_count,
+        completion.cancel_count,
+        completion.consumer_offset,
+        completion.async_query_result.consumer,
+        completion.async_query_result.producer);
 
-    // REQUIRE(completion.callback_count == 1);
-    // REQUIRE(completion.lost_count == 0);
-    // REQUIRE(completion.record_count == 1);
-    // REQUIRE(completion.empty_callbacks == 0);
-    // REQUIRE(completion.discard_count == 0);
-    // REQUIRE(completion.locked_count == 0);
-    // REQUIRE(completion.offset_mismatch_count == 0);
-    // REQUIRE(completion.bad_record_count == 1); // The completion code expects 8 bytes, we added capture.
-    // REQUIRE(completion.cancel_count == 0);
-    // uint64_t producer_offset = completion.async_query_result.producer;
-    // consumer_offset = completion.async_query_result.consumer;
-    // REQUIRE(consumer_offset == 0);
-    // REQUIRE(completion.consumer_offset == producer_offset);
-    // REQUIRE(producer_offset == ((EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + (total_data_length) + 7) & ~7));
-    // REQUIRE(ebpf_map_return_buffer(map.get(), cpu_id, completion.consumer_offset - consumer_offset) == EBPF_SUCCESS);
+    REQUIRE(completion.callback_count == 1);
+    REQUIRE(completion.lost_count == 0);
+    REQUIRE(completion.record_count == 1);
+    REQUIRE(completion.empty_callbacks == 0);
+    REQUIRE(completion.discard_count == 0);
+    REQUIRE(completion.locked_count == 0);
+    REQUIRE(completion.offset_mismatch_count == 0);
+    REQUIRE(completion.bad_record_count == 1); // The completion code expects 8 bytes, we added capture.
+    REQUIRE(completion.cancel_count == 0);
+    uint64_t producer_offset = completion.async_query_result.producer;
+    consumer_offset = completion.async_query_result.consumer;
+    REQUIRE(consumer_offset == 0);
+    REQUIRE(completion.consumer_offset == producer_offset);
+    REQUIRE(producer_offset == ((EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + (total_data_length) + 7) & ~7));
 
-    // auto record = ebpf_ring_buffer_next_record(
-    //     completion.buffer, completion.buffer_size, completion.consumer_offset, producer_offset);
-    // REQUIRE(memcmp(record->data, &value, sizeof(value)) == 0);
-    // REQUIRE(memcmp(record->data + sizeof(value), test_context_data.data(), capture_length) == 0);
+    auto record =
+        ebpf_ring_buffer_next_record(completion.buffer, completion.buffer_size, consumer_offset, producer_offset);
+    REQUIRE(record != nullptr);
+    // We already checked the header in the completion, so we don't need to check it again.
+    REQUIRE(memcmp(record->data, &value, sizeof(value)) == 0);
+    REQUIRE(memcmp(record->data + sizeof(value), test_context_data.data(), capture_length) == 0);
 
-    // TODO (before merge): implementme
+    REQUIRE(ebpf_map_return_buffer(map.get(), cpu_id, completion.consumer_offset - consumer_offset) == EBPF_SUCCESS);
+}
+
+TEST_CASE("context_descriptor_header", "[platform][perf_event_array]")
+{
+    // Confirm context descriptor header in program context works as expected.
+
+    struct context_t
+    {
+        uint8_t* data;
+        uint8_t* data_end;
+    };
+    // Full context includes EBPF_CONTEXT_HEADER plus the program accessible portion.
+    struct full_context_t
+    {
+        EBPF_CONTEXT_HEADER;
+        context_t ctx;
+    } context;
+
+    // ctx points to the bpf-program accessible portion (just after the header).
+    void* ctx = &context.ctx;
+
+    // The context descriptor tells the platform where to find the data pointers.
+    ebpf_context_descriptor_t context_descriptor = {
+        sizeof(context_t), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
+    ebpf_program_set_header_context_descriptor(&context_descriptor, ctx);
+
+    const ebpf_context_descriptor_t* test_ctx_descriptor;
+    ebpf_program_get_header_context_descriptor(ctx, &test_ctx_descriptor);
+    REQUIRE(test_ctx_descriptor == &context_descriptor);
+
+    const uint8_t *data_start, *data_end;
+
+    context_descriptor = {
+        sizeof(context.ctx), EBPF_OFFSET_OF(context_t, data), EBPF_OFFSET_OF(context_t, data_end), -1};
+    context.ctx.data = (uint8_t*)((void*)0x0123456789abcdef);
+    context.ctx.data_end = (uint8_t*)((void*)0xfedcba9876543210);
+    ebpf_program_get_context_data(ctx, &data_start, &data_end);
+    REQUIRE(data_start == context.ctx.data);
+    REQUIRE(data_end == context.ctx.data_end);
 }
 
 TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]")
@@ -1810,8 +1895,8 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     uint64_t value = 1;
     uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
     REQUIRE(
-        ebpf_perf_event_array_map_output(ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) ==
-        EBPF_SUCCESS);
+        ebpf_perf_event_array_map_output_with_capture(
+            ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
 
     // Confirm that a single ring got the correct record and all other rings are empty.
     size_t total_callback_count = 0;

@@ -2112,10 +2112,29 @@ _update_circular_map_entry(
 }
 
 typedef void
-map_async_query_complete_t(_In_ const ebpf_core_map_t* map, uint64_t index);
+map_async_query_complete_t(
+    _In_ _Requires_lock_held_(
+        ((ebpf_core_ring_buffer_map_t*)map)->async.lock ||
+        ((ebpf_core_perf_event_array_map_t*)map)->rings[(uint32_t)index].async.lock) const ebpf_core_map_t* map,
+    uint64_t index);
 typedef void
-map_async_query_cancel_t(_In_ _Frees_ptr_ void* cancel_context);
+map_async_query_cancel_t(_In_ _Frees_ptr_ ebpf_core_map_async_query_context_t* cancel_context);
 
+/**
+ * @brief Helper function to queue up an async query operation.
+ *
+ * @param[in] map Pointer to the map.
+ * @param[in] index Buffer index to query.
+ * @param[in,out] async_contexts Pointer to the async contexts for the map.
+ * @param[in,out] async_query_result Pointer to the async query result.
+ * @param[in] async_context Pointer to the async context.
+ * @param[in] complete_callback Callback to call when the async query is complete.
+ * @param[in] cancel_callback Callback to call if the async query is cancelled.
+ * @retval EBPF_SUCCESS The operation was completed inline.
+ * @retval EBPF_PENDING The operation is pending (was successfully submitted).
+ * @retval EBPF_NO_MEMORY The operation failed due to insufficient memory.
+ * @retval EBPF_INVALID_ARGUMENT The operation failed due to invalid arguments.
+ */
 inline static ebpf_result_t
 _map_async_query(
     _In_ const ebpf_core_map_t* map,
@@ -2177,14 +2196,13 @@ Exit:
 /**
  * @brief Helper function to complete the async query.
  *
- * @note Requires that async_contexts->lock is held.
- *       Missing the SAL annotation due to the indirect calling.
- *
  * @param[in] map Pointer to the map.
  * @param[in,out] async_contexts Pointer to the async contexts.
  */
 static void
-_map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map_async_contexts_t* async_contexts)
+_map_async_query_complete(
+    _In_ const ebpf_core_map_t* map,
+    _Inout_ _Requires_lock_held_(async_contexts->lock) ebpf_core_map_async_contexts_t* async_contexts)
 {
     EBPF_LOG_ENTRY();
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
@@ -2208,6 +2226,12 @@ _map_async_query_complete(_In_ const ebpf_core_map_t* map, _Inout_ ebpf_core_map
     EBPF_LOG_EXIT();
 }
 
+/**
+ * @brief Helper function to cancel an async query.
+ *
+ * @param[in,out] async_contexts Pointer to the async contexts.
+ * @param[in] context Pointer to the async query context to cancel.
+ */
 static void
 _map_async_query_cancel(
     _Inout_ ebpf_core_map_async_contexts_t* async_contexts, _In_ ebpf_core_map_async_query_context_t* context)
@@ -2240,10 +2264,9 @@ _query_perf_event_array_map(
 }
 
 static void
-_ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
+_ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ ebpf_core_map_async_query_context_t* context)
 {
     EBPF_LOG_ENTRY();
-    ebpf_core_map_async_query_context_t* context = (ebpf_core_map_async_query_context_t*)cancel_context;
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, context->map);
     _map_async_query_cancel(&ring_buffer_map->async, context);
     EBPF_LOG_EXIT();
@@ -2252,25 +2275,29 @@ _ebpf_ring_buffer_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
 /**
  * @brief Signal the completion of an async query for a ring buffer map.
  *
- * @note Requires that ring_buffer_map->async.lock is held.
- *       Due to the indirect calling not enforced by SAL.
- *
  * @param[in] map Pointer to the ring buffer map.
  * @param[in] index Unused for ring buffer.
  */
 static void
-_ebpf_ring_buffer_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
+_ebpf_ring_buffer_map_signal_async_query_complete(
+    _In_ _Requires_lock_held_((EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map))->async.lock)
+        const ebpf_core_map_t* map,
+    uint64_t index)
 {
     UNREFERENCED_PARAMETER(index);
     ebpf_core_ring_buffer_map_t* ring_buffer_map = EBPF_FROM_FIELD(ebpf_core_ring_buffer_map_t, core_map, map);
     _map_async_query_complete(map, &ring_buffer_map->async);
 }
 
+/**
+ * @brief Cancel an async query for a perf event array map.
+ *
+ * @param[in] cancel_context Pointer to the cancel context.
+ */
 static void
-_ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_context)
+_ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ ebpf_core_map_async_query_context_t* context)
 {
     EBPF_LOG_ENTRY();
-    ebpf_core_map_async_query_context_t* context = (ebpf_core_map_async_query_context_t*)cancel_context;
     uint32_t cpu_id = (uint32_t)context->index;
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, context->map);
@@ -2284,14 +2311,15 @@ _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ void* cancel_cont
 /**
  * @brief Signal the completion of an async query for a perf ring.
  *
- * @note Requires that ring->async.lock is held.
- *       Due to the indirect calling not enforced by SAL.
- *
  * @param[in] map Pointer to the perf event array map.
  * @param[in] index cpu_id for ring to signal.
  */
 static void
-_ebpf_perf_event_array_map_signal_async_query_complete(_In_ const ebpf_core_map_t* map, uint64_t index)
+_ebpf_perf_event_array_map_signal_async_query_complete(
+    _In_ _Requires_lock_held_(
+        (EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map))->rings[(uint32_t)index].async.lock)
+        const ebpf_core_map_t* map,
+    uint64_t index)
 {
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
@@ -2402,7 +2430,7 @@ static ebpf_result_t
 _write_data_perf_event_array_map(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t length)
 {
     UNREFERENCED_PARAMETER(flags);
-    return ebpf_perf_event_array_map_output_simple(map, data, length);
+    return ebpf_perf_event_array_map_output(map, data, length);
 }
 
 static void
@@ -2670,7 +2698,7 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_map_output_simple(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
+ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
     EBPF_LOG_ENTRY();
 
@@ -2700,7 +2728,7 @@ Exit:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_map_output(
+ebpf_perf_event_array_map_output_with_capture(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
 {
 
@@ -2711,7 +2739,7 @@ ebpf_perf_event_array_map_output(
     ebpf_assert(ctx != NULL);
 
     uint32_t target_cpu = (uint32_t)((EBPF_MAP_FLAG_INDEX_MASK & flags) >> EBPF_MAP_FLAG_INDEX_SHIFT);
-    uint32_t capture_length = (uint32_t)((flags & EBPF_MAP_FLAG_CTXLEN_MASK) >> EBPF_MAP_FLAG_CTXLEN_SHIFT);
+    uint32_t capture_length = (uint32_t)((flags & EBPF_MAP_FLAG_CTX_LENGTH_MASK) >> EBPF_MAP_FLAG_CTX_LENGTH_SHIFT);
 
     const void* extra_data = NULL;
     size_t extra_length = 0;

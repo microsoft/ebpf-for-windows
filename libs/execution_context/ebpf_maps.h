@@ -273,16 +273,18 @@ extern "C"
      * @retval EBPF_OUT_OF_SPACE Unable to output to ring buffer due to inadequate space.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_array_map_output_simple(
-        _Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
+    ebpf_perf_event_array_map_output(_Inout_ ebpf_map_t* map, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
      * @brief Write out a variable sized record to the perf event array map with ctx and flags.
      *
      * Flags is used to select the CPU to write to and the context data to copy.
      * - EBPF_MAP_FLAG_INDEX_MASK - Mask for specifying cpu.
-     *   - EBPF_MAP_FLAG_CURRENT_CPU - Select current cpu.
-     * - EBPF_MAP_FLAG_CTXLEN_MASK - Mask for specifying context length.
+     * - EBPF_MAP_FLAG_CURRENT_CPU - Select current cpu.
+     * - EBPF_MAP_FLAG_CTX_LENGTH_MASK - Mask for specifying context length.
+     *
+     * @note below dispatch you must specify `EBPF_MAP_FLAG_CURRENT_CPU`, and at dispatch
+     * you may either use the current cpu flag or manually specify the current cpu.
      *
      * @param[in] ctx bpf program Context to copy data from.
      * @param[in, out] map Pointer to map of type EBPF_MAP_TYPE_PERF_EVENT_ARRAY.
@@ -294,7 +296,7 @@ extern "C"
      */
     EBPF_INLINE_HINT
     _Must_inspect_result_ ebpf_result_t
-    ebpf_perf_event_array_map_output(
+    ebpf_perf_event_array_map_output_with_capture(
         _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length);
 
     /**
