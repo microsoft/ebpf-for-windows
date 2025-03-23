@@ -4395,7 +4395,7 @@ typedef struct _ebpf_ring_buffer_subscription
     void* sample_callback_context;
     ring_buffer_sample_fn sample_callback;
     uint8_t* buffer;
-    ebpf_operation_ring_buffer_map_async_query_reply_t reply;
+    ebpf_operation_map_async_query_reply_t reply;
     _Write_guarded_by_(lock) async_ioctl_completion_t* async_ioctl_completion;
     _Write_guarded_by_(lock) bool async_ioctl_failed;
 } ebpf_ring_buffer_subscription_t;
@@ -4454,8 +4454,8 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
             EBPF_RETURN_RESULT(result);
         }
 
-        ebpf_operation_ring_buffer_map_async_query_reply_t* reply = &subscription->reply;
-        ebpf_ring_buffer_map_async_query_result_t* async_query_result = &reply->async_query_result;
+        ebpf_operation_map_async_query_reply_t* reply = &subscription->reply;
+        ebpf_map_async_query_result_t* async_query_result = &reply->async_query_result;
         consumer = async_query_result->consumer;
         producer = async_query_result->producer;
         for (;;) {
@@ -4505,12 +4505,13 @@ _ebpf_ring_buffer_map_async_query_completion(_Inout_ void* completion_context) N
             }
 
             // Then, post the async IOCTL.
-            ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
+            ebpf_operation_map_async_query_request_t async_query_request{
                 sizeof(async_query_request),
-                ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+                ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
                 subscription->ring_buffer_map_handle,
+                0,
                 consumer};
-            memset(&subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
+            memset(&subscription->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
                 subscription->reply,
@@ -4595,23 +4596,24 @@ ebpf_ring_buffer_map_subscribe(
         }
 
         // Get user-mode address to ring buffer shared data.
-        ebpf_operation_ring_buffer_map_query_buffer_request_t query_buffer_request{
+        ebpf_operation_map_query_buffer_request_t query_buffer_request{
             sizeof(query_buffer_request),
-            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER,
-            local_subscription->ring_buffer_map_handle};
-        ebpf_operation_ring_buffer_map_query_buffer_reply_t query_buffer_reply{};
+            ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER,
+            local_subscription->ring_buffer_map_handle,
+            0};
+        ebpf_operation_map_query_buffer_reply_t query_buffer_reply{};
         result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
-        ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_QUERY_BUFFER);
+        ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER);
         local_subscription->buffer =
             reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
 
         // Initialize the async IOCTL operation.
         local_subscription->sample_callback_context = sample_callback_context;
         local_subscription->sample_callback = sample_callback;
-        memset(&local_subscription->reply, 0, sizeof(ebpf_operation_ring_buffer_map_async_query_reply_t));
+        memset(&local_subscription->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
         result = initialize_async_ioctl_operation(
             local_subscription.get(),
             _ebpf_ring_buffer_map_async_query_completion,
@@ -4621,10 +4623,11 @@ ebpf_ring_buffer_map_subscribe(
         }
 
         // Issue the async query IOCTL.
-        ebpf_operation_ring_buffer_map_async_query_request_t async_query_request{
+        ebpf_operation_map_async_query_request_t async_query_request{
             sizeof(async_query_request),
-            ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_ASYNC_QUERY,
+            ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
             local_subscription->ring_buffer_map_handle,
+            0,
             query_buffer_reply.consumer_offset};
         result = win32_error_code_to_ebpf_result(invoke_ioctl(
             async_query_request,
@@ -4658,7 +4661,7 @@ ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_handle_t map_handle = ebpf_handle_invalid;
     ebpf_protocol_buffer_t request_buffer;
-    ebpf_operation_ring_buffer_map_write_data_request_t* request;
+    ebpf_operation_map_write_data_request_t* request;
 
     if (!data || !data_length) {
         return EBPF_INVALID_ARGUMENT;
@@ -4691,10 +4694,10 @@ ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void
             EBPF_RETURN_RESULT(result);
         }
 
-        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_ring_buffer_map_write_data_request_t, data) + data_length);
-        request = reinterpret_cast<_ebpf_operation_ring_buffer_map_write_data_request*>(request_buffer.data());
+        request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_map_write_data_request_t, data) + data_length);
+        request = reinterpret_cast<_ebpf_operation_map_write_data_request*>(request_buffer.data());
         request->header.length = static_cast<uint16_t>(request_buffer.size());
-        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_RING_BUFFER_MAP_WRITE_DATA;
+        request->header.id = ebpf_operation_id_t::EBPF_OPERATION_MAP_WRITE_DATA;
         request->map_handle = (uint64_t)map_handle;
         std::copy((uint8_t*)data, (uint8_t*)data + data_length, request->data);
 
@@ -4746,6 +4749,205 @@ ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t*
     }
 
     EBPF_RETURN_BOOL(cancel_result);
+}
+CATCH_NO_MEMORY_BOOL
+
+typedef struct _ebpf_perf_event_array_subscription
+{
+    _ebpf_perf_event_array_subscription()
+        : unsubscribed(false), perf_event_array_map_handle(ebpf_handle_invalid), callback_context(nullptr),
+          sample_callback(nullptr), lost_callback(nullptr), buffer(nullptr), cpu_id(0), reply({}),
+          async_ioctl_completion(nullptr), async_ioctl_failed(false)
+    {
+    }
+    ~_ebpf_perf_event_array_subscription() { EBPF_LOG_ENTRY(); }
+    std::mutex lock;
+    _Write_guarded_by_(lock) boolean unsubscribed;
+    ebpf_handle_t perf_event_array_map_handle;
+    void* callback_context;
+    perf_buffer_sample_fn sample_callback;
+    perf_buffer_lost_fn lost_callback;
+    uint8_t* buffer;
+    uint32_t cpu_id;
+    ebpf_operation_map_async_query_reply_t reply;
+    _Write_guarded_by_(lock) async_ioctl_completion_t* async_ioctl_completion;
+    _Write_guarded_by_(lock) bool async_ioctl_failed;
+} ebpf_perf_event_array_subscription_t;
+
+typedef std::unique_ptr<ebpf_perf_event_array_subscription_t> ebpf_perf_event_array_subscription_ptr;
+
+static ebpf_result_t
+_ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_assert(completion_context);
+
+    ebpf_perf_event_array_subscription_t* subscription =
+        reinterpret_cast<ebpf_perf_event_array_subscription_t*>(completion_context);
+
+    const uint32_t cpu_id = subscription->cpu_id;
+
+    size_t consumer = 0;
+    size_t producer = 0;
+    size_t lost_count = 0;
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    // Check the result of the completed async IOCTL call.
+    result = get_async_ioctl_result(subscription->async_ioctl_completion);
+
+    if (result != EBPF_SUCCESS) {
+        if (result != EBPF_CANCELED) {
+            // The async IOCTL was not canceled, but completed with a failure status. Mark the subscription object as
+            // such, so that it gets freed when the user eventually unsubscribes.
+            std::scoped_lock lock{subscription->lock};
+            subscription->async_ioctl_failed = true;
+            EBPF_RETURN_RESULT(result);
+        } else {
+            // User has canceled subscription. Invoke user specified callback for the final time with NULL record. This
+            // will let the user app clean up its state.
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,
+                TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_API),
+                TraceLoggingString(
+                    __FUNCTION__, "perf_event_array map async query completion invoked with EBPF_CANCELED."));
+
+            subscription->sample_callback(subscription->callback_context, cpu_id, nullptr, 0);
+        }
+    } else {
+        // Async IOCTL operation returned with success status. Read the ring buffer records and indicate it to the
+        // subscriber.
+
+        size_t perf_event_array_size = 0;
+        uint32_t dummy;
+
+        result = _get_map_descriptor_properties(
+            subscription->perf_event_array_map_handle,
+            &dummy,
+            &dummy,
+            &dummy,
+            reinterpret_cast<uint32_t*>(&perf_event_array_size));
+        if (result != EBPF_SUCCESS) {
+            EBPF_RETURN_RESULT(result);
+        }
+
+        ebpf_operation_map_async_query_reply_t* reply = &subscription->reply;
+        ebpf_map_async_query_result_t* async_query_result = &reply->async_query_result;
+        consumer = async_query_result->consumer;
+        producer = async_query_result->producer;
+        lost_count = async_query_result->lost_count;
+        if (lost_count > 0) {
+            subscription->lost_callback(subscription->callback_context, cpu_id, lost_count);
+        }
+        for (;;) {
+            auto record = ebpf_ring_buffer_next_record(subscription->buffer, perf_event_array_size, consumer, producer);
+
+            if (record == nullptr) {
+                // No more records.
+                break;
+            }
+
+            while (ebpf_ring_buffer_record_is_locked(record)) {
+                // writes happen at dispatch level, so we shouldn't wait long.
+                // the lock bit check read-acquires the header, so spinning will get a fresh value..
+            }
+
+            // Note: the ring buffer record supports discards, but perf event array does not so we skip the check.
+
+            subscription->sample_callback(
+                subscription->callback_context,
+                cpu_id,
+                const_cast<void*>(reinterpret_cast<const void*>(record->data)),
+                record->header.length - EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data));
+            consumer += record->header.length;
+        }
+    }
+
+    bool free_subscription = false;
+    {
+        std::scoped_lock lock{subscription->lock};
+
+        if (subscription->unsubscribed) {
+            // If the user has unsubscribed, this is the final callback. Mark the
+            // subscription context for deletion.
+            result = EBPF_CANCELED;
+            free_subscription = true;
+        } else {
+            // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the
+            // async call is not blocking.
+
+            // First, register wait for the new async IOCTL operation completion.
+            result = register_wait_async_ioctl_operation(subscription->async_ioctl_completion);
+            if (result != EBPF_SUCCESS) {
+                EBPF_RETURN_RESULT(result);
+            }
+
+            // Then, post the async IOCTL.
+            ebpf_operation_map_async_query_request_t async_query_request{
+                sizeof(async_query_request),
+                ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
+                subscription->perf_event_array_map_handle,
+                cpu_id,
+                consumer};
+            memset(&subscription->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
+            result = win32_error_code_to_ebpf_result(invoke_ioctl(
+                async_query_request,
+                subscription->reply,
+                get_async_ioctl_operation_overlapped(subscription->async_ioctl_completion)));
+            if (result != EBPF_SUCCESS) {
+                if (result == EBPF_PENDING) {
+                    result = EBPF_SUCCESS;
+                } else {
+                    subscription->async_ioctl_failed = true;
+                }
+            }
+        }
+    }
+    if (free_subscription) {
+        delete subscription;
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_perf_event_array_map_subscribe(
+    fd_t map_fd,
+    _Inout_opt_ void* callback_context,
+    perf_buffer_sample_fn sample_callback,
+    perf_buffer_lost_fn lost_callback,
+    _Outptr_ perf_event_array_subscription_t** subscription) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(map_fd);
+    UNREFERENCED_PARAMETER(callback_context);
+    UNREFERENCED_PARAMETER(sample_callback);
+    UNREFERENCED_PARAMETER(lost_callback);
+    UNREFERENCED_PARAMETER(subscription);
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_perf_event_array_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(map_fd);
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(data_length);
+    EBPF_RETURN_RESULT(EBPF_OPERATION_NOT_SUPPORTED);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+bool
+ebpf_perf_event_array_map_unsubscribe(_In_ _Post_invalid_ perf_event_array_subscription_t* subscription) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(subscription);
+    EBPF_RETURN_BOOL(false);
 }
 CATCH_NO_MEMORY_BOOL
 
