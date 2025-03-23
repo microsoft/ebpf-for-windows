@@ -95,7 +95,7 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__info.html">_ebpf_map_info</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">eBPF Map Information  <a href="struct__ebpf__map__info.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__ring__buffer__map__async__query__result.html">_ebpf_ring_buffer_map_async_query_result</a></td></tr>
+<tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="struct__ebpf__map__async__query__result.html">_ebpf_map_async_query_result</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="define-members" name="define-members"></a>
@@ -110,8 +110,8 @@ Typedefs</h2></td></tr>
 <tr class="separator:ae2eecb1943c4783fa58c0ff29439cff9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abb41989791fe081530c8719049ad1c35" id="r_abb41989791fe081530c8719049ad1c35"><td class="memItemLeft" align="right" valign="top">typedef intptr_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#abb41989791fe081530c8719049ad1c35">ebpf_handle_t</a></td></tr>
 <tr class="separator:abb41989791fe081530c8719049ad1c35"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a643436c42891bd9a231b3301d906e220" id="r_a643436c42891bd9a231b3301d906e220"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__ring__buffer__map__async__query__result.html">_ebpf_ring_buffer_map_async_query_result</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#a643436c42891bd9a231b3301d906e220">ebpf_ring_buffer_map_async_query_result_t</a></td></tr>
-<tr class="separator:a643436c42891bd9a231b3301d906e220"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1f0d13578a9b6cb0c02bfb9aef574e90" id="r_a1f0d13578a9b6cb0c02bfb9aef574e90"><td class="memItemLeft" align="right" valign="top">typedef struct <a class="el" href="struct__ebpf__map__async__query__result.html">_ebpf_map_async_query_result</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#a1f0d13578a9b6cb0c02bfb9aef574e90">ebpf_map_async_query_result_t</a></td></tr>
+<tr class="separator:a1f0d13578a9b6cb0c02bfb9aef574e90"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a32fb968697fbcf8fa6eb66b35b438b69" id="r_a32fb968697fbcf8fa6eb66b35b438b69"><td class="memItemLeft" align="right" valign="top">typedef enum <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa">_ebpf_object_type</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a></td></tr>
 <tr class="separator:a32fb968697fbcf8fa6eb66b35b438b69"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
@@ -161,6 +161,20 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a1f0d13578a9b6cb0c02bfb9aef574e90" name="a1f0d13578a9b6cb0c02bfb9aef574e90"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1f0d13578a9b6cb0c02bfb9aef574e90">&#9670;&#160;</a></span>ebpf_map_async_query_result_t</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">typedef struct <a class="el" href="struct__ebpf__map__async__query__result.html">_ebpf_map_async_query_result</a> <a class="el" href="ebpf__core__structs_8h.html#a1f0d13578a9b6cb0c02bfb9aef574e90">ebpf_map_async_query_result_t</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
 <a id="ae2eecb1943c4783fa58c0ff29439cff9" name="ae2eecb1943c4783fa58c0ff29439cff9"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ae2eecb1943c4783fa58c0ff29439cff9">&#9670;&#160;</a></span>ebpf_map_info_t</h2>
 
@@ -185,20 +199,6 @@ Variables</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">typedef enum <a class="el" href="ebpf__core__structs_8h.html#a36815228d851a9e0017cddd870dbbfaa">_ebpf_object_type</a> <a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a></td>
-        </tr>
-      </table>
-</div><div class="memdoc">
-
-</div>
-</div>
-<a id="a643436c42891bd9a231b3301d906e220" name="a643436c42891bd9a231b3301d906e220"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a643436c42891bd9a231b3301d906e220">&#9670;&#160;</a></span>ebpf_ring_buffer_map_async_query_result_t</h2>
-
-<div class="memitem">
-<div class="memproto">
-      <table class="memname">
-        <tr>
-          <td class="memname">typedef struct <a class="el" href="struct__ebpf__ring__buffer__map__async__query__result.html">_ebpf_ring_buffer_map_async_query_result</a> <a class="el" href="ebpf__core__structs_8h.html#a643436c42891bd9a231b3301d906e220">ebpf_ring_buffer_map_async_query_result_t</a></td>
         </tr>
       </table>
 </div><div class="memdoc">

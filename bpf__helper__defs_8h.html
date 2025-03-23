@@ -182,6 +182,9 @@ Functions</h2></td></tr>
 <tr class="memitem:ac6d332de3410614287e7145989a4a042" id="r_ac6d332de3410614287e7145989a4a042"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#ac6d332de3410614287e7145989a4a042">bpf_ktime_get_ms</a> ()</td></tr>
 <tr class="memdesc:ac6d332de3410614287e7145989a4a042"><td class="mdescLeft">&#160;</td><td class="mdescRight">Return time elapsed since boot in milliseconds excluding time while suspended. This function uses a lower resolution clock source than bpf_ktime_get_ns, but is faster.  <br /></td></tr>
 <tr class="separator:ac6d332de3410614287e7145989a4a042"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9126ed3f0aa44adaee692818077ef9ba" id="r_a9126ed3f0aa44adaee692818077ef9ba"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="bpf__helper__defs_8h.html#a9126ed3f0aa44adaee692818077ef9ba">bpf_perf_event_output</a> (void *ctx, void *perf_event_array, uint64_t flags, void *data, uint64_t size)</td></tr>
+<tr class="memdesc:a9126ed3f0aa44adaee692818077ef9ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy data into perf event array map.  <br /></td></tr>
+<tr class="separator:a9126ed3f0aa44adaee692818077ef9ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Function Documentation</h2>
 <a id="a8925aebb6537b5d34b8cb28b04d34515" name="a8925aebb6537b5d34b8cb28b04d34515"></a>
@@ -999,6 +1002,73 @@ Functions</h2></td></tr>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Pointer to the memory region, or a negative error in case of failure. </dd></dl>
+
+</div>
+</div>
+<a id="a9126ed3f0aa44adaee692818077ef9ba" name="a9126ed3f0aa44adaee692818077ef9ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9126ed3f0aa44adaee692818077ef9ba">&#9670;&#160;</a></span>bpf_perf_event_output()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int bpf_perf_event_output </td>
+          <td>(</td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>perf_event_array</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>flags</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint64_t&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Copy data into perf event array map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">map</td><td>Pointer to perf event array map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Data to copy into perf event array map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">size</td><td>Length of data. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">flags</td><td>Flags indicating which cpu to write to and context data to copy. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">0</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">-EBPF_INVALID_ARGUMENT</td><td>One or more parameters are invalid. </td></tr>
+    <tr><td class="paramname">-EBPF_OPERATION_NOT_SUPPORTED</td><td>Operation not supported on this program or map. </td></tr>
+    <tr><td class="paramname">-EBPF_NO_MEMORY</td><td>Unable to allocate resources for this. entry. </td></tr>
+    <tr><td class="paramname">-EBPF_OUT_OF_SPACE</td><td>Map is full. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>

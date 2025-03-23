@@ -263,6 +263,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a46240000abd16a64a774fa4973e7f0d7" id="r_a46240000abd16a64a774fa4973e7f0d7"><td class="memItemLeft" align="right" valign="top"><a class="el" href="ebpf__structs_8h.html#ac2f0847a6885cc3784a2e61d7ddf51b8">bpf_attach_type_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a46240000abd16a64a774fa4973e7f0d7">ebpf_get_bpf_attach_type</a> (const <a class="el" href="ebpf__windows_8h.html#a3f56868552f991b0f9eb6800d8f9a43c">ebpf_attach_type_t</a> *ebpf_attach_type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a46240000abd16a64a774fa4973e7f0d7"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get BPF attach type for the specified eBPF attach type.  <br /></td></tr>
 <tr class="separator:a46240000abd16a64a774fa4973e7f0d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acf5b67fca8b31ea9478e7193fdc4c802" id="r_acf5b67fca8b31ea9478e7193fdc4c802"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#acf5b67fca8b31ea9478e7193fdc4c802">ebpf_perf_event_array_map_write</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> perf_event_array_map_fd, _In_reads_bytes_(data_length) const void *data, size_t data_length) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:acf5b67fca8b31ea9478e7193fdc4c802"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write data into the perf event array map.  <br /></td></tr>
+<tr class="separator:acf5b67fca8b31ea9478e7193fdc4c802"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -1988,6 +1991,58 @@ Variables</h2></td></tr>
 <dl class="retval"><dt>Return values</dt><dd>
   <table class="retval">
     <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="acf5b67fca8b31ea9478e7193fdc4c802" name="acf5b67fca8b31ea9478e7193fdc4c802"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#acf5b67fca8b31ea9478e7193fdc4c802">&#9670;&#160;</a></span>ebpf_perf_event_array_map_write()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_perf_event_array_map_write </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a>&#160;</td>
+          <td class="paramname"><em>perf_event_array_map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">_In_reads_bytes_(data_length) const void *&#160;</td>
+          <td class="paramname"><em>data</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>data_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Write data into the perf event array map. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">perf_event_array_map_fd</td><td>perf event array map file descriptor. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data</td><td>Pointer to data to be written. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">data_length</td><td>Length of data to be written. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EPBF_SUCCESS</td><td>Successfully wrote record into perf event array. </td></tr>
+    <tr><td class="paramname">EBPF_OUT_OF_SPACE</td><td>Unable to output to perf event array due to inadequate space. </td></tr>
+    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>

@@ -112,7 +112,7 @@ Macros</h2></td></tr>
 <tr class="separator:a4f6cc1f7a616eb436d2557c23229f3b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4a505c3146955f424896e7ad80f4b13c" id="r_a4a505c3146955f424896e7ad80f4b13c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a4a505c3146955f424896e7ad80f4b13c">BPF_ENUM_TO_STRING</a>(X)&#160;&#160;&#160;#X</td></tr>
 <tr class="separator:a4a505c3146955f424896e7ad80f4b13c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3d725e8dd7f9c991a42b3b3a84711769" id="r_a3d725e8dd7f9c991a42b3b3a84711769"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a3d725e8dd7f9c991a42b3b3a84711769">BPF_MAP_TYPE_PER_CPU</a>(X)&#160;&#160;&#160;    ((X) == <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9">BPF_MAP_TYPE_PERCPU_HASH</a> || (X) == <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2">BPF_MAP_TYPE_PERCPU_ARRAY</a> || (X) == <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01">BPF_MAP_TYPE_LRU_PERCPU_HASH</a>)</td></tr>
+<tr class="memitem:a3d725e8dd7f9c991a42b3b3a84711769" id="r_a3d725e8dd7f9c991a42b3b3a84711769"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a3d725e8dd7f9c991a42b3b3a84711769">BPF_MAP_TYPE_PER_CPU</a>(X)</td></tr>
 <tr class="separator:a3d725e8dd7f9c991a42b3b3a84711769"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a388fd28300caec17017c2fc514a162a6" id="r_a388fd28300caec17017c2fc514a162a6"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a388fd28300caec17017c2fc514a162a6">EBPF_ID_NONE</a>&#160;&#160;&#160;0</td></tr>
 <tr class="separator:a388fd28300caec17017c2fc514a162a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -126,6 +126,18 @@ Macros</h2></td></tr>
 <tr class="separator:a4e2941429633c74bc65f828949705337"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4dd42c358e8becc9052bad912876f82c" id="r_a4dd42c358e8becc9052bad912876f82c"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a4dd42c358e8becc9052bad912876f82c">BPF_EXIST</a>&#160;&#160;&#160;0x2</td></tr>
 <tr class="separator:a4dd42c358e8becc9052bad912876f82c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9ecab74924ed89e190725ddd304828cb" id="r_a9ecab74924ed89e190725ddd304828cb"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a9ecab74924ed89e190725ddd304828cb">EBPF_MAP_FLAG_INDEX_MASK</a>&#160;&#160;&#160;0xffffffffULL</td></tr>
+<tr class="separator:a9ecab74924ed89e190725ddd304828cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a74cd9c57072a5bcf0daccfed291e020d" id="r_a74cd9c57072a5bcf0daccfed291e020d"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a74cd9c57072a5bcf0daccfed291e020d">EBPF_MAP_FLAG_INDEX_SHIFT</a>&#160;&#160;&#160;0</td></tr>
+<tr class="separator:a74cd9c57072a5bcf0daccfed291e020d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac3f54b84ca5c5b04b061c930b340f775" id="r_ac3f54b84ca5c5b04b061c930b340f775"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#ac3f54b84ca5c5b04b061c930b340f775">EBPF_MAP_FLAG_CURRENT_CPU</a>&#160;&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a9ecab74924ed89e190725ddd304828cb">EBPF_MAP_FLAG_INDEX_MASK</a></td></tr>
+<tr class="separator:ac3f54b84ca5c5b04b061c930b340f775"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af25a9bbe4543d67bbcf1ab4ad6440043" id="r_af25a9bbe4543d67bbcf1ab4ad6440043"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#af25a9bbe4543d67bbcf1ab4ad6440043">EBPF_MAP_FLAG_CTX_LENGTH_SHIFT</a>&#160;&#160;&#160;32</td></tr>
+<tr class="separator:af25a9bbe4543d67bbcf1ab4ad6440043"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95b07910a034b8231460524de089f9de" id="r_a95b07910a034b8231460524de089f9de"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a95b07910a034b8231460524de089f9de">EBPF_MAP_FLAG_CTX_LENGTH_MAX</a>&#160;&#160;&#160;(0xfffffULL)</td></tr>
+<tr class="separator:a95b07910a034b8231460524de089f9de"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1ceb786cd53ce3a86135d71966361887" id="r_a1ceb786cd53ce3a86135d71966361887"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__structs_8h.html#a1ceb786cd53ce3a86135d71966361887">EBPF_MAP_FLAG_CTX_LENGTH_MASK</a>&#160;&#160;&#160;(<a class="el" href="ebpf__structs_8h.html#a95b07910a034b8231460524de089f9de">EBPF_MAP_FLAG_CTX_LENGTH_MAX</a> &lt;&lt; <a class="el" href="ebpf__structs_8h.html#af25a9bbe4543d67bbcf1ab4ad6440043">EBPF_MAP_FLAG_CTX_LENGTH_SHIFT</a>)</td></tr>
+<tr class="separator:a1ceb786cd53ce3a86135d71966361887"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
 Typedefs</h2></td></tr>
@@ -172,6 +184,7 @@ Enumerations</h2></td></tr>
 , <br />
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a21d83b1a1f388cc9c3c69e6fc8c00619">BPF_MAP_TYPE_STACK</a> = 12
 , <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a28fe13cef2915973e91cf51c29536814">BPF_MAP_TYPE_RINGBUF</a> = 13
+, <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a1aa6d0fc656730aa0f152b0183a1ff92">BPF_MAP_TYPE_PERF_EVENT_ARRAY</a> = 14
 <br />
  }</td></tr>
 <tr class="separator:afd97ad5450067d01ec6b6cd3c30761a1"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -224,6 +237,7 @@ Enumerations</h2></td></tr>
 &#160;&#160;<a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272aab1a46eef6fd3cac1e704ab0aff8f79f">BPF_FUNC_strnlen_s</a> = 29
 , <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272ace7a006db10fb85fd6993e3e8452fa11">BPF_FUNC_ktime_get_boot_ms</a> = 30
 , <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a757d1393d1cca91515739769350b63d9">BPF_FUNC_ktime_get_ms</a> = 31
+, <a class="el" href="ebpf__structs_8h.html#aa752b12bfaedda8a28a7a88c1b96f272a91a9f4ca655a2517eb764eaca1c08de3">BPF_FUNC_perf_event_output</a> = 32
 <br />
  }</td></tr>
 <tr class="separator:aa752b12bfaedda8a28a7a88c1b96f272"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -327,11 +341,17 @@ Enumerations</h2></td></tr>
           <td>(</td>
           <td class="paramtype">&#160;</td>
           <td class="paramname">X</td><td>)</td>
-          <td>&#160;&#160;&#160;    ((X) == <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9">BPF_MAP_TYPE_PERCPU_HASH</a> || (X) == <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2">BPF_MAP_TYPE_PERCPU_ARRAY</a> || (X) == <a class="el" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01">BPF_MAP_TYPE_LRU_PERCPU_HASH</a>)</td>
+          <td></td>
         </tr>
       </table>
 </div><div class="memdoc">
-
+<b>Value:</b><div class="fragment"><div class="line">    ((X) == <a class="code hl_enumvalue" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9">BPF_MAP_TYPE_PERCPU_HASH</a> || (X) == <a class="code hl_enumvalue" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2">BPF_MAP_TYPE_PERCPU_ARRAY</a> || (X) == <a class="code hl_enumvalue" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01">BPF_MAP_TYPE_LRU_PERCPU_HASH</a> || \</div>
+<div class="line">     (X) == <a class="code hl_enumvalue" href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a1aa6d0fc656730aa0f152b0183a1ff92">BPF_MAP_TYPE_PERF_EVENT_ARRAY</a>)</div>
+<div class="ttc" id="aebpf__structs_8h_html_afd97ad5450067d01ec6b6cd3c30761a1a1aa6d0fc656730aa0f152b0183a1ff92"><div class="ttname"><a href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a1aa6d0fc656730aa0f152b0183a1ff92">BPF_MAP_TYPE_PERF_EVENT_ARRAY</a></div><div class="ttdeci">@ BPF_MAP_TYPE_PERF_EVENT_ARRAY</div><div class="ttdoc">Perf event array.</div><div class="ttdef"><b>Definition</b> ebpf_structs.h:34</div></div>
+<div class="ttc" id="aebpf__structs_8h_html_afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2"><div class="ttname"><a href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a2d7ebe3c4a82861bcd69b500d7f67de2">BPF_MAP_TYPE_PERCPU_ARRAY</a></div><div class="ttdeci">@ BPF_MAP_TYPE_PERCPU_ARRAY</div><div class="ttdoc">Per-CPU array.</div><div class="ttdef"><b>Definition</b> ebpf_structs.h:25</div></div>
+<div class="ttc" id="aebpf__structs_8h_html_afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01"><div class="ttname"><a href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1a50792b2295ea254d48127b85806d7a01">BPF_MAP_TYPE_LRU_PERCPU_HASH</a></div><div class="ttdeci">@ BPF_MAP_TYPE_LRU_PERCPU_HASH</div><div class="ttdoc">Per-CPU least-recently-used hash table.</div><div class="ttdef"><b>Definition</b> ebpf_structs.h:31</div></div>
+<div class="ttc" id="aebpf__structs_8h_html_afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9"><div class="ttname"><a href="ebpf__structs_8h.html#afd97ad5450067d01ec6b6cd3c30761a1aac824ca248203aa188381267bca59cc9">BPF_MAP_TYPE_PERCPU_HASH</a></div><div class="ttdeci">@ BPF_MAP_TYPE_PERCPU_HASH</div><div class="ttdoc">Per-CPU hash table.</div><div class="ttdef"><b>Definition</b> ebpf_structs.h:24</div></div>
+</div><!-- fragment -->
 </div>
 </div>
 <a id="a4e2941429633c74bc65f828949705337" name="a4e2941429633c74bc65f828949705337"></a>
@@ -370,6 +390,90 @@ Enumerations</h2></td></tr>
       <table class="memname">
         <tr>
           <td class="memname">#define EBPF_ID_NONE&#160;&#160;&#160;0</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a1ceb786cd53ce3a86135d71966361887" name="a1ceb786cd53ce3a86135d71966361887"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1ceb786cd53ce3a86135d71966361887">&#9670;&#160;</a></span>EBPF_MAP_FLAG_CTX_LENGTH_MASK</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_FLAG_CTX_LENGTH_MASK&#160;&#160;&#160;(<a class="el" href="ebpf__structs_8h.html#a95b07910a034b8231460524de089f9de">EBPF_MAP_FLAG_CTX_LENGTH_MAX</a> &lt;&lt; <a class="el" href="ebpf__structs_8h.html#af25a9bbe4543d67bbcf1ab4ad6440043">EBPF_MAP_FLAG_CTX_LENGTH_SHIFT</a>)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a95b07910a034b8231460524de089f9de" name="a95b07910a034b8231460524de089f9de"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a95b07910a034b8231460524de089f9de">&#9670;&#160;</a></span>EBPF_MAP_FLAG_CTX_LENGTH_MAX</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_FLAG_CTX_LENGTH_MAX&#160;&#160;&#160;(0xfffffULL)</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="af25a9bbe4543d67bbcf1ab4ad6440043" name="af25a9bbe4543d67bbcf1ab4ad6440043"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af25a9bbe4543d67bbcf1ab4ad6440043">&#9670;&#160;</a></span>EBPF_MAP_FLAG_CTX_LENGTH_SHIFT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_FLAG_CTX_LENGTH_SHIFT&#160;&#160;&#160;32</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="ac3f54b84ca5c5b04b061c930b340f775" name="ac3f54b84ca5c5b04b061c930b340f775"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac3f54b84ca5c5b04b061c930b340f775">&#9670;&#160;</a></span>EBPF_MAP_FLAG_CURRENT_CPU</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_FLAG_CURRENT_CPU&#160;&#160;&#160;<a class="el" href="ebpf__structs_8h.html#a9ecab74924ed89e190725ddd304828cb">EBPF_MAP_FLAG_INDEX_MASK</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a9ecab74924ed89e190725ddd304828cb" name="a9ecab74924ed89e190725ddd304828cb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a9ecab74924ed89e190725ddd304828cb">&#9670;&#160;</a></span>EBPF_MAP_FLAG_INDEX_MASK</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_FLAG_INDEX_MASK&#160;&#160;&#160;0xffffffffULL</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+</div>
+</div>
+<a id="a74cd9c57072a5bcf0daccfed291e020d" name="a74cd9c57072a5bcf0daccfed291e020d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a74cd9c57072a5bcf0daccfed291e020d">&#9670;&#160;</a></span>EBPF_MAP_FLAG_INDEX_SHIFT</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">#define EBPF_MAP_FLAG_INDEX_SHIFT&#160;&#160;&#160;0</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -651,6 +755,8 @@ Enumerations</h2></td></tr>
 </td></tr>
 <tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a28fe13cef2915973e91cf51c29536814" name="afd97ad5450067d01ec6b6cd3c30761a1a28fe13cef2915973e91cf51c29536814"></a>BPF_MAP_TYPE_RINGBUF&#160;</td><td class="fielddoc"><p>Ring buffer. </p>
 </td></tr>
+<tr><td class="fieldname"><a id="afd97ad5450067d01ec6b6cd3c30761a1a1aa6d0fc656730aa0f152b0183a1ff92" name="afd97ad5450067d01ec6b6cd3c30761a1a1aa6d0fc656730aa0f152b0183a1ff92"></a>BPF_MAP_TYPE_PERF_EVENT_ARRAY&#160;</td><td class="fielddoc"><p>Perf event array. </p>
+</td></tr>
 </table>
 
 </div>
@@ -775,6 +881,8 @@ Enumerations</h2></td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272ace7a006db10fb85fd6993e3e8452fa11" name="aa752b12bfaedda8a28a7a88c1b96f272ace7a006db10fb85fd6993e3e8452fa11"></a>BPF_FUNC_ktime_get_boot_ms&#160;</td><td class="fielddoc"><p><a class="el" href="bpf__helper__defs_8h.html#a73478db76c69875bbf408500fe2ea3fc">bpf_ktime_get_boot_ms</a> </p>
 </td></tr>
 <tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a757d1393d1cca91515739769350b63d9" name="aa752b12bfaedda8a28a7a88c1b96f272a757d1393d1cca91515739769350b63d9"></a>BPF_FUNC_ktime_get_ms&#160;</td><td class="fielddoc"><p><a class="el" href="bpf__helper__defs_8h.html#ac6d332de3410614287e7145989a4a042">bpf_ktime_get_ms</a> </p>
+</td></tr>
+<tr><td class="fieldname"><a id="aa752b12bfaedda8a28a7a88c1b96f272a91a9f4ca655a2517eb764eaca1c08de3" name="aa752b12bfaedda8a28a7a88c1b96f272a91a9f4ca655a2517eb764eaca1c08de3"></a>BPF_FUNC_perf_event_output&#160;</td><td class="fielddoc"><p><a class="el" href="bpf__helper__defs_8h.html#a9126ed3f0aa44adaee692818077ef9ba">bpf_perf_event_output</a> </p>
 </td></tr>
 </table>
 
