@@ -2297,7 +2297,7 @@ _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ ebpf_core_map_asy
     uint32_t cpu_id = (uint32_t)context->index;
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, context->map);
-    if(cpu_id >= perf_event_array_map->ring_count) {
+    if (cpu_id >= perf_event_array_map->ring_count) {
         EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid CPU ID", cpu_id);
         ebpf_free(context);
     } else {
