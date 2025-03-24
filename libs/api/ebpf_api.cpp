@@ -4388,6 +4388,7 @@ typedef struct _ebpf_ring_buffer_subscription
         if (ring_buffer_map_handle != ebpf_handle_invalid) {
             Platform::CloseHandle(ring_buffer_map_handle);
         }
+        EBPF_LOG_EXIT();
     }
     std::mutex lock;
     _Write_guarded_by_(lock) boolean unsubscribed;
@@ -4760,7 +4761,7 @@ typedef struct _ebpf_perf_event_array_subscription
           async_ioctl_completion(nullptr), async_ioctl_failed(false)
     {
     }
-    ~_ebpf_perf_event_array_subscription() { EBPF_LOG_ENTRY(); }
+    ~_ebpf_perf_event_array_subscription() { EBPF_LOG_ENTRY(); EBPF_LOG_EXIT(); }
     std::mutex lock;
     _Write_guarded_by_(lock) boolean unsubscribed;
     ebpf_handle_t perf_event_array_map_handle;
