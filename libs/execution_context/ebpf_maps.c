@@ -256,13 +256,6 @@ typedef struct _ebpf_core_perf_event_array_map
 {
     ebpf_core_map_t core_map;
     uint32_t ring_count;
-    // Flag that is set the first time an async operation is queued to the map.
-    // This flag only transitions from off -> on. When this flag is set,
-    // updates to the map acquire the lock and check the async_contexts list.
-    // Note that queueing an async operation thus causes a perf degradation
-    // for all subsequent updates, so should only be allowed by admin.
-    // Note that we use a single trip wire for the perf array, so once
-    // one ring receives an async request the whole perf array uses async.
     uint32_t pad1;
     uint64_t pad2[3];
     ebpf_core_perf_ring_t rings[1];
@@ -2304,10 +2297,14 @@ _ebpf_perf_event_array_map_cancel_async_query(_In_ _Frees_ptr_ ebpf_core_map_asy
     uint32_t cpu_id = (uint32_t)context->index;
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, context->map);
-    ebpf_assert(cpu_id < perf_event_array_map->ring_count);
+    if (cpu_id >= perf_event_array_map->ring_count) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid CPU ID", cpu_id);
+        ebpf_free(context);
+    } else {
+        ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
+        _map_async_query_cancel(&ring->async, context);
+    }
 
-    ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-    _map_async_query_cancel(&ring->async, context);
     EBPF_LOG_EXIT();
 }
 
@@ -2327,9 +2324,12 @@ _ebpf_perf_event_array_map_signal_async_query_complete(
     ebpf_core_perf_event_array_map_t* perf_event_array_map =
         EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
     uint32_t cpu_id = (uint32_t)index;
-    ebpf_assert(cpu_id < perf_event_array_map->ring_count);
-    ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
-    _map_async_query_complete(&perf_event_array_map->core_map, &ring->async);
+    if (cpu_id >= perf_event_array_map->ring_count) {
+        EBPF_LOG_MESSAGE_UINT64(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_MAP, "Invalid CPU ID", cpu_id);
+    } else {
+        ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
+        _map_async_query_complete(&perf_event_array_map->core_map, &ring->async);
+    }
 }
 
 static ebpf_result_t
@@ -2760,11 +2760,11 @@ ebpf_perf_event_array_map_output_with_capture(
         if (ctx_data_start == NULL || ctx_data_end == NULL) {
             // no context data pointer.
             result = EBPF_OPERATION_NOT_SUPPORTED;
-            goto ExitPreDispatch;
+            goto exit_pre_dispatch;
         } else if ((uint64_t)(ctx_data_end - ctx_data_start) < (uint64_t)capture_length) {
             // Requested capture length larger than data.
             result = EBPF_INVALID_ARGUMENT;
-            goto ExitPreDispatch;
+            goto exit_pre_dispatch;
         }
 
         extra_data = ctx_data_start;
@@ -2776,7 +2776,7 @@ ebpf_perf_event_array_map_output_with_capture(
         if (target_cpu != (uint32_t)EBPF_MAP_FLAG_CURRENT_CPU) {
             // Passive producers must specify current cpu flag.
             result = EBPF_INVALID_ARGUMENT;
-            goto ExitPreDispatch;
+            goto exit_pre_dispatch;
         }
         irql_at_enter = ebpf_raise_irql(DISPATCH_LEVEL);
     }
@@ -2816,7 +2816,7 @@ Exit:
     if (irql_at_enter < DISPATCH_LEVEL) {
         ebpf_lower_irql(irql_at_enter);
     }
-ExitPreDispatch:
+exit_pre_dispatch:
     EBPF_RETURN_RESULT(result);
 }
 

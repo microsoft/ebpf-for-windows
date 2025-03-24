@@ -17,6 +17,18 @@
 #include <optional>
 #include <set>
 
+extern "C"
+{
+    // program context descriptor helpers
+    // - Defined in ebpf_program.c, declared here for unit testing.
+    void
+    ebpf_program_set_header_context_descriptor(
+        _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context);
+    void
+    ebpf_program_get_header_context_descriptor(
+        _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor);
+}
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 typedef struct _free_trampoline_table
 {
