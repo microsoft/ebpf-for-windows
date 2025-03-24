@@ -408,3 +408,66 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
 
     return _ebpf_map_display_names[t];
 }
+
+typedef struct perf_buffer
+{
+    std::vector<perf_event_array_subscription_t*> subscriptions;
+} perf_buffer_t;
+
+struct perf_buffer*
+perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    void* ctx,
+    const struct perf_buffer_opts* opts)
+{
+    ebpf_result result = EBPF_SUCCESS;
+    perf_buffer_t* local_perf_buffer = nullptr;
+
+    UNREFERENCED_PARAMETER(opts);
+    UNREFERENCED_PARAMETER(page_cnt);
+
+    if (sample_cb == nullptr) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    try {
+        std::unique_ptr<perf_buffer_t> perf_buffer = std::make_unique<perf_buffer_t>();
+        uint32_t ring_count = libbpf_num_possible_cpus();
+        perf_event_array_subscription_t* subscription = nullptr;
+
+        for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+
+            result = ebpf_perf_event_array_map_subscribe(map_fd, cpu_id, ctx, sample_cb, lost_cb, &subscription);
+            if (result != EBPF_SUCCESS) {
+                goto Exit;
+            }
+            perf_buffer->subscriptions.push_back(subscription);
+        }
+
+        local_perf_buffer = perf_buffer.release();
+
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+Exit:
+    if (result != EBPF_SUCCESS) {
+        errno = libbpf_result_err(result);
+        EBPF_LOG_FUNCTION_ERROR(result);
+    }
+    EBPF_RETURN_POINTER(perf_buffer*, local_perf_buffer);
+}
+
+void
+perf_buffer__free(struct perf_buffer* pb)
+{
+    for (auto it = pb->subscriptions.begin(); it != pb->subscriptions.end(); it++) {
+        (void)ebpf_perf_event_array_map_unsubscribe(*it);
+    }
+    pb->subscriptions.clear();
+    delete pb;
+}

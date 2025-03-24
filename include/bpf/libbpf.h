@@ -943,6 +943,41 @@ bpf_program__flags(const struct bpf_program* prog);
 int
 bpf_program__set_flags(struct bpf_program* prog, __u32 flags);
 
+/* Perf buffer APIs */
+struct perf_buffer;
+
+typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, __u32 size);
+typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, __u64 cnt);
+
+/**
+ * @brief **perf_buffer__new()** creates BPF perfbuf manager for a specified
+ * BPF_PERF_EVENT_ARRAY map
+ * @param map_fd FD of BPF_PERF_EVENT_ARRAY BPF map that will be used by BPF
+ * code to send data over to user-space
+ * @param page_cnt number of memory pages allocated for each per-CPU buffer
+ * @param sample_cb function called on each received data record
+ * @param lost_cb function called when record loss has occurred
+ * @param ctx user-provided extra context passed into *sample_cb* and *lost_cb*
+ * @return a new instance of struct perf_buffer on success, NULL on error with
+ * *errno* containing an error code
+ */
+LIBBPF_API struct perf_buffer*
+perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    void* ctx,
+    const struct perf_buffer_opts* opts);
+
+/**
+ * @brief Frees a perf buffer manager.
+ *
+ * @param[in] rb Pointer to perf buffer manager to be freed.
+ */
+LIBBPF_API void
+perf_buffer__free(struct perf_buffer* pb);
+
 #else
 #pragma warning(push)
 #pragma warning(disable : 4200) // Zero-sized array in struct/union
