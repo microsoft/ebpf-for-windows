@@ -643,6 +643,7 @@ typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
  *
  * @param[in] perf_event_array_map_fd File descriptor to the perf event array map.
  * @param[in, out] callback_context Pointer to supplied context to be passed in notification callback.
+ * @param[in] cpu_id The CPU Id corresponding to this subscription.
  * @param[in] sample_callback Function pointer to notification handler.
  * @param[in] lost_callback Function pointer to lost record notification handler.
  * @param[out] subscription Opaque pointer to perf event array subscription object.
@@ -653,6 +654,7 @@ typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
 _Must_inspect_result_ ebpf_result_t
 ebpf_perf_event_array_map_subscribe(
     fd_t perf_event_array_map_fd,
+    uint32_t cpu_id,
     _Inout_opt_ void* callback_context,
     perf_buffer_sample_fn sample_callback,
     perf_buffer_lost_fn lost_callback,

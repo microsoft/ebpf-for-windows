@@ -18,6 +18,7 @@
 #include <set>
 
 #define RING_BUFFER_TEST_EVENT_COUNT 10
+#define PERF_BUFFER_TEST_EVENT_COUNT 10
 
 typedef struct _close_bpf_object
 {
@@ -76,3 +77,26 @@ class _disable_crt_report_hook
     }
     _CRT_REPORT_HOOK previous_hook;
 };
+
+typedef struct _perf_buffer_test_context
+{
+    _perf_buffer_test_context();
+    ~_perf_buffer_test_context();
+    void
+    unsubscribe();
+    std::promise<void> perf_buffer_event_promise;
+    struct perf_buffer* perf_buffer;
+    const std::vector<std::vector<char>>* records;
+    std::set<size_t> event_received;
+    bool canceled;
+    int matched_entry_count;
+    int lost_entry_count;
+    int test_event_count;
+} perf_buffer_test_context_t;
+
+int
+perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* data, size_t size);
+
+void
+perf_buffer_api_test_helper(
+    fd_t perf_buffer_map, std::vector<std::vector<char>>& expected_records, std::function<void(int)> generate_event);

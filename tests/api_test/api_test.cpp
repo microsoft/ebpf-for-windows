@@ -1287,3 +1287,97 @@ TEST_CASE("Test program order", "[native_tests]")
     // Clean up.
     bpf_object__close(object);
 }
+
+typedef struct _perf_event_array_test_context
+{
+    uint32_t event_count = 0;
+    uint32_t expected_event_count = 0;
+    std::promise<void> promise;
+} perf_event_array_test_context_t;
+
+TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
+{
+    // Load bindmonitor_perf_event_array.sys
+    struct bpf_object* object = nullptr;
+    fd_t program_fd;
+    perf_event_array_test_context_t context;
+    std::string app_id = "api_test.exe";
+    uint32_t thread_count = 2;
+    native_module_helper_t native_helper;
+    native_helper.initialize("bindmonitor_perf_event_array", EBPF_EXECUTION_NATIVE);
+
+    REQUIRE(
+        _program_load_helper(
+            native_helper.get_file_name().c_str(), BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd) ==
+        0);
+
+    // Get fd of process_map map.
+    fd_t process_map_fd = bpf_object__find_map_fd_by_name(object, "process_map");
+
+    uint32_t max_entries = bpf_map__max_entries(bpf_object__find_map_by_name(object, "process_map"));
+    uint32_t max_iterations = static_cast<uint32_t>(10 * (max_entries / app_id.size()));
+    printf("max_iterations: %d\n", max_iterations);
+    REQUIRE(max_iterations % thread_count == 0);
+    uint32_t iterations_per_thread = max_iterations / thread_count;
+
+    // Initialize context.
+    context.event_count = 0;
+    context.expected_event_count = max_iterations;
+    auto perf_buffer_event_callback = context.promise.get_future();
+    // Subscribe to the perf buffer.
+    auto perfbuffer = perf_buffer__new(
+        process_map_fd,
+        16,
+        [](void* ctx, int, void*, uint32_t) {
+            perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
+            if (++context->event_count == context->expected_event_count) {
+                context->promise.set_value();
+            }
+            return;
+        },
+        [](void*, int, uint64_t) { return; },
+        &context,
+        nullptr);
+    // Create 2 threads that invoke the program to trigger ring buffer events.
+    std::vector<std::jthread> threads;
+    std::atomic<size_t> failure_count = 0;
+    for (uint32_t i = 0; i < thread_count; i++) {
+        threads.emplace_back([&]() {
+            bind_md_t ctx = {};
+            bpf_test_run_opts opts = {};
+            opts.ctx_in = &ctx;
+            opts.ctx_size_in = sizeof(ctx);
+            opts.ctx_out = &ctx;
+            opts.ctx_size_out = sizeof(ctx);
+            opts.data_in = app_id.data();
+            opts.data_size_in = static_cast<uint32_t>(app_id.size());
+            opts.data_out = app_id.data();
+            opts.data_size_out = static_cast<uint32_t>(app_id.size());
+
+            for (uint32_t i = 0; i < iterations_per_thread; i++) {
+                int result = bpf_prog_test_run_opts(program_fd, &opts);
+                if (result != 0) {
+                    std::cout << "bpf_prog_test_run_opts failed with " << result << std::endl;
+                    failure_count++;
+                    break;
+                }
+            }
+        });
+    }
+
+    // Wait for threads to complete.
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    REQUIRE(failure_count == 0);
+
+    // Wait for 1 second for the ring buffer to receive all events.
+    REQUIRE(perf_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+
+    // Unsubscribe from the ring buffer.
+    perf_buffer__free(perfbuffer);
+
+    // Clean up.
+    bpf_object__close(object);
+}
