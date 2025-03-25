@@ -535,10 +535,23 @@ ebpf_link_get_info(
     _In_ const ebpf_link_t* link, _Out_writes_to_(*info_size, *info_size) uint8_t* buffer, _Inout_ uint16_t* info_size)
 {
     EBPF_LOG_ENTRY();
-    struct bpf_link_info* info = (struct bpf_link_info*)buffer;
+    struct bpf_link_info local_link = {0};
+    struct bpf_link_info* info = &local_link;
+
+    if (*info_size == 0) {
+        *info_size = sizeof(*info);
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_LINK, "ebpf_link_get_info buffer length is 0.");
+        EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+    }
 
     if (*info_size < sizeof(*info)) {
-        EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_link_get_info output buffer too small",
+            *info_size,
+            sizeof(*info));
     }
 
     ebpf_lock_state_t state = ebpf_lock_lock((ebpf_lock_t*)&link->lock);
@@ -559,7 +572,10 @@ ebpf_link_get_info(
     }
     ebpf_lock_unlock((ebpf_lock_t*)&link->lock, state);
 
-    *info_size = sizeof(*info);
+    // Copy the local link info to the user supplied buffer, as much as will fit.
+    uint16_t out_size = min(*info_size, sizeof(*info));
+    memcpy(buffer, info, out_size);
+    *info_size = out_size;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }
 

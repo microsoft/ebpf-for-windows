@@ -475,6 +475,18 @@ extern "C"
     void
     ebpf_program_set_flags(_Inout_ ebpf_program_t* program, uint64_t flags);
 
+    /**
+     * @brief Get the data start and end pointers from the program context.
+     *
+     * @note Extension must support context headers.
+     *
+     * @param[in] program_context Pointer to the program context.
+     * @param[out] data_start Pointer to the start of the context data. Must be non-null.
+     * @param[out] data_end Pointer to the end of the context data (after the last byte). Must be non-null.
+     */
+    void
+    ebpf_program_get_context_data(
+        _In_ const void* program_context, _Out_ const uint8_t** data_start, _Out_ const uint8_t** data_end);
 #ifdef __cplusplus
 }
 #endif

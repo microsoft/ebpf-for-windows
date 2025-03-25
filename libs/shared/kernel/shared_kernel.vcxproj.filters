@@ -16,13 +16,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\tracelog.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\ebpf_serialize.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shared_common.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\tracelog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

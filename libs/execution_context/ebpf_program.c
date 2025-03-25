@@ -143,6 +143,44 @@ static const NPI_CLIENT_CHARACTERISTICS _ebpf_program_type_specific_program_info
     },
 };
 
+/**
+ * @brief Set the context_descriptor in the program context header.
+ *
+ * Writes a pointer to the ebpf_program_t object to Slot [1].
+ *
+ * @note Extension must support context headers.
+ *
+ * @param[in] context_descriptor Pointer to the context descriptor for the program.
+ * @param[in,out] program_context Pointer to the program context to set the header for.
+ */
+void
+ebpf_program_set_header_context_descriptor(
+    _In_ const ebpf_context_descriptor_t* context_descriptor, _Inout_ void* program_context)
+{
+    // slot [1] contains the context_descriptor for the program.
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+
+    header->context_header[1] = (uint64_t)context_descriptor;
+}
+
+/**
+ * @brief Get the context descriptor from the program context header.
+ *
+ * Slot [1] contains the context descriptor pointer.
+ *
+ * @note Extension must support context headers.
+ *
+ * @param[in] program_context Pointer to the program context.
+ * @param[out] context_descriptor Pointer to the program context to set.
+ */
+void
+ebpf_program_get_header_context_descriptor(
+    _In_ const void* program_context, _Outptr_ const ebpf_context_descriptor_t** context_descriptor)
+{
+    ebpf_context_header_t* header = CONTAINING_RECORD(program_context, ebpf_context_header_t, context);
+    *context_descriptor = (ebpf_context_descriptor_t*)header->context_header[1];
+}
+
 _Requires_lock_held_(program->lock) static ebpf_result_t _ebpf_program_update_helpers(_Inout_ ebpf_program_t* program);
 
 static ebpf_result_t
@@ -648,7 +686,7 @@ _ebpf_program_get_bpf_prog_type(_In_ const ebpf_program_t* program)
  * _ebpf_program_free. This function will block until the provider has finished
  * detaching.
  *
- * Note: This function runs outside of any epoch.
+ * @note This function runs outside of any epoch.
  *
  * @param[in] context Pointer to the ebpf_program_t passed as context in the
  * work-item.
@@ -1534,6 +1572,10 @@ ebpf_program_invoke(
 
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(execution_state, context);
+    // Set context descriptor pointer in context header.
+    const ebpf_context_descriptor_t* context_descriptor =
+        program->extension_program_data->program_info->program_type_descriptor->context_descriptor;
+    ebpf_program_set_header_context_descriptor(context_descriptor, context);
 
     // Top-level tail caller(1) + tail callees(33).
     for (execution_state->tail_call_state.count = 0; execution_state->tail_call_state.count < MAX_TAIL_CALL_CNT + 1;
@@ -2058,12 +2100,15 @@ ebpf_program_get_info(
 {
     EBPF_LOG_ENTRY();
     const struct bpf_prog_info* input_info = (const struct bpf_prog_info*)input_buffer;
-    struct bpf_prog_info* output_info = (struct bpf_prog_info*)output_buffer;
-    if (*output_buffer_size < sizeof(*output_info)) {
-        EBPF_RETURN_RESULT(EBPF_INSUFFICIENT_BUFFER);
-    }
 
-    if (input_buffer_size < sizeof(*input_info)) {
+    // The input buffer must be large enough to hold the map IDs.
+    if (input_buffer_size < EBPF_OFFSET_OF(struct bpf_prog_info, name)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "ebpf_program_get_info input buffer smaller than minimum required size.",
+            input_buffer_size,
+            EBPF_OFFSET_OF(struct bpf_prog_info, name));
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
@@ -2088,17 +2133,38 @@ ebpf_program_get_info(
                 }
             }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
+            EBPF_LOG_MESSAGE_UINT64(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_PROGRAM,
+                "User mode map_ids buffer invalid or too small.",
+                (uint64_t)((uintptr_t)map_ids));
             EBPF_RETURN_RESULT(EBPF_INVALID_POINTER);
         }
     }
 
+    struct bpf_prog_info local_program = {0};
+    struct bpf_prog_info* output_info = &local_program;
+
+    if (*output_buffer_size < sizeof(*output_info)) {
+        EBPF_LOG_MESSAGE_UINT64_UINT64(
+            EBPF_TRACELOG_LEVEL_WARNING,
+            EBPF_TRACELOG_KEYWORD_PROGRAM,
+            "ebpf_program_get_info output buffer too small.",
+            *output_buffer_size,
+            sizeof(*output_info));
+    }
+
     memset(output_info, 0, sizeof(*output_info));
     output_info->id = program->object.id;
+    size_t program_name_length = program->parameters.program_name.length;
     strncpy_s(
         output_info->name,
         sizeof(output_info->name),
         (char*)program->parameters.program_name.value,
-        program->parameters.program_name.length);
+        program_name_length);
+    if (program_name_length < sizeof(output_info->name)) {
+        memset(output_info->name + program_name_length, 0, sizeof(output_info->name) - program_name_length);
+    }
     output_info->nr_map_ids = program->count_of_maps;
     output_info->map_ids = (uintptr_t)map_ids;
     output_info->type = _ebpf_program_get_bpf_prog_type(program);
@@ -2107,7 +2173,11 @@ ebpf_program_get_info(
     output_info->pinned_path_count = program->object.pinned_path_count;
     output_info->link_count = program->link_count;
 
-    *output_buffer_size = sizeof(*output_info);
+    // Copy the local map info to the user supplied buffer, as much as will fit.
+    uint16_t out_size = min(sizeof(*output_info), *output_buffer_size);
+    memcpy(output_buffer, output_info, out_size);
+    *output_buffer_size = out_size;
+
     EBPF_RETURN_RESULT(result);
 }
 
@@ -2424,6 +2494,10 @@ _ebpf_program_test_run_work_item(_In_ cxplat_preemptible_work_item_t* work_item,
 
     // Set runtime state in context header.
     ebpf_program_set_runtime_state(&execution_context_state, program_context);
+    // Set context descriptor pointer in context header.
+    const ebpf_context_descriptor_t* context_descriptor =
+        context->program_data->program_info->program_type_descriptor->context_descriptor;
+    ebpf_program_set_header_context_descriptor(context_descriptor, program_context);
 
     uint64_t start_time = cxplat_query_time_since_boot_precise(false);
     // Use a counter instead of performing a modulus operation to determine when to start a new epoch.
@@ -2659,4 +2733,23 @@ void
 ebpf_program_set_flags(_Inout_ ebpf_program_t* program, uint64_t flags)
 {
     program->flags = flags;
+}
+
+void
+ebpf_program_get_context_data(
+    _In_ const void* program_context, _Out_ const uint8_t** data_start, _Out_ const uint8_t** data_end)
+{
+    ebpf_context_descriptor_t* context_descriptor;
+    ebpf_program_get_header_context_descriptor(program_context, &context_descriptor);
+    if (context_descriptor->data < 0 || context_descriptor->end < 0) {
+        *data_start = NULL;
+        *data_end = NULL;
+        return;
+    } else {
+        ebpf_assert(
+            (context_descriptor->data + 8) <= context_descriptor->size &&
+            (context_descriptor->end + 8) <= context_descriptor->size);
+        *data_start = *(const uint8_t**)((char*)program_context + context_descriptor->data);
+        *data_end = *(const uint8_t**)((char*)program_context + context_descriptor->end);
+    }
 }

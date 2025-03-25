@@ -246,8 +246,8 @@ extern "C"
      *
      * @return The previous IRQL.
      */
-    _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_ _IRQL_raises_(DISPATCH_LEVEL) KIRQL
-        ebpf_raise_irql_to_dispatch_if_needed();
+    _IRQL_requires_max_(DISPATCH_LEVEL) _IRQL_saves_
+        _When_(return < DISPATCH_LEVEL, _IRQL_raises_(DISPATCH_LEVEL)) KIRQL ebpf_raise_irql_to_dispatch_if_needed();
 
     /**
      * @brief Lower the CPU's IRQL to the previous IRQL if previous level was below DISPATCH_LEVEL.

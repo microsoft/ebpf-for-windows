@@ -30,10 +30,26 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t func_helpers[] = {
-    {12, "helper_id_12"},
-    {13, "helper_id_13"},
-    {14, "helper_id_14"},
-    {15, "helper_id_15"},
+    {
+     {1, 40, 40}, // Version header.
+     12,
+     "helper_id_12",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     15,
+     "helper_id_15",
+    },
 };
 
 static GUID func_program_type_guid = {0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
@@ -525,6 +541,7 @@ func(void* context, const program_runtime_context_t* runtime_context)
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         func,
         "bind",
         "bind",

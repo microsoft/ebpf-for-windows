@@ -2295,7 +2295,7 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(sample_hook.initialize() == EBPF_SUCCESS);
     program_load_attach_helper_t sample_helper;
     sample_helper.initialize(
-        "test_sample_ebpf.o", BPF_PROG_TYPE_SAMPLE, "test_program_entry", EBPF_EXECUTION_JIT, nullptr, 0, sample_hook);
+        "map_reuse.o", BPF_PROG_TYPE_SAMPLE, "lookup_update", EBPF_EXECUTION_JIT, nullptr, 0, sample_hook);
 
     struct bpf_object* object = sample_helper.get_object();
     REQUIRE(object != nullptr);
@@ -2309,40 +2309,84 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     int program_fd = bpf_program__fd(program);
     REQUIRE(program_fd > 0);
 
-    struct bpf_map* map = bpf_object__find_map_by_name(object, "test_map");
-    REQUIRE(map != nullptr);
+    // Fetch info about the maps and verify it matches what we'd expect.
+    bpf_map_info map_info[3];
+    uint32_t map_info_size = sizeof(bpf_map_info);
 
-    const char* map_name = bpf_map__name(map);
-    REQUIRE(map_name != nullptr);
+    // Find the inner map.
+    struct bpf_map* map = bpf_object__find_map_by_name(object, "inner_map");
+    REQUIRE(map != nullptr);
 
     int map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
 
-    // Fetch info about the maps and verify it matches what we'd expect.
-    bpf_map_info map_info[2];
-    uint32_t map_info_size = sizeof(map_info[0]);
-    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[0], &map_info_size) == 0);
-    REQUIRE(map_info_size == sizeof(map_info[0]));
-    REQUIRE(map_info[0].type == BPF_MAP_TYPE_ARRAY);
-    REQUIRE(map_info[0].key_size == sizeof(uint32_t));
-    REQUIRE(map_info[0].value_size == 32);
-    REQUIRE(map_info[0].max_entries == 2);
-    REQUIRE(strcmp(map_info[0].name, map_name) == 0);
+    bpf_map_info inner_map_info;
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &inner_map_info, &map_info_size) == 0);
 
-    map = bpf_object__find_map_by_name(object, "test_map");
+    // Find the outer map.
+    map = bpf_object__find_map_by_name(object, "outer_map");
     REQUIRE(map != nullptr);
+
     map_fd = bpf_map__fd(map);
     REQUIRE(map_fd > 0);
+
+    const char* map_name = bpf_map__name(map);
+    REQUIRE(map_name != nullptr);
+
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[0], &map_info_size) == 0);
+
+    bpf_map_info expected_map_info = {
+        .type = BPF_MAP_TYPE_HASH_OF_MAPS,
+        .key_size = sizeof(uint32_t),
+        .value_size = sizeof(uint32_t),
+        .max_entries = 1,
+        .name = {0},
+        .pinned_path_count = 1};
+    expected_map_info.id = map_info[0].id;
+    expected_map_info.inner_map_id = inner_map_info.id;
+    strcpy_s(expected_map_info.name, sizeof(expected_map_info.name), map_name);
+    if (strlen(map_name) < sizeof(expected_map_info.name)) {
+        memset(expected_map_info.name + strlen(map_name), 0, sizeof(expected_map_info.name) - strlen(map_name));
+    }
+
+    // Verify the map info matches what we expect.
+    REQUIRE(memcmp(&map_info[0], &expected_map_info, sizeof(expected_map_info)) == 0);
+
+    // Find the second map.
+    map = bpf_object__find_map_by_name(object, "port_map");
+    REQUIRE(map != nullptr);
+
+    map_fd = bpf_map__fd(map);
+    REQUIRE(map_fd > 0);
+
     map_name = bpf_map__name(map);
     REQUIRE(map_name != nullptr);
 
     REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[1], &map_info_size) == 0);
-    REQUIRE(map_info_size == sizeof(map_info[1]));
-    REQUIRE(map_info[1].type == BPF_MAP_TYPE_ARRAY);
-    REQUIRE(map_info[1].key_size == sizeof(uint32_t));
-    REQUIRE(map_info[1].value_size == 32);
-    REQUIRE(map_info[1].max_entries == 2);
-    REQUIRE(strcmp(map_info[1].name, map_name) == 0);
+
+    expected_map_info.type = BPF_MAP_TYPE_ARRAY;
+    expected_map_info.id = map_info[1].id;
+    expected_map_info.inner_map_id = 0;
+    strcpy_s(expected_map_info.name, sizeof(expected_map_info.name), map_name);
+    if (strlen(map_name) < sizeof(expected_map_info.name)) {
+        memset(expected_map_info.name + strlen(map_name), 0, sizeof(expected_map_info.name) - strlen(map_name));
+    }
+
+    // Verify the map info matches what we expect.
+    REQUIRE(memcmp(&map_info[1], &expected_map_info, sizeof(expected_map_info)) == 0);
+
+    // Get info but pass in a buffer that is too small.
+    uint32_t reduced_map_info_size = sizeof(bpf_map_info) / 2;
+    memset(&map_info[2], 0xa, sizeof(map_info[2]));
+    REQUIRE(bpf_obj_get_info_by_fd(map_fd, &map_info[2], &reduced_map_info_size) == 0);
+    // Verify the map info matches what we expect.
+    REQUIRE(memcmp(&map_info[2], &expected_map_info, reduced_map_info_size) == 0);
+    const std::vector<std::byte> buf(sizeof(bpf_map_info) - reduced_map_info_size, std::byte{0xa});
+    REQUIRE(
+        memcmp(
+            reinterpret_cast<std::byte*>(&map_info[2]) + reduced_map_info_size,
+            buf.data(),
+            sizeof(bpf_map_info) - reduced_map_info_size) == 0);
 
     // Fetch info about the program and verify it matches what we'd expect.
     bpf_prog_info program_info = {};
@@ -2354,19 +2398,39 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
     REQUIRE(program_info.map_ids == 0);
     REQUIRE(program_info.type == BPF_PROG_TYPE_SAMPLE);
 
+    // Get info but pass in a buffer that smaller than the minimum required input size.
+    bpf_prog_info reduced_program_info = {};
+    uint32_t reduced_prog_info_size = EBPF_OFFSET_OF(bpf_prog_info, name) - 1;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &reduced_program_info, &reduced_prog_info_size) == -EINVAL);
+
+    // Get info but pass in a output buffer that is smaller than the full size of bpf_prog_info.
+    reduced_prog_info_size = sizeof(bpf_prog_info) / 2;
+    memset(&reduced_program_info, 0xa, sizeof(reduced_program_info));
+    reduced_program_info.nr_map_ids = 0;
+    reduced_program_info.map_ids = 0;
+    REQUIRE(bpf_obj_get_info_by_fd(program_fd, &reduced_program_info, &reduced_prog_info_size) == 0);
+    // Verify the program info matches what we expect.
+    REQUIRE(memcmp(&reduced_program_info, &program_info, reduced_prog_info_size) == 0);
+    const std::vector<std::byte> buf2(sizeof(bpf_prog_info) - reduced_prog_info_size, std::byte{0xa});
+    REQUIRE(
+        memcmp(
+            reinterpret_cast<std::byte*>(&reduced_program_info) + reduced_prog_info_size,
+            buf2.data(),
+            sizeof(bpf_prog_info) - reduced_prog_info_size) == 0);
+
     // Fetch info about the maps and verify it matches what we'd expect.
     ebpf_id_t map_ids[2] = {0};
     program_info.map_ids = (uintptr_t)map_ids;
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == 0);
-    REQUIRE(map_ids[0] == map_info[1].id);
-    REQUIRE(map_ids[1] == map_info[0].id);
+    REQUIRE(map_ids[0] == map_info[0].id);
+    REQUIRE(map_ids[1] == map_info[1].id);
 
     // Try again with nr_map_ids set to get only partial.
     map_ids[0] = map_ids[1] = 0;
     program_info.nr_map_ids = 1;
     program_info.map_ids = (uintptr_t)map_ids;
     REQUIRE(bpf_obj_get_info_by_fd(program_fd, &program_info, &program_info_size) == -EFAULT);
-    REQUIRE(map_ids[0] == map_info[1].id);
+    REQUIRE(map_ids[0] == map_info[0].id);
 
     // Try again with an invalid pointer.
     program_info.map_ids++;
@@ -2385,6 +2449,20 @@ TEST_CASE("bpf_obj_get_info_by_fd", "[libbpf]")
 
     REQUIRE(link_info.prog_id == program_info.id);
     REQUIRE(link_info.attach_type == BPF_ATTACH_TYPE_SAMPLE);
+
+    // Get info but pass in a buffer that is too small.
+    bpf_link_info reduced_link_info = {};
+    uint32_t reduced_link_info_size = sizeof(bpf_link_info) / 2;
+    memset(&reduced_link_info, 0xa, sizeof(reduced_link_info));
+    REQUIRE(bpf_obj_get_info_by_fd(link_fd, &reduced_link_info, &reduced_link_info_size) == 0);
+    // Verify the link info matches what we expect.
+    REQUIRE(memcmp(&reduced_link_info, &link_info, reduced_link_info_size) == 0);
+    const std::vector<std::byte> buf3(sizeof(bpf_link_info) - reduced_link_info_size, std::byte{0xa});
+    REQUIRE(
+        memcmp(
+            reinterpret_cast<std::byte*>(&reduced_link_info) + reduced_link_info_size,
+            buf3.data(),
+            sizeof(bpf_link_info) - reduced_link_info_size) == 0);
 
     // Verify we can detach using this link fd.
     // This is the flow used by bpftool to detach a link.

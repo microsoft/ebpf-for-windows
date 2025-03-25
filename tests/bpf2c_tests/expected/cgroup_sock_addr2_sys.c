@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -140,17 +140,11 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
-    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
@@ -176,7 +170,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          24,                // Size in bytes of a map key.
@@ -188,7 +188,13 @@ static map_entry_t _maps[] = {
          0,                 // The id of the inner map template.
      },
      "policy_map"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                 // Current Version.
+         80,                // Struct size up to the last field.
+         80,                // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_HASH, // Type of map.
          8,                 // Size in bytes of a map key.
@@ -220,14 +226,46 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t connect_redirect4_helpers[] = {
-    {1, "helper_id_1"},
-    {14, "helper_id_14"},
-    {65537, "helper_id_65537"},
-    {19, "helper_id_19"},
-    {20, "helper_id_20"},
-    {21, "helper_id_21"},
-    {26, "helper_id_26"},
-    {2, "helper_id_2"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     14,
+     "helper_id_14",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     65537,
+     "helper_id_65537",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     19,
+     "helper_id_19",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     20,
+     "helper_id_20",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     21,
+     "helper_id_21",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     26,
+     "helper_id_26",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
+    },
 };
 
 static GUID connect_redirect4_program_type_guid = {
@@ -625,14 +663,46 @@ label_4:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t connect_redirect6_helpers[] = {
-    {1, "helper_id_1"},
-    {12, "helper_id_12"},
-    {65537, "helper_id_65537"},
-    {19, "helper_id_19"},
-    {20, "helper_id_20"},
-    {21, "helper_id_21"},
-    {26, "helper_id_26"},
-    {2, "helper_id_2"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     12,
+     "helper_id_12",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     65537,
+     "helper_id_65537",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     19,
+     "helper_id_19",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     20,
+     "helper_id_20",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     21,
+     "helper_id_21",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     26,
+     "helper_id_26",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     2,
+     "helper_id_2",
+    },
 };
 
 static GUID connect_redirect6_program_type_guid = {
@@ -1060,6 +1130,7 @@ label_4:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         connect_redirect4,
         "cgroup~2",
         "cgroup/connect4",
@@ -1074,6 +1145,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         connect_redirect6,
         "cgroup~1",
         "cgroup/connect6",

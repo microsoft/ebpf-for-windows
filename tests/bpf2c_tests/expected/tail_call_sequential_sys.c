@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     &metadata_table}};
+     NULL}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -140,17 +140,11 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
-#pragma warning(push)
-#pragma warning( \
-    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
-    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
-    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
-#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
@@ -176,7 +170,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                       // Current Version.
+         80,                      // Struct size up to the last field.
+         80,                      // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_PROG_ARRAY, // Type of map.
          4,                       // Size in bytes of a map key.
@@ -188,7 +188,13 @@ static map_entry_t _maps[] = {
          0,                       // The id of the inner map template.
      },
      "map"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -220,9 +226,21 @@ _get_global_variable_sections(
 }
 
 static helper_function_entry_t sequential0_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential0_program_type_guid = {
@@ -398,9 +416,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential1_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential1_program_type_guid = {
@@ -576,9 +606,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential10_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential10_program_type_guid = {
@@ -759,9 +801,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential11_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential11_program_type_guid = {
@@ -942,9 +996,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential12_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential12_program_type_guid = {
@@ -1125,9 +1191,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential13_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential13_program_type_guid = {
@@ -1308,9 +1386,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential14_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential14_program_type_guid = {
@@ -1491,9 +1581,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential15_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential15_program_type_guid = {
@@ -1674,9 +1776,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential16_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential16_program_type_guid = {
@@ -1857,9 +1971,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential17_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential17_program_type_guid = {
@@ -2040,9 +2166,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential18_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential18_program_type_guid = {
@@ -2223,9 +2361,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential19_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential19_program_type_guid = {
@@ -2406,9 +2556,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential2_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential2_program_type_guid = {
@@ -2584,9 +2746,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential20_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential20_program_type_guid = {
@@ -2767,9 +2941,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential21_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential21_program_type_guid = {
@@ -2950,9 +3136,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential22_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential22_program_type_guid = {
@@ -3133,9 +3331,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential23_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential23_program_type_guid = {
@@ -3316,9 +3526,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential24_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential24_program_type_guid = {
@@ -3499,9 +3721,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential25_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential25_program_type_guid = {
@@ -3682,9 +3916,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential26_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential26_program_type_guid = {
@@ -3865,9 +4111,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential27_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential27_program_type_guid = {
@@ -4048,9 +4306,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential28_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential28_program_type_guid = {
@@ -4231,9 +4501,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential29_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential29_program_type_guid = {
@@ -4414,9 +4696,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential3_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential3_program_type_guid = {
@@ -4592,9 +4886,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential30_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential30_program_type_guid = {
@@ -4775,9 +5081,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential31_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential31_program_type_guid = {
@@ -4958,9 +5276,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential32_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential32_program_type_guid = {
@@ -5141,9 +5471,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential33_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential33_program_type_guid = {
@@ -5324,9 +5666,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential34_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential34_program_type_guid = {
@@ -5507,9 +5861,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential4_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential4_program_type_guid = {
@@ -5685,9 +6051,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential5_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential5_program_type_guid = {
@@ -5863,9 +6241,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential6_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential6_program_type_guid = {
@@ -6041,9 +6431,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential7_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential7_program_type_guid = {
@@ -6219,9 +6621,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential8_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential8_program_type_guid = {
@@ -6397,9 +6811,21 @@ label_1:
 #line __LINE__ __FILE__
 
 static helper_function_entry_t sequential9_helpers[] = {
-    {1, "helper_id_1"},
-    {13, "helper_id_13"},
-    {5, "helper_id_5"},
+    {
+     {1, 40, 40}, // Version header.
+     1,
+     "helper_id_1",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     13,
+     "helper_id_13",
+    },
+    {
+     {1, 40, 40}, // Version header.
+     5,
+     "helper_id_5",
+    },
 };
 
 static GUID sequential9_program_type_guid = {
@@ -6578,6 +7004,7 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential0,
         "sampl~35",
         "sample_ext0",
@@ -6592,6 +7019,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential1,
         "sampl~34",
         "sample_ext1",
@@ -6606,6 +7034,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential10,
         "sampl~25",
         "sample_ext10",
@@ -6620,6 +7049,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential11,
         "sampl~24",
         "sample_ext11",
@@ -6634,6 +7064,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential12,
         "sampl~23",
         "sample_ext12",
@@ -6648,6 +7079,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential13,
         "sampl~22",
         "sample_ext13",
@@ -6662,6 +7094,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential14,
         "sampl~21",
         "sample_ext14",
@@ -6676,6 +7109,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential15,
         "sampl~20",
         "sample_ext15",
@@ -6690,6 +7124,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential16,
         "sampl~19",
         "sample_ext16",
@@ -6704,6 +7139,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential17,
         "sampl~18",
         "sample_ext17",
@@ -6718,6 +7154,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential18,
         "sampl~17",
         "sample_ext18",
@@ -6732,6 +7169,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential19,
         "sampl~16",
         "sample_ext19",
@@ -6746,6 +7184,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential2,
         "sampl~33",
         "sample_ext2",
@@ -6760,6 +7199,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential20,
         "sampl~15",
         "sample_ext20",
@@ -6774,6 +7214,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential21,
         "sampl~14",
         "sample_ext21",
@@ -6788,6 +7229,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential22,
         "sampl~13",
         "sample_ext22",
@@ -6802,6 +7244,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential23,
         "sampl~12",
         "sample_ext23",
@@ -6816,6 +7259,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential24,
         "sampl~11",
         "sample_ext24",
@@ -6830,6 +7274,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential25,
         "sampl~10",
         "sample_ext25",
@@ -6844,6 +7289,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential26,
         "sample~9",
         "sample_ext26",
@@ -6858,6 +7304,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential27,
         "sample~8",
         "sample_ext27",
@@ -6872,6 +7319,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential28,
         "sample~7",
         "sample_ext28",
@@ -6886,6 +7334,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential29,
         "sample~6",
         "sample_ext29",
@@ -6900,6 +7349,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential3,
         "sampl~32",
         "sample_ext3",
@@ -6914,6 +7364,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential30,
         "sample~5",
         "sample_ext30",
@@ -6928,6 +7379,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential31,
         "sample~4",
         "sample_ext31",
@@ -6942,6 +7394,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential32,
         "sample~3",
         "sample_ext32",
@@ -6956,6 +7409,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential33,
         "sample~2",
         "sample_ext33",
@@ -6970,6 +7424,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential34,
         "sample~1",
         "sample_ext34",
@@ -6984,6 +7439,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential4,
         "sampl~31",
         "sample_ext4",
@@ -6998,6 +7454,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential5,
         "sampl~30",
         "sample_ext5",
@@ -7012,6 +7469,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential6,
         "sampl~29",
         "sample_ext6",
@@ -7026,6 +7484,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential7,
         "sampl~28",
         "sample_ext7",
@@ -7040,6 +7499,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential8,
         "sampl~27",
         "sample_ext8",
@@ -7054,6 +7514,7 @@ static program_entry_t _programs[] = {
     },
     {
         0,
+        {1, 144, 144}, // Version header.
         sequential9,
         "sampl~26",
         "sample_ext9",
@@ -7127,6 +7588,7 @@ static const char* _map_initial_string_table[] = {
 
 static map_initial_values_t _map_initial_values_array[] = {
     {
+        .header = {1, 48, 48},
         .name = "map",
         .count = 35,
         .values = _map_initial_string_table,

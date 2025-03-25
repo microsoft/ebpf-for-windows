@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from global_vars_and_map.o
+// This file was generated from bindmonitor_perf_event_array.o
 
 #define NO_CRT
 #include "bpf2c.h"
@@ -15,7 +15,7 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
-#define metadata_table global_vars_and_map##_metadata_table
+#define metadata_table bindmonitor_perf_event_array##_metadata_table
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -47,7 +47,7 @@ static const NPI_CLIENT_CHARACTERISTICS _bpf2c_npi_client_characteristics = {
      &_bpf2c_npi_id,
      &_bpf2c_module_id,
      0,
-     NULL}};
+     &metadata_table}};
 
 static NTSTATUS
 _bpf2c_query_npi_module_id(
@@ -140,11 +140,17 @@ _bpf2c_npi_client_attach_provider(
         return STATUS_INVALID_PARAMETER;
     }
 
+#pragma warning(push)
+#pragma warning( \
+    disable : 6387) // Param 3 does not adhere to the specification for the function 'NmrClientAttachProvider'
+    // As per MSDN, client dispatch can be NULL, but SAL does not allow it.
+    // https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrclientattachprovider
     status = NmrClientAttachProvider(
-        nmr_binding_handle, client_context, &metadata_table, &provider_binding_context, &provider_dispatch_table);
+        nmr_binding_handle, client_context, NULL, &provider_binding_context, &provider_dispatch_table);
     if (status != STATUS_SUCCESS) {
         goto Done;
     }
+#pragma warning(pop)
     _bpf2c_nmr_provider_handle = nmr_binding_handle;
 
 Done:
@@ -170,42 +176,18 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {
-     {0, 0},
+    {0,
      {
-         1,                 // Current Version.
-         80,                // Struct size up to the last field.
-         80,                // Total struct size including padding.
+         BPF_MAP_TYPE_PERF_EVENT_ARRAY, // Type of map.
+         0,                             // Size in bytes of a map key.
+         0,                             // Size in bytes of a map value.
+         65536,                         // Maximum number of entries allowed in the map.
+         0,                             // Inner map index.
+         LIBBPF_PIN_NONE,               // Pinning type for the map.
+         7,                             // Identifier for a map template.
+         0,                             // The id of the inner map template.
      },
-     {
-         BPF_MAP_TYPE_HASH, // Type of map.
-         4,                 // Size in bytes of a map key.
-         24,                // Size in bytes of a map value.
-         1,                 // Maximum number of entries allowed in the map.
-         0,                 // Inner map index.
-         LIBBPF_PIN_NONE,   // Pinning type for the map.
-         13,                // Identifier for a map template.
-         0,                 // The id of the inner map template.
-     },
-     "some_config_map"},
-    {
-     {0, 0},
-     {
-         1,                  // Current Version.
-         80,                 // Struct size up to the last field.
-         80,                 // Total struct size including padding.
-     },
-     {
-         BPF_MAP_TYPE_ARRAY, // Type of map.
-         4,                  // Size in bytes of a map key.
-         24,                 // Size in bytes of a map value.
-         1,                  // Maximum number of entries allowed in the map.
-         0,                  // Inner map index.
-         LIBBPF_PIN_NONE,    // Pinning type for the map.
-         29,                 // Identifier for a map template.
-         0,                  // The id of the inner map template.
-     },
-     "global_.bss"},
+     "process_map"},
 };
 #pragma data_seg(pop)
 
@@ -213,148 +195,163 @@ static void
 _get_maps(_Outptr_result_buffer_maybenull_(*count) map_entry_t** maps, _Out_ size_t* count)
 {
     *maps = _maps;
-    *count = 2;
+    *count = 1;
 }
-
-const char global__bss_initial_data[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-#pragma data_seg(push, "global_variables")
-static global_variable_section_info_t _global_variable_sections[] = {
-    {
-        .header = {1, 48, 48},
-        .name = "global_.bss",
-        .size = 24,
-        .initial_data = &global__bss_initial_data,
-    },
-};
-#pragma data_seg(pop)
 
 static void
 _get_global_variable_sections(
     _Outptr_result_buffer_maybenull_(*count) global_variable_section_info_t** global_variable_sections,
     _Out_ size_t* count)
 {
-    *global_variable_sections = _global_variable_sections;
-    *count = 1;
+    *global_variable_sections = NULL;
+    *count = 0;
 }
 
-static helper_function_entry_t GlobalVariableAndMapTest_helpers[] = {
-    {
-     {1, 40, 40}, // Version header.
-     1,
-     "helper_id_1",
-    },
-    {
-     {1, 40, 40}, // Version header.
-     22,
-     "helper_id_22",
-    },
+static helper_function_entry_t bind_monitor_helpers[] = {
+    {6, "helper_id_6"},
+    {32, "helper_id_32"},
 };
 
-static GUID GlobalVariableAndMapTest_program_type_guid = {
-    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-static GUID GlobalVariableAndMapTest_attach_type_guid = {
-    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
-static uint16_t GlobalVariableAndMapTest_maps[] = {
+static GUID bind_monitor_program_type_guid = {
+    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
+static GUID bind_monitor_attach_type_guid = {
+    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
+static uint16_t bind_monitor_maps[] = {
     0,
-    1,
 };
 
-#pragma code_seg(push, "sample~1")
+#pragma code_seg(push, "bind")
 static uint64_t
-GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime_context)
-#line 40 "sample/undocked/global_vars_and_map.c"
+bind_monitor(void* context, const program_runtime_context_t* runtime_context)
+#line 24 "sample/bindmonitor_perf_event_array.c"
 {
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     // Prologue.
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r0 = 0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r1 = 0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r2 = 0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r3 = 0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r4 = 0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r5 = 0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
+    register uint64_t r6 = 0;
+#line 24 "sample/bindmonitor_perf_event_array.c"
+    register uint64_t r7 = 0;
+#line 24 "sample/bindmonitor_perf_event_array.c"
+    register uint64_t r8 = 0;
+#line 24 "sample/bindmonitor_perf_event_array.c"
     register uint64_t r10 = 0;
 
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     r1 = (uintptr_t)context;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
-#line 40 "sample/undocked/global_vars_and_map.c"
-    r1 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
-#line 43 "sample/undocked/global_vars_and_map.c"
-    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r1;
-    // EBPF_OP_MOV64_REG pc=2 dst=r2 src=r10 offset=0 imm=0
-#line 43 "sample/undocked/global_vars_and_map.c"
-    r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=3 dst=r2 src=r0 offset=0 imm=-4
-#line 43 "sample/undocked/global_vars_and_map.c"
-    r2 += IMMEDIATE(-4);
-    // EBPF_OP_LDDW pc=4 dst=r1 src=r1 offset=0 imm=1
-#line 44 "sample/undocked/global_vars_and_map.c"
-    r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=1
-#line 44 "sample/undocked/global_vars_and_map.c"
+    // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
+#line 24 "sample/bindmonitor_perf_event_array.c"
+    r6 = r1;
+    // EBPF_OP_LDXDW pc=1 dst=r8 src=r6 offset=0 imm=0
+#line 26 "sample/bindmonitor_perf_event_array.c"
+    r8 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_LDXDW pc=2 dst=r7 src=r6 offset=8 imm=0
+#line 26 "sample/bindmonitor_perf_event_array.c"
+    r7 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=6
+#line 28 "sample/bindmonitor_perf_event_array.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 44 "sample/undocked/global_vars_and_map.c"
+#line 28 "sample/bindmonitor_perf_event_array.c"
     if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 44 "sample/undocked/global_vars_and_map.c"
+#line 28 "sample/bindmonitor_perf_event_array.c"
         return 0;
-#line 44 "sample/undocked/global_vars_and_map.c"
+#line 28 "sample/bindmonitor_perf_event_array.c"
     }
-    // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=1
-#line 44 "sample/undocked/global_vars_and_map.c"
-    r1 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=7 imm=0
-#line 45 "sample/undocked/global_vars_and_map.c"
-    if (r0 == IMMEDIATE(0)) {
-#line 45 "sample/undocked/global_vars_and_map.c"
+    // EBPF_OP_STXW pc=4 dst=r10 src=r0 offset=-4 imm=0
+#line 28 "sample/bindmonitor_perf_event_array.c"
+    *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r0;
+    // EBPF_OP_LDXW pc=5 dst=r1 src=r6 offset=44 imm=0
+#line 29 "sample/bindmonitor_perf_event_array.c"
+    r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
+    // EBPF_OP_JNE_IMM pc=6 dst=r1 src=r0 offset=19 imm=0
+#line 29 "sample/bindmonitor_perf_event_array.c"
+    if (r1 != IMMEDIATE(0)) {
+#line 29 "sample/bindmonitor_perf_event_array.c"
         goto label_1;
-#line 45 "sample/undocked/global_vars_and_map.c"
+#line 29 "sample/bindmonitor_perf_event_array.c"
     }
-    // EBPF_OP_LDDW pc=9 dst=r1 src=r2 offset=0 imm=2
-#line 50 "sample/undocked/global_vars_and_map.c"
-    r1 = POINTER(runtime_context->global_variable_section_data[0].address_of_map_value + 0);
-    // EBPF_OP_MOV64_IMM pc=11 dst=r2 src=r0 offset=0 imm=24
-#line 50 "sample/undocked/global_vars_and_map.c"
-    r2 = IMMEDIATE(24);
-    // EBPF_OP_MOV64_REG pc=12 dst=r3 src=r0 offset=0 imm=0
-#line 50 "sample/undocked/global_vars_and_map.c"
-    r3 = r0;
-    // EBPF_OP_MOV64_IMM pc=13 dst=r4 src=r0 offset=0 imm=24
-#line 50 "sample/undocked/global_vars_and_map.c"
-    r4 = IMMEDIATE(24);
-    // EBPF_OP_CALL pc=14 dst=r0 src=r0 offset=0 imm=22
-#line 50 "sample/undocked/global_vars_and_map.c"
+    // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=8 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_LDXDW pc=8 dst=r2 src=r6 offset=0 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
+    // EBPF_OP_JGE_REG pc=9 dst=r2 src=r1 offset=16 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    if (r2 >= r1) {
+#line 31 "sample/bindmonitor_perf_event_array.c"
+        goto label_1;
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    }
+    // EBPF_OP_SUB64_REG pc=10 dst=r7 src=r8 offset=0 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r7 -= r8;
+    // EBPF_OP_LSH64_IMM pc=11 dst=r7 src=r0 offset=0 imm=32
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r7 <<= (IMMEDIATE(32) & 63);
+    // EBPF_OP_LDDW pc=12 dst=r1 src=r0 offset=0 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r1 = (uint64_t)4503595332403200;
+    // EBPF_OP_AND64_REG pc=14 dst=r7 src=r1 offset=0 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r7 &= r1;
+    // EBPF_OP_LDDW pc=15 dst=r1 src=r0 offset=0 imm=-1
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r1 = (uint64_t)4294967295;
+    // EBPF_OP_OR64_REG pc=17 dst=r7 src=r1 offset=0 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r7 |= r1;
+    // EBPF_OP_MOV64_REG pc=18 dst=r4 src=r10 offset=0 imm=0
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r4 = r10;
+    // EBPF_OP_ADD64_IMM pc=19 dst=r4 src=r0 offset=0 imm=-4
+#line 31 "sample/bindmonitor_perf_event_array.c"
+    r4 += IMMEDIATE(-4);
+    // EBPF_OP_MOV64_REG pc=20 dst=r1 src=r6 offset=0 imm=0
+#line 32 "sample/bindmonitor_perf_event_array.c"
+    r1 = r6;
+    // EBPF_OP_LDDW pc=21 dst=r2 src=r1 offset=0 imm=1
+#line 32 "sample/bindmonitor_perf_event_array.c"
+    r2 = POINTER(runtime_context->map_data[0].address);
+    // EBPF_OP_MOV64_REG pc=23 dst=r3 src=r7 offset=0 imm=0
+#line 32 "sample/bindmonitor_perf_event_array.c"
+    r3 = r7;
+    // EBPF_OP_MOV64_IMM pc=24 dst=r5 src=r0 offset=0 imm=4
+#line 32 "sample/bindmonitor_perf_event_array.c"
+    r5 = IMMEDIATE(4);
+    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=32
+#line 32 "sample/bindmonitor_perf_event_array.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
-#line 50 "sample/undocked/global_vars_and_map.c"
+#line 32 "sample/bindmonitor_perf_event_array.c"
     if ((runtime_context->helper_data[1].tail_call) && (r0 == 0)) {
-#line 50 "sample/undocked/global_vars_and_map.c"
+#line 32 "sample/bindmonitor_perf_event_array.c"
         return 0;
-#line 50 "sample/undocked/global_vars_and_map.c"
+#line 32 "sample/bindmonitor_perf_event_array.c"
     }
-    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=0
-#line 50 "sample/undocked/global_vars_and_map.c"
-    r1 = IMMEDIATE(0);
 label_1:
-    // EBPF_OP_MOV64_REG pc=16 dst=r0 src=r1 offset=0 imm=0
-#line 53 "sample/undocked/global_vars_and_map.c"
-    r0 = r1;
-    // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
-#line 53 "sample/undocked/global_vars_and_map.c"
+    // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=0
+#line 39 "sample/bindmonitor_perf_event_array.c"
+    r0 = IMMEDIATE(0);
+    // EBPF_OP_EXIT pc=27 dst=r0 src=r0 offset=0 imm=0
+#line 39 "sample/bindmonitor_perf_event_array.c"
     return r0;
-#line 40 "sample/undocked/global_vars_and_map.c"
+#line 24 "sample/bindmonitor_perf_event_array.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -363,18 +360,17 @@ label_1:
 static program_entry_t _programs[] = {
     {
         0,
-        {1, 144, 144}, // Version header.
-        GlobalVariableAndMapTest,
-        "sample~1",
-        "sample_ext",
-        "GlobalVariableAndMapTest",
-        GlobalVariableAndMapTest_maps,
+        bind_monitor,
+        "bind",
+        "bind",
+        "bind_monitor",
+        bind_monitor_maps,
+        1,
+        bind_monitor_helpers,
         2,
-        GlobalVariableAndMapTest_helpers,
-        2,
-        18,
-        &GlobalVariableAndMapTest_program_type_guid,
-        &GlobalVariableAndMapTest_attach_type_guid,
+        28,
+        &bind_monitor_program_type_guid,
+        &bind_monitor_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
@@ -401,7 +397,7 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
     *count = 0;
 }
 
-metadata_table_t global_vars_and_map_metadata_table = {
+metadata_table_t bindmonitor_perf_event_array_metadata_table = {
     sizeof(metadata_table_t),
     _get_programs,
     _get_maps,
