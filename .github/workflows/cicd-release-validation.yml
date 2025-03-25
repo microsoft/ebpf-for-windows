@@ -74,7 +74,7 @@ jobs:
       # Exclude [processes] test that CodeCoverage can't work with.
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -90,7 +90,7 @@ jobs:
       pre_test: appverif -enable Exceptions Handles Heaps Leak Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
       test_command: .\netebpfext_unit.exe -d yes
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: true
       gather_dumps: true
       capture_etw: true
@@ -105,7 +105,7 @@ jobs:
       test_command: .\bpf2c_tests.exe -d yes
       name: bpf2c
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       vs_dev: true
       code_coverage: true
       gather_dumps: true
@@ -121,84 +121,53 @@ jobs:
       test_command: .\bpf_conformance_runner.exe --test_file_directory %SOURCE_ROOT%\external\ebpf-verifier\external\bpf_conformance\tests --cpu_version v4 --plugin_path bpf2c_plugin.exe --debug true --plugin_options "--include %SOURCE_ROOT%\include"
       name: bpf2c_conformance
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       vs_dev: true
       code_coverage: true
       gather_dumps: true
       capture_etw: true
 
-  # Run the driver tests on self-hosted runners.
-  driver_ws2019:
+  driver_tests:
     needs: regular
-    # Only run this on repos that have self-host runners.
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_ws2019
+      name: driver_${{ matrix.environment }}
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
-      # driver test copies dumps to testlog folder.
+      environment: ${{ matrix.environment }}
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
-      # driver tests manually gather code coverage
       code_coverage: false
 
-  # Run the driver tests on self-hosted runners.
-  driver_ws2022:
+  driver_native_only_tests:
     needs: regular
-    # Only run this on repos that have self-host runners.
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
     uses: ./.github/workflows/reusable-test.yml
+    strategy:
+      matrix:
+        image:
+          - 'server2022'
+          - 'server23h2'
+          - 'server2025'
     with:
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_ws2022
-      build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2022
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-
-  # Run the native-only driver tests on self-hosted runners.
-  driver_native_only_ws2019:
-    needs: regular_native-only
-    # Only run this on repos that have self-host runners.
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_native_only_ws2019
+      name: driver_${{ matrix.environment }}
       build_artifact: Build-x64-native-only
-      environment: ebpf_cicd_tests_ws2019
-      # driver test copies dumps to testlog folder.
+      environment: ${{ matrix.environment }}
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
-      # driver tests manually gather code coverage
       code_coverage: false
-      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
-
-  driver_native_only_ws2022:
-    needs: regular_native-only
-    # Only run this on repos that have self-host runners.
-    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'workflow_dispatch')
-    uses: ./.github/workflows/reusable-test.yml
-    with:
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
-      name: driver_native_only_ws2022
-      build_artifact: Build-x64-native-only
-      environment: ebpf_cicd_tests_ws2022
-      # driver test copies dumps to testlog folder.
-      gather_dumps: false
-      # driver tests manually gather code coverage
-      code_coverage: false
-      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
     needs: regular
@@ -237,7 +206,7 @@ jobs:
       name: cilium_tests
       test_command: .\cilium_tests.exe -d yes
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
 
@@ -251,7 +220,7 @@ jobs:
       # Until there is a dedicated stress test, re-use the perf test.
       test_command: .\ebpf_performance.exe -d yes
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       # No code coverage on stress.
       code_coverage: false
       gather_dumps: true
@@ -266,7 +235,7 @@ jobs:
       # Exclude [processes] test that ASAN can't work with.
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-x64-Sanitize
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       capture_etw: true
@@ -280,7 +249,7 @@ jobs:
       name: fault_injection
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: true
       gather_dumps: true
       fault_injection: true
@@ -295,7 +264,7 @@ jobs:
       name: netebpfext_fault_injection
       test_command: .\netebpfext_unit.exe
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: true
       gather_dumps: true
       fault_injection: true
@@ -311,7 +280,7 @@ jobs:
       name: quick_user_mode_multi_threaded_stress
       test_command: .\ebpf_stress_tests_um -tt=8 -td=2
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       leak_detection: false
       gather_dumps: true
@@ -334,7 +303,7 @@ jobs:
       name: fault_injection_full
       test_command: .\unit_tests.exe
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       fault_injection: true
@@ -349,7 +318,7 @@ jobs:
       name: netebpfext_fault_injection_full
       test_command: .\netebpfext_unit.exe
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       fault_injection: true
@@ -363,7 +332,7 @@ jobs:
       name: user_mode_multi_threaded_stress
       test_command: .\ebpf_stress_tests_um -tt=8 -td=10
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       leak_detection: false
       gather_dumps: true
@@ -381,7 +350,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -398,7 +367,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Stress" -Options @("RestartExtension")
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: ebpf_cicd_tests_ws2019
+      environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=server2022"]'
       code_coverage: false
       # For this test, we only want kernel mode dumps and not user mode dumps.
       gather_dumps: false
@@ -415,7 +384,7 @@ jobs:
       name: bpf2c_fuzzer
       test_command: .\bpf2c_fuzzer.exe bpf2c_fuzzer_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
@@ -428,7 +397,7 @@ jobs:
       name: verifier_fuzzer
       test_command: .\verifier_fuzzer.exe verifier_corpus -use_value_profile=1 -max_total_time=900 -artifact_prefix=Artifacts\
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
@@ -441,7 +410,7 @@ jobs:
       name: execution_context_fuzzer
       test_command: .\execution_context_fuzzer.exe execution_context_fuzzer_corpus -use_value_profile=1 -runs=3000 -artifact_prefix=Artifacts\
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
@@ -454,7 +423,7 @@ jobs:
       name: core_helper_fuzzer
       test_command: .\core_helper_fuzzer core_helper_corpus -max_len=139 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
@@ -467,7 +436,7 @@ jobs:
       name: netebpfext_fuzzer
       test_command: .\netebpfext_fuzzer netebpfext_corpus -max_len=12 -runs=3000 -use_value_profile=1 -artifact_prefix=Artifacts\
       build_artifact: Build-x64
-      environment: windows-2022
+      environment: '["windows-2022"]'
       code_coverage: false
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
@@ -484,7 +453,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: ebpf_cicd_perf_ws2022
+      environment: '["ebpf_cicd_perf_ws2022"]'
       configurations: '["Release"]'
 
   upload_perf_results-1:
@@ -510,7 +479,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: ebpf_cicd_perf_ws2022
+      environment: '["ebpf_cicd_perf_ws2022"]'
       configurations: '["Release"]'
 
   upload_perf_results-2:
@@ -536,7 +505,7 @@ jobs:
       test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "Performance"
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       build_artifact: Build-x64
-      environment: ebpf_cicd_perf_ws2022
+      environment: '["ebpf_cicd_perf_ws2022"]'
       configurations: '["Release"]'
 
   upload_perf_results-3:
