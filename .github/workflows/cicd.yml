@@ -218,6 +218,29 @@ jobs:
       # driver tests manually gather code coverage
       code_coverage: false
 
+    # Run the driver tests on self-hosted runners.
+  driver_ws2019_loop:
+    # Always run this job.
+    # Only run this on repos that have self-host runners.
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    strategy:
+      matrix:
+        iteration: [1, 2, 3]
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      name: driver_ws2019_${{ matrix.iteration }}
+      build_artifact: Build-x64
+      environment: ebpf_cicd_tests_ws2019
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
+
   # Run the driver tests on self-hosted runners.
   driver_ws2022:
     # Always run this job.
