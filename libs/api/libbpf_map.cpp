@@ -412,6 +412,18 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
 typedef struct perf_buffer
 {
     std::vector<perf_event_array_subscription_t*> subscriptions;
+
+    ~perf_buffer()
+    {
+        EBPF_LOG_ENTRY();
+
+        for (auto& sub : subscriptions) {
+            ebpf_perf_event_array_map_unsubscribe(sub);
+        }
+
+        subscriptions.clear();
+        EBPF_LOG_EXIT();
+    }
 } perf_buffer_t;
 
 struct perf_buffer*
@@ -429,7 +441,7 @@ perf_buffer__new(
     UNREFERENCED_PARAMETER(opts);
     UNREFERENCED_PARAMETER(page_cnt);
 
-    if (sample_cb == nullptr) {
+    if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -440,16 +452,21 @@ perf_buffer__new(
         perf_event_array_subscription_t* subscription = nullptr;
 
         for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
-
             result = ebpf_perf_event_array_map_subscribe(map_fd, cpu_id, ctx, sample_cb, lost_cb, &subscription);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
-            perf_buffer->subscriptions.push_back(subscription);
+
+            try {
+                perf_buffer->subscriptions.push_back(subscription);
+            } catch (const std::bad_alloc&) {
+                ebpf_perf_event_array_map_unsubscribe(subscription);
+                result = EBPF_NO_MEMORY;
+                goto Exit;
+            }
         }
 
         local_perf_buffer = perf_buffer.release();
-
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Exit;
@@ -465,9 +482,5 @@ Exit:
 void
 perf_buffer__free(struct perf_buffer* pb)
 {
-    for (auto it = pb->subscriptions.begin(); it != pb->subscriptions.end(); it++) {
-        (void)ebpf_perf_event_array_map_unsubscribe(*it);
-    }
-    pb->subscriptions.clear();
     delete pb;
 }
