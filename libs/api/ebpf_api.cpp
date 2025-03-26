@@ -4842,6 +4842,7 @@ _ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_conte
             &dummy,
             &dummy,
             reinterpret_cast<uint32_t*>(&perf_event_array_size));
+
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
@@ -4851,9 +4852,11 @@ _ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_conte
         consumer = async_query_result->consumer;
         producer = async_query_result->producer;
         lost_count = async_query_result->lost_count;
+
         if (lost_count > 0) {
             subscription->lost_callback(subscription->callback_context, cpu_id, lost_count);
         }
+
         for (;;) {
             auto record = ebpf_ring_buffer_next_record(subscription->buffer, perf_event_array_size, consumer, producer);
 
@@ -4918,6 +4921,7 @@ _ebpf_perf_event_array_map_async_query_completion(_Inout_ void* completion_conte
             }
         }
     }
+
     if (free_subscription) {
         delete subscription;
     }
@@ -4946,15 +4950,17 @@ ebpf_perf_event_array_map_subscribe(
         uint32_t key_size = 0;
         uint32_t value_size = 0;
         uint32_t max_entries = 0;
-        uint32_t type;
+        uint32_t type = BPF_MAP_TYPE_UNSPEC;
 
         ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
+
         if (map_handle == ebpf_handle_invalid) {
             result = EBPF_INVALID_FD;
             EBPF_RETURN_RESULT(result);
         }
 
         result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
+
         if (result != EBPF_SUCCESS) {
             EBPF_RETURN_RESULT(result);
         }
@@ -4970,7 +4976,6 @@ ebpf_perf_event_array_map_subscribe(
         }
 
         *subscription = nullptr;
-
         ebpf_perf_event_array_subscription_ptr local_subscription =
             std::make_unique<ebpf_perf_event_array_subscription_t>();
         local_subscription->perf_event_array_map_handle = ebpf_handle_invalid;
@@ -5037,7 +5042,6 @@ ebpf_perf_event_array_map_subscribe(
             }
         }
 
-        // If the async IOCTL failed, then free the subscription object.
         if (result == EBPF_SUCCESS) {
             *subscription = local_subscription.release();
         }
