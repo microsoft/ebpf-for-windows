@@ -116,9 +116,7 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
     int result;
 
     // Insert capacity + 1 entries
-#if 1
 #pragma unroll
-#endif
     for (key = 0; key < 11; key++) {
         result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
         if (result < 0) {
