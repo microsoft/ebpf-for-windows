@@ -206,6 +206,37 @@ TEST_CASE("map show pinned", "[map]")
     REQUIRE(ebpf_object_unpin("\\\\test_map") == EBPF_SUCCESS);
 }
 
+TEST_CASE("map unpin", "[map]")
+{
+    int status;
+    std::string output;
+
+    // Create a pinned map named "unpin_test"
+    output = run_command("bpftool map create \\\\unpin_test type hash key 4 value 4 entries 10 name unpin_test", &status);
+    REQUIRE(output == "");
+    REQUIRE(status == 0);
+
+    // Show the created map and extract its ID.
+    output = run_command("bpftool map show name unpin_test", &status);
+    REQUIRE(status == 0);
+    // Assume the output starts with the numerical map ID (e.g., "42: hash  name unpin_test ...")
+    int id = atoi(output.c_str());
+    // Basic check that an ID was obtained.
+    REQUIRE(id > 0);
+
+    // Unpin the map.
+    output = run_command(("bpftool map unpin " + std::to_string(id)).c_str(), &status);
+    REQUIRE(output == "");
+    REQUIRE(status == 0);
+
+    // Additional unpin should now fail because the map is already unpinned.
+    output = run_command(("bpftool map unpin " + std::to_string(id)).c_str(), &status);
+    REQUIRE(status != 0);
+
+    // Cleanup: if needed, attempt to unpin via the API as well.
+    REQUIRE(ebpf_object_unpin("\\\\unpin_test") == EBPF_SUCCESS);
+}
+
 TEST_CASE("prog show id 1", "[prog][show]")
 {
     int result;
