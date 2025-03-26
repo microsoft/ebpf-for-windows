@@ -116,7 +116,9 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
     int result;
 
     // Insert capacity + 1 entries
-#if 0
+#if 1
+#pragma unroll
+#endif
     for (key = 0; key < 11; key++) {
         result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
         if (result < 0) {
@@ -124,74 +126,7 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
             return result;
         }
     }
-#else
-    // Work around temporary compiler limitation.
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 1;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 2;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 3;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 4;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 5;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 6;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 7;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 8;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 9;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 10;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-#endif
+
     return 0;
 }
 
