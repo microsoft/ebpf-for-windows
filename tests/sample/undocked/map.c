@@ -112,12 +112,14 @@ inline __attribute__((always_inline)) int
 test_LRU_map(struct _ebpf_map_definition_in_file* map)
 {
     uint32_t key = 0;
+    uint32_t index = 0;
     uint32_t value = 1;
     int result;
 
     // Insert capacity + 1 entries
 #pragma unroll
-    for (key = 0; key < 11; key++) {
+    for (index = 0; index < 10; index++) {
+        key = index;
         result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
         if (result < 0) {
             bpf_printk("bpf_map_update_elem returned %d", result);
@@ -145,7 +147,7 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
         if ((EXPECT_RESULT) != result) {                                                             \
             bpf_printk("bpf_map_pop_elem expecting result %d returned %d", (EXPECT_RESULT), result); \
             return result;                                                                           \
-        } else if (new_value != (EXPECTED_VALUE)) {                                                  \
+        } else if (new_value != (uint32_t)(EXPECTED_VALUE)) {                                        \
             bpf_printk("bpf_map_pop_elem return %d expecting %d", new_value, (EXPECTED_VALUE));      \
             return -1;                                                                               \
         }                                                                                            \
@@ -173,46 +175,20 @@ test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
     PEEK_VALUE(map, 0, -7);
     POP_VALUE(map, 0, -7);
 
-#if 0
+#pragma unroll
     for (i = 0; i < 10; i++) {
         PUSH_VALUE(map, i, FALSE, 0);
     }
-#else
-    // Work around current verifier limitation.
-    PUSH_VALUE(map, 0, FALSE, 0);
-    PUSH_VALUE(map, 1, FALSE, 0);
-    PUSH_VALUE(map, 2, FALSE, 0);
-    PUSH_VALUE(map, 3, FALSE, 0);
-    PUSH_VALUE(map, 4, FALSE, 0);
-    PUSH_VALUE(map, 5, FALSE, 0);
-    PUSH_VALUE(map, 6, FALSE, 0);
-    PUSH_VALUE(map, 7, FALSE, 0);
-    PUSH_VALUE(map, 8, FALSE, 0);
-    PUSH_VALUE(map, 9, FALSE, 0);
-#endif
 
     PUSH_VALUE(map, 10, FALSE, -29);
     PUSH_VALUE(map, 10, TRUE, 0);
 
     PEEK_VALUE(map, (map == &STACK_map) ? 10 : 1, 0);
 
-#if 0
+#pragma unroll
     for (i = 0; i < 10; i++) {
         POP_VALUE(map, (map == &STACK_map) ? 10 - i : i + 1, 0);
     }
-#else
-    // Work around current verifier limitation.
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 0 : 0 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 1 : 1 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 2 : 2 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 3 : 3 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 4 : 4 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 5 : 5 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 6 : 6 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 7 : 7 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 8 : 8 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 9 : 9 + 1, 0);
-#endif
 
     PEEK_VALUE(map, 0, -7);
     POP_VALUE(map, 0, -7);
