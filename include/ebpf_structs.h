@@ -223,6 +223,30 @@ enum bpf_prog_type
      */
     BPF_PROG_TYPE_SOCK_OPS,
 
+    /** @brief Program type for handling netevents.
+     * ntosebpfext repo has the implementation for this program type.
+     *
+     * **eBPF program prototype:** netevent_event_hook_t
+     *
+     * **Attach type(s):**
+     *  \ref BPF_ATTACH_TYPE_NETEVENT
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_NETEVENT,
+
+    /** @brief Program type for handling process creation/deletion events.
+     * ntosebpfext repo has the implementation for this program type.
+     *
+     * **eBPF program prototype:** \ref sock_ops_hook_t
+     *
+     * **Attach type(s):**
+     *  \ref BPF_ATTACH_TYPE_PROCESS
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_PROCESS,
+
     /** @brief Program type for handling incoming packets as early as possible.
      *
      * **eBPF program prototype:** \ref xdp_hook_t
@@ -325,6 +349,18 @@ enum bpf_attach_type
      * **Program type:** \ref BPF_PROG_TYPE_XDP_TEST
      */
     BPF_XDP_TEST,
+
+    /** @brief Attach type for handling netevents.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_NETEVENT
+     */
+    BPF_ATTACH_TYPE_NETEVENT,
+
+    /** @brief Attach type for handling process creation/deletion events.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_PROCESS
+     */
+    BPF_ATTACH_TYPE_PROCESS,
 
     __MAX_BPF_ATTACH_TYPE,
 };
