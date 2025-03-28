@@ -2587,8 +2587,8 @@ TEST_CASE("libbpf attach type names", "[libbpf]")
 
     enum bpf_attach_type attach_type;
     for (int i = 1; i < __MAX_BPF_ATTACH_TYPE; i++) {
-        // Skip XDP type as it is supported only with the xdp-for-windows repo.
-        if (i == BPF_XDP)
+        // Skip XDP, Netevent and Process type as they are supported only when the respective extensions are installed.
+        if (i == BPF_XDP || i == BPF_ATTACH_TYPE_NETEVENT || i == BPF_ATTACH_TYPE_PROCESS)
             continue;
         const char* type_str = libbpf_bpf_attach_type_str((enum bpf_attach_type)i);
 
