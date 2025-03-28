@@ -152,8 +152,7 @@ The various fields of this structure should be set as follows:
 * `context_descriptor`: Pointer of type `ebpf_context_descriptor_t`.
 * `program_type`: GUID for the program type. This should be the same as the `NpiId` in `NPI_REGISTRATION_INSTANCE` as
 noted above.
-* `bpf_prog_type`: Set to the equivalent bpf program type integer. If there is no equivalent bpf program type, this
-field should be set to `0 (BPF_PROG_TYPE_UNSPEC)`.
+* `bpf_prog_type`: Set to the equivalent bpf program type integer. If there is no equivalent bpf program type, either add a value to the `bpf_prog_type` enum and assign it here or this field should be set to `0 (BPF_PROG_TYPE_UNSPEC)`.
 * `is_privileged`: Set to `FALSE`.
 
 #### `ebpf_context_descriptor_t` Struct
@@ -370,8 +369,7 @@ The `supported_program_type` field of the struct should be filled with the `ebpf
 supported program type. While attaching an eBPF program to a hook instance, the Execution Context enforces that the
 requested attach type is supported by the Hook NPI provider. If not, the eBPF program fails to attach to the hook.
 
-The `bpf_attach_type` field should contain the equivalent bpf attach type integer. If there is no equivalent bpf
-attach type, this field should be set to `0 (BPF_ATTACH_TYPE_UNSPEC)`.
+The `bpf_attach_type` field should contain the equivalent bpf attach type integer. If there is no equivalent bpf attach type, either add a value to the `bpf_attach_type` enum and assign it here or this field should be set to `0 (BPF_ATTACH_TYPE_UNSPEC)`.
 
 ### 2.5 Hook NPI Client Attach and Detach Callbacks
 The eBPF Execution Context registers a Hook NPI client module with the NMR for each program that is attached to a hook.
