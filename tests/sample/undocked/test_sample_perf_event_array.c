@@ -32,7 +32,8 @@ test_program_entry(sample_program_context_t* context)
 {
     if (context->data_end > context->data_start) {
 
-        uint64_t flags = (1ULL << 32) - 1;
+        size_t app_id_size = context->data_end - context->data_start;
+        uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU | (app_id_size << EBPF_MAP_FLAG_CTX_LENGTH_SHIFT);
         (void)bpf_perf_event_output(
             context, &test_map, flags, context->data_start, context->data_end - context->data_start);
     }

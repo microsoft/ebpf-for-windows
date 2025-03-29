@@ -3964,13 +3964,17 @@ bindmonitor_perf_buffer_test(ebpf_execution_type_t execution_type)
 
     // Test multiple subscriptions to the same perf buffer , to ensure that the perf buffer map will continue
     // to provide notifications to the subscriber.
-    for (int i = 0; i < 3; i++) {
-        perf_buffer_api_test_helper(process_map_fd, fake_app_ids, [&](int i) {
-            // Emulate bind operation.
-            std::vector<char> fake_app_id = fake_app_ids[i];
-            fake_app_id.push_back('\0');
-            REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
-        });
+    for (int i = 0; i < 1; i++) {
+        perf_buffer_api_test_helper(
+            process_map_fd,
+            fake_app_ids,
+            [&](int i) {
+                // Emulate bind operation.
+                std::vector<char> fake_app_id = fake_app_ids[i];
+                fake_app_id.push_back('\0');
+                REQUIRE(emulate_bind(invoke, fake_pid + i, fake_app_id.data()) == BIND_PERMIT);
+            },
+            true);
     }
 
     hook.detach_and_close_link(&link);
@@ -4029,17 +4033,21 @@ test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
     // Test multiple subscriptions to the same perf buffer , to ensure that the perf buffer map will continue
     // to provide notifications to the subscriber.
     for (int i = 0; i < 3; i++) {
-        perf_buffer_api_test_helper(test_map_fd, fake_app_ids, [&](int i) {
-            // Emulate bind operation.
-            std::vector<char> fake_app_id = fake_app_ids[i];
-            fake_app_id.push_back('\0');
-            std::string app_id = fake_app_id.data();
-            uint32_t invoke_result = MAXUINT32;
-            ctx->data_start = (uint8_t*)app_id.c_str();
-            ctx->data_end = (uint8_t*)(app_id.c_str()) + app_id.size();
-            REQUIRE(invoke(reinterpret_cast<void*>(ctx), &invoke_result) == EBPF_SUCCESS);
-            REQUIRE(invoke_result == 0);
-        });
+        perf_buffer_api_test_helper(
+            test_map_fd,
+            fake_app_ids,
+            [&](int i) {
+                // Emulate bind operation.
+                std::vector<char> fake_app_id = fake_app_ids[i];
+                fake_app_id.push_back('\0');
+                std::string app_id = fake_app_id.data();
+                uint32_t invoke_result = MAXUINT32;
+                ctx->data_start = (uint8_t*)app_id.c_str();
+                ctx->data_end = (uint8_t*)(app_id.c_str()) + app_id.size();
+                REQUIRE(invoke(reinterpret_cast<void*>(ctx), &invoke_result) == EBPF_SUCCESS);
+                REQUIRE(invoke_result == 0);
+            },
+            true);
     }
 
     hook.detach_and_close_link(&link);

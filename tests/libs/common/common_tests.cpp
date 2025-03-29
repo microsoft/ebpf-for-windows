@@ -137,8 +137,6 @@ ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, siz
 
     if ((data == nullptr) || (size == 0)) {
         // eBPF ring buffer invokes callback with NULL data indicating that the subscription is canceled.
-        // This is the last callback. Free the callback context.
-        delete event_context;
         return 0;
     }
 
@@ -248,11 +246,12 @@ ring_buffer_api_test_helper(
 
     // Unsubscribe.
     raw_context->unsubscribe();
+    delete raw_context;
 }
 
 perf_buffer_test_context_t::_perf_buffer_test_context()
     : perf_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0), test_event_count(0),
-      lost_entry_count(0)
+      lost_entry_count(0), doubled_data(false), bad_records(0)
 {
 }
 
@@ -276,7 +275,10 @@ perf_buffer_test_lost_event_handler(void* ctx, int cpu, __u64 cnt)
 {
     UNREFERENCED_PARAMETER(cpu);
     perf_buffer_test_context_t* event_context = reinterpret_cast<perf_buffer_test_context_t*>(ctx);
-    event_context->lost_entry_count += (int)cnt;
+    {
+        std::unique_lock<std::mutex> lock(event_context->lock);
+        event_context->lost_entry_count += (int)cnt;
+    }
 }
 
 int
@@ -303,43 +305,59 @@ perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* 
     }
 
     std::vector<char> event_record(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size);
+    {
+        std::unique_lock<std::mutex> lock(event_context->lock);
 
-    // Check if indicated event record matches an entry in the context records
-    // that has not been matched yet.
-    auto records = event_context->records;
-    auto it = records->begin();
-    for (;;) {
-        // Find the next entry in the records vector.
-        it = std::find(it, records->end(), event_record);
-        if (it == records->end()) {
-            // No more entries in the records vector.
+        // if doubled_data is set, the event record should contain the same data twice. We only compare the first half.
+        if (event_context->doubled_data) {
+            // Check if the event record contains the same data twice.
+            size_t half_size = size / 2;
+            if (memcmp(data, (char*)data + half_size, half_size) == 0) {
+                // The event record contains the same data twice.
+                event_record.resize(half_size);
+            }
+        }
+
+        // Check if indicated event record matches an entry in the context records
+        // that has not been matched yet.
+        auto records = event_context->records;
+        auto it = records->begin();
+        for (;;) {
+            // Find the next entry in the records vector.
+            it = std::find(it, records->end(), event_record);
+            if (it == records->end()) {
+                // No more entries in the records vector.
+                break;
+            }
+
+            // Check if the entry has already been matched.
+            auto index = std::distance(records->begin(), it);
+            if (event_context->event_received.find(index) != event_context->event_received.end()) {
+                it++;
+                // Entry already matched.
+                continue;
+            }
+
+            // Mark the entry as matched.
+            event_context->event_received.insert(index);
+            event_context->matched_entry_count++;
             break;
         }
 
-        // Check if the entry has already been matched.
-        auto index = std::distance(records->begin(), it);
-        if (event_context->event_received.find(index) != event_context->event_received.end()) {
-            it++;
-            // Entry already matched.
-            continue;
+        if (event_context->matched_entry_count == event_context->test_event_count) {
+            // If all the entries in the app ID list was found, fulfill the promise.
+            event_context->perf_buffer_event_promise.set_value();
         }
-
-        // Mark the entry as matched.
-        event_context->event_received.insert(index);
-        event_context->matched_entry_count++;
-        break;
-    }
-
-    if (event_context->matched_entry_count == event_context->test_event_count) {
-        // If all the entries in the app ID list was found, fulfill the promise.
-        event_context->perf_buffer_event_promise.set_value();
     }
     return 0;
 }
 
 void
 perf_buffer_api_test_helper(
-    fd_t perf_buffer_map, std::vector<std::vector<char>>& expected_records, std::function<void(int)> generate_event)
+    fd_t perf_buffer_map,
+    std::vector<std::vector<char>>& expected_records,
+    std::function<void(int)> generate_event,
+    bool doubled_data)
 {
     std::vector<std::vector<char>> records = expected_records;
 
@@ -354,6 +372,7 @@ perf_buffer_api_test_helper(
     // Perf buffer event callback context.
     std::unique_ptr<perf_buffer_test_context_t> context = std::make_unique<perf_buffer_test_context_t>();
     context->test_event_count = PERF_BUFFER_TEST_EVENT_COUNT + 2;
+    context->doubled_data = doubled_data;
 
     context->records = &records;
 
@@ -389,7 +408,9 @@ perf_buffer_api_test_helper(
     message[message.length() - 1] = '2';
     REQUIRE(ebpf_perf_event_array_map_write(perf_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
     // Wait for event handler getting notifications for all PERF_BUFFER_TEST_EVENT_COUNT events.
-    REQUIRE(perf_buffer_event_callback.wait_for(10s) == std::future_status::ready);
+    bool test_completed = perf_buffer_event_callback.wait_for(10s) == std::future_status::ready;
+    CAPTURE(context->matched_entry_count, context->lost_entry_count, context->test_event_count);
+    REQUIRE(test_completed == true);
     REQUIRE((context->matched_entry_count + context->lost_entry_count) == context->test_event_count);
 
     // Mark the event context as canceled, such that the event callback stops processing events.

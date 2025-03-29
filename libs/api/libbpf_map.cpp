@@ -354,8 +354,18 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 
 typedef struct ring_buffer
 {
-    std::vector<ring_buffer_subscription_t*> subscriptions;
+    std::vector<ebpf_map_subscription_t*> subscriptions;
+    void* ctx;
+    ring_buffer_sample_fn sample_cb;
 } ring_buffer_t;
+
+int
+ring_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    ring_buffer* ring_buffer = reinterpret_cast<ring_buffer_t*>(ctx);
+    return ring_buffer->sample_cb(ring_buffer->ctx, data, size);
+}
 
 struct ring_buffer*
 ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* /* opts */)
@@ -370,12 +380,24 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
 
     try {
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
-        ring_buffer_subscription_t* subscription = nullptr;
-        result = ebpf_ring_buffer_map_subscribe(map_fd, ctx, sample_cb, &subscription);
+        ring_buffer->ctx = ctx;
+        ring_buffer->sample_cb = sample_cb;
+        ebpf_map_subscription_t* subscription = nullptr;
+        result = ebpf_map_subscribe(
+            map_fd, 0, (void*)(ring_buffer.get()), ring_buffer_sample_fn_wrapper, nullptr, &subscription);
+
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-        ring_buffer->subscriptions.push_back(subscription);
+
+        try {
+            ring_buffer->subscriptions.push_back(subscription);
+        } catch (const std::bad_alloc&) {
+            ebpf_map_unsubscribe(subscription);
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
         local_ring_buffer = ring_buffer.release();
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -393,7 +415,7 @@ void
 ring_buffer__free(struct ring_buffer* ring_buffer)
 {
     for (auto it = ring_buffer->subscriptions.begin(); it != ring_buffer->subscriptions.end(); it++) {
-        (void)ebpf_ring_buffer_map_unsubscribe(*it);
+        (void)ebpf_map_unsubscribe(*it);
     }
     ring_buffer->subscriptions.clear();
     delete ring_buffer;
@@ -411,20 +433,32 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
 
 typedef struct perf_buffer
 {
-    std::vector<perf_event_array_subscription_t*> subscriptions;
+    std::vector<ebpf_map_subscription_t*> subscriptions;
 
     ~perf_buffer()
     {
         EBPF_LOG_ENTRY();
 
         for (auto& sub : subscriptions) {
-            ebpf_perf_event_array_map_unsubscribe(sub);
+            ebpf_map_unsubscribe(sub);
         }
 
         subscriptions.clear();
         EBPF_LOG_EXIT();
     }
+
+    void* ctx;
+    perf_buffer_sample_fn sample_cb;
 } perf_buffer_t;
+
+int
+perf_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    perf_buffer_t* perf_buffer = reinterpret_cast<perf_buffer_t*>(ctx);
+    perf_buffer->sample_cb(perf_buffer->ctx, cpu, data, size);
+    return 0;
+}
 
 struct perf_buffer*
 perf_buffer__new(
@@ -449,10 +483,14 @@ perf_buffer__new(
     try {
         std::unique_ptr<perf_buffer_t> perf_buffer = std::make_unique<perf_buffer_t>();
         uint32_t ring_count = libbpf_num_possible_cpus();
-        perf_event_array_subscription_t* subscription = nullptr;
+        ebpf_map_subscription_t* subscription = nullptr;
+        perf_buffer->ctx = ctx;
+        perf_buffer->sample_cb = sample_cb;
 
         for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
-            result = ebpf_perf_event_array_map_subscribe(map_fd, cpu_id, ctx, sample_cb, lost_cb, &subscription);
+            result = ebpf_map_subscribe(
+                map_fd, cpu_id, (void*)(perf_buffer.get()), perf_buffer_sample_fn_wrapper, lost_cb, &subscription);
+
             if (result != EBPF_SUCCESS) {
                 goto Exit;
             }
@@ -460,7 +498,7 @@ perf_buffer__new(
             try {
                 perf_buffer->subscriptions.push_back(subscription);
             } catch (const std::bad_alloc&) {
-                ebpf_perf_event_array_map_unsubscribe(subscription);
+                ebpf_map_unsubscribe(subscription);
                 result = EBPF_NO_MEMORY;
                 goto Exit;
             }

@@ -1290,8 +1290,12 @@ TEST_CASE("Test program order", "[native_tests]")
 
 typedef struct _perf_event_array_test_context
 {
-    uint32_t event_count = 0;
-    uint32_t expected_event_count = 0;
+    std::atomic<size_t> event_count = 0;
+    size_t expected_event_count = 0;
+    size_t cpu_count = 0;
+    std::atomic<size_t> close_count = 0;
+    uint64_t event_length = 0;
+    size_t lost_count = 0;
     std::promise<void> promise;
 } perf_event_array_test_context_t;
 
@@ -1302,6 +1306,9 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     fd_t program_fd;
     perf_event_array_test_context_t context;
     std::string app_id = "api_test.exe";
+    size_t cpu_count = libbpf_num_possible_cpus();
+    CAPTURE(cpu_count);
+    context.cpu_count = cpu_count;
     uint32_t thread_count = 2;
     native_module_helper_t native_helper;
     native_helper.initialize("bindmonitor_perf_event_array", EBPF_EXECUTION_NATIVE);
@@ -1320,6 +1327,8 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     REQUIRE(max_iterations % thread_count == 0);
     uint32_t iterations_per_thread = max_iterations / thread_count;
 
+    CAPTURE(max_entries, max_iterations, iterations_per_thread);
+
     // Initialize context.
     context.event_count = 0;
     context.expected_event_count = max_iterations;
@@ -1328,14 +1337,28 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     auto perfbuffer = perf_buffer__new(
         process_map_fd,
         16,
-        [](void* ctx, int, void*, uint32_t) {
+        [](void* ctx, int, void* data, uint32_t length) {
             perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
+            if (data == nullptr) {
+                // check if this is the last close event.
+                if (++context->close_count >= context->cpu_count) {
+                    // Last ring closed.
+                    context->promise.set_value();
+                }
+                return;
+            }
+            context->event_length = length;
             if (++context->event_count == context->expected_event_count) {
                 context->promise.set_value();
             }
             return;
         },
-        [](void*, int, uint64_t) { return; },
+        [](void* ctx, int, uint64_t count) {
+            perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
+            context->lost_count = count;
+            context->promise.set_value();
+            return;
+        },
         &context,
         nullptr);
     // Create 2 threads that invoke the program to trigger ring buffer events.
@@ -1373,7 +1396,17 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     REQUIRE(failure_count == 0);
 
     // Wait for 1 second for the ring buffer to receive all events.
-    REQUIRE(perf_buffer_event_callback.wait_for(1s) == std::future_status::ready);
+    bool test_complete = perf_buffer_event_callback.wait_for(1s) == std::future_status::ready;
+
+    CAPTURE(
+        context.event_length,
+        context.event_count,
+        context.expected_event_count,
+        context.close_count,
+        context.lost_count,
+        failure_count);
+
+    REQUIRE(test_complete == true);
 
     // Unsubscribe from the ring buffer.
     perf_buffer__free(perfbuffer);

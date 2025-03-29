@@ -13,8 +13,7 @@
 
 struct bpf_object;
 
-typedef struct _ebpf_ring_buffer_subscription ring_buffer_subscription_t;
-typedef struct _ebpf_perf_event_array_subscription perf_event_array_subscription_t;
+typedef struct _ebpf_map_subscription ebpf_map_subscription_t;
 
 typedef struct bpf_program
 {
@@ -609,64 +608,41 @@ ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept;
 
 typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
 
-/**
- * @brief Subscribe for notifications from the input ring buffer map.
- *
- * @param[in] ring_buffer_map_fd File descriptor to the ring buffer map.
- * @param[in, out] sample_callback_context Pointer to supplied context to be passed in notification callback.
- * @param[in] sample_callback Function pointer to notification handler.
- * @param[out] subscription Opaque pointer to ring buffer subscription object.
- *
- * @retval EBPF_SUCCESS The operation was successful.
- * @retval EBPF_NO_MEMORY Out of memory.
- */
-_Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_subscribe(
-    fd_t ring_buffer_map_fd,
-    _Inout_opt_ void* sample_callback_context,
-    ring_buffer_sample_fn sample_callback,
-    _Outptr_ ring_buffer_subscription_t** subscription) noexcept;
-
-/**
- * @brief Unsubscribe from the ring buffer map event notifications.
- *
- * @param[in] subscription Pointer to ring buffer subscription to be canceled.
- */
-bool
-ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept;
-
 typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
 typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
+
+typedef int (*map_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
+typedef void (*map_lost_fn)(void* ctx, int cpu, uint64_t cnt);
 
 /**
  * @brief Subscribe for notifications from the input perf event array map.
  *
- * @param[in] perf_event_array_map_fd File descriptor to the perf event array map.
- * @param[in] cpu_id The CPU Id corresponding to this subscription.
+ * @param[in] map_fd File descriptor to the perf event array or a ring Buffer map.
+ * @param[in] cpu_id The CPU Id corresponding to this subscription. For a ring buffer map this is ignored.
  * @param[in, out] callback_context Pointer to supplied context to be passed in notification callback.
  * @param[in] sample_callback Function pointer to notification handler.
  * @param[in] lost_callback Function pointer to lost record notification handler.
- * @param[out] subscription Opaque pointer to perf event array subscription object.
+ * @param[out] subscription Opaque pointer to the subscription object.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_perf_event_array_map_subscribe(
-    fd_t perf_event_array_map_fd,
+ebpf_map_subscribe(
+    fd_t map_fd,
     uint32_t cpu_id,
     _Inout_opt_ void* callback_context,
-    perf_buffer_sample_fn sample_callback,
-    perf_buffer_lost_fn lost_callback,
-    _Outptr_ perf_event_array_subscription_t** subscription) noexcept;
+    map_sample_fn sample_callback,
+    map_lost_fn lost_callback,
+    _Outptr_ ebpf_map_subscription_t** subscription) noexcept;
 
 /**
- * @brief Unsubscribe from the perf event array map event notifications.
+ * @brief Unsubscribe from the map event notifications.
  *
- * @param[in] subscription Pointer to perf event array subscription to be canceled.
+ * @param[in] subscription Pointer to subscription to be canceled.
  */
 bool
-ebpf_perf_event_array_map_unsubscribe(_In_ _Post_invalid_ perf_event_array_subscription_t* subscription) noexcept;
+ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) noexcept;
 
 /**
  * @brief Get list of programs and stats in an ELF eBPF file.
