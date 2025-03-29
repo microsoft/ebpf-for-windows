@@ -23,7 +23,8 @@ SEC("bind")
 bind_action_t
 bind_monitor(bind_md_t* ctx)
 {
-    uint64_t flags = (1ULL << 32) - 1;
+    size_t app_id_size = ctx->app_id_end - ctx->app_id_start;
+    uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU | (app_id_size << EBPF_MAP_FLAG_CTX_LENGTH_SHIFT);
     switch (ctx->operation) {
     case BIND_OPERATION_BIND:
         if (ctx->app_id_end > ctx->app_id_start) {

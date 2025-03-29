@@ -136,24 +136,30 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
         goto label_1;
 #line 33 "sample/undocked/test_sample_perf_event_array.c"
     }
-#line 37 "sample/undocked/test_sample_perf_event_array.c"
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
     r5 -= r4;
 #line 36 "sample/undocked/test_sample_perf_event_array.c"
+    r3 = r5;
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    r3 <<= (IMMEDIATE(32) & 63);
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    r2 = (uint64_t)4294967295;
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    r3 |= r2;
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
-    r3 = (uint64_t)4294967295;
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
         return 0;
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     }
 label_1:
-#line 40 "sample/undocked/test_sample_perf_event_array.c"
+#line 41 "sample/undocked/test_sample_perf_event_array.c"
     r0 = IMMEDIATE(0);
-#line 40 "sample/undocked/test_sample_perf_event_array.c"
+#line 41 "sample/undocked/test_sample_perf_event_array.c"
     return r0;
 #line 33 "sample/undocked/test_sample_perf_event_array.c"
 }
@@ -173,7 +179,7 @@ static program_entry_t _programs[] = {
         1,
         test_program_entry_helpers,
         1,
-        11,
+        14,
         &test_program_entry_program_type_guid,
         &test_program_entry_attach_type_guid,
     },
