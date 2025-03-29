@@ -943,12 +943,6 @@ bpf_program__flags(const struct bpf_program* prog);
 int
 bpf_program__set_flags(struct bpf_program* prog, __u32 flags);
 
-/* Perf buffer APIs */
-struct perf_buffer;
-
-typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, __u32 size);
-typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, __u64 cnt);
-
 /**
  * @brief **perf_buffer__new()** creates BPF perfbuf manager for a specified
  * BPF_PERF_EVENT_ARRAY map
