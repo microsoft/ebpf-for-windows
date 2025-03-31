@@ -2590,6 +2590,9 @@ TEST_CASE("libbpf attach type names", "[libbpf]")
         // Skip XDP type as it is supported only with the xdp-for-windows repo.
         if (i == BPF_XDP)
             continue;
+        if (i == BPF_ATTACH_TYPE_PROCESS)
+            continue; // requires ntosebpfext
+
         const char* type_str = libbpf_bpf_attach_type_str((enum bpf_attach_type)i);
 
         REQUIRE(libbpf_attach_type_by_name(type_str, &attach_type) == 0);
