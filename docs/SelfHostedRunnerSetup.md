@@ -31,7 +31,11 @@ This will generate a token for the self-hosted runner.
    `windowslogonaccount` and `windowslogonpassword` parameters.
 1. Reboot the self-hosted runner.
 1. Run the [`setup.ps1`](../1es/Setup.ps1) script to configure the self-hosted runner and install a test VM inside it.
-   1. The script requires a VHD file for the test VM, which can be downloaded from the [Microsoft Evaluation Center](https://www.microsoft.com/en-us/evalcenter/).
+   1. The script requires a VHD file for installing the Windows OS of your choice on to the test VM.
+   The VHD file can be downloaded from the Microsoft Evaluation Center. Here are the download links for some of the latest Windows offerings.
+   [Windows 11 Enterprise Edition](https://www.microsoft.com/en-us/evalcenter/download-windows-11-enterprise)
+   [Windows Server 2022](https://www.microsoft.com/en-us/evalcenter/download-windows-server-2022)
+   [Windows Server 2025](https://www.microsoft.com/en-us/evalcenter/download-windows-server-2025)
    1. The script requires the following powershell modules that are in the `eBPF for Windows` repository:
       - `scripts\common.psm1`
       - `scripts\config_test_vm.psm1`
