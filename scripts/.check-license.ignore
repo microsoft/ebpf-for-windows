@@ -27,5 +27,6 @@ Doxyfile
 \.github/workflows/build.yml
 \.gitignore
 \.gitmodules
+\.vsconfig
 packages.config
 installer/LICENSE.rtf

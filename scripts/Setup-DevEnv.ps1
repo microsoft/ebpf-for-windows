@@ -7,13 +7,11 @@ if ((get-filehash -Algorithm SHA256 $env:TEMP\install_choco.ps1).Hash -ne '44E04
 
 choco install git -y --params "'/GitAndUnixToolsOnPath /WindowsTerminal /NoAutoCrlf'"
 choco install visualstudio2022community --version 117.4.2.0 -y
-choco install visualstudio2022buildtools --version 117.4.2.0 -y
 
 echo "Adding required components to Visual Studio"
 Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/ebpf-for-windows/main/.vsconfig' -OutFile $env:TEMP\ebpf-for-windows.vsconfig
-# The out-null seems to be required to make powershell wait
-# for the command to exit.
-&"C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify --installpath "$env:ProgramFiles\Microsoft Visual Studio\2022\Community" --config "$env:TEMP\ebpf-for-windows.vsconfig" --quiet | out-null
+& "C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe" modify --installpath "$env:ProgramFiles\Microsoft Visual Studio\2022\Community" --config "$env:TEMP\ebpf-for-windows.vsconfig" --passive
 
+choco install llvm --version=18.1.8 -y
 choco install nuget.commandline --version 6.4.0 -y
 choco install cmake.portable --version 3.25.1 -y
