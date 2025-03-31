@@ -224,7 +224,7 @@ enum bpf_prog_type
     BPF_PROG_TYPE_SOCK_OPS,
 
     /** @brief Program type for handling netevents.
-     * ntosebpfext repo has the implementation for this program type.
+     * The github microsoft/ntosebpfext repo has the implementation for this program type.
      *
      * **eBPF program prototype:** netevent_event_hook_t
      *
@@ -236,7 +236,7 @@ enum bpf_prog_type
     BPF_PROG_TYPE_NETEVENT,
 
     /** @brief Program type for handling process creation/deletion events.
-     * ntosebpfext repo has the implementation for this program type.
+     * The github microsoft/ntosebpfext repo has the implementation for this program type.
      *
      * **eBPF program prototype:** \ref sock_ops_hook_t
      *
