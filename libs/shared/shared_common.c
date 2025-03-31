@@ -676,9 +676,6 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
     if (_strnicmp(output + PREFIX_SIZE, "\\ebpf\\global\\", 13) == 0) {
         char* next = output + PREFIX_SIZE + 13;
         memmove(output + PREFIX_SIZE, next, strlen(next) + 1);
-    } else if (strncmp(output + PREFIX_SIZE, "\\sys\\fs\\bpf\\", 12) == 0) {
-        char* next = output + PREFIX_SIZE + 12;
-        memmove(output + PREFIX_SIZE, next, strlen(next) + 1);
     }
 
     for (int i = PREFIX_SIZE - 1; output[i] != 0;) {

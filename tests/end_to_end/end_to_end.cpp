@@ -1721,8 +1721,8 @@ TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
     _verify_canonical_path(map_fd, "BPF:/./my/pin/path", "BPF:\\my\\pin\\path");
 
     // Try Linux-style absolute paths.
-    _verify_canonical_path(map_fd, "/sys/fs/bpf/my/pin/path", "BPF:\\my\\pin\\path");
-    _verify_canonical_path(map_fd, "/sys/fs/bpf/My/Pin/Path", "BPF:\\My\\Pin\\Path");
+    _verify_canonical_path(map_fd, "/sys/fs/bpf/my/pin/path", "BPF:\\sys\\fs\\bpf\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "/sys/fs/bpf/My/Pin/Path", "BPF:\\sys\\fs\\bpf\\My\\Pin\\Path");
 
     // Try Linux-style relative paths.
     _verify_canonical_path(map_fd, "my/pin/path", "BPF:\\my\\pin\\path");
@@ -1741,7 +1741,7 @@ TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
 
     // Try a Windows-style absolute path without the device.
     _verify_canonical_path(map_fd, "\\my\\pin\\path", "BPF:\\my\\pin\\path");
-    _verify_canonical_path(map_fd, "\\sys\\fs\\bpf\\my\\pin\\path", "BPF:\\my\\pin\\path");
+    _verify_canonical_path(map_fd, "\\sys\\fs\\bpf\\my\\pin\\path", "BPF:\\sys\\fs\\bpf\\my\\pin\\path");
 
     // Try a legacy eBPF-for-Windows path.
     _verify_canonical_path(map_fd, "/ebpf/global/my/pin/path", "BPF:\\my\\pin\\path");

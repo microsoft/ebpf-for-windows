@@ -4,7 +4,8 @@ On Linux, objects can be pinned to a filesystem path.  As a result:
 * Pins can be enumerated or removed via normal filesystem APIs/utilities
 * Pin paths are case-sensitive
 * The path component separator is a forward slash ('/')
-* Pin paths begin with "/sys/fs/bpf/" and relative paths like "mymap" are relative to that prefix.
+* Pin paths typically begin with "/sys/fs/bpf/", but could begin with other
+  paths. Relative paths like "mymap" are then relative to that prefix.
 * ".." and "." components are resolved.
 
 On Windows, pin paths are not currently part of the filesystem.  As a result,
@@ -52,18 +53,20 @@ Example: /mnt/c/ebpf/global/my/pin/path
 Like the previous option, the current or system drive letter is still needed, so this has
 the same issues as the previous option.
 
-### Virtual (Windows file system path with another virtual drive for BPF)
+### Virtual (Windows device path with another virtual drive for BPF)
 
 Example: BPF:\my\pin\path
 
+Note that this is a device path not a "file system" path per se.
+
 In this option, there would be no collisions with actual files, and the path can be case
-sensitive if the "BPF:" driver declares such.  Similarly, ".." resolution would work if
+sensitive if the "BPF:" driver declares it as such.  Similarly, ".." resolution would work if
 the driver implements it as such.
 
 As for portability, canonicalization could ensure that Linux style paths like
-"/sys/fs/bpf/my/pin/path" would be canonicalized to "BPF:\my\pin\path" allowing
-portability in that respect.  But querying the pin path on an object
-
+"/sys/fs/bpf/my/pin/path" would be canonicalized to "BPF:\sys\fs\bpf\my\pin\path" allowing
+portability in that respect.  Querying the pin path using a Windows-specific
+API on an object would show the canonical path.
 
 ### Linux (Linux-like file system path)
 
@@ -80,6 +83,12 @@ Example: \\BPF\my\pin\path
 In this option, "BPF" would be a special "host" like "localhost" or "?".
 However, it may be confusing if there is another host with the name "bpf",
 or at least lead people to believe there might be.
+
+### Others
+
+There are also "\\?\" and "\\.\" paths on Windows, but these don't
+appear to provide any value that one or more of the other options don't
+already provide so are omitted from the rest of the evaluation.
 
 ## Evaluation Matrix
 
