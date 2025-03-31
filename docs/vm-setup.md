@@ -14,7 +14,7 @@
     2. Select the current machine in the left pane.
     3. Click the "Quick Create..." action in the rightmost pane. When the Create Virtual Machine dialog appears:
        1. Select "Windows 11 dev environment".
-       2. Alternatively, click the "Local installation source" to install Windows OS of your choice from an .iso or a .vhd file.
+       2. Alternatively, click the "Local installation source" to install the Windows OS of your choice from an .iso or a .vhd file.
        You can download these from the [Microsoft Evaluation Center](https://www.microsoft.com/en-us/evalcenter/).
        For example: [Server 2022](https://www.microsoft.com/en-us/evalcenter/download-windows-server-2022?msockid=1f59c79472266e9504e0d29373e16fb2)
     4. Click the "Create Virtual Machine" button.
