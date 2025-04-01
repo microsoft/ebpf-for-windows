@@ -1301,7 +1301,7 @@ typedef struct _perf_event_array_test_context
 
 TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
 {
-    // Load bindmonitor_perf_event_array.sys
+    // Load bindmonitor_perf_event_array.sys.
     struct bpf_object* object = nullptr;
     fd_t program_fd;
     perf_event_array_test_context_t context;
@@ -1343,7 +1343,7 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
             if ((data == nullptr) || (length == 0)) {
                 return;
             }
-            if (++context->event_count == context->expected_event_count) {
+            if (((++context->event_count) + (context->lost_count)) >= context->expected_event_count) {
                 context->promise.set_value();
             }
             return;
@@ -1351,12 +1351,11 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
         [](void* ctx, int, uint64_t count) {
             perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
             context->lost_count = count;
-            context->promise.set_value();
             return;
         },
         &context,
         nullptr);
-    // Create 2 threads that invoke the program to trigger ring buffer events.
+    // Create 2 threads that invoke the program to trigger perf buffer events.
     std::vector<std::jthread> threads;
     std::atomic<size_t> failure_count = 0;
     for (uint32_t i = 0; i < thread_count; i++) {

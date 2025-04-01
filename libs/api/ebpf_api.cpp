@@ -4453,7 +4453,7 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             subscription->sample_callback(subscription->callback_context, cpu_id, nullptr, 0);
         }
     } else {
-        // Async IOCTL operation returned with success status. Read the ring buffer records and indicate it to the
+        // Async IOCTL operation returned with success status. Read the records and indicate it to the
         // subscriber.
 
         ebpf_operation_map_async_query_reply_t* reply = &subscription->reply;
@@ -4476,12 +4476,11 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             }
 
             while (ebpf_ring_buffer_record_is_locked(record)) {
-                // writes happen at dispatch level, so we shouldn't wait long.
-                // the lock bit check read-acquires the header, so spinning will get a fresh value..
+                // Writes happen at dispatch level, so we shouldn't wait long.
+                // The lock bit check read-acquires the header, so spinning will get a fresh value..
             }
 
             // Note: the ring buffer record supports discards, but perf event array does not so we skip the check.
-
             subscription->sample_callback(
                 subscription->callback_context,
                 cpu_id,
@@ -4580,7 +4579,7 @@ ebpf_map_subscribe(
             EBPF_LOG_MESSAGE_ERROR(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_API,
-                "perf_buffer__new API is called on a map that is not of the ring buffer or  perf event Array type.",
+                "ebpf_map_subscribe API is called on a map that is not of the ring buffer or  perf event Array type.",
                 result);
             EBPF_RETURN_RESULT(result);
         }
@@ -4664,46 +4663,19 @@ ebpf_map_subscribe(
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) NO_EXCEPT_TRY
+static _Must_inspect_result_ ebpf_result_t
+_map_write(ebpf_handle_t map_handle, _In_reads_bytes_(data_length) const void* data, size_t data_length) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
-    ebpf_handle_t map_handle = ebpf_handle_invalid;
     ebpf_protocol_buffer_t request_buffer;
     ebpf_operation_map_write_data_request_t* request;
 
-    if (!data || !data_length) {
-        return EBPF_INVALID_ARGUMENT;
-    }
+    ebpf_assert(map_handle != ebpf_handle_invalid);
+    ebpf_assert(data != nullptr);
+    ebpf_assert(data_length != 0);
 
     try {
-        uint32_t key_size = 0;
-        uint32_t value_size = 0;
-        uint32_t max_entries = 0;
-        uint32_t type;
-
-        map_handle = _get_handle_from_file_descriptor(map_fd);
-        if (map_handle == ebpf_handle_invalid) {
-            result = EBPF_INVALID_FD;
-            EBPF_RETURN_RESULT(result);
-        }
-
-        result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
-        if (result != EBPF_SUCCESS) {
-            EBPF_RETURN_RESULT(result);
-        }
-
-        if ((type != BPF_MAP_TYPE_PERF_EVENT_ARRAY) && (type != BPF_MAP_TYPE_RINGBUF)) {
-            result = EBPF_INVALID_ARGUMENT;
-            EBPF_LOG_MESSAGE_ERROR(
-                EBPF_TRACELOG_LEVEL_ERROR,
-                EBPF_TRACELOG_KEYWORD_API,
-                "ebpf_map_write API is called on a map that is not of the Perf Event Array or Ring Buffer type.",
-                result);
-            EBPF_RETURN_RESULT(result);
-        }
-
         request_buffer.resize(EBPF_OFFSET_OF(ebpf_operation_map_write_data_request_t, data) + data_length);
         request = reinterpret_cast<ebpf_operation_map_write_data_request_t*>(request_buffer.data());
         request->header.length = static_cast<uint16_t>(request_buffer.size());
@@ -4766,7 +4738,42 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_perf_event_array_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length)
     NO_EXCEPT_TRY
 {
-    return ebpf_map_write(map_fd, data, data_length);
+
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    ebpf_result_t result;
+    uint32_t key_size = 0;
+    uint32_t value_size = 0;
+    uint32_t max_entries = 0;
+    uint32_t type;
+
+    if (!data || !data_length) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
+
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    if (type != BPF_MAP_TYPE_PERF_EVENT_ARRAY) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_perf_event_array_map_write API is called on a map that is not of the Perf Event Array type.",
+            result);
+        EBPF_RETURN_RESULT(result);
+    }
+
+    return _map_write(map_handle, data, data_length);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
@@ -4774,7 +4781,35 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_map_write(fd_t map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length)
     NO_EXCEPT_TRY
 {
-    return ebpf_map_write(map_fd, data, data_length);
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+    ebpf_result_t result;
+    uint32_t key_size = 0;
+    uint32_t value_size = 0;
+    uint32_t max_entries = 0;
+    uint32_t type;
+
+    if (!data || !data_length) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+    result = _get_map_descriptor_properties(map_handle, &type, &key_size, &value_size, &max_entries);
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+    if (type != BPF_MAP_TYPE_RINGBUF) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "ebpf_ring_buffer_map_write API is called on a map that is not of the ring buffer type.",
+            result);
+        EBPF_RETURN_RESULT(result);
+    }
+    return _map_write(map_handle, data, data_length);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 

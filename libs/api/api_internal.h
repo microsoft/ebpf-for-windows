@@ -615,9 +615,9 @@ typedef int (*map_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
 typedef void (*map_lost_fn)(void* ctx, int cpu, uint64_t cnt);
 
 /**
- * @brief Subscribe for notifications from the input perf event array map.
+ * @brief Subscribe for notifications from the input perf event array or a ring buffer map.
  *
- * @param[in] map_fd File descriptor to the perf event array or a ring Buffer map.
+ * @param[in] map_fd File descriptor to the perf event array or a ring buffer map.
  * @param[in] cpu_id The CPU Id corresponding to this subscription. For a ring buffer map this is ignored.
  * @param[in, out] callback_context Pointer to supplied context to be passed in notification callback.
  * @param[in] sample_callback Function pointer to notification handler.
