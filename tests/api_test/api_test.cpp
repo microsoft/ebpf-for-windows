@@ -1339,15 +1339,10 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
         16,
         [](void* ctx, int, void* data, uint32_t length) {
             perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
-            if (data == nullptr) {
-                // check if this is the last close event.
-                if (++context->close_count >= context->cpu_count) {
-                    // Last ring closed.
-                    context->promise.set_value();
-                }
+
+            if ((data == nullptr) || (length == 0)) {
                 return;
             }
-            context->event_length = length;
             if (++context->event_count == context->expected_event_count) {
                 context->promise.set_value();
             }

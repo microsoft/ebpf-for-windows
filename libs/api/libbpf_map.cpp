@@ -355,8 +355,8 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 typedef struct ring_buffer
 {
     std::vector<ebpf_map_subscription_t*> subscriptions;
-    void* ctx;
-    ring_buffer_sample_fn sample_cb;
+    void* ctx = nullptr;
+    ring_buffer_sample_fn sample_cb = nullptr;
 } ring_buffer_t;
 
 int
@@ -434,6 +434,8 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
 typedef struct perf_buffer
 {
     std::vector<ebpf_map_subscription_t*> subscriptions;
+
+    perf_buffer() : ctx(nullptr), sample_cb(nullptr) {}
 
     ~perf_buffer()
     {
