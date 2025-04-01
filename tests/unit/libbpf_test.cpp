@@ -57,32 +57,17 @@
 
 const int nonexistent_fd = 12345678;
 
-// set of all attach_types defined in ebpf core. must be updated anytime a new bpf_attach_type is added.
+// Set of all attach_types defined in ebpfcore. This must be updated any time a new bpf_attach_type is added.
 static const std::set<bpf_attach_type> ebpf_core_attach_types = {
     BPF_ATTACH_TYPE_UNSPEC,
-    BPF_ATTACH_TYPE_SAMPLE,
     BPF_ATTACH_TYPE_BIND,
-    BPF_ATTACH_TYPE_CGROUP_INET4_CONNECT,
-    BPF_ATTACH_TYPE_CGROUP_INET6_CONNECT,
-    BPF_ATTACH_TYPE_CGROUP_INET4_RECVMSG,
-    BPF_ATTACH_TYPE_CGROUP_INET6_RECVMSG,
-    BPF_ATTACH_TYPE_CGROUP_SOCK_OPS,
-    BPF_ATTACH_TYPE_SK_SKB_STREAM_PARSER,
-    BPF_ATTACH_TYPE_SK_SKB_STREAM_VERDICT,
-    BPF_ATTACH_TYPE_SK_MSG_VERDICT,
-    BPF_ATTACH_TYPE_LIRC_MODE2,
-    BPF_ATTACH_TYPE_FLOW_DISSECTOR,
-    BPF_ATTACH_TYPE_CGROUP_SYSCTL,
-    BPF_ATTACH_TYPE_CGROUP_UDP4_SENDMSG,
-    BPF_ATTACH_TYPE_CGROUP_UDP6_SENDMSG,
-    BPF_ATTACH_TYPE_CGROUP_INET4_GETPEERNAME,
-    BPF_ATTACH_TYPE_CGROUP_INET6_GETPEERNAME,
-    BPF_ATTACH_TYPE_CGROUP_INET4_GETSOCKNAME,
-    BPF_ATTACH_TYPE_CGROUP_INET6_GETSOCKNAME,
-    BPF_ATTACH_TYPE_CGROUP_INET_SOCK_RELEASE,
-    BPF_ATTACH_TYPE_XDP_DEVMAP,
-    BPF_ATTACH_TYPE_XDP_CPUMAP,
-    BPF_ATTACH_TYPE_SK_LOOKUP,
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
+    BPF_CGROUP_SOCK_OPS,
+    BPF_ATTACH_TYPE_SAMPLE,
+    BPF_XDP_TEST,
 };
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
@@ -2614,7 +2599,7 @@ TEST_CASE("libbpf attach type names", "[libbpf]")
 
     enum bpf_attach_type attach_type;
     for (int i = 1; i < __MAX_BPF_ATTACH_TYPE; i++) {
-        // Skip types that are not defined in ebpf core.
+        // Skip types that are not defined in ebpfcore.
         if (ebpf_core_attach_types.find(static_cast<bpf_attach_type>(i)) == ebpf_core_attach_types.end())
             continue;
         const char* type_str = libbpf_bpf_attach_type_str((enum bpf_attach_type)i);
