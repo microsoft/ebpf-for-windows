@@ -24,10 +24,20 @@ typedef class _native_module_helper
     void
     initialize(_In_z_ const char* file_name_prefix)
     {
-        initialize(file_name_prefix, ebpf_execution_type_t::EBPF_EXECUTION_ANY);
+        initialize(file_name_prefix, ebpf_execution_type_t::EBPF_EXECUTION_ANY, true);
     }
     void
-    initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type);
+    initialize(_In_z_ const char* file_name_prefix, bool is_main_thread)
+    {
+        initialize(file_name_prefix, ebpf_execution_type_t::EBPF_EXECUTION_ANY, is_main_thread);
+    }
+    void
+    initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
+    {
+        initialize(file_name_prefix, execution_type, true);
+    }
+    void
+    initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type, bool is_main_thread);
     std::string
     get_file_name() const
     {
@@ -39,4 +49,5 @@ typedef class _native_module_helper
   private:
     std::string _file_name;
     bool _delete_file_on_destruction = false;
+    bool _is_main_thread = true;
 } native_module_helper_t;
