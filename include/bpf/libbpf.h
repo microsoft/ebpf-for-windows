@@ -965,7 +965,7 @@ perf_buffer__new(
     const struct perf_buffer_opts* opts);
 
 /**
- * @brief Frees a perf buffer manager.
+ * @brief Free a perf buffer manager.
  *
  * @param[in] rb Pointer to perf buffer manager to be freed.
  */

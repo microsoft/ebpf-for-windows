@@ -465,17 +465,14 @@ perf_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
 struct perf_buffer*
 perf_buffer__new(
     int map_fd,
-    size_t page_cnt,
+    size_t /* page_cnt*/,
     perf_buffer_sample_fn sample_cb,
     perf_buffer_lost_fn lost_cb,
     void* ctx,
-    const struct perf_buffer_opts* opts)
+    const struct perf_buffer_opts* /* opts*/)
 {
     ebpf_result result = EBPF_SUCCESS;
     perf_buffer_t* local_perf_buffer = nullptr;
-
-    UNREFERENCED_PARAMETER(opts);
-    UNREFERENCED_PARAMETER(page_cnt);
 
     if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
         result = EBPF_INVALID_ARGUMENT;

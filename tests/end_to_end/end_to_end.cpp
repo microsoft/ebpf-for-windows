@@ -3962,7 +3962,7 @@ bindmonitor_perf_buffer_test(ebpf_execution_type_t execution_type)
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Test multiple subscriptions to the same perf buffer , to ensure that the perf buffer map will continue
+    // Test multiple subscriptions to the same perf buffer, to ensure that the perf buffer map will continue
     // to provide notifications to the subscriber.
     for (int i = 0; i < 1; i++) {
         perf_buffer_api_test_helper(
@@ -4030,7 +4030,7 @@ test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
     std::function<ebpf_result_t(void*, uint32_t*)> invoke =
         [&hook](_Inout_ void* context, _Out_ uint32_t* result) -> ebpf_result_t { return hook.fire(context, result); };
 
-    // Test multiple subscriptions to the same perf buffer , to ensure that the perf buffer map will continue
+    // Test multiple subscriptions to the same perf buffer, to ensure that the perf buffer map will continue
     // to provide notifications to the subscriber.
     for (int i = 0; i < 3; i++) {
         perf_buffer_api_test_helper(
