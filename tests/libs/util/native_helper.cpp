@@ -3,13 +3,15 @@
 
 #include "catch_wrapper.hpp"
 #include "ebpf_execution_type.h"
+#include "misc_helper.h"
 #include "native_helper.hpp"
 
 #include <rpc.h>
 
 // We cannot use REQUIRE from a constructor.  Anything that can fail should be here in initialize().
 void
-_native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type)
+_native_module_helper::initialize(
+    _In_z_ const char* file_name_prefix, ebpf_execution_type_t execution_type, bool is_main_thread)
 {
     GUID random_guid;
     char* guid_string = nullptr;
@@ -18,6 +20,9 @@ _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_exec
 #else
     ebpf_execution_type_t system_default = ebpf_execution_type_t::EBPF_EXECUTION_ANY;
 #endif
+
+    // Set _is_main_thread before any REQUIRE is invoked.
+    _is_main_thread = is_main_thread;
 
     if (execution_type == ebpf_execution_type_t::EBPF_EXECUTION_ANY) {
         execution_type = system_default;
@@ -28,13 +33,13 @@ _native_module_helper::initialize(_In_z_ const char* file_name_prefix, ebpf_exec
         std::string original_file_name = file_name_prefix_string + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
 
         // Generate a random GUID to append to the file name.
-        REQUIRE(UuidCreate(&random_guid) == RPC_S_OK);
+        SAFE_REQUIRE(UuidCreate(&random_guid) == RPC_S_OK);
 
-        REQUIRE(UuidToStringA(&random_guid, (RPC_CSTR*)&guid_string) == RPC_S_OK);
+        SAFE_REQUIRE(UuidToStringA(&random_guid, (RPC_CSTR*)&guid_string) == RPC_S_OK);
 
         _file_name =
             file_name_prefix_string + std::string(guid_string) + std::string(EBPF_PROGRAM_FILE_EXTENSION_NATIVE);
-        REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);
+        SAFE_REQUIRE(CopyFileA(original_file_name.c_str(), _file_name.c_str(), TRUE) == TRUE);
         RpcStringFreeA((RPC_CSTR*)&guid_string);
     } else {
         _file_name = std::string(file_name_prefix) + std::string(EBPF_PROGRAM_FILE_EXTENSION_JIT);
