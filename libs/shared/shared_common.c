@@ -652,17 +652,23 @@ Exit:
 ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
 {
-    const int PREFIX_SIZE = 5; // Length of "BPF:\\".
-    strcpy_s(output, output_size, "BPF:\\");
-
-    // Add the BPF: prefix if not already present.
-    if (_strnicmp(input, "BPF:\\", PREFIX_SIZE) == 0 || _strnicmp(input, "BPF:/", PREFIX_SIZE) == 0) {
-        strcpy_s(output + PREFIX_SIZE, output_size - PREFIX_SIZE, input + PREFIX_SIZE);
-    } else {
-        strcpy_s(output + PREFIX_SIZE, output_size - PREFIX_SIZE, input);
+    const int DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
+    if (strcpy_s(output, output_size, "BPF:") != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    if (input[0] != '/' && input[0] != '\\') {
+        // A relative path is relative to the root.
+        strcat_s(output, output_size, "\\");
     }
 
-    for (int i = PREFIX_SIZE; output[i] != 0; i++) {
+    // Add the BPF: prefix if not already present.
+    if (_strnicmp(input, "BPF:", DEVICE_PREFIX_SIZE) == 0) {
+        strcat_s(output, output_size, input + DEVICE_PREFIX_SIZE);
+    } else {
+        strcat_s(output, output_size, input);
+    }
+
+    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
         if (output[i] == '/') {
             // Convert slashes to backslashes.
             output[i] = '\\';
@@ -673,12 +679,12 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
     }
 
     // Remove other prefix aliases from the beginning.
-    if (_strnicmp(output + PREFIX_SIZE, "\\ebpf\\global\\", 13) == 0) {
-        char* next = output + PREFIX_SIZE + 13;
-        memmove(output + PREFIX_SIZE, next, strlen(next) + 1);
+    if (_strnicmp(output + DEVICE_PREFIX_SIZE, "\\ebpf\\global\\", 13) == 0) {
+        char* next = output + DEVICE_PREFIX_SIZE + 13;
+        memmove(output + DEVICE_PREFIX_SIZE + 1, next, strlen(next) + 1);
     }
 
-    for (int i = PREFIX_SIZE - 1; output[i] != 0;) {
+    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0;) {
         if (strncmp(output + i, "\\\\", 2) == 0) {
             char* next = output + i + 2;
             memmove(output + i + 1, next, strlen(next) + 1);
@@ -689,7 +695,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
             memmove(output + i + 1, next, strlen(next) + 1);
         } else if (strncmp(output + i, "\\..\\", 4) == 0) {
             int previous_index = i - 1;
-            for (; previous_index >= 4; previous_index--) {
+            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
                 if (output[previous_index] == '\\') {
                     // Back up to the previous separator.
                     char* next = output + i + 4;
@@ -698,12 +704,12 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
                     break;
                 }
             }
-            if (previous_index < PREFIX_SIZE - 1) {
+            if (previous_index < DEVICE_PREFIX_SIZE) {
                 return EBPF_INVALID_ARGUMENT;
             }
         } else if (strcmp(output + i, "\\..") == 0) {
             int previous_index = i - 1;
-            for (; previous_index >= PREFIX_SIZE - 1; previous_index--) {
+            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
                 if (output[previous_index] == '\\') {
                     // Terminate the string at the previous separator.
                     output[previous_index] = 0;
@@ -711,7 +717,7 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
                     break;
                 }
             }
-            if (previous_index < PREFIX_SIZE - 1) {
+            if (previous_index < DEVICE_PREFIX_SIZE) {
                 return EBPF_INVALID_ARGUMENT;
             }
         } else {
