@@ -7,6 +7,8 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 
+#include <thread>
+
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
 // used under the BSD-2-Clause license , so the coding style tries to match the libbpf.c style to
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
@@ -435,7 +437,7 @@ typedef struct perf_buffer
 {
     std::vector<ebpf_map_subscription_t*> subscriptions;
 
-    perf_buffer() : ctx(nullptr), sample_cb(nullptr) {}
+    perf_buffer() : ctx(nullptr), sample_cb(nullptr), active_subscription_count(0), free_inprogress(false) {}
 
     ~perf_buffer()
     {
@@ -451,6 +453,8 @@ typedef struct perf_buffer
 
     void* ctx;
     perf_buffer_sample_fn sample_cb;
+    size_t active_subscription_count;
+    bool free_inprogress;
 } perf_buffer_t;
 
 int
@@ -458,6 +462,13 @@ perf_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
 {
     UNREFERENCED_PARAMETER(cpu);
     perf_buffer_t* perf_buffer = reinterpret_cast<perf_buffer_t*>(ctx);
+
+    if (perf_buffer->free_inprogress) {
+        if ((data == nullptr) || (size == 0)) {
+            --perf_buffer->active_subscription_count;
+        }
+    }
+
     perf_buffer->sample_cb(perf_buffer->ctx, cpu, data, size);
     return 0;
 }
@@ -516,8 +527,35 @@ Exit:
     EBPF_RETURN_POINTER(perf_buffer*, local_perf_buffer);
 }
 
+// Wait for callbacks to complete duration during the Free operation.
+#define PERF_BUFFER_FREE_WAIT_IN_MS 50
+
+// Wait iterations before giving up.
+#define PERF_BUFFER_FREE_WAIT_COUNTER 20
+
 void
 perf_buffer__free(struct perf_buffer* pb)
 {
+    uint32_t loop_counter = 0;
+
+    pb->active_subscription_count = pb->subscriptions.size();
+    pb->free_inprogress = true;
+
+    for (auto& sub : pb->subscriptions) {
+        ebpf_map_unsubscribe(sub);
+    }
+    pb->subscriptions.clear();
+
+    // Wait for for all the notifications to be complete before freeing memory.
+    while (pb->active_subscription_count > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(PERF_BUFFER_FREE_WAIT_IN_MS));
+        loop_counter++;
+
+        if (loop_counter == PERF_BUFFER_FREE_WAIT_COUNTER) {
+            break;
+        }
+    }
+    ebpf_assert(loop_counter < PERF_BUFFER_FREE_WAIT_COUNTER);
+
     delete pb;
 }
