@@ -4,6 +4,465 @@ ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for use
 
 *More documentation on user-mode API to be added later.*
 
+## Synchronous Consumer Support (proposal)
+
+The current ringbuffer uses a automatically invoked callbacks to read the ringbuffer.
+Linux also supports memory-mapped polling consumers, which aren't currently supported.
+
+The new API will support 2 consumer types: callbacks and direct access to the mapped producer memory (with an event handle to wait for data).
+
+Asynchronous callback consumer:
+
+1. Call `ring_buffer__new` to set up callback with RINGBUF_FLAG_AUTO_CALLBACK specified.
+    - Note: automatic callbacks are the current default behavior, but eventually
+      this will change #4142 to match the linux behavior so should always be specified.
+2. The callback will be invoked for each record written to the ring buffer.
+
+Synchronous callback consumer:
+
+1. Call `ring_buffer__new` to set up callback with RINGBUF_FLAG_NO_AUTO_CALLBACK specified.
+2. Call `ring_buffer__poll()` to wait for data if needed and invoke the callback on all available records.
+
+Mapped memory consumer:
+
+1. Call `ebpf_ring_buffer_map_map_buffer` to get pointers to the mapped producer/consumer pages.
+2. Call `ebpf_ring_buffer_set_wait_handle` to set the wait handle.
+3. Directly read records from the producer pages (and update consumer offset as we read).
+    - Use acquire and release semantics as described below for accessing record headers and ring offsets.
+4. Call `WaitForSingleObject`/`WaitForMultipleObject` as needed to wait for new data to be available.
+
+### Differences from linux API
+
+#### Poll and Consume
+
+On linux `ring_buffer__poll()` and `ring_buffer__consume()` are used to invoke the callback.
+`poll()` waits for available data (or until timeout), then consume all available records.
+`consume()` consumes all available records (without waiting).
+
+Windows will initially only support `ring_buffer__poll()`, which can be called with a timeout of zero
+to get the same behaviour as `ring_buffer__consume()`.
+
+#### Asynchronous callbacks
+
+On Linux ring buffers currently support only synchronous callbacks (using poll/consume).
+In contrast, Windows eBPF currently supports only asynchronous ring buffer callbacks,
+where the callback is automatically invoked when data is available.
+
+This proposal adds support for synchronous consumers by setting the `RINGBUF_FLAG_NO_AUTO_CALLBACK` flag.
+With the flag set, callbacks will not automatically be called.
+To invoke the callback and `ring_buffer__poll()`
+should be called to poll for available data and invoke the callback.
+On Windows a timeout of zero can be passed to `ring_buffer__poll()` to get the same behaviour as `ring_buffer__consume()` (consume available records without waiting).
+
+When #4142 is resolved the default behaviour will be changed from asynchronous (automatic) to synchronous callbacks,
+so `RINGBUF_FLAG_AUTO_CALLBACK` should always be specified for asynchronous callbacks for forward-compatibility.
+
+#### Memory mapped consumers
+
+As an alternative to callbacks, Linux ring buffer consumers can directly access the
+ring buffer data by calling `mmap()` on a ring_buffer map fd to map the data into user space.
+`ring_buffer__epoll_fd()` is used on Linux to get an fd to use with epoll to wait for data.
+
+Windows doesn't have directly compatible APIs to Linux mmap and epoll, so instead we will perfom the mapping
+in the eBPF core and use a KEVENT to signal for new data.
+
+For direct memory mapped consumers on Windows, use `ebpf_ring_buffer_get_buffer` to get pointers to the producer and consumer
+pages mapped into user space, and `ebpf_ring_buffer_get_wait_handle()` to get the SynchronizationEvent (auto-reset) KEVENT
+to use with `WaitForSingleObject`/`WaitForMultipleObject`.
+
+Similar to the linux memory layout, the first page of the producer and consumer memory is the "producer page" and "consumer page",
+which contain the 64 bit producer and consumer offsets as the first 8 bytes.
+Only the producer may update the producer offset, and only the consumer may update the consumer offset.
+
+### ebpf-for-windows API Changes
+
+#### Changes to ebpf helper functions
+
+```c
+/**
+ * @brief Output record to ringbuf
+ *
+ * Note newly added flag values (to specify wakeup options).
+ *
+ * Wakeup options (flags):
+ * - 0 (auto/default): Notify if consumer has caught up.
+ * - BPF_RB_FORCE_WAKEUP: Always notify consumer.
+ * - BPF_RB_NO_WAKEUP: Never notify consumer.
+ *
+ */
+ebpf_result_t
+ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length, size_t flags)
+```
+
+#### Updated libbpf API for callback consumer
+
+The behaviour of these functions will be unchanged for now.
+
+Use the existing `ring_buffer__new()` to set up automatic callbacks for each record.
+Call `ebpf_ring_buffer_get_buffer()` ([New eBPF APIs](#new-ebpf-apis-for-mapped-memory-consumer))
+to get direct access to the mapped ringbuffer memory.
+
+```c
+struct ring_buffer;
+
+typedef int (*ring_buffer_sample_fn)(_Inout_ void *ctx, _In_reads_bytes_(size) void *data, size_t size);
+
+struct ring_buffer_opts {
+  size_t sz; /* size of this struct, for forward/backward compatiblity */
+  uint64_t flags; /* ring buffer option flags */
+};
+
+// Ring buffer manager options.
+// - The default behaviour is currently automatic callbacks, but may change in the future per #4142.
+// - Only specify one of AUTO_CALLBACKS or NO_AUTO_CALLBACKS - specifying both is not allowed.
+enum ring_buffer_flags {
+  RINGBUF_FLAG_AUTO_CALLBACK = (uint64_t)1 << 0 /* Automatically invoke callback for each record */
+  RINGBUF_FLAG_NO_AUTO_CALLBACK = (uint64_t)2 << 0 /* Don't automatically invoke callback for each record */
+};
+
+#define ring_buffer_opts__last_field sz
+
+/**
+ * @brief Creates a new ring buffer manager.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] sample_cb Pointer to ring buffer notification callback function.
+ * @param[in] ctx Pointer to sample_cb callback function context.
+ * @param[in] opts Ring buffer options.
+ *
+ * @returns Pointer to ring buffer manager.
+ */
+struct ring_buffer *
+ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, _Inout_ void *ctx,
+		 _In_ const struct ring_buffer_opts *opts);
+
+/**
+ * @brief poll ringbuf for new data
+ * Poll for available data and consume records, if any are available.
+ *
+ * If timeout_ms is zero, poll will not wait but only invoke the callback on records that are ready.
+ * If timeout_ms is -1, poll will wait until data is ready (no timeout).
+ *
+ * This function is only supported when automatic callbacks are disabled (see RINGBUF_FLAG_NO_AUTO_CALLBACK).
+ *
+ * @param[in] rb Pointer to ring buffer manager.
+ * @param[in] timeout_ms maximum time to wait for (in milliseconds).
+ *
+ * @returns number of records consumed, INT_MAX, or a negative number on error
+ */
+int ring_buffer__poll(_In_ struct ring_buffer *rb, int timeout_ms);
+
+/**
+ * @brief Frees a ring buffer manager.
+ *
+ * @param[in] rb Pointer to ring buffer manager to be freed.
+ */
+void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
+```
+
+### New ebpf APIs for mapped memory consumer
+
+```c
+/**
+ * Get the wait handle to use with WaitForSingleObject/WaitForMultipleObject.
+ *
+ * Get's the wait handle maintained by the ring buffer manager.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ *
+ * @returns Wait handle
+ */
+HANDLE ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer *rb);
+
+
+typedef struct _ebpf_ring_buffer_consumer_page
+{
+    volatile size_t consumer_offset; ///< Consumer has read up to this offset.
+} ebpf_ring_buffer_consumer_page_t;
+
+typedef struct _ebpf_ring_buffer_producer_page
+{
+    volatile size_t producer_offset; ///< Producer(s) have reserved up to this offset.
+} ebpf_ring_buffer_producer_page_t;
+
+/**
+ * Map ring buffer memory into user space and get pointers to the consumer, producer, and data regions.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[out] producer pointer* to start of read-only mapped producer pages
+ * @param[out] consumer pointer* to start of read-write mapped consumer page
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval other An error occurred.
+ */
+ebpf_result_t ebpf_ring_buffer_get_buffer(
+    _In_ struct ring_buffer *rb,
+    _Out_ ebpf_ring_buffer_consumer_page_t **consumer,
+    _Out_ const ebpf_ring_buffer_producer_page_t **producer,
+    _Out_ uint8_t **data
+    );
+
+/**
+ * Map ring buffer memory into user space and get pointers to the consumer, producer, and data regions.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[out] producer pointer* to start of read-only mapped producer pages
+ * @param[out] consumer pointer* to start of read-write mapped consumer page
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval other An error occurred.
+ */
+ebpf_result_t ebpf_ring_buffer_map_map_buffer(
+    fd_t map_fd,
+    _Out_ ebpf_ring_buffer_consumer_page_t **consumer,
+    _Out_ const ebpf_ring_buffer_producer_page_t **producer,
+    _Out_ const uint8_t **data
+    );
+
+/**
+ * Set the wait handle that will be signaled for new data.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ *
+ * @returns Wait handle
+ */
+ebpf_result_t ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, HANDLE handle);
+```
+
+### Polling consumer semantics
+
+```c
+/**
+ * NOTE: the below helpers are being removed during refatoring
+ * by abstracting operations on the producer and consumer offsets.
+ */
+
+/**
+ * Check whether consumer offset == producer offset.
+ *
+ * Note that not empty doesn't mean data is ready, just that there are records that have been allocated.
+ * You still need to check the locked and discarded bits of the record header to determine if a record is ready.
+ *
+ * @param[in] cons pointer* to start of read-write mapped consumer page
+ * @param[in] prod pointer* to start of read-only mapped producer pages
+ *
+ * @returns 0 if ring buffer is empty, 1 otherwise
+ */
+int ebpf_ring_buffer_empty(volatile const void *prod, const void *cons);
+
+/**
+ * Clear the ring buffer by flushing all completed and in-progress records.
+ *
+ * This helper just sets the consumer offset to the producer offset
+ *
+ * @param[in] prod pointer* to start of read-only mapped producer pages
+ * @param[in,out] cons pointer* to start of read-write mapped consumer page
+ */
+void ebpf_ring_buffer_flush(volatile const void *prod, void *cons);
+
+/**
+ * Advance consumer offset to next record (if any)
+ *
+ * @param[in] prod pointer* to start of read-only mapped producer pages
+ * @param[in,out] cons pointer* to start of read-write mapped consumer page
+ */
+void ebpf_ring_buffer_next_record(volatile const void *prod, void *cons);
+
+/**
+ * Get record at current ringbuffer offset.
+
+ * @param[in] prod pointer* to start of read-only mapped producer pages
+ * @param[in] cons pointer* to start of read-write mapped consumer page
+ *
+ * @returns E_SUCCESS (0) if record ready, E_LOCKED if record still locked, E_EMPTY if consumer has caught up.
+ */
+int ebpf_ring_buffer_get_record(volatile const void *prod, const void *cons, volatile const void** record);
+
+```
+
+### Ringbuffer consumer
+
+#### mapped memory consumer example
+
+This consumer directly accesses the records from the producer memory and directly updates the consumer offset to show the logic. Normally user code should use the ring buffer helpers
+(see second example below) to simplify the logic.
+
+```c++
+
+//
+// == Direct mapped memory consumer ==
+//
+
+// Open ringbuffer.
+fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
+if (map_fd == ebpf_fd_invalid) return 1;
+
+// Create wait handle.
+HANDLE wait_handle = CreateEvent(nullptr, true, false, nullptr);
+if (wait_handle == NULL) {
+    // … log error …
+    goto Exit;
+}
+
+// Set map wait handle.
+ebpr_result result = ebpf_ring_buffer_set_wait_handle(map_fd, wait_handle);
+if (result != EBPF_SUCCESS) {
+    // … log error …
+    goto Exit;
+}
+
+ebpf_ring_buffer_consumer_page_t *rb_cons; // Read/write consumer page.
+const ebpf_ring_buffer_producer_page_t *rb_prod; // Read-only producer page.
+const uint8_t* data; // Data region for records.
+
+// Get pointers to the 3 regions.
+result = ebpf_ring_buffer_map_map_buffer(map_fd, &rb_prod, &rb_cons, &data);
+if (result != EBPF_SUCCESS) {
+    // … log error …
+    goto Exit;
+}
+
+const volatile uint64_t *prod_offset = &rb_prod->producer_offset; // Producer offset ptr (r only).
+volatile uint64_t *cons_offset = &rb_cons->consumer_offset; // Consumer offset ptr (r/w mapped).
+
+uint64_t producer_offset = ReadAcquire64(prod_offset);
+uint64_t consumer_offset = ReadNoFence64(cons_offset);
+// have_data used to track whether we should wait for notification or just keep reading.
+bool have_data = producer_offset > consumer_offset;
+
+// Now loop until error.
+For(;;) {
+  if (!have_data) { // Only wait if we have already caught up.
+    // Wait for rb to notify -- or we could spin/poll until *prod_offset > *cons_offset.
+    DWORD wait_status = WaitForSingleObject(wait_handle, INFINITE);
+
+    if (wait_status != WAIT_OBJECT_0) { // No notification
+      uint32_t wait_err = GetLastError();
+      if (wait_err == /* terminal error */) {
+        // … log error …
+        break;
+      }
+      // It's possible we still have data, so check even though we got an error.
+      producer_offset = ReadAcquire64(prod_offset);
+      have_data = producer_offset > consumer_offset;
+      if (!have_data) continue;
+    } else { // We got notified of new data.
+      have_data = true;
+    }
+  }
+  uint64_t remaining = producer_offset - consumer_offset;
+
+  // Check for empty ring.
+  if (remaining == 0) {
+    have_data = false; // Caught up to producer.
+    continue;
+  } else if (remaining < EBPF_RINGBUF_HEADER_SIZE) {
+    // Bad record or consumer offset out of alignment.
+    // … log error …
+    break;
+  }
+
+  ebpf_ring_buffer_record_t *record = ebpf_ring_buffer_next_record(data, rb_size, consumer, producer);
+
+  // Check if next record is locked.
+  if (ebpf_ring_buffer_record_is_locked(record)) {
+    have_data = false;
+    continue;
+    // Or we could spin/poll until ebpf_ring_buffer_record_is_locked(record) returns false.
+  }
+
+  if (!ebpf_ring_buffer_record_is_discarded(record)) {
+    uint32_t record_length = ebpf_ring_buffer_record_length(record);
+    // Read data from record->data[0 … record_length-1].
+    // … business logic …
+  } // Else it was discarded, skip and continue.
+
+  // Update consumer offset.
+  // Note: record_length is the data size, record_total_size includes header and padding.
+  consumer_offset += ebpf_ring_buffer_record_total_size(record);
+  WriteNoFence64(cons_offset,consumer_offset);
+}
+
+Exit:
+```
+
+#### Polling ring buffer consumer (using ringbuf manager)
+
+```c
+// sample callback
+int ring_buffer_sample_fn(void *ctx, void *data, size_t size) {
+  // … business logic to handle record …
+}
+
+// consumer code
+struct ring_buffer_opts opts;
+opts.sz = sizeof(opts);
+opts.flags = RINGBUF_FLAG_NO_AUTO_CALLBACK; //no automatic callbacks
+
+fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
+if (map_fd == ebpf_fd_invalid) return 1;
+
+struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn sample_cb, &opts);
+if (rb == NULL) return 1;
+
+// now loop as long as there isn't an error
+while(ring_buffer__poll(rb, -1) >= 0) {
+  // data processed by event callback
+}
+
+ring_buffer__free(rb);
+```
+
+
+### Linux consumer examples (for comparison)
+
+#### Linux direct mmap consumer
+
+```c
+// sample callback
+int ring_buffer_sample_fn(void *ctx, void *data, size_t size) {
+  // … business logic to handle record …
+}
+
+fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
+if (map_fd == ebpf_fd_invalid) return 1;
+
+struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn sample_cb, NULL);
+
+void* consumer = mmap(NULL, rb->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
+size_t mmap_sz = rb->page_size + 2 * (__u64)info.max_entries;
+void* producer = mmap(NULL, (size_t)mmap_sz, PROT_READ, MAP_SHARED, map_fd, rb->page_size);
+
+// TODO: finish implementing linux example.
+
+```
+
+#### Linux ring buffer manager consumer
+
+```c
+// sample callback
+int ring_buffer_sample_fn(void *ctx, void *data, size_t size) {
+  // … business logic to handle record …
+}
+
+fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
+if (map_fd == ebpf_fd_invalid) return 1;
+
+struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn sample_cb, NULL);
+
+// now loop as long as there isn't an error
+while(ring_buffer__poll(rb, -1) >= 0) {
+  // data processed by event callback
+}
+
+ring_buffer__free(rb);
+
+
+```
+
+
+
+
 *Below implementation details of the internal ring buffer data structure are discussed.*
 
 ## Internal Ring Buffer
@@ -29,18 +488,23 @@ This section describes the multiple-producer single-consumer internal ring buffe
 ### Memory Layout
 
 ```text
-
-|<-------------ring memory------------->|<-----2nd mapping of ring memory------>|
-|123456789-123456789-123456789-123456789|123456789-123456789-123456789-123456789|
-                 ^            ^
->================|            |=========>...  <- producer owned (new records reserved here)
-                 |============|               <- consumer readable portion
-              consumer     producer
+|kernel page|consumer page|producer page|<-------------ring memory------------>|<----2nd mapping of ring memory------>|
+                                                         ^            ^
+                                        >================|            |========>...
+                                                         |============|
+                                                      consumer     producer
+                                                       offset       offset
 ```
 
+The internal ring buffer has a header of 3 pages of memory
 The memory for the ring is split into two portions by a producer offset and consumer offset and mapped twice sequentially in memory.
 
+- The kernel page is for internal use by producers.
+- The consumer page has the consumer offset and consumer flags.
+- The producer page has the producer offset.
 - The producers own the portion of the ring from the producer offset to the consumer offset (modulo the ring length).
+  - This is where new records are reserved. Newly reserved records are locked before the producer offset is updated.
+  - The consumer reads records in order starting at the consumer offset and stopping at the first locked record.
 - Double-mapping the memory automatically handles reading and writing records that wrap around.
 
 ### Ring buffer structure
