@@ -57,6 +57,19 @@
 
 const int nonexistent_fd = 12345678;
 
+// Set of all attach_types defined in ebpfcore. This must be updated any time a new bpf_attach_type is added.
+static const std::set<bpf_attach_type> ebpf_core_attach_types = {
+    BPF_ATTACH_TYPE_UNSPEC,
+    BPF_ATTACH_TYPE_BIND,
+    BPF_CGROUP_INET4_CONNECT,
+    BPF_CGROUP_INET6_CONNECT,
+    BPF_CGROUP_INET4_RECV_ACCEPT,
+    BPF_CGROUP_INET6_RECV_ACCEPT,
+    BPF_CGROUP_SOCK_OPS,
+    BPF_ATTACH_TYPE_SAMPLE,
+    BPF_XDP_TEST,
+};
+
 #if !defined(CONFIG_BPF_JIT_DISABLED)
 TEST_CASE("libbpf load program", "[libbpf][deprecated]")
 {
@@ -385,8 +398,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 #endif
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
-#define BPF_LD_MAP_FD(reg, fd) \
-    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
+#define BPF_LD_MAP_FD(reg, fd) {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, {0}
 #define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
 #define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
 #define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
@@ -2161,7 +2173,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t) "MyPath";
+    attr.obj_pin.pathname = (uintptr_t)"MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -2587,8 +2599,8 @@ TEST_CASE("libbpf attach type names", "[libbpf]")
 
     enum bpf_attach_type attach_type;
     for (int i = 1; i < __MAX_BPF_ATTACH_TYPE; i++) {
-        // Skip XDP type as it is supported only with the xdp-for-windows repo.
-        if (i == BPF_XDP)
+        // Skip types that are not defined in ebpfcore.
+        if (ebpf_core_attach_types.find(static_cast<bpf_attach_type>(i)) == ebpf_core_attach_types.end())
             continue;
         const char* type_str = libbpf_bpf_attach_type_str((enum bpf_attach_type)i);
 
