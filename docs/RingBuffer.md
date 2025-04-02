@@ -172,7 +172,7 @@ void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
  *
  * @returns Wait handle
  */
-HANDLE ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer *rb);
+ebpf_handle ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer *rb);
 
 
 typedef struct _ebpf_ring_buffer_consumer_page
