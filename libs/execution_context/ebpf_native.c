@@ -795,6 +795,16 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t* client_context = NULL;
 
     const metadata_table_t* table = (const metadata_table_t*)client_dispatch;
+    if (table == NULL) {
+        // This is most likely an older version of native module. Reject attach.
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Invalid native module: metadata table is NULL",
+            client_module_id);
+        goto Done;
+    }
 
     client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
     if (!client_context) {
