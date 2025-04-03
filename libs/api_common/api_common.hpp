@@ -238,3 +238,6 @@ ebpf_verify_program(
     _In_ const prevail::program_info& info,
     _In_ const prevail::ebpf_verifier_options_t& options,
     _Out_ ebpf_api_verifier_stats_t* stats);
+
+prevail::ebpf_verifier_options_t
+ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity = EBPF_VERIFICATION_VERBOSITY_NORMAL);
