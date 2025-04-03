@@ -181,7 +181,7 @@ ebpf_verify_program(
         if (info.type.platform_specific_data == (uintptr_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
             throw std::runtime_error("Unspecified program type.");
         }
-        const auto program = Program::from_sequence(instruction_sequence, info, options.cfg_opts);
+        const auto program = Program::from_sequence(instruction_sequence, info, options);
         auto invariants = analyze(program);
         if (options.verbosity_opts.print_invariants) {
             print_invariants(os, program, options.verbosity_opts.simplify, invariants);

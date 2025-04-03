@@ -116,82 +116,16 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
     int result;
 
     // Insert capacity + 1 entries
-#if 0
-    for (key = 0; key < 11; key++) {
+    // Verifier can't handle loops with == as the boundary condition. Clang optimizer converts all loops to have an ==
+    // condition by default. So we need to use a volatile variable to make the compiler honor our loop condition.
+    for (volatile uint32_t i = 0; i < 11; i++) {
+        key = i;
         result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
         if (result < 0) {
             bpf_printk("bpf_map_update_elem returned %d", result);
             return result;
         }
     }
-#else
-    // Work around temporary compiler limitation.
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 1;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 2;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 3;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 4;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 5;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 6;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 7;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 8;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 9;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-    key = 10;
-    result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
-    if (result < 0) {
-        bpf_printk("bpf_map_update_elem returned %d", result);
-        return result;
-    }
-#endif
     return 0;
 }
 
@@ -236,50 +170,25 @@ struct _ebpf_map_definition_in_file STACK_map;
 inline __attribute__((always_inline)) int
 test_PUSH_POP_map(struct _ebpf_map_definition_in_file* map)
 {
-    int i;
     PEEK_VALUE(map, 0, -7);
     POP_VALUE(map, 0, -7);
 
-#if 0
-    for (i = 0; i < 10; i++) {
+    // Verifier can't handle loops with == as the boundary condition. Clang optimizer converts all loops to have an ==
+    // condition by default. So we need to use a volatile variable to make the compiler honor our loop condition.
+    for (volatile int i = 0; i < 10; i++) {
         PUSH_VALUE(map, i, FALSE, 0);
     }
-#else
-    // Work around current verifier limitation.
-    PUSH_VALUE(map, 0, FALSE, 0);
-    PUSH_VALUE(map, 1, FALSE, 0);
-    PUSH_VALUE(map, 2, FALSE, 0);
-    PUSH_VALUE(map, 3, FALSE, 0);
-    PUSH_VALUE(map, 4, FALSE, 0);
-    PUSH_VALUE(map, 5, FALSE, 0);
-    PUSH_VALUE(map, 6, FALSE, 0);
-    PUSH_VALUE(map, 7, FALSE, 0);
-    PUSH_VALUE(map, 8, FALSE, 0);
-    PUSH_VALUE(map, 9, FALSE, 0);
-#endif
 
     PUSH_VALUE(map, 10, FALSE, -29);
     PUSH_VALUE(map, 10, TRUE, 0);
 
     PEEK_VALUE(map, (map == &STACK_map) ? 10 : 1, 0);
 
-#if 0
-    for (i = 0; i < 10; i++) {
+    // Verifier can't handle loops with == as the boundary condition. Clang optimizer converts all loops to have an ==
+    // condition by default. So we need to use a volatile variable to make the compiler honor our loop condition.
+    for (volatile int i = 0; i < 10; i++) {
         POP_VALUE(map, (map == &STACK_map) ? 10 - i : i + 1, 0);
     }
-#else
-    // Work around current verifier limitation.
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 0 : 0 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 1 : 1 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 2 : 2 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 3 : 3 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 4 : 4 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 5 : 5 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 6 : 6 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 7 : 7 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 8 : 8 + 1, 0);
-    POP_VALUE(map, (map == &STACK_map) ? 10 - 9 : 9 + 1, 0);
-#endif
 
     PEEK_VALUE(map, 0, -7);
     POP_VALUE(map, 0, -7);

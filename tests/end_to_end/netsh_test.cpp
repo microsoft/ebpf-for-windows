@@ -506,35 +506,17 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
     output = strip_paths(output);
 
     // Perform a line by line comparison to detect any differences.
-    std::string expected_output =
-        "Verification failed\n"
-        "\n"
-        "Verification report:\n"
-        "\n"
-        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
-        ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-        "\n"
-        "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-        "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
-        "5: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-        "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
-        "\n"
-        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:39\n"
-        ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-        "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-        "\n"
-        "6: Invalid type (r2.type in {ctx, stack, packet, shared})\n"
-        "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
-        "8: Invalid type (r1.type == number)\n"
-        "10: Invalid type (r1.type == number)\n"
-        "\n"
-        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:44\n"
-        ";     return rc;\n"
-        "\n"
-        "12: Invalid type (r0.type == number)\n"
-        "\n"
-        "9 errors\n"
-        "\n";
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "\n"
+                                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
 
     // Split both output and expected_output into lines.
     std::istringstream output_stream(output);
