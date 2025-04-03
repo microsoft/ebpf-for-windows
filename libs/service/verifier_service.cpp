@@ -25,9 +25,8 @@ _analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_mess
     InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
 
     // First try optimized for the success case.
-    ebpf_verifier_options_t options{};
+    ebpf_verifier_options_t options = ebpf_get_default_verifier_options();
     ebpf_api_verifier_stats_t stats;
-    options.cfg_opts.check_for_termination = true;
     bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, options, &stats);
     if (!res) {
         // On failure, retry to get the more detailed error message.
