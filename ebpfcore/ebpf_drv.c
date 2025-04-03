@@ -135,6 +135,9 @@ Exit:
     return status;
 }
 
+ebpf_result_t
+ebpf_driver_authorize_native_module(_In_ const cxplat_utf8_string_t* module_name);
+
 // Create a basic WDF driver, set up the device object for a callout driver and set up the ioctl surface.
 static _Check_return_ NTSTATUS
 _ebpf_driver_initialize_objects(
@@ -191,6 +194,13 @@ _ebpf_driver_initialize_objects(
     }
 
     status = ebpf_result_to_ntstatus(ebpf_core_initiate());
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_initiate, status);
+        goto Exit;
+    }
+
+    status =
+        ebpf_result_to_ntstatus(ebpf_core_register_native_module_authorization(ebpf_driver_authorize_native_module));
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_initiate, status);
         goto Exit;
@@ -450,4 +460,12 @@ _ebpf_driver_query_volume_information(_In_ WDFDEVICE device, _Inout_ IRP* irp)
     irp->IoStatus.Status = status;
     IoCompleteRequest(irp, 0);
     return status;
+}
+
+ebpf_result_t
+ebpf_driver_authorize_native_module(_In_ const cxplat_utf8_string_t* module_name)
+{
+    EBPF_LOG_MESSAGE_UTF8_STRING(
+        EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_CORE, "ebpf_driver_authorize_native_module", module_name);
+    return EBPF_SUCCESS; // Allow all modules to load by default.
 }

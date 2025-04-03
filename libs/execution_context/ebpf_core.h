@@ -22,6 +22,9 @@ extern "C"
 
     typedef uint32_t(__stdcall* ebpf_hook_function)(uint8_t*);
 
+    typedef ebpf_result_t (*ebpf_core_native_module_authorization_function_t)(
+        _In_ const cxplat_utf8_string_t* module_name);
+
     /**
      * @brief Initialize the eBPF core execution context.
      *
@@ -290,6 +293,29 @@ extern "C"
         uint32_t count_of_maps,
         _In_reads_(count_of_maps) const ebpf_handle_t* map_handles,
         _Out_writes_(count_of_maps) uintptr_t* map_value_addresses);
+
+    /**
+     * @brief Invoke any registered authorization function for the native module and check if the module is authorized.
+     *
+     * @param[in] module_name Full path of the native module to be authorized.
+     * @retval EBPF_SUCCESS The module us authorized to be run.
+     * @retval EBPF_ACCESS_DENIED The module is not authorized to be run.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_authorize_native_module(_In_ cxplat_utf8_string_t* module_name);
+
+    /**
+     * @brief Register or unregister a native module authorization function.
+     *
+     * @param[in] native_module_authorization Pointer to the native module authorization function. If NULL, unregisters
+     * the function.
+     * @return EBPF_SUCCESS The operation was successful.
+     * @return EBPF_INVALID_ARGUMENT Attempt was made to register an authorization function when one is already
+     * registered.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_core_register_native_module_authorization(
+        _In_opt_ const ebpf_core_native_module_authorization_function_t native_module_authorization);
 
 #ifdef __cplusplus
 }

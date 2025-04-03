@@ -82,6 +82,7 @@ typedef struct _ebpf_native_module
     HANDLE nmr_binding_handle;
     cxplat_preemptible_work_item_t* cleanup_work_item;
     bpf2c_version_t version;
+    cxplat_utf8_string_t module_path;
 } ebpf_native_module_t;
 
 typedef struct _ebpf_native_module_instance
@@ -141,6 +142,9 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_native_validate_module_signature(_In_ const ebpf_native_module_t* module);
 
 // Free native program context only if the program is not loaded.
 // If the program is loaded, it will be freed when the ebpf program object is freed.
@@ -469,6 +473,7 @@ static void
 _ebpf_native_clean_up_module(_In_ _Post_invalid_ ebpf_native_module_t* module)
 {
     cxplat_free_preemptible_work_item(module->cleanup_work_item);
+    cxplat_free_utf8_string(&module->module_path);
     ebpf_free(module->service_name);
 
     ebpf_lock_destroy(&module->lock);
@@ -825,6 +830,27 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
+    if (cxplat_get_module_path_from_address((void*)client_context->table.version, &client_context->module_path) !=
+        CXPLAT_STATUS_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Failed to get module path",
+            client_module_id);
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    if (ebpf_core_authorize_native_module(&client_context->module_path) != EBPF_SUCCESS) {
+        result = EBPF_BLOCKED_BY_POLICY;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Module is blocked by policy",
+            client_module_id);
+        goto Done;
+    }
+
     client_context->table.version(&client_context->version);
 
     ebpf_lock_create(&client_context->lock);
@@ -865,6 +891,9 @@ Done:
         lock_acquired = false;
     }
     if (result != EBPF_SUCCESS) {
+        if (client_context && client_context->module_path.value) {
+            cxplat_free_utf8_string(&client_context->module_path);
+        }
         ebpf_free(client_context);
     } else {
         *provider_dispatch = NULL;
