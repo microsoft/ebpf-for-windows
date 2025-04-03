@@ -308,7 +308,7 @@ perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* 
     {
         std::unique_lock<std::mutex> lock(event_context->lock);
 
-        // if doubled_data is set, the event record should contain the same data twice. We only compare the first half.
+        // If doubled_data is set, the event record should contain the same data twice. We only compare the first half.
         if (event_context->doubled_data) {
             // Check if the event record contains the same data twice.
             size_t half_size = size / 2;

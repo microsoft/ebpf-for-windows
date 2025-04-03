@@ -7,6 +7,8 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 
+#include <condition_variable>
+#include <mutex>
 #include <thread>
 
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
@@ -356,17 +358,60 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 
 typedef struct ring_buffer
 {
+    ring_buffer() : ctx(nullptr), sample_cb(nullptr), active_subscription_count(0), free_inprogress(false) {}
+    ~ring_buffer();
+
     std::vector<ebpf_map_subscription_t*> subscriptions;
-    void* ctx = nullptr;
-    ring_buffer_sample_fn sample_cb = nullptr;
+    void* ctx;
+    ring_buffer_sample_fn sample_cb;
+    size_t active_subscription_count;
+    bool free_inprogress;
+    std::condition_variable cv;
+    std::mutex lock;
 } ring_buffer_t;
+
+ring_buffer ::~ring_buffer()
+{
+
+    active_subscription_count = subscriptions.size();
+    free_inprogress = true;
+
+    for (auto& sub : subscriptions) {
+        ebpf_map_unsubscribe(sub);
+    }
+
+    subscriptions.clear();
+
+    {
+        std::unique_lock<std::mutex> lock_wait(lock);
+        // Wait for for all the notifications to be complete before freeing memory.
+        cv.wait(lock_wait, [this] { return this->active_subscription_count == 0; });
+    }
+}
 
 int
 ring_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
 {
     UNREFERENCED_PARAMETER(cpu);
+    int ret_val = 0;
+
     ring_buffer* ring_buffer = reinterpret_cast<ring_buffer_t*>(ctx);
-    return ring_buffer->sample_cb(ring_buffer->ctx, data, size);
+
+    if (ring_buffer->free_inprogress) {
+        std::lock_guard<std::mutex> lock(ring_buffer->lock);
+
+        if ((data == nullptr) || (size == 0)) {
+            --ring_buffer->active_subscription_count;
+        }
+    }
+
+    ret_val = ring_buffer->sample_cb(ring_buffer->ctx, data, size);
+
+    if ((ring_buffer->free_inprogress) && (ring_buffer->active_subscription_count == 0)) {
+        ring_buffer->cv.notify_all();
+    }
+
+    return ret_val;
 }
 
 struct ring_buffer*
@@ -416,10 +461,6 @@ Exit:
 void
 ring_buffer__free(struct ring_buffer* ring_buffer)
 {
-    for (auto it = ring_buffer->subscriptions.begin(); it != ring_buffer->subscriptions.end(); it++) {
-        (void)ebpf_map_unsubscribe(*it);
-    }
-    ring_buffer->subscriptions.clear();
     delete ring_buffer;
 }
 
@@ -438,24 +479,34 @@ typedef struct perf_buffer
     std::vector<ebpf_map_subscription_t*> subscriptions;
 
     perf_buffer() : ctx(nullptr), sample_cb(nullptr), active_subscription_count(0), free_inprogress(false) {}
-
-    ~perf_buffer()
-    {
-        EBPF_LOG_ENTRY();
-
-        for (auto& sub : subscriptions) {
-            ebpf_map_unsubscribe(sub);
-        }
-
-        subscriptions.clear();
-        EBPF_LOG_EXIT();
-    }
+    ~perf_buffer();
 
     void* ctx;
     perf_buffer_sample_fn sample_cb;
     size_t active_subscription_count;
     bool free_inprogress;
+    std::condition_variable cv;
+    std::mutex lock;
 } perf_buffer_t;
+
+perf_buffer ::~perf_buffer()
+{
+
+    active_subscription_count = subscriptions.size();
+    free_inprogress = true;
+
+    for (auto& sub : subscriptions) {
+        ebpf_map_unsubscribe(sub);
+    }
+
+    subscriptions.clear();
+
+    {
+        std::unique_lock<std::mutex> lock_wait(lock);
+        // Wait for for all the notifications to be complete before freeing memory.
+        cv.wait(lock_wait, [this] { return this->active_subscription_count == 0; });
+    }
+}
 
 int
 perf_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
@@ -464,12 +515,19 @@ perf_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
     perf_buffer_t* perf_buffer = reinterpret_cast<perf_buffer_t*>(ctx);
 
     if (perf_buffer->free_inprogress) {
+        std::lock_guard<std::mutex> lock(perf_buffer->lock);
+
         if ((data == nullptr) || (size == 0)) {
             --perf_buffer->active_subscription_count;
         }
     }
 
     perf_buffer->sample_cb(perf_buffer->ctx, cpu, data, size);
+
+    if ((perf_buffer->free_inprogress) && (perf_buffer->active_subscription_count == 0)) {
+        perf_buffer->cv.notify_all();
+    }
+
     return 0;
 }
 
@@ -527,35 +585,8 @@ Exit:
     EBPF_RETURN_POINTER(perf_buffer*, local_perf_buffer);
 }
 
-// Wait for callbacks to complete duration during the Free operation.
-#define PERF_BUFFER_FREE_WAIT_IN_MS 50
-
-// Wait iterations before giving up.
-#define PERF_BUFFER_FREE_WAIT_COUNTER 20
-
 void
 perf_buffer__free(struct perf_buffer* pb)
 {
-    uint32_t loop_counter = 0;
-
-    pb->active_subscription_count = pb->subscriptions.size();
-    pb->free_inprogress = true;
-
-    for (auto& sub : pb->subscriptions) {
-        ebpf_map_unsubscribe(sub);
-    }
-    pb->subscriptions.clear();
-
-    // Wait for for all the notifications to be complete before freeing memory.
-    while (pb->active_subscription_count > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(PERF_BUFFER_FREE_WAIT_IN_MS));
-        loop_counter++;
-
-        if (loop_counter == PERF_BUFFER_FREE_WAIT_COUNTER) {
-            break;
-        }
-    }
-    ebpf_assert(loop_counter < PERF_BUFFER_FREE_WAIT_COUNTER);
-
     delete pb;
 }

@@ -944,16 +944,14 @@ int
 bpf_program__set_flags(struct bpf_program* prog, __u32 flags);
 
 /**
- * @brief **perf_buffer__new()** creates BPF perfbuf manager for a specified
- * BPF_PERF_EVENT_ARRAY map
- * @param map_fd FD of BPF_PERF_EVENT_ARRAY BPF map that will be used by BPF
- * code to send data over to user-space
- * @param page_cnt number of memory pages allocated for each per-CPU buffer
- * @param sample_cb function called on each received data record
- * @param lost_cb function called when record loss has occurred
- * @param ctx user-provided extra context passed into *sample_cb* and *lost_cb*
- * @return a new instance of struct perf_buffer on success, NULL on error with
- * *errno* containing an error code
+ * @brief Create BPF perfbuf manager.
+ *
+ * @param[in] map_fd File descriptor to perf event array map.
+ * @param[in] page_cnt number of memory pages allocated for each per-CPU buffer. Curently unused.
+ * @param[in] sample_cb function Pointer to perf buffer notification callback function.
+ * @param[in] lost_cb ffunction Pointer for callback when record loss has occurred.
+ * @param[in] ctx user provided extra context passed into sample_cb and lost_cb.
+ * @return Pointer to perf buffer manager.
  */
 LIBBPF_API struct perf_buffer*
 perf_buffer__new(
