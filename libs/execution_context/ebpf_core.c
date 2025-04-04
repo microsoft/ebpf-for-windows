@@ -186,6 +186,9 @@ static const NPI_PROVIDER_CHARACTERISTICS _ebpf_global_helper_function_provider_
 
 static HANDLE _ebpf_global_helper_function_nmr_binding_handle = NULL;
 
+static ebpf_core_native_module_authorization_function_t _native_module_authorization = NULL;
+static EX_RUNDOWN_REF _native_module_authorization_rundown_reference = {0};
+
 static NTSTATUS
 _ebpf_general_helper_function_provider_attach_client(
     _In_ HANDLE nmr_binding_handle,
@@ -240,6 +243,8 @@ ebpf_core_initiate()
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
+
+    ExInitializeRundownProtection(&_native_module_authorization_rundown_reference);
 
     return_value = ebpf_random_initiate();
     if (return_value != EBPF_SUCCESS) {
@@ -346,6 +351,9 @@ ebpf_core_terminate()
     ebpf_trace_terminate();
 
     ebpf_random_terminate();
+
+    // Rundown the native module authorization function if it was registered.
+    ebpf_core_register_native_module_authorization(NULL);
 
     ebpf_platform_terminate();
 }
@@ -3135,4 +3143,48 @@ ebpf_core_update_map_with_handle(
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
     EBPF_RETURN_RESULT(retval);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_authorize_native_module(_In_ cxplat_utf8_string_t* module_name)
+{
+    ebpf_result_t result;
+    bool rundown_reference_acquired = ExAcquireRundownProtection(&_native_module_authorization_rundown_reference);
+
+    if (!rundown_reference_acquired) {
+        result = EBPF_ACCESS_DENIED;
+        goto Exit;
+    }
+
+    if (_native_module_authorization == NULL) {
+        result = EBPF_ACCESS_DENIED;
+        goto Exit;
+    }
+
+    result = _native_module_authorization(module_name);
+
+Exit:
+    if (rundown_reference_acquired) {
+        ExReleaseRundownProtection(&_native_module_authorization_rundown_reference);
+    }
+    return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_core_register_native_module_authorization(
+    _In_opt_ const ebpf_core_native_module_authorization_function_t native_module_authorization)
+{
+    if (native_module_authorization == NULL) {
+        if (_native_module_authorization != NULL) {
+            ExWaitForRundownProtectionRelease(&_native_module_authorization_rundown_reference);
+            _native_module_authorization = NULL;
+        }
+    } else {
+        if (_native_module_authorization == NULL) {
+            _native_module_authorization = native_module_authorization;
+        } else {
+            return EBPF_INVALID_ARGUMENT;
+        }
+    }
+    return EBPF_SUCCESS;
 }
