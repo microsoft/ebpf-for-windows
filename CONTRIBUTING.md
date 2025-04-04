@@ -2,12 +2,14 @@
 
 We'd love your help with eBPF for Windows! Here are our contribution guidelines.
 
-- [Code of Conduct](#code-of-conduct)
-- [Bugs](#bugs)
-- [New Features](#new-features)
-- [Contributor License Agreement](#contributor-license-agreement)
-- [Contributing Code](#contributing-code)
-  - [Tests](#tests)
+- [Contributing to eBPF for Windows](#contributing-to-ebpf-for-windows)
+  - [Code of Conduct](#code-of-conduct)
+  - [Bugs](#bugs)
+    - [Did you find a bug?](#did-you-find-a-bug)
+    - [Did you write a patch that fixes a bug?](#did-you-write-a-patch-that-fixes-a-bug)
+  - [New Features](#new-features)
+  - [Contributor License Agreement](#contributor-license-agreement)
+  - [Contributing Code](#contributing-code)
 
  ## Code of Conduct
 
@@ -85,3 +87,5 @@ For all new Pull Requests the following rules apply:
 - Existing tests should continue to pass.
 - [Tests](docs/AutomatedTests.md) need to be provided for every bug/feature that is completed.
 - Documentation needs to be provided for every feature that is end-user visible.
+- All pull requests must refer to a valid issue number in the repo. For trivial changes refer to
+  [Issue #4333](https://github.com/microsoft/ebpf-for-windows/issues/4333).
