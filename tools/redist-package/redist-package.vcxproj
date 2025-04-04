@@ -158,6 +158,7 @@ NuGet.exe pack $(OutDir)ebpf-for-windows-redist.nuspec -OutputDirectory $(OutDir
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+    <None Include="ebpf-for-windows-redist.props" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

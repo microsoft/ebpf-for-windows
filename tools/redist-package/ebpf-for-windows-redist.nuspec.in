@@ -19,6 +19,7 @@
 	</metadata>
 	<files>
 		<file src="..\..\tools\redist-package\README.md" target="."/>
+		<file src="..\..\tools\redist-package\ebpf-for-windows-redist.props" target="build\native\eBPF-for-Windows-Redist.{architecture}{configuration}.props"/>
 		<file src="bpftool.exe" target="lib\native\bin"/>
 		<file src="bpftool.pdb" target="lib\native\bin"/>
 		<file src="ebpfapi.dll" target="lib\native\bin"/>
