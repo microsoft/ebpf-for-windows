@@ -13,7 +13,7 @@
 		<license type="expression">MIT</license>
 		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
 		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
-		<tags>resdist redistributable ebpf</tags>
+		<tags>redist redistributable ebpf native</tags>
 		<description>eBPF for Windows Redistributable</description>
 		<readme>README.md</readme>
 	</metadata>
