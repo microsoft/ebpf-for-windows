@@ -12,13 +12,16 @@
 2. Install a Windows VM as follows:
     1. Run "Hyper-V Manager".
     2. Select the current machine in the left pane.
-    3. Click the "Quick Create..." action in the rightmost pane.
-    4. When the Create Virtual Machine dialog appears, select "Windows 10 dev environment".
-    5. Click the "Create Virtual Machine" button.
-    6. Once that is complete click the "Edit Settings" button.
-    7. Select security, clear the "Enable Secure Boot" checkbox, and click OK. (This is a prerequisite for
+    3. Click the "Quick Create..." action in the rightmost pane. When the Create Virtual Machine dialog appears:
+       1. Select "Windows 11 dev environment".
+       2. Alternatively, click the "Local installation source" to install the Windows OS of your choice from an .iso or a .vhd file.
+       You can download these from the [Microsoft Evaluation Center](https://www.microsoft.com/en-us/evalcenter/).
+       For example: [Server 2022](https://www.microsoft.com/en-us/evalcenter/download-windows-server-2022?msockid=1f59c79472266e9504e0d29373e16fb2)
+    4. Click the "Create Virtual Machine" button.
+    5. Once that is complete click the "Edit Settings" button.
+    6. Select security, clear the "Enable Secure Boot" checkbox, and click OK. (This is a prerequisite for
        enabling test signed binaries.)
-    8. Click "Connect" and start the VM.
+    7. Click "Connect" and start the VM.
 
 3. From within the VM desktop, enable test signed binaries as follows:
    (see [testsigning](https://docs.microsoft.com/en-us/windows-hardware/drivers/install/the-testsigning-boot-configuration-option) for more discussion):
