@@ -118,7 +118,7 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
     // Insert capacity + 1 entries
     // Verifier can't handle loops with == as the boundary condition. Clang optimizer converts all loops to have an ==
     // condition by default. So we need to use a volatile variable to make the compiler honor our loop condition.
-    for (volatile uint32_t i = 0; i < 11; i++) {
+    for (volatile int i = 0; i < 11; i++) {
         key = i;
         result = bpf_map_update_elem(map, &key, &value, BPF_ANY);
         if (result < 0) {
