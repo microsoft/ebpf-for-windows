@@ -13,12 +13,13 @@
 		<license type="expression">MIT</license>
 		<projectUrl>https://github.com/Microsoft/ebpf-for-windows</projectUrl>
 		<repository type="git" url="https://github.com/microsoft/ebpf-for-windows.git"/>
-		<tags>resdist redistributable ebpf</tags>
+		<tags>redist redistributable ebpf native</tags>
 		<description>eBPF for Windows Redistributable</description>
 		<readme>README.md</readme>
 	</metadata>
 	<files>
 		<file src="..\..\tools\redist-package\README.md" target="."/>
+		<file src="..\..\tools\redist-package\ebpf-for-windows-redist.props" target="build\native\eBPF-for-Windows-Redist.{architecture}{configuration}.props"/>
 		<file src="bpftool.exe" target="lib\native\bin"/>
 		<file src="bpftool.pdb" target="lib\native\bin"/>
 		<file src="ebpfapi.dll" target="lib\native\bin"/>
