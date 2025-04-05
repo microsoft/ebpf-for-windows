@@ -358,61 +358,8 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 
 typedef struct ring_buffer
 {
-    ring_buffer() : ctx(nullptr), sample_cb(nullptr), active_subscription_count(0), free_inprogress(false) {}
-    ~ring_buffer();
-
     std::vector<ebpf_map_subscription_t*> subscriptions;
-    void* ctx;
-    ring_buffer_sample_fn sample_cb;
-    size_t active_subscription_count;
-    bool free_inprogress;
-    std::condition_variable cv;
-    std::mutex lock;
 } ring_buffer_t;
-
-ring_buffer ::~ring_buffer()
-{
-
-    active_subscription_count = subscriptions.size();
-    free_inprogress = true;
-
-    for (auto& sub : subscriptions) {
-        ebpf_map_unsubscribe(sub);
-    }
-
-    subscriptions.clear();
-
-    {
-        std::unique_lock<std::mutex> lock_wait(lock);
-        // Wait for for all the notifications to be complete before freeing memory.
-        cv.wait(lock_wait, [this] { return this->active_subscription_count == 0; });
-    }
-}
-
-int
-ring_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
-{
-    UNREFERENCED_PARAMETER(cpu);
-    int ret_val = 0;
-
-    ring_buffer* ring_buffer = reinterpret_cast<ring_buffer_t*>(ctx);
-
-    if (ring_buffer->free_inprogress) {
-        std::lock_guard<std::mutex> lock(ring_buffer->lock);
-
-        if ((data == nullptr) || (size == 0)) {
-            --ring_buffer->active_subscription_count;
-        }
-    }
-
-    ret_val = ring_buffer->sample_cb(ring_buffer->ctx, data, size);
-
-    if ((ring_buffer->free_inprogress) && (ring_buffer->active_subscription_count == 0)) {
-        ring_buffer->cv.notify_all();
-    }
-
-    return ret_val;
-}
 
 struct ring_buffer*
 ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const struct ring_buffer_opts* /* opts */)
@@ -427,11 +374,11 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
 
     try {
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
-        ring_buffer->ctx = ctx;
-        ring_buffer->sample_cb = sample_cb;
         ebpf_map_subscription_t* subscription = nullptr;
-        result = ebpf_map_subscribe(
-            map_fd, 0, (void*)(ring_buffer.get()), ring_buffer_sample_fn_wrapper, nullptr, &subscription);
+        std::vector<uint32_t> cpu_id;
+
+        cpu_id.push_back(0);
+        result = ebpf_map_subscribe(map_fd, cpu_id, ctx, (void*)sample_cb, nullptr, &subscription);
 
         if (result != EBPF_SUCCESS) {
             goto Exit;
@@ -461,6 +408,11 @@ Exit:
 void
 ring_buffer__free(struct ring_buffer* ring_buffer)
 {
+    for (auto& sub : ring_buffer->subscriptions) {
+        ebpf_map_unsubscribe(sub);
+    }
+
+    ring_buffer->subscriptions.clear();
     delete ring_buffer;
 }
 
@@ -477,59 +429,7 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
 typedef struct perf_buffer
 {
     std::vector<ebpf_map_subscription_t*> subscriptions;
-
-    perf_buffer() : ctx(nullptr), sample_cb(nullptr), active_subscription_count(0), free_inprogress(false) {}
-    ~perf_buffer();
-
-    void* ctx;
-    perf_buffer_sample_fn sample_cb;
-    size_t active_subscription_count;
-    bool free_inprogress;
-    std::condition_variable cv;
-    std::mutex lock;
 } perf_buffer_t;
-
-perf_buffer ::~perf_buffer()
-{
-
-    active_subscription_count = subscriptions.size();
-    free_inprogress = true;
-
-    for (auto& sub : subscriptions) {
-        ebpf_map_unsubscribe(sub);
-    }
-
-    subscriptions.clear();
-
-    {
-        std::unique_lock<std::mutex> lock_wait(lock);
-        // Wait for for all the notifications to be complete before freeing memory.
-        cv.wait(lock_wait, [this] { return this->active_subscription_count == 0; });
-    }
-}
-
-int
-perf_buffer_sample_fn_wrapper(void* ctx, int cpu, void* data, uint32_t size)
-{
-    UNREFERENCED_PARAMETER(cpu);
-    perf_buffer_t* perf_buffer = reinterpret_cast<perf_buffer_t*>(ctx);
-
-    if (perf_buffer->free_inprogress) {
-        std::lock_guard<std::mutex> lock(perf_buffer->lock);
-
-        if ((data == nullptr) || (size == 0)) {
-            --perf_buffer->active_subscription_count;
-        }
-    }
-
-    perf_buffer->sample_cb(perf_buffer->ctx, cpu, data, size);
-
-    if ((perf_buffer->free_inprogress) && (perf_buffer->active_subscription_count == 0)) {
-        perf_buffer->cv.notify_all();
-    }
-
-    return 0;
-}
 
 struct perf_buffer*
 perf_buffer__new(
@@ -542,6 +442,7 @@ perf_buffer__new(
 {
     ebpf_result result = EBPF_SUCCESS;
     perf_buffer_t* local_perf_buffer = nullptr;
+    std::vector<uint32_t> cpu_ids;
 
     if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
         result = EBPF_INVALID_ARGUMENT;
@@ -552,24 +453,23 @@ perf_buffer__new(
         std::unique_ptr<perf_buffer_t> perf_buffer = std::make_unique<perf_buffer_t>();
         uint32_t ring_count = libbpf_num_possible_cpus();
         ebpf_map_subscription_t* subscription = nullptr;
-        perf_buffer->ctx = ctx;
-        perf_buffer->sample_cb = sample_cb;
 
         for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
-            result = ebpf_map_subscribe(
-                map_fd, cpu_id, (void*)(perf_buffer.get()), perf_buffer_sample_fn_wrapper, lost_cb, &subscription);
+            cpu_ids.push_back(cpu_id);
+        }
 
-            if (result != EBPF_SUCCESS) {
-                goto Exit;
-            }
+        result = ebpf_map_subscribe(map_fd, cpu_ids, ctx, (void*)sample_cb, (void*)lost_cb, &subscription);
 
-            try {
-                perf_buffer->subscriptions.push_back(subscription);
-            } catch (const std::bad_alloc&) {
-                ebpf_map_unsubscribe(subscription);
-                result = EBPF_NO_MEMORY;
-                goto Exit;
-            }
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        try {
+            perf_buffer->subscriptions.push_back(subscription);
+        } catch (const std::bad_alloc&) {
+            ebpf_map_unsubscribe(subscription);
+            result = EBPF_NO_MEMORY;
+            goto Exit;
         }
 
         local_perf_buffer = perf_buffer.release();
@@ -588,5 +488,10 @@ Exit:
 void
 perf_buffer__free(struct perf_buffer* pb)
 {
+    for (auto& sub : pb->subscriptions) {
+        ebpf_map_unsubscribe(sub);
+    }
+
+    pb->subscriptions.clear();
     delete pb;
 }
