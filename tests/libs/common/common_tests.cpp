@@ -136,7 +136,6 @@ ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, siz
     ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
 
     if ((data == nullptr) || (size == 0)) {
-        // eBPF ring buffer invokes callback with NULL data indicating that the subscription is canceled.
         return 0;
     }
 
@@ -288,8 +287,6 @@ perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* 
     perf_buffer_test_context_t* event_context = reinterpret_cast<perf_buffer_test_context_t*>(ctx);
 
     if ((data == nullptr) || (size == 0)) {
-        // eBPF perf buffer invokes callback with NULL data indicating that the subscription is canceled.
-        // This is the last callback.
         return 0;
     }
 
