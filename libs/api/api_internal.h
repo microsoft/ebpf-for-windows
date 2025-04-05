@@ -611,9 +611,6 @@ typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
 typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
 typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
 
-typedef int (*map_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
-typedef void (*map_lost_fn)(void* ctx, int cpu, uint64_t cnt);
-
 /**
  * @brief Subscribe for notifications from the input perf event array or a ring buffer map.
  *
@@ -630,10 +627,10 @@ typedef void (*map_lost_fn)(void* ctx, int cpu, uint64_t cnt);
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_subscribe(
     fd_t map_fd,
-    uint32_t cpu_id,
+    std::vector<uint32_t> cpu_ids,
     _Inout_opt_ void* callback_context,
-    map_sample_fn sample_callback,
-    map_lost_fn lost_callback,
+    void* sample_callback,
+    void* lost_callback,
     _Outptr_ ebpf_map_subscription_t** subscription) noexcept;
 
 /**
