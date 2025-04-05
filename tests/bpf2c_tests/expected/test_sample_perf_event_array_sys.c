@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 // Do not alter this generated file.
-// This file was generated from bindmonitor_perf_event_array.o
+// This file was generated from test_sample_perf_event_array.o
 
 #define NO_CRT
 #include "bpf2c.h"
@@ -15,7 +15,7 @@ DRIVER_INITIALIZE DriverEntry;
 DRIVER_UNLOAD DriverUnload;
 RTL_QUERY_REGISTRY_ROUTINE static _bpf2c_query_registry_routine;
 
-#define metadata_table bindmonitor_perf_event_array##_metadata_table
+#define metadata_table test_sample_perf_event_array##_metadata_table
 
 static GUID _bpf2c_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                              0xc847aac8,
@@ -186,7 +186,7 @@ static map_entry_t _maps[] = {
          7,                             // Identifier for a map template.
          0,                             // The id of the inner map template.
      },
-     "process_map"},
+     "test_map"},
 };
 #pragma data_seg(pop)
 
@@ -206,7 +206,7 @@ _get_global_variable_sections(
     *count = 0;
 }
 
-static helper_function_entry_t bind_monitor_helpers[] = {
+static helper_function_entry_t test_program_entry_helpers[] = {
     {
         {1, 40, 40}, // Version header.
         32,
@@ -214,87 +214,79 @@ static helper_function_entry_t bind_monitor_helpers[] = {
     },
 };
 
-static GUID bind_monitor_program_type_guid = {
-    0x608c517c, 0x6c52, 0x4a26, {0xb6, 0x77, 0xbb, 0x1c, 0x34, 0x42, 0x5a, 0xdf}};
-static GUID bind_monitor_attach_type_guid = {
-    0xb9707e04, 0x8127, 0x4c72, {0x83, 0x3e, 0x05, 0xb1, 0xfb, 0x43, 0x94, 0x96}};
-static uint16_t bind_monitor_maps[] = {
+static GUID test_program_entry_program_type_guid = {
+    0xf788ef4a, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static GUID test_program_entry_attach_type_guid = {
+    0xf788ef4b, 0x207d, 0x4dc3, {0x85, 0xcf, 0x0f, 0x2e, 0xa1, 0x07, 0x21, 0x3c}};
+static uint16_t test_program_entry_maps[] = {
     0,
 };
 
-#pragma code_seg(push, "bind")
+#pragma code_seg(push, "sample~1")
 static uint64_t
-bind_monitor(void* context, const program_runtime_context_t* runtime_context)
-#line 28 "sample/bindmonitor_perf_event_array.c"
+test_program_entry(void* context, const program_runtime_context_t* runtime_context)
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
 {
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     // Prologue.
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r0 = 0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r1 = 0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r2 = 0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r3 = 0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r4 = 0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r5 = 0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r10 = 0;
 
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     r1 = (uintptr_t)context;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-#line 28 "sample/bindmonitor_perf_event_array.c"
-    r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
-#line 28 "sample/bindmonitor_perf_event_array.c"
-    if (r2 != IMMEDIATE(0)) {
-#line 28 "sample/bindmonitor_perf_event_array.c"
-        goto label_1;
-#line 28 "sample/bindmonitor_perf_event_array.c"
-    }
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     r4 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     r5 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     if (r4 >= r5) {
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
         goto label_1;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     }
-#line 26 "sample/bindmonitor_perf_event_array.c"
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
     r5 -= r4;
-#line 27 "sample/bindmonitor_perf_event_array.c"
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
     r3 = r5;
-#line 27 "sample/bindmonitor_perf_event_array.c"
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
     r3 <<= (IMMEDIATE(32) & 63);
-#line 27 "sample/bindmonitor_perf_event_array.c"
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
     r2 = (uint64_t)4294967295;
-#line 27 "sample/bindmonitor_perf_event_array.c"
+#line 36 "sample/undocked/test_sample_perf_event_array.c"
     r3 |= r2;
-#line 31 "sample/bindmonitor_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-#line 31 "sample/bindmonitor_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 31 "sample/bindmonitor_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 31 "sample/bindmonitor_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
         return 0;
-#line 31 "sample/bindmonitor_perf_event_array.c"
+#line 37 "sample/undocked/test_sample_perf_event_array.c"
     }
 label_1:
-#line 39 "sample/bindmonitor_perf_event_array.c"
+#line 41 "sample/undocked/test_sample_perf_event_array.c"
     r0 = IMMEDIATE(0);
-#line 39 "sample/bindmonitor_perf_event_array.c"
+#line 41 "sample/undocked/test_sample_perf_event_array.c"
     return r0;
-#line 28 "sample/bindmonitor_perf_event_array.c"
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__
@@ -304,17 +296,17 @@ static program_entry_t _programs[] = {
     {
         0,
         {1, 144, 144}, // Version header.
-        bind_monitor,
-        "bind",
-        "bind",
-        "bind_monitor",
-        bind_monitor_maps,
+        test_program_entry,
+        "sample~1",
+        "sample_ext",
+        "test_program_entry",
+        test_program_entry_maps,
         1,
-        bind_monitor_helpers,
+        test_program_entry_helpers,
         1,
-        16,
-        &bind_monitor_program_type_guid,
-        &bind_monitor_attach_type_guid,
+        14,
+        &test_program_entry_program_type_guid,
+        &test_program_entry_attach_type_guid,
     },
 };
 #pragma data_seg(pop)
@@ -341,7 +333,7 @@ _get_map_initial_values(_Outptr_result_buffer_(*count) map_initial_values_t** ma
     *count = 0;
 }
 
-metadata_table_t bindmonitor_perf_event_array_metadata_table = {
+metadata_table_t test_sample_perf_event_array_metadata_table = {
     sizeof(metadata_table_t),
     _get_programs,
     _get_maps,
