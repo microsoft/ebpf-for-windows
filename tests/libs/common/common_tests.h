@@ -97,7 +97,7 @@ typedef struct _perf_buffer_test_context
     bool doubled_data;
 } perf_buffer_test_context_t;
 
-int
+void
 perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* data, size_t size);
 
 void

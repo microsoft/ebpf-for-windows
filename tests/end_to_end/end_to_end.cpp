@@ -3902,7 +3902,7 @@ negative_perf_buffer_test(ebpf_execution_type_t execution_type)
     REQUIRE(
         perf_buffer__new(
             map_fd,
-            16,
+            0,
             [](void*, int, void*, uint32_t) { return; },
             [](void*, int, uint64_t) { return; },
             nullptr,

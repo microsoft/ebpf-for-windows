@@ -408,8 +408,8 @@ Exit:
 void
 ring_buffer__free(struct ring_buffer* ring_buffer)
 {
-    for (auto& sub : ring_buffer->subscriptions) {
-        ebpf_map_unsubscribe(sub);
+    for (auto& subscription : ring_buffer->subscriptions) {
+        ebpf_map_unsubscribe(subscription);
     }
 
     ring_buffer->subscriptions.clear();
@@ -434,17 +434,22 @@ typedef struct perf_buffer
 struct perf_buffer*
 perf_buffer__new(
     int map_fd,
-    size_t /* page_cnt*/,
+    size_t page_cnt,
     perf_buffer_sample_fn sample_cb,
     perf_buffer_lost_fn lost_cb,
     void* ctx,
-    const struct perf_buffer_opts* /* opts*/)
+    const struct perf_buffer_opts* opts)
 {
     ebpf_result result = EBPF_SUCCESS;
     perf_buffer_t* local_perf_buffer = nullptr;
     std::vector<uint32_t> cpu_ids;
 
     if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if ((opts != NULL) || (page_cnt != 0)) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -488,8 +493,8 @@ Exit:
 void
 perf_buffer__free(struct perf_buffer* pb)
 {
-    for (auto& sub : pb->subscriptions) {
-        ebpf_map_unsubscribe(sub);
+    for (auto& subscription : pb->subscriptions) {
+        ebpf_map_unsubscribe(subscription);
     }
 
     pb->subscriptions.clear();

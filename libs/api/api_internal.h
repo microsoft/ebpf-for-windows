@@ -606,11 +606,6 @@ ebpf_object_load(_Inout_ struct bpf_object* object) noexcept;
 EBPF_API_LOCKING _Must_inspect_result_ ebpf_result_t
 ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept;
 
-typedef int (*ring_buffer_sample_fn)(void* ctx, void* data, size_t size);
-
-typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
-typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
-
 /**
  * @brief Subscribe for notifications from the input perf event array or a ring buffer map.
  *
@@ -629,8 +624,8 @@ ebpf_map_subscribe(
     fd_t map_fd,
     std::vector<uint32_t> cpu_ids,
     _Inout_opt_ void* callback_context,
-    void* sample_callback,
-    void* lost_callback,
+    _In_ const void* sample_callback,
+    _In_opt_ const void* lost_callback,
     _Outptr_ ebpf_map_subscription_t** subscription) noexcept;
 
 /**

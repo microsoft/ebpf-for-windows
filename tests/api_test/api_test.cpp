@@ -1336,7 +1336,7 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     // Subscribe to the perf buffer.
     auto perfbuffer = perf_buffer__new(
         process_map_fd,
-        16,
+        0,
         [](void* ctx, int, void* data, uint32_t length) {
             perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
 

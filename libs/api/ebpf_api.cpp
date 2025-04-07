@@ -4465,6 +4465,13 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             std::scoped_lock lock{async_query_context->lock};
             async_query_context->async_ioctl_failed = true;
             EBPF_RETURN_RESULT(result);
+        } else {
+            TraceLoggingWrite(
+                ebpf_tracelog_provider,
+                EBPF_TRACELOG_EVENT_GENERIC_MESSAGE,
+                TraceLoggingLevel(WINEVENT_LEVEL_INFO),
+                TraceLoggingKeyword(EBPF_TRACELOG_KEYWORD_API),
+                TraceLoggingString(__FUNCTION__, "The async Query completed with EBPF_CANCELED"));
         }
     } else {
         // Async IOCTL operation returned with success status. Read the records and indicate it to the
@@ -4487,8 +4494,8 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
                 break;
             }
 
-            auto record =
-                ebpf_ring_buffer_next_record(async_query_context->buffer, subscription->max_entries, consumer, producer);
+            auto record = ebpf_ring_buffer_next_record(
+                async_query_context->buffer, subscription->max_entries, consumer, producer);
 
             if (record == nullptr) {
                 // No more records.
@@ -4527,10 +4534,9 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
     {
         std::scoped_lock lock{subscription->lock};
 
-        if (subscription->unsubscribed) {
-            // If the user has unsubscribed, this is the final callback. Mark the
-            // subscription context for deletion.
-            result = EBPF_CANCELED;
+        if ((subscription->unsubscribed) && (result == EBPF_CANCELED)) {
+            // If the user has unsubscribed and the async query returns with EBPF_CANCELED, remove
+            // the async query context.
             subscription->async_query_contexts.erase(async_query_context->cpu_id);
 
             if (subscription->async_query_contexts.size() == 0) {
@@ -4578,8 +4584,8 @@ ebpf_map_subscribe(
     fd_t map_fd,
     std::vector<uint32_t> cpu_ids,
     _Inout_opt_ void* callback_context,
-    void* sample_callback,
-    void* lost_callback,
+    _In_ const void* sample_callback,
+    _In_opt_ const void* lost_callback,
     _Outptr_ ebpf_map_subscription_t** subscription) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
@@ -4613,7 +4619,7 @@ ebpf_map_subscribe(
             EBPF_LOG_MESSAGE_ERROR(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_API,
-                "ebpf_map_subscribe API is called on a map that is not of the ring buffer or  perf event Array type.",
+                "ebpf_map_subscribe API is called on a map that is not of the ring buffer or  perf event array type.",
                 result);
             EBPF_RETURN_RESULT(result);
         }
@@ -4650,7 +4656,8 @@ ebpf_map_subscribe(
         }
 
         for (uint32_t cpu : cpu_ids) {
-            ebpf_map_async_query_context_ptr local_async_query_context = std::make_unique<ebpf_map_async_query_context_t>();
+            ebpf_map_async_query_context_ptr local_async_query_context =
+                std::make_unique<ebpf_map_async_query_context_t>();
 
             // Get user-mode address to perf buffer shared data.
             ebpf_operation_map_query_buffer_request_t query_buffer_request{
