@@ -4371,15 +4371,15 @@ ebpf_program_bind_map(fd_t program_fd, fd_t map_fd) NO_EXCEPT_TRY
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-typedef struct _ebpf_map_subscription_ring
+typedef struct _ebpf_map_async_query_context
 {
-    _ebpf_map_subscription_ring()
+    _ebpf_map_async_query_context()
         : async_ioctl_failed(false), async_ioctl_completion(nullptr), buffer(nullptr), reply({}), cpu_id(0),
           subscription(nullptr)
     {
     }
 
-    ~_ebpf_map_subscription_ring()
+    ~_ebpf_map_async_query_context()
     {
         EBPF_LOG_ENTRY();
 
@@ -4398,7 +4398,7 @@ typedef struct _ebpf_map_subscription_ring
     ebpf_operation_map_async_query_reply_t reply;
     ebpf_map_subscription_t* subscription;
 
-} ebpf_map_subscription_ring_t;
+} ebpf_map_async_query_context_t;
 
 typedef struct _ebpf_map_subscription
 {
@@ -4431,12 +4431,12 @@ typedef struct _ebpf_map_subscription
     uint32_t value_size;
     uint32_t max_entries;
     uint32_t type;
-    std::map<uint32_t, std::unique_ptr<ebpf_map_subscription_ring_t>> map_rings;
+    std::map<uint32_t, std::unique_ptr<ebpf_map_async_query_context_t>> async_query_contexts;
     std::condition_variable cleanup_complete_event;
 } ebpf_map_subscription_t;
 
 typedef std::unique_ptr<ebpf_map_subscription_t> ebpf_map_subscription_ptr;
-typedef std::unique_ptr<ebpf_map_subscription_ring_t> ebpf_map_subscription_ring_ptr;
+typedef std::unique_ptr<ebpf_map_async_query_context_t> ebpf_map_async_query_context_ptr;
 
 static ebpf_result_t
 _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
@@ -4444,11 +4444,11 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
     EBPF_LOG_ENTRY();
     ebpf_assert(completion_context);
 
-    ebpf_map_subscription_ring_t* subscription_ring =
-        reinterpret_cast<ebpf_map_subscription_ring_t*>(completion_context);
-    ebpf_map_subscription_t* subscription = subscription_ring->subscription;
+    ebpf_map_async_query_context_t* async_query_context =
+        reinterpret_cast<ebpf_map_async_query_context_t*>(completion_context);
+    ebpf_map_subscription_t* subscription = async_query_context->subscription;
 
-    const uint32_t cpu_id = subscription_ring->cpu_id;
+    const uint32_t cpu_id = async_query_context->cpu_id;
 
     size_t consumer = 0;
     size_t producer = 0;
@@ -4456,21 +4456,21 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
 
     ebpf_result_t result = EBPF_SUCCESS;
     // Check the result of the completed async IOCTL call.
-    result = get_async_ioctl_result(subscription_ring->async_ioctl_completion);
+    result = get_async_ioctl_result(async_query_context->async_ioctl_completion);
 
     if (result != EBPF_SUCCESS) {
         if (result != EBPF_CANCELED) {
             // The async IOCTL was not canceled, but completed with a failure status. Mark the subscription object as
             // such, so that it gets freed when the user eventually unsubscribes.
-            std::scoped_lock lock{subscription_ring->lock};
-            subscription_ring->async_ioctl_failed = true;
+            std::scoped_lock lock{async_query_context->lock};
+            async_query_context->async_ioctl_failed = true;
             EBPF_RETURN_RESULT(result);
         }
     } else {
         // Async IOCTL operation returned with success status. Read the records and indicate it to the
         // subscriber.
 
-        ebpf_operation_map_async_query_reply_t* reply = &subscription_ring->reply;
+        ebpf_operation_map_async_query_reply_t* reply = &async_query_context->reply;
         ebpf_map_async_query_result_t* async_query_result = &reply->async_query_result;
         consumer = async_query_result->consumer;
         producer = async_query_result->producer;
@@ -4488,7 +4488,7 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             }
 
             auto record =
-                ebpf_ring_buffer_next_record(subscription_ring->buffer, subscription->max_entries, consumer, producer);
+                ebpf_ring_buffer_next_record(async_query_context->buffer, subscription->max_entries, consumer, producer);
 
             if (record == nullptr) {
                 // No more records.
@@ -4531,9 +4531,9 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // If the user has unsubscribed, this is the final callback. Mark the
             // subscription context for deletion.
             result = EBPF_CANCELED;
-            subscription->map_rings.erase(subscription_ring->cpu_id);
+            subscription->async_query_contexts.erase(async_query_context->cpu_id);
 
-            if (subscription->map_rings.size() == 0) {
+            if (subscription->async_query_contexts.size() == 0) {
                 subscription->cleanup_complete_event.notify_all();
             }
 
@@ -4542,7 +4542,7 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             // async call is not blocking.
 
             // First, register wait for the new async IOCTL operation completion.
-            result = register_wait_async_ioctl_operation(subscription_ring->async_ioctl_completion);
+            result = register_wait_async_ioctl_operation(async_query_context->async_ioctl_completion);
             if (result != EBPF_SUCCESS) {
                 EBPF_RETURN_RESULT(result);
             }
@@ -4554,16 +4554,16 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
                 subscription->map_handle,
                 cpu_id,
                 consumer};
-            memset(&subscription_ring->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
+            memset(&async_query_context->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
-                subscription_ring->reply,
-                get_async_ioctl_operation_overlapped(subscription_ring->async_ioctl_completion)));
+                async_query_context->reply,
+                get_async_ioctl_operation_overlapped(async_query_context->async_ioctl_completion)));
             if (result != EBPF_SUCCESS) {
                 if (result == EBPF_PENDING) {
                     result = EBPF_SUCCESS;
                 } else {
-                    subscription_ring->async_ioctl_failed = true;
+                    async_query_context->async_ioctl_failed = true;
                 }
             }
         }
@@ -4650,7 +4650,7 @@ ebpf_map_subscribe(
         }
 
         for (uint32_t cpu : cpu_ids) {
-            ebpf_map_subscription_ring_ptr local_subscription_ring = std::make_unique<ebpf_map_subscription_ring_t>();
+            ebpf_map_async_query_context_ptr local_async_query_context = std::make_unique<ebpf_map_async_query_context_t>();
 
             // Get user-mode address to perf buffer shared data.
             ebpf_operation_map_query_buffer_request_t query_buffer_request{
@@ -4665,15 +4665,15 @@ ebpf_map_subscribe(
             }
             ebpf_assert(query_buffer_reply.header.id == ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER);
             // Initialize the async IOCTL operation.
-            local_subscription_ring->buffer =
+            local_async_query_context->buffer =
                 reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
-            local_subscription_ring->cpu_id = cpu;
-            local_subscription_ring->subscription = local_subscription.get();
-            memset(&local_subscription_ring->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
+            local_async_query_context->cpu_id = cpu;
+            local_async_query_context->subscription = local_subscription.get();
+            memset(&local_async_query_context->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
             result = initialize_async_ioctl_operation(
-                local_subscription_ring.get(),
+                local_async_query_context.get(),
                 _ebpf_map_async_query_completion,
-                &local_subscription_ring->async_ioctl_completion);
+                &local_async_query_context->async_ioctl_completion);
 
             if (result != EBPF_SUCCESS) {
                 EBPF_RETURN_RESULT(result);
@@ -4688,17 +4688,17 @@ ebpf_map_subscribe(
                 query_buffer_reply.consumer_offset};
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
-                local_subscription_ring->reply,
-                get_async_ioctl_operation_overlapped(local_subscription_ring->async_ioctl_completion)));
+                local_async_query_context->reply,
+                get_async_ioctl_operation_overlapped(local_async_query_context->async_ioctl_completion)));
             if (result != EBPF_SUCCESS) {
                 if (result == EBPF_PENDING) {
                     result = EBPF_SUCCESS;
                 } else {
-                    local_subscription_ring->async_ioctl_failed = true;
+                    local_async_query_context->async_ioctl_failed = true;
                 }
             }
 
-            local_subscription->map_rings.insert({cpu, std::move(local_subscription_ring)});
+            local_subscription->async_query_contexts.insert({cpu, std::move(local_async_query_context)});
         }
 
         if (result == EBPF_SUCCESS) {
@@ -4754,11 +4754,11 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
         // IOCTL.
         subscription->unsubscribed = true;
 
-        for (auto it = subscription->map_rings.begin(); it != subscription->map_rings.end();) {
+        for (auto it = subscription->async_query_contexts.begin(); it != subscription->async_query_contexts.end();) {
             // Check if an earlier async operation has failed. In that case a new async operation will not be queued.
             // This is the only case in which the subscription object can be freed in this function.
             if (it->second->async_ioctl_failed) {
-                it = subscription->map_rings.erase(it);
+                it = subscription->async_query_contexts.erase(it);
             } else {
                 // Attempt to cancel an ongoing async IOCTL.
 
@@ -4784,7 +4784,7 @@ ebpf_map_unsubscribe(_In_ _Post_invalid_ ebpf_map_subscription_t* subscription) 
         std::unique_lock<std::mutex> lock_wait(subscription->lock);
         // Wait for for all the notifications to be complete before freeing memory.
         subscription->cleanup_complete_event.wait(
-            lock_wait, [subscription] { return subscription->map_rings.size() == 0; });
+            lock_wait, [subscription] { return subscription->async_query_contexts.size() == 0; });
     }
 
     delete subscription;
