@@ -239,13 +239,8 @@ ring_buffer_api_test_helper(
 
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
-
-    // Release the raw pointer such that the final callback frees the callback context.
-    ring_buffer_test_event_context_t* raw_context = context.release();
-
     // Unsubscribe.
-    raw_context->unsubscribe();
-    delete raw_context;
+    context->unsubscribe();
 }
 
 perf_buffer_test_context_t::_perf_buffer_test_context()
@@ -280,25 +275,25 @@ perf_buffer_test_lost_event_handler(void* ctx, int cpu, __u64 cnt)
     }
 }
 
-int
+void
 perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* data, size_t size)
 {
     UNREFERENCED_PARAMETER(cpu);
     perf_buffer_test_context_t* event_context = reinterpret_cast<perf_buffer_test_context_t*>(ctx);
 
     if ((data == nullptr) || (size == 0)) {
-        return 0;
+        return;
     }
 
     if (event_context->canceled) {
         // Ignore the callback as the subscription is canceled.
         // Return error so that no further callback is made.
-        return -1;
+        return;
     }
 
     if (event_context->matched_entry_count == event_context->test_event_count) {
         // Required number of event notifications already received.
-        return 0;
+        return;
     }
 
     std::vector<char> event_record(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size);
@@ -346,7 +341,6 @@ perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* 
             event_context->perf_buffer_event_promise.set_value();
         }
     }
-    return 0;
 }
 
 void
@@ -389,7 +383,7 @@ perf_buffer_api_test_helper(
     // The notifications for the events that were generated before should occur after the subscribe call.
     context->perf_buffer = perf_buffer__new(
         perf_buffer_map,
-        16,
+        0,
         (perf_buffer_sample_fn)perf_buffer_test_event_handler,
         (perf_buffer_lost_fn)perf_buffer_test_lost_event_handler,
         context.get(),
@@ -413,10 +407,6 @@ perf_buffer_api_test_helper(
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
 
-    // Release the raw pointer such that the final callback frees the callback context.
-    perf_buffer_test_context_t* raw_context = context.release();
-
     // Unsubscribe.
-    raw_context->unsubscribe();
-    delete raw_context;
+    context->unsubscribe();
 }
