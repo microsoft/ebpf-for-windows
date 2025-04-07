@@ -947,7 +947,7 @@ bpf_program__set_flags(struct bpf_program* prog, __u32 flags);
  * @brief Create BPF perfbuf manager.
  *
  * @param[in] map_fd File descriptor to perf event array map.
- * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. This should be set to 0..
+ * @param[in] page_cnt Number of memory pages allocated for each per-CPU buffer. This should be set to 0.
  * @param[in] sample_cb Pointer to perf buffer notification callback function.
  * @param[in] lost_cb Function pointer for callback when record loss has occurred.
  * @param[in] ctx User provided extra context passed into sample_cb and lost_cb.

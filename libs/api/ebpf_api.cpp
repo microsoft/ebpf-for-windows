@@ -4517,7 +4517,7 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
 
                 while (ebpf_ring_buffer_record_is_locked(record)) {
                     // Writes happen at dispatch level, so we shouldn't wait long.
-                    // The lock bit check read-acquires the header, so spinning will get a fresh value..
+                    // The lock bit check read-acquires the header, so spinning will get a fresh value.
                 }
 
                 subscription->perf_buffer_sample_callback(
@@ -4534,15 +4534,16 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
     {
         std::scoped_lock lock{subscription->lock};
 
-        if ((subscription->unsubscribed) && (result == EBPF_CANCELED)) {
-            // If the user has unsubscribed and the async query returns with EBPF_CANCELED, remove
-            // the async query context.
-            subscription->async_query_contexts.erase(async_query_context->cpu_id);
+        if (subscription->unsubscribed) {
+            if (result == EBPF_CANCELED) {
+                // If the user has unsubscribed and the async query returns with EBPF_CANCELED, remove
+                // the async query context.
+                subscription->async_query_contexts.erase(async_query_context->cpu_id);
 
-            if (subscription->async_query_contexts.size() == 0) {
-                subscription->cleanup_complete_event.notify_all();
+                if (subscription->async_query_contexts.size() == 0) {
+                    subscription->cleanup_complete_event.notify_all();
+                }
             }
-
         } else {
             // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the
             // async call is not blocking.
@@ -4620,6 +4621,16 @@ ebpf_map_subscribe(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_API,
                 "ebpf_map_subscribe API is called on a map that is not of the ring buffer or  perf event array type.",
+                result);
+            EBPF_RETURN_RESULT(result);
+        }
+
+        if ((type == BPF_MAP_TYPE_RINGBUF) && (cpu_ids.size() > 1)) {
+            result = EBPF_INVALID_ARGUMENT;
+            EBPF_LOG_MESSAGE_ERROR(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_API,
+                "ebpf_map_subscribe API is called on a ring buffer map with multiple CPU IDs.",
                 result);
             EBPF_RETURN_RESULT(result);
         }
