@@ -689,6 +689,9 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
 
         bool res = ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
         if (!res) {
+            verifier_options.verbosity_opts.print_failures = true;
+            verifier_options.verbosity_opts.simplify = false;
+            (void)ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
             error << "Verification failed";
             *error_message = allocate_string(error.str());
             *report = allocate_string(output.str());

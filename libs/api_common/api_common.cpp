@@ -209,10 +209,10 @@ ebpf_verifier_options_t
 ebpf_get_default_verifier_options(ebpf_verification_verbosity_t verbosity)
 {
     ebpf_verifier_options_t verifier_options = {0};
+    UNREFERENCED_PARAMETER(verbosity);
     verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
     verifier_options.cfg_opts.check_for_termination = true;
     verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
-    verifier_options.verbosity_opts.print_failures = true;
     verifier_options.mock_map_fds = true;
     verifier_options.verbosity_opts.print_line_info = true;
     return verifier_options;
