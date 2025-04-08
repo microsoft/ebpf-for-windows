@@ -16,8 +16,6 @@
 #define elf_everparse_error ElfEverParseError
 #define elf_everparse_verify ElfCheckElf
 
-extern bool g_ebpf_fuzzing_enabled;
-
 extern "C" void
 elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _In_ const char* reason);
 
@@ -29,11 +27,7 @@ elf_everparse_error(_In_ const char* struct_name, _In_ const char* field_name, _
     UNREFERENCED_PARAMETER(reason);
 }
 
-FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
-{
-    g_ebpf_fuzzing_enabled = true;
-    return 0;
-}
+FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
 
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
