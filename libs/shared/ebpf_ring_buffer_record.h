@@ -7,6 +7,8 @@ CXPLAT_EXTERN_C_BEGIN
 
 #define EBPF_RINGBUF_LOCK_BIT (1U << 31)
 #define EBPF_RINGBUF_DISCARD_BIT (1U << 30)
+// Max record size is 32 bit length - 2 bits for lock+discard.
+#define EBPF_RINGBUF_MAX_RECORD_SIZE ((1ULL << 30) - 1)
 
 typedef struct _ebpf_ring_buffer_record
 {

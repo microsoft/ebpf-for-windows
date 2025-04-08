@@ -14,9 +14,9 @@
  * @param[in] link_fd File descriptor of link to detach.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception EBADF The file descriptor was not found.
+ * @retval -EBADF The file descriptor was not found.
  *
  * @sa bpf_link__destroy
  * @sa bpf_link__disconnect
@@ -34,7 +34,7 @@ bpf_link_detach(int link_fd);
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
- * @exception ENOENT No link with the specified ID was found.
+ * @retval -ENOENT No link with the specified ID was found.
  */
 int
 bpf_link_get_fd_by_id(__u32 id);
@@ -46,9 +46,9 @@ bpf_link_get_fd_by_id(__u32 id);
  * @param[out] next_id Pointer to where to write the next ID.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception ENOENT No more IDs found.
+ * @retval -ENOENT No more IDs found.
  */
 int
 bpf_link_get_next_id(__u32 start_id, __u32* next_id);
@@ -74,8 +74,8 @@ bpf_link_get_next_id(__u32 start_id, __u32* next_id);
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception ENOMEM Out of memory.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -ENOMEM Out of memory.
  */
 int
 bpf_map_create(
@@ -93,11 +93,11 @@ bpf_map_create(
  * @param[in] key Pointer to key to look up.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception EBADF The file descriptor was not found.
- * @exception ENOMEM Out of memory.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -EBADF The file descriptor was not found.
+ * @retval -ENOMEM Out of memory.
  */
 int
 bpf_map_delete_elem(int fd, const void* key);
@@ -112,7 +112,7 @@ bpf_map_delete_elem(int fd, const void* key);
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
- * @exception ENOENT No map with the specified ID was found.
+ * @retval -ENOENT No map with the specified ID was found.
  */
 int
 bpf_map_get_fd_by_id(__u32 id);
@@ -124,9 +124,9 @@ bpf_map_get_fd_by_id(__u32 id);
  * @param[out] next_id Pointer to where to write the next ID.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception ENOENT No more IDs found.
+ * @retval -ENOENT No more IDs found.
  */
 int
 bpf_map_get_next_id(__u32 start_id, __u32* next_id);
@@ -142,11 +142,11 @@ bpf_map_get_next_id(__u32 start_id, __u32* next_id);
  * next key.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception EBADF The file descriptor was not found.
- * @exception ENOMEM Out of memory.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -EBADF The file descriptor was not found.
+ * @retval -ENOMEM Out of memory.
  */
 int
 bpf_map_get_next_key(int fd, const void* key, void* next_key);
@@ -161,11 +161,11 @@ bpf_map_get_next_key(int fd, const void* key, void* next_key);
  * value.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception EBADF The file descriptor was not found.
- * @exception ENOMEM Out of memory.
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -EBADF The file descriptor was not found.
+ * @retval -ENOMEM Out of memory.
  */
 int
 bpf_map_lookup_elem(int fd, const void* key, void* value);
@@ -179,9 +179,12 @@ bpf_map_lookup_elem(int fd, const void* key, void* value);
  * @param[in] value Pointer to value.
  * @param[in] flags Flags (currently 0).
  *
- * @exception EINVAL An invalid argument was provided.
- * @exception EBADF The file descriptor was not found.
- * @exception ENOMEM Out of memory.
+ * @retval 0 The operation was successful.
+ * @retval <0 An error occurred, and errno was set.
+ *
+ * @retval -EINVAL An invalid argument was provided.
+ * @retval -EBADF The file descriptor was not found.
+ * @retval -ENOMEM Out of memory.
  */
 int
 bpf_map_update_elem(int fd, const void* key, const void* value, __u64 flags);
@@ -346,8 +349,8 @@ bpf_obj_get(const char* pathname);
  * write into the info.  On output, contains the actual number of bytes written.
  *
  * @retval 0 The operation was successful.
+ * @retval <0 An error occurred, and errno was set.
  * @retval -EFAULT A pointer passed in the input info was invalid.
- * @retval <0 An error occured, and errno was set.
  */
 int
 bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len);
@@ -360,7 +363,7 @@ bpf_obj_get_info_by_fd(int bpf_fd, void* info, __u32* info_len);
  * @param[in] pathname Path name to pin the object to.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  */
 int
 bpf_obj_pin(int fd, const char* pathname);
@@ -380,7 +383,7 @@ bpf_obj_pin(int fd, const char* pathname);
  * @param[in] opts Optional set of options affecting the bind operation.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  */
 int
 bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts);
@@ -395,7 +398,7 @@ bpf_prog_bind_map(int prog_fd, int map_fd, const struct bpf_prog_bind_opts* opts
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
- * @exception ENOENT No program with the specified ID was found.
+ * @retval -ENOENT No program with the specified ID was found.
  */
 int
 bpf_prog_get_fd_by_id(__u32 id);
@@ -407,9 +410,9 @@ bpf_prog_get_fd_by_id(__u32 id);
  * @param[out] next_id Pointer to where to write the next ID.
  *
  * @retval 0 The operation was successful.
- * @retval <0 An error occured, and errno was set.
+ * @retval <0 An error occurred, and errno was set.
  *
- * @exception ENOENT No more IDs found.
+ * @retval -ENOENT No more IDs found.
  */
 int
 bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
@@ -428,9 +431,9 @@ bpf_prog_get_next_id(__u32 start_id, __u32* next_id);
  * The caller should call _close() on the fd to close this when done.
  * A negative value indicates an error occurred and errno was set.
  *
- * @exception EACCES The program failed verification.
- * @exception EINVAL One or more parameters are incorrect.
- * @exception ENOMEM Out of memory.
+ * @retval -EACCES The program failed verification.
+ * @retval -EINVAL One or more parameters are incorrect.
+ * @retval -ENOMEM Out of memory.
  *
  * @sa bpf_load_program
  * @sa bpf_load_program_xattr

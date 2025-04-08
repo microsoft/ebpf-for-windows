@@ -16,7 +16,6 @@
     "Microsoft.VisualStudio.Component.VC.DiagnosticTools",
     "Microsoft.VisualStudio.Component.Windows11SDK.22621",
     "Microsoft.VisualStudio.Component.VC.ATL",
-    "Microsoft.VisualStudio.Component.SecurityIssueAnalysis",
     "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
     "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Core",
     "Microsoft.VisualStudio.Component.Windows11Sdk.WindowsPerformanceToolkit",
@@ -27,9 +26,6 @@
     "Microsoft.VisualStudio.Component.VC.TestAdapterForGoogleTest",
     "Microsoft.VisualStudio.Component.VC.ASAN",
     "Microsoft.VisualStudio.Component.Vcpkg",
-    "Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset",
-    "Microsoft.VisualStudio.Component.VC.Llvm.Clang",
-    "Microsoft.VisualStudio.ComponentGroup.NativeDesktop.Llvm.Clang",
     "Microsoft.VisualStudio.Workload.NativeDesktop",
     "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
     "Component.Microsoft.Windows.DriverKit"

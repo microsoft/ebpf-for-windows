@@ -116,14 +116,19 @@ query_map_definition(
 {
     bpf_map_info info = {0};
     uint32_t info_size = sizeof(info);
-    ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size, NULL);
+    ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
+    ebpf_result_t result = ebpf_object_get_info(handle, &info, &info_size, &object_type);
     if (result == EBPF_SUCCESS) {
-        *id = info.id;
-        *type = info.type;
-        *key_size = info.key_size;
-        *value_size = info.value_size;
-        *max_entries = info.max_entries;
-        *inner_map_id = info.inner_map_id;
+        if (object_type != EBPF_OBJECT_MAP) {
+            result = EBPF_INVALID_ARGUMENT;
+        } else {
+            *id = info.id;
+            *type = info.type;
+            *key_size = info.key_size;
+            *value_size = info.value_size;
+            *max_entries = info.max_entries;
+            *inner_map_id = info.inner_map_id;
+        }
     }
     return result;
 }
@@ -176,7 +181,7 @@ ebpf_verify_program(
         if (info.type.platform_specific_data == (uintptr_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
             throw std::runtime_error("Unspecified program type.");
         }
-        const auto program = Program::from_sequence(instruction_sequence, info, options.cfg_opts);
+        const auto program = Program::from_sequence(instruction_sequence, info, options);
         auto invariants = analyze(program);
         if (options.verbosity_opts.print_invariants) {
             print_invariants(os, program, options.verbosity_opts.simplify, invariants);

@@ -94,6 +94,7 @@ static ebpf_program_data_t _ebpf_xdp_test_program_data = {
     .context_create = _ebpf_xdp_context_create,
     .context_destroy = _ebpf_xdp_context_delete,
     .required_irql = DISPATCH_LEVEL,
+    .capabilities = {0},
 };
 
 // Set the program type as the provider module id.
@@ -334,6 +335,12 @@ typedef struct _net_ebpf_xdp_md
     NET_BUFFER_LIST* original_nbl;
     NET_BUFFER_LIST* cloned_nbl;
 } net_ebpf_xdp_md_t;
+
+typedef struct _net_ebpf_xdp_md_header
+{
+    EBPF_CONTEXT_HEADER;
+    net_ebpf_xdp_md_t context;
+} net_ebpf_xdp_md_header_t;
 
 //
 // NBL Clone Functions.
@@ -656,7 +663,9 @@ net_ebpf_ext_layer_2_classify(
     NET_BUFFER* net_buffer = NULL;
     uint8_t* packet_buffer;
     uint32_t result = 0;
-    net_ebpf_xdp_md_t net_xdp_ctx = {0};
+    net_ebpf_xdp_md_header_t net_xdp_ctx_header = {0};
+    net_ebpf_xdp_md_t* net_xdp_ctx = &net_xdp_ctx_header.context;
+    xdp_md_t* xdp_ctx = &net_xdp_ctx->base;
     net_ebpf_extension_xdp_wfp_filter_context_t* filter_context = NULL;
     uint32_t client_if_index;
     ebpf_result_t program_result;
@@ -700,17 +709,17 @@ net_ebpf_ext_layer_2_classify(
         goto Exit;
     }
 
-    net_xdp_ctx.base.ingress_ifindex =
+    xdp_ctx->ingress_ifindex =
         incoming_fixed_values->incomingValue[FWPS_FIELD_INBOUND_MAC_FRAME_NATIVE_INTERFACE_INDEX].value.uint32;
 
     client_if_index = filter_context->if_index;
-    ASSERT((client_if_index == 0) || (client_if_index == net_xdp_ctx.base.ingress_ifindex));
-    if (client_if_index != 0 && client_if_index != net_xdp_ctx.base.ingress_ifindex) {
+    ASSERT((client_if_index == 0) || (client_if_index == xdp_ctx->ingress_ifindex));
+    if (client_if_index != 0 && client_if_index != xdp_ctx->ingress_ifindex) {
         // The client is not interested in this ingress ifindex.
         goto Exit;
     }
 
-    net_xdp_ctx.original_nbl = nbl;
+    net_xdp_ctx->original_nbl = nbl;
 
     net_buffer = NET_BUFFER_LIST_FIRST_NB(nbl);
     if (net_buffer == NULL) {
@@ -723,7 +732,7 @@ net_ebpf_ext_layer_2_classify(
     if (!packet_buffer) {
         // Data in net_buffer not contiguous.
         // Allocate a cloned NBL with contiguous data.
-        status = _net_ebpf_ext_allocate_cloned_nbl(&net_xdp_ctx, 0);
+        status = _net_ebpf_ext_allocate_cloned_nbl(net_xdp_ctx, 0);
         if (!NT_SUCCESS(status)) {
             NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
                 NET_EBPF_EXT_TRACELOG_LEVEL_ERROR,
@@ -733,11 +742,11 @@ net_ebpf_ext_layer_2_classify(
             goto Exit;
         }
     } else {
-        net_xdp_ctx.base.data = packet_buffer;
-        net_xdp_ctx.base.data_end = packet_buffer + net_buffer->DataLength;
+        xdp_ctx->data = packet_buffer;
+        xdp_ctx->data_end = packet_buffer + net_buffer->DataLength;
     }
 
-    program_result = net_ebpf_extension_hook_invoke_programs(&net_xdp_ctx, &filter_context->base, &result);
+    program_result = net_ebpf_extension_hook_invoke_programs(xdp_ctx, &filter_context->base, &result);
     if (program_result == EBPF_OBJECT_NOT_FOUND) {
         // No programs found.
         goto Exit;
@@ -748,13 +757,13 @@ net_ebpf_ext_layer_2_classify(
 
     switch (result) {
     case XDP_PASS:
-        if (net_xdp_ctx.cloned_nbl != NULL) {
+        if (net_xdp_ctx->cloned_nbl != NULL) {
             // Drop the original NBL.
             classify_output->actionType = FWP_ACTION_BLOCK;
             classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
 
             // Inject the cloned NBL in receive path.
-            status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx.cloned_nbl, incoming_fixed_values);
+            status = _net_ebpf_ext_receive_inject_cloned_nbl(net_xdp_ctx->cloned_nbl, incoming_fixed_values);
             if (NT_SUCCESS(status)) {
                 // If cloned packet could be successfully injected, no need to audit for dropping the original.
                 // So absorb the original packet.
@@ -771,7 +780,7 @@ net_ebpf_ext_layer_2_classify(
         // The inbound original NBL will be allowed to proceed in the ingress path.
         break;
     case XDP_TX:
-        _net_ebpf_ext_handle_xdp_tx(&net_xdp_ctx, incoming_fixed_values);
+        _net_ebpf_ext_handle_xdp_tx(net_xdp_ctx, incoming_fixed_values);
         // Absorb the original NBL.
         classify_output->actionType = FWP_ACTION_BLOCK;
         classify_output->rights &= ~FWPS_RIGHT_ACTION_WRITE;
@@ -786,8 +795,8 @@ net_ebpf_ext_layer_2_classify(
         // Do not audit XDP drops.
         classify_output->flags |= FWPS_CLASSIFY_OUT_FLAG_ABSORB;
         // Free cloned NBL, if any.
-        if (net_xdp_ctx.cloned_nbl != NULL) {
-            _net_ebpf_ext_free_nbl(net_xdp_ctx.cloned_nbl, TRUE);
+        if (net_xdp_ctx->cloned_nbl != NULL) {
+            _net_ebpf_ext_free_nbl(net_xdp_ctx->cloned_nbl, TRUE);
         }
         break;
     }
@@ -819,6 +828,7 @@ _ebpf_xdp_context_create(
 {
     NTSTATUS status = STATUS_SUCCESS;
     ebpf_result_t result;
+    net_ebpf_xdp_md_header_t* new_context_header = NULL;
     net_ebpf_xdp_md_t* new_context = NULL;
     MDL* mdl_chain = NULL;
     NET_BUFFER_LIST* new_nbl = NULL;
@@ -836,11 +846,13 @@ _ebpf_xdp_context_create(
         goto Exit;
     }
 
-    new_context = (net_ebpf_xdp_md_t*)ExAllocatePoolUninitialized(
-        NonPagedPoolNx, sizeof(net_ebpf_xdp_md_t), NET_EBPF_EXTENSION_POOL_TAG);
-    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, new_context, "new_context", result);
+    new_context_header = (net_ebpf_xdp_md_header_t*)ExAllocatePoolUninitialized(
+        NonPagedPoolNx, sizeof(net_ebpf_xdp_md_header_t), NET_EBPF_EXTENSION_POOL_TAG);
+    NET_EBPF_EXT_BAIL_ON_ALLOC_FAILURE_RESULT(
+        NET_EBPF_EXT_TRACELOG_KEYWORD_XDP, new_context_header, "new_context_header", result);
 
-    memset(new_context, 0, sizeof(net_ebpf_xdp_md_t));
+    memset(new_context_header, 0, sizeof(net_ebpf_xdp_md_header_t));
+    new_context = &new_context_header->context;
 
     // Create a MDL with the packet buffer.
     mdl_chain = IoAllocateMdl((void*)data_in, (unsigned long)data_size_in, FALSE, FALSE, NULL);
@@ -882,7 +894,7 @@ _ebpf_xdp_context_create(
 
 Exit:
     if (new_context) {
-        ExFreePool(new_context);
+        ExFreePool(new_context_header);
     }
 
     if (mdl_chain) {
@@ -904,12 +916,15 @@ _ebpf_xdp_context_delete(
     _Inout_ size_t* context_size_out)
 {
     net_ebpf_xdp_md_t* xdp_context = (net_ebpf_xdp_md_t*)context;
+    net_ebpf_xdp_md_header_t* xdp_context_header = NULL;
 
     NET_EBPF_EXT_LOG_ENTRY();
 
     if (!context) {
         goto Exit;
     }
+
+    xdp_context_header = CONTAINING_RECORD(context, net_ebpf_xdp_md_header_t, context);
 
     // Copy the packet data to the output buffer.
     if (data_out != NULL && data_size_out != NULL && xdp_context->base.data != NULL) {
@@ -947,7 +962,7 @@ _ebpf_xdp_context_delete(
         _net_ebpf_ext_free_nbl(xdp_context->cloned_nbl, TRUE);
     }
 
-    ExFreePool(xdp_context);
+    ExFreePool(xdp_context_header);
 
 Exit:
     NET_EBPF_EXT_LOG_EXIT();

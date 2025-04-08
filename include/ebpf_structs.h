@@ -21,20 +21,22 @@ typedef enum bpf_map_type
     BPF_MAP_TYPE_ARRAY = 2,  ///< Array, where the map key is the array index.
     BPF_MAP_TYPE_PROG_ARRAY =
         3, ///< Array of program fds usable with bpf_tail_call, where the map key is the array index.
-    BPF_MAP_TYPE_PERCPU_HASH = 4,      ///< Per-CPU hash table.
-    BPF_MAP_TYPE_PERCPU_ARRAY = 5,     ///< Per-CPU array.
-    BPF_MAP_TYPE_HASH_OF_MAPS = 6,     ///< Hash table, where the map value is another map.
-    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,    ///< Array, where the map value is another map.
-    BPF_MAP_TYPE_LRU_HASH = 8,         ///< Least-recently-used hash table.
-    BPF_MAP_TYPE_LPM_TRIE = 9,         ///< Longest prefix match trie.
-    BPF_MAP_TYPE_QUEUE = 10,           ///< Queue.
-    BPF_MAP_TYPE_LRU_PERCPU_HASH = 11, ///< Per-CPU least-recently-used hash table.
-    BPF_MAP_TYPE_STACK = 12,           ///< Stack.
-    BPF_MAP_TYPE_RINGBUF = 13          ///< Ring buffer.
+    BPF_MAP_TYPE_PERCPU_HASH = 4,       ///< Per-CPU hash table.
+    BPF_MAP_TYPE_PERCPU_ARRAY = 5,      ///< Per-CPU array.
+    BPF_MAP_TYPE_HASH_OF_MAPS = 6,      ///< Hash table, where the map value is another map.
+    BPF_MAP_TYPE_ARRAY_OF_MAPS = 7,     ///< Array, where the map value is another map.
+    BPF_MAP_TYPE_LRU_HASH = 8,          ///< Least-recently-used hash table.
+    BPF_MAP_TYPE_LPM_TRIE = 9,          ///< Longest prefix match trie.
+    BPF_MAP_TYPE_QUEUE = 10,            ///< Queue.
+    BPF_MAP_TYPE_LRU_PERCPU_HASH = 11,  ///< Per-CPU least-recently-used hash table.
+    BPF_MAP_TYPE_STACK = 12,            ///< Stack.
+    BPF_MAP_TYPE_RINGBUF = 13,          ///< Ring buffer.
+    BPF_MAP_TYPE_PERF_EVENT_ARRAY = 14, ///< Perf event array.
 } ebpf_map_type_t;
 
-#define BPF_MAP_TYPE_PER_CPU(X) \
-    ((X) == BPF_MAP_TYPE_PERCPU_HASH || (X) == BPF_MAP_TYPE_PERCPU_ARRAY || (X) == BPF_MAP_TYPE_LRU_PERCPU_HASH)
+#define BPF_MAP_TYPE_PER_CPU(X)                                                                                    \
+    ((X) == BPF_MAP_TYPE_PERCPU_HASH || (X) == BPF_MAP_TYPE_PERCPU_ARRAY || (X) == BPF_MAP_TYPE_LRU_PERCPU_HASH || \
+     (X) == BPF_MAP_TYPE_PERF_EVENT_ARRAY)
 
 static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_UNSPEC),
@@ -51,6 +53,7 @@ static const char* const _ebpf_map_type_names[] = {
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_LRU_PERCPU_HASH),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_STACK),
     BPF_ENUM_TO_STRING(BPF_MAP_TYPE_RINGBUF),
+    BPF_ENUM_TO_STRING(BPF_MAP_TYPE_PERF_EVENT_ARRAY),
 };
 
 static const char* const _ebpf_map_display_names[] = {
@@ -68,6 +71,7 @@ static const char* const _ebpf_map_display_names[] = {
     "lru_percpu_hash",
     "stack",
     "ringbuf",
+    "perf_event_array",
 };
 
 typedef enum ebpf_map_option
@@ -166,6 +170,7 @@ typedef enum
     BPF_FUNC_strnlen_s = 29,                 ///< \ref bpf_strnlen_s
     BPF_FUNC_ktime_get_boot_ms = 30,         ///< \ref bpf_ktime_get_boot_ms
     BPF_FUNC_ktime_get_ms = 31,              ///< \ref bpf_ktime_get_ms
+    BPF_FUNC_perf_event_output = 32,         ///< \ref bpf_perf_event_output
 } ebpf_helper_id_t;
 
 // Cross-platform BPF program types.
@@ -217,6 +222,30 @@ enum bpf_prog_type
      * **Helpers available:** all helpers defined in bpf_helpers.h
      */
     BPF_PROG_TYPE_SOCK_OPS,
+
+    /** @brief Program type for handling netevents.
+     * The github microsoft/ntosebpfext repo has the implementation for this program type.
+     *
+     * **eBPF program prototype:** netevent_event_hook_t
+     *
+     * **Attach type(s):**
+     *  \ref BPF_ATTACH_TYPE_NETEVENT
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_NETEVENT,
+
+    /** @brief Program type for handling process creation/deletion events.
+     * The github microsoft/ntosebpfext repo has the implementation for this program type.
+     *
+     * **eBPF program prototype:** \ref sock_ops_hook_t
+     *
+     * **Attach type(s):**
+     *  \ref BPF_ATTACH_TYPE_PROCESS
+     *
+     * **Helpers available:** all helpers defined in bpf_helpers.h
+     */
+    BPF_PROG_TYPE_PROCESS,
 
     /** @brief Program type for handling incoming packets as early as possible.
      *
@@ -321,6 +350,18 @@ enum bpf_attach_type
      */
     BPF_XDP_TEST,
 
+    /** @brief Attach type for handling netevents.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_NETEVENT
+     */
+    BPF_ATTACH_TYPE_NETEVENT,
+
+    /** @brief Attach type for handling process creation/deletion events.
+     *
+     * **Program type:** \ref BPF_PROG_TYPE_PROCESS
+     */
+    BPF_ATTACH_TYPE_PROCESS,
+
     __MAX_BPF_ATTACH_TYPE,
 };
 
@@ -408,3 +449,24 @@ struct bpf_prog_info
     uint32_t pinned_path_count;          ///< Number of pinned paths.
     uint32_t link_count;                 ///< Number of attached links.
 };
+
+/* BPF_FUNC_perf_event_output flags. */
+#define EBPF_MAP_FLAG_INDEX_MASK 0xffffffffULL
+#define EBPF_MAP_FLAG_INDEX_SHIFT 0
+#define EBPF_MAP_FLAG_CURRENT_CPU EBPF_MAP_FLAG_INDEX_MASK
+/* BPF_FUNC_perf_event_output flags for program types with data pointer in context. */
+#define EBPF_MAP_FLAG_CTX_LENGTH_SHIFT 32
+#define EBPF_MAP_FLAG_CTX_LENGTH_MAX (0xfffffULL)
+#define EBPF_MAP_FLAG_CTX_LENGTH_MASK (EBPF_MAP_FLAG_CTX_LENGTH_MAX << EBPF_MAP_FLAG_CTX_LENGTH_SHIFT)
+
+/**
+ * @brief Header of an eBPF native module data structure.
+ * Every eBPF native module data structure must start with this header.
+ * This however has an exception for some of the structs that mandatorily
+ * require a specific number of starting bytes to be zero. In such cases,
+ * the header must be placed after the required zero starting bytes.
+ * New fields can be added to the end of the data structure without breaking
+ * backward compatibility. The version field must be updated only if the new
+ * data structure is not backward compatible.
+ */
+typedef ebpf_extension_header_t ebpf_native_module_header_t;

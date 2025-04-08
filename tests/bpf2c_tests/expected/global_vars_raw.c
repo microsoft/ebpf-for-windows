@@ -15,7 +15,13 @@ _get_hash(_Outptr_result_buffer_maybenull_(*size) const uint8_t** hash, _Out_ si
 
 #pragma data_seg(push, "maps")
 static map_entry_t _maps[] = {
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -27,7 +33,13 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "global_.rodata"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -39,7 +51,13 @@ static map_entry_t _maps[] = {
          0,                  // The id of the inner map template.
      },
      "global_.data"},
-    {0,
+    {
+     {0, 0},
+     {
+         1,                  // Current Version.
+         80,                 // Struct size up to the last field.
+         80,                 // Total struct size including padding.
+     },
      {
          BPF_MAP_TYPE_ARRAY, // Type of map.
          4,                  // Size in bytes of a map key.
@@ -70,16 +88,19 @@ const char global__bss_initial_data[] = {0, 0, 0, 0};
 #pragma data_seg(push, "global_variables")
 static global_variable_section_info_t _global_variable_sections[] = {
     {
+        .header = {1, 48, 48},
         .name = "global_.rodata",
         .size = 4,
         .initial_data = &global__rodata_initial_data,
     },
     {
+        .header = {1, 48, 48},
         .name = "global_.data",
         .size = 8,
         .initial_data = &global__data_initial_data,
     },
     {
+        .header = {1, 48, 48},
         .name = "global_.bss",
         .size = 4,
         .initial_data = &global__bss_initial_data,
@@ -182,6 +203,7 @@ GlobalVariableTest(void* context, const program_runtime_context_t* runtime_conte
 static program_entry_t _programs[] = {
     {
         0,
+        {1, 144, 144}, // Version header.
         GlobalVariableTest,
         "sample~1",
         "sample_ext",

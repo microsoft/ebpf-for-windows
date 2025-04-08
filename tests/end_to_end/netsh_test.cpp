@@ -227,7 +227,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size = 1064;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1768;
+    const int code_size = 1784;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 1120;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -261,10 +261,10 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size = 305;
+    const int code_size = 312;
     const int old_code_size = 311;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1141;
+    const int code_size = 1152;
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 316;
@@ -307,10 +307,10 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
 
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size_old[] = {73, 6, 73};
-    const int code_size_new[] = {86, 6, 96};
+    const int code_size_new[] = {90, 6, 100};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size_old[] = {413, 190, 413};
-    const int code_size_new[] = {444, 195, 444};
+    const int code_size_new[] = {448, 195, 448};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size_old[] = {116, 8, 112};
     const int code_size_new[] = {116, 8, 112};
@@ -355,9 +355,9 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     REQUIRE(result == NO_ERROR);
 
 #if defined(_M_X64) && defined(NDEBUG)
-    const int code_size[] = {327, 344, 328, 345};
+    const int code_size[] = {333, 350, 333, 350};
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size[] = {950, 1025, 950, 1025};
+    const int code_size[] = {961, 1036, 961, 1036};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size[] = {308, 324, 308, 324};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -506,35 +506,17 @@ TEST_CASE("show verification xdp_datasize_unsafe.o", "[netsh][verification]")
     output = strip_paths(output);
 
     // Perform a line by line comparison to detect any differences.
-    std::string expected_output =
-        "Verification failed\n"
-        "\n"
-        "Verification report:\n"
-        "\n"
-        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
-        ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
-        "\n"
-        "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-        "5: Invalid type (valid_access(r3.offset) for comparison/subtraction)\n"
-        "5: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
-        "5: Cannot subtract pointers to different regions (r3.type == r1.type in {ctx, stack, packet})\n"
-        "\n"
-        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:39\n"
-        ";     if (ethernet_header->Type != ntohs(ETHERNET_TYPE_IPV4) && ethernet_header->Type != "
-        "ntohs(ETHERNET_TYPE_IPV6)) {\n"
-        "\n"
-        "6: Invalid type (r2.type in {ctx, stack, packet, shared})\n"
-        "6: Invalid type (valid_access(r2.offset+12, width=2) for read)\n"
-        "8: Invalid type (r1.type == number)\n"
-        "10: Invalid type (r1.type == number)\n"
-        "\n"
-        "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:44\n"
-        ";     return rc;\n"
-        "\n"
-        "12: Invalid type (r0.type == number)\n"
-        "\n"
-        "9 errors\n"
-        "\n";
+    std::string expected_output = "Verification failed\n"
+                                  "\n"
+                                  "Verification report:\n"
+                                  "\n"
+                                  "; ./tests/sample/unsafe/xdp_datasize_unsafe.c:33\n"
+                                  ";     if (next_header + sizeof(ETHERNET_HEADER) > (char*)ctx->data_end) {\n"
+                                  "\n"
+                                  "4: Invalid type (r3.type in {number, ctx, stack, packet, shared})\n"
+                                  "\n"
+                                  "1 errors\n"
+                                  "\n";
 
     // Split both output and expected_output into lines.
     std::istringstream output_stream(output);
@@ -1091,3 +1073,107 @@ TEST_CASE("show processes", "[netsh][processes]")
         REQUIRE(result == NO_ERROR);
     }
 }
+
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+
+TEST_CASE("pin/unpin program", "[netsh][pin]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+    int result = 0;
+    auto output =
+        _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", nullptr, L"pinpath=bindmonitor", &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    const char prefix[] = "Loaded with ID";
+    REQUIRE(output.substr(0, sizeof(prefix) - 1) == prefix);
+
+    // Get program ID.
+    auto id = strtoul(output.c_str() + output.rfind(' '), nullptr, 10);
+    auto sid = std::to_wstring(id);
+    _run_netsh_command(handle_ebpf_pin_program, sid.c_str(), L"bindmonitorpin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    output = _run_netsh_command(handle_ebpf_show_pins, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == std::format(
+                      "\n"
+                      "     ID     Type  Path\n"
+                      "=======  =======  ==============\n"
+                      "      {0}  Program  bindmonitor\n"
+                      "      {0}  Program  bindmonitorpin\n",
+                      id));
+
+    _run_netsh_command(handle_ebpf_unpin_program, sid.c_str(), L"random", nullptr, &result);
+    REQUIRE(result != EBPF_SUCCESS);
+
+    _run_netsh_command(handle_ebpf_unpin_program, sid.c_str(), L"bindmonitorpin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    output = _run_netsh_command(handle_ebpf_show_pins, nullptr, nullptr, nullptr, &result);
+    REQUIRE(
+        output == std::format(
+                      "\n"
+                      "     ID     Type  Path\n"
+                      "=======  =======  ==============\n"
+                      "      {}  Program  bindmonitor\n",
+                      id));
+
+    _run_netsh_command(handle_ebpf_delete_program, sid.c_str(), nullptr, nullptr, &result);
+}
+
+TEST_CASE("pin/unpin map", "[netsh][pin]")
+{
+    _test_helper_netsh test_helper;
+    test_helper.initialize();
+    int result = 0;
+    auto output =
+        _run_netsh_command(handle_ebpf_add_program, L"bindmonitor.o", L"bind", L"pinpath=bindmonitor", &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    const char prefix[] = "Loaded with ID";
+    REQUIRE(output.substr(0, sizeof(prefix) - 1) == prefix);
+    auto pid = strtoul(output.c_str() + output.rfind(' '), nullptr, 10);
+
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    // Grab the first map ID.
+    auto digit = output.find_first_of("123456789");
+    auto id = strtoul(output.c_str() + digit, nullptr, 10);
+    REQUIRE(id > 0);
+    auto sid = std::to_wstring(id);
+
+    auto offset = output.find("audit_map", digit + 1);
+    REQUIRE(offset != std::string::npos);
+    auto pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 0);
+
+    // Pin map with default name (map name).
+    output = _run_netsh_command(handle_ebpf_pin_map, sid.c_str(), nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 1);
+
+    // Pin map with custom name.
+    output = _run_netsh_command(handle_ebpf_pin_map, sid.c_str(), L"custompin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 2);
+
+    // Unpin twice.
+    output = _run_netsh_command(handle_ebpf_unpin_map, sid.c_str(), nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    output = _run_netsh_command(handle_ebpf_unpin_map, sid.c_str(), L"custompin", nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    output = _run_netsh_command(handle_ebpf_show_maps, nullptr, nullptr, nullptr, &result);
+    REQUIRE(result == EBPF_SUCCESS);
+    pins = strtoul(output.c_str() + offset - 4, nullptr, 10);
+    REQUIRE(pins == 0);
+
+    _run_netsh_command(handle_ebpf_delete_program, std::to_wstring(pid).c_str(), nullptr, nullptr, &result);
+}
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)

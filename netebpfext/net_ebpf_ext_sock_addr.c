@@ -337,13 +337,6 @@ _ebpf_sock_addr_get_socket_cookie(_In_ const bpf_sock_addr_t* ctx)
     return sock_addr_ctx->transport_endpoint_handle;
 }
 
-static uint64_t
-_ebpf_sock_addr_get_current_pid_tgid(_In_ const bpf_sock_addr_t* ctx)
-{
-    net_ebpf_sock_addr_t* sock_addr_ctx = CONTAINING_RECORD(ctx, net_ebpf_sock_addr_t, base);
-    return (sock_addr_ctx->process_id << 32 | _get_thread_id());
-}
-
 static int
 _ebpf_sock_addr_set_redirect_context(_In_ const bpf_sock_addr_t* ctx, _In_ void* data, _In_ uint32_t data_size)
 {
@@ -555,8 +548,7 @@ _Requires_exclusive_lock_held_(_net_ebpf_ext_sock_addr_blocked_contexts
 // SOCK_ADDR Program Information NPI Provider.
 //
 
-static const void* _ebpf_sock_addr_specific_helper_functions[] = {
-    (void*)_ebpf_sock_addr_get_current_pid_tgid, (void*)_ebpf_sock_addr_set_redirect_context};
+static const void* _ebpf_sock_addr_specific_helper_functions[] = {(void*)_ebpf_sock_addr_set_redirect_context};
 
 static ebpf_helper_function_addresses_t _ebpf_sock_addr_specific_helper_function_address_table = {
     EBPF_HELPER_FUNCTION_ADDRESSES_HEADER,
@@ -582,7 +574,7 @@ static ebpf_program_data_t _ebpf_sock_addr_program_data = {
     .context_create = &_ebpf_sock_addr_context_create,
     .context_destroy = &_ebpf_sock_addr_context_destroy,
     .required_irql = DISPATCH_LEVEL,
-    .capabilities = {.supports_context_header = true},
+    .capabilities = {0},
 };
 
 // Set the program type as the provider module id.
@@ -1667,6 +1659,17 @@ net_ebpf_extension_sock_addr_authorize_connection_classify(
     filter_context = (net_ebpf_extension_sock_addr_wfp_filter_context_t*)filter->context;
     ASSERT(filter_context != NULL);
     if (filter_context == NULL) {
+        goto Exit;
+    }
+
+    // Note: This is intentionally not guarded by a lock as this is opportunistically checking if all the
+    // clients have detached and the filter context is being deleted.
+    if (filter_context->base.context_deleting) {
+        NET_EBPF_EXT_LOG_MESSAGE_NTSTATUS(
+            NET_EBPF_EXT_TRACELOG_LEVEL_VERBOSE,
+            NET_EBPF_EXT_TRACELOG_KEYWORD_SOCK_ADDR,
+            "net_ebpf_extension_sock_addr_authorize_connection_classify - Client detach detected.",
+            STATUS_INVALID_PARAMETER);
         goto Exit;
     }
 

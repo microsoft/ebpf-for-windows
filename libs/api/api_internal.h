@@ -14,6 +14,7 @@
 struct bpf_object;
 
 typedef struct _ebpf_ring_buffer_subscription ring_buffer_subscription_t;
+typedef struct _ebpf_perf_event_array_subscription perf_event_array_subscription_t;
 
 typedef struct bpf_program
 {
@@ -634,6 +635,37 @@ ebpf_ring_buffer_map_subscribe(
 bool
 ebpf_ring_buffer_map_unsubscribe(_In_ _Post_invalid_ ring_buffer_subscription_t* subscription) noexcept;
 
+typedef void (*perf_buffer_sample_fn)(void* ctx, int cpu, void* data, uint32_t size);
+typedef void (*perf_buffer_lost_fn)(void* ctx, int cpu, uint64_t cnt);
+
+/**
+ * @brief Subscribe for notifications from the input perf event array map.
+ *
+ * @param[in] perf_event_array_map_fd File descriptor to the perf event array map.
+ * @param[in, out] callback_context Pointer to supplied context to be passed in notification callback.
+ * @param[in] sample_callback Function pointer to notification handler.
+ * @param[in] lost_callback Function pointer to lost record notification handler.
+ * @param[out] subscription Opaque pointer to perf event array subscription object.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_perf_event_array_map_subscribe(
+    fd_t perf_event_array_map_fd,
+    _Inout_opt_ void* callback_context,
+    perf_buffer_sample_fn sample_callback,
+    perf_buffer_lost_fn lost_callback,
+    _Outptr_ perf_event_array_subscription_t** subscription) noexcept;
+
+/**
+ * @brief Unsubscribe from the perf event array map event notifications.
+ *
+ * @param[in] subscription Pointer to perf event array subscription to be canceled.
+ */
+bool
+ebpf_perf_event_array_map_unsubscribe(_In_ _Post_invalid_ perf_event_array_subscription_t* subscription) noexcept;
+
 /**
  * @brief Get list of programs and stats in an ELF eBPF file.
  * @param[in] file Name of ELF file containing eBPF program.
@@ -672,7 +704,7 @@ ebpf_api_elf_enumerate_programs(
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
  * @retval EBPF_NO_MEMORY Out of memory.
  * @retval EBPF_VERIFICATION_FAILED The program failed verification.
- * @retval EBPF_FAILED Some other error occured.
+ * @retval EBPF_FAILED Some other error occurred.
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_load_bytes(

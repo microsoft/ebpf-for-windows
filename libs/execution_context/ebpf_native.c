@@ -37,7 +37,8 @@ typedef uint64_t (*helper_function_address)(
 
 typedef struct _ebpf_native_map
 {
-    map_entry_t* entry;
+    void* entry_pointer;
+    map_entry_t entry;
     struct _ebpf_native_map* inner_map;
     ebpf_handle_t handle;
     ebpf_handle_t inner_map_handle;
@@ -51,7 +52,8 @@ typedef struct _ebpf_native_map
 typedef struct _ebpf_native_program
 {
     struct _ebpf_native_module* module;
-    program_entry_t* entry;
+    void* entry;
+    program_entry_t program_entry;
     ebpf_handle_t handle;
     struct _ebpf_native_helper_address_changed_context* addresses_changed_callback_context;
     program_runtime_context_t runtime_context;
@@ -183,6 +185,172 @@ typedef struct _ebpf_native_helper_address_changed_context
     ebpf_native_program_t* native_program;
 } ebpf_native_helper_address_changed_context_t;
 
+static bool
+_ebpf_validate_native_helper_function_entry(_In_ const helper_function_entry_t* native_helper_function_entry)
+{
+    return (
+        (native_helper_function_entry != NULL) &&
+        ebpf_validate_object_header_native_helper_function_entry(&native_helper_function_entry->header) &&
+        (native_helper_function_entry->name != NULL));
+}
+
+static bool
+_ebpf_validate_native_helper_function_entry_array(
+    _In_reads_(count) const helper_function_entry_t* native_helper_function_entry_array, uint16_t count)
+{
+    if (count > 0) {
+        // The native_helper_function_entry_array cannot be NULL.
+        if (native_helper_function_entry_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
+        size_t helper_prototype_size = native_helper_function_entry_array[0].header.total_size;
+        for (uint16_t i = 0; i < count; i++) {
+            const helper_function_entry_t* helper_prototype = (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(
+                native_helper_function_entry_array, i, helper_prototype_size);
+            if (!_ebpf_validate_native_helper_function_entry(helper_prototype)) {
+                return false;
+            }
+        }
+    } else if (native_helper_function_entry_array != NULL) {
+        return false;
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_program_entry(_In_opt_ const program_entry_t* native_program_entry)
+{
+    return (
+        (native_program_entry != NULL) &&
+        ebpf_validate_object_header_native_program_entry(&native_program_entry->header) &&
+        _ebpf_validate_native_helper_function_entry_array(
+            native_program_entry->helpers, native_program_entry->helper_count));
+}
+
+static bool
+_ebpf_validate_native_program_entry_array(
+    _In_reads_(count) const program_entry_t* native_program_entry_array, size_t count)
+{
+    if (count > 0) {
+        // The native_program_entry_array cannot be NULL.
+        if (native_program_entry_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the program_entry_t struct.
+        size_t program_entry_size = native_program_entry_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            const program_entry_t* program_entry =
+                (const program_entry_t*)ARRAY_ELEMENT_INDEX(native_program_entry_array, i, program_entry_size);
+            if (!_ebpf_validate_native_program_entry(program_entry)) {
+                return false;
+            }
+        }
+    } else if (native_program_entry_array != NULL) {
+        return false;
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_map_entry(_In_ const map_entry_t* native_map_entry)
+{
+    return (
+        (native_map_entry != NULL) && ebpf_validate_object_header_native_map_entry(&native_map_entry->header) &&
+        (native_map_entry->name != NULL));
+}
+
+static bool
+_ebpf_validate_native_map_entry_array(_In_reads_(count) const map_entry_t* native_map_entry_array, size_t count)
+{
+    if (count > 0) {
+        // The native_map_entry_array cannot be NULL.
+        if (native_map_entry_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the map_entry_t struct.
+        size_t map_entry_size = native_map_entry_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            const map_entry_t* map_entry =
+                (const map_entry_t*)ARRAY_ELEMENT_INDEX(native_map_entry_array, i, map_entry_size);
+            if (!_ebpf_validate_native_map_entry(map_entry)) {
+                return false;
+            }
+        }
+    } else if (native_map_entry_array != NULL) {
+        return false;
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_map_initial_values(_In_ const map_initial_values_t* native_map_initial_values)
+{
+    return (
+        (native_map_initial_values != NULL) &&
+        ebpf_validate_object_header_native_map_initial_values(&native_map_initial_values->header) &&
+        (native_map_initial_values->values != NULL));
+}
+
+static bool
+_ebpf_validate_native_map_initial_values_array(
+    _In_reads_(count) const map_initial_values_t* native_map_initial_values_array, size_t count)
+{
+    if (count > 0) {
+        // The native_map_initial_values_array cannot be NULL.
+        if (native_map_initial_values_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the map_initial_values_t struct.
+        size_t map_initial_values_size = native_map_initial_values_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            const map_initial_values_t* map_initial_values = (const map_initial_values_t*)ARRAY_ELEMENT_INDEX(
+                native_map_initial_values_array, i, map_initial_values_size);
+            if (!_ebpf_validate_native_map_initial_values(map_initial_values)) {
+                return false;
+            }
+        }
+    } else if (native_map_initial_values_array != NULL) {
+        return false;
+    }
+    return true;
+}
+
+static bool
+_ebpf_validate_native_global_variable_section_info(
+    _In_ const global_variable_section_info_t* native_global_variable_section_info)
+{
+    return (
+        (native_global_variable_section_info != NULL) &&
+        ebpf_validate_object_header_native_global_variable_section_info(&native_global_variable_section_info->header) &&
+        (native_global_variable_section_info->initial_data != NULL));
+}
+
+static bool
+_ebpf_validate_global_variable_section_info_array(
+    _In_reads_(count) const global_variable_section_info_t* native_global_variable_section_info_array, size_t count)
+{
+    if (count > 0) {
+        // The native_global_variable_section_info_array cannot be NULL.
+        if (native_global_variable_section_info_array == NULL) {
+            return false;
+        }
+        // Use "total_size" to calculate the actual size of the global_variable_section_info_t struct.
+        size_t global_variable_section_info_size = native_global_variable_section_info_array[0].header.total_size;
+        for (size_t i = 0; i < count; i++) {
+            const global_variable_section_info_t* global_variable_section_info =
+                (const global_variable_section_info_t*)ARRAY_ELEMENT_INDEX(
+                    native_global_variable_section_info_array, i, global_variable_section_info_size);
+            if (!_ebpf_validate_native_global_variable_section_info(global_variable_section_info)) {
+                return false;
+            }
+        }
+    } else if (native_global_variable_section_info_array != NULL) {
+        return false;
+    }
+    return true;
+}
+
 static ebpf_result_t
 _ebpf_native_helper_address_changed(
     size_t address_count, _In_reads_opt_(address_count) helper_function_address_t* addresses, _In_opt_ void* context);
@@ -204,12 +372,32 @@ _ebpf_native_unload_work_item(_In_ cxplat_preemptible_work_item_t* work_item, _I
 static inline bool
 _ebpf_native_is_map_in_map(_In_ const ebpf_native_map_t* map)
 {
-    if (map->entry->definition.type == BPF_MAP_TYPE_HASH_OF_MAPS ||
-        map->entry->definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
+    if (map->entry.definition.type == BPF_MAP_TYPE_HASH_OF_MAPS ||
+        map->entry.definition.type == BPF_MAP_TYPE_ARRAY_OF_MAPS) {
         return true;
     }
 
     return false;
+}
+
+size_t
+_ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_t* module)
+{
+    map_entry_t* maps = NULL;
+    size_t count_of_maps;
+    module->table.maps(&maps, &count_of_maps);
+
+    return count_of_maps;
+}
+
+size_t
+_ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
+{
+    program_entry_t* programs = NULL;
+    size_t count_of_programs;
+    module->table.programs(&programs, &count_of_programs);
+
+    return count_of_programs;
 }
 
 static void
@@ -267,6 +455,8 @@ _ebpf_native_clean_up_program(_In_opt_ _Post_invalid_ ebpf_native_program_t* pro
         ebpf_free(program->runtime_context.helper_data);
         ebpf_free(program->runtime_context.map_data);
         ebpf_free(program->runtime_context.global_variable_section_data);
+        ebpf_free(program->program_entry.helpers);
+        program->program_entry.helpers = NULL;
         ebpf_free(program);
     }
 }
@@ -468,6 +658,114 @@ _ebpf_native_release_reference_internal(void* base_object, ebpf_file_id_t file_i
     _ebpf_native_release_reference(base_object);
 }
 
+static ebpf_result_t
+_ebpf_native_validate_native_module(_In_opt_ const metadata_table_t* table, _In_ const GUID* client_module_id)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    metadata_table_t local_table = {0};
+    bpf2c_version_t version;
+    program_entry_t* programs = NULL;
+    size_t program_count = 0;
+    map_entry_t* maps = NULL;
+    size_t map_count = 0;
+    map_initial_values_t* map_initial_values = NULL;
+    size_t map_initial_values_count = 0;
+    global_variable_section_info_t* global_variables = NULL;
+    size_t global_variable_count = 0;
+
+    if (!table || !table->programs || !table->maps) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_NATIVE, "The metadata table is invalid", client_module_id);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "The metadata table size is invalid",
+            client_module_id);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    // Copy the metadata table.
+    memcpy(&local_table, table, min(table->size, sizeof(metadata_table_t)));
+
+    // Check if the client module is compatible with the runtime.
+    if (local_table.size < EBPF_OFFSET_OF(metadata_table_t, version)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
+            "may be too old.",
+            client_module_id);
+        goto Done;
+    }
+
+    local_table.version(&version);
+    if (_ebpf_compare_versions(&version, &_ebpf_minimum_version) < 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "Native module version is older than _ebpf_minimum_version. Rejecting the attach request.",
+            client_module_id);
+        goto Done;
+    }
+
+    // Validate the programs.
+    local_table.programs(&programs, &program_count);
+    if (!_ebpf_validate_native_program_entry_array(programs, program_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_native_program_entry_array failed.",
+            client_module_id);
+        goto Done;
+    }
+
+    // Validate the maps.
+    local_table.maps(&maps, &map_count);
+    if (!_ebpf_validate_native_map_entry_array(maps, map_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_native_map_entry_array failed.",
+            client_module_id);
+        goto Done;
+    }
+
+    // Validate map_initial_values.
+    local_table.map_initial_values(&map_initial_values, &map_initial_values_count);
+    if (!_ebpf_validate_native_map_initial_values_array(map_initial_values, map_initial_values_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_native_map_initial_values_array failed.",
+            client_module_id);
+        goto Done;
+    }
+
+    // Validate global variables.
+    local_table.global_variable_sections(&global_variables, &global_variable_count);
+    if (!_ebpf_validate_global_variable_section_info_array(global_variables, global_variable_count)) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_validate_global_variable_section_info_array failed.",
+            client_module_id);
+        goto Done;
+    }
+
+Done:
+    return result;
+}
+
 static NTSTATUS
 _ebpf_native_provider_attach_client_callback(
     _In_ HANDLE nmr_binding_handle,
@@ -480,7 +778,6 @@ _ebpf_native_provider_attach_client_callback(
 {
     UNREFERENCED_PARAMETER(provider_context);
     UNREFERENCED_PARAMETER(client_binding_context);
-    UNREFERENCED_PARAMETER(client_dispatch);
 
     *provider_dispatch = NULL;
     *provider_binding_context = NULL;
@@ -495,44 +792,40 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_lock_state_t state = 0;
     ebpf_native_module_t** module = NULL;
     bool lock_acquired = false;
-    metadata_table_t* table = NULL;
-    ebpf_native_module_t* client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
+    ebpf_native_module_t* client_context = NULL;
 
+    const metadata_table_t* table = (const metadata_table_t*)client_dispatch;
+    if (table == NULL) {
+        // This is most likely an older version of native module. Reject attach.
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Invalid native module: metadata table is NULL",
+            client_module_id);
+        goto Done;
+    }
+
+    client_context = ebpf_allocate_with_tag(sizeof(ebpf_native_module_t), EBPF_POOL_TAG_NATIVE);
     if (!client_context) {
         result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-    table = (metadata_table_t*)client_registration_instance->NpiSpecificCharacteristics;
-    if (!table || !table->programs || !table->maps) {
-        result = EBPF_INVALID_ARGUMENT;
-        goto Done;
-    }
-
-    // Check if the client module is compatible with the runtime.
-    if (table->size < EBPF_OFFSET_OF(metadata_table_t, version)) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "The metadata table size is wrong for client module. The version of bpf2c used to generate this module "
-            "may be too old.",
-            client_module_id);
-        goto Done;
-    }
-
-    table->version(&client_context->version);
-    if (_ebpf_compare_versions(&client_context->version, &_ebpf_minimum_version) < 0) {
-        result = EBPF_INVALID_ARGUMENT;
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "Native module version is older than _ebpf_minimum_version. Rejecting the attach request.",
-            client_module_id);
         goto Done;
     }
 
     // Copy the metadata table.
     memcpy(&client_context->table, table, min(table->size, sizeof(metadata_table_t)));
+    table = NULL;
+    result = _ebpf_native_validate_native_module(&client_context->table, client_module_id);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Invalid native module",
+            client_module_id);
+        goto Done;
+    }
+
+    client_context->table.version(&client_context->version);
 
     ebpf_lock_create(&client_context->lock);
     client_context->base.marker = _ebpf_native_marker;
@@ -703,12 +996,13 @@ static ebpf_result_t
 _ebpf_native_initialize_maps(
     _In_ const GUID* module_id,
     _Out_writes_(map_count) ebpf_native_map_t* native_maps,
-    _Inout_updates_(map_count) map_entry_t* maps,
+    _In_reads_(map_count) const map_entry_t* maps,
     size_t map_count)
 {
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
     const int ORIGINAL_ID_OFFSET = 1;
+    size_t map_entry_size = maps[0].header.total_size;
 
     // First set all handle value to invalid.
     // This is needed because initializing negative tests can cause initialization
@@ -718,22 +1012,26 @@ _ebpf_native_initialize_maps(
     }
 
     for (uint32_t i = 0; i < map_count; i++) {
-        if (maps[i].definition.pinning != LIBBPF_PIN_NONE && maps[i].definition.pinning != LIBBPF_PIN_BY_NAME) {
+        // Copy the map_entry_t from native module to ebpf_native_map_t.
+        map_entry_t* map_entry = (map_entry_t*)ARRAY_ELEMENT_INDEX(maps, i, map_entry_size);
+        memcpy(&native_maps[i].entry, map_entry, map_entry_size);
+        map_entry_t* entry = &native_maps[i].entry;
+
+        if (entry->definition.pinning != LIBBPF_PIN_NONE && entry->definition.pinning != LIBBPF_PIN_BY_NAME) {
             EBPF_LOG_MESSAGE_UINT64(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_NATIVE,
                 "_ebpf_native_initialize_maps: Unsupported pinning type",
-                maps[i].definition.pinning);
+                entry->definition.pinning);
             result = EBPF_INVALID_ARGUMENT;
             goto Done;
         }
-        native_maps[i].entry = &maps[i];
         native_maps[i].original_id = i + ORIGINAL_ID_OFFSET;
 
-        if (maps[i].definition.pinning == LIBBPF_PIN_BY_NAME) {
+        if (entry->definition.pinning == LIBBPF_PIN_BY_NAME) {
             // Construct the pin path.
             size_t prefix_length = strnlen(DEFAULT_PIN_ROOT_PATH, EBPF_MAX_PIN_PATH_LENGTH);
-            size_t name_length = strnlen_s(maps[i].name, BPF_OBJ_NAME_LEN);
+            size_t name_length = strnlen_s(entry->name, BPF_OBJ_NAME_LEN);
             if (name_length == 0 || name_length >= BPF_OBJ_NAME_LEN ||
                 prefix_length + name_length + 1 >= EBPF_MAX_PIN_PATH_LENGTH) {
                 EBPF_LOG_MESSAGE_GUID(
@@ -754,7 +1052,7 @@ _ebpf_native_initialize_maps(
             native_maps[i].pin_path.length = prefix_length + name_length + 1;
             memcpy(native_maps[i].pin_path.value, DEFAULT_PIN_ROOT_PATH, prefix_length);
             memcpy(native_maps[i].pin_path.value + prefix_length, "/", 1);
-            memcpy(native_maps[i].pin_path.value + prefix_length + 1, maps[i].name, name_length);
+            memcpy(native_maps[i].pin_path.value + prefix_length + 1, entry->name, name_length);
         } else {
             native_maps[i].pin_path.value = NULL;
             native_maps[i].pin_path.length = 0;
@@ -763,14 +1061,14 @@ _ebpf_native_initialize_maps(
 
     // Populate inner map fd.
     for (uint32_t i = 0; i < map_count; i++) {
-        ebpf_map_definition_in_file_t* definition = &(native_maps[i].entry->definition);
+        ebpf_map_definition_in_file_t* definition = &(native_maps[i].entry.definition);
         int32_t inner_map_original_id = -1;
         if (_ebpf_native_is_map_in_map(&native_maps[i])) {
             if (definition->inner_map_idx != 0) {
                 inner_map_original_id = definition->inner_map_idx + ORIGINAL_ID_OFFSET;
             } else if (definition->inner_id != 0) {
                 for (uint32_t j = 0; j < map_count; j++) {
-                    ebpf_map_definition_in_file_t* inner_definition = &(native_maps[j].entry->definition);
+                    ebpf_map_definition_in_file_t* inner_definition = &(native_maps[j].entry.definition);
                     if (inner_definition->id == definition->inner_id && i != j) {
                         inner_map_original_id = j + ORIGINAL_ID_OFFSET;
                         break;
@@ -804,9 +1102,8 @@ _ebpf_native_validate_map(_In_ const ebpf_native_map_t* map, ebpf_handle_t origi
         goto Exit;
     }
 
-    if (info.type != map->entry->definition.type || info.key_size != map->entry->definition.key_size ||
-        info.value_size != map->entry->definition.value_size ||
-        info.max_entries != map->entry->definition.max_entries) {
+    if (info.type != map->entry.definition.type || info.key_size != map->entry.definition.key_size ||
+        info.value_size != map->entry.definition.value_size || info.max_entries != map->entry.definition.max_entries) {
         result = EBPF_INVALID_ARGUMENT;
         goto Exit;
     }
@@ -887,7 +1184,7 @@ _ebpf_native_find_map_by_name(_In_ const ebpf_native_module_instance_t* instance
 {
     ebpf_native_map_t* map = NULL;
     for (uint32_t i = 0; i < instance->map_count; i++) {
-        if (strcmp(instance->maps[i].entry->name, name) == 0) {
+        if (strcmp(instance->maps[i].entry.name, name) == 0) {
             map = &instance->maps[i];
             break;
         }
@@ -900,7 +1197,7 @@ _ebpf_native_find_program_by_name(_In_ const ebpf_native_module_instance_t* inst
 {
     ebpf_native_program_t* program = NULL;
     for (uint32_t i = 0; i < instance->program_count; i++) {
-        if (strcmp(instance->programs[i]->entry->program_name, name) == 0) {
+        if (strcmp(instance->programs[i]->program_entry.program_name, name) == 0) {
             program = instance->programs[i];
             break;
         }
@@ -949,7 +1246,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_instance_t* insta
                     break;
                 }
                 handle_to_insert = native_map_to_insert->handle;
-            } else if (native_map_to_update->entry->definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
+            } else if (native_map_to_update->entry.definition.type == BPF_MAP_TYPE_PROG_ARRAY) {
                 ebpf_native_program_t* program_to_insert =
                     _ebpf_native_find_program_by_name(instance, map_initial_values[i].values[j]);
                 if (program_to_insert == NULL) {
@@ -966,7 +1263,7 @@ _ebpf_native_set_initial_map_values(_Inout_ ebpf_native_module_instance_t* insta
             result = ebpf_core_update_map_with_handle(
                 native_map_to_update->handle,
                 (uint8_t*)&key,
-                native_map_to_update->entry->definition.key_size,
+                native_map_to_update->entry.definition.key_size,
                 handle_to_insert);
             if (result != EBPF_SUCCESS) {
                 break;
@@ -1003,9 +1300,21 @@ _ebpf_native_initialize_global_variables(
         EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
     }
 
+    // Use "total_size" to calculate the actual size of the global_variable_section_info_t struct.
+    size_t global_variable_section_info_size = global_variables[0].header.total_size;
+
     // For each entry.
     for (size_t i = 0; i < global_variable_count; i++) {
-        ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, global_variables[i].name);
+        global_variable_section_info_t local_global_section_info = {0};
+        global_variable_section_info_t* global_variable_section_info =
+            (global_variable_section_info_t*)ARRAY_ELEMENT_INDEX(
+                global_variables, i, global_variable_section_info_size);
+
+        // Copy the global variable section info.
+        memcpy(&local_global_section_info, global_variable_section_info, global_variable_section_info_size);
+        global_variable_section_info = NULL;
+
+        const ebpf_native_map_t* native_map = _ebpf_native_find_map_by_name(instance, local_global_section_info.name);
         if (native_map == NULL) {
             result = EBPF_INVALID_ARGUMENT;
             break;
@@ -1023,8 +1332,8 @@ _ebpf_native_initialize_global_variables(
         // Copy the initial value to the map.
         memcpy(
             program->runtime_context.global_variable_section_data[i].address_of_map_value,
-            global_variables[i].initial_data,
-            global_variables[i].size);
+            local_global_section_info.initial_data,
+            local_global_section_info.size);
     }
 
     EBPF_RETURN_RESULT(result);
@@ -1075,7 +1384,7 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
             break;
         }
 
-        if (native_map->entry->definition.pinning == LIBBPF_PIN_BY_NAME) {
+        if (native_map->entry.definition.pinning == LIBBPF_PIN_BY_NAME) {
             result = _ebpf_native_reuse_map(native_map);
             if (result != EBPF_SUCCESS) {
                 break;
@@ -1086,17 +1395,17 @@ _ebpf_native_create_maps(_Inout_ ebpf_native_module_instance_t* instance)
         }
 
         ebpf_handle_t inner_map_handle = (native_map->inner_map) ? native_map->inner_map->handle : ebpf_handle_invalid;
-        map_name.length = strlen(native_map->entry->name);
+        map_name.length = strlen(native_map->entry.name);
         map_name.value = (uint8_t*)ebpf_allocate_with_tag(map_name.length, EBPF_POOL_TAG_NATIVE);
         if (map_name.value == NULL) {
             result = EBPF_NO_MEMORY;
             break;
         }
-        memcpy(map_name.value, native_map->entry->name, map_name.length);
-        map_definition.type = native_map->entry->definition.type;
-        map_definition.key_size = native_map->entry->definition.key_size;
-        map_definition.value_size = native_map->entry->definition.value_size;
-        map_definition.max_entries = native_map->entry->definition.max_entries;
+        memcpy(map_name.value, native_map->entry.name, map_name.length);
+        map_definition.type = native_map->entry.definition.type;
+        map_definition.key_size = native_map->entry.definition.key_size;
+        map_definition.value_size = native_map->entry.definition.value_size;
+        map_definition.max_entries = native_map->entry.definition.max_entries;
 
         result = ebpf_core_create_map(&map_name, &map_definition, inner_map_handle, &native_map->handle);
         if (result != EBPF_SUCCESS) {
@@ -1137,8 +1446,8 @@ _ebpf_native_resolve_maps_for_program(
     ebpf_result_t result;
     ebpf_handle_t* map_handles = NULL;
     uintptr_t* map_addresses = NULL;
-    uint16_t* map_indices = program->entry->referenced_map_indices;
-    uint16_t map_count = program->entry->referenced_map_count;
+    uint16_t* map_indices = program->program_entry.referenced_map_indices;
+    uint16_t map_count = program->program_entry.referenced_map_count;
     ebpf_native_map_t* native_maps = instance->maps;
 
     if (map_count == 0) {
@@ -1199,8 +1508,8 @@ _ebpf_native_resolve_helpers_for_program(
     ebpf_result_t result;
     uint32_t* helper_ids = NULL;
     helper_function_address_t* helper_addresses = NULL;
-    uint16_t helper_count = program->entry->helper_count;
-    helper_function_entry_t* helper_info = program->entry->helpers;
+    uint16_t helper_count = program->program_entry.helper_count;
+    helper_function_entry_t* helper_info = program->program_entry.helpers;
     helper_function_data_t* helper_data = program->runtime_context.helper_data;
     bool implicit_context_supported = false;
 
@@ -1218,9 +1527,20 @@ _ebpf_native_resolve_helpers_for_program(
             goto Done;
         }
 
+        // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
+        size_t helper_entry_size = helper_info[0].header.total_size;
+
         // Iterate over the helper indices to get all the helper ids.
         for (uint16_t i = 0; i < helper_count; i++) {
-            helper_ids[i] = helper_info[i].helper_id;
+            helper_function_entry_t local_helper_entry = {0};
+            const helper_function_entry_t* entry =
+                (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
+            memcpy(&local_helper_entry, entry, helper_entry_size);
+
+            helper_ids[i] = local_helper_entry.helper_id;
+            if (local_helper_entry.helper_id == BPF_FUNC_tail_call) {
+                helper_data[i].tail_call = true;
+            }
         }
     }
 
@@ -1259,17 +1579,53 @@ Done:
     EBPF_RETURN_RESULT(result);
 }
 
-static void
-_ebpf_native_initialize_helpers_for_program(_Inout_ ebpf_native_program_t* program)
+static ebpf_result_t
+_ebpf_native_initialize_programs(_Inout_ ebpf_native_module_instance_t* instance)
 {
-    size_t helper_count = program->entry->helper_count;
-    helper_function_entry_t* helpers = program->entry->helpers;
-    // Initialize the helper entries.
-    for (size_t i = 0; i < helper_count; i++) {
-        if (helpers[i].helper_id == BPF_FUNC_tail_call) {
-            program->runtime_context.helper_data[i].tail_call = true;
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    program_entry_t* programs = NULL;
+    size_t program_count = 0;
+    ebpf_native_program_t** native_programs = instance->programs;
+
+    instance->module->table.programs(&programs, &program_count);
+
+    for (uint32_t i = 0; i < program_count; i++) {
+        native_programs[i]->handle = ebpf_handle_invalid;
+    }
+
+    // Initialize "program_entry" for each native program.
+    // Use "total_size" to calculate the actual size of the program_entry_t struct.
+    size_t program_entry_size = programs[0].header.total_size;
+    for (uint32_t count = 0; count < program_count; count++) {
+        ebpf_native_program_t* native_program = native_programs[count];
+        const program_entry_t* entry = (program_entry_t*)ARRAY_ELEMENT_INDEX(programs, count, program_entry_size);
+        memcpy(&native_program->program_entry, entry, program_entry_size);
+        entry = NULL;
+
+        // Make a deep copy of each versioned sub-struct. Currently, helper info is the only
+        // versioned sub-struct.
+        if (native_program->program_entry.helper_count > 0) {
+            const helper_function_entry_t* helper_info = native_program->program_entry.helpers;
+            native_program->program_entry.helpers = (helper_function_entry_t*)ebpf_allocate_with_tag(
+                native_program->program_entry.helper_count * sizeof(helper_function_entry_t), EBPF_POOL_TAG_NATIVE);
+            if (native_program->program_entry.helpers == NULL) {
+                result = EBPF_NO_MEMORY;
+                goto Done;
+            }
+            // Use "total_size" to calculate the actual size of the helper_function_entry_t struct.
+            size_t helper_entry_size = helper_info[0].header.total_size;
+            for (uint32_t i = 0; i < native_program->program_entry.helper_count; i++) {
+                const helper_function_entry_t* helper_entry =
+                    (const helper_function_entry_t*)ARRAY_ELEMENT_INDEX(helper_info, i, helper_entry_size);
+                memcpy(&native_program->program_entry.helpers[i], helper_entry, helper_entry_size);
+                helper_entry = NULL;
+            }
         }
     }
+
+Done:
+    EBPF_RETURN_RESULT(result);
 }
 
 static ebpf_result_t
@@ -1277,8 +1633,7 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     ebpf_native_program_t** native_programs = NULL;
-    program_entry_t* programs = NULL;
-    size_t program_count = 0;
+    size_t program_count;
     size_t program_name_length = 0;
     size_t section_name_length = 0;
     size_t hash_type_length = 0;
@@ -1287,13 +1642,10 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     uint8_t* hash_type_name = NULL;
     ebpf_native_module_t* module = instance->module;
 
-    // Get the programs.
-    module->table.programs(&programs, &program_count);
+    // Get the program count.
+    program_count = _ebpf_native_get_count_of_programs(instance->module);
     if (program_count == 0) {
         EBPF_RETURN_RESULT(EBPF_SUCCESS);
-    }
-    if (programs == NULL) {
-        return EBPF_INVALID_OBJECT;
     }
 
     instance->programs = (ebpf_native_program_t**)ebpf_allocate_with_tag(
@@ -1315,13 +1667,14 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
     ebpf_assert(instance->program_count == program_count);
     native_programs = instance->programs;
 
-    for (uint32_t i = 0; i < program_count; i++) {
-        native_programs[i]->entry = &programs[i];
+    result = _ebpf_native_initialize_programs(instance);
+    if (result != EBPF_SUCCESS) {
+        goto Done;
     }
 
     for (uint32_t count = 0; count < program_count; count++) {
         ebpf_native_program_t* native_program = native_programs[count];
-        program_entry_t* program = native_program->entry;
+        const program_entry_t* program = &native_program->program_entry;
         ebpf_program_parameters_t parameters = {0};
         size_t helper_count = program->helper_count;
         size_t helper_data_size = 0;
@@ -1365,8 +1718,6 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
             }
         }
 
-        _ebpf_native_initialize_helpers_for_program(native_program);
-
         program_name_length = strnlen_s(program->program_name, BPF_OBJ_NAME_LEN);
         section_name_length = strnlen_s(program->section_name, BPF_OBJ_NAME_LEN);
         hash_type_length = strnlen_s(program->program_info_hash_type, BPF_OBJ_NAME_LEN);
@@ -1402,15 +1753,15 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         parameters.file_name.value = NULL;
         parameters.file_name.length = 0;
 
-        parameters.program_info_hash = program->program_info_hash;
-        parameters.program_info_hash_length = program->program_info_hash_length;
+        parameters.program_info_hash = native_program->program_entry.program_info_hash;
+        parameters.program_info_hash_length = native_program->program_entry.program_info_hash_length;
 
         hash_type_name = ebpf_allocate_with_tag(hash_type_length, EBPF_POOL_TAG_NATIVE);
         if (hash_type_name == NULL) {
             result = EBPF_NO_MEMORY;
             goto Done;
         }
-        memcpy(hash_type_name, program->program_info_hash_type, hash_type_length);
+        memcpy(hash_type_name, native_program->program_entry.program_info_hash_type, hash_type_length);
         parameters.program_info_hash_type.value = hash_type_name;
         parameters.program_info_hash_type.length = hash_type_length;
 
@@ -1488,7 +1839,11 @@ _ebpf_native_load_programs(_Inout_ ebpf_native_module_instance_t* instance)
         native_program->module = module;
 
         result = ebpf_core_load_code(
-            native_program->handle, EBPF_CODE_NATIVE, &code_context, (uint8_t*)native_program->entry->function, 0);
+            native_program->handle,
+            EBPF_CODE_NATIVE,
+            &code_context,
+            (uint8_t*)native_program->program_entry.function,
+            0);
         if (result != EBPF_SUCCESS) {
             goto Done;
         }
@@ -1510,26 +1865,6 @@ Done:
     ebpf_free(section_name);
     ebpf_free(hash_type_name);
     return result;
-}
-
-size_t
-_ebpf_native_get_count_of_maps(_In_ const ebpf_native_module_t* module)
-{
-    map_entry_t* maps = NULL;
-    size_t count_of_maps;
-    module->table.maps(&maps, &count_of_maps);
-
-    return count_of_maps;
-}
-
-size_t
-_ebpf_native_get_count_of_programs(_In_ const ebpf_native_module_t* module)
-{
-    program_entry_t* programs = NULL;
-    size_t count_of_programs;
-    module->table.programs(&programs, &count_of_programs);
-
-    return count_of_programs;
 }
 
 _Must_inspect_result_ ebpf_result_t
@@ -1905,7 +2240,7 @@ _ebpf_native_helper_address_changed(
     bool implicit_context_supported = false;
 
     uint64_t* helper_function_addresses = NULL;
-    size_t helper_count = helper_address_changed_context->native_program->entry->helper_count;
+    size_t helper_count = helper_address_changed_context->native_program->program_entry.helper_count;
 
     if (helper_count == 0) {
         return_value = EBPF_SUCCESS;

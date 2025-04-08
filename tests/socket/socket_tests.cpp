@@ -23,7 +23,6 @@
 #include "socket_tests_common.h"
 #include "watchdog.h"
 
-#include <atomic>
 #include <chrono>
 #include <future>
 #include <iostream>
@@ -36,21 +35,6 @@ CATCH_REGISTER_LISTENER(_watchdog)
 
 thread_local bool _is_main_thread = false;
 
-struct test_failure : std::exception
-{
-    test_failure(const std::string& message) : message(message) {}
-    std::string message;
-};
-
-#define SAFE_REQUIRE(x)                                               \
-    if (_is_main_thread) {                                            \
-        REQUIRE(x);                                                   \
-    } else {                                                          \
-        if (!(x)) {                                                   \
-            throw test_failure("Condition failed" + std::string(#x)); \
-        }                                                             \
-    }
-
 void
 connection_test(
     ADDRESS_FAMILY address_family,
@@ -59,7 +43,7 @@ connection_test(
     uint32_t protocol)
 {
     native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr");
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
@@ -189,7 +173,7 @@ TEST_CASE("attach_sock_addr_programs", "[sock_addr_tests]")
     uint32_t program_info_size = sizeof(program_info);
 
     native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr");
+    helper.initialize("cgroup_sock_addr", _is_main_thread);
 
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
@@ -283,7 +267,7 @@ connection_monitor_test(
     bool disconnect)
 {
     native_module_helper_t helper;
-    helper.initialize("sockops");
+    helper.initialize("sockops", _is_main_thread);
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
 
@@ -485,7 +469,7 @@ TEST_CASE("connection_monitor_test_disconnect_tcp_v6", "[sock_ops_tests]")
 TEST_CASE("attach_sockops_programs", "[sock_ops_tests]")
 {
     native_module_helper_t helper;
-    helper.initialize("sockops");
+    helper.initialize("sockops", _is_main_thread);
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     bpf_object_ptr object_ptr(object);
 
@@ -711,7 +695,7 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
 
     // Load the programs.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-        helpers[i].initialize("cgroup_sock_addr2");
+        helpers[i].initialize("cgroup_sock_addr2", _is_main_thread);
         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
         SAFE_REQUIRE(objects[i] != nullptr);
         object_ptrs[i] = bpf_object_ptr(objects[i]);
@@ -761,7 +745,7 @@ multi_attach_test(uint32_t compartment_id, socket_family_t family, ADDRESS_FAMIL
     // Now attach a 4th program to different compartment. It should not get invoked, and its verdict should not affect
     // the connection.
     native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr2");
+    helper.initialize("cgroup_sock_addr2", _is_main_thread);
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     SAFE_REQUIRE(object != nullptr);
     bpf_object_ptr object_ptr(object);
@@ -797,7 +781,7 @@ multi_attach_test_redirection(
 
     // Load 3 programs.
     for (uint32_t i = 0; i < MULTIPLE_ATTACH_PROGRAM_COUNT; i++) {
-        helpers[i].initialize("cgroup_sock_addr2");
+        helpers[i].initialize("cgroup_sock_addr2", _is_main_thread);
         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
         SAFE_REQUIRE(objects[i] != nullptr);
         object_ptrs[i] = bpf_object_ptr(objects[i]);
@@ -1074,7 +1058,7 @@ test_multi_attach_combined(socket_family_t family, ADDRESS_FAMILY address_family
 
     // Load the programs.
     for (uint32_t i = 0; i < program_count_per_hook * 2; i++) {
-        helpers[i].initialize("cgroup_sock_addr2");
+        helpers[i].initialize("cgroup_sock_addr2", _is_main_thread);
         objects[i] = bpf_object__open(helpers[i].get_file_name().c_str());
         SAFE_REQUIRE(objects[i] != nullptr);
         object_ptrs[i] = bpf_object_ptr(objects[i]);
@@ -1238,8 +1222,8 @@ TEST_CASE("multi_attach_test_invocation_order", "[sock_addr_tests][multi_attach_
     int result = 0;
     native_module_helper_t native_helpers_specific;
     native_module_helper_t native_helpers_wildcard;
-    native_helpers_specific.initialize("cgroup_sock_addr2");
-    native_helpers_wildcard.initialize("cgroup_sock_addr2");
+    native_helpers_specific.initialize("cgroup_sock_addr2", _is_main_thread);
+    native_helpers_wildcard.initialize("cgroup_sock_addr2", _is_main_thread);
     socket_family_t family = socket_family_t::Dual;
     ADDRESS_FAMILY address_family = AF_INET;
     bpf_attach_type_t attach_type = (address_family == AF_INET) ? BPF_CGROUP_INET4_CONNECT : BPF_CGROUP_INET6_CONNECT;
@@ -1437,7 +1421,7 @@ void
 thread_function_attach_detach(std::stop_token token, uint32_t compartment_id, uint16_t destination_port)
 {
     native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr2");
+    helper.initialize("cgroup_sock_addr2", _is_main_thread);
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     SAFE_REQUIRE(object != nullptr);
     bpf_object_ptr object_ptr(object);
@@ -1494,7 +1478,7 @@ thread_function_allow_block_connection(
     uint32_t compartment_id)
 {
     native_module_helper_t helper;
-    helper.initialize("cgroup_sock_addr2");
+    helper.initialize("cgroup_sock_addr2", _is_main_thread);
     struct bpf_object* object = bpf_object__open(helper.get_file_name().c_str());
     SAFE_REQUIRE(object != nullptr);
     bpf_object_ptr object_ptr(object);

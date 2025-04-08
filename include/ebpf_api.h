@@ -719,6 +719,22 @@ extern "C"
     bpf_attach_type_t
     ebpf_get_bpf_attach_type(_In_ const ebpf_attach_type_t* ebpf_attach_type) EBPF_NO_EXCEPT;
 
+    /**
+     * @brief Write data into the perf event array map.
+     *
+     * @param [in] perf_event_array_map_fd perf event array map file descriptor.
+     * @param [in] data Pointer to data to be written.
+     * @param [in] data_length Length of data to be written.
+     * @retval EPBF_SUCCESS Successfully wrote record into perf event array.
+     * @retval EBPF_OUT_OF_SPACE Unable to output to perf event array due to inadequate space.
+     * @retval EBPF_NO_MEMORY Out of memory.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_perf_event_array_map_write(
+        fd_t perf_event_array_map_fd,
+        _In_reads_bytes_(data_length) const void* data,
+        size_t data_length) EBPF_NO_EXCEPT;
+
 #ifdef __cplusplus
 }
 #endif
