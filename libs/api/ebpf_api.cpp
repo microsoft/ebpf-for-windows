@@ -4375,7 +4375,7 @@ typedef struct _ebpf_map_async_query_context
 {
     _ebpf_map_async_query_context()
         : async_ioctl_failed(false), async_ioctl_completion(nullptr), buffer(nullptr), reply({}), cpu_id(0),
-          subscription(nullptr)
+          subscription(nullptr), lost_count_total(0)
     {
     }
 
@@ -4393,6 +4393,7 @@ typedef struct _ebpf_map_async_query_context
     std::mutex lock;
     uint8_t* buffer;
     uint32_t cpu_id;
+    size_t lost_count_total;
     async_ioctl_completion_t* async_ioctl_completion;
     bool async_ioctl_failed;
     ebpf_operation_map_async_query_reply_t reply;
@@ -4452,7 +4453,7 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
 
     size_t consumer = 0;
     size_t producer = 0;
-    size_t lost_count = 0;
+    size_t lost_count_delta = 0;
 
     ebpf_result_t result = EBPF_SUCCESS;
     // Check the result of the completed async IOCTL call.
@@ -4481,18 +4482,17 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
         ebpf_map_async_query_result_t* async_query_result = &reply->async_query_result;
         consumer = async_query_result->consumer;
         producer = async_query_result->producer;
-        lost_count = async_query_result->lost_count;
+        // The ebpf kernel maintains a monotonically increasing lost counter.
+        // The lost_callback gets notified about the delta in this counter.
+        ebpf_assert(async_query_result->lost_count >= async_query_context->lost_count_total);
+        lost_count_delta = async_query_result->lost_count - async_query_context->lost_count_total;
+        async_query_context->lost_count_total = async_query_result->lost_count;
 
-        if ((lost_count > 0) && (subscription->lost_callback != nullptr)) {
-            subscription->lost_callback(subscription->callback_context, cpu_id, lost_count);
+        if ((lost_count_delta > 0) && (subscription->lost_callback != nullptr)) {
+            subscription->lost_callback(subscription->callback_context, cpu_id, lost_count_delta);
         }
 
         for (;;) {
-
-            // If the subscription is being unsubscribed stop processing.
-            if (subscription->unsubscribed) {
-                break;
-            }
 
             auto record = ebpf_ring_buffer_next_record(
                 async_query_context->buffer, subscription->max_entries, consumer, producer);
@@ -4503,6 +4503,12 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
             }
 
             if (subscription->type == BPF_MAP_TYPE_RINGBUF) {
+
+                if (ebpf_ring_buffer_record_is_locked(record)) {
+                    // Record is locked. Wait for the record to be unlocked.
+                    break;
+                }
+
                 if (!ebpf_ring_buffer_record_is_discarded(record)) {
                     int callback_result = subscription->ring_buffer_sample_callback(
                         subscription->callback_context,
@@ -4535,14 +4541,13 @@ _ebpf_map_async_query_completion(_Inout_ void* completion_context) NO_EXCEPT_TRY
         std::scoped_lock lock{subscription->lock};
 
         if (subscription->unsubscribed) {
-            if (result == EBPF_CANCELED) {
-                // If the user has unsubscribed and the async query returns with EBPF_CANCELED, remove
-                // the async query context.
-                subscription->async_query_contexts.erase(async_query_context->cpu_id);
+            result = EBPF_CANCELED;
 
-                if (subscription->async_query_contexts.size() == 0) {
-                    subscription->cleanup_complete_event.notify_all();
-                }
+            // If the user has unsubscribed, remove the async query context.
+            subscription->async_query_contexts.erase(async_query_context->cpu_id);
+
+            if (subscription->async_query_contexts.size() == 0) {
+                subscription->cleanup_complete_event.notify_all();
             }
         } else {
             // If still subscribed, post the next async IOCTL call while holding the lock. It is safe to do so as the
@@ -4583,7 +4588,8 @@ CATCH_NO_MEMORY_EBPF_RESULT
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_subscribe(
     fd_t map_fd,
-    std::vector<uint32_t> cpu_ids,
+    _In_reads_(cpu_id_count) uint32_t* cpu_ids,
+    _In_ size_t cpu_id_count,
     _Inout_opt_ void* callback_context,
     _In_ const void* sample_callback,
     _In_opt_ const void* lost_callback,
@@ -4601,6 +4607,11 @@ ebpf_map_subscribe(
         uint32_t value_size = 0;
         uint32_t max_entries = 0;
         uint32_t type = BPF_MAP_TYPE_UNSPEC;
+
+        if ((cpu_ids == nullptr) || (cpu_id_count == 0)) {
+            result = EBPF_INVALID_FD;
+            EBPF_RETURN_RESULT(result);
+        }
 
         ebpf_handle_t map_handle = _get_handle_from_file_descriptor(map_fd);
 
@@ -4625,12 +4636,12 @@ ebpf_map_subscribe(
             EBPF_RETURN_RESULT(result);
         }
 
-        if ((type == BPF_MAP_TYPE_RINGBUF) && (cpu_ids.size() > 1)) {
+        if ((type == BPF_MAP_TYPE_RINGBUF) && (cpu_id_count > 1)) {
             result = EBPF_INVALID_ARGUMENT;
             EBPF_LOG_MESSAGE_ERROR(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_API,
-                "ebpf_map_subscribe API is called on a ring buffer map with multiple CPU IDs.",
+                "ebpf_map_subscribe API is called on a ring buffer map with multiple CPU ids.",
                 result);
             EBPF_RETURN_RESULT(result);
         }
@@ -4666,7 +4677,7 @@ ebpf_map_subscribe(
             EBPF_RETURN_RESULT(result);
         }
 
-        for (uint32_t cpu : cpu_ids) {
+        for (size_t cpu_index = 0; cpu_index < cpu_id_count; cpu_index++) {
             ebpf_map_async_query_context_ptr local_async_query_context =
                 std::make_unique<ebpf_map_async_query_context_t>();
 
@@ -4675,7 +4686,7 @@ ebpf_map_subscribe(
                 sizeof(query_buffer_request),
                 ebpf_operation_id_t::EBPF_OPERATION_MAP_QUERY_BUFFER,
                 local_subscription->map_handle,
-                cpu};
+                cpu_ids[cpu_index]};
             ebpf_operation_map_query_buffer_reply_t query_buffer_reply{};
             result = win32_error_code_to_ebpf_result(invoke_ioctl(query_buffer_request, query_buffer_reply));
             if (result != EBPF_SUCCESS) {
@@ -4685,7 +4696,7 @@ ebpf_map_subscribe(
             // Initialize the async IOCTL operation.
             local_async_query_context->buffer =
                 reinterpret_cast<uint8_t*>(static_cast<uintptr_t>(query_buffer_reply.buffer_address));
-            local_async_query_context->cpu_id = cpu;
+            local_async_query_context->cpu_id = cpu_ids[cpu_index];
             local_async_query_context->subscription = local_subscription.get();
             memset(&local_async_query_context->reply, 0, sizeof(ebpf_operation_map_async_query_reply_t));
             result = initialize_async_ioctl_operation(
@@ -4702,7 +4713,7 @@ ebpf_map_subscribe(
                 sizeof(async_query_request),
                 ebpf_operation_id_t::EBPF_OPERATION_MAP_ASYNC_QUERY,
                 local_subscription->map_handle,
-                cpu,
+                cpu_ids[cpu_index],
                 query_buffer_reply.consumer_offset};
             result = win32_error_code_to_ebpf_result(invoke_ioctl(
                 async_query_request,
@@ -4716,7 +4727,7 @@ ebpf_map_subscribe(
                 }
             }
 
-            local_subscription->async_query_contexts.insert({cpu, std::move(local_async_query_context)});
+            local_subscription->async_query_contexts.insert({cpu_ids[cpu_index], std::move(local_async_query_context)});
         }
 
         if (result == EBPF_SUCCESS) {

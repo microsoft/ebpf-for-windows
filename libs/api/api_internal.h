@@ -610,8 +610,10 @@ ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept;
  * @brief Subscribe for notifications from the input perf event array or a ring buffer map.
  *
  * @param[in] map_fd File descriptor to the perf event array or a ring buffer map.
- * @param[in] cpu_id The CPU Id corresponding to this subscription. For a ring buffer map this is ignored.
- * @param[in, out] callback_context Pointer to supplied context to be passed in notification callback.
+ * @param[in] cpu_ids The CPU Ids corresponding to this subscription. For a ring buffer map this is a single value with
+ * Id 0.
+ * @param[in] cpu_id_count The count of the elements in the cpu_ids parameter.
+ * @param[in] callback_context Pointer to supplied context to be passed in notification callback.
  * @param[in] sample_callback Function pointer to notification handler.
  * @param[in] lost_callback Function pointer to lost record notification handler.
  * @param[out] subscription Opaque pointer to the subscription object.
@@ -622,7 +624,8 @@ ebpf_object_unload(_Inout_ struct bpf_object* object) noexcept;
 _Must_inspect_result_ ebpf_result_t
 ebpf_map_subscribe(
     fd_t map_fd,
-    std::vector<uint32_t> cpu_ids,
+    _In_reads_(cpu_id_count) uint32_t* cpu_ids,
+    _In_ size_t cpu_id_count,
     _Inout_opt_ void* callback_context,
     _In_ const void* sample_callback,
     _In_opt_ const void* lost_callback,

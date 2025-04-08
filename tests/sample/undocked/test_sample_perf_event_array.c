@@ -18,8 +18,6 @@
 #include "sample_ext_helpers.h"
 #include "sample_test_common.h"
 
-#define VALUE_SIZE 32
-
 struct
 {
     __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);

@@ -225,68 +225,80 @@ static uint16_t test_program_entry_maps[] = {
 #pragma code_seg(push, "sample~1")
 static uint64_t
 test_program_entry(void* context, const program_runtime_context_t* runtime_context)
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
 {
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     // Prologue.
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     uint64_t stack[(UBPF_STACK_SIZE + 7) / 8];
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r0 = 0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r1 = 0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r2 = 0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r3 = 0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r4 = 0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r5 = 0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     register uint64_t r10 = 0;
 
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     r1 = (uintptr_t)context;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_LDXDW pc=0 dst=r4 src=r1 offset=0 imm=0
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     r4 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(0));
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_LDXDW pc=1 dst=r5 src=r1 offset=8 imm=0
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     r5 = *(uint64_t*)(uintptr_t)(r1 + OFFSET(8));
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_JGE_REG pc=2 dst=r4 src=r5 offset=9 imm=0
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     if (r4 >= r5) {
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
         goto label_1;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
     }
-#line 35 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_SUB64_REG pc=3 dst=r5 src=r4 offset=0 imm=0
+#line 33 "sample/undocked/test_sample_perf_event_array.c"
     r5 -= r4;
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_MOV64_REG pc=4 dst=r3 src=r5 offset=0 imm=0
+#line 34 "sample/undocked/test_sample_perf_event_array.c"
     r3 = r5;
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_LSH64_IMM pc=5 dst=r3 src=r0 offset=0 imm=32
+#line 34 "sample/undocked/test_sample_perf_event_array.c"
     r3 <<= (IMMEDIATE(32) & 63);
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_LDDW pc=6 dst=r2 src=r0 offset=0 imm=-1
+#line 34 "sample/undocked/test_sample_perf_event_array.c"
     r2 = (uint64_t)4294967295;
-#line 36 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_OR64_REG pc=8 dst=r3 src=r2 offset=0 imm=0
+#line 34 "sample/undocked/test_sample_perf_event_array.c"
     r3 |= r2;
-#line 37 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_LDDW pc=9 dst=r2 src=r1 offset=0 imm=1
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-#line 37 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=32
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
-#line 37 "sample/undocked/test_sample_perf_event_array.c"
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
     if ((runtime_context->helper_data[0].tail_call) && (r0 == 0)) {
-#line 37 "sample/undocked/test_sample_perf_event_array.c"
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
         return 0;
-#line 37 "sample/undocked/test_sample_perf_event_array.c"
+#line 35 "sample/undocked/test_sample_perf_event_array.c"
     }
 label_1:
-#line 41 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_MOV64_IMM pc=12 dst=r0 src=r0 offset=0 imm=0
+#line 39 "sample/undocked/test_sample_perf_event_array.c"
     r0 = IMMEDIATE(0);
-#line 41 "sample/undocked/test_sample_perf_event_array.c"
+    // EBPF_OP_EXIT pc=13 dst=r0 src=r0 offset=0 imm=0
+#line 39 "sample/undocked/test_sample_perf_event_array.c"
     return r0;
-#line 33 "sample/undocked/test_sample_perf_event_array.c"
+#line 31 "sample/undocked/test_sample_perf_event_array.c"
 }
 #pragma code_seg(pop)
 #line __LINE__ __FILE__

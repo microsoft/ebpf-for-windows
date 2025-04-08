@@ -375,10 +375,9 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
     try {
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
         ebpf_map_subscription_t* subscription = nullptr;
-        std::vector<uint32_t> cpu_id;
+        uint32_t cpu_id = 0;
 
-        cpu_id.push_back(0);
-        result = ebpf_map_subscribe(map_fd, cpu_id, ctx, (void*)sample_cb, nullptr, &subscription);
+        result = ebpf_map_subscribe(map_fd, &cpu_id, 1, ctx, (void*)sample_cb, nullptr, &subscription);
 
         if (result != EBPF_SUCCESS) {
             goto Exit;
@@ -463,7 +462,8 @@ perf_buffer__new(
             cpu_ids.push_back(cpu_id);
         }
 
-        result = ebpf_map_subscribe(map_fd, cpu_ids, ctx, (void*)sample_cb, (void*)lost_cb, &subscription);
+        result = ebpf_map_subscribe(
+            map_fd, cpu_ids.data(), cpu_ids.size(), ctx, (void*)sample_cb, (void*)lost_cb, &subscription);
 
         if (result != EBPF_SUCCESS) {
             goto Exit;

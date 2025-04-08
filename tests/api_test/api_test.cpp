@@ -1293,9 +1293,8 @@ typedef struct _perf_event_array_test_context
     std::atomic<size_t> event_count = 0;
     size_t expected_event_count = 0;
     size_t cpu_count = 0;
-    std::atomic<size_t> close_count = 0;
     uint64_t event_length = 0;
-    size_t lost_count = 0;
+    std::atomic<size_t> lost_count = 0;
     std::promise<void> promise;
 } perf_event_array_test_context_t;
 
@@ -1350,7 +1349,7 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
         },
         [](void* ctx, int, uint64_t count) {
             perf_event_array_test_context_t* context = reinterpret_cast<perf_event_array_test_context_t*>(ctx);
-            context->lost_count = count;
+            context->lost_count += count;
             return;
         },
         &context,
@@ -1392,13 +1391,7 @@ TEST_CASE("test_perfbuffer", "[stress][perf_buffer]")
     // Wait for 1 second for the ring buffer to receive all events.
     bool test_complete = perf_buffer_event_callback.wait_for(1s) == std::future_status::ready;
 
-    CAPTURE(
-        context.event_length,
-        context.event_count,
-        context.expected_event_count,
-        context.close_count,
-        context.lost_count,
-        failure_count);
+    CAPTURE(context.event_length, context.event_count, context.expected_event_count, context.lost_count, failure_count);
 
     REQUIRE(test_complete == true);
 
