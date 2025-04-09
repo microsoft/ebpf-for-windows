@@ -7,6 +7,10 @@
 #include "libbpf.h"
 #include "libbpf_internal.h"
 
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+
 // This file implements APIs in LibBPF's libbpf.h and is based on code in external/libbpf/src/libbpf.c
 // used under the BSD-2-Clause license , so the coding style tries to match the libbpf.c style to
 // minimize diffs until libbpf becomes cross-platform capable.  This is a temporary workaround for
@@ -354,7 +358,7 @@ bpf_map_get_next_id(uint32_t start_id, uint32_t* next_id)
 
 typedef struct ring_buffer
 {
-    std::vector<ring_buffer_subscription_t*> subscriptions;
+    std::vector<ebpf_map_subscription_t*> subscriptions;
 } ring_buffer_t;
 
 struct ring_buffer*
@@ -370,12 +374,23 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, void* ctx, const s
 
     try {
         std::unique_ptr<ring_buffer_t> ring_buffer = std::make_unique<ring_buffer_t>();
-        ring_buffer_subscription_t* subscription = nullptr;
-        result = ebpf_ring_buffer_map_subscribe(map_fd, ctx, sample_cb, &subscription);
+        ebpf_map_subscription_t* subscription = nullptr;
+        uint32_t cpu_id = 0;
+
+        result = ebpf_map_subscribe(map_fd, &cpu_id, 1, ctx, (void*)sample_cb, nullptr, &subscription);
+
         if (result != EBPF_SUCCESS) {
             goto Exit;
         }
-        ring_buffer->subscriptions.push_back(subscription);
+
+        try {
+            ring_buffer->subscriptions.push_back(subscription);
+        } catch (const std::bad_alloc&) {
+            ebpf_map_unsubscribe(subscription);
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
         local_ring_buffer = ring_buffer.release();
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
@@ -392,9 +407,10 @@ Exit:
 void
 ring_buffer__free(struct ring_buffer* ring_buffer)
 {
-    for (auto it = ring_buffer->subscriptions.begin(); it != ring_buffer->subscriptions.end(); it++) {
-        (void)ebpf_ring_buffer_map_unsubscribe(*it);
+    for (auto& subscription : ring_buffer->subscriptions) {
+        ebpf_map_unsubscribe(subscription);
     }
+
     ring_buffer->subscriptions.clear();
     delete ring_buffer;
 }
@@ -407,4 +423,80 @@ libbpf_bpf_map_type_str(enum bpf_map_type t)
     }
 
     return _ebpf_map_display_names[t];
+}
+
+typedef struct perf_buffer
+{
+    std::vector<ebpf_map_subscription_t*> subscriptions;
+} perf_buffer_t;
+
+struct perf_buffer*
+perf_buffer__new(
+    int map_fd,
+    size_t page_cnt,
+    perf_buffer_sample_fn sample_cb,
+    perf_buffer_lost_fn lost_cb,
+    void* ctx,
+    const struct perf_buffer_opts* opts)
+{
+    ebpf_result result = EBPF_SUCCESS;
+    perf_buffer_t* local_perf_buffer = nullptr;
+    std::vector<uint32_t> cpu_ids;
+
+    if ((sample_cb == nullptr) || (lost_cb == nullptr)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    if ((opts != NULL) || (page_cnt != 0)) {
+        result = EBPF_INVALID_ARGUMENT;
+        goto Exit;
+    }
+
+    try {
+        std::unique_ptr<perf_buffer_t> perf_buffer = std::make_unique<perf_buffer_t>();
+        uint32_t ring_count = libbpf_num_possible_cpus();
+        ebpf_map_subscription_t* subscription = nullptr;
+
+        for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
+            cpu_ids.push_back(cpu_id);
+        }
+
+        result = ebpf_map_subscribe(
+            map_fd, cpu_ids.data(), cpu_ids.size(), ctx, (void*)sample_cb, (void*)lost_cb, &subscription);
+
+        if (result != EBPF_SUCCESS) {
+            goto Exit;
+        }
+
+        try {
+            perf_buffer->subscriptions.push_back(subscription);
+        } catch (const std::bad_alloc&) {
+            ebpf_map_unsubscribe(subscription);
+            result = EBPF_NO_MEMORY;
+            goto Exit;
+        }
+
+        local_perf_buffer = perf_buffer.release();
+    } catch (const std::bad_alloc&) {
+        result = EBPF_NO_MEMORY;
+        goto Exit;
+    }
+Exit:
+    if (result != EBPF_SUCCESS) {
+        errno = libbpf_result_err(result);
+        EBPF_LOG_FUNCTION_ERROR(result);
+    }
+    EBPF_RETURN_POINTER(perf_buffer*, local_perf_buffer);
+}
+
+void
+perf_buffer__free(struct perf_buffer* pb)
+{
+    for (auto& subscription : pb->subscriptions) {
+        ebpf_map_unsubscribe(subscription);
+    }
+
+    pb->subscriptions.clear();
+    delete pb;
 }
