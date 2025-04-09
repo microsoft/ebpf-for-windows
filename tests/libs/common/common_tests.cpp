@@ -136,9 +136,6 @@ ring_buffer_test_event_handler(_Inout_ void* ctx, _In_opt_ const void* data, siz
     ring_buffer_test_event_context_t* event_context = reinterpret_cast<ring_buffer_test_event_context_t*>(ctx);
 
     if ((data == nullptr) || (size == 0)) {
-        // eBPF ring buffer invokes callback with NULL data indicating that the subscription is canceled.
-        // This is the last callback. Free the callback context.
-        delete event_context;
         return 0;
     }
 
@@ -242,10 +239,174 @@ ring_buffer_api_test_helper(
 
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
+    // Unsubscribe.
+    context->unsubscribe();
+}
 
-    // Release the raw pointer such that the final callback frees the callback context.
-    ring_buffer_test_event_context_t* raw_context = context.release();
+perf_buffer_test_context_t::_perf_buffer_test_context()
+    : perf_buffer(nullptr), records(nullptr), canceled(false), matched_entry_count(0), test_event_count(0),
+      lost_entry_count(0), doubled_data(false), bad_records(0)
+{
+}
+
+perf_buffer_test_context_t::~_perf_buffer_test_context()
+{
+    if (perf_buffer != nullptr) {
+        perf_buffer__free(perf_buffer);
+    }
+}
+void
+perf_buffer_test_context_t::unsubscribe()
+{
+    struct perf_buffer* temp = perf_buffer;
+    perf_buffer = nullptr;
+    // Unsubscribe.
+    perf_buffer__free(temp);
+}
+
+void
+perf_buffer_test_lost_event_handler(void* ctx, int cpu, __u64 cnt)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    perf_buffer_test_context_t* event_context = reinterpret_cast<perf_buffer_test_context_t*>(ctx);
+    {
+        std::unique_lock<std::mutex> lock(event_context->lock);
+        event_context->lost_entry_count += (int)cnt;
+    }
+}
+
+void
+perf_buffer_test_event_handler(_Inout_ void* ctx, int cpu, _In_opt_ const void* data, size_t size)
+{
+    UNREFERENCED_PARAMETER(cpu);
+    perf_buffer_test_context_t* event_context = reinterpret_cast<perf_buffer_test_context_t*>(ctx);
+
+    if ((data == nullptr) || (size == 0)) {
+        return;
+    }
+
+    if (event_context->canceled) {
+        // Ignore the callback as the subscription is canceled.
+        // Return error so that no further callback is made.
+        return;
+    }
+
+    if (event_context->matched_entry_count == event_context->test_event_count) {
+        // Required number of event notifications already received.
+        return;
+    }
+
+    std::vector<char> event_record(reinterpret_cast<const char*>(data), reinterpret_cast<const char*>(data) + size);
+    {
+        std::unique_lock<std::mutex> lock(event_context->lock);
+
+        // If doubled_data is set, the event record should contain the same data twice. We only compare the first half.
+        if (event_context->doubled_data) {
+            // Check if the event record contains the same data twice.
+            size_t half_size = size / 2;
+            if (memcmp(data, (char*)data + half_size, half_size) == 0) {
+                // The event record contains the same data twice.
+                event_record.resize(half_size);
+            }
+        }
+
+        // Check if indicated event record matches an entry in the context records
+        // that has not been matched yet.
+        auto records = event_context->records;
+        auto it = records->begin();
+        for (;;) {
+            // Find the next entry in the records vector.
+            it = std::find(it, records->end(), event_record);
+            if (it == records->end()) {
+                // No more entries in the records vector.
+                break;
+            }
+
+            // Check if the entry has already been matched.
+            auto index = std::distance(records->begin(), it);
+            if (event_context->event_received.find(index) != event_context->event_received.end()) {
+                it++;
+                // Entry already matched.
+                continue;
+            }
+
+            // Mark the entry as matched.
+            event_context->event_received.insert(index);
+            event_context->matched_entry_count++;
+            break;
+        }
+
+        if (event_context->matched_entry_count == event_context->test_event_count) {
+            // If all the entries in the app ID list was found, fulfill the promise.
+            event_context->perf_buffer_event_promise.set_value();
+        }
+    }
+}
+
+void
+perf_buffer_api_test_helper(
+    fd_t perf_buffer_map,
+    std::vector<std::vector<char>>& expected_records,
+    std::function<void(int)> generate_event,
+    bool doubled_data)
+{
+    std::vector<std::vector<char>> records = expected_records;
+
+    // Add a couple of interleaved messages to the records vector.
+    std::string message = "Interleaved message #1";
+    std::vector<char> record(message.begin(), message.end());
+    record.push_back('\0');
+    records.push_back(record);
+    record[record.size() - 2] = '2';
+    records.push_back(record);
+
+    // Perf buffer event callback context.
+    std::unique_ptr<perf_buffer_test_context_t> context = std::make_unique<perf_buffer_test_context_t>();
+    context->test_event_count = PERF_BUFFER_TEST_EVENT_COUNT + 2;
+    context->doubled_data = doubled_data;
+
+    context->records = &records;
+
+    // Generate events prior to subscribing for ring buffer events.
+    for (int i = 0; i < PERF_BUFFER_TEST_EVENT_COUNT / 2; i++) {
+        generate_event(i);
+    }
+
+    // Write an interleaved message to the perf buffer map.
+    REQUIRE(ebpf_perf_event_array_map_write(perf_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
+
+    // Get the std::future from the promise field in perf buffer event context, which should be in ready state
+    // once notifications for all events are received.
+    auto perf_buffer_event_callback = context->perf_buffer_event_promise.get_future();
+
+    // Create a new perf buffer manager and subscribe to perf buffer events.
+    // The notifications for the events that were generated before should occur after the subscribe call.
+    context->perf_buffer = perf_buffer__new(
+        perf_buffer_map,
+        0,
+        (perf_buffer_sample_fn)perf_buffer_test_event_handler,
+        (perf_buffer_lost_fn)perf_buffer_test_lost_event_handler,
+        context.get(),
+        nullptr);
+    REQUIRE(context->perf_buffer != nullptr);
+
+    // Generate more events, post-subscription.
+    for (int i = PERF_BUFFER_TEST_EVENT_COUNT / 2; i < PERF_BUFFER_TEST_EVENT_COUNT; i++) {
+        generate_event(i);
+    }
+
+    // Write another interleaved message to the perf buffer map.
+    message[message.length() - 1] = '2';
+    REQUIRE(ebpf_perf_event_array_map_write(perf_buffer_map, message.c_str(), message.length() + 1) == EBPF_SUCCESS);
+    // Wait for event handler getting notifications for all PERF_BUFFER_TEST_EVENT_COUNT events.
+    bool test_completed = perf_buffer_event_callback.wait_for(10s) == std::future_status::ready;
+    CAPTURE(context->matched_entry_count, context->lost_entry_count, context->test_event_count);
+    REQUIRE(test_completed == true);
+    REQUIRE((context->matched_entry_count + context->lost_entry_count) == context->test_event_count);
+
+    // Mark the event context as canceled, such that the event callback stops processing events.
+    context->canceled = true;
 
     // Unsubscribe.
-    raw_context->unsubscribe();
+    context->unsubscribe();
 }
