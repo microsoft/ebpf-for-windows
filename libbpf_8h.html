@@ -90,6 +90,12 @@ Functions</h2></td></tr>
 <tr class="memitem:a35a0549ff99084e337eb764142d0c43a" id="r_a35a0549ff99084e337eb764142d0c43a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a35a0549ff99084e337eb764142d0c43a">bpf_program__set_flags</a> (struct bpf_program *prog, <a class="el" href="types_8h.html#a3acae9310e2c2e411e800a8a369171c6">__u32</a> flags)</td></tr>
 <tr class="memdesc:a35a0549ff99084e337eb764142d0c43a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the BPF program flags. The set of flags is defined by the program type. Neither libbpf nor the eBPF runtime check the flags and only the extension that handles this program type will interpret them. See the documentation for the program type for what flags are defined for that program type.  <br /></td></tr>
 <tr class="separator:a35a0549ff99084e337eb764142d0c43a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a28adc4c0f27a820dbeec22396a904be2" id="r_a28adc4c0f27a820dbeec22396a904be2"><td class="memItemLeft" align="right" valign="top">LIBBPF_API struct perf_buffer *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#a28adc4c0f27a820dbeec22396a904be2">perf_buffer__new</a> (int map_fd, size_t page_cnt, perf_buffer_sample_fn sample_cb, perf_buffer_lost_fn lost_cb, void *ctx, const struct perf_buffer_opts *opts)</td></tr>
+<tr class="memdesc:a28adc4c0f27a820dbeec22396a904be2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create BPF perfbuf manager.  <br /></td></tr>
+<tr class="separator:a28adc4c0f27a820dbeec22396a904be2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1899d7a953470aa528413666595c6e6" id="r_ad1899d7a953470aa528413666595c6e6"><td class="memItemLeft" align="right" valign="top">LIBBPF_API void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ad1899d7a953470aa528413666595c6e6">perf_buffer__free</a> (struct perf_buffer *pb)</td></tr>
+<tr class="memdesc:ad1899d7a953470aa528413666595c6e6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Free a perf buffer manager.  <br /></td></tr>
+<tr class="separator:ad1899d7a953470aa528413666595c6e6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">Link-related functions</div></td></tr>
 <tr class="memitem:ab10dd31881e90cb8ba93ffb77b92308b" id="r_ab10dd31881e90cb8ba93ffb77b92308b"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="libbpf_8h.html#ab10dd31881e90cb8ba93ffb77b92308b">bpf_link__destroy</a> (struct bpf_link *link)</td></tr>
 <tr class="memdesc:ab10dd31881e90cb8ba93ffb77b92308b"><td class="mdescLeft">&#160;</td><td class="mdescRight">Clean up a link.  <br /></td></tr>
@@ -2706,6 +2712,98 @@ bpf_object__unpin </dd></dl>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="ad1899d7a953470aa528413666595c6e6" name="ad1899d7a953470aa528413666595c6e6"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad1899d7a953470aa528413666595c6e6">&#9670;&#160;</a></span>perf_buffer__free()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIBBPF_API void perf_buffer__free </td>
+          <td>(</td>
+          <td class="paramtype">struct perf_buffer *&#160;</td>
+          <td class="paramname"><em>pb</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Free a perf buffer manager. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">rb</td><td>Pointer to perf buffer manager to be freed. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a28adc4c0f27a820dbeec22396a904be2" name="a28adc4c0f27a820dbeec22396a904be2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a28adc4c0f27a820dbeec22396a904be2">&#9670;&#160;</a></span>perf_buffer__new()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">LIBBPF_API struct perf_buffer * perf_buffer__new </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>map_fd</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>page_cnt</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">perf_buffer_sample_fn&#160;</td>
+          <td class="paramname"><em>sample_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">perf_buffer_lost_fn&#160;</td>
+          <td class="paramname"><em>lost_cb</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">void *&#160;</td>
+          <td class="paramname"><em>ctx</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const struct perf_buffer_opts *&#160;</td>
+          <td class="paramname"><em>opts</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Create BPF perfbuf manager. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">map_fd</td><td>File descriptor to perf event array map. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">page_cnt</td><td>Number of memory pages allocated for each per-CPU buffer. This should be set to 0. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">sample_cb</td><td>Pointer to perf buffer notification callback function. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">lost_cb</td><td>Function pointer for callback when record loss has occurred. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">ctx</td><td>User provided extra context passed into sample_cb and lost_cb. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">opts</td><td>The perf buffer manager options. This should be set to NULL. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>Pointer to perf buffer manager. </dd></dl>
 
 </div>
 </div>
