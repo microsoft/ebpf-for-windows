@@ -4724,14 +4724,17 @@ ebpf_map_subscribe(
                     result = EBPF_SUCCESS;
                 } else {
                     local_async_query_context->async_ioctl_failed = true;
+                    break;
                 }
             }
 
             local_subscription->async_query_contexts.insert({cpu_ids[cpu_index], std::move(local_async_query_context)});
         }
 
-        if (result == EBPF_SUCCESS) {
-            *subscription = local_subscription.release();
+        *subscription = local_subscription.release();
+        if (result != EBPF_SUCCESS) {
+            ebpf_map_unsubscribe(*subscription);
+            *subscription = nullptr;
         }
 
         EBPF_RETURN_RESULT(result);
