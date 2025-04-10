@@ -339,6 +339,9 @@ ebpf_link_attach_program(_Inout_ ebpf_link_t* link, _Inout_ ebpf_program_t* prog
 
     // Attach the program to the link.
     ebpf_program_attach_link(program, link);
+
+    // Add an extra reference on the attached program.
+    EBPF_OBJECT_ACQUIRE_REFERENCE((ebpf_core_object_t*)program);
     link_attached_to_program = true;
 
     ebpf_lock_unlock(&link->lock, state);
@@ -395,6 +398,9 @@ Done:
 
         if (link_attached_to_program) {
             ebpf_program_detach_link(program, link);
+
+            // Decrement the program refcount.
+            EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)program);
             link_attached_to_program = false;
             link->program = NULL;
         }
@@ -446,6 +452,9 @@ ebpf_link_detach_program(_Inout_ ebpf_link_t* link)
     link->nmr_client_handle = NULL;
 
     ebpf_program_detach_link(link->program, link);
+
+    // Remove extra reference on attached program.
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)link->program);
 
     ebpf_free((void*)link->client_data.data);
 
