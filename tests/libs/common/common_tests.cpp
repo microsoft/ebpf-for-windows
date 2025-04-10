@@ -61,9 +61,13 @@ ebpf_test_pinned_map_enum()
     for (int i = 0; i < pinned_map_count; i++) {
         bool matched = false;
         std::string pin_path = pin_path_prefix + std::to_string(i);
-        REQUIRE((
-            matched =
-                (static_cast<uint16_t>(pin_path.size()) == strnlen_s(map_info[i].pin_path, EBPF_MAX_PIN_PATH_LENGTH))));
+
+        // The canonical file path actually pinned should have the "BPF:" prefix,
+        // so should be 4 longer than the non-canonical path.
+        REQUIRE(
+            (matched =
+                 (static_cast<uint16_t>(pin_path.size() + 4) ==
+                  strnlen_s(map_info[i].pin_path, EBPF_MAX_PIN_PATH_LENGTH))));
         std::string temp(map_info[i].pin_path);
         results[pin_path] = temp;
 
