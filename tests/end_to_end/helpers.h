@@ -1059,9 +1059,10 @@ _ebpf_sock_ops_context_create(
 
     *context = sock_ops_context;
     sock_ops_context = nullptr;
+    sock_ops_context_header = nullptr;
     retval = EBPF_SUCCESS;
 Done:
-    ebpf_free(sock_ops_context);
+    ebpf_free(sock_ops_context_header);
     sock_ops_context = nullptr;
     return retval;
 }
