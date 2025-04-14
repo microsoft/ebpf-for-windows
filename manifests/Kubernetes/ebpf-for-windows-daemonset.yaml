@@ -1,3 +1,6 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:

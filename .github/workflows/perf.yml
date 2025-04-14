@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This is a workflow which runs the performance tests with profiling enabled.
-
+---
 name: Perf Profile
 
 on:

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This workflow updates NuGet packages and creates a pull request with the changes.
+---
 name: nuget_update
 
 on:

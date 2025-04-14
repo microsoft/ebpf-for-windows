@@ -9,6 +9,7 @@
 # PRs introducing known-vulnerable packages will be blocked from merging.
 #
 # Source repository: https://github.com/actions/dependency-review-action
+---
 name: 'Dependency Review'
 on: [pull_request]
 

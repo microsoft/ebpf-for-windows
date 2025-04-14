@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This workflow is triggered on the first day of every month, and creates an issue for releasing eBPF for Windows.
-
+---
 name: Release scheduler
 on:
   schedule:

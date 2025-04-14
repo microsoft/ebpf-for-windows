@@ -7,7 +7,7 @@
 #
 # If you add or remove any tests that use reusable-test.yml on a pull request,
 # you must update codecov.yml to match.
-
+---
 name: CI/CD - Release validation
 
 on:
