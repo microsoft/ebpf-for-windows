@@ -3200,7 +3200,8 @@ ebpf_program_load_bytes(
     uint32_t instruction_count,
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
-    _Out_ fd_t* program_fd) NO_EXCEPT_TRY
+    _Out_ fd_t* program_fd,
+    _Out_opt_ uint32_t* log_buffer_true_size) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(program_type);
@@ -3291,12 +3292,12 @@ ebpf_program_load_bytes(
     }
 
     const char* log_buffer_output = nullptr;
+    uint32_t log_buffer_true_size_tmp = 0;
     if (result == EBPF_SUCCESS) {
         load_info.map_count = (uint32_t)handle_map.size();
         load_info.handle_map = handle_map.data();
 
-        uint32_t error_message_size = 0;
-        result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &error_message_size);
+        result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &log_buffer_true_size_tmp);
     }
 
     if (log_buffer_size > 0) {
@@ -3306,6 +3307,10 @@ ebpf_program_load_bytes(
         }
     }
     ebpf_free_string(log_buffer_output);
+
+    if (log_buffer_true_size != nullptr) {
+        *log_buffer_true_size = log_buffer_true_size_tmp;
+    }
 
     *program_fd = (result == EBPF_SUCCESS) ? _create_file_descriptor_for_handle(program_handle) : ebpf_fd_invalid;
     if (*program_fd == ebpf_fd_invalid) {
