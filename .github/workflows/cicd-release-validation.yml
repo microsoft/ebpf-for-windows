@@ -143,7 +143,6 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_${{ matrix.environment }}
       build_artifact: Build-x64
-      environment: ${{ matrix.environment }}
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
       code_coverage: false
@@ -164,7 +163,6 @@ jobs:
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
       name: driver_${{ matrix.environment }}
       build_artifact: Build-x64-native-only
-      environment: ${{ matrix.environment }}
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
       code_coverage: false
