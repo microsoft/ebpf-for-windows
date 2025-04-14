@@ -36,7 +36,8 @@ bpf_load_program_xattr(const struct bpf_load_program_attr* load_attr, char* log_
         (uint32_t)load_attr->insns_cnt,
         log_buf,
         log_buf_sz,
-        &program_fd);
+        &program_fd,
+        nullptr);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }
@@ -99,7 +100,8 @@ bpf_prog_load(
         (uint32_t)insn_cnt,
         log_buffer,
         log_buffer_size,
-        &program_fd);
+        &program_fd,
+        nullptr);
     if (result != EBPF_SUCCESS) {
         return libbpf_result_err(result);
     }

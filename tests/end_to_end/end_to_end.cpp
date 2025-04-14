@@ -2862,7 +2862,8 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
         insn_cnt,
         nullptr,
         0,
-        &program_fd);
+        &program_fd,
+        nullptr);
 
     REQUIRE(result == EBPF_SUCCESS);
     REQUIRE(program_fd >= 0);
