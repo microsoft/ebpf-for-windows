@@ -1,3 +1,6 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -15,17 +18,17 @@ spec:
         k8s-app: ebpf-for-windows
     spec:
       tolerations:
-      - operator: Exists
+        - operator: Exists
       securityContext:
         windowsOptions:
           hostProcess: true
           runAsUserName: "NT AUTHORITY\\system"
       hostNetwork: true
       containers:
-      - name: ebpf-for-windows
-        image: <your ebpf-for-windows image path>
-        imagePullPolicy: Always
-        args:
-        - ".\\install-ebpf-for-windows.ps1"
+        - name: ebpf-for-windows
+          image: <your ebpf-for-windows image path>
+          imagePullPolicy: Always
+          args:
+            - ".\\install-ebpf-for-windows.ps1"
       nodeSelector:
         kubernetes.io/os: windows

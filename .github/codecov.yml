@@ -1,9 +1,9 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
-
+---
 codecov:
   notify:
-    wait_for_ci: yes
+    wait_for_ci: true
     #
     # 'after_n_builds' calculation.
     # This value needs to match the actual number of 'Per PR' tasks listed in the .github\cicd.yml` file that upload
@@ -24,7 +24,7 @@ codecov:
     #
     after_n_builds: 14
 comment:
-    after_n_builds: 14
+  after_n_builds: 14
 coverage:
   status:
     project:

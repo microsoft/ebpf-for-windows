@@ -7,7 +7,7 @@
 #
 # If you add or remove any tests that use reusable-test.yml on a pull request,
 # you must update codecov.yml to match.
-
+---
 name: CI/CD
 
 on:
@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
   # Run on push so we can capture the baseline code coverage.
   push:
-    branches: [ main ]
+    branches: [main]
 
 concurrency:
   # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
@@ -32,11 +32,11 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  id-token: write # Required to log in to Azure.
+  id-token: write  # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write # Required by codeql task.
-  issues: write # Required to create issues.
+  security-events: write  # Required by codeql task.
+  issues: write  # Required to create issues.
 
 jobs:
   # Jobs to run on pull, push, and schedule.

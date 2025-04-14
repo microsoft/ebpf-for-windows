@@ -1,0 +1,13 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+#
+# Configuration file for yamllint.  For documentation, see
+# https://yamllint.readthedocs.io/en/stable/configuration.html
+---
+
+extends: default
+
+rules:
+  line-length: disable
+  truthy:
+    check-keys: false

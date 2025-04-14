@@ -1,15 +1,15 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
-
+---
 name: Scorecards
 
 on:
   push:
-    branches: [ main, 'gh-readonly-queue/main/**' ]
+    branches: [main, 'gh-readonly-queue/main/**']
   pull_request:
-    branches: [ main, 'gh-readonly-queue/main/**' ]
+    branches: [main, 'gh-readonly-queue/main/**']
   merge_group:
-    branches: [ main, 'gh-readonly-queue/main/**' ]
+    branches: [main, 'gh-readonly-queue/main/**']
 
 concurrency:
   # Cancel any Scorecards workflow currently in progress for the same PR.
@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
         with:
           disable-sudo: true
           egress-policy: block
@@ -52,7 +52,7 @@ jobs:
 
       - name: "Run analysis"
         if: github.ref_name == 'main'
-        uses: ossf/scorecard-action@f49aabe0b5af0936a0987cfb85d86b75731b0186 # v2.4.1
+        uses: ossf/scorecard-action@f49aabe0b5af0936a0987cfb85d86b75731b0186  # v2.4.1
         with:
           results_file: results.sarif
           results_format: sarif

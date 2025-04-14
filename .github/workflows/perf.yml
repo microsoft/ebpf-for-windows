@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This is a workflow which runs the performance tests with profiling enabled.
-
+---
 name: Perf Profile
 
 on:
@@ -18,8 +18,8 @@ concurrency:
 permissions:
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write # Required by codeql task.
-  issues: write # Required to create issues.
+  security-events: write  # Required by codeql task.
+  issues: write  # Required to create issues.
 
 jobs:
   # Perform the Release build.

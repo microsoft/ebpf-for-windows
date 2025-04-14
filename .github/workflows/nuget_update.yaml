@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This workflow updates NuGet packages and creates a pull request with the changes.
+---
 name: nuget_update
 
 on:
@@ -13,7 +14,7 @@ on:
     - cron: '0 21 * * 6'
 
 permissions:
-    contents: read
+  contents: read
 
 jobs:
   update:
@@ -31,46 +32,45 @@ jobs:
     runs-on: windows-2022
 
     steps:
-    # Check out the main repo.
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
-      with:
-        egress-policy: audit
+      # Check out the main repo.
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
+        with:
+          egress-policy: audit
 
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      with:
-        # Only check out main repo, not submodules.
-        ref: ${{ github.event.workflow_run.head_branch }}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          # Only check out main repo, not submodules.
+          ref: ${{ github.event.workflow_run.head_branch }}
 
+      - name: Cache nuget packages
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        env:
+          cache-name: cache-nuget-modules
+        with:
+          path: packages
+          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
 
-    - name: Cache nuget packages
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
-      env:
-        cache-name: cache-nuget-modules
-      with:
-        path: packages
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}
+      - name: Restore NuGet packages
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: nuget restore -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
-    - name: Restore NuGet packages
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: nuget restore -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
+      # Update nuget packages used by the solution.
+      - name: Update NuGet packages
+        run: |
+          nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
 
-    # Update nuget packages used by the solution.
-    - name: Update NuGet packages
-      run: |
-        nuget update -noninteractive -verbosity detailed ${{env.SOLUTION_FILE_PATH}}
-
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: Update NuGet packages
-        title: Update NuGet packages
-        body: |
-          This is an automated pull request by the GitHub Action 'nuget_update'.
-          Please review the changes and merge if appropriate.
-        labels: |
-          automated pr
-          nuget update
-        branch: nuget_update_${{ hashFiles('**/packages.config') }}
-        base: ${{ github.event.workflow_run.head_branch }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Update NuGet packages
+          title: Update NuGet packages
+          body: |
+            This is an automated pull request by the GitHub Action 'nuget_update'.
+            Please review the changes and merge if appropriate.
+          labels: |
+            automated pr
+            nuget update
+          branch: nuget_update_${{ hashFiles('**/packages.config') }}
+          base: ${{ github.event.workflow_run.head_branch }}

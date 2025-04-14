@@ -1,6 +1,6 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
-
+---
 name: 🐛 Bug report
 description: Report a bug or unexpected behavior
 title: "Bug title"
