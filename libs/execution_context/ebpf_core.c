@@ -2206,6 +2206,7 @@ _ebpf_core_protocol_map_async_query(
     UNREFERENCED_PARAMETER(reply_length);
 
     ebpf_map_t* map = NULL;
+    uint32_t index = 0;
 
     ebpf_result_t result =
         EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
@@ -2213,8 +2214,10 @@ _ebpf_core_protocol_map_async_query(
         goto Exit;
     }
 
+    index = request->index;
+
     // Return buffer already consumed by caller in previous notification.
-    result = ebpf_map_return_buffer(map, request->index, request->consumer_offset);
+    result = ebpf_map_return_buffer(map, index, request->consumer_offset);
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
@@ -2224,7 +2227,7 @@ _ebpf_core_protocol_map_async_query(
 
     reply->header.id = EBPF_OPERATION_MAP_ASYNC_QUERY;
     reply->header.length = sizeof(ebpf_operation_map_async_query_reply_t);
-    result = ebpf_map_async_query(map, request->index, &reply->async_query_result, async_context);
+    result = ebpf_map_async_query(map, index, &reply->async_query_result, async_context);
 
 Exit:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);

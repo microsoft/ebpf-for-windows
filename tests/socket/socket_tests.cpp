@@ -399,11 +399,8 @@ connection_monitor_test(
     // Mark the event context as canceled, such that the event callback stops processing events.
     context->canceled = true;
 
-    // Release the raw pointer such that the final callback frees the callback context.
-    ring_buffer_test_event_context_t* raw_context = context.release();
-
     // Unsubscribe.
-    raw_context->unsubscribe();
+    context->unsubscribe();
 }
 
 TEST_CASE("connection_monitor_test_udp_v4", "[sock_ops_tests]")
