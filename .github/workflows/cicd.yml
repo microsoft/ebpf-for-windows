@@ -32,11 +32,11 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  id-token: write # Required to log in to Azure.
+  id-token: write  # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write # Required by codeql task.
-  issues: write # Required to create issues.
+  security-events: write  # Required by codeql task.
+  issues: write  # Required to create issues.
 
 jobs:
   # Jobs to run on pull, push, and schedule.

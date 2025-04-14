@@ -14,7 +14,7 @@ on:
   # Trigger the workflow when a release-tag is created.
   push:
     tags:
-      - 'Release-v0.*' # To be updated on GA, and after that on every major release.
+      - 'Release-v0.*'  # To be updated on GA, and after that on every major release.
 
   # Permit manual runs of the workflow.
   workflow_dispatch:
@@ -30,11 +30,11 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  id-token: write # Required to log in to Azure.
+  id-token: write  # Required to log in to Azure.
   contents: read
   checks: read  # Required by reusable-test.yml to check build status.
-  security-events: write # Required by codeql task.
-  issues: write # Required to create issues.
+  security-events: write  # Required by codeql task.
+  issues: write  # Required to create issues.
 
 jobs:
   # Perform the regular build.

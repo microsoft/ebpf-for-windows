@@ -9,14 +9,14 @@
 # to understand how the automatic update works:
 #  https://growworkinghard.altervista.org/doxygen-documentation-on-github-using-gh-pages/
 #  https://github.com/m-a-d-n-e-s-s/madness/issues/104
-
+---
 name: Doxygen Action
 
 # Controls when the action will run. Triggers the workflow on push # events
 # but only for the main branch
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
@@ -28,34 +28,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            azure.archive.ubuntu.com:80
+            github.com:443
 
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
-      with:
-        egress-policy: block
-        allowed-endpoints: >
-          azure.archive.ubuntu.com:80
-          github.com:443
+      - name: Install doxygen
+        run: |
+          sudo apt install doxygen
 
-    - name: Install doxygen
-      run: |
-        sudo apt install doxygen
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Clone docs
+        run: |
+          git config --global user.email 'ebpf-for-windows@users.noreply.github.com'
+          git config --global user.name 'Github Action'
+          git clone --branch gh-pages https://github.com/microsoft/ebpf-for-windows.git docs/html
 
-    - name: Clone docs
-      run: |
-        git config --global user.email 'ebpf-for-windows@users.noreply.github.com'
-        git config --global user.name 'Github Action'
-        git clone --branch gh-pages https://github.com/microsoft/ebpf-for-windows.git docs/html
-
-    - name: Update docs
-      run: |
-        doxygen
-        cd docs/html
-        git add .
-        if [ -n "$(git status --porcelain)" ]; then
-        git commit -s -m "Updated documentation"
-        git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
-        git push
-        fi
+      - name: Update docs
+        run: |
+          doxygen
+          cd docs/html
+          git add .
+          if [ -n "$(git status --porcelain)" ]; then
+          git commit -s -m "Updated documentation"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/microsoft/ebpf-for-windows.git
+          git push
+          fi

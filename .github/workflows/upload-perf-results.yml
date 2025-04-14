@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 # This workflow executes a single test, optionally gathering code coverage and logs.
-
+---
 name: Reusable Test Workflow
 
 on:
@@ -27,85 +27,85 @@ on:
         required: true
 
 permissions:
-  id-token: write # Required to log in to Azure.
+  id-token: write  # Required to log in to Azure.
 
 jobs:
   upload_results:
     runs-on: ubuntu-latest
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
-      with:
-        egress-policy: audit
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
+        with:
+          egress-policy: audit
 
-    - name: Download performance result artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
-      with:
-        name: Test-Logs-${{inputs.result_artifact}}
-        path: ${{github.workspace}}/results_artifact
+      - name: Download performance result artifacts
+        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+        with:
+          name: Test-Logs-${{inputs.result_artifact}}
+          path: ${{github.workspace}}/results_artifact
 
-    - name: Gather CSV results into results directory
-      run: |
-        # Convert the UTF-16 encoded CSV files to UTF-8.
-        find ${{github.workspace}}/results_artifact -type f -name "*.csv" -exec sh -c 'iconv -f UTF-16 -t ISO-8859-1 "{}" > "{}.ansi" && mv "{}.ansi" "{}"' \;
-        mkdir -p ${{github.workspace}}/results/${{github.sha}}
-        curl https://raw.githubusercontent.com/microsoft/bpf_performance/1a50dae54c0c1d8b7f73331936e69a7154b3f659/scripts/gather_csv.sh > gather_csv.sh
-        sha256sum gather_csv.sh | grep a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa -q || exit 1
-        chmod a+x gather_csv.sh
-        ./gather_csv.sh ${{github.workspace}}/results_artifact ${{github.workspace}}/results/${{github.sha}}/results
+      - name: Gather CSV results into results directory
+        run: |
+          # Convert the UTF-16 encoded CSV files to UTF-8.
+          find ${{github.workspace}}/results_artifact -type f -name "*.csv" -exec sh -c 'iconv -f UTF-16 -t ISO-8859-1 "{}" > "{}.ansi" && mv "{}.ansi" "{}"' \;
+          mkdir -p ${{github.workspace}}/results/${{github.sha}}
+          curl https://raw.githubusercontent.com/microsoft/bpf_performance/1a50dae54c0c1d8b7f73331936e69a7154b3f659/scripts/gather_csv.sh > gather_csv.sh
+          sha256sum gather_csv.sh | grep a279517d50093eaa46778642620ec11b2c07f47ace61c4d854982e23c46f22fa -q || exit 1
+          chmod a+x gather_csv.sh
+          ./gather_csv.sh ${{github.workspace}}/results_artifact ${{github.workspace}}/results/${{github.sha}}/results
 
-    - name: Post-process results
-      run: |
-        # Download script to convert CSV to SQL from GitHub.
-        curl https://raw.githubusercontent.com/microsoft/bpf_performance/ee798c5b299ea7e798503106e9d3d3884bec2833/scripts/process_results.py > process_results.py
-        # Compare hash of downloaded script.
-        sha256sum process_results.py | grep dc616f27b6d345e8086de451ffd3f73cc71b5d51d18894ce08c02db56d67e0f4 -q || exit 1
-        # Run script to convert CSV to SQL.
-        python3 ./process_results.py --csv-directory ${{github.workspace}}/results/${{github.sha}} --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "${{inputs.platform}}" --repository ${{github.repository}}
+      - name: Post-process results
+        run: |
+          # Download script to convert CSV to SQL from GitHub.
+          curl https://raw.githubusercontent.com/microsoft/bpf_performance/ee798c5b299ea7e798503106e9d3d3884bec2833/scripts/process_results.py > process_results.py
+          # Compare hash of downloaded script.
+          sha256sum process_results.py | grep dc616f27b6d345e8086de451ffd3f73cc71b5d51d18894ce08c02db56d67e0f4 -q || exit 1
+          # Run script to convert CSV to SQL.
+          python3 ./process_results.py --csv-directory ${{github.workspace}}/results/${{github.sha}} --sql-script-file ${{github.workspace}}/results/upload.sql --commit_id ${{github.sha}} --platform "${{inputs.platform}}" --repository ${{github.repository}}
 
-    # Grab the output from the results directory and upload it as an artifact to debug failures.
-    - name: Upload data as artifacts for debugging
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: Test-Results-${{inputs.result_artifact}}
-        path: ${{github.workspace}}/results
+      # Grab the output from the results directory and upload it as an artifact to debug failures.
+      - name: Upload data as artifacts for debugging
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Test-Results-${{inputs.result_artifact}}
+          path: ${{github.workspace}}/results
 
-    - name: Log into Azure
-      uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
-      with:
-        client-id: ${{ secrets.AZURE_CLIENT_ID }}
-        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Log into Azure
+        uses: azure/login@a457da9ea143d694b1b9c7c869ebb04ebe844ef5
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-    - name: Fetch secrets
-      run: |
-        az keyvault secret show --vault-name bpfperformacesecrets --name PGDATABASE --query value | sed 's/"//g' > ${{github.workspace}}/PGDATABASE
-        az keyvault secret show --vault-name bpfperformacesecrets --name PGHOST --query value | sed 's/"//g' >> ${{github.workspace}}/PGHOST
-        az keyvault secret show --vault-name bpfperformacesecrets --name PGUSER --query value | sed 's/"//g' >> ${{github.workspace}}/PGUSER
-        az keyvault secret show --vault-name bpfperformacesecrets --name PGPASSWORD --query value | sed 's/"//g' >> ${{github.workspace}}/PGPASSWORD
-        az keyvault secret show --vault-name bpfperformacesecrets --name PGPORT --query value | sed 's/"//g' >> ${{github.workspace}}/PGPORT
+      - name: Fetch secrets
+        run: |
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGDATABASE --query value | sed 's/"//g' > ${{github.workspace}}/PGDATABASE
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGHOST --query value | sed 's/"//g' >> ${{github.workspace}}/PGHOST
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGUSER --query value | sed 's/"//g' >> ${{github.workspace}}/PGUSER
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGPASSWORD --query value | sed 's/"//g' >> ${{github.workspace}}/PGPASSWORD
+          az keyvault secret show --vault-name bpfperformacesecrets --name PGPORT --query value | sed 's/"//g' >> ${{github.workspace}}/PGPORT
 
-    - name: Upload results to POSTGRES
-      run: |
-        export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
-        export PGHOST=$(cat ${{github.workspace}}/PGHOST)
-        export PGUSER=$(cat ${{github.workspace}}/PGUSER)
-        export PGPORT=$(cat ${{github.workspace}}/PGPORT)
-        export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
-        psql -f ${{github.workspace}}/results/upload.sql
+      - name: Upload results to POSTGRES
+        run: |
+          export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
+          export PGHOST=$(cat ${{github.workspace}}/PGHOST)
+          export PGUSER=$(cat ${{github.workspace}}/PGUSER)
+          export PGPORT=$(cat ${{github.workspace}}/PGPORT)
+          export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
+          psql -f ${{github.workspace}}/results/upload.sql
 
-    - name: Download and run regression script
-      run: |
-        curl https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
-        export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
-        export PGHOST=$(cat ${{github.workspace}}/PGHOST)
-        export PGUSER=$(cat ${{github.workspace}}/PGUSER)
-        export PGPORT=$(cat ${{github.workspace}}/PGPORT)
-        export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
-        psql -f ./check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
+      - name: Download and run regression script
+        run: |
+          curl https://raw.githubusercontent.com/microsoft/bpf_performance/refs/heads/main/scripts/check_perf_results.sql > check_perf_results.sql
+          export PGPASSWORD=$(cat ${{github.workspace}}/PGPASSWORD)
+          export PGHOST=$(cat ${{github.workspace}}/PGHOST)
+          export PGUSER=$(cat ${{github.workspace}}/PGUSER)
+          export PGPORT=$(cat ${{github.workspace}}/PGPORT)
+          export PGDATABASE=$(cat ${{github.workspace}}/PGDATABASE)
+          psql -f ./check_perf_results.sql -v platform='${{inputs.platform}}' --csv > ${{github.workspace}}/results/regression_results.csv
 
-    - name: Upload regression results
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: Regression-Results-${{inputs.result_artifact}}
-        path: ${{github.workspace}}/results/regression_results.csv
+      - name: Upload regression results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Regression-Results-${{inputs.result_artifact}}
+          path: ${{github.workspace}}/results/regression_results.csv

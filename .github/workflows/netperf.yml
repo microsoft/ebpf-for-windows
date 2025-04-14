@@ -33,33 +33,33 @@ jobs:
   netperf:
     runs-on: windows-latest
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
-      with:
-        egress-policy: audit
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
+        with:
+          egress-policy: audit
 
-    - name: Run NetPerf Workflow
-      shell: pwsh
-      env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
-        if ('${{ secrets.NET_PERF_TRIGGER }}' -eq '') {
-            Write-Host "Not able to run because no secrets are available!"
-            return
-        }
-        $run_id = iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} ebpf ${{ inputs.sha }} ${{ inputs.ref }} ${{ inputs.pull_request.number }}"
-        echo "NetPerf run id: $run_id"
-        gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
+      - name: Run NetPerf Workflow
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+          if ('${{ secrets.NET_PERF_TRIGGER }}' -eq '') {
+              Write-Host "Not able to run because no secrets are available!"
+              return
+          }
+          $run_id = iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} ebpf ${{ inputs.sha }} ${{ inputs.ref }} ${{ inputs.pull_request.number }}"
+          echo "NetPerf run id: $run_id"
+          gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
 
-    - name: upload_results_azure_2022_x64
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: Test-Logs-netperf_azure_2022_x64
-        path: netperf/ebpf_azure_2022_x64/ebpf.csv
+      - name: upload_results_azure_2022_x64
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Test-Logs-netperf_azure_2022_x64
+          path: netperf/ebpf_azure_2022_x64/ebpf.csv
 
-    - name: upload_results_lab_2022_x64
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: Test-Logs-netperf_lab_2022_x64
-        path: netperf/ebpf_lab_2022_x64/ebpf.csv
+      - name: upload_results_lab_2022_x64
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: Test-Logs-netperf_lab_2022_x64
+          path: netperf/ebpf_lab_2022_x64/ebpf.csv

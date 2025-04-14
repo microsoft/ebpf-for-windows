@@ -16,7 +16,7 @@ on:
 permissions:
   checks: read  # Required by fountainhead/action-wait-for-check to wait for another GitHub check to complete.
   contents: read  # Required by actions/checkout to fetch code.
-  security-events: write # Required by codeql task
+  security-events: write  # Required by codeql task
 
 jobs:
   scan:
