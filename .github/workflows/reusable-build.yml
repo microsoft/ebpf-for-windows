@@ -96,231 +96,231 @@ jobs:
       LD_FLAGS: ${{inputs.ld_flags}}
 
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
-      with:
-        egress-policy: audit
+      - name: Harden Runner
+        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+        with:
+          egress-policy: audit
 
-    - id: skip_check
-      if: inputs.perform_skip_check == true
-      uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
-      with:
-        cancel_others: 'false'
-        paths_ignore: '["**.md", "**/docs/**"]'
+      - id: skip_check
+        if: inputs.perform_skip_check == true
+        uses: fkirc/skip-duplicate-actions@f75f66ce1886f00957d99748a42c724f4330bdcf # v5.3.1
+        with:
+          cancel_others: 'false'
+          paths_ignore: '["**.md", "**/docs/**"]'
 
-    - name: Set MSVC Environment Variables
-      shell: cmd
-      run: |
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-        powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-        powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
-        powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+      - name: Set MSVC Environment Variables
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          powershell.exe "echo 'msvc_tools_path=%VCToolsInstallDir%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
 
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      if: steps.skip_check.outputs.should_skip != 'true'
-      with:
-        repository: ${{inputs.repository}}
-        submodules: 'recursive'
-        ref: ${{inputs.ref}}
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        if: steps.skip_check.outputs.should_skip != 'true'
+        with:
+          repository: ${{inputs.repository}}
+          submodules: 'recursive'
+          ref: ${{inputs.ref}}
 
-    - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
-      id: configure_windows_error_reporting
-      if: steps.skip_check.outputs.should_skip != 'true'
-      run: |
-        mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
-        New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
+      - name: Configure Windows Error Reporting to make a local copy of any crashes that occur.
+        id: configure_windows_error_reporting
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          mkdir c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+          New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -ErrorAction SilentlyContinue
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpType" -Value 2 -PropertyType DWord -ErrorAction SilentlyContinue
+          New-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting\LocalDumps" -Name "DumpFolder" -Value "c:\dumps\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}" -PropertyType ExpandString -ErrorAction SilentlyContinue
 
-    - name: Initialize CodeQL
-      if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/init@1b549b9259bda1cb5ddde3b41741a82a2d15a841
-      with:
-        languages: 'cpp'
+      - name: Initialize CodeQL
+        if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
+        uses: github/codeql-action/init@1b549b9259bda1cb5ddde3b41741a82a2d15a841
+        with:
+          languages: 'cpp'
 
-    - name: Add MSBuild to PATH
-      uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
-      with:
-        msbuild-architecture: x64
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
+        with:
+          msbuild-architecture: x64
 
-    - name: Add Visual Studio LLVM to path
-      if: steps.skip_check.outputs.should_skip != 'true'
-      run: |
-        echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+      - name: Add Visual Studio LLVM to path
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          echo "$env:VCINSTALLDIR\tools\llvm\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-    - name: Check for Clang version (MSVC)
-      if: steps.skip_check.outputs.should_skip != 'true'
-      run:
-        clang.exe --version
+      - name: Check for Clang version (MSVC)
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run:
+          clang.exe --version
 
-    - name: Check for Clang version (LLVM)
-      if: steps.skip_check.outputs.should_skip != 'true'
-      shell: cmd
-      run:
-        '"c:\Program Files\llvm\bin\clang.exe" --version'
+      - name: Check for Clang version (LLVM)
+        if: steps.skip_check.outputs.should_skip != 'true'
+        shell: cmd
+        run:
+          '"c:\Program Files\llvm\bin\clang.exe" --version'
 
-    - name: Cache nuget packages
-      if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
-      env:
-        cache-name: cache-nuget-modules
-      with:
-        path: packages
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-${{env.msvc_tools_version}}
+      - name: Cache nuget packages
+        if: steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        env:
+          cache-name: cache-nuget-modules
+        with:
+          path: packages
+          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('**/packages.config') }}-${{env.msvc_tools_version}}
 
-    - name: Cache verifier project
-      # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
-      if: steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
-      env:
-        cache-name: cache-verifier-project
-      with:
-        path: external/ebpf-verifier/build
-        key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-${{ hashFiles('external/Directory.Build.props')}}-${{env.msvc_tools_version}}-${{ hashFiles('scripts/initialize_ebpf_repo.ps1')}}
+      - name: Cache verifier project
+        # The hash is based on the HEAD of the ebpf-verifier submodule, the Directory.Build.props file, and the build variant.
+        if: steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        env:
+          cache-name: cache-verifier-project
+        with:
+          path: external/ebpf-verifier/build
+          key: ${{ runner.os }}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}-${{env.BUILD_ARTIFACT_NAME}}-${{ hashFiles('.git/modules/external/ebpf-verifier/HEAD') }}-${{ hashFiles('external/Directory.Build.props')}}-${{env.msvc_tools_version}}-${{ hashFiles('scripts/initialize_ebpf_repo.ps1')}}
 
-    - name: Configuring repo for first build
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      env:
-        CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
-        LDFLAGS: ${{env.LD_FLAGS}}
-      run: |
-        .\scripts\initialize_ebpf_repo.ps1 ${{env.BUILD_PLATFORM}}
+      - name: Configuring repo for first build
+        if: steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        env:
+          CXXFLAGS: /ZH:SHA_256 ${{env.CXX_FLAGS}}
+          LDFLAGS: ${{env.LD_FLAGS}}
+        run: |
+          .\scripts\initialize_ebpf_repo.ps1 ${{env.BUILD_PLATFORM}}
 
-    - name: Build
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}  /bl:out.binlog
+      - name: Build
+        if: steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}  /bl:out.binlog
 
-    - name: Check DLL dependencies for distributed binaries
-      if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: |
-        ..\..\scripts\check_binary_dependencies.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -VsToolsPath "${{env.msvc_tools_path}}"
+      - name: Check DLL dependencies for distributed binaries
+        if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        run: |
+          ..\..\scripts\check_binary_dependencies.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -VsToolsPath "${{env.msvc_tools_path}}"
 
-    - name: Test the MSI
-      if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      run: |
-        ..\..\scripts\check_msi_installation.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -MsiPath "ebpf-for-windows.msi"
+      - name: Test the MSI
+        if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        run: |
+          ..\..\scripts\check_msi_installation.ps1 -BuildArtifact "${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}}" -MsiPath "ebpf-for-windows.msi"
 
-    - name: Copy LLVM libs for Fuzzing & Address Sanitizing
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-      shell: cmd
-      run: |
-        copy "${{env.msvc_tools_path}}\bin\Hostx64\x64\clang*" .
+      - name: Copy LLVM libs for Fuzzing & Address Sanitizing
+        if: steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+        shell: cmd
+        run: |
+          copy "${{env.msvc_tools_path}}\bin\Hostx64\x64\clang*" .
 
-    - name: Download demo Debug repository
-      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Debug-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
+      - name: Download demo Debug repository
+        if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Debug' || matrix.configurations == 'NativeOnlyDebug')
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Debug-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
-    - name: Download demo Release repository
-      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
+      - name: Download demo Release repository
+        if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease')
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: Invoke-WebRequest https://github.com/microsoft/ebpf-for-windows-demo/releases/download/v0.0.2/${{env.BUILD_PLATFORM}}-Release-cilium-xdp.zip -OutFile x64-${{env.BUILD_CONFIGURATION}}-cilium-xdp.zip
 
-    # Download the bpf_performance repository artifacts.
-    - name: Download bpf_performance repository artifacts
-      if: steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.13.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
+      # Download the bpf_performance repository artifacts.
+      - name: Download bpf_performance repository artifacts
+        if: steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: |
+          cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+          Invoke-WebRequest https://github.com/microsoft/bpf_performance/releases/download/v0.13.0/build-Release-windows-2022.zip -OutFile bpf_performance.zip
 
-    - name: Prepare 1ES artifacts
-      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cd .\1es
-        .\prepare_1es_artifacts.ps1
+      - name: Prepare 1ES artifacts
+        if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: |
+          cd .\1es
+          .\prepare_1es_artifacts.ps1
 
-    - name: Upload 1ES artifacts
-      if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: 1ES artifacts
-        path: 1es/**
+      - name: Upload 1ES artifacts
+        if: steps.skip_check.outputs.should_skip != 'true' && (inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Release')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: 1ES artifacts
+          path: 1es/**
 
-    - name: Extract artifacts to build path
-      if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && matrix.configurations != 'FuzzerDebug'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: |
-        cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
+      - name: Extract artifacts to build path
+        if: steps.skip_check.outputs.should_skip != 'true' && inputs.download_demo_repository == true && matrix.configurations != 'FuzzerDebug'
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: |
+          cd ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+          tar -xf ..\..\x64-${{ matrix.configurations }}-cilium-xdp.zip
 
-    - name: Zip Build Output
-      if: always() && (steps.skip_check.outputs.should_skip != 'true')
-      working-directory: ${{github.workspace}}
-      run: |
-        Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
+      - name: Zip Build Output
+        if: always() && (steps.skip_check.outputs.should_skip != 'true')
+        working-directory: ${{github.workspace}}
+        run: |
+          Compress-Archive -Path ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -DestinationPath .\build-${{ matrix.configurations }}.zip
 
-    - name: Upload Build Output
-      if: always() && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_artifact != 'none')
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: ${{inputs.build_artifact}}-${{matrix.configurations}}
-        path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
-        retention-days: 10
+      - name: Upload Build Output
+        if: always() && (steps.skip_check.outputs.should_skip != 'true') && (inputs.build_artifact != 'none')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{inputs.build_artifact}}-${{matrix.configurations}}
+          path: ${{github.workspace}}/build-${{ matrix.configurations }}.zip
+          retention-days: 10
 
-    - name: Upload the MSI package
-      if: inputs.build_msi == true
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
+      - name: Upload the MSI package
+        if: inputs.build_msi == true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ebpf-for-windows - MSI installer (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
+          path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/ebpf-for-windows.msi
 
-    - name: Build the NuGet package
-      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget /bl:out.binlog
+      - name: Build the NuGet package
+        if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget /bl:out.binlog
 
-    - name: Upload the NuGet package
-      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
+      - name: Upload the NuGet package
+        if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ebpf-for-windows - NuGet package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
+          path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows.*.nupkg
 
-    - name: Build the NuGet Redist package
-      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
-      working-directory: ${{env.GITHUB_WORKSPACE}}
-      run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package /bl:out.binlog
+      - name: Build the NuGet Redist package
+        if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
+        working-directory: ${{env.GITHUB_WORKSPACE}}
+        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package /bl:out.binlog
 
-    - name: Upload the NuGet Redist package
-      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
-        path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
+      - name: Upload the NuGet Redist package
+        if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ebpf-for-windows - NuGet Redist package (${{inputs.build_artifact}}_${{env.BUILD_CONFIGURATION}})
+          path: ${{github.workspace}}/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/eBPF-for-Windows-Redist.*.nupkg
 
-    - name: Upload binlog
-      if: (success() || failure()) && steps.skip_check.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      with:
-        name: build-binlog-${{env.BUILD_ARTIFACT_NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: out.binlog
+      - name: Upload binlog
+        if: (success() || failure()) && steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: build-binlog-${{env.BUILD_ARTIFACT_NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+          path: out.binlog
 
-    - name: Check for crash dumps
-      # Check for crash dumps even if the workflow failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
-      uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
-      id: check_dumps
-      with:
-        files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
+      - name: Check for crash dumps
+        # Check for crash dumps even if the workflow failed.
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true')
+        uses: andstor/file-existence-action@076e0072799f4942c8bc574a82233e1e4d13e9d6
+        id: check_dumps
+        with:
+          files: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}/*.dmp
 
-    - name: Upload any crash dumps
-      # Upload crash dumps even if the workflow failed.
-      if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-      id: upload_crash_dumps
-      with:
-        name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
-        path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        retention-days: 10
+      - name: Upload any crash dumps
+        # Upload crash dumps even if the workflow failed.
+        if: (success() || failure()) && (steps.skip_check.outputs.should_skip != 'true') && (steps.check_dumps.outputs.files_exists == 'true')
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        id: upload_crash_dumps
+        with:
+          name: Crash-Dumps-${{env.NAME}}-${{env.BUILD_PLATFORM}}-${{env.BUILD_CONFIGURATION}}
+          path: c:/dumps/${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+          retention-days: 10
 
-    - name: Perform CodeQL Analysis
-      if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-      uses: github/codeql-action/analyze@1b549b9259bda1cb5ddde3b41741a82a2d15a841
+      - name: Perform CodeQL Analysis
+        if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
+        uses: github/codeql-action/analyze@1b549b9259bda1cb5ddde3b41741a82a2d15a841

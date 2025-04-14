@@ -21,7 +21,7 @@ jobs:
     runs-on: Windows-latest
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
       with:
         egress-policy: audit
 
@@ -46,9 +46,9 @@ jobs:
         TITLE: 'Update the Windows Driver Kit'
         BODY: |
           The Windows Driver Kit version in the repository does not match the latest version available on NuGet. Please update the WDK version in the repository to match the latest version available on NuGet.
-          The latest version is ${{steps.check_wdk.outputs.wdk_version}} and the version in the repository is ${{steps.check_repo_wdk.outputs.wdk_version}}.          
+          The latest version is ${{steps.check_wdk.outputs.wdk_version}} and the version in the repository is ${{steps.check_repo_wdk.outputs.wdk_version}}.
           To update the WDK run the following command:
-          ```powershell 
+          ```powershell
           .\scripts\Update-WdkVersion.ps1
           ```
         LABELS: bug,ci/cd
