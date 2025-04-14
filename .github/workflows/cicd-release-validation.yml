@@ -441,8 +441,8 @@ jobs:
       gather_dumps: true
       configurations: '["FuzzerDebug"]'
 
-# PREFORMANCE  ############################################
-# Iteration 1
+  # PREFORMANCE  ############################################
+  # Iteration 1
   performance-1:
     needs: regular
     if: github.event_name == 'workflow_dispatch'

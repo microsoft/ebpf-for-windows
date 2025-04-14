@@ -83,7 +83,7 @@ jobs:
       POST_COMMAND: ${{inputs.post_test}}
       CXPLAT_MEMORY_LEAK_DETECTION: ${{inputs.leak_detection}}
       DUMP_PATH: c:/dumps/x64/${{matrix.configurations}}
-      TEST_TIMEOUT: 3600 # 1 hour timeout for tests.
+      TEST_TIMEOUT: 3600  # 1 hour timeout for tests.
 
     steps:
       - name: Harden Runner
