@@ -468,7 +468,7 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-# Iteration 2
+  # Iteration 2
   performance-2:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
@@ -494,7 +494,7 @@ jobs:
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
       AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-# Iteration 3
+  # Iteration 3
   performance-3:
     needs: regular
     if: github.event_name == 'workflow_dispatch'
