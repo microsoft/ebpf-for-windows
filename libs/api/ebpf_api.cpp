@@ -3213,6 +3213,10 @@ ebpf_program_load_bytes(
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
 
+    if ((instruction_count == 0) || (instruction_count > UINT32_MAX / sizeof(ebpf_inst))) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     std::string program_hash_string;
     if (program_name == nullptr) {
         // If the program name isn't set, use the SHA256 hash of the instructions.
@@ -3292,24 +3296,32 @@ ebpf_program_load_bytes(
     }
 
     const char* log_buffer_output = nullptr;
-    uint32_t log_buffer_true_size_tmp = 0;
+    uint32_t log_buffer_output_size = 0;
     if (result == EBPF_SUCCESS) {
         load_info.map_count = (uint32_t)handle_map.size();
         load_info.handle_map = handle_map.data();
 
-        result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &log_buffer_true_size_tmp);
+#pragma warning(push)
+#pragma warning(disable : 28193) // allow overriding result = EBPF_OUT_OF_SPACE below.
+        result = ebpf_rpc_load_program(&load_info, &log_buffer_output, &log_buffer_output_size);
+#pragma warning(pop)
     }
 
-    if (log_buffer_size > 0) {
+    if (log_buffer != nullptr) {
         log_buffer[0] = 0;
         if (log_buffer_output) {
-            strcpy_s(log_buffer, log_buffer_size, log_buffer_output);
+            strncpy_s(log_buffer, log_buffer_size, log_buffer_output, _TRUNCATE);
+        }
+        if (log_buffer_output_size > log_buffer_size) {
+            // Whatever the result is, an undersized log buffer takes precedence.
+            (void)result;
+            result = EBPF_OUT_OF_SPACE;
         }
     }
     ebpf_free_string(log_buffer_output);
 
     if (log_buffer_true_size != nullptr) {
-        *log_buffer_true_size = log_buffer_true_size_tmp;
+        *log_buffer_true_size = log_buffer_output_size;
     }
 
     *program_fd = (result == EBPF_SUCCESS) ? _create_file_descriptor_for_handle(program_handle) : ebpf_fd_invalid;

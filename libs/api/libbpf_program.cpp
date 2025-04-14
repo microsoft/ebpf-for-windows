@@ -83,7 +83,7 @@ bpf_prog_load(
         return libbpf_err(-EINVAL);
     }
 
-    if ((insn_cnt == 0) || (insn_cnt > UINT32_MAX / sizeof(ebpf_inst))) {
+    if (insns == nullptr) {
         return libbpf_err(-EINVAL);
     }
 
@@ -108,7 +108,7 @@ bpf_prog_load(
     return program_fd;
 #else
     UNREFERENCED_PARAMETER(prog_name);
-    UNREFERENCED_PARAMETER(insns);
+    UNREFERENCED_PARAMETER(insn_cnt);
     UNREFERENCED_PARAMETER(opts);
     return libbpf_err(-ENOTSUP);
 #endif
