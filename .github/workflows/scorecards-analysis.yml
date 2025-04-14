@@ -5,11 +5,11 @@ name: Scorecards
 
 on:
   push:
-    branches: [ main, 'gh-readonly-queue/main/**' ]
+    branches: [main, 'gh-readonly-queue/main/**']
   pull_request:
-    branches: [ main, 'gh-readonly-queue/main/**' ]
+    branches: [main, 'gh-readonly-queue/main/**']
   merge_group:
-    branches: [ main, 'gh-readonly-queue/main/**' ]
+    branches: [main, 'gh-readonly-queue/main/**']
 
 concurrency:
   # Cancel any Scorecards workflow currently in progress for the same PR.

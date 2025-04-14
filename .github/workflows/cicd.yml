@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
   # Run on push so we can capture the baseline code coverage.
   push:
-    branches: [ main ]
+    branches: [main]
 
 concurrency:
   # Cancel any in-progress instance of this workflow (CI/CD) for the same PR.
