@@ -1,65 +1,35 @@
-# Copyright (c) eBPF for Windows contributors
-# SPDX-License-Identifier: MIT
-
-# This is a workflow which runs the performance tests with profiling enabled.
-
-name: Performance Tests on netperf
+name: Netperf
 
 on:
-  # Permit manual runs of the workflow.
-  workflow_call:
-    inputs:
-      sha:
-        description: 'SHA of the commit'
-        required: true
-        type: string
-      ref:
-        description: 'Ref of the commit'
-        required: true
-        type: string
-      pull_request:
-        description: 'Pull request number'
-        required: true
-        type: string
-    secrets:
-      NET_PERF_TRIGGER:
-        description: 'Token to trigger the NetPerf workflow'
-        required: true
+  workflow_dispatch:
+  push:
+    branches:
+    - main
 
-permissions:
-  contents: read
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: perf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
 
 jobs:
-    netperf:
-      runs-on: windows-latest
-      steps:
-      - name: Harden Runner
-        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
-        with:
-          egress-policy: audit
-
-      - name: Run NetPerf Workflow
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
-          if ('${{ secrets.NET_PERF_TRIGGER }}' -eq '') {
-              Write-Host "Not able to run because no secrets are available!"
-              return
-          }
-          $run_id = iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} ebpf ${{ inputs.sha }} ${{ inputs.ref }} ${{ inputs.pull_request.number }}"
-          echo "NetPerf run id: $run_id"
-          gh run download $run_id --dir netperf --pattern ebpf* --repo microsoft/netperf
-
-      - name: upload_results_azure_2022_x64
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-            name: Test-Logs-netperf_azure_2022_x64
-            path: netperf/ebpf_azure_2022_x64/ebpf.csv
-
-      - name: upload_results_lab_2022_x64
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-            name: Test-Logs-netperf_lab_2022_x64
-            path: netperf/ebpf_lab_2022_x64/ebpf.csv
+  run:
+    name: Run Perf
+    runs-on: windows-latest
+    steps:
+    - name: Run NetPerf Workflow
+      timeout-minutes: 120
+      shell: pwsh
+      run: |
+        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+        if ('${{ secrets.NET_PERF_TRIGGER }}' -eq '') {
+            Write-Host "Not able to run because no secrets are available!"
+            return
+        }
+        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} ebpf ${{ github.sha }} ${{ github.ref }} ${{ github.event.pull_request.number }}"
