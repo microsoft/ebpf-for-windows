@@ -166,6 +166,7 @@ jobs:
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
       gather_dumps: false
       code_coverage: false
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
   ossar:
     needs: regular
