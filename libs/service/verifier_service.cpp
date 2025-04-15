@@ -15,17 +15,17 @@
 #include <sys/stat.h>
 
 static ebpf_result_t
-_analyze(raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
+_analyze(prevail::raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
-    std::variant<InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
-    if (!std::holds_alternative<InstructionSeq>(prog_or_error)) {
+    std::variant<prevail::InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
+    if (!std::holds_alternative<prevail::InstructionSeq>(prog_or_error)) {
         *error_message = allocate_string(std::get<std::string>(prog_or_error), error_message_size);
         return EBPF_VERIFICATION_FAILED; // Error;
     }
-    InstructionSeq& prog = std::get<InstructionSeq>(prog_or_error);
+    prevail::InstructionSeq& prog = std::get<prevail::InstructionSeq>(prog_or_error);
 
     // First try optimized for the success case.
-    ebpf_verifier_options_t options{};
+    prevail::ebpf_verifier_options_t options{};
     ebpf_api_verifier_stats_t stats;
     options.cfg_opts.check_for_termination = true;
     bool res = ebpf_verify_program(std::cout, prog, raw_prog.info, options, &stats);
@@ -52,9 +52,9 @@ verify_byte_code(
     _Out_ uint32_t* error_message_size)
 {
     std::ostringstream error;
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
+    const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
     std::vector<ebpf_inst> instructions{instruction_array, instruction_array + instruction_count};
-    program_info info{platform};
+    prevail::program_info info{platform};
     std::string section;
     std::string file;
     try {
@@ -65,7 +65,7 @@ verify_byte_code(
         return EBPF_VERIFICATION_FAILED;
     }
 
-    raw_program raw_prog{file, section, 0, {}, instructions, info};
+    prevail::raw_program raw_prog{file, section, 0, {}, instructions, info};
 
     return _analyze(raw_prog, error_message, error_message_size);
 }

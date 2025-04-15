@@ -22,6 +22,10 @@
 #include <stop_token>
 #include <thread>
 
+// Pulling in the prevail namespace to get the definitions in ebpf_vm_isa.h.
+// See: https://github.com/vbpf/prevail/issues/876
+using namespace prevail;
+
 // libbpf.h uses enum types and generates the
 // following warning whenever an enum type is used below:
 // "The enum type 'bpf_attach_type' is unscoped.

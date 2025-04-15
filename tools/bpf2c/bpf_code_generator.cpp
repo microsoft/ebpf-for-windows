@@ -31,6 +31,10 @@
 #include <vector>
 #undef max
 
+// Pulling in the prevail namespace to get the definitions in ebpf_vm_isa.h.
+// See: https://github.com/vbpf/prevail/issues/876
+using namespace prevail;
+
 #define MAXIMUM_GLOBAL_VARIABLE_SECTION_SIZE 1024 * 1024
 
 #if !defined(_countof)
@@ -509,7 +513,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
     if (map_section) {
         auto btf_section = get_required_section(".BTF");
         std::optional<libbtf::btf_type_data> btf_data = vector_of<std::byte>(*btf_section);
-        std::vector<EbpfMapDescriptor> map_descriptors;
+        std::vector<prevail::EbpfMapDescriptor> map_descriptors;
 
         auto map_data = libbtf::parse_btf_map_section(btf_data.value());
         std::map<std::string, size_t> map_offsets;
@@ -569,7 +573,7 @@ bpf_code_generator::parse_btf_maps_section(const unsafe_string& name)
                 throw bpf_code_generator_exception("map symbol not found in map section");
             }
             ebpf_map_definition_in_file_t map_definition{};
-            EbpfMapDescriptor map_descriptor = map_descriptors[map_name_to_index[unsafe_symbol_name.raw()]];
+            prevail::EbpfMapDescriptor map_descriptor = map_descriptors[map_name_to_index[unsafe_symbol_name.raw()]];
 
             map_definition.type = static_cast<ebpf_map_type_t>(map_descriptor.type);
             map_definition.key_size = map_descriptor.key_size;
@@ -718,7 +722,7 @@ bpf_code_generator::parse_btf_global_variable_section(const unsafe_string& name)
 {
     auto btf_section = get_required_section(".BTF");
     std::optional<libbtf::btf_type_data> btf_data = vector_of<std::byte>(*btf_section);
-    std::vector<EbpfMapDescriptor> map_descriptors;
+    std::vector<prevail::EbpfMapDescriptor> map_descriptors;
 
     auto map_data = libbtf::parse_btf_map_section(btf_data.value());
 
