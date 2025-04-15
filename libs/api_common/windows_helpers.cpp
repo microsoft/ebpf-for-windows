@@ -37,7 +37,7 @@ is_helper_usable_windows(int32_t n)
 }
 
 // Get the prototype for the helper with a given ID.
-EbpfHelperPrototype
+prevail::EbpfHelperPrototype
 get_helper_prototype_windows(int32_t n)
 {
     const ebpf_program_info_t* info = nullptr;
@@ -45,7 +45,7 @@ get_helper_prototype_windows(int32_t n)
     if (result != EBPF_SUCCESS) {
         throw std::runtime_error(std::string("program type info not found."));
     }
-    EbpfHelperPrototype verifier_prototype = {0};
+    prevail::EbpfHelperPrototype verifier_prototype = {0};
 
     if (info->program_type_descriptor == nullptr) {
         throw std::runtime_error(std::string("program type descriptor not found."));

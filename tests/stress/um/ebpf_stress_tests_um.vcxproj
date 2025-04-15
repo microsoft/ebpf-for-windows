@@ -123,7 +123,7 @@
     <ProjectReference Include="..\..\..\external\Catch2\build\src\Catch2WithMain.vcxproj">
       <Project>{8bd3552a-2cfb-4a59-ab15-2031b97ada1e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
+    <ProjectReference Include="..\..\..\external\ebpf-verifier\build\prevail.vcxproj">
       <Project>{7d5b4e68-c0fa-3f86-9405-f6400219b440}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\external\usersim\cxplat\src\cxplat_winuser\cxplat_winuser.vcxproj">

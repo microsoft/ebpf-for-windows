@@ -5,22 +5,24 @@
 
 #include "ebpf_structs.h"
 
-EbpfHelperPrototype
+using prevail::ebpf_inst;
+
+prevail::EbpfHelperPrototype
 get_helper_prototype_windows(int32_t n);
 
 bool
 is_helper_usable_windows(int32_t n);
 
-EbpfMapType
+prevail::EbpfMapType
 get_map_type_windows(uint32_t platform_specific_type);
 
-_Ret_maybenull_ const EbpfProgramType*
+_Ret_maybenull_ const prevail::EbpfProgramType*
 get_program_type_windows(const GUID& program_type);
 
-EbpfProgramType
+prevail::EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string& path);
 
-EbpfMapDescriptor&
+prevail::EbpfMapDescriptor&
 get_map_descriptor_windows(int map_fd);
 
 _Must_inspect_result_ ebpf_result_t

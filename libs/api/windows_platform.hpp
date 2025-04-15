@@ -2,4 +2,4 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 
-extern const ebpf_platform_t g_ebpf_platform_windows;
+extern const prevail::ebpf_platform_t g_ebpf_platform_windows;

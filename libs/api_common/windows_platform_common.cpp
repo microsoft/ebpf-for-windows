@@ -52,7 +52,7 @@ struct _ebpf_program_info_deleter
 };
 
 static void
-_ebpf_program_descriptor_free(_Frees_ptr_opt_ EbpfProgramType* descriptor)
+_ebpf_program_descriptor_free(_Frees_ptr_opt_ prevail::EbpfProgramType* descriptor)
 {
     EBPF_LOG_ENTRY();
     if (descriptor == nullptr) {
@@ -70,7 +70,7 @@ _ebpf_program_descriptor_free(_Frees_ptr_opt_ EbpfProgramType* descriptor)
 struct EbpfProgramType_deleter
 {
     void
-    operator()(_In_ _Post_invalid_ EbpfProgramType* descriptor)
+    operator()(_In_ _Post_invalid_ prevail::EbpfProgramType* descriptor)
     {
         _ebpf_program_descriptor_free(descriptor);
     }
@@ -107,7 +107,7 @@ typedef std::unique_ptr<ebpf_program_info_t, _ebpf_program_info_deleter> ebpf_pr
 static thread_local std::map<ebpf_program_type_t, ebpf_program_info_ptr_t, guid_compare> _program_info_cache;
 
 // Thread local cache for program descriptor queried from execution context.
-typedef std::unique_ptr<EbpfProgramType, EbpfProgramType_deleter> ebpf_program_descriptor_ptr_t;
+typedef std::unique_ptr<prevail::EbpfProgramType, EbpfProgramType_deleter> ebpf_program_descriptor_ptr_t;
 static thread_local std::map<ebpf_program_type_t, ebpf_program_descriptor_ptr_t, guid_compare>
     _program_descriptor_cache;
 
@@ -128,14 +128,15 @@ set_program_under_verification(ebpf_handle_t program)
 }
 
 static ebpf_result_t
-_get_program_descriptor_from_info(_In_ const ebpf_program_info_t* info, _Outptr_ EbpfProgramType** descriptor) noexcept
+_get_program_descriptor_from_info(
+    _In_ const ebpf_program_info_t* info, _Outptr_ prevail::EbpfProgramType** descriptor) noexcept
 {
     ebpf_result_t result = EBPF_SUCCESS;
-    EbpfProgramType* type = nullptr;
+    prevail::EbpfProgramType* type = nullptr;
     char* name = nullptr;
 
     try {
-        type = new (std::nothrow) EbpfProgramType();
+        type = new (std::nothrow) prevail::EbpfProgramType();
         if (type == nullptr) {
             result = EBPF_NO_MEMORY;
             goto Exit;
@@ -230,7 +231,7 @@ Exit:
     return result;
 }
 
-_Ret_maybenull_ const EbpfProgramType*
+_Ret_maybenull_ const prevail::EbpfProgramType*
 get_program_type_windows(const GUID& program_type)
 {
     ebpf_result_t result;
@@ -247,7 +248,7 @@ get_program_type_windows(const GUID& program_type)
     // Descriptor not found in thread local cache, try to query
     // the info from execution context.
     ebpf_program_info_t* program_info = nullptr;
-    EbpfProgramType* descriptor = nullptr;
+    prevail::EbpfProgramType* descriptor = nullptr;
     result = _get_program_info_data(program_type, &program_info);
     if (result == EBPF_SUCCESS) {
         _program_info_cache[program_type] = ebpf_program_info_ptr_t(program_info);
@@ -414,7 +415,7 @@ Exit:
     return result;
 }
 
-EbpfProgramType
+prevail::EbpfProgramType
 get_program_type_windows(const std::string& section, const std::string&)
 {
     bool global_program_type_found = true;
@@ -446,34 +447,34 @@ get_program_type_windows(const std::string& section, const std::string&)
 
 #define BPF_MAP_TYPE(x) BPF_MAP_TYPE_##x, #x
 
-static const EbpfMapType windows_map_types[] = {
+static const prevail::EbpfMapType windows_map_types[] = {
     {BPF_MAP_TYPE(UNSPEC)},
     {BPF_MAP_TYPE(HASH)},
     {BPF_MAP_TYPE(ARRAY), true},
-    {BPF_MAP_TYPE(PROG_ARRAY), true, EbpfMapValueType::PROGRAM},
+    {BPF_MAP_TYPE(PROG_ARRAY), true, prevail::EbpfMapValueType::PROGRAM},
     {BPF_MAP_TYPE(PERCPU_HASH)},
     {BPF_MAP_TYPE(PERCPU_ARRAY), true},
-    {BPF_MAP_TYPE(HASH_OF_MAPS), false, EbpfMapValueType::MAP},
-    {BPF_MAP_TYPE(ARRAY_OF_MAPS), true, EbpfMapValueType::MAP},
+    {BPF_MAP_TYPE(HASH_OF_MAPS), false, prevail::EbpfMapValueType::MAP},
+    {BPF_MAP_TYPE(ARRAY_OF_MAPS), true, prevail::EbpfMapValueType::MAP},
 };
 
-EbpfMapType
+prevail::EbpfMapType
 get_map_type_windows(uint32_t platform_specific_type)
 {
     uint32_t index = platform_specific_type;
     if ((index == 0) || (index >= sizeof(windows_map_types) / sizeof(windows_map_types[0]))) {
         return windows_map_types[0];
     }
-    EbpfMapType type = windows_map_types[index];
+    prevail::EbpfMapType type = windows_map_types[index];
     assert(type.platform_specific_type == platform_specific_type);
     return type;
 }
 
-EbpfMapDescriptor&
+prevail::EbpfMapDescriptor&
 get_map_descriptor_windows(int original_fd)
 {
     // First check if we already have the map descriptor cached.
-    EbpfMapDescriptor* map = find_map_descriptor(original_fd);
+    prevail::EbpfMapDescriptor* map = prevail::find_map_descriptor(original_fd);
     if (map != nullptr) {
         return *map;
     }
@@ -697,7 +698,7 @@ _load_all_program_data_information()
             ebpf_program_type_t program_type = info->program_type_descriptor->program_type;
             _windows_program_information[program_type] = ebpf_program_info_ptr_t(info);
 
-            EbpfProgramType* program_data = nullptr;
+            prevail::EbpfProgramType* program_data = nullptr;
             result = _get_program_descriptor_from_info(info, &program_data);
             if (result != EBPF_SUCCESS) {
                 goto Exit;
@@ -771,7 +772,8 @@ clear_ebpf_provider_data()
 _Success_(return == EBPF_SUCCESS) ebpf_result_t
     get_program_type_info_from_tls(_Outptr_ const ebpf_program_info_t** info)
 {
-    const GUID* program_type = reinterpret_cast<const GUID*>(thread_local_program_info->type.platform_specific_data);
+    const GUID* program_type =
+        reinterpret_cast<const GUID*>(prevail::thread_local_program_info->type.platform_specific_data);
     ebpf_result_t result = EBPF_SUCCESS;
 
     _load_ebpf_provider_data();
