@@ -42,6 +42,65 @@ jobs:
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
 
+  # Validate that the PR has an issue reference in the title or body.
+  ensure-issue-linked:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate issue references
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Extracting issue references from PR..."
+
+          TITLE="${{ github.event.pull_request.title }}"
+          BODY="${{ github.event.pull_request.body }}"
+          CONTENT="${TITLE}${BODY}"
+          CONTENT_NO_NEWLINES=$(echo "$CONTENT" | tr -d '\n\r')
+
+          echo "Sanitized content: $CONTENT_NO_NEWLINES"
+
+          # Find all #<number> matches
+          ISSUE_NUMBERS=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" | tr -d '#' | sort -u)
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "::error No issue references (like #123) found in PR title or body." >&2
+            echo "::error Please reference an issue in the title or body." >&2
+            echo "::error Example: 'Fixes #123'." >&2
+            echo "::error For trivial changes refer to issue #4333." >&2
+            sleep 1
+            exit 1
+          fi
+
+          echo "Found issue references: $ISSUE_NUMBERS"
+
+          VALID_ISSUE_FOUND=false
+
+          for ISSUE in $ISSUE_NUMBERS; do
+            echo "Checking if issue #$ISSUE exists..."
+            echo "URL: https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE"
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "::notice Issue #$ISSUE exists!"
+              VALID_ISSUE_FOUND=true
+              break
+            else
+              echo "::warning Issue #$ISSUE not found (HTTP $HTTP_STATUS)"
+            fi
+          done
+
+          if [ "$VALID_ISSUE_FOUND" = false ]; then
+            echo "::error None of the referenced issues exist in the repository." >&2
+            sleep 1
+            exit 1
+          fi
+
+
   # Perform the regular build.
   regular:
     # Always run this job.
