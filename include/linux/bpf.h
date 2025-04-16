@@ -143,6 +143,28 @@ typedef struct
     uint32_t kern_version; ///< Kernel version (currently ignored on Windows).
     uint32_t prog_flags;   ///< Not supported, must be zero.
     char prog_name[SYS_BPF_OBJ_NAME_LEN]; ///< Program name.
+    uint32_t prog_ifindex;                ///< Not supported, must be zero.
+    uint32_t expected_attach_type;        ///< Not supported, must be zero.
+    uint32_t prog_btf_fd;                 ///< Not supported, must be zero.
+    uint32_t func_info_rec_size;          ///< Not supported, must be zero.
+    uint64_t func_info;                   ///< Not supported, must be zero.
+    uint32_t func_info_cnt;               ///< Not supported, must be zero.
+    uint32_t line_info_rec_size;          ///< Not supported, must be zero.
+    uint64_t line_info;                   ///< Not supported, must be zero.
+    uint32_t line_info_cnt;               ///< Not supported, must be zero.
+    uint32_t attach_btf_id;               ///< Not supported, must be zero.
+    union
+    {
+        ///< Not supported, must be zero.
+        uint32_t attach_prog_fd;
+        ///< Not supported, must be zero.
+        uint32_t attach_btf_obj_fd;
+    };
+    uint32_t core_relo_cnt;      ///< Not supported, must be zero.
+    uint64_t fd_array;           ///< Not supported, must be zero.
+    uint64_t core_relos;         ///< Not supported, must be zero.
+    uint32_t core_relo_rec_size; ///< Not supported, must be zero.
+    uint32_t log_true_size;      ///< Total size of the log output. May be larger than log_size.
 } sys_bpf_prog_load_attr_t;
 
 typedef struct
