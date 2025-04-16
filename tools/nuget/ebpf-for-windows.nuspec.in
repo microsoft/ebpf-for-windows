@@ -19,7 +19,7 @@
 	</metadata>
 	<files>
 		<file src="..\..\tools\nuget\README.md" target="."/>
-		<file src="ebpf-for-windows.{architecture}.props" target="build\native"/>
+		<file src="ebpf-for-windows.{architecture}.props" target="build\native\eBPF-for-Windows.{architecture}{configuration}.props"/>
 		<file src="Convert-BpfToNative.ps1" target="build\native\bin"/>
 		<file src="bpf2c.exe" target="build\native\bin"/>
 		<file src="bpf2c.pdb" target="build\native\bin"/>
