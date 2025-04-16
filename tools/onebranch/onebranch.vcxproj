@@ -45,22 +45,22 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyDebug' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_NativeOnlyDebug</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_NativeOnlyDebug</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='NativeOnlyRelease' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_NativeOnlyRelease</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_NativeOnlyRelease</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_Debug</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_Debug</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' And '$(BuildOneBranch)'=='True'">
     <PostBuildEvent>
-      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\x64_Release</Command>
+      <Command>xcopy /yie $(OutDir) $(SolutionDir)build\bin\$(Platform)_Release</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
