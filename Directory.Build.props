@@ -6,7 +6,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="Platform">
   <PropertyGroup Label="Version">
     <EbpfVersion_Major>0</EbpfVersion_Major>
-    <EbpfVersion_Minor>21</EbpfVersion_Minor>
+    <EbpfVersion_Minor>22</EbpfVersion_Minor>
     <EbpfVersion_Revision>0</EbpfVersion_Revision>
     <EbpfVersion>$(EbpfVersion_Major).$(EbpfVersion_Minor).$(EbpfVersion_Revision)</EbpfVersion>
   </PropertyGroup>
