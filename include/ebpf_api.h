@@ -603,7 +603,7 @@ extern "C"
     /**
      * @brief Retrieve the next pinned path of an eBPF object.
      *
-     * @param[in] start_path Path to look for an entry greater than or NULL.
+     * @param[in] start_path Path to look for an entry greater than.
      * @param[out] next_path Returns the next path in lexicographical order, if one exists.
      * @param[in] next_path_len Length of the next path buffer.
      * @param[in, out] type On input, the type of object to retrieve or EBPF_OBJECT_UNKNOWN.
