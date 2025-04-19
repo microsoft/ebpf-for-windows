@@ -2841,9 +2841,9 @@ TEST_CASE("ebpf_program_load_bytes-name-gen", "[end-to-end]")
     REQUIRE(sample_program_info.initialize(EBPF_PROGRAM_TYPE_SAMPLE) == EBPF_SUCCESS);
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
-        {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
-        {INST_OP_EXIT},             // return r0
+    struct prevail::ebpf_inst instructions[] = {
+        {0xb7, prevail::R0_RETURN_VALUE, 0}, // r0 = 0
+        {prevail::INST_OP_EXIT},             // return r0
     };
     uint32_t insn_cnt = _countof(instructions);
     const bpf_prog_type_t prog_type = BPF_PROG_TYPE_SAMPLE;

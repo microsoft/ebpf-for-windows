@@ -24,12 +24,12 @@ _is_map_of_maps(ebpf_map_type_t type)
 // Parse a legacy (non-BTF) maps section.
 static void
 _parse_maps_section_windows(
-    std::vector<EbpfMapDescriptor>& verifier_map_descriptors,
+    std::vector<prevail::EbpfMapDescriptor>& verifier_map_descriptors,
     const char* data,
     size_t map_record_size,
     int map_count,
-    const struct ebpf_platform_t*,
-    ebpf_verifier_options_t)
+    const struct prevail::ebpf_platform_t*,
+    prevail::ebpf_verifier_options_t)
 {
     UNREFERENCED_PARAMETER(verifier_map_descriptors);
 
@@ -63,7 +63,7 @@ _parse_maps_section_windows(
 }
 
 static void
-_resolve_inner_map_references_windows(std::vector<EbpfMapDescriptor>& verifier_map_descriptors)
+_resolve_inner_map_references_windows(std::vector<prevail::EbpfMapDescriptor>& verifier_map_descriptors)
 {
     auto& map_descriptors = get_all_map_descriptors();
     for (auto& map_descriptor : map_descriptors) {
@@ -95,7 +95,7 @@ _resolve_inner_map_references_windows(std::vector<EbpfMapDescriptor>& verifier_m
     }
 }
 
-const ebpf_platform_t g_ebpf_platform_windows = {
+const prevail::ebpf_platform_t g_ebpf_platform_windows = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,

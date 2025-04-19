@@ -16,7 +16,7 @@
 thread_local static std::vector<map_cache_t> _map_file_descriptors;
 
 void
-cache_map_original_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count)
+cache_map_original_file_descriptors(const prevail::EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count)
 {
     for (uint32_t i = 0; i < map_descriptors_count; i++) {
         auto descriptor = map_descriptors[i];
@@ -48,13 +48,13 @@ get_map_cache_entry(uint64_t original_fd)
         std::string("Map cache entry for original map fd ") + std::to_string(original_fd) + " not found.");
 }
 
-EbpfMapDescriptor&
+prevail::EbpfMapDescriptor&
 get_map_descriptor(int original_fd)
 {
     return get_map_cache_entry(original_fd).verifier_map_descriptor;
 }
 
-EbpfMapDescriptor&
+prevail::EbpfMapDescriptor&
 get_map_descriptor_at_index(int index)
 {
     return _map_file_descriptors[index].verifier_map_descriptor;

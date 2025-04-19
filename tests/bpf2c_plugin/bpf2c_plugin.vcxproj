@@ -114,7 +114,7 @@
     <ClInclude Include="..\..\tools\bpf2c\bpf_code_generator.h" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\external\ebpf-verifier\build\ebpfverifier.vcxproj">
+    <ProjectReference Include="..\..\external\ebpf-verifier\build\prevail.vcxproj">
       <Project>{7d5b4e68-c0fa-3f86-9405-f6400219b440}</Project>
     </ProjectReference>
   </ItemGroup>

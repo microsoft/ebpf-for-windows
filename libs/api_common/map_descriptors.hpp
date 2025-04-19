@@ -5,11 +5,11 @@
 
 #include "platform.hpp"
 
-EbpfMapDescriptor&
+prevail::EbpfMapDescriptor&
 get_map_descriptor(int map_fd);
 
 void
-cache_map_original_file_descriptors(const EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
+cache_map_original_file_descriptors(const prevail::EbpfMapDescriptor* map_descriptors, uint32_t map_descriptors_count);
 
 void
 cache_map_original_file_descriptor_with_handle(
@@ -27,7 +27,7 @@ cache_map_original_file_descriptor_with_handle(
 void
 clear_map_descriptors(void);
 
-EbpfMapDescriptor&
+prevail::EbpfMapDescriptor&
 get_map_descriptor_at_index(int index);
 
 ebpf_handle_t

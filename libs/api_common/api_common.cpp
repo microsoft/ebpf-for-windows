@@ -167,9 +167,9 @@ ebpf_clear_thread_local_storage() noexcept
 bool
 ebpf_verify_program(
     std::ostream& os,
-    _In_ const InstructionSeq& instruction_sequence,
-    _In_ const program_info& info,
-    _In_ const ebpf_verifier_options_t& options,
+    _In_ const prevail::InstructionSeq& instruction_sequence,
+    _In_ const prevail::program_info& info,
+    _In_ const prevail::ebpf_verifier_options_t& options,
     _Out_ ebpf_api_verifier_stats_t* stats)
 {
     stats->total_unreachable = 0;
@@ -181,15 +181,15 @@ ebpf_verify_program(
         if (info.type.platform_specific_data == (uintptr_t)&EBPF_PROGRAM_TYPE_UNSPECIFIED) {
             throw std::runtime_error("Unspecified program type.");
         }
-        const auto program = Program::from_sequence(instruction_sequence, info, options);
-        auto invariants = analyze(program);
+        const auto program = prevail::Program::from_sequence(instruction_sequence, info, options);
+        auto invariants = prevail::analyze(program);
         if (options.verbosity_opts.print_invariants) {
             print_invariants(os, program, options.verbosity_opts.simplify, invariants);
         }
         bool pass;
         if (options.verbosity_opts.print_failures) {
             auto report = invariants.check_assertions(program);
-            thread_local_options.verbosity_opts.print_line_info = true;
+            prevail::thread_local_options.verbosity_opts.print_line_info = true;
             print_warnings(os, report);
             pass = report.verified();
             stats->total_warnings = (int)report.warning_set().size();
@@ -199,7 +199,7 @@ ebpf_verify_program(
         }
         stats->max_loop_count = invariants.max_loop_count();
         return pass;
-    } catch (UnmarshalError& e) {
+    } catch (prevail::UnmarshalError& e) {
         os << "error: " << e.what() << std::endl;
         return false;
     }

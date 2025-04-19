@@ -39,7 +39,7 @@ _resolve_helper_functions(
     // Build a table to map [1, MAXUINT32] -> [0,63]
     for (size_t index = 0; index < instruction_count; index++) {
         ebpf_inst& instruction = instructions[index];
-        if (instruction.opcode != INST_OP_CALL || instruction.src != INST_CALL_STATIC_HELPER) {
+        if (instruction.opcode != prevail::INST_OP_CALL || instruction.src != prevail::INST_CALL_STATIC_HELPER) {
             continue;
         }
         helper_id_to_address[instruction.imm] = {0};
@@ -108,7 +108,7 @@ _build_helper_id_to_address_map(
     // Replace old helper_ids in range [1, MAXUINT32] with new helper ids in range [0,63]
     for (index = 0; index < instruction_count; index++) {
         ebpf_inst& instruction = instructions[index];
-        if (instruction.opcode != INST_OP_CALL) {
+        if (instruction.opcode != prevail::INST_OP_CALL) {
             continue;
         }
         instruction.imm = helper_id_mapping[instruction.imm];
@@ -156,7 +156,7 @@ _resolve_maps_in_byte_code(
     size_t index = 0;
     for (index = 0; index < instruction_count; index++) {
         ebpf_inst& first_instruction = instructions[index];
-        if (first_instruction.opcode != INST_OP_LDDW_IMM) {
+        if (first_instruction.opcode != prevail::INST_OP_LDDW_IMM) {
             continue;
         }
         if (index + 1 >= instruction_count) {
@@ -229,7 +229,7 @@ _query_and_cache_map_descriptors(
     _In_reads_(handle_map_count) original_fd_handle_map_t* handle_map, uint32_t handle_map_count)
 {
     ebpf_result_t result;
-    EbpfMapDescriptor descriptor;
+    prevail::EbpfMapDescriptor descriptor;
 
     if (handle_map_count > 0) {
         for (uint32_t i = 0; i < handle_map_count; i++) {
