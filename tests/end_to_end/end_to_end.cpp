@@ -1676,6 +1676,10 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
 static void
 _verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const char* canonical_path)
 {
+    char path[EBPF_MAX_PIN_PATH_LENGTH] = "";
+    REQUIRE(ebpf_canonicalize_pin_path(path, sizeof(path), original_path) == EBPF_SUCCESS);
+    REQUIRE(strcmp(path, canonical_path) == 0);
+
     // Pin the fd to the original path.
     REQUIRE(ebpf_object_pin(fd, original_path) == EBPF_SUCCESS);
 
@@ -1691,7 +1695,6 @@ _verify_canonical_path(int fd, _In_z_ const char* original_path, _In_z_ const ch
 
     // Look up the actual path pinned.
     ebpf_object_type_t object_type = EBPF_OBJECT_UNKNOWN;
-    char path[EBPF_MAX_PIN_PATH_LENGTH] = "";
     while (ebpf_get_next_pinned_object_path(path, path, sizeof(path), &object_type) == EBPF_SUCCESS) {
         int fd2 = bpf_obj_get(path);
         if (fd2 < 0) {
@@ -1850,6 +1853,19 @@ TEST_CASE("ebpf_get_next_pinned_object_path", "[end_to_end][pinning]")
     }
 
     REQUIRE(count == expected_count);
+
+    // Try some non-canonical paths.
+    object_type = EBPF_OBJECT_UNKNOWN;
+    REQUIRE(ebpf_get_next_pinned_object_path("/", path, sizeof(path), &object_type) == EBPF_SUCCESS);
+    REQUIRE(strcmp(path, "BPF:\\map1") == 0);
+    object_type = EBPF_OBJECT_UNKNOWN;
+    REQUIRE(ebpf_get_next_pinned_object_path("/none", path, sizeof(path), &object_type) == EBPF_SUCCESS);
+    REQUIRE(strcmp(path, "BPF:\\program1") == 0);
+    object_type = EBPF_OBJECT_UNKNOWN;
+    REQUIRE(ebpf_get_next_pinned_object_path("/foo/../ebpf", path, sizeof(path), &object_type) == EBPF_SUCCESS);
+    REQUIRE(strcmp(path, "BPF:\\map1") == 0);
+    object_type = EBPF_OBJECT_UNKNOWN;
+    REQUIRE(ebpf_get_next_pinned_object_path("/foo/../zub", path, sizeof(path), &object_type) == EBPF_NO_MORE_KEYS);
 
     // Clean up.
     REQUIRE(ebpf_object_unpin(paths[0]) == EBPF_SUCCESS);
