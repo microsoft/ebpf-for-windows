@@ -168,6 +168,8 @@ void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
  *
  * Get's the wait handle maintained by the ring buffer manager.
  *
+ * Multiple calls will return the same handle, the ring buffer manager will close the handle when destroyed.
+ *
  * @param[in] map_fd File descriptor to ring buffer map.
  *
  * @returns Wait handle
@@ -177,20 +179,23 @@ ebpf_handle ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer *rb);
 
 typedef struct _ebpf_ring_buffer_consumer_page
 {
-    volatile size_t consumer_offset; ///< Consumer has read up to this offset.
+    volatile uint64_t consumer_offset; ///< Consumer has read up to this offset.
 } ebpf_ring_buffer_consumer_page_t;
 
 typedef struct _ebpf_ring_buffer_producer_page
 {
-    volatile size_t producer_offset; ///< Producer(s) have reserved up to this offset.
+    volatile uint64_t producer_offset; ///< Producer(s) have reserved up to this offset.
 } ebpf_ring_buffer_producer_page_t;
 
 /**
- * Map ring buffer memory into user space and get pointers to the consumer, producer, and data regions.
+ * Get pointers to the consumer, producer, and data regions for the mapped ringbuffer memory.
+ *
+ * Multiple calls will return the same pointers, as the ring buffer manager only maps the ring once.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
- * @param[out] producer pointer* to start of read-only mapped producer pages
- * @param[out] consumer pointer* to start of read-write mapped consumer page
+ * @param[out] producer pointer* to start of read-only mapped producer pages.
+ * @param[out] consumer pointer* to start of read-write mapped consumer page.
+ * @param[out] data pointer* to start of read-only double-mapped data pages.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
@@ -205,9 +210,11 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
 /**
  * Map ring buffer memory into user space and get pointers to the consumer, producer, and data regions.
  *
+ * Calling this multiple times will map the ring into user-space multiple times.
+ *
  * @param[in] map_fd File descriptor to ring buffer map.
- * @param[out] producer pointer* to start of read-only mapped producer pages
- * @param[out] consumer pointer* to start of read-write mapped consumer page
+ * @param[out] producer pointer* to start of read-only mapped producer pages.
+ * @param[out] consumer pointer* to start of read-write mapped consumer page.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
@@ -216,68 +223,20 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
     fd_t map_fd,
     _Out_ ebpf_ring_buffer_consumer_page_t **consumer,
     _Out_ const ebpf_ring_buffer_producer_page_t **producer,
-    _Out_ const uint8_t **data
+    _Out_ const uint8_t **data,
+    _Out_ const uint64_t *data_size
     );
 
 /**
  * Set the wait handle that will be signaled for new data.
+ *
+ * @note Overwrites the wait handle currently stored in the map.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  *
  * @returns Wait handle
  */
 ebpf_result_t ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, HANDLE handle);
-```
-
-### Polling consumer semantics
-
-```c
-/**
- * NOTE: the below helpers are being removed during refatoring
- * by abstracting operations on the producer and consumer offsets.
- */
-
-/**
- * Check whether consumer offset == producer offset.
- *
- * Note that not empty doesn't mean data is ready, just that there are records that have been allocated.
- * You still need to check the locked and discarded bits of the record header to determine if a record is ready.
- *
- * @param[in] cons pointer* to start of read-write mapped consumer page
- * @param[in] prod pointer* to start of read-only mapped producer pages
- *
- * @returns 0 if ring buffer is empty, 1 otherwise
- */
-int ebpf_ring_buffer_empty(volatile const void *prod, const void *cons);
-
-/**
- * Clear the ring buffer by flushing all completed and in-progress records.
- *
- * This helper just sets the consumer offset to the producer offset
- *
- * @param[in] prod pointer* to start of read-only mapped producer pages
- * @param[in,out] cons pointer* to start of read-write mapped consumer page
- */
-void ebpf_ring_buffer_flush(volatile const void *prod, void *cons);
-
-/**
- * Advance consumer offset to next record (if any)
- *
- * @param[in] prod pointer* to start of read-only mapped producer pages
- * @param[in,out] cons pointer* to start of read-write mapped consumer page
- */
-void ebpf_ring_buffer_next_record(volatile const void *prod, void *cons);
-
-/**
- * Get record at current ringbuffer offset.
-
- * @param[in] prod pointer* to start of read-only mapped producer pages
- * @param[in] cons pointer* to start of read-write mapped consumer page
- *
- * @returns E_SUCCESS (0) if record ready, E_LOCKED if record still locked, E_EMPTY if consumer has caught up.
- */
-int ebpf_ring_buffer_get_record(volatile const void *prod, const void *cons, volatile const void** record);
-
 ```
 
 ### Ringbuffer consumer
@@ -512,10 +471,10 @@ The memory for the ring is split into two portions by a producer offset and cons
 ```c
 typedef struct _ebpf_ring_buffer
 {
-    size_t length;
-    volatile size_t consumer_offset; ///< Consumer has read up to here.
-    volatile size_t producer_offset; ///< Producer(s) have reserved records up to here.
-    volatile size_t producer_reserve_offset; ///< Next record to be reserved.
+    uint64_t length;
+    volatile uint64_t consumer_offset; ///< Consumer has read up to here.
+    volatile uint64_t producer_offset; ///< Producer(s) have reserved records up to here.
+    volatile uint64_t producer_reserve_offset; ///< Next record to be reserved.
     uint8_t* shared_buffer;
     ebpf_ring_descriptor_t* ring_descriptor;
 } ebpf_ring_buffer_t;
