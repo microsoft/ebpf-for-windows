@@ -126,7 +126,7 @@ enum ring_buffer_flags {
  * @brief Creates a new ring buffer manager.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
- * @param[in] sample_cb Pointer to ring buffer notification callback function.
+ * @param[in] sample_cb Pointer to ring buffer notification callback function (if used).
  * @param[in] ctx Pointer to sample_cb callback function context.
  * @param[in] opts Ring buffer options.
  *
@@ -257,7 +257,7 @@ fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd == ebpf_fd_invalid) return 1;
 
 // Create wait handle.
-HANDLE wait_handle = CreateEvent(nullptr, true, false, nullptr);
+HANDLE wait_handle = CreateEvent(nullptr, false, false, nullptr);
 if (wait_handle == NULL) {
     // … log error …
     goto Exit;
