@@ -42,6 +42,13 @@ typedef unsigned char boolean;
 #include <io.h>
 #include <mutex>
 #include <rpc.h>
+#include <set>
+#include <softpub.h>
+#include <string>
+#include <wintrust.h>
+
+// Include wintrust.lib
+#pragma comment(lib, "wintrust.lib")
 
 using namespace peparse;
 using namespace Platform;
@@ -5096,3 +5103,192 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
 
     return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
+
+class WinVerifyTrustHelper
+{
+  public:
+    WinVerifyTrustHelper(const wchar_t* path)
+    {
+        win_trust_data.cbStruct = sizeof(WINTRUST_DATA);
+        win_trust_data.dwStateAction = WTD_STATEACTION_VERIFY;
+        win_trust_data.dwUIChoice = WTD_UI_NONE;
+        win_trust_data.fdwRevocationChecks = WTD_REVOKE_NONE;
+        win_trust_data.dwUnionChoice = WTD_CHOICE_FILE;
+
+        file_info.cbStruct = sizeof(WINTRUST_FILE_INFO);
+        file_info.pcwszFilePath = path;
+
+        win_trust_data.pFile = &file_info;
+
+        signature_settings.cbStruct = sizeof(WINTRUST_SIGNATURE_SETTINGS);
+        signature_settings.dwFlags = WSS_VERIFY_SPECIFIC | WSS_GET_SECONDARY_SIG_COUNT;
+        signature_settings.dwIndex = 0;
+
+        win_trust_data.pSignatureSettings = &signature_settings;
+
+        // Query the number of signatures.
+        DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+        if (error != ERROR_SUCCESS) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
+            cleanup_win_verify_trust();
+            throw std::runtime_error("WinVerifyTrust failed");
+        }
+    }
+
+    ~WinVerifyTrustHelper() { cleanup_win_verify_trust(); }
+
+    DWORD
+    cert_count()
+    {
+        // The number of signatures is stored in the dwIndex field.
+        return signature_settings.cSecondarySigs + 1;
+    }
+
+    CRYPT_PROVIDER_CERT*
+    get_cert(DWORD index)
+    {
+        // Check if the context currently points to the correct index.
+        if (signature_settings.dwIndex != index) {
+            cleanup_win_verify_trust();
+
+            win_trust_data.dwStateAction = WTD_STATEACTION_VERIFY;
+            win_trust_data.pSignatureSettings->dwIndex = index;
+
+            DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+            if (error != ERROR_SUCCESS) {
+                EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
+                throw std::runtime_error("WinVerifyTrust failed");
+            }
+        }
+
+        CRYPT_PROVIDER_DATA* provider_data = WTHelperProvDataFromStateData(win_trust_data.hWVTStateData);
+        CRYPT_PROVIDER_SGNR* provider_signer = WTHelperGetProvSignerFromChain(provider_data, 0, FALSE, 0);
+        CRYPT_PROVIDER_CERT* cert = WTHelperGetProvCertFromChain(provider_signer, 0);
+
+        if (cert == nullptr) {
+            EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WTHelperGetProvCertFromChain);
+            throw std::runtime_error("WTHelperGetProvCertFromChain failed");
+        }
+        return cert;
+    }
+
+  private:
+    void
+    cleanup_win_verify_trust()
+    {
+        if (win_trust_data.hWVTStateData) {
+            win_trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
+            WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
+            win_trust_data.hWVTStateData = nullptr;
+        }
+    }
+
+    GUID generic_action_code = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+    WINTRUST_DATA win_trust_data = {};
+    WINTRUST_FILE_INFO file_info = {};
+    WINTRUST_SIGNATURE_SETTINGS signature_settings = {};
+};
+
+static std::set<std::string>
+_ebpf_extract_eku(_In_ CRYPT_PROVIDER_CERT* cert)
+{
+    std::set<std::string> eku_set;
+    DWORD cb_usage = 0;
+    if (!CertGetEnhancedKeyUsage(cert->pCert, 0, nullptr, &cb_usage)) {
+        return eku_set;
+    }
+    std::vector<uint8_t> usage(cb_usage);
+
+    if (!CertGetEnhancedKeyUsage(cert->pCert, 0, reinterpret_cast<PCERT_ENHKEY_USAGE>(usage.data()), &cb_usage)) {
+        return eku_set;
+    }
+    auto pusage = reinterpret_cast<PCERT_ENHKEY_USAGE>(usage.data());
+    for (size_t index = 0; index < pusage->cUsageIdentifier; index++) {
+        eku_set.insert(pusage->rgpszUsageIdentifier[index]);
+    }
+    return eku_set;
+}
+
+static std::string
+_ebpf_extract_issuer(_In_ CRYPT_PROVIDER_CERT* cert)
+{
+    DWORD name_cb =
+        CertGetNameStringA(cert->pCert, CERT_KEY_PROV_INFO_PROP_ID, CERT_NAME_ISSUER_FLAG, nullptr, nullptr, 0);
+
+    std::vector<char> issuer(name_cb);
+    if (CertGetNameStringA(
+            cert->pCert, CERT_KEY_PROV_INFO_PROP_ID, CERT_NAME_ISSUER_FLAG, nullptr, issuer.data(), name_cb) == 0) {
+        return std::string();
+    }
+    return std::string(issuer.data());
+}
+
+static std::wstring
+_ebpf_convert_utf8_to_wide(_In_z_ const char* file_name)
+{
+    int size = MultiByteToWideChar(CP_UTF8, 0, file_name, -1, nullptr, 0); // Get the size of the wide string.
+    std::vector<wchar_t> wide_file_name(size);
+    size = MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        file_name,
+        (int)strlen(file_name),
+        wide_file_name.data(),
+        static_cast<int>(wide_file_name.size())); // Convert to wide string.
+    return std::wstring(wide_file_name.data(), size);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_verify_sys_file_signature(
+    _In_z_ const char* file_name,
+    _In_z_ const char* issuer_name,
+    _In_ size_t eku_count,
+    _In_reads_(eku_count) const char** eku_list) NO_EXCEPT_TRY
+{
+    ebpf_result_t result = EBPF_OBJECT_NOT_FOUND;
+    EBPF_LOG_ENTRY();
+    std::string required_issuer(issuer_name);
+    std::set<std::string> required_eku_set;
+
+    for (size_t i = 0; i < eku_count; i++) {
+        required_eku_set.insert(eku_list[i]);
+    }
+
+    std::wstring wide_file_name = _ebpf_convert_utf8_to_wide(file_name);
+
+    try {
+        WinVerifyTrustHelper wrapper(wide_file_name.c_str());
+
+        for (DWORD i = 0; i < wrapper.cert_count(); i++) {
+
+            std::set<std::string> eku_set = _ebpf_extract_eku(wrapper.get_cert(i));
+            std::string issuer = _ebpf_extract_issuer(wrapper.get_cert(i));
+
+            if (issuer != required_issuer) {
+                continue;
+            }
+
+            std::set<std::string> eku_intersection;
+            std::set_intersection(
+                eku_set.begin(),
+                eku_set.end(),
+                required_eku_set.begin(),
+                required_eku_set.end(),
+                std::inserter(eku_intersection, eku_intersection.begin()));
+
+            if (eku_intersection.size() != required_eku_set.size()) {
+                continue;
+            }
+
+            // The certificate is valid and has the required EKUs.
+            result = EBPF_SUCCESS;
+            break;
+        }
+    } catch (const std::runtime_error&) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
+    }
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT

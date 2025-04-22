@@ -31,3 +31,5 @@ KERNEL32.dll
 ADVAPI32.dll
 dbghelp.dll
 bcrypt.dll
+WINTRUST.dll
+CRYPT32.dll
