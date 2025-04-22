@@ -136,7 +136,7 @@ _parse_btf_map_info_and_populate_cache(const ELFIO::elfio& reader, const vector<
     }
     std::optional<libbtf::btf_type_data> btf_data = vector_of<byte>(*btf_section);
 
-    std::vector<EbpfMapDescriptor> btf_map_descriptors;
+    std::vector<prevail::EbpfMapDescriptor> btf_map_descriptors;
     std::map<std::string, size_t> btf_map_name_to_index;
 
     auto map_data = parse_btf_map_section(btf_data.value());
@@ -285,7 +285,7 @@ _Must_inspect_result_ ebpf_result_t
 load_byte_code(
     std::variant<std::string, std::vector<uint8_t>>& file_or_buffer,
     _In_opt_z_ const char* section_name,
-    _In_ const ebpf_verifier_options_t& verifier_options,
+    _In_ const prevail::ebpf_verifier_options_t& verifier_options,
     _In_z_ const char* pin_root_path,
     _Inout_ std::vector<ebpf_program_t*>& programs,
     _Inout_ std::vector<ebpf_map_t*>& maps,
@@ -300,13 +300,13 @@ load_byte_code(
     ebpf_program_type_t empty_program_type{};
 
     try {
-        const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+        const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
         std::string section_name_string;
         if (section_name != nullptr) {
             section_name_string = std::string(section_name);
         }
 
-        std::vector<raw_program> raw_programs;
+        std::vector<prevail::raw_program> raw_programs;
 
         // If file_or_buffer is a string, it is a file name.
         if (std::holds_alternative<std::string>(file_or_buffer)) {
@@ -490,8 +490,8 @@ ebpf_api_elf_enumerate_programs(
     _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    ebpf_verifier_options_t verifier_options{};
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+    prevail::ebpf_verifier_options_t verifier_options{};
+    const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
 
     *infos = nullptr;
@@ -510,16 +510,18 @@ ebpf_api_elf_enumerate_programs(
             memset(info, 0, sizeof(*info));
 
             if (verbose) {
-                std::variant<InstructionSeq, std::string> instruction_sequence_or_error = unmarshal(raw_program);
+                std::variant<prevail::InstructionSeq, std::string> instruction_sequence_or_error =
+                    unmarshal(raw_program);
                 if (std::holds_alternative<std::string>(instruction_sequence_or_error)) {
                     std::cout << "parse failure: " << std::get<std::string>(instruction_sequence_or_error) << "\n";
                     ebpf_free(info);
                     return 1;
                 }
-                auto& instruction_sequence = std::get<InstructionSeq>(instruction_sequence_or_error);
+                auto& instruction_sequence = std::get<prevail::InstructionSeq>(instruction_sequence_or_error);
                 // auto program = crab::prepare_cfg(program, raw_program.info, verifier_options.cfg_opts);
-                auto program = Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
-                std::map<std::string, int> stats = collect_stats(program);
+                auto program =
+                    prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
+                std::map<std::string, int> stats = prevail::collect_stats(program);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
                 }
@@ -577,8 +579,8 @@ ebpf_api_elf_disassemble_program(
     _Outptr_result_maybenull_z_ const char** disassembly,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    ebpf_verifier_options_t verifier_options{};
-    const ebpf_platform_t* platform = &g_ebpf_platform_windows;
+    prevail::ebpf_verifier_options_t verifier_options{};
+    const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
 
@@ -590,8 +592,8 @@ ebpf_api_elf_disassemble_program(
     try {
         std::string section(section_name ? section_name : "");
         auto raw_programs = read_elf(file, section, verifier_options, platform);
-        auto found_program =
-            std::find_if(raw_programs.begin(), raw_programs.end(), [&program_name](const raw_program& program) {
+        auto found_program = std::find_if(
+            raw_programs.begin(), raw_programs.end(), [&program_name](const prevail::raw_program& program) {
                 return (program_name == nullptr) || (program.function_name == program_name);
             });
         if (found_program == raw_programs.end()) {
@@ -601,14 +603,14 @@ ebpf_api_elf_disassemble_program(
                 throw std::runtime_error(std::string("No programs found"));
             }
         }
-        raw_program& raw_program = *found_program;
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
+        prevail::raw_program& raw_program = *found_program;
+        std::variant<prevail::InstructionSeq, std::string> programOrError = prevail::unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
             *error_message = allocate_string(error.str());
             return 1;
         }
-        auto& program = std::get<InstructionSeq>(programOrError);
+        auto& program = std::get<prevail::InstructionSeq>(programOrError);
         print(program, output, {}, true);
         *disassembly = allocate_string(output.str());
         if (!*disassembly) {
@@ -653,8 +655,8 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
     *error_message = nullptr;
 
     try {
-        const ebpf_platform_t* platform = &g_ebpf_platform_windows;
-        ebpf_verifier_options_t verifier_options{};
+        const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
+        prevail::ebpf_verifier_options_t verifier_options{};
         verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
         verifier_options.cfg_opts.check_for_termination = true;
         verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
@@ -666,7 +668,7 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
         }
         auto raw_programs =
             read_elf(stream, stream_name, (section_name != nullptr ? section_name : ""), verifier_options, platform);
-        std::optional<raw_program> found_program;
+        std::optional<prevail::raw_program> found_program;
         for (auto& program : raw_programs) {
             if ((program_name == nullptr) || (program.function_name == program_name)) {
                 found_program = program;
@@ -680,14 +682,14 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
                 throw std::runtime_error(std::string("No programs found"));
             }
         }
-        raw_program raw_program = *found_program;
-        std::variant<InstructionSeq, std::string> programOrError = unmarshal(raw_program);
+        prevail::raw_program raw_program = *found_program;
+        std::variant<prevail::InstructionSeq, std::string> programOrError = prevail::unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
             *error_message = allocate_string(error.str());
             return 1;
         }
-        auto& program = std::get<InstructionSeq>(programOrError);
+        auto& program = std::get<prevail::InstructionSeq>(programOrError);
 
         if (stats == nullptr) {
             // ebpf_verify_program() requires stats to be non-null.

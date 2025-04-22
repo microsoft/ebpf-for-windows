@@ -14,7 +14,7 @@
 #include <cassert>
 #include <stdexcept>
 
-const ebpf_platform_t g_ebpf_platform_windows_service = {
+const prevail::ebpf_platform_t g_ebpf_platform_windows_service = {
     get_program_type_windows,
     get_helper_prototype_windows,
     is_helper_usable_windows,

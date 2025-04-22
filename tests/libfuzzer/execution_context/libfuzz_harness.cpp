@@ -17,6 +17,8 @@
 #include <mutex>
 #include <vector>
 
+using namespace prevail;
+
 extern "C"
 {
     _Must_inspect_result_ ebpf_result_t

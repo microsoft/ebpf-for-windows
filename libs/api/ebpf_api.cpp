@@ -2338,7 +2338,7 @@ _initialize_ebpf_object_from_elf(
 
     ebpf_result_t result = EBPF_SUCCESS;
 
-    ebpf_verifier_options_t verifier_options{};
+    prevail::ebpf_verifier_options_t verifier_options{};
 
     result = load_byte_code(
         file_or_data,
@@ -3252,7 +3252,7 @@ ebpf_program_load_bytes(
     std::vector<original_fd_handle_map_t> handle_map;
     for (size_t index = 0; index < instruction_count; index++) {
         const ebpf_inst& first_instruction = instructions[index];
-        if (first_instruction.opcode != INST_OP_LDDW_IMM) {
+        if (first_instruction.opcode != prevail::INST_OP_LDDW_IMM) {
             continue;
         }
         if (index + 1 >= instruction_count) {
@@ -4327,7 +4327,7 @@ ebpf_get_program_type_name(_In_ const ebpf_program_type_t* program_type) NO_EXCE
     ebpf_assert(program_type);
 
     try {
-        const EbpfProgramType* type = get_program_type_windows(*program_type);
+        const prevail::EbpfProgramType* type = get_program_type_windows(*program_type);
         if (type == nullptr) {
             EBPF_RETURN_POINTER(const char*, nullptr);
         }
