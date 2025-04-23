@@ -192,10 +192,11 @@ typedef struct _ebpf_ring_buffer_producer_page
  *
  * Multiple calls will return the same pointers, as the ring buffer manager only maps the ring once.
  *
- * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] rb Pointer to ring buffer manager.
  * @param[out] producer pointer* to start of read-only mapped producer pages.
  * @param[out] consumer pointer* to start of read-write mapped consumer page.
  * @param[out] data pointer* to start of read-only double-mapped data pages.
+ * @param[out] data_size Size of the mapped data buffer.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
@@ -204,7 +205,8 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
     _In_ struct ring_buffer *rb,
     _Out_ ebpf_ring_buffer_consumer_page_t **consumer,
     _Out_ const ebpf_ring_buffer_producer_page_t **producer,
-    _Out_ uint8_t **data
+    _Out_ uint8_t **data,
+    _Out_ uint64_t *data_size
     );
 
 /**
@@ -215,6 +217,7 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[out] producer pointer* to start of read-only mapped producer pages.
  * @param[out] consumer pointer* to start of read-write mapped consumer page.
+ * @param[out] data_size Size of the mapped data buffer.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
@@ -264,7 +267,7 @@ if (wait_handle == NULL) {
 }
 
 // Set map wait handle.
-ebpr_result result = ebpf_ring_buffer_set_wait_handle(map_fd, wait_handle);
+ebpf_result result = ebpf_ring_buffer_set_wait_handle(map_fd, wait_handle);
 if (result != EBPF_SUCCESS) {
     // … log error …
     goto Exit;
@@ -378,19 +381,27 @@ ring_buffer__free(rb);
 #### Linux direct mmap consumer
 
 ```c
-// sample callback
-int ring_buffer_sample_fn(void *ctx, void *data, size_t size) {
-  // … business logic to handle record …
-}
-
-fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
-if (map_fd == ebpf_fd_invalid) return 1;
+int map_fd = bpf_obj_get(rb_map_name.c_str());
+if (map_fd < 0) return 1;
 
 struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn sample_cb, NULL);
+if (rb == NULL) return 1;
 
-void* consumer = mmap(NULL, rb->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
+int epoll_fd = ring_buffer__epoll_fd(rb);
+if (epoll_fd < 0) return 1;
+
+uint8_t* consumer = mmap(NULL, rb->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
 size_t mmap_sz = rb->page_size + 2 * (__u64)info.max_entries;
-void* producer = mmap(NULL, (size_t)mmap_sz, PROT_READ, MAP_SHARED, map_fd, rb->page_size);
+const volatile uint8_t* producer = mmap(NULL, (size_t)mmap_sz, PROT_READ, MAP_SHARED, map_fd, rb->page_size);
+
+volatile uint64_t *cons_offset = (volatile uint64_t*)consumer;
+const volatile uint64_t *prod_offset = (const volatile uint64_t*)consumer;
+const volatile uint8_t *data = producer + 4096;
+
+uint64_t producer_offset = ReadAcquire64(prod_offset);
+uint64_t consumer_offset = ReadNoFence64(cons_offset);
+// have_data used to track whether we should wait for notification or just keep reading.
+bool have_data = producer_offset > consumer_offset;
 
 // TODO: finish implementing linux example.
 
@@ -408,6 +419,7 @@ fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd == ebpf_fd_invalid) return 1;
 
 struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn sample_cb, NULL);
+if (rb == NULL) return 1;
 
 // now loop as long as there isn't an error
 while(ring_buffer__poll(rb, -1) >= 0) {
@@ -415,12 +427,7 @@ while(ring_buffer__poll(rb, -1) >= 0) {
 }
 
 ring_buffer__free(rb);
-
-
 ```
-
-
-
 
 *Below implementation details of the internal ring buffer data structure are discussed.*
 
