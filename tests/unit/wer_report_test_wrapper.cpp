@@ -137,20 +137,14 @@ WerReportSubmit_test(
 
 TEST_CASE("wer_report_started_shutdown", "[wer_report]")
 {
-    char* old_buffer = nullptr;
-    size_t size = 0;
-    _dupenv_s(&old_buffer, &size, "EBPF_ENABLE_WER_REPORT");
-    _putenv_s("EBPF_ENABLE_WER_REPORT", "yes");
-    {
-        _wer_report_test _wer_report_test_singleton;
-        REQUIRE(AddVectoredExceptionHandler_test_first);
-        REQUIRE(AddVectoredExceptionHandler_test_handler != nullptr);
-        REQUIRE(SetThreadStackGuarantee_test_stack_size_in_bytes == 32 * 1024);
+    if (IsDebuggerPresent()) {
+        SKIP("Debugger present, skipping test.");
     }
 
-    if (old_buffer) {
-        _putenv_s("EBPF_ENABLE_WER_REPORT", old_buffer);
-    }
+    _wer_report_test _wer_report_test_singleton;
+    REQUIRE(AddVectoredExceptionHandler_test_first);
+    REQUIRE(AddVectoredExceptionHandler_test_handler != nullptr);
+    REQUIRE(SetThreadStackGuarantee_test_stack_size_in_bytes == 32 * 1024);
 }
 
 TEST_CASE("wer_report_fatal_exception", "[wer_report]")
@@ -168,6 +162,7 @@ TEST_CASE("wer_report_fatal_exception", "[wer_report]")
     WerReportSubmit_test_called = false;
 
     // Invoke the registered vectored exception handler.
+    _wer_report_test _wer_report_test_singleton;
     REQUIRE(AddVectoredExceptionHandler_test_handler(&exception_pointers) == EXCEPTION_CONTINUE_SEARCH);
     REQUIRE(WerReportCreate_test_called);
     REQUIRE(WerReportAddDump_test_called);

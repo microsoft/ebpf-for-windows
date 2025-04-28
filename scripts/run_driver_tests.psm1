@@ -318,7 +318,6 @@ function Invoke-CICDTests
 
 
     Push-Location $WorkingDirectory
-    $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     # Now create an array of test tuples, overriding only the necessary values
     # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
@@ -458,7 +457,6 @@ function Invoke-CICDStressTests
           [parameter(Mandatory = $false)][bool] $RestartExtension = $false)
 
     Push-Location $WorkingDirectory
-    $env:EBPF_ENABLE_WER_REPORT = "yes"
 
     Write-Log "Executing eBPF kernel mode multi-threaded stress tests (restart extension:$RestartExtension)."
 

@@ -31,7 +31,7 @@
 
 /**
  * @brief Class to automatically capture WER Report / Triage crash dump on fatal application exception.
- * Exceptions are only logged if the environment variable EBPF_ENABLE_WER_REPORT is set to "yes".
+ * Exceptions are only logged if no debugger is attached.
  *
  */
 class _wer_report
@@ -41,16 +41,11 @@ class _wer_report
     _wer_report() : vectored_exception_handler_handle(nullptr)
     {
         unsigned long guaranteed_stack_size = static_cast<unsigned long>(minimum_stack_size_for_wer);
-        char* buffer = nullptr;
-        size_t size = 0;
 
-        // Check if the EBPF_ENABLE_WER_REPORT is set to "yes".
-        _dupenv_s(&buffer, &size, environment_variable_name);
-        if (size == 0 || !buffer || _stricmp(environment_variable_value, buffer) != 0) {
-            free(buffer);
+        if (IsDebuggerPresent()) {
+            // Don't enable WER report generation if a debugger is attached.
             return;
         }
-        free(buffer);
 
         // Redirect error output to STDERR so that it is captured in the console
         // when running in CI/CD.
@@ -81,8 +76,6 @@ class _wer_report
     }
 
   private:
-    static constexpr const char environment_variable_name[] = "EBPF_ENABLE_WER_REPORT";
-    static constexpr const char environment_variable_value[] = "yes";
     static constexpr const wchar_t wer_event_type[] = L"Test Application Crash";
 
     static int __CRTDECL

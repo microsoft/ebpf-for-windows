@@ -261,7 +261,6 @@ jobs:
         shell: cmd
         run: |
             call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat"
-            set EBPF_ENABLE_WER_REPORT=yes
             OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}\${{env.TEST_COMMAND}}
 
       - name: Run test with Code Coverage and low resource simulation
@@ -269,7 +268,6 @@ jobs:
         id: run_test_with_code_coverage_in_fault_injection
         shell: cmd
         run: |
-            set EBPF_ENABLE_WER_REPORT=yes
             OpenCppCoverage.exe -q --cover_children --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 8
 
       - name: Run test with low resource simulation
@@ -278,7 +276,6 @@ jobs:
         shell: cmd
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         run: |
-            set EBPF_ENABLE_WER_REPORT=yes
             powershell.exe .\Test-FaultInjection.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}} 16
 
       - name: Run test with Code Coverage
@@ -286,7 +283,6 @@ jobs:
         id: run_test_with_code_coverage
         shell: cmd
         run: |
-            set EBPF_ENABLE_WER_REPORT=yes
             OpenCppCoverage.exe -q --sources %CD% --excluded_sources %CD%\external\Catch2 --export_type cobertura:ebpf_for_windows.xml --working_dir ${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -- powershell .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
       - name: Run test on self-hosted runner
@@ -309,7 +305,6 @@ jobs:
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
         shell: cmd
         run: |
-          set EBPF_ENABLE_WER_REPORT=yes
           cd /d ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
           powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
