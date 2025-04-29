@@ -94,6 +94,8 @@ ebpf_result_t
 ebpf_ring_buffer_output(_Inout_ ebpf_ring_buffer_t* ring, _In_reads_bytes_(length) uint8_t* data, size_t length, size_t flags)
 ```
 
+_Note:_ The currently internal `ebpf_ring_buffer_record.h` with helpers for working with raw records will also be made public.
+
 #### Updated libbpf API for callback consumer
 
 The behaviour of these functions will be unchanged for now.
@@ -124,6 +126,10 @@ enum ring_buffer_flags {
 
 /**
  * @brief Creates a new ring buffer manager.
+ *
+ * Only one consumer can be attached at a time, so it should not be called multiple times on an fd.
+ *
+ * If the return value is NULL the error will be returned in errno.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[in] sample_cb Pointer to ring buffer notification callback function (if used).
