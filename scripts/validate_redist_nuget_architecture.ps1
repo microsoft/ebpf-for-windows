@@ -80,7 +80,8 @@ try {
 
     Write-Host "Extraction completed. Verifying architectures..."
 
-    $files = Get-ChildItem -Path $ExtractionPath -Recurse -Include *.dll, *.exe, *.sys
+    # Exclude vcruntime140_1.dll from validation as its architecture is ARM64EC for ARM64.
+    $files = Get-ChildItem -Path $ExtractionPath -Recurse -Include *.dll, *.exe, *.sys -Exclude *vcruntime140_1.dll
 
     $allMatch = $true
 
