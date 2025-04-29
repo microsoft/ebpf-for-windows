@@ -509,7 +509,7 @@ function Get-RegressionTestArtifacts
     }
 
     Get-ZipFileFromUrl -Url $ArtifactUrl -DownloadFilePath "$DownloadPath\Build-x64.$Configuration.zip" -OutputDir $DownloadPath
-    $DownloadedArtifactPath = "$DownloadPath\Build-x64 $Configuration"
+    $DownloadedArtifactPath = "$DownloadPath\Build $Configuration x64"
     if (!(Test-Path -Path $DownloadedArtifactPath)) {
         throw ("Path ""$DownloadedArtifactPath"" not found.")
     }
