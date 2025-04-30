@@ -220,6 +220,8 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  *
  * Calling this multiple times will map the ring into user-space multiple times.
  *
+ * Note: This is a wrapper around ebpf_map_map_buffer.
+ *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[out] producer pointer* to start of read-only mapped producer pages.
  * @param[out] consumer pointer* to start of read-write mapped consumer page.
@@ -234,6 +236,24 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
     _Out_ const ebpf_ring_buffer_producer_page_t **producer,
     _Out_ const uint8_t **data,
     _Out_ const uint64_t *data_size
+    );
+
+/**
+ * Map eBPF map memory into user space.
+ *
+ * Calling this multiple times will map the memory into user-space multiple times.
+ *
+ * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[out] data pointer* to start of mapped memory range.
+ * @param[out] size Size of the mapped data buffer.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval other An error occurred.
+ */
+ebpf_result_t ebpf_ring_buffer_map_map_buffer(
+    fd_t map_fd,
+    _Out_ const uint8_t **data,
+    _Out_ const uint64_t *size
     );
 
 /**
@@ -387,30 +407,109 @@ ring_buffer__free(rb);
 #### Linux direct mmap consumer
 
 ```c
+size_t page_size = 4096;
+
 int map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd < 0) return 1;
 
-struct ring_buffer *rb = ring_buffer__new(map_fd, ring_buffer_sample_fn sample_cb, NULL);
-if (rb == NULL) return 1;
+// Fetch map info to get max_entries
+struct bpf_map_info info = {};
+uint32_t info_len = sizeof(info);
+if (bpf_obj_get_info_by_fd(map_fd, &info, &info_len) != 0) {
+    // … handle error …
+    close(map_fd);
+    return 1;
+}
+size_t max_entries = info.max_entries;
 
-int epoll_fd = ring_buffer__epoll_fd(rb);
-if (epoll_fd < 0) return 1;
+int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+if (epoll_fd < 0) {
+  // … handle error …
+};
 
-uint8_t* consumer = mmap(NULL, rb->page_size, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
-size_t mmap_sz = rb->page_size + 2 * (__u64)info.max_entries;
-const volatile uint8_t* producer = mmap(NULL, (size_t)mmap_sz, PROT_READ, MAP_SHARED, map_fd, rb->page_size);
+struct epoll_event event = {
+  .events = EPOLLIN,
+  .data.fd = map_fd
+};
+
+uint8_t* consumer = mmap(NULL, page_size, PROT_READ | PROT_WRITE, MAP_SHARED, map_fd, 0);
+
+size_t mmap_sz = page_size + 2 * max_entries;
+const volatile uint8_t* producer = mmap(NULL, (size_t)mmap_sz, PROT_READ, MAP_SHARED, map_fd, page_size);
+if (!producer || !consumer) {
+  // … handle error …
+};
+
+if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, map_fd, &event) < 0) {
+  // … handle error …
+}
 
 volatile uint64_t *cons_offset = (volatile uint64_t*)consumer;
 const volatile uint64_t *prod_offset = (const volatile uint64_t*)consumer;
-const volatile uint8_t *data = producer + 4096;
+const volatile uint8_t *data = producer + page_size;
 
 uint64_t producer_offset = ReadAcquire64(prod_offset);
 uint64_t consumer_offset = ReadNoFence64(cons_offset);
 // have_data used to track whether we should wait for notification or just keep reading.
 bool have_data = producer_offset > consumer_offset;
 
-// TODO: finish implementing linux example.
+// Now loop until error.
+For(;;) {
+  if (!have_data) { // Only wait if we have already caught up.
+    struct epoll_event events[1];
+    int nfds = epoll_wait(epoll_fd, events, 1, -1);
+    if (nfds == 0) { // No signal
+        continue;
+    } else if (nfds < 0) {
+      // … handle any terminal errors …
+    }
+    // It's possible we still have data, so check even if we got an error.
+    producer_offset = ReadAcquire64(prod_offset);
+    have_data = producer_offset > consumer_offset;
+    if (!have_data) continue;
+  }
+  uint64_t remaining = producer_offset - consumer_offset;
 
+  // Check for empty ring.
+  if (remaining == 0) {
+    have_data = false; // Caught up to producer.
+    continue;
+  } else if (remaining < EBPF_RINGBUF_HEADER_SIZE) {
+    // Bad record or consumer offset out of alignment.
+    // … log error …
+    break;
+  }
+
+  // Read the record header.
+  const volatile uint8_t *record = data + (consumer_offset % (2 * page_size));
+  uint32_t record_header = *(const volatile uint32_t *)record;
+  uint32_t record_length = record_header & 0x3FFFFFFF; // Mask out lock/discard bits.
+
+  // Check if the record is locked.
+  if (record_header & (1U << 31)) {
+      // Record is locked, wait for it to be unlocked
+      continue;
+  }
+
+  // If not discarded handle the record.
+  if (!(record_header & (1U << 30))) {
+    const volatile uint8_t *record_data = record + EBPF_RINGBUF_HEADER_SIZE;
+    // Read data from record->data[0 … record_length-1].
+    // … business logic …
+  }
+
+
+  // Update consumer offset.
+  // Note: record_length is the data size, record_total_size includes header and padding.
+  consumer_offset += ebpf_ring_buffer_record_total_size(record);
+  WriteNoFence64(cons_offset,consumer_offset);
+}
+
+Exit:
+close(epoll_fd);
+munmap(consumer, page_size);
+munmap(producer, mmap_sz);
+close(map_fd);
 ```
 
 #### Linux ring buffer manager consumer
