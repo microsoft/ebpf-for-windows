@@ -289,6 +289,13 @@ jobs:
       working-directory: ${{env.GITHUB_WORKSPACE}}
       run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package /bl:out.binlog
 
+    - name: Valdiate NuGet Redist package
+      if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
+      working-directory: ${{env.GITHUB_WORKSPACE}}
+      run: |
+        $nugetFile = Get-ChildItem -Path .\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}} -Filter "*eBPF-for-Windows-Redist*.nupkg" | Select-Object -ExpandProperty FullName
+        .\scripts\validate_redist_nuget_architecture.ps1 -NugetPackagePath $nugetFile -ExpectedArchitecture ${{env.BUILD_PLATFORM}}
+
     - name: Upload the NuGet Redist package
       if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

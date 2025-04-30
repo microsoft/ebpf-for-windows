@@ -39,14 +39,14 @@
 		<file src="..\..\scripts\ebpf_tracing_periodic_task.xml" target="lib\native\bin"/>
 
 		<!--Temporary inclusion of the VC++ Redist-->
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\concrt140.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_1.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_2.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_atomic_wait.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\msvcp140_codecvt_ids.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\vccorlib140.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\vcruntime140.dll" target="lib\native\bin"/>
-		<file src="{VCToolsRedistDir}x64\Microsoft.VC143.CRT\vcruntime140_1.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\concrt140.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\msvcp140.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\msvcp140_1.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\msvcp140_2.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\msvcp140_atomic_wait.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\msvcp140_codecvt_ids.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\vccorlib140.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\vcruntime140.dll" target="lib\native\bin"/>
+		<file src="{VCToolsRedistDir}{architecture}\Microsoft.VC143.CRT\vcruntime140_1.dll" target="lib\native\bin"/>
 	</files>
 </package>
