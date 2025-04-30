@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf  # v2.11.1
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0  # v2.12.0
         with:
           egress-policy: audit
 
@@ -55,7 +55,7 @@ jobs:
 
       - name: Download build artifact
         if: (steps.skip_check.outputs.should_skip != 'true') && success()
-        uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         id: download_artifact
         with:
           name: ${{inputs.build_artifact}}-${{matrix.configurations}}
@@ -81,6 +81,6 @@ jobs:
 
       - name: Upload results to Security tab
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/upload-sarif@45775bd8235c68ba998cffa5171334d58593da47
+        uses: github/codeql-action/upload-sarif@28deaeda66b76a05916b6923827895f2b14ab387
         with:
           sarif_file: ${{ steps.ossar.outputs.sarifFile }}
