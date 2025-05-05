@@ -31,5 +31,5 @@ var searchData=
   ['ece_28',['ece',['../structtcphdr.html#a44a015cc627ec83e9421d4f0c9ccc624',1,'tcphdr']]],
   ['ecnfield_29',['EcnField',['../struct___i_p_v4___h_e_a_d_e_r.html#a8fc4885230de61f6732bb0e6ebbb6fd3',1,'_IPV4_HEADER']]],
   ['epoch_5fstate_30',['epoch_state',['../struct__ebpf__execution__context__state.html#a742bc7acdbaaf8bb23d8ae3df2b7f169',1,'_ebpf_execution_context_state']]],
-  ['expected_5fattach_5ftype_31',['expected_attach_type',['../structbpf__load__program__attr.html#a51fa3bedac316d17bdbfd4039ecf41c2',1,'bpf_load_program_attr::expected_attach_type'],['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry::expected_attach_type'],['../struct__ebpf__api__program__info.html#a721d3638f5c3cdf6ec4a6ccc383fa403',1,'_ebpf_api_program_info::expected_attach_type']]]
+  ['expected_5fattach_5ftype_31',['expected_attach_type',['../structbpf__load__program__attr.html#a51fa3bedac316d17bdbfd4039ecf41c2',1,'bpf_load_program_attr::expected_attach_type'],['../struct__program__entry.html#a8bec8c2bc3d2b71f16ca3bfe06dd24ef',1,'_program_entry::expected_attach_type'],['../struct__ebpf__api__program__info.html#a721d3638f5c3cdf6ec4a6ccc383fa403',1,'_ebpf_api_program_info::expected_attach_type'],['../structsys__bpf__prog__load__attr__t.html#a6a373aee06c7abc98317991196c0b360',1,'sys_bpf_prog_load_attr_t::expected_attach_type']]]
 ];
