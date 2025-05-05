@@ -387,7 +387,7 @@ ebpf_verify_and_load_program(
             byte_code_size = machine_code.size();
 
             if (*error_message != nullptr) {
-                *error_message_size = (uint32_t)strlen(*error_message);
+                *error_message_size = (uint32_t)strlen(*error_message) + 1;
             }
         }
 
