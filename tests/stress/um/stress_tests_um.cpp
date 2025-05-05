@@ -130,8 +130,10 @@ _bindmonitor_tailcall_stress_thread_function(const stress_test_thread_context& t
         ebpf_result = hook.attach_link(local_program_object_info.fd, &ifindex, sizeof(ifindex), &link);
         log_error_and_increment_failure_count(ebpf_result, "hook.attach_link()");
 
-        hook.detach_link(link);
-        hook.close_link(link);
+        if (link) {
+            hook.detach_link(link);
+            hook.close_link(link);
+        }
 
         // Tear down tail calls.
         index = 0;
@@ -238,9 +240,11 @@ _droppacket_stress_thread_function(const stress_test_thread_context& test_params
             return;
         }
 
-        // Detach link.
-        hook.detach_link(link);
-        hook.close_link(link);
+        if (link) {
+            // Detach link.
+            hook.detach_link(link);
+            hook.close_link(link);
+        }
     }
 
     LOG_INFO("{} done. Iterations: {}", test_params.file_name.c_str(), count);
