@@ -228,6 +228,7 @@ ebpf_duplicate_program_data(
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT The input path was invalid.
+ * @retval EBPF_INSUFFICIENT_BUFFER The output buffer did not have sufficient space.
  */
 ebpf_result_t
 ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input);

@@ -658,14 +658,20 @@ ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_siz
     }
     if (input[0] != '/' && input[0] != '\\') {
         // A relative path is relative to the root.
-        strcat_s(output, output_size, "\\");
+        if (strcat_s(output, output_size, "\\") != 0) {
+            return EBPF_INSUFFICIENT_BUFFER;
+        }
     }
 
     // Add the BPF: prefix if not already present.
     if (_strnicmp(input, "BPF:", DEVICE_PREFIX_SIZE) == 0) {
-        strcat_s(output, output_size, input + DEVICE_PREFIX_SIZE);
+        if (strcat_s(output, output_size, input + DEVICE_PREFIX_SIZE) != 0) {
+            return EBPF_INSUFFICIENT_BUFFER;
+        }
     } else {
-        strcat_s(output, output_size, input);
+        if (strcat_s(output, output_size, input) != 0) {
+            return EBPF_INSUFFICIENT_BUFFER;
+        }
     }
 
     for (int i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
