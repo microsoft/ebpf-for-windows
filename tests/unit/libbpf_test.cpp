@@ -3357,6 +3357,44 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
 #endif
 }
 
+TEST_CASE("BPF_PROG_LOAD logging", "[libbpf][bpf]")
+{
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+    _test_helper_libbpf test_helper;
+    test_helper.initialize();
+
+    struct ebpf_inst program[] = {
+        {INST_OP_EXIT, 0, 0, 0} // Bare return instruction.
+    };
+    const size_t program_size = sizeof(program);
+    char log_buf[256] = {};
+
+    // log_true_size must reflect the minimum size of the log buffer.
+    sys_bpf_prog_load_attr_t attr = {};
+    attr.prog_type = BPF_PROG_TYPE_SAMPLE;
+    attr.insns = reinterpret_cast<uint64_t>(program);
+    attr.insn_cnt = program_size / sizeof(struct ebpf_inst);
+    attr.log_buf = reinterpret_cast<uint64_t>(log_buf);
+    attr.log_size = sizeof(log_buf);
+    attr.log_level = 1;
+
+    int fd = bpf(BPF_PROG_LOAD, (union bpf_attr*)&attr, sizeof(attr));
+    REQUIRE(fd < 0);
+    REQUIRE(strlen(log_buf) + 1 == attr.log_true_size);
+
+    // a smaller log buffer should fail with ENOSPC.
+    attr.log_size = 1;
+    fd = bpf(BPF_PROG_LOAD, (union bpf_attr*)&attr, sizeof(attr));
+    REQUIRE(fd == -ENOSPC);
+#else
+    // If JIT or interpreter is disabled, ensure the error is ERROR_NOT_SUPPORTED.
+    union bpf_attr attr = {};
+    int fd = bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
+    REQUIRE(fd < 0);
+    REQUIRE(GetLastError() == ERROR_NOT_SUPPORTED);
+#endif
+}
+
 TEST_CASE("libbpf_num_possible_cpus", "[libbpf]")
 {
     int cpu_count = libbpf_num_possible_cpus();

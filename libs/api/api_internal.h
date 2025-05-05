@@ -672,6 +672,8 @@ ebpf_api_elf_enumerate_programs(
  * @param[in] log_buffer_size Size in bytes of the caller's log buffer.
  * @param[out] program_fd Returns a file descriptor for the program.
  *  The caller should call _close() on the fd to close this when done.
+ * @param[out] log_buffer_true_size The size of log buffer required to avoid
+ *  truncation.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_INVALID_ARGUMENT One or more parameters are incorrect.
@@ -688,7 +690,8 @@ ebpf_program_load_bytes(
     uint32_t instruction_count,
     _Out_writes_opt_(log_buffer_size) char* log_buffer,
     size_t log_buffer_size,
-    _Out_ fd_t* program_fd) noexcept;
+    _Out_ fd_t* program_fd,
+    _Out_opt_ uint32_t* log_buffer_true_size) noexcept;
 #endif
 
 /**
