@@ -353,7 +353,7 @@ class fuzz_wrapper
             }
 
             // BPF program that sets r0 to 0 and returns.
-            ebpf_inst instructions[] = {
+            prevail::EbpfInst instructions[] = {
                 {
                     .opcode = 0xb4, // mov r0, 0
                 },

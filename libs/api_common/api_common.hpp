@@ -18,6 +18,8 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #pragma warning(pop)
 
+typedef prevail::EbpfInst ebpf_inst;
+
 #include "windows_platform_common.hpp"
 
 #include <errno.h>
@@ -235,6 +237,6 @@ bool
 ebpf_verify_program(
     std::ostream& os,
     _In_ const prevail::InstructionSeq& prog,
-    _In_ const prevail::program_info& info,
+    _In_ const prevail::ProgramInfo& info,
     _In_ const prevail::ebpf_verifier_options_t& options,
     _Out_ ebpf_api_verifier_stats_t* stats);

@@ -5,8 +5,6 @@
 
 #include "ebpf_structs.h"
 
-using prevail::ebpf_inst;
-
 prevail::EbpfHelperPrototype
 get_helper_prototype_windows(int32_t n);
 

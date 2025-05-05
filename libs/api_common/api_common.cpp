@@ -168,7 +168,7 @@ bool
 ebpf_verify_program(
     std::ostream& os,
     _In_ const prevail::InstructionSeq& instruction_sequence,
-    _In_ const prevail::program_info& info,
+    _In_ const prevail::ProgramInfo& info,
     _In_ const prevail::ebpf_verifier_options_t& options,
     _Out_ ebpf_api_verifier_stats_t* stats)
 {
