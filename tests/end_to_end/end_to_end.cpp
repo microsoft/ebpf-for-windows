@@ -1670,7 +1670,19 @@ TEST_CASE("pinned_map_enum", "[end_to_end]")
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    ebpf_test_pinned_map_enum();
+    // Test with verifying literal pin path value.
+    ebpf_test_pinned_map_enum(true);
+}
+
+TEST_CASE("pinned_map_enum2", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    // Test without verifying literal pin path value.
+    // This test can be used in regression tests even if
+    // the pin path syntax changes.
+    ebpf_test_pinned_map_enum(false);
 }
 
 static void

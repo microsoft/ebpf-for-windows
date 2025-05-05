@@ -19,7 +19,7 @@ using namespace std::chrono_literals;
 bool use_ebpf_store = true;
 
 void
-ebpf_test_pinned_map_enum()
+ebpf_test_pinned_map_enum(bool verify_pin_path)
 {
     int error;
     uint32_t return_value;
@@ -62,12 +62,14 @@ ebpf_test_pinned_map_enum()
         bool matched = false;
         std::string pin_path = pin_path_prefix + std::to_string(i);
 
-        // The canonical file path actually pinned should have the "BPF:" prefix,
-        // so should be 4 longer than the non-canonical path.
-        REQUIRE(
-            (matched =
-                 (static_cast<uint16_t>(pin_path.size() + 4) ==
-                  strnlen_s(map_info[i].pin_path, EBPF_MAX_PIN_PATH_LENGTH))));
+        if (verify_pin_path) {
+            // The canonical file path actually pinned should have the "BPF:" prefix,
+            // so should be 4 longer than the non-canonical path.
+            REQUIRE(
+                (matched =
+                     (static_cast<uint16_t>(pin_path.size() + 4) ==
+                      strnlen_s(map_info[i].pin_path, EBPF_MAX_PIN_PATH_LENGTH))));
+        }
         std::string temp(map_info[i].pin_path);
         results[pin_path] = temp;
 
