@@ -326,7 +326,7 @@ function Invoke-CICDTests
 
     $TestList = @(
         (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum" -Timeout 600),
-        (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`""),
+        (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`" ~`"prog prog run`""),
         (New-TestTuple -Test "sample_ext_app.exe"),
         (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
     )

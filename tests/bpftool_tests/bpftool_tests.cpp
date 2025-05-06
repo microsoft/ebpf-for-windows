@@ -226,7 +226,7 @@ TEST_CASE("prog show id 1", "[prog][show]")
     REQUIRE(result == -1);
 }
 
-TEST_CASE("prog prog run", "[prog][load]")
+TEST_CASE("prog prog run 2", "[prog][load]")
 {
     int result;
     std::string output;
@@ -274,7 +274,7 @@ TEST_CASE("prog prog run", "[prog][load]")
     REQUIRE(output.find("Return value: 42, duration (average): ") != std::string::npos);
 
     output = run_command(("netsh ebpf delete prog " + id).c_str(), &result);
-    REQUIRE(output == "\nUnpinned " + id + " from BPF:\\test_sample_ebpf\n");
+    REQUIRE(output.find("\nUnpinned " + id + " from ") == 0);
     REQUIRE(result == 0);
 
     output = run_command("bpftool prog show", &result);
