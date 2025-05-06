@@ -219,7 +219,7 @@ TEST_CASE("invalid bpf_load_program", "[libbpf][deprecated]")
     test_helper.initialize();
 
     // Try with an invalid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {INST_OP_EXIT}, // return r0
     };
 
@@ -249,7 +249,7 @@ TEST_CASE("invalid bpf_prog_load", "[libbpf]")
     test_helper.initialize();
 
     // Try with an invalid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {INST_OP_EXIT}, // return r0
     };
 
@@ -273,7 +273,7 @@ TEST_CASE("invalid bpf_load_program - wrong type", "[libbpf][deprecated]")
     test_helper.initialize();
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
@@ -292,7 +292,7 @@ TEST_CASE("invalid bpf_prog_load - wrong type", "[libbpf]")
     test_helper.initialize();
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
@@ -311,7 +311,7 @@ TEST_CASE("valid bpf_load_program", "[libbpf][deprecated]")
     test_helper.initialize();
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
@@ -341,7 +341,7 @@ TEST_CASE("valid bpf_prog_load", "[libbpf]")
     test_helper.initialize();
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
@@ -371,7 +371,7 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
     test_helper.initialize();
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
@@ -402,7 +402,8 @@ TEST_CASE("valid bpf_load_program_xattr", "[libbpf][deprecated]")
 #endif
 
 // Define macros that appear in the Linux man page to values in ebpf_vm_isa.h.
-#define BPF_LD_MAP_FD(reg, fd) {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, {0}
+#define BPF_LD_MAP_FD(reg, fd) \
+    {INST_OP_LDDW_IMM, (reg), 1, 0, (fd)}, { 0 }
 #define BPF_ALU64_IMM(op, reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | ((op) << 4), (reg), 0, 0, (imm)}
 #define BPF_MOV64_IMM(reg, imm) {INST_CLS_ALU64 | INST_SRC_IMM | 0xb0, (reg), 0, 0, (imm)}
 #define BPF_MOV64_REG(dst, src) {INST_CLS_ALU64 | INST_SRC_REG | 0xb0, (dst), (src), 0, 0}
@@ -427,7 +428,7 @@ TEST_CASE("valid bpf_load_program with map", "[libbpf][deprecated]")
     REQUIRE(map_fd >= 0);
 
     // Try with a valid set of instructions.
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         BPF_MOV64_IMM(BPF_REG_1, 0),                   // r1 = 0
         BPF_STX_MEM(BPF_W, BPF_REG_10, BPF_REG_1, -4), // *(u32 *)(r10 - 4) = r1
         BPF_MOV64_IMM(BPF_REG_1, 42),                  // r1 = 42
@@ -2177,7 +2178,7 @@ TEST_CASE("enumerate link IDs with bpf", "[libbpf][bpf]")
     // Pin the detached link.
     memset(&attr, 0, sizeof(attr));
     attr.obj_pin.bpf_fd = fd1;
-    attr.obj_pin.pathname = (uintptr_t)"MyPath";
+    attr.obj_pin.pathname = (uintptr_t) "MyPath";
     REQUIRE(bpf(BPF_OBJ_PIN, &attr, sizeof(attr)) == 0);
 
     // Verify that bpf_fd must be 0 when calling BPF_OBJ_GET.
@@ -2956,7 +2957,7 @@ TEST_CASE("BPF_PROG_BIND_MAP etc.", "[libbpf][bpf]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {0xb7, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},             // return r0
     };
@@ -3305,7 +3306,7 @@ TEST_CASE("Map and program information", "[libbpf][bpf]")
     REQUIRE(strncmp(map_info.name, map_create.map_name, sizeof(map_info.name)) == 0);
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-    struct ebpf_inst instructions[] = {
+    prevail::EbpfInst instructions[] = {
         {INST_ALU_OP_MOV | INST_CLS_ALU64, R0_RETURN_VALUE, 0}, // r0 = 0
         {INST_OP_EXIT},                                         // return r0
     };
@@ -3363,7 +3364,7 @@ TEST_CASE("BPF_PROG_LOAD logging", "[libbpf][bpf]")
     _test_helper_libbpf test_helper;
     test_helper.initialize();
 
-    struct ebpf_inst program[] = {
+    prevail::EbpfInst program[] = {
         {INST_OP_EXIT, 0, 0, 0} // Bare return instruction.
     };
     const size_t program_size = sizeof(program);
@@ -3373,7 +3374,7 @@ TEST_CASE("BPF_PROG_LOAD logging", "[libbpf][bpf]")
     sys_bpf_prog_load_attr_t attr = {};
     attr.prog_type = BPF_PROG_TYPE_SAMPLE;
     attr.insns = reinterpret_cast<uint64_t>(program);
-    attr.insn_cnt = program_size / sizeof(struct ebpf_inst);
+    attr.insn_cnt = program_size / sizeof(prevail::EbpfInst);
     attr.log_buf = reinterpret_cast<uint64_t>(log_buf);
     attr.log_size = sizeof(log_buf);
     attr.log_level = 1;

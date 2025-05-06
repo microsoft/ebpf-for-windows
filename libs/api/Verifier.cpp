@@ -306,7 +306,7 @@ load_byte_code(
             section_name_string = std::string(section_name);
         }
 
-        std::vector<prevail::raw_program> raw_programs;
+        std::vector<prevail::RawProgram> raw_programs;
 
         // If file_or_buffer is a string, it is a file name.
         if (std::holds_alternative<std::string>(file_or_buffer)) {
@@ -592,8 +592,8 @@ ebpf_api_elf_disassemble_program(
     try {
         std::string section(section_name ? section_name : "");
         auto raw_programs = read_elf(file, section, verifier_options, platform);
-        auto found_program = std::find_if(
-            raw_programs.begin(), raw_programs.end(), [&program_name](const prevail::raw_program& program) {
+        auto found_program =
+            std::find_if(raw_programs.begin(), raw_programs.end(), [&program_name](const prevail::RawProgram& program) {
                 return (program_name == nullptr) || (program.function_name == program_name);
             });
         if (found_program == raw_programs.end()) {
@@ -603,7 +603,7 @@ ebpf_api_elf_disassemble_program(
                 throw std::runtime_error(std::string("No programs found"));
             }
         }
-        prevail::raw_program& raw_program = *found_program;
+        prevail::RawProgram& raw_program = *found_program;
         std::variant<prevail::InstructionSeq, std::string> programOrError = prevail::unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);
@@ -668,7 +668,7 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
         }
         auto raw_programs =
             read_elf(stream, stream_name, (section_name != nullptr ? section_name : ""), verifier_options, platform);
-        std::optional<prevail::raw_program> found_program;
+        std::optional<prevail::RawProgram> found_program;
         for (auto& program : raw_programs) {
             if ((program_name == nullptr) || (program.function_name == program_name)) {
                 found_program = program;
@@ -682,7 +682,7 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
                 throw std::runtime_error(std::string("No programs found"));
             }
         }
-        prevail::raw_program raw_program = *found_program;
+        prevail::RawProgram raw_program = *found_program;
         std::variant<prevail::InstructionSeq, std::string> programOrError = prevail::unmarshal(raw_program);
         if (std::holds_alternative<std::string>(programOrError)) {
             error << "parse failure: " << std::get<std::string>(programOrError);

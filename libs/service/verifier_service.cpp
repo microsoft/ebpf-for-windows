@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 
 static ebpf_result_t
-_analyze(prevail::raw_program& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
+_analyze(prevail::RawProgram& raw_prog, const char** error_message, uint32_t* error_message_size = nullptr)
 {
     std::variant<prevail::InstructionSeq, std::string> prog_or_error = unmarshal(raw_prog);
     if (!std::holds_alternative<prevail::InstructionSeq>(prog_or_error)) {
@@ -54,7 +54,7 @@ verify_byte_code(
     std::ostringstream error;
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows_service;
     std::vector<ebpf_inst> instructions{instruction_array, instruction_array + instruction_count};
-    prevail::program_info info{platform};
+    prevail::ProgramInfo info{platform};
     std::string section;
     std::string file;
     try {
@@ -65,7 +65,7 @@ verify_byte_code(
         return EBPF_VERIFICATION_FAILED;
     }
 
-    prevail::raw_program raw_prog{file, section, 0, {}, instructions, info};
+    prevail::RawProgram raw_prog{file, section, 0, {}, instructions, info};
 
     return _analyze(raw_prog, error_message, error_message_size);
 }

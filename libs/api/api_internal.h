@@ -20,7 +20,7 @@ typedef struct bpf_program
     struct bpf_object* object;
     char* section_name;
     char* program_name;
-    struct ebpf_inst* instructions;
+    struct prevail::EbpfInst* instructions;
     uint32_t instruction_count;
     ebpf_program_type_t program_type;
     ebpf_attach_type_t attach_type;
