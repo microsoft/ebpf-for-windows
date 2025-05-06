@@ -15,14 +15,19 @@
 
 bool use_ebpf_store = true;
 extern "C" size_t cxplat_fuzzing_memory_limit;
+extern bool g_ebpf_fuzzing_enabled;
 
-FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***) { return 0; }
+FUZZ_EXPORT int __cdecl LLVMFuzzerInitialize(int*, char***)
+{
+    cxplat_fuzzing_memory_limit = 1024 * 1024;
+    g_ebpf_fuzzing_enabled = true;
+    return 0;
+}
 
 // Treat the input data as an ELF file and a block of data to be passed to the program.
 // Load the ELF file and run each program in the ELF file with the data as input.
 FUZZ_EXPORT int __cdecl LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    cxplat_fuzzing_memory_limit = 1024 * 1024;
     ebpf_watchdog_timer_t watchdog_timer;
     try {
         _test_helper_libbpf test_helper;
