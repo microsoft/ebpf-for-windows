@@ -1761,6 +1761,9 @@ TEST_CASE("pin path canonicalization", "[end_to_end][pinning]")
     // Try a legacy eBPF-for-Windows path.
     _verify_canonical_path(map_fd, "/ebpf/global/my/pin/path", "BPF:\\my\\pin\\path");
 
+    // Try a mix of slash and backslash.
+    _verify_canonical_path(map_fd, "my\\pin/path", "BPF:\\my\\pin\\path");
+
     // Verify invalid paths fail.
     REQUIRE(ebpf_object_pin(map_fd, "..") == EBPF_INVALID_ARGUMENT);
     REQUIRE(ebpf_object_pin(map_fd, "/..") == EBPF_INVALID_ARGUMENT);
