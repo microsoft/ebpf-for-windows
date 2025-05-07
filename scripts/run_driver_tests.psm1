@@ -325,8 +325,8 @@ function Invoke-CICDTests
     # That causes the regression test to fail. So, we are skipping this test for now.
 
     $TestList = @(
-        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`"" -Timeout 600),
-        (New-TestTuple -Test "bpftool_tests.exe"),
+        (New-TestTuple -Test "api_test.exe" -Arguments "~`"load_native_program_invalid4`" ~pinned_map_enum" -Timeout 600),
+        (New-TestTuple -Test "bpftool_tests.exe" -Arguments "~`"prog load map_in_map`" ~`"prog prog run`""),
         (New-TestTuple -Test "sample_ext_app.exe"),
         (New-TestTuple -Test "socket_tests.exe" -Timeout 1800)
     )

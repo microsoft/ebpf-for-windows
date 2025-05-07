@@ -648,3 +648,89 @@ Exit:
 
     EBPF_RETURN_RESULT(result);
 }
+
+ebpf_result_t
+ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
+{
+    const int DEVICE_PREFIX_SIZE = 4; // Length of "BPF:".
+    if (strcpy_s(output, output_size, "BPF:") != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+    if (input[0] != '/' && input[0] != '\\') {
+        // A relative path is relative to the root.
+        if (strcat_s(output, output_size, "\\") != 0) {
+            return EBPF_INSUFFICIENT_BUFFER;
+        }
+    }
+
+    // Add the BPF: prefix if not already present.
+    if (_strnicmp(input, "BPF:", DEVICE_PREFIX_SIZE) == 0) {
+        if (strcat_s(output, output_size, input + DEVICE_PREFIX_SIZE) != 0) {
+            return EBPF_INSUFFICIENT_BUFFER;
+        }
+    } else {
+        if (strcat_s(output, output_size, input) != 0) {
+            return EBPF_INSUFFICIENT_BUFFER;
+        }
+    }
+
+    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0; i++) {
+        if (output[i] == '/') {
+            // Convert slashes to backslashes.
+            output[i] = '\\';
+        } else if (output[i] == ':') {
+            // Disallow ':' in mid-path.
+            return EBPF_INVALID_ARGUMENT;
+        }
+    }
+
+    // Remove other prefix aliases from the beginning.
+    if (_strnicmp(output + DEVICE_PREFIX_SIZE, "\\ebpf\\global\\", 13) == 0) {
+        char* next = output + DEVICE_PREFIX_SIZE + 13;
+        memmove(output + DEVICE_PREFIX_SIZE + 1, next, strlen(next) + 1);
+    }
+
+    for (int i = DEVICE_PREFIX_SIZE; output[i] != 0;) {
+        if (strncmp(output + i, "\\\\", 2) == 0) {
+            char* next = output + i + 2;
+            memmove(output + i + 1, next, strlen(next) + 1);
+
+            // Stay at this position for the next loop iteration.
+        } else if (strncmp(output + i, "\\.\\", 3) == 0) {
+            char* next = output + i + 3;
+            memmove(output + i + 1, next, strlen(next) + 1);
+        } else if (strncmp(output + i, "\\..\\", 4) == 0) {
+            int previous_index = i - 1;
+            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
+                if (output[previous_index] == '\\') {
+                    // Back up to the previous separator.
+                    char* next = output + i + 4;
+                    memmove(output + previous_index + 1, next, strlen(next) + 1);
+                    i = previous_index;
+                    break;
+                }
+            }
+            if (previous_index < DEVICE_PREFIX_SIZE) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+        } else if (strcmp(output + i, "\\..") == 0) {
+            int previous_index = i - 1;
+            for (; previous_index >= DEVICE_PREFIX_SIZE; previous_index--) {
+                if (output[previous_index] == '\\') {
+                    // Terminate the string at the previous separator.
+                    output[previous_index] = 0;
+                    i = previous_index;
+                    break;
+                }
+            }
+            if (previous_index < DEVICE_PREFIX_SIZE) {
+                return EBPF_INVALID_ARGUMENT;
+            }
+        } else {
+            // Advance to the next character in the path.
+            i++;
+        }
+    }
+
+    return EBPF_SUCCESS;
+}

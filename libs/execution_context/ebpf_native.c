@@ -14,7 +14,6 @@
 
 #include <intrin.h>
 
-#define DEFAULT_PIN_ROOT_PATH "/ebpf/global"
 #define EBPF_MAX_PIN_PATH_LENGTH 256
 
 static const uint32_t _ebpf_native_marker = 'entv';
@@ -1052,29 +1051,25 @@ _ebpf_native_initialize_maps(
 
         if (entry->definition.pinning == LIBBPF_PIN_BY_NAME) {
             // Construct the pin path.
-            size_t prefix_length = strnlen(DEFAULT_PIN_ROOT_PATH, EBPF_MAX_PIN_PATH_LENGTH);
-            size_t name_length = strnlen_s(entry->name, BPF_OBJ_NAME_LEN);
-            if (name_length == 0 || name_length >= BPF_OBJ_NAME_LEN ||
-                prefix_length + name_length + 1 >= EBPF_MAX_PIN_PATH_LENGTH) {
+            char canonical_path[EBPF_MAX_PIN_PATH_LENGTH];
+            result = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), entry->name);
+            if (result != EBPF_SUCCESS) {
                 EBPF_LOG_MESSAGE_GUID(
                     EBPF_TRACELOG_LEVEL_ERROR,
                     EBPF_TRACELOG_KEYWORD_NATIVE,
-                    "_ebpf_native_initialize_maps: map pin path too long",
+                    "_ebpf_native_initialize_maps: invalid map pin path",
                     module_id);
-                result = EBPF_INVALID_ARGUMENT;
                 goto Done;
             }
 
-            native_maps[i].pin_path.value =
-                ebpf_allocate_with_tag(prefix_length + name_length + 1, EBPF_POOL_TAG_NATIVE);
+            size_t length = strlen(canonical_path);
+            native_maps[i].pin_path.value = ebpf_allocate_with_tag(length, EBPF_POOL_TAG_NATIVE);
             if (native_maps[i].pin_path.value == NULL) {
                 result = EBPF_NO_MEMORY;
                 goto Done;
             }
-            native_maps[i].pin_path.length = prefix_length + name_length + 1;
-            memcpy(native_maps[i].pin_path.value, DEFAULT_PIN_ROOT_PATH, prefix_length);
-            memcpy(native_maps[i].pin_path.value + prefix_length, "/", 1);
-            memcpy(native_maps[i].pin_path.value + prefix_length + 1, entry->name, name_length);
+            native_maps[i].pin_path.length = length;
+            memcpy(native_maps[i].pin_path.value, canonical_path, length);
         } else {
             native_maps[i].pin_path.value = NULL;
             native_maps[i].pin_path.length = 0;

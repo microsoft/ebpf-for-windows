@@ -219,4 +219,18 @@ ebpf_result_t
 ebpf_duplicate_program_data(
     _In_ const ebpf_program_data_t* program_data, _Outptr_ ebpf_program_data_t** new_program_data);
 
+/**
+ * @brief Canonicalize a path using filesystem canonicalization rules.
+ *
+ * @param[out] output Buffer in which to write canonicalized path.
+ * @param[in] output_size Size of output buffer.
+ * @param[out] error_code Zero on success, non-zero Win32 error code on failure.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The input path was invalid.
+ * @retval EBPF_INSUFFICIENT_BUFFER The output buffer did not have sufficient space.
+ */
+ebpf_result_t
+ebpf_canonicalize_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input);
+
 CXPLAT_EXTERN_C_END
