@@ -243,14 +243,14 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  *
  * Calling this multiple times will map the memory into user-space multiple times.
  *
- * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] map_fd File descriptor to map.
  * @param[out] data pointer* to start of mapped memory range.
  * @param[out] size Size of the mapped data buffer.
  *
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
  */
-ebpf_result_t ebpf_ring_buffer_map_map_buffer(
+ebpf_result_t ebpf_map_map_buffer(
     fd_t map_fd,
     _Out_ const uint8_t **data,
     _Out_ const uint64_t *size
