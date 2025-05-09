@@ -474,7 +474,7 @@ For(;;) {
   if (remaining == 0) {
     have_data = false; // Caught up to producer.
     continue;
-  } else if (remaining < EBPF_RINGBUF_HEADER_SIZE) {
+  } else if (remaining < 8) {
     // Bad record or consumer offset out of alignment.
     // … log error …
     break;
@@ -493,7 +493,7 @@ For(;;) {
 
   // If not discarded handle the record.
   if (!(record_header & (1U << 30))) {
-    const volatile uint8_t *record_data = record + EBPF_RINGBUF_HEADER_SIZE;
+    const volatile uint8_t *record_data = record + 8;
     // Read data from record->data[0 … record_length-1].
     // … business logic …
   }
@@ -501,7 +501,8 @@ For(;;) {
 
   // Update consumer offset.
   // Note: record_length is the data size, record_total_size includes header and padding.
-  consumer_offset += ebpf_ring_buffer_record_total_size(record);
+  // Padding 8-byte aligns records.
+  consumer_offset += ((record_length + 8) + 7) & ~7;
   WriteNoFence64(cons_offset,consumer_offset);
 }
 
