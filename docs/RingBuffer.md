@@ -15,7 +15,7 @@ Asynchronous callback consumer:
 
 1. Call `ring_buffer__new` to set up callback with RINGBUF_FLAG_AUTO_CALLBACK specified.
     - Note: automatic callbacks are the current default behavior, but eventually
-      this will change #4142 to match the linux behavior so should always be specified.
+      this will change with [#4142](https://github.com/microsoft/ebpf-for-windows/issues/4142) to match the linux behavior so should always be specified.
 2. The callback will be invoked for each record written to the ring buffer.
 
 Synchronous callback consumer:
