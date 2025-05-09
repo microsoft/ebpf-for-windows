@@ -272,8 +272,7 @@ ebpf_result_t ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, HANDLE handle);
 
 #### mapped memory consumer example
 
-This consumer directly accesses the records from the producer memory and directly updates the consumer offset to show the logic. Normally user code should use the ring buffer helpers
-(see second example below) to simplify the logic.
+This consumer directly accesses the records from the producer memory and directly updates the consumer offset to show the logic.
 
 ```c++
 
