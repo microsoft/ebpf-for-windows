@@ -254,8 +254,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
     _Out_ ebpf_ring_buffer_consumer_page_t **consumer_page,
     _Out_ const ebpf_ring_buffer_producer_page_t **producer_page,
     _Outptr_result_buffer_(*data_size) const uint8_t **data,
-    _Out_ const uint64_t *data_size
-    );
+    _Out_ const uint64_t *data_size);
 
 /**
  * Map eBPF map memory into user space.
