@@ -231,7 +231,7 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
     _In_ struct ring_buffer *rb,
     _Out_ ebpf_ring_buffer_consumer_page_t **consumer_page,
     _Out_ const ebpf_ring_buffer_producer_page_t **producer_page,
-    _Outptr_optr_result_bytebuffer_to_(*data_size) uint8_t **data,
+    _Outptr_result_buffer_(*data_size) const uint8_t **data,
     _Out_ uint64_t *data_size);
 
 /**
@@ -253,7 +253,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
     fd_t map_fd,
     _Out_ ebpf_ring_buffer_consumer_page_t **consumer_page,
     _Out_ const ebpf_ring_buffer_producer_page_t **producer_page,
-    _Outptr_result_buffer(*data_size) const uint8_t **data,
+    _Outptr_result_buffer_(*data_size) const uint8_t **data,
     _Out_ const uint64_t *data_size
     );
 
