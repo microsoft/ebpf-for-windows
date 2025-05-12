@@ -270,7 +270,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  */
 ebpf_result_t ebpf_map_map_buffer(
     fd_t map_fd,
-    _Out_ const uint8_t **data,
+    _Outptr_result_buffer_(*size) const uint8_t **data,
     _Out_ const uint64_t *size);
 
 /**
@@ -287,7 +287,7 @@ ebpf_result_t ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, HANDLE handle);
 
 ### Ring buffer consumer
 
-#### mapped memory consumer example
+#### Mapped memory consumer example
 
 This consumer directly accesses the records from the producer memory and directly updates the consumer offset to show the logic. Normally user code should use the ring buffer helpers
 (see second example below) to simplify the logic.
