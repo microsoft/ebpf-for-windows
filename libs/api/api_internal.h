@@ -733,3 +733,22 @@ prog_is_subprog(const struct bpf_object* obj, const struct bpf_program* prog)
  */
 _Must_inspect_result_ ebpf_result_t
 ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept;
+
+/**
+ * @brief Verify the signature on a .sys file.
+ *
+ * @param[in] file_name The name of the .sys file to verify.
+ * @param[in] issuer_name The name of the issuer to verify against.
+ * @param[in] eku_count The number of EKU entries.
+ * @param[in] eku_list The list of EKU entries.
+ *
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT One or more parameters are wrong.
+ * @retval EBPF_OBJECT_NOT_FOUND The .sys file doesn't have a signature that matches the requested fields.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_verify_sys_file_signature(
+    _In_z_ const char* file_name,
+    _In_z_ const char* issuer_name,
+    _In_ size_t eku_count,
+    _In_reads_(eku_count) const char** eku_list) noexcept;
