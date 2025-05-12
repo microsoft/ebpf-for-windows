@@ -72,9 +72,10 @@ For direct memory mapped consumers on Windows, use `ebpf_ring_buffer_get_buffer`
 pages mapped into user space, and `ebpf_ring_buffer_get_wait_handle()` to get the SynchronizationEvent (auto-reset) KEVENT
 to use with `WaitForSingleObject`/`WaitForMultipleObject`.
 
-Similar to the linux memory layout, the first page of the producer and consumer memory is the "producer page" and "consumer page",
+Similar to the linux memory layout, the first pages of the shared ring buffer memory are the "producer page" and "consumer page",
 which contain the 64 bit producer and consumer offsets as the first 8 bytes.
-Only the producer may update the producer offset, and only the consumer should update the consumer offset.
+Only the producer may update the producer offset (read-only mapped into user-space)
+and only the consumer should update the consumer offset.
 
 ### ebpf-for-windows API Changes
 
