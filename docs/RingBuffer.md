@@ -28,7 +28,7 @@ Synchronous callback consumer:
 Mapped memory consumer:
 
 1. Call `ebpf_ring_buffer_map_map_buffer` to get pointers to the mapped producer/consumer pages.
-2. Call `ebpf_ring_buffer_set_wait_handle` to set the wait handle.
+2. Call `ebpf_map_set_wait_handle` to set the wait handle.
 3. Directly read records from the producer pages (and update consumer offset as we read).
     - Use acquire and release semantics as described below for accessing record headers and ring offsets.
 4. Call `WaitForSingleObject`/`WaitForMultipleObject` as needed to wait for new data to be available.
@@ -261,7 +261,10 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  *
  * Calling this multiple times will map the memory into user-space multiple times.
  *
+ * For ring buffer maps the index must be zero.
+ *
  * @param[in] map_fd File descriptor to map.
+ * @param[in] index Map-specific index to map.
  * @param[out] data Pointer to start of mapped memory range.
  * @param[out] size Size of the mapped data buffer.
  *
@@ -270,19 +273,24 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  */
 ebpf_result_t ebpf_map_map_buffer(
     fd_t map_fd,
+    uint64_t index,
     _Outptr_result_buffer_(*size) const uint8_t **data,
     _Out_ const uint64_t *size);
 
 /**
  * Set the wait handle that will be signaled for new data.
  *
+ * For ring buffer maps the index must be zero.
+ *
  * @note Overwrites the wait handle currently stored in the map.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
+ * @param[in] index Map-specific index of wait handle to set.
+ * @param[in] handle Wait handle to signal events on.
  *
  * @returns Wait handle
  */
-ebpf_result_t ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, HANDLE handle);
+ebpf_result_t ebpf_map_set_wait_handle(fd_t map_fd, uint64_t index, HANDLE handle);
 ```
 
 ### Ring buffer consumer
@@ -310,7 +318,7 @@ if (wait_handle == NULL) {
 }
 
 // Set map wait handle.
-ebpf_result result = ebpf_ring_buffer_set_wait_handle(map_fd, wait_handle);
+ebpf_result result = ebpf_map_set_wait_handle(map_fd, 0, wait_handle);
 if (result != EBPF_SUCCESS) {
 const volatile uint64_t *prod_offset = &rb_prod->producer_offset; // Producer offset ptr (read only).
     goto Exit;
