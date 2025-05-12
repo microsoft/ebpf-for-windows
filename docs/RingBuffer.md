@@ -6,14 +6,16 @@ ebpf-for-windows exposes the [libbpf.h](/include/bpf/libbpf.h) interface for use
 
 ## Synchronous Consumer Support (proposal)
 
-The current ringbuffer uses a automatically invoked callbacks to read the ringbuffer.
-Linux also supports memory-mapped polling consumers, which aren't currently supported.
+The current ring buffer uses automatically invoked callbacks to read the ring buffer.
+In contrast linux only supports synchronous ring buffer consumers using either the libbpf interface or directly
+accessing the shared memory, with a wait handle to block and wait for new data.
 
-The new API will support 2 consumer types: callbacks and direct access to the mapped producer memory (with an event handle to wait for data).
+This proposal adds support for synchronous callbacks (like libbpf on linux) and direct mapped memory access while preserving asynchronous callback support.
 
 Asynchronous callback consumer:
 
 1. Call `ring_buffer__new` to set up callback with RINGBUF_FLAG_AUTO_CALLBACK specified.
+    - On Linux synchronous callbacks are always used, so the new AUTO_CALLBACK flags are Windows-specific.
     - Note: automatic callbacks are the current default behavior, but eventually
       this will change with [#4142](https://github.com/microsoft/ebpf-for-windows/issues/4142) to match the linux behavior so should always be specified.
 2. The callback will be invoked for each record written to the ring buffer.
@@ -72,7 +74,7 @@ to use with `WaitForSingleObject`/`WaitForMultipleObject`.
 
 Similar to the linux memory layout, the first page of the producer and consumer memory is the "producer page" and "consumer page",
 which contain the 64 bit producer and consumer offsets as the first 8 bytes.
-Only the producer may update the producer offset, and only the consumer may update the consumer offset.
+Only the producer may update the producer offset, and only the consumer should update the consumer offset.
 
 ### ebpf-for-windows API Changes
 
@@ -98,11 +100,11 @@ _Note:_ The currently internal `ebpf_ring_buffer_record.h` with helpers for work
 
 #### Updated libbpf API for callback consumer
 
-The behaviour of these functions will be unchanged for now.
+The default behaviour of these functions will be unchanged for now.
 
 Use the existing `ring_buffer__new()` to set up automatic callbacks for each record.
 Call `ebpf_ring_buffer_get_buffer()` ([New eBPF APIs](#new-ebpf-apis-for-mapped-memory-consumer))
-to get direct access to the mapped ringbuffer memory.
+to get direct access to the mapped ring buffer memory.
 
 ```c
 struct ring_buffer;
@@ -152,9 +154,9 @@ ring_buffer__new(int map_fd, ring_buffer_sample_fn sample_cb, _Inout_ void *ctx,
  * This function is only supported when automatic callbacks are disabled (see RINGBUF_FLAG_NO_AUTO_CALLBACK).
  *
  * @param[in] rb Pointer to ring buffer manager.
- * @param[in] timeout_ms maximum time to wait for (in milliseconds).
+ * @param[in] timeout_ms Maximum time to wait for (in milliseconds).
  *
- * @returns number of records consumed, INT_MAX, or a negative number on error
+ * @returns Number of records consumed, INT_MAX, or a negative number on error
  */
 int ring_buffer__poll(_In_ struct ring_buffer *rb, int timeout_ms);
 
@@ -182,26 +184,43 @@ void ring_buffer__free(_Frees_ptr_opt_ struct ring_buffer *rb);
  */
 ebpf_handle ebpf_ring_buffer_get_wait_handle(_In_ struct ring_buffer *rb);
 
-
+/**
+ * @brief Ring buffer consumer page definition.
+ *
+ * Definition of the consumer-writeable portion of the ring buffer metadata.
+ * This page is read+write for the consumer and the producer only reads it.
+ * An entire page is allocated for the consumer data but only the fields defined here should be
+ * directly read/written (currently only the consumer offset).
+ */
 typedef struct _ebpf_ring_buffer_consumer_page
 {
     volatile uint64_t consumer_offset; ///< Consumer has read up to this offset.
 } ebpf_ring_buffer_consumer_page_t;
 
+/**
+ * @brief Ring buffer producer page definition.
+ *
+ * Definition of the producer-writeable portion of the ring buffer metadata.
+ * This page is read+write for the producer and read-only for the consumer.
+ * An entire page is allocated for the producer data but only the fields defined here should be directly accessed
+ * (currently only the producer offset).
+ *
+ * This definition is for internal and consumer use; producers (eBPF programs) use helper functions to write new records.
+ */
 typedef struct _ebpf_ring_buffer_producer_page
 {
     volatile uint64_t producer_offset; ///< Producer(s) have reserved up to this offset.
 } ebpf_ring_buffer_producer_page_t;
 
 /**
- * Get pointers to the consumer, producer, and data regions for the mapped ringbuffer memory.
+ * Get pointers to the consumer, producer, and data regions for the mapped ring buffer memory.
  *
  * Multiple calls will return the same pointers, as the ring buffer manager only maps the ring once.
  *
  * @param[in] rb Pointer to ring buffer manager.
- * @param[out] producer pointer* to start of read-only mapped producer pages.
- * @param[out] consumer pointer* to start of read-write mapped consumer page.
- * @param[out] data pointer* to start of read-only double-mapped data pages.
+ * @param[out] producer_page Pointer to start of read-only mapped producer page.
+ * @param[out] consumer_page Pointer to start of read-write mapped consumer page.
+ * @param[out] data Pointer to start of read-only double-mapped data pages.
  * @param[out] data_size Size of the mapped data buffer.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -209,11 +228,10 @@ typedef struct _ebpf_ring_buffer_producer_page
  */
 ebpf_result_t ebpf_ring_buffer_get_buffer(
     _In_ struct ring_buffer *rb,
-    _Out_ ebpf_ring_buffer_consumer_page_t **consumer,
-    _Out_ const ebpf_ring_buffer_producer_page_t **producer,
-    _Out_ uint8_t **data,
-    _Out_ uint64_t *data_size
-    );
+    _Out_ ebpf_ring_buffer_consumer_page_t **consumer_page,
+    _Out_ const ebpf_ring_buffer_producer_page_t **producer_page,
+    _Outptr_optr_result_bytebuffer_to_(*data_size) uint8_t **data,
+    _Out_ uint64_t *data_size);
 
 /**
  * Map ring buffer memory into user space and get pointers to the consumer, producer, and data regions.
@@ -223,8 +241,8 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  * Note: This is a wrapper around ebpf_map_map_buffer.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
- * @param[out] producer pointer* to start of read-only mapped producer pages.
- * @param[out] consumer pointer* to start of read-write mapped consumer page.
+ * @param[out] producer_page Pointer to start of read-only mapped producer page.
+ * @param[out] consumer_page Pointer to start of read-write mapped consumer page.
  * @param[out] data_size Size of the mapped data buffer.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -232,9 +250,9 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  */
 ebpf_result_t ebpf_ring_buffer_map_map_buffer(
     fd_t map_fd,
-    _Out_ ebpf_ring_buffer_consumer_page_t **consumer,
-    _Out_ const ebpf_ring_buffer_producer_page_t **producer,
-    _Out_ const uint8_t **data,
+    _Out_ ebpf_ring_buffer_consumer_page_t **consumer_page,
+    _Out_ const ebpf_ring_buffer_producer_page_t **producer_page,
+    _Outptr_result_buffer(*data_size) const uint8_t **data,
     _Out_ const uint64_t *data_size
     );
 
@@ -244,7 +262,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  * Calling this multiple times will map the memory into user-space multiple times.
  *
  * @param[in] map_fd File descriptor to map.
- * @param[out] data pointer* to start of mapped memory range.
+ * @param[out] data Pointer to start of mapped memory range.
  * @param[out] size Size of the mapped data buffer.
  *
  * @retval EBPF_SUCCESS The operation was successful.
@@ -253,8 +271,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
 ebpf_result_t ebpf_map_map_buffer(
     fd_t map_fd,
     _Out_ const uint8_t **data,
-    _Out_ const uint64_t *size
-    );
+    _Out_ const uint64_t *size);
 
 /**
  * Set the wait handle that will be signaled for new data.
@@ -268,7 +285,7 @@ ebpf_result_t ebpf_map_map_buffer(
 ebpf_result_t ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, HANDLE handle);
 ```
 
-### Ringbuffer consumer
+### Ring buffer consumer
 
 #### mapped memory consumer example
 
@@ -281,7 +298,7 @@ This consumer directly accesses the records from the producer memory and directl
 // == Direct mapped memory consumer ==
 //
 
-// Open ringbuffer.
+// Open ring buffer.
 fd_t map_fd = bpf_obj_get(rb_map_name.c_str());
 if (map_fd == ebpf_fd_invalid) return 1;
 
@@ -295,23 +312,23 @@ if (wait_handle == NULL) {
 // Set map wait handle.
 ebpf_result result = ebpf_ring_buffer_set_wait_handle(map_fd, wait_handle);
 if (result != EBPF_SUCCESS) {
-    // … log error …
+const volatile uint64_t *prod_offset = &rb_prod->producer_offset; // Producer offset ptr (read only).
     goto Exit;
 }
 
-ebpf_ring_buffer_consumer_page_t *rb_cons; // Read/write consumer page.
-const ebpf_ring_buffer_producer_page_t *rb_prod; // Read-only producer page.
+ebpf_ring_buffer_consumer_page_t *rb_consumer_page; // Read/write consumer page.
+const ebpf_ring_buffer_producer_page_t *rb_producer_page; // Read-only producer page.
 const uint8_t* data; // Data region for records.
 
 // Get pointers to the 3 regions.
-result = ebpf_ring_buffer_map_map_buffer(map_fd, &rb_prod, &rb_cons, &data);
+result = ebpf_ring_buffer_map_map_buffer(map_fd, &rb_producer_page, &rb_consumer_page, &data);
 if (result != EBPF_SUCCESS) {
     // … log error …
     goto Exit;
 }
 
-const volatile uint64_t *prod_offset = &rb_prod->producer_offset; // Producer offset ptr (r only).
-volatile uint64_t *cons_offset = &rb_cons->consumer_offset; // Consumer offset ptr (r/w mapped).
+const volatile uint64_t *prod_offset = &rb_producer_page->producer_offset; // Producer offset ptr (read only).
+volatile uint64_t *cons_offset = &rb_consumer_page->consumer_offset; // Consumer offset ptr (r/w mapped).
 
 uint64_t producer_offset = ReadAcquire64(prod_offset);
 uint64_t consumer_offset = ReadNoFence64(cons_offset);
@@ -562,22 +579,28 @@ This section describes the multiple-producer single-consumer internal ring buffe
 ```text
 |kernel page|consumer page|producer page|<-------------ring memory------------>|<----2nd mapping of ring memory------>|
                                                          ^            ^
-                                        >================|            |========>...
-                                                         |============|
+                                        >================|            |========>... <-- free portion of ring
+                                                         |============|             <-- unread and in-progress records
                                                       consumer     producer
                                                        offset       offset
 ```
 
-The internal ring buffer has a header of 3 pages of memory
-The memory for the ring is split into two portions by a producer offset and consumer offset and mapped twice sequentially in memory.
+The internal ring buffer has a header of 3 pages of memory followed by the data pages.
+The data memory for the ring is split into two portions by a producer offset and consumer offset
+and mapped twice sequentially in memory directly after the header pages.
 
 - The kernel page is for internal use by producers.
-- The consumer page has the consumer offset and consumer flags.
+- The consumer page has the consumer offset.
 - The producer page has the producer offset.
 - The producers own the portion of the ring from the producer offset to the consumer offset (modulo the ring length).
   - This is where new records are reserved. Newly reserved records are locked before the producer offset is updated.
-  - The consumer reads records in order starting at the consumer offset and stopping at the first locked record.
+- The consumer reads records in order starting at the consumer offset and stopping at the first locked record or on reaching the producer offset.
 - Double-mapping the memory automatically handles reading and writing records that wrap around.
+
+_Note:_ the 3-page header is not yet implemented - currently the ring buffer metadata is stored in a kernel data structure.
+This will affect the structure layouts below when [#4163](https://github.com/microsoft/ebpf-for-windows/issues/4163)
+is implemented, but has no impact on the below agorithm.
+
 
 ### Ring buffer structure
 
@@ -714,7 +737,7 @@ Producers reserve a record, then copy the data, then submit the record.
 
 To prevent deadlock between passive and dispatch producers, steps (5-8) must be done at dispatch.
 
-- A dispatch-level producer interupting a passive producer between steps (6-8) would hang on step (5) since
+- A dispatch-level producer interupting a passive producer between steps (6-8) would hang on step (7) since
   the passive thread would never update the producer offset.
 
 The reserve algorithm ensures reserves are serialized and the consumer never sees uninitialized records.
@@ -745,14 +768,14 @@ To submit or discard the record, the producer write-releases the header to ensur
     - Uses read-acquire to ensure the record header read below in (4) is read after the producer offset.
     - This read-acquire prevents the consumer from seeing records before they are initialized.
 3. If consumer offset == producer offset the ring is empty.
-    - Poll until consumer offset != producer offset to wait for next record.
+    - Poll until consumer offset != producer offset (steps 2-3) to wait for next record.
 4. Read the record header at the consumer offset.
     - Uses read-acquire to ensure that the record data is visible before we try to read it.
 5. If the record header is locked, stop reading.
     - It is possible later records are ready, but the consumer must read records in-order.
-    - Poll the lock bit of the current record to wait for the next record.
+    - Poll the lock bit of the current record (steps 4-5) to wait for the next record.
 6. If the current record has been discarded, advance the consumer offset and goto step (3).
 7. If the current record has not been discarded, read it.
     - Advance the consumer offset after reading the record and goto step (3) to keep reading.
-8. WriteNoFence advance consumer offset to next record and goto step (1).
+8. WriteNoFence advance consumer offset to next record and continue from step (2).
     - Add data length, header length (8 bytes), and pad to a multiple of 8 bytes.
