@@ -603,7 +603,7 @@ extern "C"
     /**
      * @brief Retrieve the next pinned path of an eBPF object.
      *
-     * @param[in] start_path Path to look for an entry greater than or NULL.
+     * @param[in] start_path Path to look for an entry greater than.
      * @param[out] next_path Returns the next path in lexicographical order, if one exists.
      * @param[in] next_path_len Length of the next path buffer.
      * @param[in, out] type On input, the type of object to retrieve or EBPF_OBJECT_UNKNOWN.
@@ -618,6 +618,20 @@ extern "C"
         _Out_writes_z_(next_path_len) char* next_path,
         size_t next_path_len,
         _Inout_ ebpf_object_type_t* type) EBPF_NO_EXCEPT;
+
+    /**
+     * @brief Canonicalize a path using filesystem canonicalization rules.
+     *
+     * @param[out] output Buffer in which to write canonicalized path.
+     * @param[in] output_size Size of output buffer.
+     * @param[out] error_code Zero on success, non-zero Win32 error code on failure.
+     *
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_INVALID_ARGUMENT The input path was invalid.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_canonicalize_pin_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
+        EBPF_NO_EXCEPT;
 
     typedef struct _ebpf_program_info ebpf_program_info_t;
 

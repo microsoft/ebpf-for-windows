@@ -33,7 +33,7 @@ typedef struct _close_bpf_object
 typedef std::unique_ptr<bpf_object, close_bpf_object_t> bpf_object_ptr;
 
 void
-ebpf_test_pinned_map_enum();
+ebpf_test_pinned_map_enum(bool verify_pin_path);
 void
 verify_utility_helper_results(_In_ const bpf_object* object, bool helper_override);
 
