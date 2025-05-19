@@ -359,7 +359,7 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size[] = {961, 1036, 961, 1036};
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size[] = {308, 324, 308, 324};
+    const int code_size[] = {328, 344, 328, 344};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size[] = {1100, 1232, 1100, 1232};
 #else
