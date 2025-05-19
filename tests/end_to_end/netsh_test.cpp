@@ -361,7 +361,7 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size[] = {308, 324, 308, 324};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size[] = {1044, 1176, 1044, 1176};
+    const int code_size[] = {1100, 1232, 1100, 1232};
 #else
 #error "Unsupported architecture"
 #endif
