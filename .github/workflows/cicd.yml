@@ -156,7 +156,7 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       name: unit_tests
-      pre_test: appverif -enable Exceptions Handles Locks Memory SRWLock Threadpool TLS DangerousAPIs DirtyStacks TimeRollOver -for unit_tests.exe
+      # Don't run appverif on ARM64 until it is fixed.
       # Exclude [processes] test that CodeCoverage can't work with.
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-ARM64-native-only

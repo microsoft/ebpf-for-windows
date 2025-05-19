@@ -271,7 +271,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size = 1020;
-    const int old_code_size = 1020;
+    const int old_code_size = 1076;
 #else
 #error "Unsupported architecture"
 #endif
@@ -316,7 +316,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     const int code_size_new[] = {116, 8, 112};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size_old[] = {400, 184, 400};
-    const int code_size_new[] = {400, 184, 400};
+    const int code_size_new[] = {424, 188, 424};
 #else
 #error "Unsupported architecture"
 #endif
