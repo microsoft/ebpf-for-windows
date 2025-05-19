@@ -242,6 +242,9 @@ Functions</h2></td></tr>
 <tr class="memitem:a70386f2e45de956a94f198e9954d7242" id="r_a70386f2e45de956a94f198e9954d7242"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a70386f2e45de956a94f198e9954d7242">ebpf_get_next_pinned_object_path</a> (const char *start_path, _Out_writes_z_(next_path_len) char *next_path, size_t next_path_len, _Inout_ <a class="el" href="ebpf__core__structs_8h.html#a32fb968697fbcf8fa6eb66b35b438b69">ebpf_object_type_t</a> *type) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a70386f2e45de956a94f198e9954d7242"><td class="mdescLeft">&#160;</td><td class="mdescRight">Retrieve the next pinned path of an eBPF object.  <br /></td></tr>
 <tr class="separator:a70386f2e45de956a94f198e9954d7242"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a99529f636cefc732d80885bf067f7db4" id="r_a99529f636cefc732d80885bf067f7db4"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a99529f636cefc732d80885bf067f7db4">ebpf_canonicalize_pin_path</a> (_Out_writes_(output_size) char *output, size_t output_size, const char *input) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:a99529f636cefc732d80885bf067f7db4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Canonicalize a path using filesystem canonicalization rules.  <br /></td></tr>
+<tr class="separator:a99529f636cefc732d80885bf067f7db4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2e98338e2f76024209ef6d2cf43580c4" id="r_a2e98338e2f76024209ef6d2cf43580c4"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#a2e98338e2f76024209ef6d2cf43580c4">ebpf_get_program_info_from_verifier</a> (const <a class="el" href="ebpf__api_8h.html#af4c03ef813e8625b8c4c869eea6e7a43">ebpf_program_info_t</a> **program_info) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:a2e98338e2f76024209ef6d2cf43580c4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the set of program information used by the verifier during the last verification.  <br /></td></tr>
 <tr class="separator:a2e98338e2f76024209ef6d2cf43580c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -1059,6 +1062,57 @@ Variables</h2></td></tr>
 
 </div>
 </div>
+<a id="a99529f636cefc732d80885bf067f7db4" name="a99529f636cefc732d80885bf067f7db4"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a99529f636cefc732d80885bf067f7db4">&#9670;&#160;</a></span>ebpf_canonicalize_pin_path()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_canonicalize_pin_path </td>
+          <td>(</td>
+          <td class="paramtype">_Out_writes_(output_size) char *&#160;</td>
+          <td class="paramname"><em>output</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>output_size</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>input</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Canonicalize a path using filesystem canonicalization rules. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[out]</td><td class="paramname">output</td><td>Buffer in which to write canonicalized path. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">output_size</td><td>Size of output buffer. </td></tr>
+    <tr><td class="paramdir">[out]</td><td class="paramname">error_code</td><td>Zero on success, non-zero Win32 error code on failure.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_INVALID_ARGUMENT</td><td>The input path was invalid. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="a93ba94440af2bab2fa9fd2677ac71cb6" name="a93ba94440af2bab2fa9fd2677ac71cb6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a93ba94440af2bab2fa9fd2677ac71cb6">&#9670;&#160;</a></span>ebpf_close_fd()</h2>
 
@@ -1532,7 +1586,7 @@ Variables</h2></td></tr>
 <p>Retrieve the next pinned path of an eBPF object. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">start_path</td><td>Path to look for an entry greater than or NULL. </td></tr>
+    <tr><td class="paramdir">[in]</td><td class="paramname">start_path</td><td>Path to look for an entry greater than. </td></tr>
     <tr><td class="paramdir">[out]</td><td class="paramname">next_path</td><td>Returns the next path in lexicographical order, if one exists. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">next_path_len</td><td>Length of the next path buffer. </td></tr>
     <tr><td class="paramdir">[in,out]</td><td class="paramname">type</td><td>On input, the type of object to retrieve or EBPF_OBJECT_UNKNOWN. On output, the type of the object.</td></tr>
