@@ -12,7 +12,7 @@ var searchData=
   ['bind_5fpermit_9',['BIND_PERMIT',['../ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a49c0b0fb8a9731a06a0748b8d88b603a',1,'ebpf_nethooks.h']]],
   ['bind_5fredirect_10',['BIND_REDIRECT',['../ebpf__nethooks_8h.html#a9e5d69be705b1f7503ab2fd752c41d02a070e43983c9e259ec6e076c87586710a',1,'ebpf_nethooks.h']]],
   ['bpf_11',['bpf',['../linux_2bpf_8h.html#ae2efe8134c5d52b7bfd982014f5d80c4',1,'bpf.h']]],
-  ['bpf_2eh_12',['bpf.h',['../bpf_2bpf_8h.html',1,'(Global Namespace)'],['../linux_2bpf_8h.html',1,'(Global Namespace)'],['../uapi_2linux_2bpf_8h.html',1,'(Global Namespace)']]],
+  ['bpf_2eh_12',['bpf.h',['../linux_2bpf_8h.html',1,'(Global Namespace)'],['../uapi_2linux_2bpf_8h.html',1,'(Global Namespace)'],['../bpf_2bpf_8h.html',1,'(Global Namespace)']]],
   ['bpf2c_2eh_13',['bpf2c.h',['../bpf2c_8h.html',1,'']]],
   ['bpf2c_5fversion_5ft_14',['bpf2c_version_t',['../bpf2c_8h.html#ab89f9a3008e6862217c45fc719bc5869',1,'bpf2c.h']]],
   ['bpf_5fany_15',['BPF_ANY',['../ebpf__structs_8h.html#a796578ca395aca4494d6a84c01cd3330',1,'ebpf_structs.h']]],
