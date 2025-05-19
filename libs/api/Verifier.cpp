@@ -490,7 +490,7 @@ ebpf_api_elf_enumerate_programs(
     _Outptr_result_maybenull_ ebpf_api_program_info_t** infos,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    prevail::ebpf_verifier_options_t verifier_options{};
+    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream str;
 
@@ -518,10 +518,8 @@ ebpf_api_elf_enumerate_programs(
                     return 1;
                 }
                 auto& instruction_sequence = std::get<prevail::InstructionSeq>(instruction_sequence_or_error);
-                // auto program = crab::prepare_cfg(program, raw_program.info, verifier_options.cfg_opts);
-                auto program =
-                    prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
-                std::map<std::string, int> stats = prevail::collect_stats(program);
+                auto program = prevail::Program::from_sequence(instruction_sequence, raw_program.info, verifier_options);
+                std::map<std::string, int> stats = collect_stats(program);
                 for (auto it = stats.rbegin(); it != stats.rend(); ++it) {
                     _ebpf_add_stat(info, it->first, it->second);
                 }
@@ -579,7 +577,7 @@ ebpf_api_elf_disassemble_program(
     _Outptr_result_maybenull_z_ const char** disassembly,
     _Outptr_result_maybenull_z_ const char** error_message) noexcept
 {
-    prevail::ebpf_verifier_options_t verifier_options{};
+    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
     const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
     std::ostringstream error;
     std::ostringstream output;
@@ -656,13 +654,7 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
 
     try {
         const prevail::ebpf_platform_t* platform = &g_ebpf_platform_windows;
-        prevail::ebpf_verifier_options_t verifier_options{};
-        verifier_options.assume_assertions = verbosity < EBPF_VERIFICATION_VERBOSITY_VERBOSE;
-        verifier_options.cfg_opts.check_for_termination = true;
-        verifier_options.verbosity_opts.print_invariants = verbosity >= EBPF_VERIFICATION_VERBOSITY_INFORMATIONAL;
-        verifier_options.verbosity_opts.print_failures = true;
-        verifier_options.mock_map_fds = true;
-        verifier_options.verbosity_opts.print_line_info = true;
+        prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options(verbosity);
         if (!stream) {
             throw std::runtime_error(std::string("No such file or directory opening ") + stream_name);
         }
@@ -696,9 +688,11 @@ static _Success_(return == 0) uint32_t _ebpf_api_elf_verify_program_from_stream(
             stats = &stats_buffer;
         }
 
-        verifier_options.verbosity_opts.simplify = false;
         bool res = ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
         if (!res) {
+            verifier_options.verbosity_opts.print_failures = true;
+            verifier_options.verbosity_opts.simplify = false;
+            (void)ebpf_verify_program(output, program, raw_program.info, verifier_options, stats);
             error << "Verification failed";
             *error_message = allocate_string(error.str());
             *report = allocate_string(output.str());

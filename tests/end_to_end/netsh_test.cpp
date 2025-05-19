@@ -407,8 +407,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L"program=func", L"type=bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
-        output == "\n"
-                  "Verification succeeded\n"
+        output == "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
 
@@ -422,8 +421,7 @@ TEST_CASE("show verification bindmonitor_bpf2bpf.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"bindmonitor_bpf2bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
-        output == "\n"
-                  "Verification succeeded\n"
+        output == "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
 
@@ -436,8 +434,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
-        output == "\n"
-                  "Verification succeeded\n"
+        output == "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
 

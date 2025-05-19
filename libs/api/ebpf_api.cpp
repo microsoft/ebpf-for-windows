@@ -2357,7 +2357,7 @@ _initialize_ebpf_object_from_elf(
 
     ebpf_result_t result = EBPF_SUCCESS;
 
-    prevail::ebpf_verifier_options_t verifier_options{};
+    prevail::ebpf_verifier_options_t verifier_options = ebpf_get_default_verifier_options();
 
     result = load_byte_code(
         file_or_data,
