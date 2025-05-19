@@ -190,8 +190,7 @@ however the `xdp_md` context is defined on Windows, the cast
 ```
    void *data_end = (void *)(long)ctx->data_end;
 ```
-ideally needs to work, or minimally an alternate mechanism be documented that works on both
-Windows and Linux.
+needs to work.
 
 As a second example to illustrate that the problem is not XDP-specific, on Linux the
 `__sk_buff` structure is defined as:
