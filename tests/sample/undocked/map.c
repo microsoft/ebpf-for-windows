@@ -111,6 +111,8 @@ test_GENERAL_map(struct _ebpf_map_definition_in_file* map)
 inline __attribute__((always_inline)) int
 test_LRU_map(struct _ebpf_map_definition_in_file* map)
 {
+// Older versions of Clang generate code that the verifier can't handle when processing this loop.
+#if CLANG_VERSION >= 1800
     uint32_t key = 0;
     uint32_t value = 1;
     int result;
@@ -126,6 +128,7 @@ test_LRU_map(struct _ebpf_map_definition_in_file* map)
             return result;
         }
     }
+#endif
     return 0;
 }
 
