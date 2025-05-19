@@ -267,7 +267,12 @@ _test_program_next_previous(const char* file_name, int expected_program_count)
     bpf_object__close(object);
 }
 
-TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum(); }
+TEST_CASE("pinned_map_enum", "[pinned_map_enum]") { ebpf_test_pinned_map_enum(true); }
+
+// Test without verifying literal pin path value.
+// This test can be used in regression tests even if
+// the pin path syntax changes.
+TEST_CASE("pinned_map_enum2", "[pinned_map_enum]") { ebpf_test_pinned_map_enum(false); }
 
 #define DECLARE_LOAD_TEST_CASE(file, program_type, execution_type, expected_result)  \
     TEST_CASE("test_ebpf_program_load-" #file "-" #program_type "-" #execution_type) \

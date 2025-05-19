@@ -1273,6 +1273,12 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
     ebpf_handle_t handle;
 
     ebpf_assert(path);
+    char canonical_path[MAX_PATH];
+    uint32_t return_value = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), path);
+    if (return_value != ERROR_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
     if (fd <= 0) {
         EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
     }
@@ -1282,14 +1288,14 @@ ebpf_object_pin(fd_t fd, _In_z_ const char* path) NO_EXCEPT_TRY
         EBPF_RETURN_RESULT(EBPF_INVALID_FD);
     }
 
-    auto path_length = strlen(path);
+    auto path_length = strlen(canonical_path);
     ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, path) + path_length);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UPDATE_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = handle;
-    std::copy(path, path + path_length, request->path);
+    std::copy(canonical_path, canonical_path + path_length, request->path);
     result = win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer));
 
     EBPF_RETURN_RESULT(result);
@@ -1301,14 +1307,21 @@ ebpf_object_unpin(_In_z_ const char* path) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(path);
-    auto path_length = strlen(path);
+    char canonical_path[MAX_PATH];
+    uint32_t return_value = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), path);
+    if (return_value != ERROR_SUCCESS) {
+        ebpf_result_t result = win32_error_code_to_ebpf_result(return_value);
+        EBPF_RETURN_RESULT(result);
+    }
+
+    auto path_length = strlen(canonical_path);
     ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_update_pinning_request_t, path) + path_length);
     auto request = reinterpret_cast<ebpf_operation_update_pinning_request_t*>(request_buffer.data());
 
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_UPDATE_PINNING;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
     request->handle = UINT64_MAX;
-    std::copy(path, path + path_length, request->path);
+    std::copy(canonical_path, canonical_path + path_length, request->path);
     EBPF_RETURN_RESULT(win32_error_code_to_ebpf_result(invoke_ioctl(request_buffer)));
 }
 CATCH_NO_MEMORY_EBPF_RESULT
@@ -1401,16 +1414,22 @@ ebpf_object_get(_In_z_ const char* path, _Out_ fd_t* fd) NO_EXCEPT_TRY
 {
     EBPF_LOG_ENTRY();
     ebpf_assert(fd);
+    ebpf_assert(path);
 
-    size_t path_length = strlen(path);
+    char canonical_path[MAX_PATH];
+    uint32_t return_value = ebpf_canonicalize_path(canonical_path, sizeof(canonical_path), path);
+    if (return_value != ERROR_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    size_t path_length = strlen(canonical_path);
     ebpf_protocol_buffer_t request_buffer(offsetof(ebpf_operation_get_pinned_object_request_t, path) + path_length);
     auto request = reinterpret_cast<ebpf_operation_get_pinned_object_request_t*>(request_buffer.data());
     ebpf_operation_get_pinned_object_reply_t reply;
-    ebpf_assert(path);
 
     request->header.id = ebpf_operation_id_t::EBPF_OPERATION_GET_PINNED_OBJECT;
     request->header.length = static_cast<uint16_t>(request_buffer.size());
-    std::copy(path, path + path_length, request->path);
+    std::copy(canonical_path, canonical_path + path_length, request->path);
     auto result = invoke_ioctl(request_buffer, reply);
     if (result != ERROR_SUCCESS) {
         *fd = (fd_t)ebpf_fd_invalid;
@@ -4199,10 +4218,16 @@ ebpf_get_next_pinned_object_path(
     ebpf_assert(start_path);
     ebpf_assert(next_path);
 
-    size_t start_path_length = strlen(start_path);
+    char canonical_start_path[MAX_PATH];
+    ebpf_result_t result = ebpf_canonicalize_path(canonical_start_path, sizeof(canonical_start_path), start_path);
+    if (result != ERROR_SUCCESS) {
+        EBPF_RETURN_RESULT(EBPF_INVALID_ARGUMENT);
+    }
+
+    size_t canonical_start_path_length = strlen(canonical_start_path);
 
     ebpf_protocol_buffer_t request_buffer(
-        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_request_t, start_path) + start_path_length);
+        EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_request_t, start_path) + canonical_start_path_length);
     ebpf_protocol_buffer_t reply_buffer(
         EBPF_OFFSET_OF(ebpf_operation_get_next_pinned_object_path_reply_t, next_path) + (next_path_len - 1));
     ebpf_operation_get_next_pinned_object_path_request_t* request =
@@ -4215,10 +4240,10 @@ ebpf_get_next_pinned_object_path(
     reply->header.length = static_cast<uint16_t>(reply_buffer.size());
 
     request->type = *type;
-    memcpy(request->start_path, start_path, start_path_length);
+    memcpy(request->start_path, canonical_start_path, canonical_start_path_length);
 
     uint32_t error = invoke_ioctl(request_buffer, reply_buffer);
-    ebpf_result_t result = win32_error_code_to_ebpf_result(error);
+    result = win32_error_code_to_ebpf_result(error);
     if (result != EBPF_SUCCESS) {
         EBPF_RETURN_RESULT(result);
     }
@@ -4228,6 +4253,16 @@ ebpf_get_next_pinned_object_path(
     strncpy_s(next_path, next_path_len, (char*)reply->next_path, reply_next_path_len);
     *type = reply->type;
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_canonicalize_pin_path(_Out_writes_(output_size) char* output, size_t output_size, _In_z_ const char* input)
+    NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = ebpf_canonicalize_path(output, output_size, input);
+    EBPF_RETURN_RESULT(result);
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
