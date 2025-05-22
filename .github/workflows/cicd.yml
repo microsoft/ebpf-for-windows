@@ -37,12 +37,14 @@ permissions:
   checks: read  # Required by reusable-test.yml to check build status.
   security-events: write  # Required by codeql task.
   issues: write  # Required to create issues.
+  pull-requests: write  # Required to comment on pull requests.
+
 
 jobs:
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
 
-  # Validate that the PR has an issue reference in the title or body.
+  # Check that the PR references a valid issue title or body. If not, raise a comment.
   ensure-issue-linked:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
@@ -52,54 +54,80 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          REPO="${{ github.repository }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
           echo "Extracting issue references from PR..."
-
-          TITLE="${{ github.event.pull_request.title }}"
-          BODY="${{ github.event.pull_request.body }}"
+          PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                            -H "Accept: application/vnd.github+json" \
+                            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
+          TITLE=$(echo "$PR_DATA" | jq -r .title)
+          BODY=$(echo "$PR_DATA" | jq -r .body)
           CONTENT="${TITLE}${BODY}"
           CONTENT_NO_NEWLINES=$(echo "$CONTENT" | tr -d '\n\r')
 
-          echo "Sanitized content: $CONTENT_NO_NEWLINES"
-
           # Find all #<number> matches
-          ISSUE_NUMBERS=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" | tr -d '#' | sort -u)
-
-          if [ -z "$ISSUE_NUMBERS" ]; then
-            echo "::error No issue references (like #123) found in PR title or body." >&2
-            echo "::error Please reference an issue in the title or body." >&2
-            echo "::error Example: 'Fixes #123'." >&2
-            echo "::error For trivial changes refer to issue #4333." >&2
-            sleep 1
-            exit 1
-          fi
-
-          echo "Found issue references: $ISSUE_NUMBERS"
+          RAW_ISSUES=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" || true)
+          ISSUE_NUMBERS=$(echo "$RAW_ISSUES" | tr -d '#' | sort -u)
 
           VALID_ISSUE_FOUND=false
 
-          for ISSUE in $ISSUE_NUMBERS; do
-            echo "Checking if issue #$ISSUE exists..."
-            echo "URL: https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE"
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE")
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "::notice ::No issue references (e.g. #123) found in PR title or body."
+          else
+            echo "Found issue references: $ISSUE_NUMBERS"
 
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "::notice Issue #$ISSUE exists!"
-              VALID_ISSUE_FOUND=true
-              break
-            else
-              echo "::warning Issue #$ISSUE not found (HTTP $HTTP_STATUS)"
-            fi
-          done
+            for ISSUE in $ISSUE_NUMBERS; do
+              echo "Checking if issue #$ISSUE exists..."
+              URL="https://api.github.com/repos/$REPO/issues/$ISSUE"
+              echo "URL: $URL"
 
-          if [ "$VALID_ISSUE_FOUND" = false ]; then
-            echo "::error None of the referenced issues exist in the repository." >&2
-            sleep 1
-            exit 1
+              # Fetch the issue JSON once, saving both output and HTTP status
+              response=$(curl -s -w "%{http_code}" \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "$URL")
+
+              http_status="${response: -3}"
+              json="${response:: -3}"
+
+              if [ "$http_status" = "200" ]; then
+                is_pr=$(echo "$json" | jq 'has("pull_request")')
+                echo "Is PR? $is_pr"
+                if [ "$is_pr" = "true" ]; then
+                  echo "::warning ::#${ISSUE} is a pull request, not an issue. Please reference a valid issue."
+                else
+                  echo "::notice ::Issue #$ISSUE is valid."
+                  VALID_ISSUE_FOUND=true
+                  break
+                fi
+              else
+                echo "::warning ::Issue #$ISSUE does not exist or cannot be accessed (HTTP $http_status)."
+              fi
+            done
           fi
 
+          if [ "$VALID_ISSUE_FOUND" = false ]; then
+            # Friendly comment on the PR itself
+            MSG="This pull request isn't linked to any GitHub issue. Please reference an issue with a keyword such as Fixes #123, Closes #456, etc., so the work can be tracked."
+            PAYLOAD=$(jq -n --arg body "$MSG" '{body:$body}')
+
+            # Try to post the comment and capture status/output
+            RESPONSE=$(curl -i -s -w "%{http_code}" -o /tmp/resp.out \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+
+            cat /tmp/resp.out
+            echo "HTTP Status: $RESPONSE"
+
+            if [ "$RESPONSE" -ne 201 ]; then
+              echo "::error ::Failed to comment on PR. HTTP $RESPONSE"
+              exit 1
+            fi
+          fi
 
   # Perform the regular build.
   regular:
@@ -220,7 +248,7 @@ jobs:
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
-      code_coverage: false # No code coverage on ARM64.
+      code_coverage: false #  No code coverage on ARM64.
       gather_dumps: true
       capture_etw: true
       leak_detection: true

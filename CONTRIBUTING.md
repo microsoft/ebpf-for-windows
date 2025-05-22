@@ -87,5 +87,3 @@ For all new Pull Requests the following rules apply:
 - Existing tests should continue to pass.
 - [Tests](docs/AutomatedTests.md) need to be provided for every bug/feature that is completed.
 - Documentation needs to be provided for every feature that is end-user visible.
-- All pull requests must refer to a valid issue number in the repo. For trivial changes refer to
-  [Issue #4333](https://github.com/microsoft/ebpf-for-windows/issues/4333).
