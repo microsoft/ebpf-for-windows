@@ -42,6 +42,71 @@ jobs:
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
 
+  # Check that the PR references a valid issue title or body. If not, raise a comment.
+  ensure-issue-linked:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate issue references
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Extracting issue references from PR..."
+          REPO="${{ github.repository }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          TITLE="${{ github.event.pull_request.title }}"
+          BODY="${{ github.event.pull_request.body }}"
+          CONTENT="${TITLE}${BODY}"
+          CONTENT_NO_NEWLINES=$(echo "$CONTENT" | tr -d '\n\r')
+
+          echo "Sanitized content: $CONTENT_NO_NEWLINES"
+
+          # Find all #<number> matches
+          ISSUE_NUMBERS=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" | tr -d '#' | sort -u)
+
+          VALID_ISSUE_FOUND=false
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            # Lightweight notice in the Actions log
+            echo "::notice ::No issue references (e.g. #123) found in PR title or body."
+          fi
+
+          echo "Found issue references: $ISSUE_NUMBERS"
+
+          for ISSUE in $ISSUE_NUMBERS; do
+            echo "Checking if issue #$ISSUE exists..."
+            echo "URL: https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE"
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE")
+
+            if [ "$HTTP_STATUS" = "200" ]; then
+              echo "::notice Issue #$ISSUE exists!"
+              VALID_ISSUE_FOUND=true
+              break
+            else
+              echo "::warning Issue #$ISSUE not found (HTTP $HTTP_STATUS)"
+            fi
+          done
+
+          if [ "$VALID_ISSUE_FOUND" = false ]; then
+            # Friendly comment on the PR itself
+            MSG="This pull request isn't linked to any GitHub issue.\n\nPlease reference an issue with a keyword such as \`Fixes #123\`, \`Closes #456\`, etc., so the work can be tracked."
+
+            # Build JSON payload safely (jq is pre-installed on ubuntu-latest)
+            PAYLOAD=$(jq -n --arg body "$MSG" '{body:$body}')
+
+            curl -s -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments"
+          fi
+
+
   # Perform the regular build.
   regular:
     # Always run this job.
