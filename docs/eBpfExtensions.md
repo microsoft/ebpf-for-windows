@@ -148,7 +148,7 @@ On Linux, "pointers" in some program contexts are defined as 32-bit integers, ev
 done at program load time), whereas the example above will result in 64-bit pointers on
 64-bit platforms.  eBPF for Windows aims to provide source compatibility, but not binary compatibility.
 
-The problem often goes unnoticed until verification of a program that works fine on Linux failing
+The issue may go unnoticed until verification of a program that works fine on Linux failing
 unexpectedly due to the program hard coding the context structure it expects, which of course won't
 match what the Windows extension uses, since the context has a different offset for `data_end`.
 As such, even source compatibility is not provided in this sense.
