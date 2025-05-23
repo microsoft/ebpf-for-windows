@@ -144,8 +144,8 @@ The sample program context above contains two pointer fields, `data_start` and `
 If the intent of an extension is to provide compatibility with some program type that exists on Linux,
 and pointer members exist in the program context, there is a potential problem to be aware of.
 
-On Linux, "pointers" in some program contexts are defined as 32-bit integers, even on 64-bit platforms (conversion
-is done at program load time), whereas the example above will result in 64-bit pointers on
+On Linux, "pointers" in some program contexts are defined as 32-bit integers, even on 64-bit platforms (with conversion
+done at program load time), whereas the example above will result in 64-bit pointers on
 64-bit platforms.  eBPF for Windows aims to provide source compatibility, but not binary compatibility.
 
 The problem often goes unnoticed until verification of a program that works fine on Linux failing
