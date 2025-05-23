@@ -152,7 +152,7 @@ The issue may go unnoticed until verification of a program that works fine on Li
 unexpectedly on Windows due to the program hard coding the context structure it expects, which of course won't
 match what the Windows extension uses, since the context has a different offset for `data_end`.
 
-As such, extensions intended to provide source-compatibility with Linux must minimally document this
+As such, extensions intended to provide source-compatibility with Linux should minimally document this
 issue in discussing how to use the extension, and ideally show how to write cross-platform eBPF program
 code without using ifdefs.
 
