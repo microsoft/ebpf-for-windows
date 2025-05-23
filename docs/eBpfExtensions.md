@@ -151,7 +151,6 @@ done at program load time), whereas the example above will result in 64-bit poin
 The issue may go unnoticed until verification of a program that works fine on Linux failing
 unexpectedly on Windows due to the program hard coding the context structure it expects, which of course won't
 match what the Windows extension uses, since the context has a different offset for `data_end`.
-As such, even source compatibility is not provided in this sense.
 
 As such, extensions intended to provide source-compatibility with Linux must minimally document this
 issue in discussing how to use the extension, and ideally show how to write cross-platform eBPF program
