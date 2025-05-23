@@ -149,7 +149,7 @@ done at program load time), whereas the example above will result in 64-bit poin
 64-bit platforms.  eBPF for Windows aims to provide source compatibility, but not binary compatibility.
 
 The issue may go unnoticed until verification of a program that works fine on Linux failing
-unexpectedly due to the program hard coding the context structure it expects, which of course won't
+unexpectedly on Windows due to the program hard coding the context structure it expects, which of course won't
 match what the Windows extension uses, since the context has a different offset for `data_end`.
 As such, even source compatibility is not provided in this sense.
 
