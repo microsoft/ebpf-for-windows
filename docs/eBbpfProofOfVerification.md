@@ -3,11 +3,12 @@
 ## Overview
 A key difference between eBPF for Linux vs eBPF for Windows is where and when the verification process is run. On
 Linux, verification is performed in the kernel when the BPF program is loaded, with the verifier performing both
-verification and generation of native machine code (JIT). On Windows, the verification and generation of native
-machine code is performed offline as part of the build process.
+verification and generation of native machine code (JIT). On Windows when using JIT mode the verification and
+generation of machine code occurs in a user mode service. On Windows when using native images, the verification and
+generation of machine code is performed offline as part of the build process.
 
 ## Problem statement
-Unlike Linux, verification of the BPF program is decoupled from the loading of the BPF program. Verification occurs
+For native images, verification of the BPF program is decoupled from the loading of the BPF program. Verification occurs
 ahead of time as part of the build process and the data required to perform the verification is not available at
 runtime. Without a mechanism to validate that the BPF program being loaded has been verified, the goal of ensuring that
 all BPF programs operate in a statically enforced sandbox is weakened.
@@ -30,12 +31,12 @@ issuing authority that chains up to one of the existing trusted roots.
 
 ### Build pipeline
 To ensure that BPF programs are verified, the verification and native image generation needs to be performed atomically
-in a tamper resistant manner. For developers, the aspirational goal is to have a new Microsoft hosted service (similar
+in a tamper-resistant manner. For developers, the aspirational goal is to have a new Microsoft hosted service (similar
 to Hardware Development Center) that will own and maintain the pipeline, with developers submitting their eBPF programs
 to the pipeline in the form of an ELF file containing the BPF byte code.
 The pipeline would invoke the verifier, generate the native image, sign it using the new certificate type, and then
 finally return the generated and signed native image to the developer. In the short term the pipeline would be owned
-and managed by the Microsoft component of the eBPF for Windows team.
+and managed by the eBPF for Windows team at Microsoft.
 
 ### Signature Verification
 The check will be performed in user mode prior to loading the PE image into kernel using the standard WinVerifyTrust
