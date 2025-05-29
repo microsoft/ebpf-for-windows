@@ -46,12 +46,12 @@ The following APIs can be used to locate objects and are namespace-aware.
 
 
 ### Pinning APIs
-The pinning namespace is global and not partitioned by namespace. If required, applications can prefix their pinning
-path with the namespace GUID to ensure that they are unique.
-The following APIs are namespace aware.
-1) ebpf_pinning_table_find - Find the object by pin path and return it if the namespace matches or return not found.
-2) ebpf_pinning_table_enumerate_entries - Enumerate all pinning paths within the caller's namespace.
-3) ebpf_pinning_table_get_next_path - Get the next pinning path within the caller's namespace.
+The pinning namespace is partitioned by namespace. The following APIs are namespace aware.
+1) ebpf_pinning_table_insert - Insert an entry into the pinning table.
+2) ebpf_pinning_table_find - Find the object by pin path and return it if the namespace matches or return not found.
+3) ebpf_pinning_table_delete - Remove an entry from the pinning table.
+4) ebpf_pinning_table_enumerate_entries - Enumerate all pinning paths within the caller's namespace.
+5) ebpf_pinning_table_get_next_path - Get the next pinning path within the caller's namespace.
 
 ### Namespace APIs
 The following APIs can be used to associate the process with a namespace.
