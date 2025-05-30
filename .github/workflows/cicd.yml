@@ -48,16 +48,19 @@ jobs:
   ensure-issue-linked:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # Required for commenting on PRs
     steps:
+      # Check if the PR is linked to an issue.
       - name: Validate issue references
+        id: issue-check
         shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPO="${{ github.repository }}"
           PR_NUMBER="${{ github.event.pull_request.number }}"
+
           echo "Extracting issue references from PR..."
-          PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+          PR_DATA=$(curl -s -H "Authorization: Bearer ${{ github.token }}" \
                             -H "Accept: application/vnd.github+json" \
                             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
           TITLE=$(echo "$PR_DATA" | jq -r .title)
@@ -65,69 +68,40 @@ jobs:
           CONTENT="${TITLE}${BODY}"
           CONTENT_NO_NEWLINES=$(echo "$CONTENT" | tr -d '\n\r')
 
-          # Find all #<number> matches
           RAW_ISSUES=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" || true)
           ISSUE_NUMBERS=$(echo "$RAW_ISSUES" | tr -d '#' | sort -u)
 
           VALID_ISSUE_FOUND=false
 
           if [ -z "$ISSUE_NUMBERS" ]; then
-            echo "::notice ::No issue references (e.g. #123) found in PR title or body."
+            echo "No issues referenced."
           else
-            echo "Found issue references: $ISSUE_NUMBERS"
-
+            echo "Checking issues: $ISSUE_NUMBERS"
             for ISSUE in $ISSUE_NUMBERS; do
-              echo "Checking if issue #$ISSUE exists..."
-              URL="https://api.github.com/repos/$REPO/issues/$ISSUE"
-              echo "URL: $URL"
-
-              # Fetch the issue JSON once, saving both output and HTTP status
-              response=$(curl -s -w "%{http_code}" \
-                -H "Authorization: Bearer $GH_TOKEN" \
+              RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/issue.json \
+                -H "Authorization: Bearer ${{ github.token }}" \
                 -H "Accept: application/vnd.github+json" \
-                "$URL")
+                "https://api.github.com/repos/$REPO/issues/$ISSUE")
+              STATUS="${RESPONSE:(-3)}"
+              IS_PR=$(jq 'has("pull_request")' /tmp/issue.json)
 
-              http_status="${response: -3}"
-              json="${response:: -3}"
-
-              if [ "$http_status" = "200" ]; then
-                is_pr=$(echo "$json" | jq 'has("pull_request")')
-                echo "Is PR? $is_pr"
-                if [ "$is_pr" = "true" ]; then
-                  echo "::warning ::#${ISSUE} is a pull request, not an issue. Please reference a valid issue."
-                else
-                  echo "::notice ::Issue #$ISSUE is valid."
-                  VALID_ISSUE_FOUND=true
-                  break
-                fi
-              else
-                echo "::warning ::Issue #$ISSUE does not exist or cannot be accessed (HTTP $http_status)."
+              if [[ "$STATUS" == "200" && "$IS_PR" == "false" ]]; then
+                VALID_ISSUE_FOUND=true
+                break
               fi
             done
           fi
 
-          if [ "$VALID_ISSUE_FOUND" = false ]; then
-            # Friendly comment on the PR itself
-            MSG="This pull request isn't linked to any GitHub issue. Please reference an issue with a keyword such as Fixes #123, Closes #456, etc., so the work can be tracked."
-            PAYLOAD=$(jq -n --arg body "$MSG" '{body:$body}')
+          echo "valid_issue=$VALID_ISSUE_FOUND" >> $GITHUB_OUTPUT
+      # Comment on PR if no valid issue found.
+      - name: Comment on PR if no valid issue found
+        if: steps.issue-check.outputs.valid_issue == 'false'
+        uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            🚨 This pull request doesn't reference any GitHub issue.
+            Please add a reference such as `Fixes #123` or `Closes #456` to link this PR to a tracked issue.
 
-            # Try to post the comment and capture status/output
-            RESPONSE=$(curl -i -s -w "%{http_code}" -o /tmp/resp.out \
-              -X POST \
-              -H "Authorization: Bearer $GH_TOKEN" \
-              -H "Accept: application/vnd.github+json" \
-              -H "Content-Type: application/json" \
-              -d "$PAYLOAD" \
-              "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-
-            cat /tmp/resp.out
-            echo "HTTP Status: $RESPONSE"
-
-            if [ "$RESPONSE" -ne 201 ]; then
-              echo "::error ::Failed to comment on PR. HTTP $RESPONSE"
-              exit 1
-            fi
-          fi
 
   # Perform the regular build.
   regular:
