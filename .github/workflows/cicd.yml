@@ -37,77 +37,10 @@ permissions:
   checks: read  # Required by reusable-test.yml to check build status.
   security-events: write  # Required by codeql task.
   issues: write  # Required to create issues.
-  pull-requests: write  # Required to comment on pull requests.
-
 
 jobs:
   # Jobs to run on pull, push, and schedule.
   # ---------------------------------------------------------------------------
-
-  # Check that the PR references a valid issue title or body. If not, raise a comment.
-  ensure-issue-linked:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      pull-requests: write  # Required for commenting on PRs
-    steps:
-      - name: Checkout base branch safely
-        uses: actions/checkout@v3
-        with:
-          repository: ${{ github.repository }}
-          ref: ${{ github.event.pull_request.base.ref }}
-
-      # Check if the PR is linked to an issue.
-      - name: Validate issue references
-        id: issue-check
-        shell: bash
-        run: |
-          REPO="${{ github.repository }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-
-          echo "Extracting issue references from PR..."
-          PR_DATA=$(curl -s -H "Authorization: Bearer ${{ github.token }}" \
-                            -H "Accept: application/vnd.github+json" \
-                            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
-          TITLE=$(echo "$PR_DATA" | jq -r .title)
-          BODY=$(echo "$PR_DATA" | jq -r .body)
-          CONTENT="${TITLE}${BODY}"
-          CONTENT_NO_NEWLINES=$(echo "$CONTENT" | tr -d '\n\r')
-
-          RAW_ISSUES=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" || true)
-          ISSUE_NUMBERS=$(echo "$RAW_ISSUES" | tr -d '#' | sort -u)
-
-          VALID_ISSUE_FOUND=false
-
-          if [ -z "$ISSUE_NUMBERS" ]; then
-            echo "No issues referenced."
-          else
-            echo "Checking issues: $ISSUE_NUMBERS"
-            for ISSUE in $ISSUE_NUMBERS; do
-              RESPONSE=$(curl -s -w "%{http_code}" -o /tmp/issue.json \
-                -H "Authorization: Bearer ${{ github.token }}" \
-                -H "Accept: application/vnd.github+json" \
-                "https://api.github.com/repos/$REPO/issues/$ISSUE")
-              STATUS="${RESPONSE:(-3)}"
-              IS_PR=$(jq 'has("pull_request")' /tmp/issue.json)
-
-              if [[ "$STATUS" == "200" && "$IS_PR" == "false" ]]; then
-                VALID_ISSUE_FOUND=true
-                break
-              fi
-            done
-          fi
-
-          echo "valid_issue=$VALID_ISSUE_FOUND" >> $GITHUB_OUTPUT
-      # Comment on PR if no valid issue found.
-      - name: Comment on PR if no valid issue found
-        if: steps.issue-check.outputs.valid_issue == 'false'
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          message: |
-            🚨 This pull request doesn't reference any GitHub issue.
-            Please add a reference such as `Fixes #123` or `Closes #456` to link this PR to a tracked issue.
-
 
   # Perform the regular build.
   regular:
@@ -228,7 +161,7 @@ jobs:
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
-      code_coverage: false #  No code coverage on ARM64.
+      code_coverage: false # No code coverage on ARM64.
       gather_dumps: true
       capture_etw: true
       leak_detection: true
