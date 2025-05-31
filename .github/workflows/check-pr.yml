@@ -76,10 +76,24 @@ jobs:
 
           echo "valid_issue=$VALID_ISSUE_FOUND" >> "$GITHUB_OUTPUT"
 
-      - name: Comment if no valid issue linked
-        if: steps.validate.outputs.valid_issue == 'false'
-        uses: thollander/actions-comment-pull-request@v3
-        with:
-          message: |
-            ⚠️ This pull request doesn't reference a valid GitHub issue.
-            Please link an issue using `Fixes #123`, `Closes #456`, etc., so we can track the work.
+          if [ "$VALID_ISSUE_FOUND" = false ]; then
+            # Friendly comment on the PR itself
+            MSG="This pull request isn't linked to any GitHub issue. Please reference an issue with a keyword such as Fixes #123, Closes #456, etc., so the work can be tracked."
+            PAYLOAD=$(jq -n --arg body "$MSG" '{body:$body}')
+
+            # Try to post the comment and capture status/output
+            RESPONSE=$(curl -i -s -w "%{http_code}" -o /tmp/resp.out \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+
+            cat /tmp/resp.out
+            echo "HTTP Status: $RESPONSE"
+
+            if [ "$RESPONSE" -ne 201 ]; then
+              echo "::error ::Failed to comment on PR. HTTP $RESPONSE"
+            fi
+          fi
