@@ -1,0 +1,99 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This is the top-level workflow that runs on each pull request and push to main.
+# It invokes other jobs to perform builds and run tests.
+# All jobs run in parallel, using build artifacts to synchronize jobs.
+#
+# If you add or remove any tests that use reusable-test.yml on a pull request,
+# you must update codecov.yml to match.
+---
+name: Ensure PR linked to issue
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ensure-issue-linked:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base branch safely
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.base.ref }}
+
+      - name: Validate issue references
+        id: validate
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REPO="${{ github.repository }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          echo "Checking PR #$PR_NUMBER in $REPO..."
+
+          PR_DATA=$(curl -s -H "Authorization: Bearer $GH_TOKEN" \
+                           -H "Accept: application/vnd.github+json" \
+                           "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
+
+          TITLE=$(echo "$PR_DATA" | jq -r .title)
+          BODY=$(echo "$PR_DATA" | jq -r .body)
+          CONTENT="${TITLE}${BODY}"
+          CONTENT_NO_NEWLINES=$(echo "$CONTENT" | tr -d '\n\r')
+
+          RAW_ISSUES=$(echo "$CONTENT_NO_NEWLINES" | grep -oE "#[0-9]+" || true)
+          ISSUE_NUMBERS=$(echo "$RAW_ISSUES" | tr -d '#' | sort -u)
+
+          VALID_ISSUE_FOUND=false
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "No issue references found."
+          else
+            echo "Found references: $ISSUE_NUMBERS"
+
+            for ISSUE in $ISSUE_NUMBERS; do
+              ISSUE_URL="https://api.github.com/repos/$REPO/issues/$ISSUE"
+              RESP=$(curl -s -w "%{http_code}" -H "Authorization: Bearer $GH_TOKEN" \
+                          -H "Accept: application/vnd.github+json" "$ISSUE_URL")
+              STATUS="${RESP: -3}"
+              JSON="${RESP:: -3}"
+
+              if [ "$STATUS" = "200" ]; then
+                IS_PR=$(echo "$JSON" | jq 'has("pull_request")')
+                if [ "$IS_PR" = "false" ]; then
+                  VALID_ISSUE_FOUND=true
+                  break
+                fi
+              fi
+            done
+          fi
+
+          echo "valid_issue=$VALID_ISSUE_FOUND" >> "$GITHUB_OUTPUT"
+
+          if [ "$VALID_ISSUE_FOUND" = false ]; then
+            # Friendly comment on the PR itself
+            MSG="This pull request isn't linked to any GitHub issue. Please reference an issue with a keyword such as Fixes #123, Closes #456, etc., so the work can be tracked."
+            PAYLOAD=$(jq -n --arg body "$MSG" '{body:$body}')
+
+            # Try to post the comment and capture status/output
+            RESPONSE=$(curl -i -s -w "%{http_code}" -o /tmp/resp.out \
+              -X POST \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD" \
+              "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+
+            cat /tmp/resp.out
+            echo "HTTP Status: $RESPONSE"
+
+            if [ "$RESPONSE" -ne 201 ]; then
+              echo "::error ::Failed to comment on PR. HTTP $RESPONSE"
+            fi
+          fi
