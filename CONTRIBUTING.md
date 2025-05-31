@@ -2,12 +2,14 @@
 
 We'd love your help with eBPF for Windows! Here are our contribution guidelines.
 
-- [Code of Conduct](#code-of-conduct)
-- [Bugs](#bugs)
-- [New Features](#new-features)
-- [Contributor License Agreement](#contributor-license-agreement)
-- [Contributing Code](#contributing-code)
-  - [Tests](#tests)
+- [Contributing to eBPF for Windows](#contributing-to-ebpf-for-windows)
+  - [Code of Conduct](#code-of-conduct)
+  - [Bugs](#bugs)
+    - [Did you find a bug?](#did-you-find-a-bug)
+    - [Did you write a patch that fixes a bug?](#did-you-write-a-patch-that-fixes-a-bug)
+  - [New Features](#new-features)
+  - [Contributor License Agreement](#contributor-license-agreement)
+  - [Contributing Code](#contributing-code)
 
  ## Code of Conduct
 
