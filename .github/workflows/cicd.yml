@@ -51,6 +51,12 @@ jobs:
     permissions:
       pull-requests: write  # Required for commenting on PRs
     steps:
+      - name: Checkout base branch safely
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ github.event.pull_request.base.ref }}
+
       # Check if the PR is linked to an issue.
       - name: Validate issue references
         id: issue-check
