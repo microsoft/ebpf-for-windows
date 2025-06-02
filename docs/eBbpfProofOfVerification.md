@@ -39,5 +39,15 @@ finally return the generated and signed native image to the developer. In the sh
 and managed by the eBPF for Windows team at Microsoft.
 
 ### Signature Verification
-The check will be performed in user mode prior to loading the PE image into kernel using the standard WinVerifyTrust
-API.
+Prior to loading an native BPF program, the following sequence is performed:
+1) eBPF user-mode calls into the eBPF service to request verification of the native image.
+2) eBPF service validates the signature of the native image using WinVerifyTrust.
+3) eBPF service computes the cryptographic hash of the native image and calls into the eBPF kernel-mode to authorize
+this native image, passing the hash.
+5) After the native image is loaded and during the NMR attach, eBPF kernel-mode resolves the path of the native image,
+computes the cryptographic hash and checks if it is has been authorized.
+7) If the hash is authorized, the eBPF kernel mode permits the native image to attach.
+
+Note:
+The eBPF kernel-mode uses validates that the call is coming from the eBPF service by checking that it has the correct
+service SID and only allows authorization from that service.
