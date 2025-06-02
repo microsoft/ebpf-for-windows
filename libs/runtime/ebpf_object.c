@@ -184,7 +184,7 @@ _ebpf_object_epoch_free(_Inout_ void* context)
         EBPF_TRACELOG_LEVEL_VERBOSE, EBPF_TRACELOG_KEYWORD_BASE, "eBPF object terminated", object, object->type);
 
     object->base.marker = ~object->base.marker;
-    object->free_function(object);
+    object->free_object(object);
     cxplat_release_rundown_protection(&_ebpf_object_rundown_ref);
 }
 
@@ -192,9 +192,9 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_object_initialize(
     _Inout_ ebpf_core_object_t* object,
     ebpf_object_type_t object_type,
-    _In_ ebpf_free_object_t free_function,
-    _In_opt_ ebpf_zero_ref_count_t zero_ref_count_function,
-    ebpf_object_get_program_type_t get_program_type_function,
+    _In_ ebpf_free_object_t free_object,
+    _In_opt_ ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed,
+    ebpf_object_get_program_type_t get_program_type,
     ebpf_file_id_t file_id,
     uint32_t line)
 {
@@ -207,19 +207,19 @@ ebpf_object_initialize(
     object->base.acquire_reference = ebpf_object_acquire_reference;
     object->base.release_reference = ebpf_object_release_reference;
     object->type = object_type;
-    object->free_function = free_function;
-    object->zero_ref_count = zero_ref_count_function;
-    object->get_program_type = get_program_type_function;
+    object->free_object = free_object;
+    object->notify_reference_count_zeroed = notify_reference_count_zeroed;
+    object->get_program_type = get_program_type;
     object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     // Skip invalid IDs.
     while (object->id == EBPF_ID_NONE) {
         object->id = ebpf_interlocked_increment_int32((volatile int32_t*)&_ebpf_next_id);
     }
     ebpf_list_initialize(&object->object_list_entry);
-    ebpf_epoch_work_item_t* free_work_item = NULL;
+    ebpf_epoch_work_item_t* free_object_work_item = NULL;
 
-    free_work_item = ebpf_epoch_allocate_work_item(object, _ebpf_object_epoch_free);
-    if (!free_work_item) {
+    free_object_work_item = ebpf_epoch_allocate_work_item(object, _ebpf_object_epoch_free);
+    if (!free_object_work_item) {
         result = EBPF_NO_MEMORY;
         goto Done;
     }
@@ -252,11 +252,11 @@ ebpf_object_initialize(
 
     cxplat_acquire_rundown_protection(&_ebpf_object_rundown_ref);
 
-    object->free_work_item = free_work_item;
-    free_work_item = NULL;
+    object->free_object_work_item = free_object_work_item;
+    free_object_work_item = NULL;
 
 Done:
-    ebpf_epoch_cancel_work_item(free_work_item);
+    ebpf_epoch_cancel_work_item(free_object_work_item);
     return result;
 }
 
@@ -330,10 +330,10 @@ ebpf_object_release_reference(_Inout_opt_ ebpf_core_object_t* object, uint32_t f
     if (new_ref_count == 0) {
         _ebpf_object_tracking_list_remove(object, file_id, line);
         _update_reference_history(object, EBPF_OBJECT_DESTROY, file_id, line);
-        if (object->zero_ref_count) {
-            object->zero_ref_count(object);
+        if (object->notify_reference_count_zeroed) {
+            object->notify_reference_count_zeroed(object);
         }
-        ebpf_epoch_schedule_work_item(object->free_work_item);
+        ebpf_epoch_schedule_work_item(object->free_object_work_item);
     }
 }
 

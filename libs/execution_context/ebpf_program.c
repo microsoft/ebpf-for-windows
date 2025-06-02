@@ -649,7 +649,7 @@ _ebpf_program_type_specific_program_information_detach_provider(_In_ void* clien
  * @param[in] object Pointer to ebpf_core_object_t whose ref-count reached zero.
  */
 static void
-_ebpf_program_zero_ref_count(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
+_ebpf_program_notify_reference_count_zeroed(_In_opt_ _Post_invalid_ ebpf_core_object_t* object)
 {
     EBPF_LOG_ENTRY();
     size_t index;
@@ -929,7 +929,7 @@ ebpf_program_create(_In_ const ebpf_program_parameters_t* program_parameters, _O
         &local_program->object,
         EBPF_OBJECT_PROGRAM,
         _ebpf_program_free,
-        _ebpf_program_zero_ref_count,
+        _ebpf_program_notify_reference_count_zeroed,
         _ebpf_program_get_program_type);
 
     if (retval != EBPF_SUCCESS) {
