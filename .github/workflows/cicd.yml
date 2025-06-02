@@ -149,6 +149,24 @@ jobs:
       leak_detection: true
       configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
 
+  # Run the unit tests for NativeOnly build in GitHub.
+  unit_tests_native_only_arm64:
+    # Always run this job.
+    needs: regular_native-only
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      name: unit_tests
+      # Don't run appverif on ARM64 until it is fixed.
+      # Exclude [processes] test that CodeCoverage can't work with.
+      test_command: .\unit_tests.exe -d yes ~[processes]
+      build_artifact: Build-ARM64-native-only
+      environment: '["windows-11-arm"]'
+      code_coverage: false # No code coverage on ARM64.
+      gather_dumps: true
+      capture_etw: true
+      leak_detection: true
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+
   # Run the netebpfext unit tests in GitHub.
   netebpf_ext_unit_tests:
     # Always run this job.

@@ -84,7 +84,10 @@ jobs:
     strategy:
       matrix:
         configurations: ${{ fromJSON(inputs.configurations) }}
-    runs-on: windows-2022
+
+    # Make runs-on conditionally based on the architecture input.
+    # This is needed to support both x64 and ARM64 builds.
+    runs-on: ${{ inputs.architecture == 'x64' && 'windows-2022' || 'windows-11-arm' }}
     env:
       # Path to the solution file relative to the root of the project.
       SOLUTION_FILE_PATH: ${{inputs.solution_file}}
@@ -116,6 +119,7 @@ jobs:
           powershell.exe "echo 'msvc_tools_version=%VCToolsVersion%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo 'ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE=true' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
+          powershell.exe "echo $env:PROCESSOR_ARCHITECTURE"
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         if: steps.skip_check.outputs.should_skip != 'true'
@@ -135,7 +139,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/init@60168efe1c415ce0f5521ea06d5c2062adbeed1b
+        uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f
         with:
           languages: 'cpp'
 
@@ -191,7 +195,7 @@ jobs:
       - name: Build
         if: steps.skip_check.outputs.should_skip != 'true'
         working-directory: ${{env.GITHUB_WORKSPACE}}
-        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}  /bl:out.binlog
+        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:HostPlatform=${{env.BUILD_PLATFORM}} ${{env.BUILD_OPTIONS}} ${{env.SOLUTION_FILE_PATH}}  /bl:out.binlog
 
       - name: Check DLL dependencies for distributed binaries
         if: steps.skip_check.outputs.should_skip != 'true' && ((inputs.build_artifact == 'Build-x64' && matrix.configurations == 'Debug') || (inputs.build_artifact == 'Build-x64-native-only' && matrix.configurations == 'NativeOnlyRelease'))
@@ -275,7 +279,7 @@ jobs:
       - name: Build the NuGet package
         if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
         working-directory: ${{env.GITHUB_WORKSPACE}}
-        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget /bl:out.binlog
+        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:HostPlatform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\nuget /bl:out.binlog
 
       - name: Upload the NuGet package
         if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
@@ -287,7 +291,7 @@ jobs:
       - name: Build the NuGet Redist package
         if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
         working-directory: ${{env.GITHUB_WORKSPACE}}
-        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package /bl:out.binlog
+        run: msbuild /m /p:Configuration=${{env.BUILD_CONFIGURATION}} /p:Platform=${{env.BUILD_PLATFORM}} /p:HostPlatform=${{env.BUILD_PLATFORM}} ${{env.SOLUTION_FILE_PATH}} ${{env.BUILD_OPTIONS}} /t:tools\redist-package /bl:out.binlog
 
       - name: Valdiate NuGet Redist package
         if: inputs.build_nuget == true && (matrix.configurations == 'Release' || matrix.configurations == 'NativeOnlyRelease') && steps.skip_check.outputs.should_skip != 'true'
@@ -330,4 +334,4 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/analyze@60168efe1c415ce0f5521ea06d5c2062adbeed1b
+        uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f

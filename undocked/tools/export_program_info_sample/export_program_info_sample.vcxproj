@@ -100,15 +100,15 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -123,15 +123,15 @@ $(OutputPath)export_program_info_sample.exe</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -146,15 +146,15 @@ $(OutputPath)export_program_info_sample.exe</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -171,15 +171,15 @@ $(OutputPath)export_program_info_sample.exe</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -196,15 +196,15 @@ $(OutputPath)export_program_info_sample.exe</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info_sample.exe --clear
 $(OutputPath)export_program_info_sample.exe</Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)ebpf_bind_program_data.h;$(OutputPath)ebpf_xdp_program_data.h;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>

@@ -271,7 +271,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size = 1020;
-    const int old_code_size = 1020;
+    const int old_code_size = 1076;
 #else
 #error "Unsupported architecture"
 #endif
@@ -316,7 +316,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     const int code_size_new[] = {116, 8, 112};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size_old[] = {400, 184, 400};
-    const int code_size_new[] = {400, 184, 400};
+    const int code_size_new[] = {424, 188, 424};
 #else
 #error "Unsupported architecture"
 #endif
@@ -359,9 +359,9 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size[] = {961, 1036, 961, 1036};
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size[] = {308, 324, 308, 324};
+    const int code_size[] = {328, 344, 328, 344};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size[] = {1044, 1176, 1044, 1176};
+    const int code_size[] = {1100, 1232, 1100, 1232};
 #else
 #error "Unsupported architecture"
 #endif
@@ -407,8 +407,7 @@ TEST_CASE("show verification bpf.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"bpf.o", L"program=func", L"type=bind", &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
-        output == "\n"
-                  "Verification succeeded\n"
+        output == "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
 
@@ -422,8 +421,7 @@ TEST_CASE("show verification bindmonitor_bpf2bpf.o", "[netsh][verification]")
         _run_netsh_command(handle_ebpf_show_verification, L"bindmonitor_bpf2bpf.o", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
-        output == "\n"
-                  "Verification succeeded\n"
+        output == "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
 
@@ -436,8 +434,7 @@ TEST_CASE("show verification droppacket.o", "[netsh][verification]")
     std::string output = _run_netsh_command(handle_ebpf_show_verification, L"droppacket.o", L"xdp", nullptr, &result);
     REQUIRE(result == NO_ERROR);
     REQUIRE(
-        output == "\n"
-                  "Verification succeeded\n"
+        output == "Verification succeeded\n"
                   "Program terminates within 0 loop iterations\n");
 }
 
@@ -589,7 +586,7 @@ TEST_CASE("pin first program", "[netsh][programs]")
                   "     6     0      0  JIT        sample         callee\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinpath\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -618,11 +615,11 @@ TEST_CASE("pin all programs", "[netsh][programs]")
                   "     6     1      0  JIT        sample         callee\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath/sample_ext\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinpath\\sample_ext\n");
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 6 from mypinpath/sample_ext_0\n");
+    REQUIRE(output == "Unpinned 6 from BPF:\\mypinpath\\sample_ext_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -714,7 +711,7 @@ TEST_CASE("show programs", "[netsh][programs]")
                   "# links        : 0\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinname\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinname\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -796,7 +793,7 @@ TEST_CASE("show maps", "[netsh][maps]")
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 5 from lookup\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\lookup\n");
     verify_no_programs_exist();
 
     ebpf_epoch_synchronize();
@@ -862,15 +859,15 @@ TEST_CASE("show pins", "[netsh][pins]")
         output == "\n"
                   "     ID     Type  Path\n"
                   "=======  =======  ==============\n"
-                  "      5  Program  mypinpath/sample_ext\n"
-                  "      6  Program  mypinpath/sample_ext_0\n");
+                  "      5  Program  BPF:\\mypinpath\\sample_ext\n"
+                  "      6  Program  BPF:\\mypinpath\\sample_ext_0\n");
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinpath/sample_ext\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinpath\\sample_ext\n");
     REQUIRE(result == NO_ERROR);
 
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 6 from mypinpath/sample_ext_0\n");
+    REQUIRE(output == "Unpinned 6 from BPF:\\mypinpath\\sample_ext_0\n");
     REQUIRE(result == NO_ERROR);
 
     verify_no_programs_exist();
@@ -899,7 +896,7 @@ TEST_CASE("delete pinned program", "[netsh][programs]")
 
     // Verify we can delete a pinned program.
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinname\nUnpinned 5 from mypinname2\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinname\nUnpinned 5 from BPF:\\mypinname2\n");
     REQUIRE(result == NO_ERROR);
 
     // Verify the program ID doesn't exist any more.
@@ -925,7 +922,7 @@ TEST_CASE("unpin program", "[netsh][programs]")
 
     // Verify we can delete the unpinned program.
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
-    REQUIRE(output == "Unpinned 5 from mypinname\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinname\n");
     REQUIRE(result == NO_ERROR);
 
     // Verify the program ID doesn't exist any more.
@@ -947,7 +944,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"5", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 5 from mypinpath\n");
+    REQUIRE(output == "Unpinned 5 from BPF:\\mypinpath\n");
     verify_no_programs_exist();
 
     // Load program with pinpath and loopback interface name.
@@ -957,7 +954,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"10", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 10 from mypinpath\n");
+    REQUIRE(output == "Unpinned 10 from BPF:\\mypinpath\n");
     verify_no_programs_exist();
 
     // Load program with loopback interface index.
@@ -966,7 +963,7 @@ TEST_CASE("xdp interface parameter", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"15", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 15 from DropPacket\n");
+    REQUIRE(output == "Unpinned 15 from BPF:\\DropPacket\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect interface name.
@@ -1027,7 +1024,7 @@ TEST_CASE("cgroup_sock_addr compartment parameter", "[netsh][programs]")
     REQUIRE(result == NO_ERROR);
     output = _run_netsh_command(handle_ebpf_delete_program, L"6", nullptr, nullptr, &result);
     REQUIRE(result == NO_ERROR);
-    REQUIRE(output == "Unpinned 6 from mypinpath\n");
+    REQUIRE(output == "Unpinned 6 from BPF:\\mypinpath\n");
     verify_no_programs_exist();
 
     // (Negative) Load program with incorrect compartment id.
@@ -1099,8 +1096,8 @@ TEST_CASE("pin/unpin program", "[netsh][pin]")
                       "\n"
                       "     ID     Type  Path\n"
                       "=======  =======  ==============\n"
-                      "      {0}  Program  bindmonitor\n"
-                      "      {0}  Program  bindmonitorpin\n",
+                      "      {0}  Program  BPF:\\bindmonitor\n"
+                      "      {0}  Program  BPF:\\bindmonitorpin\n",
                       id));
 
     _run_netsh_command(handle_ebpf_unpin_program, sid.c_str(), L"random", nullptr, &result);
@@ -1115,7 +1112,7 @@ TEST_CASE("pin/unpin program", "[netsh][pin]")
                       "\n"
                       "     ID     Type  Path\n"
                       "=======  =======  ==============\n"
-                      "      {}  Program  bindmonitor\n",
+                      "      {}  Program  BPF:\\bindmonitor\n",
                       id));
 
     _run_netsh_command(handle_ebpf_delete_program, sid.c_str(), nullptr, nullptr, &result);

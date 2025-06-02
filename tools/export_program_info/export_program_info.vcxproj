@@ -100,16 +100,16 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
 </Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -124,16 +124,16 @@ $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
 </Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -148,16 +148,16 @@ $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
 </Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -174,16 +174,16 @@ $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
 </Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
@@ -200,16 +200,16 @@ $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>mincore.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Command>cd /d $(OutputPath)
 $(OutputPath)export_program_info.exe --clear
 $(OutputPath)export_program_info.exe &gt; $(OutputPath)export_program_info.log
 </Command>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Message>Exporting Program Information</Message>
     </CustomBuildStep>
-    <CustomBuildStep Condition="'$(Platform)'=='x64'">
+    <CustomBuildStep Condition="'$(Platform)'=='$(HostPlatform)'">
       <Outputs>$(OutputPath)export_program_info.log;%(Outputs)</Outputs>
     </CustomBuildStep>
   </ItemDefinitionGroup>
