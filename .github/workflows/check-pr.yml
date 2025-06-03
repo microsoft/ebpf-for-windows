@@ -11,7 +11,7 @@
 name: Ensure PR linked to issue
 
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, reopened, synchronize]
 
 permissions:
