@@ -1,10 +1,10 @@
-# Namespace isolation for BPF objects
-This document describes how eBPF for Windows implements namespace isolation.
+# Namespaces for BPF objects
+This document describes how eBPF for Windows implements namespaces.
 
 ## Overview
 BPF objects are by default system-wide entities that can be opened via several libbpf APIs (meaning the caller receives
 an fd to the object). While this is useful for the general case, there are some scenarios where BPF applications need to
-be able to isolate themselves from other BPF applications to ensure that their state remains consistent.
+be able to partition themselves from other BPF applications to prevent naming collisions.
 
 To achieve this a BPF application can switch to a designated namespace. Namespaces are identified by a GUID, with the
 default namespace having the zero GUID (all fields in the GUID are zero). All libbpf APIs that return fds are relative
