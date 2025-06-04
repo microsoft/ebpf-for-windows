@@ -138,6 +138,82 @@ The extension passes a pointer to `context` inside `sample_program_context_heade
 `sample_program_context_header_t` when invoking the eBPF program. The header is not accessible
 by the program.
 
+##### Pointer members in program contexts
+
+The sample program context above contains two pointer fields, `data_start` and `data_end`.
+If the intent of an extension is to provide compatibility with some program type that exists on Linux,
+and pointer members exist in the program context, there is a potential problem to be aware of.
+
+On Linux, "pointers" in some program contexts are defined as 32-bit integers, even on 64-bit platforms (with conversion
+done at program load time), whereas the example above will result in 64-bit pointers on
+64-bit platforms.  eBPF for Windows aims to provide source compatibility, but not binary compatibility.
+
+The issue may go unnoticed until verification of a program that works fine on Linux failing
+unexpectedly on Windows due to the program hard coding the context structure it expects, which of course won't
+match what the Windows extension uses, since the context has a different offset for `data_end`.
+
+As such, extensions intended to provide source-compatibility with Linux should minimally document this
+issue in discussing how to use the extension, and ideally show how to write cross-platform eBPF program
+code without using ifdefs.
+
+As an example, on Linux the BPF_XDP program type uses the `xdp_md` context which has:
+
+```
+struct xdp_md {
+    __u32 data;          /* Pointer to start of packet data */
+    __u32 data_end;      /* Pointer to end of packet data */
+...
+};
+
+```
+
+and a sample XDP program might have:
+
+```
+SEC("xdp")
+int xdp_prog(struct xdp_md *ctx)
+{
+    void *data = (void *)(long)ctx->data;
+    void *data_end = (void *)(long)ctx->data_end;
+
+    // Verify that data_end is at least as long as the size we need.
+    // ...
+
+    // Access memory pointed to by data.
+    // ...
+}
+```
+
+Meeting the eBPF for Windows goal of being source-compatible with Linux means that,
+however the `xdp_md` context is defined on Windows, the cast
+```
+   void *data_end = (void *)(long)ctx->data_end;
+```
+needs to work.
+
+As a second example to illustrate that the problem is not XDP-specific, on Linux the
+`__sk_buff` structure is defined as:
+```
+struct __sk_buff {
+...
+    __u32 data;
+    __u32 data_end;
+...
+};
+```
+
+and a sample TC classifier program might have:
+
+```
+SEC("classifier")
+int classifier_prog(struct __sk_buff *skb) {
+    void *data = (void *)(long)skb->data;
+    void *data_end = (void *)(long)skb->data_end;
+
+    // ...
+}
+```
+
 #### `ebpf_program_info_t` Struct
 The various fields of this structure should be set as follows:
 * `header`: Version and size.
