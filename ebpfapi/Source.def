@@ -100,6 +100,7 @@ EXPORTS
     bpf_xdp_attach
     bpf_xdp_detach
     bpf_xdp_query_id
+    ebpf_authorize_native_module
     ebpf_api_elf_disassemble_program
     ebpf_api_elf_disassemble_section
     ebpf_api_elf_verify_program_from_file

@@ -262,3 +262,149 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
 
     return EBPF_SUCCESS;
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_open_readonly_file_mapping(
+    _In_ const cxplat_utf8_string_t* file_name,
+    _Outptr_ HANDLE* file_handle,
+    _Outptr_ HANDLE* mapping_handle,
+    _Outptr_ void** base_address,
+    _Out_ size_t* size)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    HANDLE file = NULL;
+    HANDLE mapping = NULL;
+    void* address = NULL;
+    size_t file_size = 0;
+    size_t view_size = 0;
+    NTSTATUS status;
+    UTF8_STRING utf8_string = {
+        .Buffer = (char*)file_name->value,
+        .Length = (USHORT)file_name->length,
+        .MaximumLength = (USHORT)file_name->length};
+    UNICODE_STRING file_name_unicode = {0};
+    OBJECT_ATTRIBUTES object_attributes = {0};
+    IO_STATUS_BLOCK io_status_block = {0};
+    FILE_STANDARD_INFORMATION file_standard_information = {0};
+
+    // Convert from UTF-8 string to wide string.
+    status = RtlUTF8StringToUnicodeString(&file_name_unicode, &utf8_string, TRUE); // AllocateDestinationString = TRUE
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, RtlUTF8StringToUnicodeString, status);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // If the last character is a null terminator, remove it.
+    if (file_name_unicode.Length > 0 &&
+        file_name_unicode.Buffer[file_name_unicode.Length / sizeof(WCHAR) - 1] == L'\0') {
+        file_name_unicode.Length -= sizeof(WCHAR);
+    }
+
+    InitializeObjectAttributes(
+        &object_attributes,
+        &file_name_unicode,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE, // Case insensitive and kernel handle.
+        NULL,                                     // No root directory.
+        NULL);                                    // No security descriptor.
+
+    // Open the file in read-only mode.
+    status = ZwOpenFile(
+        &file,
+        SYNCHRONIZE | FILE_READ_DATA,
+        &object_attributes,
+        &io_status_block,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_SYNCHRONOUS_IO_NONALERT | FILE_NON_DIRECTORY_FILE);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, NtOpenFile, status);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    // Query the file size.
+    status = ZwQueryInformationFile(
+        file, &io_status_block, &file_standard_information, sizeof(file_standard_information), FileStandardInformation);
+
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ZwQueryInformationFile, status);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    file_size = file_standard_information.EndOfFile.QuadPart;
+    if (file_size == 0) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "File size is zero");
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    status = ZwCreateSection(
+        &mapping,
+        SECTION_MAP_READ | SECTION_QUERY,
+        NULL, // No object attributes.
+        NULL, // No maximum size.
+        PAGE_READONLY,
+        SEC_COMMIT,
+        file);
+
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ZwCreateSection, status);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    status = ZwMapViewOfSection(
+        mapping,
+        ZwCurrentProcess(),
+        &address,
+        0,    // Zero-based address.
+        0,    // Zero size means map the entire section.
+        NULL, // No offset.
+        &view_size,
+        ViewUnmap,
+        0,
+        PAGE_READONLY);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, ZwMapViewOfSection, status);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    *file_handle = file;
+    file = NULL; // Ownership transferred, don't close this now.
+
+    *mapping_handle = mapping;
+    mapping = NULL; // Ownership transferred, don't close this now.
+
+    *base_address = address;
+    address = NULL; // Ownership transferred, don't unmap this now.
+
+    *size = file_size;
+
+    result = EBPF_SUCCESS;
+Done:
+    ebpf_close_file_mapping(file, mapping, address);
+    if (file_name_unicode.Buffer != NULL) {
+        RtlFreeUnicodeString(&file_name_unicode);
+    }
+    EBPF_RETURN_RESULT(result);
+}
+
+void
+ebpf_close_file_mapping(_In_opt_ HANDLE file_handle, _In_opt_ HANDLE mapping_handle, _In_opt_ void* base_address)
+{
+    if (base_address != NULL) {
+        ZwUnmapViewOfSection(ZwCurrentProcess(), base_address);
+    }
+
+    if (mapping_handle != NULL) {
+        ZwClose(mapping_handle);
+    }
+
+    if (file_handle != NULL) {
+        ZwClose(file_handle);
+    }
+}

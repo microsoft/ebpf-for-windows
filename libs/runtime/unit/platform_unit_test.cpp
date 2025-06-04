@@ -1893,3 +1893,36 @@ TEST_CASE("work_queue", "[platform]")
     // Verify the queue is now empty.
     REQUIRE(ebpf_timed_work_queue_is_empty(work_queue) == true);
 }
+
+TEST_CASE("hash_of_file", "[platform]")
+{
+    _test_helper test_helper;
+    test_helper.initialize();
+
+    const char* file_name = "test_file.txt";
+    const char* file_content = "This is a test file.";
+    std::ofstream file(file_name);
+    file << file_content;
+    file.close();
+
+    cxplat_utf8_string_t file_path;
+    file_path.value = reinterpret_cast<uint8_t*>(const_cast<char*>(file_name));
+    file_path.length = strlen(file_name);
+
+    const cxplat_utf8_string_t algorithm{.value = reinterpret_cast<uint8_t*>((char*)"SHA256"), .length = 6};
+
+    std::vector<uint8_t> hash_value(32);
+    std::vector<uint8_t> expected_hash_value{0xf2, 0x9b, 0xc6, 0x4a, 0x9d, 0x37, 0x32, 0xb4, 0xb9, 0x03, 0x51,
+                                             0x25, 0xfd, 0xb3, 0x28, 0x5f, 0x5b, 0x64, 0x55, 0x77, 0x8e, 0xdc,
+                                             0xa7, 0x24, 0x14, 0x67, 0x1e, 0x0c, 0xa3, 0xb2, 0xe0, 0xde};
+    size_t hash_size = 0;
+    REQUIRE(
+        ebpf_cryptographic_hash_of_file(&file_path, &algorithm, hash_value.data(), hash_value.size(), &hash_size) ==
+        EBPF_SUCCESS);
+
+    REQUIRE(hash_size == 32);
+    REQUIRE(std::equal(hash_value.begin(), hash_value.end(), expected_hash_value.begin()));
+
+    // Clean up the test file.
+    std::remove(file_name);
+}

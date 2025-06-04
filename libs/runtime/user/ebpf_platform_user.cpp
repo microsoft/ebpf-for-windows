@@ -281,3 +281,121 @@ _IRQL_requires_max_(PASSIVE_LEVEL) _Must_inspect_result_ ebpf_result_t
     NTSTATUS status = usersim_platform_get_authentication_id(authentication_id);
     return ntstatus_to_ebpf_result(status);
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_open_readonly_file_mapping(
+    _In_ const cxplat_utf8_string_t* file_name,
+    _Outptr_ HANDLE* file_handle,
+    _Outptr_ HANDLE* mapping_handle,
+    _Outptr_ void** base_address,
+    _Out_ size_t* size)
+{
+    HANDLE file = INVALID_HANDLE_VALUE;
+    HANDLE mapping = INVALID_HANDLE_VALUE;
+    void* address = nullptr;
+    size_t file_size = 0;
+    ebpf_result_t result = EBPF_SUCCESS;
+    std::vector<wchar_t> wide_file_name;
+    int utf16_length = 0;
+    EBPF_LOG_ENTRY();
+
+    // Convert from UTF-8 string to wide string.
+    utf16_length = MultiByteToWideChar(CP_UTF8, 0, reinterpret_cast<const char*>(file_name->value), -1, nullptr, 0);
+
+    if (utf16_length <= 0) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MultiByteToWideChar);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    wide_file_name.resize(static_cast<size_t>(utf16_length) + 1);
+
+    utf16_length = MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        reinterpret_cast<const char*>(file_name->value),
+        -1,
+        wide_file_name.data(),
+        static_cast<int>(wide_file_name.size()));
+
+    if (utf16_length <= 0) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MultiByteToWideChar);
+        result = EBPF_INVALID_ARGUMENT;
+        goto Done;
+    }
+
+    // Open the file in read-only mode.
+    file = CreateFile(
+        wide_file_name.data(),
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        nullptr,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
+        nullptr);
+
+    if (file == INVALID_HANDLE_VALUE) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFile);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    // Create a file mapping for the file.
+    mapping = CreateFileMapping(file, nullptr, PAGE_READONLY, 0, 0, nullptr);
+
+    if (mapping == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, CreateFileMapping);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    // Get the size of the file.
+    file_size = GetFileSize(file, nullptr);
+
+    if (file_size == INVALID_FILE_SIZE) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, GetFileSize);
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    // Map the file into the process address space.
+    address = MapViewOfFile(mapping, FILE_MAP_READ, 0, 0, file_size);
+    if (address == nullptr) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MapViewOfFile);
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
+    // Set the output parameters.
+    *file_handle = file;
+    file = INVALID_HANDLE_VALUE; // Ownership transferred, don't close this now.
+    *mapping_handle = mapping;
+    mapping = INVALID_HANDLE_VALUE; // Ownership transferred, don't close this now.
+    *base_address = address;
+    address = nullptr; // Ownership transferred, don't unmap this now.
+    *size = file_size;
+
+    result = EBPF_SUCCESS;
+
+Done:
+    ebpf_close_file_mapping(file, mapping, address);
+
+    EBPF_RETURN_RESULT(result);
+}
+
+void
+ebpf_close_file_mapping(_In_opt_ HANDLE file_handle, _In_opt_ HANDLE mapping_handle, _In_opt_ void* base_address)
+{
+    EBPF_LOG_ENTRY();
+    if (base_address != nullptr) {
+        UnmapViewOfFile(base_address);
+    }
+
+    if (mapping_handle != NULL) {
+        CloseHandle(mapping_handle);
+    }
+
+    if (file_handle != INVALID_HANDLE_VALUE && file_handle != NULL) {
+        CloseHandle(file_handle);
+    }
+}

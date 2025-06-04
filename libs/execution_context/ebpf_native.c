@@ -15,6 +15,7 @@
 #include <intrin.h>
 
 #define EBPF_MAX_PIN_PATH_LENGTH 256
+#define EBPF_SHA256_HASH_LENGTH 32
 
 static const uint32_t _ebpf_native_marker = 'entv';
 
@@ -82,6 +83,7 @@ typedef struct _ebpf_native_module
     cxplat_preemptible_work_item_t* cleanup_work_item;
     bpf2c_version_t version;
     cxplat_utf8_string_t module_path;
+    uint8_t module_hash[EBPF_SHA256_HASH_LENGTH]; // SHA256 hash of the module.
 } ebpf_native_module_t;
 
 typedef struct _ebpf_native_module_instance
@@ -136,6 +138,10 @@ static HANDLE _ebpf_native_nmr_provider_handle = NULL;
 
 static ebpf_lock_t _ebpf_native_client_table_lock = {0};
 static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_native_client_table = NULL;
+
+static ebpf_lock_t _ebpf_native_authorized_module_table_lock = {0};
+static _Guarded_by_(_ebpf_native_authorized_module_table_lock)
+    ebpf_hash_table_t* _ebpf_native_authorized_module_table = NULL;
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
@@ -632,6 +638,10 @@ ebpf_native_terminate()
         _ebpf_native_nmr_provider_handle = NULL;
     }
 
+    ebpf_hash_table_destroy(_ebpf_native_authorized_module_table);
+    _ebpf_native_authorized_module_table = NULL;
+    ebpf_lock_destroy(&_ebpf_native_authorized_module_table_lock);
+
     // All native modules should be cleaned up by now.
     ebpf_assert(!_ebpf_native_client_table || ebpf_hash_table_key_count(_ebpf_native_client_table) == 0);
 
@@ -794,6 +804,9 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t** module = NULL;
     bool lock_acquired = false;
     ebpf_native_module_t* client_context = NULL;
+    cxplat_utf8_string_t hash_algorithm = {.value = (uint8_t*)"SHA256", .length = 6};
+    size_t hash_length = 0;
+    uint32_t* authorized = NULL;
 
     const metadata_table_t* table = (const metadata_table_t*)client_dispatch;
     if (table == NULL) {
@@ -837,11 +850,41 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
+    if (ebpf_cryptographic_hash_of_file(
+            &client_context->module_path,
+            &hash_algorithm,
+            client_context->module_hash,
+            sizeof(client_context->module_hash),
+            &hash_length) != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Failed to compute module hash",
+            client_module_id);
+        result = EBPF_NO_MEMORY;
+        goto Done;
+    }
+
     EBPF_LOG_MESSAGE_UTF8_STRING(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_attach_callback: Module path",
         &client_context->module_path);
+
+    state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
+    result =
+        ebpf_hash_table_find(_ebpf_native_authorized_module_table, client_context->module_hash, (uint8_t**)&authorized);
+    ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
+    if (result != EBPF_SUCCESS) {
+        // Module is not authorized.
+        EBPF_LOG_MESSAGE_GUID(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Module is not authorized",
+            client_module_id);
+        result = EBPF_VERIFICATION_FAILED;
+        goto Done;
+    }
 
     client_context->table.version(&client_context->version);
 
@@ -956,6 +999,19 @@ ebpf_native_initiate()
     }
     hash_table_created = true;
 
+    ebpf_lock_create(&_ebpf_native_authorized_module_table_lock);
+    return_value = ebpf_hash_table_create(
+        &_ebpf_native_authorized_module_table,
+        &(const ebpf_hash_table_creation_options_t){
+            .key_size = EBPF_SHA256_HASH_LENGTH,
+            .value_size = sizeof(uint32_t),
+            .allocate = ebpf_allocate,
+            .free = ebpf_free,
+        });
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+
     NTSTATUS status =
         NmrRegisterProvider(&_ebpf_native_provider_characteristics, NULL, &_ebpf_native_nmr_provider_handle);
     if (!NT_SUCCESS(status)) {
@@ -970,6 +1026,11 @@ Done:
             _ebpf_native_client_table = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_client_table_lock);
+        if (_ebpf_native_authorized_module_table) {
+            ebpf_hash_table_destroy(_ebpf_native_authorized_module_table);
+            _ebpf_native_authorized_module_table = NULL;
+        }
+        ebpf_lock_destroy(&_ebpf_native_authorized_module_table_lock);
     }
 
     EBPF_RETURN_RESULT(return_value);
@@ -2292,4 +2353,18 @@ Done:
     ebpf_free(helper_function_addresses);
 
     return return_value;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_native_authorize_module(_In_ const uint8_t* module_hash)
+{
+    EBPF_LOG_ENTRY();
+    uint32_t authorized = 1;
+    ebpf_result_t result = EBPF_SUCCESS;
+
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
+    result = ebpf_hash_table_update(
+        _ebpf_native_authorized_module_table, module_hash, (const uint8_t*)&authorized, EBPF_HASH_TABLE_OPERATION_ANY);
+    ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
+    EBPF_RETURN_RESULT(result);
 }
