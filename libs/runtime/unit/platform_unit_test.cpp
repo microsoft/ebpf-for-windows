@@ -1455,11 +1455,28 @@ run_ring_buffer_stress_test(
         empty_records_read,
         failed_returns,
         reserve_count);
+    std::cout << " == test case " << parameters->test_name << " (" << std::endl
+              << parameters->test_string << ")" << std::endl;
+    std::cout << "Consumer late: " << consumer_late << std::endl
+              << "Late producer threads: " << late_producer_threads << std::endl
+              << "Producer loops: " << producer_loops << std::endl
+              << "Consumer loops: " << consumer_loops << std::endl
+              << "Consumer records: " << consumer_records << std::endl
+              << "Locked records read: " << locked_records_read << std::endl
+              << "Discarded records read: " << discarded_records_read << std::endl
+              << "Empty records read: " << empty_records_read << std::endl
+              << "Failed returns: " << failed_returns << std::endl;
 
     if (use_output) {
         CAPTURE(output_count);
+        std::cout << "Output count: " << output_count << std::endl;
     } else {
         CAPTURE(reserve_count, submit_count, discard_count, failed_submits, failed_discards);
+        std::cout << "Reserve count: " << reserve_count << std::endl
+                  << "Submit count: " << submit_count << std::endl
+                  << "Discard count: " << discard_count << std::endl
+                  << "Failed submits: " << failed_submits << std::endl
+                  << "Failed discards: " << failed_discards << std::endl;
     }
 
     // Read any remaining records.
@@ -1494,6 +1511,10 @@ run_ring_buffer_stress_test(
         }
     }
     CAPTURE(remaining_records, remaining_discards, remaining_locked, remaining_failed_returns);
+    std::cout << "Remaining records: " << remaining_records << std::endl
+              << "Remaining discards: " << remaining_discards << std::endl
+              << "Remaining locked: " << remaining_locked << std::endl
+              << "Remaining failed returns: " << remaining_failed_returns << std::endl;
 
     REQUIRE(blocked_threads == 0);
 
@@ -1527,7 +1548,7 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
 
     uint32_t num_cpus = ebpf_get_cpu_count();
     CAPTURE(num_cpus);
-    size_t test_duration_ms = 1000;
+    size_t test_duration_ms = 10000;
 
     const ring_buffer_stress_test_parameters_t tests_params[] = {
 #define STRINGIZE2(x) #x
@@ -1596,26 +1617,75 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
 TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
 {
     _test_helper test_helper;
+    LARGE_INTEGER timeout{0};
     test_helper.initialize();
     ebpf_ring_buffer_t* ring_buffer;
     uint8_t* buffer;
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
     REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
 
-    // KEVENT event;
-    // KeInitializeEvent(&event, SynchronizationEvent, FALSE);
-    //// get handle to KEVENT
-    // ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(&event); //FIXME: sort out handle
+    KEVENT event;
+    KeInitializeEvent(&event, SynchronizationEvent, FALSE);
+    // Get handle to KEVENT.
+    ebpf_handle_t handle = reinterpret_cast<ebpf_handle_t>(&event); // FIXME: sort out handle
 
-    // std::vector<uint8_t> data(10);
+    std::vector<uint8_t> data(10);
     // size_t size = 64 * 1024;
     // size_t total_record_size = (data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7;
 
-    // ebpf_ring_buffer_set_notify_handle(ring_buffer, handle, 0);
-    // REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
-    //// Require that event has already been notified.
-    // REQUIRE(KeReadStateEvent(&event) != 0);
-    // KeClearEvent(&event);
+    ebpf_ring_buffer_set_wait_handle(ring_buffer, handle, 0);
+
+    // Nothing added yet, wait should fail.
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &timeout) == STATUS_TIMEOUT);
+
+    REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+    // Require that event has already been notified.
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &timeout) == STATUS_SUCCESS);
+    KeClearEvent(&event);
+
+    REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &timeout) == STATUS_SUCCESS);
+    KeClearEvent(&event);
+
+    // Now empty, wait should fail.
+    LARGE_INTEGER short_timeout{};
+    short_timeout.QuadPart = -100000LL; // 10ms in 100ns units, negative for relative time.
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
+
+    // Additional tests for wait handle functionality.
+    // 1. Wait with non-zero timeout (1 second) and no data: should timeout.
+    LARGE_INTEGER one_second{};
+    one_second.QuadPart = -10000000LL; // Relative time, negative, 1 second in 100ns units.
+    KeClearEvent(&event);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &one_second) == STATUS_TIMEOUT);
+
+    // 2. Worker thread waits for event, main thread writes data and wakes worker.
+    KeClearEvent(&event);
+    std::atomic<bool> worker_awake{false};
+    std::thread worker([&]() {
+        NTSTATUS status = KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &one_second);
+        worker_awake = (status == STATUS_SUCCESS);
+    });
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    REQUIRE(!worker_awake);
+    REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+    worker.join();
+    REQUIRE(worker_awake);
+    KeClearEvent(&event);
+
+    // 3. Multiple notifications: event should be signaled for each new record.
+    for (int i = 0; i < 3; ++i) {
+        REQUIRE(ebpf_ring_buffer_output(ring_buffer, data.data(), data.size()) == EBPF_SUCCESS);
+        REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_SUCCESS);
+        KeClearEvent(&event);
+    }
+
+    // 4. After event is signaled and cleared, wait should timeout if no new data.
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
+
+    // 5. Event is not signaled spuriously: wait before any output should timeout.
+    KeClearEvent(&event);
+    REQUIRE(KeWaitForSingleObject(&event, Executive, KernelMode, TRUE, &short_timeout) == STATUS_TIMEOUT);
 
     //// TODO: Add more test cases.
 

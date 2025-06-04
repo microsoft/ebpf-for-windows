@@ -218,7 +218,7 @@ extern "C"
      */
     _Must_inspect_result_ ebpf_result_t
     ebpf_map_set_wait_handle(
-        _In_ const ebpf_map_t* map, _In_ uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags);
+        _In_ const ebpf_map_t* map, uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags);
 
     /**
      * @brief Issue asynchronous query to map.

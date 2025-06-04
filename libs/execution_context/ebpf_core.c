@@ -2089,7 +2089,7 @@ _ebpf_core_protocol_map_set_wait_handle(_In_ const ebpf_operation_map_set_wait_h
         goto Done;
     }
 
-    result = ebpf_map_set_wait_handle(map, request->wait_handle, request->flags);
+    result = ebpf_map_set_wait_handle(map, request->index, request->wait_handle, request->flags);
 
 Done:
     EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);

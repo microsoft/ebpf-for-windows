@@ -347,33 +347,28 @@ _ring_record_at_offset(_In_ const ebpf_ring_buffer_t* ring, size_t offset)
 inline static void
 _ring_buffer_notify_consumer(_In_ uint8_t* buffer, uint64_t flags)
 {
-    UNREFERENCED_PARAMETER(buffer);
-    UNREFERENCED_PARAMETER(flags);
-    return;
-    // ebpf_handle_t wait_handle = ebpf_handle_invalid;
-    // if (flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP) {
-    //     _ring_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
-    //     wait_handle = producer_page->wait_handle;
-    // } else if (!(flags & EBPF_RINGBUF_FLAG_NO_WAKEUP)) {
-    //     // Notify only if ring might not be empty.
-    //     _ring_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
+    _ring_producer_page_t* producer_page = _ring_buffer_producer_page(buffer);
+    ebpf_handle_t wait_handle = ebpf_handle_invalid;
+    if (flags & EBPF_RINGBUF_FLAG_FORCE_WAKEUP) {
+        wait_handle = producer_page->wait_handle;
+    } else if (!(flags & EBPF_RINGBUF_FLAG_NO_WAKEUP)) {
+        // Notify only if ring might not be empty.
+        if (producer_page->wait_handle != ebpf_handle_invalid) {
+            ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
+            // Notify the producer that a record is available.
+            // TODO (before merge): nofence or acquire for consumer offset?
+            size_t consumer_offset = ReadULong64NoFence(&consumer_page->consumer_offset);
+            size_t producer_offset = ReadULong64Acquire(&producer_page->producer_offset);
+            if (producer_offset != consumer_offset) {
+                wait_handle = producer_page->wait_handle;
+            }
+        }
+    }
 
-    //    if (producer_page->wait_handle != ebpf_handle_invalid) {
-    //        ebpf_ring_buffer_consumer_page_t* consumer_page = _ring_buffer_consumer_page(buffer);
-    //        // Notify the producer that a record is available.
-    //        // TODO (before merge): nofence or acquire for consumer offset?
-    //        size_t consumer_offset = ReadULong64NoFence(&consumer_page->consumer_offset);
-    //        size_t producer_offset = ReadULong64Acquire(&consumer_page->consumer_offset);
-    //        if (producer_offset != consumer_offset) {
-    //            wait_handle = producer_page->wait_handle;
-    //        }
-    //    }
-    //}
-
-    // if (wait_handle != ebpf_handle_invalid) {
-    //     // Notify the consumer that new data is available.
-    //     KeSetEvent((HANDLE)wait_handle, 0, false);
-    // }
+    if (wait_handle != ebpf_handle_invalid) {
+        // Notify the consumer that new data is available.
+        KeSetEvent((HANDLE)wait_handle, 0, false);
+    }
 }
 
 /**
