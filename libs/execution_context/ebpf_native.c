@@ -850,26 +850,26 @@ _ebpf_native_provider_attach_client_callback(
         goto Done;
     }
 
-    if (ebpf_cryptographic_hash_of_file(
-            &client_context->module_path,
-            &hash_algorithm,
-            client_context->module_hash,
-            sizeof(client_context->module_hash),
-            &hash_length) != EBPF_SUCCESS) {
-        EBPF_LOG_MESSAGE_GUID(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_NATIVE,
-            "_ebpf_native_client_attach_callback: Failed to compute module hash",
-            client_module_id);
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
     EBPF_LOG_MESSAGE_UTF8_STRING(
         EBPF_TRACELOG_LEVEL_INFO,
         EBPF_TRACELOG_KEYWORD_NATIVE,
         "_ebpf_native_client_attach_callback: Module path",
         &client_context->module_path);
+
+    result = ebpf_cryptographic_hash_of_file(
+        &client_context->module_path,
+        &hash_algorithm,
+        client_context->module_hash,
+        sizeof(client_context->module_hash),
+        &hash_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE_ERROR(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_NATIVE,
+            "_ebpf_native_client_attach_callback: Failed to compute module hash",
+            result);
+        goto Done;
+    }
 
     state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
     result =
