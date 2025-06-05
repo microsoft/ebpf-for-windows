@@ -18,6 +18,7 @@ ebpf_server_verify_and_load_program(
     /* [ref][out] */ uint32_t* logs_size,
     /* [ref][size_is][size_is][out] */ char** logs)
 {
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
     ebpf_result_t result;
 
     if (info->instruction_count == 0) {
@@ -41,4 +42,12 @@ ebpf_server_verify_and_load_program(
 
     ebpf_clear_thread_local_storage();
     return result;
+#else
+    // JIT and interpreter are disabled.
+    // Return EBPF_OPERATION_NOT_SUPPORTED to indicate that the program cannot be loaded.
+    UNREFERENCED_PARAMETER(info);
+    UNREFERENCED_PARAMETER(logs_size);
+    UNREFERENCED_PARAMETER(logs);
+    return EBPF_OPERATION_NOT_SUPPORTED;
+#endif
 }
