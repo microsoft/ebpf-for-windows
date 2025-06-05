@@ -10,7 +10,9 @@
 #include "platform.h"
 extern "C"
 {
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #include "ubpf.h"
+#endif
 }
 #include "Verifier.h"
 #include "verifier_service.h"
@@ -18,6 +20,8 @@ extern "C"
 
 #include <map>
 #include <stdexcept>
+
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 // Maximum size of JIT'ed native code.
 #define MAX_NATIVE_CODE_SIZE_IN_BYTES (32 * 1024) // 32 KB
@@ -424,6 +428,8 @@ Exit:
 
     return result;
 }
+
+#endif
 
 uint32_t
 ebpf_service_initialize() noexcept
