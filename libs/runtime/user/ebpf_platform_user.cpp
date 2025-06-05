@@ -308,7 +308,7 @@ ebpf_open_readonly_file_mapping(
         goto Done;
     }
 
-    wide_file_name.resize(static_cast<size_t>(utf16_length) + 1);
+    wide_file_name.resize(utf16_length);
 
     utf16_length = MultiByteToWideChar(
         CP_UTF8,
