@@ -31,7 +31,7 @@ the decision is to create a new release the release manager must proceed with th
 1. In the triage meeting after the successful validation of the release branch, the release manager must ask if any maintainer has any reasons to hold off the release. If
    not, move on to the following steps.
 1. The `sign-off` label will be added to the issue created in step 1 of the [Creating a new release](ReleaseProcess.md#creating-a-new-release) process.
-1. Create a tag "`Release-vX.Y.0`" on the *latest commit on the `release/X.Y` branch*.
+1. Create a tag "`vX.Y.0`" on the *latest commit on the `release/X.Y` branch*. Append the "`-prerelease` suffix for pre-release versions.
 1. The tag creation will automatically trigger the "`CI/CD - Release validation`" workflow for the `release/X.Y` branch. In case of failure, Follow the process in
    the [Release Branch Validation](ReleaseProcess.md#release-branch-validation).
 2. Publish the release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
@@ -51,6 +51,7 @@ are merged to the release branch repeat the process until the workflow completes
 1. Go to the repo on GitHub and click on "`<Code>`" and click on the "`Create a new release`" link.
 1. Click on the "`Choose a tag`" combo box and select the tag with the version number for the release, as created earlier.
 1. Fill in the release title as "`vX.Y.Z`". Note "`Z`" must be `0` for the monthly release. Otherwise, it should be the patch number.
+   - Append the "`-prerelease` suffix for pre-release versions.
 1. Manually enter release notes or click "`Generate release notes`" and then edit as desired.
 1. Microsoft maintains an internal mirror of the eBPF for Windows project. For a given release branch in GitHub, the mirror repo will have a corresponding one.
 The release manager must download the following artifacts from the latest build of the internal mirror repo:
@@ -100,7 +101,8 @@ Servicing a release has two main scenarios:
 1. Follow the process in the [Updating the Release Version](ReleaseProcess.md#updating-the-release-version) to update the release version.
 1. Create a pull-request from the topic branch into the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows)'s "`release/X.Y`" branch, and title the PR as *"Release v`X.Y.Z`"* where "`Z`" is the patch
 version.
-1. Once the PR is approved and merged into the "`release/X.Y`" branch in the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows), and create a tag for the latest commit in the following format: "`Release-vX.Y.Z`".
+1. Once the PR is approved and merged into the "`release/X.Y`" branch in the [original "upstream" `ebpf-for-windows` repo]([https://github.com/microsoft/ebpf-for-windows), and create a tag for the latest commit in the following format: "`vX.Y.Z`".
+Append the "`-prerelease` suffix for pre-release versions.
 1. Publish the patch release as per the [Publishing a Release](ReleaseProcess.md#publishing-a-release) process.
 
 
