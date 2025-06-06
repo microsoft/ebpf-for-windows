@@ -649,10 +649,12 @@ Global
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.MinSizeRel|x86.Build.0 = NativeOnlyDebug|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyDebug|ARM64.ActiveCfg = Debug|ARM64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyDebug|x64.ActiveCfg = Debug|x64
+		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyDebug|x64.Build.0 = Debug|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyDebug|x86.ActiveCfg = NativeOnlyDebug|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyDebug|x86.Build.0 = NativeOnlyDebug|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyRelease|ARM64.ActiveCfg = Release|ARM64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyRelease|x64.ActiveCfg = Release|x64
+		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyRelease|x64.Build.0 = Release|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyRelease|x86.ActiveCfg = NativeOnlyRelease|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.NativeOnlyRelease|x86.Build.0 = NativeOnlyRelease|x64
 		{245F0EC7-1EBC-4D68-8B1F-F758EA9196AE}.Release|ARM64.ActiveCfg = Release|ARM64
