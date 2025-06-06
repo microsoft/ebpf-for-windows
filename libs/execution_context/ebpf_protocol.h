@@ -48,6 +48,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_MAP_GET_NEXT_KEY_VALUE_BATCH,
     EBPF_OPERATION_PROGRAM_SET_FLAGS,
     EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH,
+    EBPF_OPERATION_AUTHORIZE_NATIVE_MODULE,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -552,3 +553,9 @@ typedef struct _ebpf_operation_program_set_flags_request
     ebpf_handle_t program_handle;
     uint64_t flags;
 } ebpf_operation_program_set_flags_request_t;
+
+typedef struct _ebpf_operation_authorize_native_module_request
+{
+    struct _ebpf_operation_header header;
+    uint8_t module_hash[32]; // SHA256 hash of the native module.
+} ebpf_operation_authorize_native_module_request_t;

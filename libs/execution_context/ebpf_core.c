@@ -2281,6 +2281,14 @@ Exit:
     EBPF_RETURN_RESULT(result);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_authorize_native_module(_In_ const ebpf_operation_authorize_native_module_request_t* request)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = ebpf_native_authorize_module(request->module_hash);
+    EBPF_RETURN_RESULT(result);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -2850,6 +2858,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(program_set_flags, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(authorize_native_module, PROTOCOL_NATIVE_MODE),
 };
 
 _Must_inspect_result_ ebpf_result_t

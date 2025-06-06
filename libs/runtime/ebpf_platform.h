@@ -827,6 +827,27 @@ extern "C"
     ebpf_cryptographic_hash_get_hash_length(_In_ const ebpf_cryptographic_hash_t* hash, _Out_ size_t* length);
 
     /**
+     * @brief Compute the cryptographic hash of a file.
+     *
+     * @param[in] file_name File name to compute the hash of.
+     * @param[in] algorithm Algorithm to use for the hash computation. Recommended value is "SHA256".
+     * @param[out] buffer Buffer to receive the hash value.
+     * @param[in] length Size of the buffer in bytes.
+     * @param[out] output_length Length of the hash value written to the buffer.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for the file mapping.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     * @retval EBPF_FILE_NOT_FOUND The specified file was not found.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_hash_file_contents(
+        _In_ const cxplat_utf8_string_t* file_name,
+        _In_ const cxplat_utf8_string_t* algorithm,
+        _Out_writes_bytes_(length) uint8_t* buffer,
+        size_t length,
+        _Out_ size_t* output_length);
+
+    /**
      * @brief Should the current thread yield the processor?
      *
      * @retval true Thread should yield the processor.
@@ -935,6 +956,30 @@ extern "C"
     ebpf_driver_get_device_object();
 
     extern bool ebpf_processor_supports_sse42;
+
+    /**
+     * @brief Open a file mapping in read-only mode.
+     *
+     * @param[in] file_name Name of the file to open.
+     * @param[out] file_handle File handle to the opened file.
+     * @param[out] mapping_handle Handle to the file mapping.
+     * @param[out] base_address Base address of the file mapping in the process address space.
+     * @param[out] size Size of the file mapping in bytes.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for the file mapping.
+     * @retval EBPF_INVALID_ARGUMENT An invalid argument was supplied.
+     * @retval EBPF_FILE_NOT_FOUND The specified file was not found.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_open_readonly_file_mapping(
+        _In_ const cxplat_utf8_string_t* file_name,
+        _Outptr_ HANDLE* file_handle,
+        _Outptr_ HANDLE* mapping_handle,
+        _Outptr_ void** base_address,
+        _Out_ size_t* size);
+
+    void
+    ebpf_close_file_mapping(_In_opt_ HANDLE file_handle, _In_opt_ HANDLE mapping_handle, _In_opt_ void* base_address);
 
 #ifdef __cplusplus
 }

@@ -122,6 +122,16 @@ extern "C"
     void
     ebpf_native_release_reference(_In_opt_ _Post_invalid_ ebpf_native_module_binding_context_t* module);
 
+    /**
+     * @brief Add the native module to the authorization list.
+     *
+     * @param[in] module_hash Hash of the native module to authorize.
+     * @retval EBPF_SUCCESS The operation was successful.
+     * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_native_authorize_module(_In_ const uint8_t* module_hash);
+
 #ifdef __cplusplus
 }
 #endif
