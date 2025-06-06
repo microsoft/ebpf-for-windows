@@ -1917,7 +1917,7 @@ TEST_CASE("hash_of_file", "[platform]")
                                              0xa7, 0x24, 0x14, 0x67, 0x1e, 0x0c, 0xa3, 0xb2, 0xe0, 0xde};
     size_t hash_size = 0;
     REQUIRE(
-        ebpf_cryptographic_hash_of_file(&file_path, &algorithm, hash_value.data(), hash_value.size(), &hash_size) ==
+        ebpf_hash_file_contents(&file_path, &algorithm, hash_value.data(), hash_value.size(), &hash_size) ==
         EBPF_SUCCESS);
 
     REQUIRE(hash_size == 32);

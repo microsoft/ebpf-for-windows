@@ -125,7 +125,7 @@ ebpf_cryptographic_hash_get_hash_length(_In_ const ebpf_cryptographic_hash_t* ha
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_cryptographic_hash_of_file(
+ebpf_hash_file_contents(
     _In_ const cxplat_utf8_string_t* file_name,
     _In_ const cxplat_utf8_string_t* algorithm,
     _Out_writes_bytes_(length) uint8_t* buffer,

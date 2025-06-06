@@ -856,7 +856,7 @@ _ebpf_native_provider_attach_client_callback(
         "_ebpf_native_client_attach_callback: Module path",
         &client_context->module_path);
 
-    result = ebpf_cryptographic_hash_of_file(
+    result = ebpf_hash_file_contents(
         &client_context->module_path,
         &hash_algorithm,
         client_context->module_hash,
