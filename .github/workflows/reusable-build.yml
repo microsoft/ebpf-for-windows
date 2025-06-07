@@ -120,7 +120,7 @@ jobs:
           powershell.exe "echo 'VCINSTALLDIR=%VCINSTALLDIR%' | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append"
           powershell.exe "echo $env:PROCESSOR_ARCHITECTURE"
 
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
         if: steps.skip_check.outputs.should_skip != 'true'
         with:
           repository: ${{inputs.repository}}
@@ -138,7 +138,7 @@ jobs:
 
       - name: Initialize CodeQL
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/init@ff0a06e83cb2de871e5a09832bc6a81e7276941f
+        uses: github/codeql-action/init@fca7ace96b7d713c7035871441bd52efbe39e27e
         with:
           languages: 'cpp'
 
@@ -333,4 +333,4 @@ jobs:
 
       - name: Perform CodeQL Analysis
         if: inputs.build_codeql == true && steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/analyze@ff0a06e83cb2de871e5a09832bc6a81e7276941f
+        uses: github/codeql-action/analyze@fca7ace96b7d713c7035871441bd52efbe39e27e

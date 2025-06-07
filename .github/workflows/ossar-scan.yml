@@ -47,7 +47,7 @@ jobs:
           paths_ignore: '["**.md", "**/docs/**"]'
 
       # Checking out the branch is needed to correctly log security alerts.
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/checkout@09d2acae674a48949e3602304ab46fd20ae0c42f
         if: steps.skip_check.outputs.should_skip != 'true'
         with:
           # Only check out main repo, not submodules.
@@ -81,6 +81,6 @@ jobs:
 
       - name: Upload results to Security tab
         if: steps.skip_check.outputs.should_skip != 'true'
-        uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f
+        uses: github/codeql-action/upload-sarif@fca7ace96b7d713c7035871441bd52efbe39e27e
         with:
           sarif_file: ${{ steps.ossar.outputs.sarifFile }}
