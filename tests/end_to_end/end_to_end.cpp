@@ -4172,3 +4172,20 @@ test_sample_perf_buffer_test(ebpf_execution_type_t execution_type)
 DECLARE_ALL_TEST_CASES("test-sample-perfbuffer", "[end_to_end]", test_sample_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("bindmonitor-perfbuffer", "[end_to_end]", bindmonitor_perf_buffer_test);
 DECLARE_ALL_TEST_CASES("negative_perf_buffer_test", "[end_to_end]", negative_perf_buffer_test);
+
+TEST_CASE("signature_checking", "[end_to_end]")
+{
+    const char* eku_list[] = {
+        "1.3.6.1.5.5.7.3.3",      // Code signing
+        "1.3.6.1.4.1.311.10.3.6", // Windows System Component Verification
+    };
+    const char* issuer = "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows Production PCA 2011";
+
+    std::string test_file = "%windir%\\system32\\drivers\\tcpip.sys";
+
+    // Expand environment variables in the file name.
+    char expanded_path[MAX_PATH];
+    REQUIRE(ExpandEnvironmentStringsA(test_file.c_str(), expanded_path, MAX_PATH) > 0);
+
+    REQUIRE(ebpf_verify_sys_file_signature(expanded_path, issuer, 0, eku_list) == EBPF_SUCCESS);
+}
