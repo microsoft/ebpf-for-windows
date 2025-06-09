@@ -29,6 +29,7 @@ static std::mutex _rpc_binding_handle_mutex;
 static RPC_STATUS
 _initialize_rpc_binding();
 
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 _Must_inspect_result_ ebpf_result_t
 ebpf_rpc_load_program(
     _In_ const ebpf_program_load_info* info,
@@ -59,6 +60,38 @@ ebpf_rpc_load_program(
 
         return result;
 }
+#endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_rpc_authorize_native_module(_In_z_ const char* image_path) noexcept
+{
+    ebpf_result_t result;
+
+    if (_initialize_rpc_binding() != RPC_S_OK) {
+        return EBPF_NO_MEMORY;
+    }
+
+    // Get the full path of the image.
+    char full_image_path[MAX_PATH];
+    if (GetFullPathNameA(image_path, sizeof(full_image_path), full_image_path, nullptr) == 0) {
+        EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, GetFullPathNameA);
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    RpcTryExcept { result = ebpf_client_verify_and_authorize_native_image(full_image_path); }
+    RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
+    {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_API,
+            "RPC call ebpf_client_verify_and_authorize_native_image threw exception",
+            RpcExceptionCode());
+        result = EBPF_RPC_EXCEPTION;
+    }
+    RpcEndExcept
+
+        return result;
+}
 
 /**
  * @brief Initialize the RPC binding handle. This is expensive and should be
@@ -81,7 +114,7 @@ _initialize_rpc_binding()
         RPC_C_SECURITY_QOS_VERSION_5,
         RPC_C_QOS_CAPABILITIES_MUTUAL_AUTH,
         RPC_C_QOS_IDENTITY_DYNAMIC,
-        RPC_C_IMP_LEVEL_IDENTIFY};
+        RPC_C_IMP_LEVEL_IMPERSONATE};
 
     RPC_STATUS status =
         RpcStringBindingCompose(nullptr, (RPC_WSTR)_protocol_sequence, nullptr, nullptr, nullptr, &string_binding);

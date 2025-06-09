@@ -41,6 +41,8 @@ static BOOLEAN _ebpf_driver_unloading_flag = FALSE;
 
 const char ebpf_core_version[] = EBPF_VERSION " " GIT_COMMIT_ID;
 
+PSECURITY_DESCRIPTOR ebpf_execution_context_privileged_security_descriptor = NULL;
+
 //
 // Pre-Declarations
 //
@@ -65,7 +67,124 @@ static _Function_class_(EVT_WDF_DRIVER_UNLOAD) _IRQL_requires_same_
 
     _ebpf_driver_unloading_flag = TRUE;
 
+    if (ebpf_execution_context_privileged_security_descriptor) {
+        ebpf_free(ebpf_execution_context_privileged_security_descriptor);
+        ebpf_execution_context_privileged_security_descriptor = NULL;
+    }
+
     ebpf_core_terminate();
+}
+
+static _Check_return_ NTSTATUS
+_ebpf_driver_build_privileged_security_descriptor()
+{
+    PACL dacl = NULL;
+    PSID sid = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+    SECURITY_DESCRIPTOR security_descriptor;
+    PSECURITY_DESCRIPTOR self_relative_security_descriptor = NULL;
+    const ULONG sid_subauthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
+    const SID_IDENTIFIER_AUTHORITY service_authority = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
+    const ULONG subauthority_count = EBPF_COUNT_OF(sid_subauthorities);
+    ULONG security_descriptor_size = 0;
+
+    sid = (PSID)ebpf_allocate_with_tag(
+        RtlLengthRequiredSid(subauthority_count), 'fpBE'); // Use a tag to help with debugging memory leaks.
+    if (sid == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
+        goto Exit;
+    }
+
+    // Initialize the SID for the ebpfsvc service.
+    status = RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&service_authority, (UCHAR)subauthority_count);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
+        goto Exit;
+    }
+
+    for (ULONG i = 0; i < subauthority_count; i++) {
+        *RtlSubAuthoritySid(sid, i) = sid_subauthorities[i];
+    }
+
+    status = RtlCreateSecurityDescriptor(&security_descriptor, SECURITY_DESCRIPTOR_REVISION);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlCreateSecurityDescriptor, status);
+        goto Exit;
+    }
+
+    // Allocate and initialize a DACL with one ACE.
+    ULONG aclSize = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(sid) - sizeof(ULONG);
+    dacl = (PACL)ebpf_allocate_with_tag(aclSize, 'fpBE'); // Use a tag to help with debugging memory leaks.
+    if (dacl == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
+        goto Exit;
+    }
+
+    // Create the DACL with one ACE that allows GENERIC_ALL access to the ebpfsvc service SID.
+    status = RtlCreateAcl(dacl, aclSize, ACL_REVISION);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlCreateAcl, status);
+        goto Exit;
+    }
+
+    // Add an ACE to the DACL that grants GENERIC_ALL access to the ebpfsvc service SID.
+    status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, sid);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
+        goto Exit;
+    }
+
+    // Set the DACL in the security descriptor.
+    status = RtlSetDaclSecurityDescriptor(&security_descriptor, TRUE, dacl, FALSE);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlSetDaclSecurityDescriptor, status);
+        goto Exit;
+    }
+
+    // Convert security descriptor to self-relative format.
+    // First, we need to determine the size of the self-relative security descriptor.
+    status = RtlAbsoluteToSelfRelativeSD(&security_descriptor, NULL, &security_descriptor_size);
+    if (status != STATUS_BUFFER_TOO_SMALL) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
+        goto Exit;
+    }
+
+    // Allocate memory for the self-relative security descriptor.
+    self_relative_security_descriptor = ebpf_allocate_with_tag(security_descriptor_size, 'fpBE');
+    if (self_relative_security_descriptor == NULL) {
+        status = STATUS_INSUFFICIENT_RESOURCES;
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
+        goto Exit;
+    }
+
+    // Convert the absolute security descriptor to self-relative format.
+    status =
+        RtlAbsoluteToSelfRelativeSD(&security_descriptor, self_relative_security_descriptor, &security_descriptor_size);
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
+        goto Exit;
+    }
+
+    // Set the global security descriptor to the self-relative format.
+    ebpf_execution_context_privileged_security_descriptor = self_relative_security_descriptor;
+    self_relative_security_descriptor = NULL;
+
+Exit:
+    if (sid) {
+        ebpf_free(sid);
+    }
+
+    if (dacl) {
+        ebpf_free(dacl);
+    }
+
+    if (self_relative_security_descriptor) {
+        ebpf_free(self_relative_security_descriptor);
+    }
+
+    return status;
 }
 
 static _Check_return_ NTSTATUS
@@ -147,6 +266,7 @@ _ebpf_driver_initialize_objects(
     WDF_DRIVER_CONFIG driver_configuration;
     WDF_IO_QUEUE_CONFIG io_queue_configuration;
     BOOLEAN device_create_flag = FALSE;
+    BOOLEAN ebpf_core_initialized = FALSE;
 
     // IMPORTANT NOTE: The choice of implementing part of the driver initialization in another function
     // (_ebpf_driver_initialize_device()) is deliberate.  We perform a lot of standard WDF driver initialization here
@@ -196,10 +316,23 @@ _ebpf_driver_initialize_objects(
         goto Exit;
     }
 
+    ebpf_core_initialized = TRUE;
+
+    status = _ebpf_driver_build_privileged_security_descriptor();
+    if (!NT_SUCCESS(status)) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(
+            EBPF_TRACELOG_KEYWORD_ERROR, _ebpf_driver_build_privileged_security_descriptor, status);
+        goto Exit;
+    }
+
     WdfControlFinishInitializing(*device);
 
 Exit:
     if (!NT_SUCCESS(status)) {
+        if (ebpf_core_initialized) {
+            ebpf_core_terminate();
+        }
+
         if (device_create_flag && device != NULL) {
 
             // Release the reference on the newly created object, since we couldn't initialize it.
@@ -234,6 +367,31 @@ _ebpf_driver_io_device_control_cancel(WDFREQUEST request)
     ebpf_core_cancel_protocol_handler(request);
 }
 
+static bool
+_ebpf_driver_is_caller_privileged()
+{
+    // Check if the caller has the required privileges.
+    SECURITY_SUBJECT_CONTEXT subject_context;
+    SeCaptureSubjectContext(&subject_context);
+    ACCESS_MASK granted_access = 0;
+    GENERIC_MAPPING generic_mapping = {1, 1, 1, 1}; // No generic mapping needed for this check
+    NTSTATUS status;
+    BOOLEAN result = SeAccessCheck(
+        ebpf_execution_context_privileged_security_descriptor,
+        &subject_context,
+        FALSE,            // Subject context is not locked
+        GENERIC_ALL,      // Desired access
+        0,                // Previously granted access
+        NULL,             // No privileges
+        &generic_mapping, // Generic mapping
+        KernelMode,       // Access mode
+        &granted_access,  // Granted access
+        &status);
+    SeReleaseSubjectContext(&subject_context);
+    return result && NT_SUCCESS(status) &&
+           granted_access == GENERIC_ALL; // Check if granted access matches GENERIC_ALL.
+}
+
 static VOID
 _ebpf_driver_io_device_control(
     _In_ WDFQUEUE queue,
@@ -251,6 +409,7 @@ _ebpf_driver_io_device_control(
     const struct _ebpf_operation_header* user_request = NULL;
     struct _ebpf_operation_header* user_reply = NULL;
     bool async = false;
+    bool privileged = false;
     bool wdf_request_ref_acquired = false;
 
     device = WdfIoQueueGetDevice(queue);
@@ -294,10 +453,17 @@ _ebpf_driver_io_device_control(
                 }
 
                 status = ebpf_result_to_ntstatus(ebpf_core_get_protocol_handler_properties(
-                    user_request->id, &minimum_request_size, &minimum_reply_size, &async));
+                    user_request->id, &minimum_request_size, &minimum_reply_size, &async, &privileged));
                 if (status != STATUS_SUCCESS) {
                     EBPF_LOG_NTSTATUS_API_FAILURE(
                         EBPF_TRACELOG_KEYWORD_ERROR, ebpf_core_get_protocol_handler_properties, status);
+                    goto Done;
+                }
+
+                if (privileged && !_ebpf_driver_is_caller_privileged()) {
+                    EBPF_LOG_MESSAGE(
+                        EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_ERROR, "Caller is not privileged");
+                    status = STATUS_ACCESS_DENIED;
                     goto Done;
                 }
 
