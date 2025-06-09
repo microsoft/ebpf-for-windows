@@ -23,6 +23,16 @@ ebpf_verify_and_load_program(
     _Outptr_result_maybenull_z_ const char** error_message,
     _Out_ uint32_t* error_message_size) noexcept;
 
+/**
+ * @brief Authorize a native module to be loaded.
+ *
+ * @param[in] native_image_handle Handle to native image.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_authorize_native_module(_In_ HANDLE native_image_handle) EBPF_NO_EXCEPT;
+
 uint32_t
 ebpf_service_initialize() noexcept;
 

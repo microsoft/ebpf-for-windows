@@ -2707,6 +2707,7 @@ typedef struct _ebpf_protocol_handler
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
             uint64_t used_by_interpret : 1;
 #endif
+            uint64_t privileged : 1; // If set, the operation can only be called by the eBPF Service.
         } bits;
     } flags;
 
@@ -2719,6 +2720,7 @@ typedef struct _ebpf_protocol_handler
 #if !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_INTERPRET_MODE 4
 #endif
+#define PROTOCOL_PRIVILEGED_OPERATION 8
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #define PROTOCOL_JIT_OR_INTERPRET_MODE (PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
 #define PROTOCOL_ALL_MODES (PROTOCOL_NATIVE_MODE | PROTOCOL_JIT_MODE | PROTOCOL_INTERPRET_MODE)
@@ -2799,8 +2801,10 @@ ALIAS_TYPES(get_handle_by_id, get_program_handle_by_id)
 
 static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_helper, helper_id, address, PROTOCOL_JIT_MODE),
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(resolve_map, map_handle, address, PROTOCOL_JIT_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+        resolve_helper, helper_id, address, PROTOCOL_JIT_MODE | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
+        resolve_map, map_handle, address, PROTOCOL_JIT_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_VARIABLE_REPLY),
@@ -2812,7 +2816,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
 #endif
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_FIXED_REPLY(create_map, data, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(load_code, code, PROTOCOL_JIT_OR_INTERPRET_MODE),
+    DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(
+        load_code, code, PROTOCOL_JIT_OR_INTERPRET_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_VARIABLE_REQUEST_NO_REPLY),
 #endif
@@ -2829,7 +2834,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_NO_REPLY(unlink_program, data, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(close_handle, PROTOCOL_ALL_MODES),
 #if !defined(CONFIG_BPF_JIT_DISABLED)
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(get_ec_function, PROTOCOL_JIT_MODE),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
+        get_ec_function, PROTOCOL_JIT_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 #else
     DECLARE_PROTOCOL_HANDLER_INVALID(EBPF_PROTOCOL_FIXED_REQUEST_FIXED_REPLY),
 #endif
@@ -2858,7 +2864,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(program_set_flags, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
-    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(authorize_native_module, PROTOCOL_NATIVE_MODE),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(
+        authorize_native_module, PROTOCOL_NATIVE_MODE | PROTOCOL_PRIVILEGED_OPERATION),
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -2866,7 +2873,8 @@ ebpf_core_get_protocol_handler_properties(
     ebpf_operation_id_t operation_id,
     _Out_ size_t* minimum_request_size,
     _Out_ size_t* minimum_reply_size,
-    _Out_ bool* async)
+    _Out_ bool* async,
+    _Out_ bool* privileged)
 {
     // Native is always permitted.
     bool native_permitted = true;
@@ -2887,6 +2895,8 @@ ebpf_core_get_protocol_handler_properties(
     if (operation_id >= EBPF_COUNT_OF(_ebpf_protocol_handlers) || operation_id < 0) {
         return EBPF_OPERATION_NOT_SUPPORTED;
     }
+
+    *privileged = _ebpf_protocol_handlers[operation_id].flags.bits.privileged != 0;
 
     // Only permit this operation if one of the modes it is used for is permitted.
     if (

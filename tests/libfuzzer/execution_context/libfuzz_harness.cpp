@@ -466,6 +466,7 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
 {
     fuzz_wrapper fuzz_state;
     bool async = false;
+    bool privileged = false;
     std::vector<uint8_t> request;
     std::vector<uint8_t> reply;
     uint16_t reply_buffer_length = 0;
@@ -501,8 +502,8 @@ fuzz_ioctl(std::vector<uint8_t>& random_buffer)
     size_t minimum_request_size;
     size_t minimum_reply_size;
 
-    ebpf_result_t result =
-        ebpf_core_get_protocol_handler_properties(operation_id, &minimum_request_size, &minimum_reply_size, &async);
+    ebpf_result_t result = ebpf_core_get_protocol_handler_properties(
+        operation_id, &minimum_request_size, &minimum_reply_size, &async, &privileged);
     if (result != EBPF_SUCCESS) {
         return;
     }

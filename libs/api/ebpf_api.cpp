@@ -23,8 +23,8 @@
 #include "map_descriptors.hpp"
 #define _PEPARSE_WINDOWS_CONFLICTS
 #include "pe-parse/parse.h"
-#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 #include "rpc_client.h"
+#if !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 extern "C"
 {
 #include "ubpf.h"
@@ -3524,92 +3524,6 @@ _Requires_lock_not_held_(_ebpf_state_mutex) _Must_inspect_result_ ebpf_result_t
 }
 CATCH_NO_MEMORY_EBPF_RESULT
 
-_Must_inspect_result_ ebpf_result_t
-ebpf_authorize_native_module(_In_z_ const char* file_path) noexcept
-{
-    EBPF_LOG_ENTRY();
-
-    ebpf_result_t result = EBPF_SUCCESS;
-    HANDLE file_handle = INVALID_HANDLE_VALUE;
-    HANDLE file_mapping_handle = NULL;
-    void* file_mapping_view = nullptr;
-    size_t file_size = 0;
-    ebpf_operation_authorize_native_module_request_t request;
-    uint32_t error = ERROR_SUCCESS;
-
-    file_handle = CreateFileA(
-        file_path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        nullptr,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
-        nullptr);
-
-    if (file_handle == INVALID_HANDLE_VALUE) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        EBPF_LOG_MESSAGE_ERROR(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "CreateFileA failed", result);
-        goto Done;
-    }
-
-    file_mapping_handle = CreateFileMappingA(file_handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
-
-    if (file_mapping_handle == NULL) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "CreateFileMappingA failed", result);
-        goto Done;
-    }
-
-    file_size = GetFileSize(file_handle, nullptr);
-
-    if (file_size == INVALID_FILE_SIZE) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        EBPF_LOG_MESSAGE_ERROR(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "GetFileSize failed", result);
-        goto Done;
-    }
-
-    file_mapping_view = MapViewOfFile(file_mapping_handle, FILE_MAP_READ, 0, 0, file_size);
-
-    if (file_mapping_view == nullptr) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        EBPF_LOG_MESSAGE_ERROR(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "MapViewOfFile failed", result);
-        goto Done;
-    }
-
-    try {
-        // Compute the SHA256 hash of the file.
-        hash_t hash("SHA256");
-        auto sha256_hash = hash.hash_byte_ranges({{(uint8_t*)file_mapping_view, file_size}});
-        std::copy(sha256_hash.begin(), sha256_hash.end(), request.module_hash);
-        request.header.id = ebpf_operation_id_t::EBPF_OPERATION_AUTHORIZE_NATIVE_MODULE;
-        request.header.length = static_cast<uint16_t>(sizeof(request));
-    } catch (const std::bad_alloc&) {
-        result = EBPF_NO_MEMORY;
-        goto Done;
-    }
-
-    error = invoke_ioctl(request);
-    if (error != ERROR_SUCCESS) {
-        result = win32_error_code_to_ebpf_result(error);
-        EBPF_LOG_MESSAGE_ERROR(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "invoke_ioctl failed", result);
-        goto Done;
-    }
-
-Done:
-    if (file_mapping_view) {
-        UnmapViewOfFile(file_mapping_view);
-    }
-    if (file_mapping_handle != INVALID_HANDLE_VALUE && file_mapping_handle != 0) {
-        CloseHandle(file_mapping_handle);
-    }
-    if (file_handle != INVALID_HANDLE_VALUE) {
-        CloseHandle(file_handle);
-    }
-
-    EBPF_RETURN_RESULT(result);
-}
-
 /**
  * @brief Load native module for the specified driver service.
  *
@@ -3864,8 +3778,7 @@ _ebpf_object_load_native(
         // Create a driver service with a random name.
         service_name = guid_to_wide_string(&service_name_guid);
 
-        // FUTURE: Move this to eBPFService and tie this to signature check.
-        result = ebpf_authorize_native_module(file_name_string.c_str());
+        result = ebpf_rpc_authorize_native_module(file_name_string.c_str());
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,
