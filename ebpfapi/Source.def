@@ -109,7 +109,6 @@ EXPORTS
     ebpf_api_close_handle
     ebpf_api_get_pinned_map_info
     ebpf_api_map_info_free
-    ebpf_authorize_native_module
     ebpf_canonicalize_pin_path
     ebpf_close_fd
     ebpf_duplicate_fd
