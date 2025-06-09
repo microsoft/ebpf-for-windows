@@ -94,14 +94,14 @@ extern "C"
  * @brief Macro to initialize an object and record the file and line number of the reference.
  *EBPF_OBJECT_INITIALIZE
  */
-#define EBPF_OBJECT_INITIALIZE(object, object_type, free_function, zero_ref_function, get_program_type_function) \
-    ebpf_object_initialize(                                                                                      \
-        (ebpf_core_object_t*)(object),                                                                           \
-        (object_type),                                                                                           \
-        (free_function),                                                                                         \
-        (zero_ref_function),                                                                                     \
-        (get_program_type_function),                                                                             \
-        EBPF_FILE_ID,                                                                                            \
+#define EBPF_OBJECT_INITIALIZE(object, object_type, free_object, zero_ref_function, get_program_type) \
+    ebpf_object_initialize(                                                                           \
+        (ebpf_core_object_t*)(object),                                                                \
+        (object_type),                                                                                \
+        (free_object),                                                                                \
+        (zero_ref_function),                                                                          \
+        (get_program_type),                                                                           \
+        EBPF_FILE_ID,                                                                                 \
         __LINE__)
 
     typedef struct _ebpf_base_object ebpf_base_object_t;
@@ -109,7 +109,7 @@ extern "C"
     typedef void (*ebpf_base_acquire_reference_t)(_Inout_ void* base_object, ebpf_file_id_t file_id, uint32_t line);
 
     typedef struct _ebpf_core_object ebpf_core_object_t;
-    typedef void (*ebpf_zero_ref_count_t)(ebpf_core_object_t* object);
+    typedef void (*ebpf_notify_reference_count_zeroed_t)(ebpf_core_object_t* object);
     typedef void (*ebpf_free_object_t)(ebpf_core_object_t* object);
     typedef const ebpf_program_type_t (*ebpf_object_get_program_type_t)(_In_ const ebpf_core_object_t* object);
 
@@ -133,16 +133,16 @@ extern "C"
 
     typedef struct _ebpf_core_object
     {
-        ebpf_base_object_t base;              ///< Base object for all reference counted eBPF objects.
-        ebpf_object_type_t type;              ///< Type of this object.
-        ebpf_free_object_t free_function;     ///< Function to free this object.
-        ebpf_zero_ref_count_t zero_ref_count; ///< Function to notify the object that the reference count has reached
-                                              ///< zero.
-        ebpf_object_get_program_type_t get_program_type; ///< Function to get the program type of this object.
-        ebpf_id_t id;                                    ///< ID of this object.
-        ebpf_list_entry_t object_list_entry;             ///< Entry in the object list.
-        volatile int32_t pinned_path_count;              ///< Number of pinned paths for this object.
-        struct _ebpf_epoch_work_item* free_work_item;    ///< Work item to free this object when the epoch ends.
+        ebpf_base_object_t base;        ///< Base object for all reference counted eBPF objects.
+        ebpf_object_type_t type;        ///< Type of this object.
+        ebpf_free_object_t free_object; ///< Function to free this object.
+        ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed; ///< Function to notify the object that the
+                                                                            ///< reference count has reached zero.
+        ebpf_object_get_program_type_t get_program_type;     ///< Function to get the program type of this object.
+        ebpf_id_t id;                                        ///< ID of this object.
+        ebpf_list_entry_t object_list_entry;                 ///< Entry in the object list.
+        volatile int32_t pinned_path_count;                  ///< Number of pinned paths for this object.
+        struct _ebpf_epoch_work_item* free_object_work_item; ///< Work item to free this object when the epoch ends.
     } ebpf_core_object_t;
 
     /**
@@ -166,8 +166,8 @@ extern "C"
      *
      * @param[in, out] object ebpf_core_object_t structure to initialize.
      * @param[in] object_type The type of the object.
-     * @param[in] free_function The function used to free the object.
-     * @param[in] get_program_type_function The function used to get a program type, or NULL.  Each program
+     * @param[in] free_object The function used to free the object.
+     * @param[in] get_program_type The function used to get a program type, or NULL.  Each program
      * @param[in] file_id The file ID of the caller.
      * @param[in] line The line number of the caller.
      * has a program type, and hence so do maps that can contain programs, whether directly (like
@@ -179,9 +179,9 @@ extern "C"
     ebpf_object_initialize(
         _Inout_ ebpf_core_object_t* object,
         ebpf_object_type_t object_type,
-        _In_ ebpf_free_object_t free_function,
-        _In_opt_ ebpf_zero_ref_count_t zero_ref_count_function,
-        ebpf_object_get_program_type_t get_program_type_function,
+        _In_ ebpf_free_object_t free_object,
+        _In_opt_ ebpf_notify_reference_count_zeroed_t notify_reference_count_zeroed,
+        ebpf_object_get_program_type_t get_program_type,
         ebpf_file_id_t file_id,
         uint32_t line);
 
