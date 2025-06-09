@@ -557,5 +557,6 @@ typedef struct _ebpf_operation_program_set_flags_request
 typedef struct _ebpf_operation_authorize_native_module_request
 {
     struct _ebpf_operation_header header;
+    GUID module_id;
     uint8_t module_hash[32]; // SHA256 hash of the native module.
 } ebpf_operation_authorize_native_module_request_t;
