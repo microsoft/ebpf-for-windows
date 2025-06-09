@@ -3778,7 +3778,7 @@ _ebpf_object_load_native(
         // Create a driver service with a random name.
         service_name = guid_to_wide_string(&service_name_guid);
 
-        result = ebpf_rpc_authorize_native_module(file_name_string.c_str());
+        result = ebpf_rpc_authorize_native_module(&provider_module_id, file_name_string.c_str());
         if (result != EBPF_SUCCESS) {
             EBPF_LOG_MESSAGE_STRING(
                 EBPF_TRACELOG_LEVEL_ERROR,

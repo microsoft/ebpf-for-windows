@@ -806,7 +806,7 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t* client_context = NULL;
     cxplat_utf8_string_t hash_algorithm = {.value = (uint8_t*)"SHA256", .length = 6};
     size_t hash_length = 0;
-    uint32_t* authorized = NULL;
+    uint8_t* expected_module_hash = NULL;
 
     const metadata_table_t* table = (const metadata_table_t*)client_dispatch;
     if (table == NULL) {
@@ -872,8 +872,26 @@ _ebpf_native_provider_attach_client_callback(
     }
 
     state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
-    result =
-        ebpf_hash_table_find(_ebpf_native_authorized_module_table, client_context->module_hash, (uint8_t**)&authorized);
+    result = ebpf_hash_table_find(
+        _ebpf_native_authorized_module_table, (const uint8_t*)client_module_id, (uint8_t**)&expected_module_hash);
+
+    // If the module is found in the authorized module table, check if the hash matches.
+    if (result == EBPF_SUCCESS) {
+        if (hash_length != EBPF_SHA256_HASH_LENGTH ||
+            memcmp(expected_module_hash, client_context->module_hash, hash_length) != 0) {
+            // Module is not authorized.
+            EBPF_LOG_MESSAGE_GUID(
+                EBPF_TRACELOG_LEVEL_ERROR,
+                EBPF_TRACELOG_KEYWORD_NATIVE,
+                "_ebpf_native_client_attach_callback: Module hash does not match authorized module",
+                client_module_id);
+            result = EBPF_VERIFICATION_FAILED;
+        }
+    }
+    // Delete the entry from the authorized module table if it exists.
+    (void)ebpf_hash_table_delete(
+        _ebpf_native_authorized_module_table, (const uint8_t*)&client_context->client_module_id);
+
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
     if (result != EBPF_SUCCESS) {
         // Module is not authorized.
@@ -1003,8 +1021,8 @@ ebpf_native_initiate()
     return_value = ebpf_hash_table_create(
         &_ebpf_native_authorized_module_table,
         &(const ebpf_hash_table_creation_options_t){
-            .key_size = EBPF_SHA256_HASH_LENGTH,
-            .value_size = sizeof(uint32_t),
+            .key_size = sizeof(GUID),
+            .value_size = EBPF_SHA256_HASH_LENGTH,
             .allocate = ebpf_allocate,
             .free = ebpf_free,
         });
@@ -2356,15 +2374,17 @@ Done:
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_native_authorize_module(_In_ const uint8_t* module_hash)
+ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* module_hash)
 {
     EBPF_LOG_ENTRY();
-    uint32_t authorized = 1;
     ebpf_result_t result = EBPF_SUCCESS;
 
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
     result = ebpf_hash_table_update(
-        _ebpf_native_authorized_module_table, module_hash, (const uint8_t*)&authorized, EBPF_HASH_TABLE_OPERATION_ANY);
+        _ebpf_native_authorized_module_table,
+        (const uint8_t*)module_id,
+        (const uint8_t*)module_hash,
+        EBPF_HASH_TABLE_OPERATION_ANY);
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
     EBPF_RETURN_RESULT(result);
 }
