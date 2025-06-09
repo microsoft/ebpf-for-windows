@@ -29,3 +29,4 @@ KERNEL32.dll
 api-ms-win-core-memory-l1-1-0.dll
 api-ms-win-core-string-l1-1-0.dll
 api-ms-win-crt-math-l1-1-0.dll
+bcrypt.dll

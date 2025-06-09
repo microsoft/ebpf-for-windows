@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: MIT
 
 #include "ebpf_platform.h"
+#include "ebpf_tracelog.h"
 
 #include <bcrypt.h>
 #pragma comment(lib, "bcrypt")
@@ -121,4 +122,63 @@ ebpf_cryptographic_hash_get_hash_length(_In_ const ebpf_cryptographic_hash_t* ha
         return EBPF_INVALID_ARGUMENT;
     }
     return EBPF_SUCCESS;
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_hash_file_contents(
+    _In_ const cxplat_utf8_string_t* file_name,
+    _In_ const cxplat_utf8_string_t* algorithm,
+    _Out_writes_bytes_(length) uint8_t* buffer,
+    size_t length,
+    _Out_ size_t* output_length)
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result;
+    ebpf_cryptographic_hash_t* hash = NULL;
+    HANDLE file_handle = NULL;
+    HANDLE mapping_handle = NULL;
+    void* base_address = NULL;
+    size_t size = 0;
+
+    result = ebpf_cryptographic_hash_create(algorithm, &hash);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Failed to create hash object");
+        goto Done;
+    }
+
+    result = ebpf_open_readonly_file_mapping(file_name, &file_handle, &mapping_handle, &base_address, &size);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Failed to open file mapping");
+        goto Done;
+    }
+
+    if (size == 0) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "File size is zero");
+        result = EBPF_FILE_NOT_FOUND;
+        goto Done;
+    }
+
+    // Append the file content to the hash.
+    result = ebpf_cryptographic_hash_append(hash, (const uint8_t*)base_address, size);
+
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Failed to append file content to hash");
+        goto Done;
+    }
+
+    // Get the hash value.
+    result = ebpf_cryptographic_hash_get_hash(hash, buffer, length, output_length);
+    if (result != EBPF_SUCCESS) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Failed to get hash value");
+        goto Done;
+    }
+
+Done:
+    ebpf_cryptographic_hash_destroy(hash);
+    hash = NULL;
+
+    ebpf_close_file_mapping(file_handle, mapping_handle, base_address);
+
+    EBPF_RETURN_RESULT(result);
 }

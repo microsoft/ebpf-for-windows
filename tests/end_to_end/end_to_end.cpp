@@ -3148,6 +3148,8 @@ TEST_CASE("load_native_program_negative4", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
+    REQUIRE(ebpf_authorize_native_module("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
@@ -3212,6 +3214,8 @@ TEST_CASE("load_native_program_negative6", "[end-to-end]")
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
 
+    REQUIRE(ebpf_authorize_native_module("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
+
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
@@ -3258,6 +3262,8 @@ TEST_CASE("native_module_handle_test_negative", "[end-to-end]")
     // Create a valid service with valid driver.
     _create_service_helper(
         L"test_sample_ebpf_um.dll", NATIVE_DRIVER_SERVICE_NAME, &provider_module_id, &service_handle);
+
+    REQUIRE(ebpf_authorize_native_module("test_sample_ebpf_um.dll") == EBPF_SUCCESS);
 
     // Load native module. It should succeed.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
