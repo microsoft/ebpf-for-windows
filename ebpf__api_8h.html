@@ -269,6 +269,9 @@ Functions</h2></td></tr>
 <tr class="memitem:acf5b67fca8b31ea9478e7193fdc4c802" id="r_acf5b67fca8b31ea9478e7193fdc4c802"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#acf5b67fca8b31ea9478e7193fdc4c802">ebpf_perf_event_array_map_write</a> (<a class="el" href="ebpf__api_8h.html#a90a344fbc365e792f103e07afeca9a7b">fd_t</a> perf_event_array_map_fd, _In_reads_bytes_(data_length) const void *data, size_t data_length) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
 <tr class="memdesc:acf5b67fca8b31ea9478e7193fdc4c802"><td class="mdescLeft">&#160;</td><td class="mdescRight">Write data into the perf event array map.  <br /></td></tr>
 <tr class="separator:acf5b67fca8b31ea9478e7193fdc4c802"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae7728367f9db8e450d2ac9fc5d34f3c3" id="r_ae7728367f9db8e450d2ac9fc5d34f3c3"><td class="memItemLeft" align="right" valign="top">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="ebpf__api_8h.html#ae7728367f9db8e450d2ac9fc5d34f3c3">ebpf_authorize_native_module</a> (const char *module_path) <a class="el" href="ebpf__api_8h.html#a51a3ea825c4edf449eb974d36cfa635b">EBPF_NO_EXCEPT</a></td></tr>
+<tr class="memdesc:ae7728367f9db8e450d2ac9fc5d34f3c3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Authorize a native module to be loaded.  <br /></td></tr>
+<tr class="separator:ae7728367f9db8e450d2ac9fc5d34f3c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -1056,6 +1059,39 @@ Variables</h2></td></tr>
   <table class="params">
     <tr><td class="paramdir">[in]</td><td class="paramname">name</td><td>Name to dissociate. </td></tr>
     <tr><td class="paramdir">[in]</td><td class="paramname">name_length</td><td>Length in bytes of the name. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ae7728367f9db8e450d2ac9fc5d34f3c3" name="ae7728367f9db8e450d2ac9fc5d34f3c3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae7728367f9db8e450d2ac9fc5d34f3c3">&#9670;&#160;</a></span>ebpf_authorize_native_module()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">_Must_inspect_result_ <a class="el" href="ebpf__result_8h.html#ac40fcf7ca8c88cd1975ade33fda0b333">ebpf_result_t</a> ebpf_authorize_native_module </td>
+          <td>(</td>
+          <td class="paramtype">const char *&#160;</td>
+          <td class="paramname"><em>module_path</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Authorize a native module to be loaded. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramdir">[in]</td><td class="paramname">module_path</td><td>Path to the native module to be authorized. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="retval"><dt>Return values</dt><dd>
+  <table class="retval">
+    <tr><td class="paramname">EBPF_SUCCESS</td><td>The operation was successful. </td></tr>
+    <tr><td class="paramname">EBPF_NO_MEMORY</td><td>Out of memory. </td></tr>
   </table>
   </dd>
 </dl>
