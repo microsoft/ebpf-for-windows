@@ -12,7 +12,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][bool] $EnableHVCI = $false)
+       [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off")
 
 Push-Location $WorkingDirectory
 
@@ -95,7 +95,7 @@ $Job = Start-Job -ScriptBlock {
 
     Write-Log "EnableHVCI: $EnableHVCI"
 
-    if ($EnableHVCI) {
+    if ($EnableHVCI -eq "On") {
         Write-Log "Enabling HVCI on test VMs..."
         # Enable HVCI on the test VM.
         foreach($VM in $VMList) {
