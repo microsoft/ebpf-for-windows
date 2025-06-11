@@ -11,7 +11,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
+       [Parameter(Mandatory = $false)][bool] $EnableHVCI = $false)
 
 Push-Location $WorkingDirectory
 
@@ -91,6 +92,14 @@ $Job = Start-Job -ScriptBlock {
 
     # Configure network adapters on VMs.
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
+
+    if ($EnableHVCI) {
+        # Enable HVCI on the test VM.
+        foreach($VM in $VMList) {
+            $VMName = $VM.Name
+            Enable-HVCIOnVM -VMName $VMName -ErrorAction Stop
+        }
+    }
 
     # Install eBPF Components on the test VM.
     foreach($VM in $VMList) {
