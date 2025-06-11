@@ -62,7 +62,8 @@ $Job = Start-Job -ScriptBlock {
            [parameter(Mandatory = $true)] [string] $LogFileName,
            [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
            [parameter(Mandatory = $true)] [bool] $KmTracing,
-           [parameter(Mandatory = $true)] [string] $KmTraceType
+           [parameter(Mandatory = $true)] [string] $KmTraceType,
+           [parameter(Mandatory = $true)] [string] $EnableHVCI
     )
     Push-Location $WorkingDirectory
 
@@ -128,7 +129,8 @@ $Job = Start-Job -ScriptBlock {
     $LogFileName,
     $WorkingDirectory,
     $KmTracing,
-    $KmTraceType)
+    $KmTraceType.
+    $EnableHVCI)
 
 # wait for the job to complete
 $JobTimedOut = `
