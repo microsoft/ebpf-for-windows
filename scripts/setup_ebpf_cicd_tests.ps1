@@ -129,7 +129,7 @@ $Job = Start-Job -ScriptBlock {
     $LogFileName,
     $WorkingDirectory,
     $KmTracing,
-    $KmTraceType.
+    $KmTraceType,
     $EnableHVCI)
 
 # wait for the job to complete
