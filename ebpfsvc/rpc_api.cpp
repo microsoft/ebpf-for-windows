@@ -57,49 +57,20 @@ ebpf_server_verify_and_authorize_native_image(
     /* [string][in] */ char* image_path)
 {
     HANDLE native_image_handle = INVALID_HANDLE_VALUE;
-    ebpf_result_t result = EBPF_SUCCESS;
-    bool impersonated = false;
+    ebpf_result_t result;
     if (RpcImpersonateClient(nullptr) != RPC_S_OK) {
-        result = EBPF_ACCESS_DENIED;
-        goto Exit;
+        return EBPF_ACCESS_DENIED;
     }
-
-    impersonated = true;
-
-    native_image_handle = CreateFileA(
-        image_path,
-        GENERIC_READ,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
-        nullptr,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
-        nullptr);
-
-    if (native_image_handle == INVALID_HANDLE_VALUE) {
-        result = win32_error_code_to_ebpf_result(GetLastError());
-        goto Exit;
-    }
-
-    if (!(RpcRevertToSelf() == RPC_S_OK)) {
-        result = EBPF_ACCESS_DENIED;
-        goto Exit;
-    }
-    impersonated = false;
-
-    // Revert to self before calling the authorization function.
-    // This is necessary to ensure that the authorization function does not run with the client's impersonation token.
-    result = ebpf_authorize_native_module(native_image_handle);
+    result = ebpf_verify_signature_and_open_file(image_path, &native_image_handle);
+    (void)RpcRevertToSelf();
     if (result != EBPF_SUCCESS) {
         goto Exit;
     }
+
+    result = ebpf_authorize_native_module(native_image_handle);
 Exit:
     if (native_image_handle != INVALID_HANDLE_VALUE) {
         CloseHandle(native_image_handle);
-    }
-    if (!(RpcRevertToSelf() == RPC_S_OK)) {
-        // If reverting to self fails, we still return the result of the authorization.
-        // This is a best-effort operation.
-        return EBPF_ACCESS_DENIED;
     }
     return result;
 }

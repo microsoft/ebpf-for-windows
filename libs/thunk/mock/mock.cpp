@@ -225,14 +225,15 @@ ebpf_rpc_load_program(
 _Must_inspect_result_ ebpf_result_t
 ebpf_rpc_authorize_native_module(_In_z_ const char* image_path)
 {
-    HANDLE image_handle =
-        CreateFileA(image_path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (image_handle == INVALID_HANDLE_VALUE) {
-        return EBPF_INVALID_ARGUMENT;
+    ebpf_result_t result = EBPF_SUCCESS;
+    HANDLE image_handle = INVALID_HANDLE_VALUE;
+
+    result = ebpf_verify_signature_and_open_file(image_path, &image_handle);
+    if (result != EBPF_SUCCESS) {
+        return result;
     }
 
-    ebpf_result_t result = ebpf_authorize_native_module(image_handle);
-
+    result = ebpf_authorize_native_module(image_handle);
     CloseHandle(image_handle);
     return result;
 }

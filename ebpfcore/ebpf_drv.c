@@ -85,7 +85,7 @@ _ebpf_driver_build_privileged_security_descriptor()
     PSECURITY_DESCRIPTOR self_relative_security_descriptor = NULL;
     const ULONG sidSubAuthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
     const SID_IDENTIFIER_AUTHORITY svcAuth = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
-    const subauthority_count = EBPF_COUNT_OF(sidSubAuthorities);
+    const ULONG subauthority_count = EBPF_COUNT_OF(sidSubAuthorities);
     ULONG security_descriptor_size = 0;
 
     sid = (PSID)ebpf_allocate_with_tag(
@@ -97,13 +97,13 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 
     // Initialize the SID for the ebpfsvc service.
-    status = RtlInitializeSid(sid, &svcAuth, subauthority_count);
+    status = RtlInitializeSid(sid, (SID_IDENTIFIER_AUTHORITY*)&svcAuth, (UCHAR)subauthority_count);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
     }
 
-    for (int i = 0; i < subauthority_count; i++) {
+    for (ULONG i = 0; i < subauthority_count; i++) {
         *RtlSubAuthoritySid(sid, i) = sidSubAuthorities[i];
     }
 

@@ -31,7 +31,19 @@ ebpf_verify_and_load_program(
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_authorize_native_module(_In_ HANDLE native_image_handle) EBPF_NO_EXCEPT;
+ebpf_authorize_native_module(HANDLE native_image_handle) EBPF_NO_EXCEPT;
+
+/**
+ * @brief Verify the signature of a file and open it.
+ *
+ * @param[in] file_path Path to the file to open.
+ * @param[out] file_handle Handle to the opened file.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ * @retval EBPF_INVALID_ARGUMENT Invalid file path.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* file_handle) noexcept;
 
 uint32_t
 ebpf_service_initialize() noexcept;

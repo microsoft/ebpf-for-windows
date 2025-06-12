@@ -433,7 +433,55 @@ Exit:
 #endif
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_authorize_native_module(_In_ HANDLE native_image_handle) noexcept
+ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* file_handle) noexcept
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    try {
+        std::wstring file_path_wide;
+        int file_path_length = MultiByteToWideChar(CP_UTF8, 0, file_path, -1, nullptr, 0);
+        if (file_path_length <= 0) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            EBPF_LOG_MESSAGE_ERROR(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "MultiByteToWideChar failed", result);
+            EBPF_RETURN_RESULT(result);
+        }
+        file_path_wide.resize(file_path_length);
+
+        if (MultiByteToWideChar(CP_UTF8, 0, file_path, -1, file_path_wide.data(), file_path_length) <= 0) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            EBPF_LOG_MESSAGE_ERROR(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "MultiByteToWideChar failed", result);
+            EBPF_RETURN_RESULT(result);
+        }
+
+        // FUTURE: Use WinVerifyTrustEx to verify the signature of the file.
+
+        *file_handle = CreateFileW(
+            file_path_wide.c_str(),
+            GENERIC_READ,
+            FILE_SHARE_READ | FILE_SHARE_DELETE,
+            nullptr,
+            OPEN_EXISTING,
+            FILE_ATTRIBUTE_NORMAL | FILE_FLAG_RANDOM_ACCESS,
+            nullptr);
+
+        if (*file_handle == INVALID_HANDLE_VALUE) {
+            result = win32_error_code_to_ebpf_result(GetLastError());
+            EBPF_LOG_MESSAGE_ERROR(EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "CreateFileW failed", result);
+            EBPF_RETURN_RESULT(result);
+        }
+
+        EBPF_RETURN_RESULT(EBPF_SUCCESS);
+    } catch (const std::bad_alloc&) {
+        EBPF_RETURN_RESULT(EBPF_NO_MEMORY);
+    } catch (const std::exception&) {
+        EBPF_RETURN_RESULT(EBPF_FAILED);
+    }
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_authorize_native_module(HANDLE native_image_handle) noexcept
 {
     EBPF_LOG_ENTRY();
 
@@ -444,12 +492,12 @@ ebpf_authorize_native_module(_In_ HANDLE native_image_handle) noexcept
     ebpf_operation_authorize_native_module_request_t request;
     uint32_t error = ERROR_SUCCESS;
 
-    file_mapping_handle = CreateFileMappingA(native_image_handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
+    file_mapping_handle = CreateFileMappingW(native_image_handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
 
     if (file_mapping_handle == NULL) {
         result = win32_error_code_to_ebpf_result(GetLastError());
         EBPF_LOG_MESSAGE_ERROR(
-            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "CreateFileMappingA failed", result);
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_API, "CreateFileMappingW failed", result);
         goto Done;
     }
 

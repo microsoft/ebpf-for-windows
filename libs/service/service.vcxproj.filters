@@ -39,8 +39,10 @@
     <ClInclude Include="api_service.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\hash.h" />
     <ClInclude Include="..\shared\hash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\hash.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
