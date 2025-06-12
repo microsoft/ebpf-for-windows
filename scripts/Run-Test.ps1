@@ -10,6 +10,8 @@
 # Modifying $args directly can cause issues, so copy it to a new variable.
 $arguments = $args
 
+Write-Output "Running test with arguments: $($arguments -join ' ')"
+
 # Check that the correct number of arguments have been provided.
 if ($arguments.Count -eq 0) {
     Write-Output "Usage: Run-Test.ps1 <output folder> <timeout in seconds> <test command> <test arguments>"
