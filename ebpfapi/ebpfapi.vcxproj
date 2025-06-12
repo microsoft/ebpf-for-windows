@@ -186,10 +186,7 @@
     <ClCompile Include="..\libs\thunk\windows\platform.cpp" />
     <ClCompile Include="..\libs\shared\hash.cpp" />
     <ClCompile Include="dllmain.cpp" />
-    <ClCompile Include="rpc_client.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)'=='NativeOnlyDebug'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)'=='NativeOnlyRelease'">true</ExcludedFromBuild>
-    </ClCompile>
+    <ClCompile Include="rpc_client.cpp"/>
   </ItemGroup>
   <ItemGroup>
     <None Include="Source.def" />

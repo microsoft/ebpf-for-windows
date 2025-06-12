@@ -150,13 +150,13 @@
     <ProjectReference Include="..\..\..\libs\runtime\user\platform_user.vcxproj">
       <Project>{c26cb6a9-158c-4a9e-a243-755ddd98e5fe}</Project>
     </ProjectReference>
-    <ProjectReference Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'" Include="..\..\..\libs\service\service.vcxproj">
+    <ProjectReference Include="..\..\..\libs\service\service.vcxproj">
       <Project>{af85c549-57cc-40a5-bdfc-dcf1998de80f}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\libs\shared\user\shared_user.vcxproj">
       <Project>{9388dd45-7941-45d7-b4ff-bc00f550af17}</Project>
     </ProjectReference>
-    <ProjectReference Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'" Include="..\..\..\libs\ubpf\user\ubpf_user.vcxproj">
+    <ProjectReference Include="..\..\..\libs\ubpf\user\ubpf_user.vcxproj">
       <Project>{245f0ec7-1ebc-4d68-8b1f-f758ea9196ae}</Project>
     </ProjectReference>
     <ProjectReference Condition="'$(Configuration)'=='Debug' Or '$(Configuration)'=='Release'" Include="..\..\..\rpc_interface\rpc_interface.vcxproj">

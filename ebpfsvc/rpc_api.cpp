@@ -51,3 +51,26 @@ ebpf_server_verify_and_load_program(
     return EBPF_OPERATION_NOT_SUPPORTED;
 #endif
 }
+
+ebpf_result_t
+ebpf_server_verify_and_authorize_native_image(
+    /* [string][in] */ char* image_path)
+{
+    HANDLE native_image_handle = INVALID_HANDLE_VALUE;
+    ebpf_result_t result;
+    if (RpcImpersonateClient(nullptr) != RPC_S_OK) {
+        return EBPF_ACCESS_DENIED;
+    }
+    result = ebpf_verify_signature_and_open_file(image_path, &native_image_handle);
+    (void)RpcRevertToSelf();
+    if (result != EBPF_SUCCESS) {
+        goto Exit;
+    }
+
+    result = ebpf_authorize_native_module(native_image_handle);
+Exit:
+    if (native_image_handle != INVALID_HANDLE_VALUE) {
+        CloseHandle(native_image_handle);
+    }
+    return result;
+}
