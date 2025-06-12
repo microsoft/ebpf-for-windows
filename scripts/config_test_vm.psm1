@@ -896,10 +896,8 @@ function Enable-HVCIOnVM {
         Write-Log "Enabling HVCI on VM: $VmName"
         $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
         Invoke-Command -VMName $VmName -Credential $vmCredential -ScriptBlock {
-            Write-Log "Enabling HVCI on VM: $($Env:COMPUTERNAME)"
             # Enable HVCI
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -Force
-            Write-Log "HVCI enabled successfully on VM: $($Env:COMPUTERNAME)" -ForegroundColor Green
             # Restart the VM to apply changes
             Restart-Computer -Force -ErrorAction Stop
         }
