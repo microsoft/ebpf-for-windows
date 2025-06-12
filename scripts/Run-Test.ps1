@@ -29,6 +29,7 @@ $processInfo.UseShellExecute = $false
 $processInfo.FileName = $arguments[0]
 $processInfo.Arguments = $arguments[1..($arguments.Length - 1)] -join ' '
 
+Write-Output "Starting test: $($processInfo.FileName) $($processInfo.Arguments)"
 $process = New-Object System.Diagnostics.Process
 $process.StartInfo = $processInfo
 $process.Start() | Out-Null

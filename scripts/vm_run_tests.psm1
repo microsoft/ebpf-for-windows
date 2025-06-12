@@ -216,7 +216,6 @@ function Start-ProcessOnVM
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         $ProgramName = "$WorkingDirectory\$ProgramName"
 
-        Write-Host "[DEBUG] Attempting to start process: $ProgramName $Parameters" -ForegroundColor Yellow
         Start-Process -FilePath $ProgramName -ArgumentList $Parameters
     } -ArgumentList ($VM, $ProgramName, $Parameters, "eBPF") -ErrorAction Stop
 }
