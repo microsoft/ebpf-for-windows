@@ -61,7 +61,7 @@ ebpf_rpc_load_program(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_rpc_authorize_native_module(_In_z_ const char* image_path) noexcept
+ebpf_rpc_authorize_native_module(_In_ GUID* module_id, _In_z_ const char* image_path) noexcept
 {
     ebpf_result_t result;
 
@@ -76,7 +76,7 @@ ebpf_rpc_authorize_native_module(_In_z_ const char* image_path) noexcept
         return EBPF_INVALID_ARGUMENT;
     }
 
-    RpcTryExcept { result = ebpf_client_verify_and_authorize_native_image(full_image_path); }
+    RpcTryExcept { result = ebpf_client_verify_and_authorize_native_image(module_id, full_image_path); }
     RpcExcept(RpcExceptionFilter(RpcExceptionCode()))
     {
         EBPF_LOG_MESSAGE_UINT64(

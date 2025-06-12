@@ -17,4 +17,4 @@ ebpf_rpc_load_program(
     _Inout_ uint32_t* logs_size) noexcept;
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_rpc_authorize_native_module(_In_z_ const char* image_path) noexcept;
+ebpf_rpc_authorize_native_module(_In_ GUID* module_id, _In_z_ const char* image_path) noexcept;
