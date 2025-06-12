@@ -27,3 +27,5 @@ C:\Program Files\ebpf-for-windows\msvcp140_codecvt_ids.dll
 C:\Program Files\ebpf-for-windows\vccorlib140.dll
 C:\Program Files\ebpf-for-windows\vcruntime140.dll
 C:\Program Files\ebpf-for-windows\vcruntime140_1.dll
+C:\Program Files\ebpf-for-windows\JIT\ebpfsvc.exe
+C:\Program Files\ebpf-for-windows\JIT\EbpfSvc.pdb

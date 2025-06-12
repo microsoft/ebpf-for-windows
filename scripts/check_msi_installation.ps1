@@ -14,7 +14,7 @@ $InstallPath = "$env:ProgramFiles\ebpf-for-windows";
 # - The expected file lists for each build artifact
 $buildArtifactParams = @{
     "Build-x64_Debug" = @{
-        "InstallComponents" = "ADDLOCAL=eBPF_Runtime_Components,eBPF_Runtime_Components_JIT"
+        "InstallComponents" = "ADDLOCAL=eBPF_Runtime_Components"
         "ExpectedFileList" = "..\..\scripts\check_msi_installation_files_regular_debug.txt"
     }
     "Build-x64-native-only_NativeOnlyRelease" = @{
@@ -174,21 +174,18 @@ function Check-eBPF-Installation {
     }
     Pop-Location
 
-    # If the JIT option is enabled, check if the eBPF JIT service is running.
-    if ($buildArtifactParams[$BuildArtifact]["InstallComponents"] -like "*eBPF_Runtime_Components_JIT*") {
-        Write-Host "Checking if the eBPF JIT service is running..."
-        try {
-            $service = Get-Service -Name $eBpfServiceName
-            if ($service.Status -eq "Running") {
-                Write-Host "The '$eBpfServiceName' service is running."
-            } else {
-                Write-Host "The '$eBpfServiceName' service is NOT running."
-                $res = $false
-            }
-        } catch {
-            Write-Host "An error occurred while checking the '$eBpfServiceName' service: $_"
+    Write-Host "Checking if the eBPF service is running..."
+    try {
+        $service = Get-Service -Name $eBpfServiceName
+        if ($service.Status -eq "Running") {
+            Write-Host "The '$eBpfServiceName' service is running."
+        } else {
+            Write-Host "The '$eBpfServiceName' service is NOT running."
             $res = $false
         }
+    } catch {
+        Write-Host "An error occurred while checking the '$eBpfServiceName' service: $_"
+        $res = $false
     }
 
     return $res

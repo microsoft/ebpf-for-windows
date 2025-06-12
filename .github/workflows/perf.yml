@@ -31,7 +31,6 @@ jobs:
       ref: ${{ github.ref }}
       repository: ${{ github.repository }}
       build_artifact: Build-x64
-      build_options: /p:ReleaseJIT='False'
       configurations: '["Release"]'
 
   performance_with_profile:
