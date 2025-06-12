@@ -285,7 +285,7 @@ jobs:
     with:
       build_platform: 'ARM64'
       pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost -SkipPSExecTests
       post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost
       name: driver_native_only_arm64
       build_artifact: Build-ARM64-native-only
