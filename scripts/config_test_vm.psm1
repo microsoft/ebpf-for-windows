@@ -897,6 +897,7 @@ function Enable-HVCIOnVM {
         $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
         Invoke-Command -VMName $VmName -Credential $vmCredential -ScriptBlock {
             # Enable HVCI
+            New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
             Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -Force
             # Restart the VM to apply changes
             Restart-Computer -Force -ErrorAction Stop
