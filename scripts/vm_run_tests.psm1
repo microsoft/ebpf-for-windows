@@ -10,7 +10,8 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
        [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
        [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
-       [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
+       [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
+       [Parameter(Mandatory = $false)][bool] $SkipPSExecTests = $false
 )
 
 Push-Location $WorkingDirectory
@@ -49,7 +50,8 @@ function Invoke-CICDTestsOnVM
     param([Parameter(Mandatory = $True)] [string] $VMName,
           [Parameter(Mandatory = $False)] [bool] $VerboseLogs = $false,
           [Parameter(Mandatory = $False)][string] $TestMode = "CI/CD",
-          [Parameter(Mandatory = $False)][string[]] $Options = @())
+          [Parameter(Mandatory = $False)][string[]] $Options = @(),
+          [Parameter(Mandatory = $False)][bool] $SkipPSExecTests = $false)
 
     Write-Log "Running eBPF $TestMode tests on $VMName"
     $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
@@ -61,7 +63,8 @@ function Invoke-CICDTestsOnVM
               [Parameter(Mandatory = $True)][string] $TestMode,
               [Parameter(Mandatory = $true)][int] $TestHangTimeout,
               [Parameter(Mandatory = $true)][string] $UserModeDumpFolder,
-              [Parameter(Mandatory = $True)][string[]] $Options)
+              [Parameter(Mandatory = $True)][string[]] $Options,
+              [Parameter(Mandatory = $True)][bool] $SkipPSExecTests)
 
         $WorkingDirectory = "$Env:SystemDrive\$WorkingDirectory"
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
@@ -74,12 +77,14 @@ function Invoke-CICDTestsOnVM
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $true `
+                    -SkipPSExecTests $SkipPSExecTests `
                     2>&1 | Write-Log
             }
             "regression" {
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $false `
+                    -SkipPSExecTests $SkipPSExecTests `
                     2>&1 | Write-Log
             }
             "stress" {
@@ -107,7 +112,8 @@ function Invoke-CICDTestsOnVM
             $TestMode,
             $TestHangTimeout,
             $UserModeDumpFolder,
-            $Options) -ErrorAction Stop
+            $Options,
+            $SkipPSExecTests) -ErrorAction Stop
 }
 
 function Add-eBPFProgramOnVM
@@ -690,7 +696,8 @@ function Run-KernelTestsOnVM
     Invoke-CICDTestsOnVM `
         -VMName $VMName `
         -TestMode $TestMode `
-        -Options $Options
+        -Options $Options `
+        -SkipPSExecTests $SkipPSExecTests
 
     # The required behavior is selected by the $TestMode
     # parameter.

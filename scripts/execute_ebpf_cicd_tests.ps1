@@ -12,7 +12,8 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
-       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
+       [Parameter(Mandatory = $false)][switch] $SkipPSExecTests
 )
 
 # Normalize the working directory path to avoid issues with relative path components
@@ -47,7 +48,8 @@ if (-not $ExecuteOnHost) {
                [Parameter(Mandatory = $True)] [string] $TestMode,
                [Parameter(Mandatory = $True)] [string[]] $Options,
                [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
-               [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder)
+               [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
+               [Parameter(Mandatory = $True)] [bool] $SkipPSExecTests)
 
         Push-Location $WorkingDirectory
 
@@ -65,7 +67,8 @@ if (-not $ExecuteOnHost) {
                 $TestMode,
                 $Options,
                 $TestHangTimeout,
-                $UserModeDumpFolder) `
+                $UserModeDumpFolder,
+                $SkipPSExecTests) `
             -WarningAction SilentlyContinue
 
         $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -102,7 +105,8 @@ if (-not $ExecuteOnHost) {
         $TestMode,
         $Options,
         $TestHangTimeout,
-        $UserModeDumpFolder)
+        $UserModeDumpFolder,
+        $SkipPSExecTests.ToBool())
 
     # Keep track of the last received output count
     $JobTimedOut = `
@@ -132,11 +136,11 @@ if (-not $ExecuteOnHost) {
         {
             "ci/cd" {
                 Write-Log "Running CI/CD tests on host"
-                Invoke-CICDTests -VerboseLogs $false -ExecuteSystemTests $true
+                Invoke-CICDTests -VerboseLogs $false -ExecuteSystemTests $true -SkipPSExecTests:$SkipPSExecTests
             }
             "regression" {
                 Write-Log "Running regression tests on host"
-                Invoke-CICDTests -VerboseLogs $false -ExecuteSystemTests $false
+                Invoke-CICDTests -VerboseLogs $false -ExecuteSystemTests $false -SkipPSExecTests:$SkipPSExecTests
             }
             "stress" {
                 Write-Log "Running stress tests on host"

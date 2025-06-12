@@ -16,6 +16,19 @@ Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogF
 # Utility functions.
 #
 
+# Detects the current system architecture and returns whether PSExec is compatible.
+function Test-PSExecCompatibility
+{
+    $Architecture = $env:PROCESSOR_ARCHITECTURE
+    if ($Architecture -eq "ARM64") {
+        Write-Log "Detected ARM64 architecture - PSExec64.exe is not compatible" -ForegroundColor Yellow
+        return $false
+    } else {
+        Write-Log "Detected $Architecture architecture - PSExec64.exe is compatible" -ForegroundColor Green
+        return $true
+    }
+}
+
 # Finds and returns the specified tool's location under the current directory. If not found, throws an exception.
 function GetToolLocationPath
 {
@@ -314,11 +327,17 @@ function New-TestTuple {
 function Invoke-CICDTests
 {
     param([parameter(Mandatory = $true)][bool] $VerboseLogs,
-          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests)
+          [parameter(Mandatory = $true)][bool] $ExecuteSystemTests,
+          [parameter(Mandatory = $false)][bool] $SkipPSExecTests = $false)
 
 
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
+
+    # Automatically detect if PSExec should be skipped based on architecture
+    if (-not $SkipPSExecTests) {
+        $SkipPSExecTests = -not (Test-PSExecCompatibility)
+    }
 
     # Now create an array of test tuples, overriding only the necessary values
     # load_native_program_invalid4 has been deleted from the test list, but 0.17 tests still have this test.
@@ -339,10 +358,14 @@ function Invoke-CICDTests
 
     $SystemTestList = @((New-TestTuple -Test "api_test.exe"))
     if ($ExecuteSystemTests) {
-        foreach ($Test in $SystemTestList) {
-            $TestCommand = "PsExec64.exe"
-            $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
-            Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
+        if ($SkipPSExecTests) {
+            Write-Log "Skipping PSExec-dependent system tests due to architecture compatibility or SkipPSExecTests flag" -ForegroundColor Yellow
+        } else {
+            foreach ($Test in $SystemTestList) {
+                $TestCommand = "PsExec64.exe"
+                $TestArguments = "-accepteula -nobanner -s -w `"$pwd`" `"$pwd\$($Test.Test) $($Test.Arguments)`" `"-d yes`""
+                Invoke-Test -TestName $TestCommand -TestArgs $TestArguments -InnerTestName $($Test.Test)  -VerboseLogs $VerboseLogs -TestHangTimeout $($Test.Timeout)
+            }
         }
     }
 
