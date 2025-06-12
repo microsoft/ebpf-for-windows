@@ -33,6 +33,10 @@ $processInfo.Arguments = $arguments[1..($arguments.Length - 1)] -join ' '
 
 Write-Output "Starting test: $($processInfo.FileName) $($processInfo.Arguments)"
 $process = New-Object System.Diagnostics.Process
+if ($process -eq $null) {
+    Write-Output "Failed to create process object."
+    exit 1
+}
 $process.StartInfo = $processInfo
 $process.Start() | Out-Null
 

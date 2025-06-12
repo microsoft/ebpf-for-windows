@@ -310,11 +310,18 @@ jobs:
         if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES')) && (inputs.fault_injection != true)
         id: run_test_without_code_coverage
         working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
-        shell: cmd
         run: |
-          set EBPF_ENABLE_WER_REPORT=yes
-          cd /d ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
-          powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
+          ${{env.TEST_COMMAND}} -LogFileName arm64_runner.log
+
+      # - name: Run test without Code Coverage
+      #   if: (inputs.code_coverage == false) && (steps.skip_check.outputs.should_skip != 'true') && (!contains(inputs.environment, 'ebpf_cicd') && !contains(inputs.environment, '1ES')) && (inputs.fault_injection != true)
+      #   id: run_test_without_code_coverage
+      #   working-directory: ./${{env.BUILD_PLATFORM}}/${{env.BUILD_CONFIGURATION}}
+      #   shell: cmd
+      #   run: |
+      #     set EBPF_ENABLE_WER_REPORT=yes
+      #     cd /d ${{github.workspace}}\${{env.BUILD_PLATFORM}}\${{env.BUILD_CONFIGURATION}}
+      #     powershell.exe .\Run-Test.ps1 ${{env.DUMP_PATH}} ${{env.TEST_TIMEOUT}} ${{env.TEST_COMMAND}}
 
       - name: Run post test command
         # Run the post test command even if the workflow has failed.
