@@ -94,6 +94,14 @@ $Job = Start-Job -ScriptBlock {
     # Configure network adapters on VMs.
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 
+    # Install eBPF Components on the test VM.
+    foreach($VM in $VMList) {
+        $VMName = $VM.Name
+        Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
+    }
+
+
+    # Enable HVCI on the test VMs if specified.
     Write-Log "EnableHVCI: $EnableHVCI"
 
     if ($EnableHVCI -eq "On") {
@@ -106,12 +114,6 @@ $Job = Start-Job -ScriptBlock {
     }
     else {
         Write-Log "HVCI is not enabled on test VMs."
-    }
-
-    # Install eBPF Components on the test VM.
-    foreach($VM in $VMList) {
-        $VMName = $VM.Name
-        Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
     }
 
     # Log OS build information on the test VM.
