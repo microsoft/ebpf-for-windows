@@ -83,11 +83,13 @@ _ebpf_driver_build_privileged_security_descriptor()
     NTSTATUS status = STATUS_SUCCESS;
     SECURITY_DESCRIPTOR security_descriptor;
     PSECURITY_DESCRIPTOR self_relative_security_descriptor = NULL;
-    ULONG sidSubAuthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
-    SID_IDENTIFIER_AUTHORITY svcAuth = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
+    const ULONG sidSubAuthorities[] = {3453964624, 2861012444, 1105579853, 3193141192, 1897355174};
+    const SID_IDENTIFIER_AUTHORITY svcAuth = {0x00, 0x00, 0x00, 0x00, 0x00, 0x50}; // S-1-5-80
+    const subauthority_count = EBPF_COUNT_OF(sidSubAuthorities);
+    ULONG security_descriptor_size = 0;
 
-    sid =
-        (PSID)ebpf_allocate_with_tag(RtlLengthRequiredSid(5), 'fpBE'); // Use a tag to help with debugging memory leaks
+    sid = (PSID)ebpf_allocate_with_tag(
+        RtlLengthRequiredSid(subauthority_count), 'fpBE'); // Use a tag to help with debugging memory leaks
     if (sid == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
@@ -95,72 +97,71 @@ _ebpf_driver_build_privileged_security_descriptor()
     }
 
     // Initialize the SID for the ebpfsvc service.
-    status = RtlInitializeSid(sid, &svcAuth, 5);
+    status = RtlInitializeSid(sid, &svcAuth, subauthority_count);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlInitializeSid, status);
         goto Exit;
     }
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < subauthority_count; i++) {
         *RtlSubAuthoritySid(sid, i) = sidSubAuthorities[i];
     }
 
     status = RtlCreateSecurityDescriptor(&security_descriptor, SECURITY_DESCRIPTOR_REVISION);
-
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlCreateSecurityDescriptor, status);
         goto Exit;
     }
 
-    // Allocate and initialize a DACL with one ACE
+    // Allocate and initialize a DACL with one ACE.
     ULONG aclSize = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(sid) - sizeof(ULONG);
     dacl = (PACL)ebpf_allocate_with_tag(aclSize, 'fpBE'); // Use a tag to help with debugging memory leaks
-
     if (dacl == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
         goto Exit;
     }
 
+    // Create the DACL with one ACE that allows GENERIC_ALL access to the ebpfsvc service SID.
     status = RtlCreateAcl(dacl, aclSize, ACL_REVISION);
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlCreateAcl, status);
         goto Exit;
     }
 
+    // Add an ACE to the DACL that grants GENERIC_ALL access to the ebpfsvc service SID.
     status = RtlAddAccessAllowedAce(dacl, ACL_REVISION, GENERIC_ALL, sid);
-
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAddAccessAllowedAce, status);
         goto Exit;
     }
 
+    // Set the DACL in the security descriptor.
     status = RtlSetDaclSecurityDescriptor(&security_descriptor, TRUE, dacl, FALSE);
-
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlSetDaclSecurityDescriptor, status);
         goto Exit;
     }
 
     // Convert security descriptor to self-relative format.
-    ULONG security_descriptor_size = 0;
-
+    // First, we need to determine the size of the self-relative security descriptor.
     status = RtlAbsoluteToSelfRelativeSD(&security_descriptor, NULL, &security_descriptor_size);
     if (status != STATUS_BUFFER_TOO_SMALL) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
         goto Exit;
     }
-    self_relative_security_descriptor = ebpf_allocate_with_tag(security_descriptor_size, 'fpBE');
 
+    // Allocate memory for the self-relative security descriptor.
+    self_relative_security_descriptor = ebpf_allocate_with_tag(security_descriptor_size, 'fpBE');
     if (self_relative_security_descriptor == NULL) {
         status = STATUS_INSUFFICIENT_RESOURCES;
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, ebpf_allocate_with_tag, status);
         goto Exit;
     }
 
+    // Convert the absolute security descriptor to self-relative format.
     status =
         RtlAbsoluteToSelfRelativeSD(&security_descriptor, self_relative_security_descriptor, &security_descriptor_size);
-
     if (!NT_SUCCESS(status)) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_ERROR, RtlAbsoluteToSelfRelativeSD, status);
         goto Exit;
