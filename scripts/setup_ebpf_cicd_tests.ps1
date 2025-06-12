@@ -14,6 +14,9 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
 
+# Normalize the working directory path to avoid issues with relative path components
+$WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)
+
 Push-Location $WorkingDirectory
 
 # Load other utility modules.
