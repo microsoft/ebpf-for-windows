@@ -216,7 +216,6 @@ jobs:
       code_coverage: true
       gather_dumps: true
       capture_etw: true
-
   driver_tests:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
@@ -239,6 +238,22 @@ jobs:
       # driver tests manually gather code coverage
       code_coverage: false
 
+  driver_tests_arm64:
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost
+      name: driver_tests_arm64
+      build_artifact: Build-ARM64-native-only
+      environment: '["windows-11-arm"]'
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+
   driver_native_only_tests:
     needs: regular
     if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
@@ -256,6 +271,23 @@ jobs:
       name: driver_${{ matrix.image }}
       build_artifact: Build-x64-native-only
       environment: '["self-hosted", "1ES.Pool=ebpf-cicd-runner-pool-server-2019", "1ES.ImageOverride=${{ matrix.image }}"]'
+      # driver test copies dumps to testlog folder.
+      gather_dumps: false
+      # driver tests manually gather code coverage
+      code_coverage: false
+      configurations: '["NativeOnlyDebug", "NativeOnlyRelease"]'
+
+  driver_native_only_arm64_tests:
+    needs: regular
+    if: github.repository == 'microsoft/ebpf-for-windows' && (github.event_name == 'schedule' || github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group' || github.event_name == 'workflow_dispatch')
+    uses: ./.github/workflows/reusable-test.yml
+    with:
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file"
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD"
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true
+      name: driver_native_only_arm64
+      build_artifact: Build-ARM64-native-only
+      environment: '["windows-11-arm"]'
       # driver test copies dumps to testlog folder.
       gather_dumps: false
       # driver tests manually gather code coverage
