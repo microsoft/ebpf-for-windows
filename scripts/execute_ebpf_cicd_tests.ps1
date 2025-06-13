@@ -18,8 +18,8 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
 
 Write-Output "execute_ebpf_cicd_tests.ps1: Starting test execution"
 
-# Normalize the working directory path to avoid issues with relative path components
-$WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)
+# # Normalize the working directory path to avoid issues with relative path components
+# $WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)
 
 Push-Location $WorkingDirectory
 
