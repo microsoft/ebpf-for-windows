@@ -23,6 +23,12 @@ $WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPat
 
 Push-Location $WorkingDirectory
 
+# List all filenames in the working directory
+Write-Output "Working Directory: $WorkingDirectory"
+Get-ChildItem -Path $WorkingDirectory -File -Recurse | ForEach-Object {
+    Write-Output "Found file: $($_.FullName)"
+}
+
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
 
 if (-not $ExecuteOnHost) {
