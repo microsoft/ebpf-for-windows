@@ -29,6 +29,21 @@ function CopySignedBinaries {
     Get-ChildItem -Path $BinDir -Recurse | Remove-Item -Force -Recurse
 }
 
+# List of binaries to copy to output directory
+$BinariesToCopy = @(
+    "ebpfapi.dll",
+    "ebpfapi.pdb",
+    "ebpfapi.lib",
+    "bpftool.exe",
+    "bpftool.pdb",
+    "ebpfnetsh.dll",
+    "ebpfnetsh.pdb",
+    "eBPFCore.sys",
+    "eBPFCore.pdb",
+    "ebpfsvc.exe",
+    "ebpfsvc.pdb"
+)
+
 function CopyPackages {
     param (
         [string]$Config,
@@ -36,6 +51,7 @@ function CopyPackages {
     )
     $BinDir = FormatBinDir $Config $Arch
 
+    # Copy the signed packages to the output directory
     $PackagesDir = "$BinDir\packages"
     if (-not (Test-Path -Path $PackagesDir)) {
         New-Item -ItemType Directory -Path $PackagesDir
@@ -43,6 +59,29 @@ function CopyPackages {
 
     xcopy /y ".\$Arch\$Config\*.nupkg" $PackagesDir
     xcopy /y ".\$Arch\$Config\*.msi" $BinDir
+
+    # Copy the signed binaries to the output directory
+    $OutputBinDir = "$BinDir\bin"
+    if (-not (Test-Path -Path $OutputBinDir)) {
+        New-Item -ItemType Directory -Path $OutputBinDir
+    }
+
+    foreach ($binary in $BinariesToCopy) {
+        $sourcePath = ".\$Arch\$Config\$binary"
+        if (Test-Path -Path $sourcePath) {
+            Copy-Item -Path $sourcePath -Destination $OutputBinDir
+        } else {
+            Write-Host "Warning: $sourcePath does not exist."
+        }
+    }
+
+    # Copy the include files to the output directory
+    $IncludeDir = "$BinDir\include"
+    if (-not (Test-Path -Path $IncludeDir)) {
+        New-Item -ItemType Directory -Path $IncludeDir
+    }
+
+    xcopy /y "include\*" $IncludeDir
 }
 
 if ($OneBranchConfig -eq "NativeOnlyDebug" -or $OneBranchConfig -eq "NativeOnlyRelease")
