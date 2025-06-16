@@ -286,6 +286,14 @@ function Invoke-Test
 
     # Execute Test.
     Write-Log "Executing $TestName $TestArgs"
+
+    # Output the files in the local directory for debugging purposes.
+    Write-Log "Current directory: $pwd"
+    Write-Log "Files in current directory:"
+    Get-ChildItem -Path $pwd -File | ForEach-Object {
+        Write-Log "  $_.Name"
+    }
+
     $TestFilePath = "$pwd\$TestName"
     $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
     $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
