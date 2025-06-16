@@ -30,6 +30,9 @@ if (-not $ExecuteOnHost) {
     }
 
     Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+} else {
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ('', '', $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 }
 
 # Read the test execution json.
@@ -143,12 +146,12 @@ if (-not $ExecuteOnHost) {
         exit 1
     }
 } else {
-    # When executing on host, install eBPF components directly but skip operations that require reboot
+    # When executing on host, install necessary components directly on the host.
     Write-Log "Setting up eBPF components on host (skipping reboot-required operations)" -ForegroundColor Yellow
 
-    Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    Initialize-NetworkInterfacesOnHost -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName
 
-    # Install eBPF components but skip anything that requires reboot
+    # Install eBPF components but skip anything that requires reboot.
     Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
 }
 

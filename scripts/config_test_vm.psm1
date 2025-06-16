@@ -517,6 +517,25 @@ function Import-ResultsFromVM
 #
 # Configure network adapters on VMs.
 #
+function Initialize-NetworkInterfaces {
+    param([Parameter(Mandatory = $true)][string] $WorkingDirectory,
+          [Parameter(Mandatory = $true)][string] $LogFileName)
+    Push-Location "$WorkingDirectory"
+    Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+    Write-Log "Installing DuoNic driver"
+    .\duonic.ps1 -Install -NumNicPairs 2
+    # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
+    Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
+    Pop-Location
+}
+
+function Initialize-NetworkInterfacesOnHost {
+    param([Parameter(Mandatory = $true)][string] $WorkingDirectory,
+          [Parameter(Mandatory = $true)][string] $LogFileName)
+    Write-Log "Initializing network interfaces on host"
+    Initialize-NetworkInterfaces -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName
+}
+
 function Initialize-NetworkInterfacesOnVMs
 {
     param([parameter(Mandatory=$true)] $VMMap)
@@ -531,16 +550,7 @@ function Initialize-NetworkInterfacesOnVMs
         Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock {
             param([Parameter(Mandatory=$True)] [string] $WorkingDirectory,
                   [Parameter(Mandatory = $true)][string] $LogFileName)
-
-            Push-Location "$env:SystemDrive\$WorkingDirectory"
-            Import-Module .\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-
-            Write-Log "Installing DuoNic driver"
-            .\duonic.ps1 -Install -NumNicPairs 2
-            # Disable Duonic's fake checksum offload and force TCP/IP to calculate it.
-            Set-NetAdapterAdvancedProperty duo? -DisplayName Checksum -RegistryValue 0
-
-            Pop-Location
+            Initialize-NetworkInterfaces -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName
         } -ArgumentList ("eBPF", $LogFileName) -ErrorAction Stop
     }
 }
