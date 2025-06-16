@@ -45,9 +45,8 @@ _program_load_attach_helper::initialize(
         bpf_program__set_type(program, _program_type);
     }
 
-    printf(
-        "Loading program '%s' of type %d from file '%s'\n", _program_name.c_str(), _program_type, _file_name.c_str());
     int error = bpf_object__load(_object);
+    printf("Attempted to load program name: %s with result: %d\n", _file_name.c_str(), error);
     log_buffer = bpf_program__log_buf(program, &log_buffer_size);
     if (log_buffer != nullptr) {
         printf("bpf_object__load: error: %s", log_buffer);
