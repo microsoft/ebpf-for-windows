@@ -31,7 +31,8 @@ if (-not $ExecuteOnHost) {
 
     Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 } else {
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ('', '', $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($env:USERNAME, $EmptySecureString, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 }
 
