@@ -92,6 +92,7 @@ static _Success_(return == 0) int _program_load_helper(
     }
 
     int error = bpf_object__load(new_object);
+    printf("Attempted to load program name: %s with result: %d\n", file_name, error);
     if (error < 0) {
         bpf_object__close(new_object);
         return error;

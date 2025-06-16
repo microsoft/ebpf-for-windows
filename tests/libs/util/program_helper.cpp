@@ -45,6 +45,8 @@ _program_load_attach_helper::initialize(
         bpf_program__set_type(program, _program_type);
     }
 
+    printf(
+        "Loading program '%s' of type %d from file '%s'\n", _program_name.c_str(), _program_type, _file_name.c_str());
     int error = bpf_object__load(_object);
     log_buffer = bpf_program__log_buf(program, &log_buffer_size);
     if (log_buffer != nullptr) {
