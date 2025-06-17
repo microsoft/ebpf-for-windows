@@ -236,7 +236,7 @@
 			<rect x="0" y="582.484" width="83.4661" height="29.5163" class="st1"/>
 			<text x="22.6" y="594.24" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Netsh CLI<v:newlineChar/><v:paragraph
 						v:horizAlign="1"/><tspan x="18.93" dy="1.2em" class="st3">(netsh.exe)</tspan></text>		</g>
-		<g id="shape2-84" v:mID="2" v:groupContext="shape" transform="translate(549.317,-357.43)">
+		<g id="shape2-84" v:mID="2" v:groupContext="shape" transform="translate(648,-422.993)">
 			<title>Rectangle.2</title>
 			<desc>User-Mode API Library (ebpfapi.dll)</desc>
 			<v:userDefs>
@@ -262,7 +262,7 @@
 						x="12.16" dy="1.2em" class="st3">(ebpfnetsh.dll)</tspan></text>		</g>
 		<g id="shape8-92" v:mID="8" v:groupContext="shape" v:layerMember="0" transform="translate(526.579,-493.646)">
 			<title>Dynamic connector.8</title>
-			<path d="M0 612 L-0 623.91 L77.47 623.91 L77.47 636.65" class="st14"/>
+			<path d="M0 612 L-0 623.91 L49.42 623.91 L49.42 636.65" class="st14"/>
 		</g>
 		<g id="shape27-97" v:mID="27" v:groupContext="shape" v:layerMember="0" transform="translate(535.72,-535.101)">
 			<title>Dynamic connector.27</title>
@@ -282,7 +282,7 @@
 						dy="1.2em" class="st3">application</tspan></text>		</g>
 		<g id="shape38-107" v:mID="38" v:groupContext="shape" v:layerMember="0" transform="translate(667.555,-493.646)">
 			<title>Dynamic connector.38</title>
-			<path d="M0 612 L0 624.6 L-63.5 624.6 L-63.5 636.65" class="st14"/>
+			<path d="M0 612 L0 624.6 L-91.56 624.6 L-91.56 636.65" class="st14"/>
 		</g>
 		<g id="group63-112" transform="translate(297.011,-406.483)" v:mID="63" v:groupContext="group">
 			<title>Sheet.63</title>
@@ -340,7 +340,7 @@
 			<rect x="0" y="575.906" width="54.18" height="36.0936" class="st13"/>
 			<text x="13.81" y="590.65" class="st21" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>MSVC <tspan x="5.35"
 						dy="1.2em" class="st3">Toolchain</tspan></text>		</g>
-		<g id="shape67-133" v:mID="67" v:groupContext="shape" transform="translate(571.478,-422.993)">
+		<g id="shape67-133" v:mID="67" v:groupContext="shape" transform="translate(543.427,-422.993)">
 			<title>Rectangle.67</title>
 			<desc>Native eBPF program (.sys file)</desc>
 			<v:userDefs>
@@ -355,7 +355,7 @@
 						x="18.25" dy="1.2em" class="st3">(.sys file)</tspan></text>		</g>
 		<g id="shape68-138" v:mID="68" v:groupContext="shape" v:layerMember="0" transform="translate(481.478,-451.48)">
 			<title>Dynamic connector.68</title>
-			<path d="M0 621 L82.96 621" class="st14"/>
+			<path d="M0 621 L54.91 621" class="st14"/>
 		</g>
 		<g id="shape70-143" v:mID="70" v:groupContext="shape" transform="translate(327.726,-126.144)">
 			<title>Rectangle.70</title>
@@ -428,9 +428,9 @@
 			<title>Dynamic connector.74</title>
 			<path d="M10.2 612 L10.56 612 L174.23 612 L174.23 577.93" class="st22"/>
 		</g>
-		<g id="shape80-178" v:mID="80" v:groupContext="shape" v:layerMember="0" transform="translate(594.32,-357.43)">
+		<g id="shape80-178" v:mID="80" v:groupContext="shape" v:layerMember="0" transform="translate(594.162,-357.268)">
 			<title>Dynamic connector.27</title>
-			<path d="M9 612 L9 625.5 L9 625.5 L9 642.59" class="st14"/>
+			<path d="M8.84 612 L8.84 625.5 L9.16 625.5 L9.16 642.43" class="st14"/>
 		</g>
 		<g id="shape81-183" v:mID="81" v:groupContext="shape" v:layerMember="0" transform="translate(594.324,-271.062)">
 			<title>Dynamic connector.81</title>
@@ -447,9 +447,9 @@
 			<v:textRect cx="27.9639" cy="599.206" width="55.93" height="25.5889"/>
 			<rect x="0" y="586.411" width="55.9279" height="25.5889" class="st7"/>
 			<text x="4.68" y="602.21" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>bpftool.exe</text>		</g>
-		<g id="shape84-192" v:mID="84" v:groupContext="shape" v:layerMember="0" transform="translate(595.051,-493.646)">
+		<g id="shape84-192" v:mID="84" v:groupContext="shape" v:layerMember="0" transform="translate(604.051,-493.646)">
 			<title>Dynamic connector.84</title>
-			<path d="M9 612 L9 636.65" class="st14"/>
+			<path d="M0 612 L0 625.5 L-28.05 625.5 L-28.05 636.65" class="st14"/>
 		</g>
 		<g id="group85-197" transform="translate(522.497,-143.507)" v:mID="85" v:groupContext="group">
 			<title>Sheet.85</title>
@@ -492,9 +492,25 @@
 				<text x="20.47" y="588.92" class="st6" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>eBPF <tspan
 							x="9.23" dy="1.2em" class="st3">programs</tspan></text>			</g>
 		</g>
-		<g id="shape87-210" v:mID="87" v:groupContext="shape" v:layerMember="0" transform="translate(612.684,-422.993)">
+		<g id="shape87-210" v:mID="87" v:groupContext="shape" v:layerMember="0" transform="translate(608.573,-433.656)">
 			<title>Dynamic connector.87</title>
-			<path d="M-8.63 612 L-9.17 630.84" class="st14"/>
+			<path d="M0 603.18 L13.5 603.18 L13.5 602.82 L32.39 602.82" class="st14"/>
+		</g>
+		<g id="shape1000-215" v:mID="1000" v:groupContext="shape" transform="translate(549,-357.268)">
+			<title>Rectangle.1000</title>
+			<desc>User-Mode Service (ebpsvc.exe)</desc>
+			<v:userDefs>
+				<v:ud v:nameU="visVersion" v:val="VT0(15):26"/>
+				<v:ud v:nameU="visMasterStencil" v:prompt="" v:val="VT4(Basic_U.vssx)"/>
+			</v:userDefs>
+			<v:textBlock v:margins="rect(4,4,4,4)"/>
+			<v:textRect cx="54" cy="592.157" width="108.01" height="39.6864"/>
+			<rect x="0" y="572.314" width="108" height="39.6864" class="st7"/>
+			<text x="7.66" y="588.56" class="st8" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>User-Mode Service <tspan
+						x="23.39" dy="1.2em" class="st3">(ebpsvc.exe)</tspan></text>		</g>
+		<g id="shape1001-219" v:mID="1001" v:groupContext="shape" v:layerMember="0" transform="translate(756,-442.836)">
+			<title>Dynamic connector.1001</title>
+			<path d="M0 612 L13.5 612 L13.5 677.73 L-91.96 677.73" class="st14"/>
 		</g>
 	</g>
 </svg>
