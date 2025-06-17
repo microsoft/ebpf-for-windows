@@ -105,14 +105,10 @@ if (-not $ExecuteOnHost) {
     Write-Log "ExecuteOnHost enabled - performing host cleanup" -ForegroundColor Yellow
 
     try {
-        # Import logs from host execution (if any test logs were created)
-        if (Test-Path ".\TestLogs") {
-            Write-Log "Test logs found - organizing results"
-            # Copy any dumps or logs to TestLogs folder for consistency
-            if ($KmTracing -and (Test-Path "*.etl")) {
-                Copy-Item -Path "*.etl" -Destination ".\TestLogs\" -Force -ErrorAction SilentlyContinue
-            }
-        }
+        # Import logs and results from host execution (stop tracing, collect logs/dumps/etl)
+        $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+        Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($env:USERNAME, $EmptySecureString, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+        Import-ResultsFromHost -KmTracing:$KmTracing -LogFileName $LogFileName -WorkingDirectory $WorkingDirectory
 
         # Stop eBPF components if they were started
         Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
