@@ -11,7 +11,8 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
        [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-       [Parameter(Mandatory = $false)][bool] $SkipPSExecTests = $false
+       [Parameter(Mandatory = $false)][bool] $SkipPSExecTests = $false,
+       [Parameter(Mandatory = $false)][bool] $SkipDuonicTests = $false
 )
 
 Push-Location $WorkingDirectory
@@ -702,24 +703,27 @@ function Run-KernelTestsOnVM
     # The required behavior is selected by the $TestMode
     # parameter.
     if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
+        if (-not $SkipDuonicTests) {
+            # Run XDP Tests.
+            Invoke-XDPTestsOnVM `
+                -Interfaces $Config.Interfaces `
+                -VMName $VMName
 
-        # Run XDP Tests.
-        Invoke-XDPTestsOnVM `
-            -Interfaces $Config.Interfaces `
-            -VMName $VMName
+            # Run Connect Redirect Tests.
+            Invoke-ConnectRedirectTestsOnVM `
+                -Interfaces $Config.Interfaces `
+                -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+                -UserType "Administrator" `
+                -VMName $VMName
 
-        # Run Connect Redirect Tests.
-        Invoke-ConnectRedirectTestsOnVM `
-            -Interfaces $Config.Interfaces `
-            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-            -UserType "Administrator" `
-            -VMName $VMName
-
-        Invoke-ConnectRedirectTestsOnVM `
-            -Interfaces $Config.Interfaces `
-            -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
-            -UserType "StandardUser" `
-            -VMName $VMName
+            Invoke-ConnectRedirectTestsOnVM `
+                -Interfaces $Config.Interfaces `
+                -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
+                -UserType "StandardUser" `
+                -VMName $VMName
+        } else {
+            Write-Log "SkipDuonicTests set: Skipping XDP and Connect Redirect tests on VM $VMName." -ForegroundColor Yellow
+        }
     }
 }
 

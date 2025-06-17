@@ -8,7 +8,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
+       [Parameter(Mandatory = $false)][switch] $SkipDuonicTests)
 
 # # Normalize the working directory path to avoid issues with relative path components
 # $WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)

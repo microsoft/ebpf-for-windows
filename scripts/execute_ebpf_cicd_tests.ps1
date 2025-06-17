@@ -13,7 +13,8 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-       [Parameter(Mandatory = $false)][switch] $SkipPSExecTests
+       [Parameter(Mandatory = $false)][switch] $SkipPSExecTests,
+       [Parameter(Mandatory = $false)][switch] $SkipDuonicTests
 )
 
 Write-Output "execute_ebpf_cicd_tests.ps1: Starting test execution"
@@ -57,7 +58,8 @@ if (-not $ExecuteOnHost) {
                [Parameter(Mandatory = $True)] [string[]] $Options,
                [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
                [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
-               [Parameter(Mandatory = $True)] [bool] $SkipPSExecTests)
+               [Parameter(Mandatory = $True)] [bool] $SkipPSExecTests,
+               [Parameter(Mandatory = $false)] [bool] $SkipDuonicTests)
 
         Push-Location $WorkingDirectory
 
@@ -76,7 +78,8 @@ if (-not $ExecuteOnHost) {
                 $Options,
                 $TestHangTimeout,
                 $UserModeDumpFolder,
-                $SkipPSExecTests) `
+                $SkipPSExecTests,
+                $SkipDuonicTests) `
             -WarningAction SilentlyContinue
 
         $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -114,7 +117,8 @@ if (-not $ExecuteOnHost) {
         $Options,
         $TestHangTimeout,
         $UserModeDumpFolder,
-        $SkipPSExecTests.ToBool())
+        $SkipPSExecTests.ToBool(),
+        $SkipDuonicTests.ToBool())
 
     # Keep track of the last received output count
     $JobTimedOut = `

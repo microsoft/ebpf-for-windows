@@ -12,7 +12,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
-       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
+       [Parameter(Mandatory = $false)][switch] $SkipDuonicTests)
 
 # # Normalize the working directory path to avoid issues with relative path components
 # $WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)
@@ -107,7 +108,11 @@ if (-not $ExecuteOnHost) {
         }
 
         # Configure network adapters on VMs.
-        Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
+        if (-not $SkipDuonicTests) {
+            Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
+        } else {
+            Write-Log "SkipDuonicTests set: Skipping network interface initialization on VMs." -ForegroundColor Yellow
+        }
 
         # Install eBPF Components on the test VM.
         foreach($VM in $VMList) {
@@ -150,7 +155,11 @@ if (-not $ExecuteOnHost) {
     # When executing on host, install necessary components directly on the host.
     Write-Log "Setting up eBPF components on host (skipping reboot-required operations)" -ForegroundColor Yellow
 
-    Initialize-NetworkInterfacesOnHost -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName
+    if (-not $SkipDuonicTests) {
+        Initialize-NetworkInterfacesOnHost -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName
+    } else {
+        Write-Log "SkipDuonicTests set: Skipping network interface initialization on host." -ForegroundColor Yellow
+    }
 
     # Install eBPF components but skip anything that requires reboot.
     Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations

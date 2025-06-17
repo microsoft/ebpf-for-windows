@@ -338,7 +338,6 @@ function Invoke-CICDTests
           [parameter(Mandatory = $true)][bool] $ExecuteSystemTests,
           [parameter(Mandatory = $false)][bool] $SkipPSExecTests = $false)
 
-
     Push-Location $WorkingDirectory
     $env:EBPF_ENABLE_WER_REPORT = "yes"
 
