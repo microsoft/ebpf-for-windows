@@ -131,13 +131,13 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization Condition="'$(EnableAsan)' != 'true'">true</WholeProgramOptimization>
       <!-- /Ob3 enable hinting to link time code generation that a function should be inlined -->
       <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo $(AllPDataOption) %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib /spgo $(AllPDataOption) %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration Condition="'$(EnableAsan)' != 'true'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
@@ -145,8 +145,11 @@
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
+    <Link>
+      <AdditionalOptions>/NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->
   <ItemGroup Condition="('$(ConfigurationType)'=='Application' Or '$(ConfigurationType)'=='DynamicLibrary' Or '$(ConfigurationType)'=='Driver') And Exists('$(SolutionDir)resource\ebpf_resource.rc')">
