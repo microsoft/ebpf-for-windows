@@ -66,15 +66,15 @@
   </PropertyGroup>
   <!-- Libsancov.lib not supported on arm64 -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MT-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' Or '$(Configuration)|$(Platform)'=='FuzzerDebug|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MTd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Fuzzer)'=='True' OR '$(Configuration)'=='FuzzerDebug'">
     <EnableASAN>true</EnableASAN>
     <EnableFuzzer>true</EnableFuzzer>
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MTd-x86_64.lib</FuzzerLibs>
     <ClCompile>
       <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /DFUZZER_BUILD %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>

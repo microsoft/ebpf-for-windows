@@ -1,10 +1,7 @@
 KERNEL32.dll
 ADVAPI32.dll
-MSVCP140.dll
 PSAPI.DLL
 ntdll.dll
-VCRUNTIME140_1.dll
-VCRUNTIME140.dll
 api-ms-win-crt-stdio-l1-1-0.dll
 api-ms-win-crt-runtime-l1-1-0.dll
 api-ms-win-crt-heap-l1-1-0.dll

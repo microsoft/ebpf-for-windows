@@ -9,9 +9,6 @@ api-ms-win-service-winsvc-l1-1-0.dll
 api-ms-win-core-heap-l2-1-0.dll
 RPCRT4.dll
 api-ms-win-eventing-provider-l1-1-0.dll
-MSVCP140D.dll
-VCRUNTIME140D.dll
-VCRUNTIME140_1D.dll
 ucrtbased.dll
 api-ms-win-core-sysinfo-l1-1-0.dll
 api-ms-win-core-memory-l1-1-0.dll
