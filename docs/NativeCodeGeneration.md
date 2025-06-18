@@ -112,7 +112,7 @@ The metadata table provides pointers to three functions that permit querying the
 The table name prefix is derived from the ELF file name, with _ replacing any character that
 is not valid in a C variable name. This variable is the only globally visible variable in the generated C code.
 
-## Exported programs
+## Exported Program Entry
 
 Each program in the generated C file is exported via a program_entry_t:
 ```c
@@ -279,35 +279,28 @@ address of the start of the map data into the address_of_map_value field.
 The process of loading an eBPF program is a series of interactions between the eBPF Execution Context and the generated
 .sys file, and is summarized in the following diagram:
 
-![Native Driver Architecture](NativeDriverArchitecture.png)
+![Native Driver Architecture](ArchitectureDiagram.svg)
 
 ### Lifecycle of a generated PE .sys file
 
-1) During driver entry, the generated DriverEntry calls [NmrRegisterClient](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrregisterclient)
-for the helper contract and the map contract.
+1) During driver entry, the generated DriverEntry calls [NmrRegisterClient](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrregisterclient) for the native eBPF NPI contract.
 
-2) In response to the attach notification on the helper function NMR contract, the skeleton queries the address of
-each helper function the eBPF program used and writes the address into the _helpers table.
+1) The skeleton attaches as the NPI client and sends metadata information about the programs including maps,
+   helper functions used, global variables.
 
-3) In response to the attach notification on the map resolve NMR contract, the skeleton calls into the eBPF
-execution context to create the maps based on the definitions and writes the addresses into the _maps table.
+1) In response to the native module's (NPI client) attach notification, the eBPF core (NPI provider) checks if the native program was
+   verified successfully by the process outlined in the [Proof of Verification](eBbpfProofOfVerification.md). If successful, an entry
+   is created for the module in the native module table and the metadata information is stored.
 
-4) Once both the map contract and the helper contract have been attached, the driver registers the program NMR contract.
+1) Later when an application tries to load the program(s) in a native module by invoking libbpf APIs (such as `bpf_prog_load`),
+   the eBPF core looks up the the corresponding module and uses the metadata information to resolve helper function addresses, map
+   addresses etc. as outlined in the [Exported Program Entry](NativeCodeGeneration.md#exported-program-entry) section.
 
-5) In response to the attach notification on the program contract, the skeleton returns the list of program entry
-points and meta-data about the programs.
+1) At this point, the eBPF execution context is free to invoke the eBPF programs.
 
-6) At this point, the eBPF execution context is free to invoke the eBPF programs.
+1) In response to a NMR client detach notification, the eBPF core clears up the state created for the native module.
 
-7) In response to a reattach notification on the program contract, the driver performs the following steps:
-   - It hashes the program information and compares it with the hash stored in the program.
-   - It rejects the program if the hash does not match.
-This ensures that the verifier and the program use the same program information. The verifier uses this information to check the program safety.
-
-8) In response to a detach on either the helper function or the map contract, the driver unregisters its program
-contract.
-
-9) When the OS calls unload on the driver, the driver unregisters all of its contracts and waits for the
+1) When the OS calls unload on the driver, the driver unregisters as a NMR client and waits for the
 notification that the eBPF execution context has detached before completing unloading.
 
 ### Note about native code generation samples shipped with ebpf-for-windows.

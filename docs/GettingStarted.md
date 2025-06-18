@@ -135,14 +135,15 @@ This will build the following binaries:
                loading eBPF programs.
 - `ebpfnetsh.dll`: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
                  utility functionality.
-- `ebpfsvc.exe`: A user-mode service that verifies and loads an eBPF program in the execution context.
+- `ebpfsvc.exe`: A user-mode service that loads an eBPF program in the execution context. It can also verify,
+                 JIT-compile and interpret eBPF byte code.
 - `unit_tests.exe`: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
 - `api_test.exe`: A collection of tests that exercises eBPF user mode APIs. This requires EbpfSvc service to be running,
                 and EbpfCore and NetEbpfExt drivers to be loaded.
 - `sample_ebpf_ext.sys`: A sample eBPF extension driver that implements a test hook (for a test program type) and test helper functions.
 - `sample_ext_app.exe`: A sample application for testing the sample extension driver.
-- `xdp_tests.exe`: Application for testing various XDP_TEST functionalities.  This requires the EbpfSvc service to be running,
+- `xdp_tests.exe`: Application for testing various XDP_TEST functionalities. This requires the EbpfSvc service to be running,
                 and the EbpfCore and NetEbpfExt drivers to be loaded on a remote system to test.
 - `socket_tests.exe`: Application for testing the eBPF extension that implements the BPF_CGROUP_SOCK_ADDR program type and related attach types.
 
@@ -187,7 +188,7 @@ This section shows how to use eBPF for Windows in a demo that lets us control a 
 1. Install eBPF on the test machine; see [Installing eBPF for Windows](#installing-ebpf-for-windows), using [Method 2](InstallEbpf.md#method-2-install-files-you-built-yourself)
 
 > [!NOTE]
-> If Method 2 will not work for your envrionment for whatever reason (you aren't using a local Hyper-V VM, for instance),
+> If Method 2 will not work for your environment for whatever reason (you aren't using a local Hyper-V VM, for instance),
 > manually copy over the contents of the build folder, then proceed with the instructions above from the target VM. If the
 > script is unavailable, install the MSI that you copied over on the VM, then run `ebpfSvc.exe install` to register
 > the usermode service, which is required for `port_quota.exe` to work.
