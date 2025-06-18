@@ -936,11 +936,31 @@ function Import-ResultsFromHost {
         $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
         Write-Log "ETL file Size: $EtlFileSize MB"
         Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-        Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+        $CompressSuccess = $false
+        $CompressAttempts = 0
+        while (-not $CompressSuccess -and $CompressAttempts -lt 5) {
+            try {
+                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+                if (Test-Path "$WorkingDirectory\$EtlFile.zip") {
+                    $CompressSuccess = $true
+                } else {
+                    throw "Compression did not produce a .zip file."
+                }
+            } catch {
+                Write-Log "Compression attempt $($CompressAttempts+1) failed: $_"
+                Start-Sleep -Seconds 2
+            }
+            $CompressAttempts++
+        }
         $LogsDir = Join-Path $TestLogsDir 'Logs'
         if (!(Test-Path $LogsDir)) {
             New-Item -ItemType Directory -Path $LogsDir | Out-Null
         }
-        Copy-Item "$WorkingDirectory\$EtlFile.zip" $LogsDir -Force -ErrorAction Ignore | Out-Null
+        if ($CompressSuccess) {
+            Copy-Item "$WorkingDirectory\$EtlFile.zip" $LogsDir -Force -ErrorAction Ignore | Out-Null
+        } else {
+            Write-Log "Compression failed after 5 attempts. Copying raw ETL file instead."
+            Copy-Item "$WorkingDirectory\$EtlFile" $LogsDir -Force -ErrorAction Ignore | Out-Null
+        }
     }
 }
