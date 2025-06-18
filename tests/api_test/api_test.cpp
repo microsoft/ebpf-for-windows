@@ -76,10 +76,12 @@ static _Success_(return == 0) int _program_load_helper(
     _Outptr_ struct bpf_object** object,
     _Out_ fd_t* program_fd) // File descriptor of first program in the object.
 {
+    printf("_program_load_helper: loading program file: %s\n", file_name);
     *program_fd = ebpf_fd_invalid;
     *object = nullptr;
     struct bpf_object* new_object = bpf_object__open(file_name);
     if (new_object == nullptr) {
+        printf("_program_load_helper: returning -EINVAL");
         return -EINVAL;
     }
 
@@ -102,6 +104,7 @@ static _Success_(return == 0) int _program_load_helper(
         *program_fd = bpf_program__fd(program);
     }
     *object = new_object;
+    printf("_program_load_helper: loaded program file: %s SUCCESS\n", file_name);
     return 0;
 }
 
@@ -679,7 +682,9 @@ TEST_CASE("bindmonitor_native_test", "[native_tests]")
     struct bpf_object* object = nullptr;
     hook_helper_t hook(EBPF_ATTACH_TYPE_BIND);
     program_load_attach_helper_t _helper;
+    printf("bindmonitor_native_test\n");
     _helper.initialize("bindmonitor.sys", BPF_PROG_TYPE_BIND, "BindMonitor", EBPF_EXECUTION_NATIVE, nullptr, 0, hook);
+    printf("bindmonitor_native_test: object loaded and attached\n");
     object = _helper.get_object();
 
     bindmonitor_test(object);
@@ -852,7 +857,9 @@ TEST_CASE("native_module_handle_test", "[native_tests]")
     struct bpf_object* object2 = nullptr;
     fd_t program_fd;
 
+    printf("native_module_handle_test: Loading native module %s\n", file_name);
     result = _program_load_helper(file_name, BPF_PROG_TYPE_BIND, EBPF_EXECUTION_NATIVE, &object, &program_fd);
+    printf("native_module_handle_test: Load result %d\n", result);
     REQUIRE(result == 0);
     REQUIRE(program_fd != ebpf_fd_invalid);
 
