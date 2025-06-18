@@ -9,7 +9,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-       [Parameter(Mandatory = $false)][switch] $SkipDuonicTests)
+       [Parameter(Mandatory = $false)][string] $Architecture = "x64")
 
 # # Normalize the working directory path to avoid issues with relative path components
 # $WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)
@@ -17,6 +17,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+Get-CoreNetTools -Architecture $Architecture
 
 if (-not $ExecuteOnHost) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {

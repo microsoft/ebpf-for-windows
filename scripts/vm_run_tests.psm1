@@ -12,7 +12,7 @@ param ([Parameter(Mandatory = $True)] [string] $Admin,
        [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][bool] $SkipPSExecTests = $false,
-       [Parameter(Mandatory = $false)][bool] $SkipDuonicTests = $false
+       [Parameter(Mandatory = $false)][string] $Architecture = "x64"
 )
 
 Push-Location $WorkingDirectory
@@ -703,7 +703,6 @@ function Run-KernelTestsOnVM
     # The required behavior is selected by the $TestMode
     # parameter.
     if (($TestMode -eq "CI/CD") -or ($TestMode -eq "Regression")) {
-        if (-not $SkipDuonicTests) {
             # Run XDP Tests.
             Invoke-XDPTestsOnVM `
                 -Interfaces $Config.Interfaces `
@@ -721,9 +720,6 @@ function Run-KernelTestsOnVM
                 -ConnectRedirectTestConfig $Config.ConnectRedirectTest `
                 -UserType "StandardUser" `
                 -VMName $VMName
-        } else {
-            Write-Log "SkipDuonicTests set: Skipping XDP and Connect Redirect tests on VM $VMName." -ForegroundColor Yellow
-        }
     }
 }
 

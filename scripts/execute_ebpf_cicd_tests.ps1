@@ -14,7 +14,7 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][switch] $SkipPSExecTests,
-       [Parameter(Mandatory = $false)][switch] $SkipDuonicTests
+       [Parameter(Mandatory = $false)][string] $Architecture = "x64"
 )
 
 Write-Output "execute_ebpf_cicd_tests.ps1: Starting test execution"
@@ -31,6 +31,7 @@ Get-ChildItem -Path $WorkingDirectory -File -Recurse | ForEach-Object {
 }
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
+Get-CoreNetTools -Architecture $Architecture
 
 if (-not $ExecuteOnHost) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
@@ -58,8 +59,7 @@ if (-not $ExecuteOnHost) {
                [Parameter(Mandatory = $True)] [string[]] $Options,
                [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
                [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
-               [Parameter(Mandatory = $True)] [bool] $SkipPSExecTests,
-               [Parameter(Mandatory = $false)] [bool] $SkipDuonicTests)
+               [Parameter(Mandatory = $True)] [bool] $SkipPSExecTests)
 
         Push-Location $WorkingDirectory
 
@@ -78,8 +78,7 @@ if (-not $ExecuteOnHost) {
                 $Options,
                 $TestHangTimeout,
                 $UserModeDumpFolder,
-                $SkipPSExecTests,
-                $SkipDuonicTests) `
+                $SkipPSExecTests) `
             -WarningAction SilentlyContinue
 
         $VMList = $Config.VMMap.$SelfHostedRunnerName
@@ -117,8 +116,7 @@ if (-not $ExecuteOnHost) {
         $Options,
         $TestHangTimeout,
         $UserModeDumpFolder,
-        $SkipPSExecTests.ToBool(),
-        $SkipDuonicTests.ToBool())
+        $SkipPSExecTests.ToBool())
 
     # Keep track of the last received output count
     $JobTimedOut = `
