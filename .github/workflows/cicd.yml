@@ -284,9 +284,9 @@ jobs:
     uses: ./.github/workflows/reusable-test.yml
     with:
       build_platform: 'ARM64'
-      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost -SkipDuonicTests
-      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost -SkipPSExecTests -SkipDuonicTests
-      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost
+      pre_test: .\setup_ebpf_cicd_tests.ps1 -KmTracing $true -KmTraceType "file" -ExecuteOnHost -Architecture arm64
+      test_command: .\execute_ebpf_cicd_tests.ps1 -TestMode "CI/CD" -ExecuteOnHost -SkipPSExecTests -Architecture arm64
+      post_test: .\cleanup_ebpf_cicd_tests.ps1 -KmTracing $true -ExecuteOnHost -Architecture arm64
       name: driver_native_only_arm64
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
