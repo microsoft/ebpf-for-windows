@@ -136,7 +136,7 @@ This will build the following binaries:
 - `ebpfnetsh.dll`: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
                  utility functionality.
 - `ebpfsvc.exe`: A user-mode service that loads an eBPF program in the execution context. It can also verify,
-                 JIT-compile and interpret eBPF byte code.
+                 and JIT-compile eBPF byte code.
 - `unit_tests.exe`: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
 - `api_test.exe`: A collection of tests that exercises eBPF user mode APIs. This requires EbpfSvc service to be running,

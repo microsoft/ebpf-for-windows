@@ -286,21 +286,21 @@ The process of loading an eBPF program is a series of interactions between the e
 1) During driver entry, the generated DriverEntry calls [NmrRegisterClient](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/nf-netioddk-nmrregisterclient) for the native eBPF NPI contract.
 
 1) The skeleton attaches as the NPI client and sends metadata information about the programs including maps,
-   helper functions used, global variables.
+   helper functions used, and global variables.
 
 1) In response to the native module's (NPI client) attach notification, the eBPF core (NPI provider) checks if the native program was
-   verified successfully by the process outlined in the [Proof of Verification](eBbpfProofOfVerification.md). If successful, an entry
+   verified successfully by the process outlined in [Proof of Verification](eBbpfProofOfVerification.md). If successful, an entry
    is created for the module in the native module table and the metadata information is stored.
 
 1) Later when an application tries to load the program(s) in a native module by invoking libbpf APIs (such as `bpf_prog_load`),
-   the eBPF core looks up the the corresponding module and uses the metadata information to resolve helper function addresses, map
-   addresses etc. as outlined in the [Exported Program Entry](NativeCodeGeneration.md#exported-program-entry) section.
+   the eBPF core looks up the corresponding module and uses the metadata information to resolve helper function addresses, map
+   addresses, etc. as outlined in [Exported Program Entry](NativeCodeGeneration.md#exported-program-entry) section.
 
 1) At this point, the eBPF execution context is free to invoke the eBPF programs.
 
-1) In response to a NMR client detach notification, the eBPF core clears up the state created for the native module.
+1) In response to an NPI client detach notification, the eBPF core clears up the state created for the native module.
 
-1) When the OS calls unload on the driver, the driver unregisters as a NMR client and waits for the
+1) When the OS calls unload on the driver, the driver unregisters as an NPI client and waits for the
 notification that the eBPF execution context has detached before completing unloading.
 
 ### Note about native code generation samples shipped with ebpf-for-windows.
