@@ -1,7 +1,6 @@
 IPHLPAPI.DLL
 KERNEL32.dll
 EbpfApi.dll
-VCRUNTIME140.dll
 api-ms-win-crt-heap-l1-1-0.dll
 api-ms-win-crt-runtime-l1-1-0.dll
 api-ms-win-crt-stdio-l1-1-0.dll

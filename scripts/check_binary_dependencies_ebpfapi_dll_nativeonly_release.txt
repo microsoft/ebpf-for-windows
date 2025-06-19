@@ -27,5 +27,11 @@ api-ms-win-core-memory-l1-1-0.dll
 api-ms-win-core-string-l1-1-0.dll
 api-ms-win-crt-math-l1-1-0.dll
 api-ms-win-core-heap-l2-1-0.dll
-api-ms-win-core-libraryloader-l1-2-0.dll
 ADVAPI32.dll
+bcrypt.dll
+api-ms-win-crt-locale-l1-1-0.dll
+api-ms-win-core-localization-l1-2-0.dll
+api-ms-win-core-util-l1-1-0.dll
+api-ms-win-core-libraryloader-l1-2-0.dll
+api-ms-win-crt-convert-l1-1-0.dll
+api-ms-win-crt-time-l1-1-0.dll
