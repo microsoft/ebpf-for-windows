@@ -31,7 +31,6 @@ Get-ChildItem -Path $WorkingDirectory -File -Recurse | ForEach-Object {
 }
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
-Get-CoreNetTools -Architecture $Architecture
 
 if (-not $ExecuteOnHost) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
