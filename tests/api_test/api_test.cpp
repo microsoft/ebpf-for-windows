@@ -98,14 +98,10 @@ static _Success_(return == 0) int _program_load_helper(
     const int max_attempts = 5;
     while (attempts < max_attempts) {
         error = bpf_object__load(new_object);
-        printf(
-            "Attempt (%d) to load program name: %s with result: %d (attempt %d)\n",
-            attempts,
-            file_name,
-            error,
-            attempts + 1);
-        if (error >= 0)
+        if (error >= 0) {
             break;
+        }
+        printf("Attempt (%d) to load program name: %s with result: %d\n", attempts, file_name, error);
         attempts++;
         if (attempts < max_attempts) {
             Sleep(100);
@@ -120,7 +116,6 @@ static _Success_(return == 0) int _program_load_helper(
         *program_fd = bpf_program__fd(program);
     }
     *object = new_object;
-    printf("_program_load_helper: loaded program file: %s SUCCESS\n", file_name);
     return 0;
 }
 

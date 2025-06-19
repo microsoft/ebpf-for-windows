@@ -17,7 +17,6 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-Get-CoreNetTools -Architecture $Architecture
 
 if (-not $ExecuteOnHost) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
