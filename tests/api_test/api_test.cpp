@@ -93,20 +93,21 @@ static _Success_(return == 0) int _program_load_helper(
         bpf_program__set_type(program, prog_type);
     }
 
-    int error = 0;
-    int attempts = 0;
-    const int max_attempts = 1;
-    while (attempts < max_attempts) {
-        error = bpf_object__load(new_object);
-        if (error >= 0) {
-            break;
-        }
-        printf("Attempt (%d) to load program name: %s with result: %d\n", attempts, file_name, error);
-        attempts++;
-        if (attempts < max_attempts) {
-            Sleep(100);
-        }
-    }
+    // int error = 0;
+    // int attempts = 0;
+    // const int max_attempts = 1;
+    // while (attempts < max_attempts) {
+    //     error = bpf_object__load(new_object);
+    //     if (error >= 0) {
+    //         break;
+    //     }
+    //     printf("Attempt (%d) to load program name: %s with result: %d\n", attempts, file_name, error);
+    //     attempts++;
+    //     if (attempts < max_attempts) {
+    //         Sleep(100);
+    //     }
+    // }
+    int error = bpf_object__load(new_object);
     if (error < 0) {
         bpf_object__close(new_object);
         return error;
