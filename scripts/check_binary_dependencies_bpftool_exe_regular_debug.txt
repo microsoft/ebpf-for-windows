@@ -1,5 +1,4 @@
 IPHLPAPI.DLL
 KERNEL32.dll
 EbpfApi.dll
-VCRUNTIME140D.dll
 ucrtbased.dll

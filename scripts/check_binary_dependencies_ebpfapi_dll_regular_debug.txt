@@ -28,3 +28,7 @@ KERNEL32.dll
 ADVAPI32.dll
 dbghelp.dll
 bcrypt.dll
+api-ms-win-core-localization-l1-2-0.dll
+api-ms-win-core-util-l1-1-0.dll
+api-ms-win-core-file-l1-2-0.dll
+api-ms-win-core-file-l2-1-0.dll
