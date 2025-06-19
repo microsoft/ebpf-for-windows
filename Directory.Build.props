@@ -148,7 +148,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalOptions>/NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->
