@@ -41,7 +41,9 @@ $BinariesToCopy = @(
     "eBPFCore.sys",
     "eBPFCore.pdb",
     "ebpfsvc.exe",
-    "ebpfsvc.pdb"
+    "ebpfsvc.pdb",
+    "netebpfext.sys",
+    "netebpfext.pdb"
 )
 
 function CopyPackages {
