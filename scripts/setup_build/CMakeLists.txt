@@ -3,6 +3,32 @@
 
 set (output_dir ${CMAKE_BINARY_DIR}/x64/$<$<CONFIG:Debug>:Debug>$<$<CONFIG:Release>:Release>)
 
+set (debug_redist_bins ${output_dir}/concrt140d.dll;
+    ${output_dir}/msvcp140d.dll;
+    ${output_dir}/msvcp140d_atomic_wait.dll;
+    ${output_dir}/msvcp140d_codecvt_ids.dll;
+    ${output_dir}/msvcp140_1d.dll;
+    ${output_dir}/msvcp140_2d.dll;
+    ${output_dir}/vccorlib140d.dll;
+    ${output_dir}/vcruntime140d.dll;
+    ${output_dir}/vcruntime140_1d.dll;
+    )
+
+set (redist_bins ${output_dir}/concrt140.dll;
+    ${output_dir}/msvcp140.dll;
+    ${output_dir}/msvcp140_1.dll;
+    ${output_dir}/msvcp140_2.dll;
+    ${output_dir}/msvcp140_atomic_wait.dll;
+    ${output_dir}/msvcp140_codecvt_ids.dll;
+    ${output_dir}/vccorlib140.dll;
+    ${output_dir}/vcruntime140.dll;
+    ${output_dir}/vcruntime140_1.dll;
+)
+
+set (output_redist_bins $<$<CONFIG:Debug>:${debug_redist_bins}>$<$<CONFIG:Release>:${redist_bins}>)
+
+set (input_redist_bins $<$<CONFIG:Debug>:$(VC_DebugCppRuntimeFilesPath_x64)/Microsoft.VC143.DebugCRT>$<$<CONFIG:Release>:$(VC_CppRuntimeFilesPath_x64)/Microsoft.VC143.CRT>)
+
 set (ucrtbased_dll $<$<CONFIG:Debug>:${output_dir}/ucrtbased.dll>)
 
 set (output_ucrtbased_dll $<$<CONFIG:Debug>:${ucrtbased_dll}>)
@@ -31,6 +57,7 @@ endforeach()
 
 set (dependency_list ${CMAKE_SOURCE_DIR}/scripts/pre-commit;
         ${CMAKE_SOURCE_DIR}/include/git_commit_id.h;
+        "${output_redist_bins}"
         "${output_ucrtbased_dll}"
         "${output_misc_files}")
 
