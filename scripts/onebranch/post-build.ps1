@@ -31,19 +31,19 @@ function CopySignedBinaries {
 
 # List of binaries to copy to output directory
 $BinariesToCopy = @(
-    "ebpfapi.dll",
-    "ebpfapi.pdb",
-    "ebpfapi.lib",
     "bpftool.exe",
     "bpftool.pdb",
+    "eBPFCore.pdb",
+    "eBPFCore.sys",
+    "ebpfapi.dll",
+    "ebpfapi.lib",
+    "ebpfapi.pdb",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
-    "eBPFCore.sys",
-    "eBPFCore.pdb",
     "ebpfsvc.exe",
     "ebpfsvc.pdb",
-    "netebpfext.sys",
-    "netebpfext.pdb"
+    "netebpfext.pdb",
+    "netebpfext.sys"
 )
 
 function CopyPackages {
