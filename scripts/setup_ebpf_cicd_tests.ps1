@@ -16,9 +16,6 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64")
 
-# # Normalize the working directory path to avoid issues with relative path components
-# $WorkingDirectory = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($WorkingDirectory)
-
 Push-Location $WorkingDirectory
 
 # Load other utility modules.
@@ -80,7 +77,7 @@ if (-not $ExecuteOnHost) {
                [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
                [parameter(Mandatory = $true)] [bool] $KmTracing,
                [parameter(Mandatory = $true)] [string] $KmTraceType,
-                [parameter(Mandatory = $true)] [string] $EnableHVCI
+               [parameter(Mandatory = $true)] [string] $EnableHVCI
         )
         Push-Location $WorkingDirectory
 
@@ -147,7 +144,8 @@ if (-not $ExecuteOnHost) {
         $LogFileName,
         $WorkingDirectory,
         $KmTracing,
-        $KmTraceType)
+        $KmTraceType,
+        $EnableHVCI)
 
     # wait for the job to complete
     $JobTimedOut = `

@@ -542,9 +542,6 @@ function Get-CoreNetTools {
     #DuoNic.
     if ($Architecture -eq "arm64") {
         Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\arm64\*" -Destination $pwd -Force
-        Get-ChildItem -Path $pwd | ForEach-Object {
-            Write-Log "Found file: $($_.FullName)"
-        }
     } else {
         Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
         # Procdump.

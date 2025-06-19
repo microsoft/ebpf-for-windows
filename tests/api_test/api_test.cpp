@@ -95,7 +95,7 @@ static _Success_(return == 0) int _program_load_helper(
 
     int error = 0;
     int attempts = 0;
-    const int max_attempts = 5;
+    const int max_attempts = 1;
     while (attempts < max_attempts) {
         error = bpf_object__load(new_object);
         if (error >= 0) {
