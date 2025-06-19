@@ -12,6 +12,7 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
+       [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64")
 
@@ -78,7 +79,8 @@ if (-not $ExecuteOnHost) {
                [parameter(Mandatory = $true)] [string] $LogFileName,
                [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
                [parameter(Mandatory = $true)] [bool] $KmTracing,
-               [parameter(Mandatory = $true)] [string] $KmTraceType
+               [parameter(Mandatory = $true)] [string] $KmTraceType,
+                [parameter(Mandatory = $true)] [string] $EnableHVCI
         )
         Push-Location $WorkingDirectory
 
@@ -109,6 +111,20 @@ if (-not $ExecuteOnHost) {
 
         # Configure network adapters on VMs.
         Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
+
+        # Enable HVCI on the test VMs if specified.
+        Write-Log "EnableHVCI: $EnableHVCI"
+
+        if ($EnableHVCI -eq "On") {
+            Write-Log "Enabling HVCI on test VMs..."
+            # Enable HVCI on the test VM.
+            foreach($VM in $VMList) {
+                $VMName = $VM.Name
+                Enable-HVCIOnVM -VMName $VMName -ErrorAction Stop
+            }
+        } else {
+            Write-Log "HVCI is not enabled on test VMs."
+        }
 
         # Install eBPF Components on the test VM.
         foreach($VM in $VMList) {
@@ -156,5 +172,4 @@ if (-not $ExecuteOnHost) {
     # Install eBPF components but skip anything that requires reboot.
     Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
 }
-
 Pop-Location

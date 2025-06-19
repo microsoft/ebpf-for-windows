@@ -195,6 +195,16 @@ function Install-eBPFComponents
     # This is useful for detecting issues with the runner baselines.
     Print-eBPFComponentsStatus "Querying the status of eBPF drivers and services before the installation (none should be present)..." | Out-Null
 
+    # Start the Windows Installer service.
+    Write-Log("Starting the Windows Installer service...")
+    $service = Get-Service -Name "msiserver" -ErrorAction SilentlyContinue
+    if ($service -and $service.Status -ne "Running") {
+        Start-Service -Name "msiserver" -ErrorAction Stop
+        Write-Log("Windows Installer service started successfully!") -ForegroundColor Green
+    } else {
+        Write-Log("Windows Installer service is already running or not present.") -ForegroundColor Yellow
+    }
+
     # Copy the VC debug runtime DLLs to the system32 directory,
     # so that debug versions of the MSI can be installed (i.e., export_program_info.exe will not fail).
     Write-Log("Copying VC debug runtime DLLs to the $system32Path directory...")

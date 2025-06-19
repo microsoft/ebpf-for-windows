@@ -887,6 +887,49 @@ function Create-VMSwitchIfNeeded {
     Write-Log "Successfully created $SwitchType switch with name: $SwitchName" -ForegroundColor Green
 }
 
+<#
+.SYNOPSIS
+    Helper function to enable HVCI on the target VM.
+
+.DESCRIPTION
+    This function enables Hypervisor-protected Code Integrity (HVCI) on the specified VM.
+
+.PARAMETER VmName
+    The name of the VM on which to enable HVCI.
+
+.EXAMPLE
+    Enable-HVCIOnVM -VmName 'MyVM'
+#>
+function Enable-HVCIOnVM {
+    param (
+        [Parameter(Mandatory=$True)][string]$VmName
+    )
+
+    try {
+        Write-Log "Enabling HVCI on VM: $VmName"
+        $vmCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
+        Invoke-Command -VMName $VmName -Credential $vmCredential -ScriptBlock {
+            # Enable HVCI
+            New-Item -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios" -Name "HypervisorEnforcedCodeIntegrity" -ItemType Directory -Force
+            Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 1 -Force
+            # Restart the VM to apply changes
+            Restart-Computer -Force -ErrorAction Stop
+        }
+    } catch {
+        throw "Failed to enable HVCI on VM: $VmName with error: $_"
+    }
+
+    # Wait 1 minute for the VM to restart
+    Write-Log "Waiting for 1 minute for VM: $VmName to restart"
+    Start-Sleep -Seconds 60
+
+    # Wait for the VM to restart and be ready again
+    Write-Log "Waiting for VM: $VmName to restart and be ready again"
+    Wait-AllVMsToInitialize -VMList @(@{ Name = $VmName }) -UserName $Admin -AdminPassword $AdminPassword
+
+    Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
+}
+
 function Import-ResultsFromHost {
     param(
         [Parameter(Mandatory = $true)][bool] $KmTracing,
