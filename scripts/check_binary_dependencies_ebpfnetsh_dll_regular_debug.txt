@@ -1,7 +1,7 @@
-KERNEL32.dll
 ADVAPI32.dll
-PSAPI.DLL
-ntdll.dll
-ucrtbased.dll
-IPHLPAPI.DLL
 EbpfApi.dll
+IPHLPAPI.DLL
+KERNEL32.dll
+ntdll.dll
+PSAPI.DLL
+ucrtbased.dll
