@@ -539,7 +539,7 @@ function Get-CoreNetTools {
     mkdir $DownloadPath
     Write-Log "Downloading CoreNet-CI to $DownloadPath"
     Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputDir $DownloadPath
-    #DuoNic.
+    # DuoNic.
     if ($Architecture -eq "arm64") {
         Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\arm64\*" -Destination $pwd -Force
     } else {
