@@ -11,7 +11,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $RegressionArtifactsConfiguration = "",
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
+       [Parameter(Mandatory = $false)][string] $EnableHVCI = "Off")
 
 Push-Location $WorkingDirectory
 
@@ -61,7 +62,8 @@ $Job = Start-Job -ScriptBlock {
            [parameter(Mandatory = $true)] [string] $LogFileName,
            [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
            [parameter(Mandatory = $true)] [bool] $KmTracing,
-           [parameter(Mandatory = $true)] [string] $KmTraceType
+           [parameter(Mandatory = $true)] [string] $KmTraceType,
+           [parameter(Mandatory = $true)] [string] $EnableHVCI
     )
     Push-Location $WorkingDirectory
 
@@ -92,11 +94,27 @@ $Job = Start-Job -ScriptBlock {
     # Configure network adapters on VMs.
     Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
 
+    # Enable HVCI on the test VMs if specified.
+    Write-Log "EnableHVCI: $EnableHVCI"
+
+    if ($EnableHVCI -eq "On") {
+        Write-Log "Enabling HVCI on test VMs..."
+        # Enable HVCI on the test VM.
+        foreach($VM in $VMList) {
+            $VMName = $VM.Name
+            Enable-HVCIOnVM -VMName $VMName -ErrorAction Stop
+        }
+    }
+    else {
+        Write-Log "HVCI is not enabled on test VMs."
+    }
+
     # Install eBPF Components on the test VM.
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Install-eBPFComponentsOnVM -VMName $VMname -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -ErrorAction Stop
     }
+
 
     # Log OS build information on the test VM.
     foreach($VM in $VMList) {
@@ -113,7 +131,8 @@ $Job = Start-Job -ScriptBlock {
     $LogFileName,
     $WorkingDirectory,
     $KmTracing,
-    $KmTraceType)
+    $KmTraceType,
+    $EnableHVCI)
 
 # wait for the job to complete
 $JobTimedOut = `
