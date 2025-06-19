@@ -142,12 +142,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\shared\hash.cpp" />
     <ClCompile Include="api_service.cpp" />
     <ClCompile Include="verifier_service.cpp" />
     <ClCompile Include="windows_platform_service.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\shared\hash.h" />
     <ClInclude Include="api_service.h" />
+    <ClInclude Include="..\hash.h" />
     <ClInclude Include="tlv.h" />
     <ClInclude Include="verifier_service.h" />
     <ClInclude Include="windows_platform_service.hpp" />

@@ -749,16 +749,6 @@ extern "C"
         _In_reads_bytes_(data_length) const void* data,
         size_t data_length) EBPF_NO_EXCEPT;
 
-    /**
-     * @brief Authorize a native module to be loaded.
-     *
-     * @param[in] module_path Path to the native module to be authorized.
-     * @retval EBPF_SUCCESS The operation was successful.
-     * @retval EBPF_NO_MEMORY Out of memory.
-     */
-    _Must_inspect_result_ ebpf_result_t
-    ebpf_authorize_native_module(_In_z_ const char* module_path) EBPF_NO_EXCEPT;
-
 #ifdef __cplusplus
 }
 #endif
