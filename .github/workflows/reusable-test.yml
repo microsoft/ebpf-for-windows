@@ -155,7 +155,7 @@ jobs:
         id: install_procdump
         if: (inputs.gather_dumps == true) && (steps.skip_check.outputs.should_skip != 'true')
         run: |
-          choco install -y procdump
+          choco install -y procdump --version 11.0
           where procdump.exe
 
       - name: Set up OpenCppCoverage and add to PATH
