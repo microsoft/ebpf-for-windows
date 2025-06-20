@@ -481,7 +481,7 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_authorize_native_module(HANDLE native_image_handle) noexcept
+ebpf_authorize_native_module(_In_ GUID* module_id, _In_ HANDLE native_image_handle) noexcept
 {
     EBPF_LOG_ENTRY();
 
@@ -524,6 +524,7 @@ ebpf_authorize_native_module(HANDLE native_image_handle) noexcept
         std::copy(sha256_hash.begin(), sha256_hash.end(), request.module_hash);
         request.header.id = ebpf_operation_id_t::EBPF_OPERATION_AUTHORIZE_NATIVE_MODULE;
         request.header.length = static_cast<uint16_t>(sizeof(request));
+        request.module_id = *module_id;
     } catch (const std::bad_alloc&) {
         result = EBPF_NO_MEMORY;
         goto Done;

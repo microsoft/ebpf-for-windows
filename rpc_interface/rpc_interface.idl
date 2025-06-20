@@ -67,5 +67,5 @@ import "wtypes.idl";
             [ out, ref ] uint32_t * logs_size,
             [ out, size_is(, *logs_size), ref ] char** logs);
 
-        ebpf_result_t verify_and_authorize_native_image([ in, string ] char* image_path);
+        ebpf_result_t verify_and_authorize_native_image([in] GUID * module_id, [ in, string ] char* image_path);
     }

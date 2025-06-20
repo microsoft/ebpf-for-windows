@@ -26,12 +26,13 @@ ebpf_verify_and_load_program(
 /**
  * @brief Authorize a native module to be loaded.
  *
+ * @param[in] module_id GUID of the module to authorize.
  * @param[in] native_image_handle Handle to native image.
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval EBPF_NO_MEMORY Out of memory.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_authorize_native_module(HANDLE native_image_handle) EBPF_NO_EXCEPT;
+ebpf_authorize_native_module(_In_ GUID* module_id, _In_ HANDLE native_image_handle) EBPF_NO_EXCEPT;
 
 /**
  * @brief Verify the signature of a file and open it.

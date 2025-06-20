@@ -223,7 +223,7 @@ ebpf_rpc_load_program(
 #endif
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_rpc_authorize_native_module(_In_z_ const char* image_path)
+ebpf_rpc_authorize_native_module(_In_ GUID* module_id, _In_z_ const char* image_path)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     HANDLE image_handle = INVALID_HANDLE_VALUE;
@@ -233,7 +233,7 @@ ebpf_rpc_authorize_native_module(_In_z_ const char* image_path)
         return result;
     }
 
-    result = ebpf_authorize_native_module(image_handle);
+    result = ebpf_authorize_native_module(module_id, image_handle);
     CloseHandle(image_handle);
     return result;
 }
