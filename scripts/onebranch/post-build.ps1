@@ -33,11 +33,11 @@ function CopySignedBinaries {
 $BinariesToCopy = @(
     "bpftool.exe",
     "bpftool.pdb",
-    "ebpfcore.pdb",
-    "ebpfcore.sys",
     "ebpfapi.dll",
     "ebpfapi.lib",
     "ebpfapi.pdb",
+    "ebpfcore.pdb",
+    "ebpfcore.sys",
     "ebpfnetsh.dll",
     "ebpfnetsh.pdb",
     "ebpfsvc.exe",
