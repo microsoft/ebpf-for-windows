@@ -32,6 +32,5 @@ api-ms-win-crt-time-l1-1-0.dll
 api-ms-win-eventing-provider-l1-1-0.dll
 api-ms-win-service-management-l1-1-0.dll
 api-ms-win-service-winsvc-l1-1-0.dll
-bcrypt.dll
 KERNEL32.dll
 RPCRT4.dll
