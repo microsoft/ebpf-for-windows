@@ -41,8 +41,6 @@ SPDX-License-Identifier: MIT
 			<!--Rollback sequence-->
 			<Custom Action="eBPF_netsh_helper_uninstall_rollback" Before="eBPF_netsh_helper_install">NOT Installed</Custom>
 
-			<Custom Action="eBPFSvc_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
-
 			<Custom Action="eBPFCore_Driver_stop_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall_rollback" Before="eBPFCore_Driver_install">NOT Installed</Custom>
 
@@ -64,11 +62,12 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_start" After="NetEbpfExt_Driver_install">NOT Installed</Custom>
 
 			<!--Uninstall sequence-->
+			<!-- Stop eBPF service very early to prevent file-in-use detection -->
+			<Custom Action="eBPFSvc_EarlyStop" Before="InstallValidate">REMOVE="ALL"</Custom>
+
 			<Custom Action="eBPF_netsh_helper_uninstall" After="InstallInitialize">REMOVE="ALL"</Custom>
 
-			<Custom Action="eBPFSvc_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
-
-			<Custom Action="eBPFCore_Driver_stop" After="eBPFSvc_stop">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFCore_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
 			<Custom Action="eBPFCore_Driver_uninstall" After="eBPFCore_Driver_stop">REMOVE="ALL"</Custom>
 
 			<Custom Action="NetEbpfExt_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
@@ -230,10 +229,10 @@ SPDX-License-Identifier: MIT
 								Wait="yes" />
 			</Component>
 		</ComponentGroup>
-		<Property Id="eBPFSvc_stop" Value='"net.exe" stop eBPFSvc' />
-		<CustomAction Id="eBPFSvc_stop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
-		<Property Id="eBPFSvc_stop_rollback" Value='"net.exe" stop eBPFSvc' />
-		<CustomAction Id="eBPFSvc_stop_rollback" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="rollback" Return="ignore" Impersonate="no"/>
+
+		<!-- Custom action to stop eBPF service very early in uninstall process -->
+		<Property Id="eBPFSvc_EarlyStop" Value='"sc.exe" stop eBPFSvc' />
+		<CustomAction Id="eBPFSvc_EarlyStop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="immediate" Return="ignore" Impersonate="no"/>
 
 		<!--Install/Uninstall the eBPFCore Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
