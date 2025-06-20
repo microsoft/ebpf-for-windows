@@ -29,6 +29,7 @@ if (-not $ExecuteOnHost) {
         $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
         $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
     }
+    $WorkingDirectory = "C:\ebpf"
 } else {
     # Empty credentials - unused when executing on host.
     $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
@@ -76,8 +77,7 @@ $Job = Start-Job -ScriptBlock {
             $TestMode,
             $Options,
             $TestHangTimeout,
-            $UserModeDumpFolder
-        ) `
+            $UserModeDumpFolder) `
         -WarningAction SilentlyContinue
     try {
         Write-Log "Running kernel tests"
@@ -104,8 +104,7 @@ $Job = Start-Job -ScriptBlock {
     $TestMode,
     $Options,
     $TestHangTimeout,
-    $UserModeDumpFolder
-)
+    $UserModeDumpFolder)
 
 # Keep track of the last received output count
 $JobTimedOut = `

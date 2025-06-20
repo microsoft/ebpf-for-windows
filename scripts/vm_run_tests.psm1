@@ -382,7 +382,8 @@ function Stop-eBPFComponents {
 
 function Run-KernelTests {
     param(
-        [Parameter(Mandatory = $true)] [PSCustomObject] $Config
+        [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
+        [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false
     )
     $scriptBlock = {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
@@ -391,29 +392,36 @@ function Run-KernelTests {
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
-                Write-Log "Running CI/CD tests"
-                Invoke-CICDTests -VerboseLogs $false -ExecuteSystemTests $true
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -ExecuteSystemTests $true `
+                    2>&1 | Write-Log
             }
             "regression" {
-                Write-Log "Running regression tests"
-                Invoke-CICDTests -VerboseLogs $false -ExecuteSystemTests $false
+                Invoke-CICDTests `
+                    -VerboseLogs $VerboseLogs `
+                    -ExecuteSystemTests $false `
+                    2>&1 | Write-Log
             }
             "stress" {
-                Write-Log "Running stress tests"
+                # Set RestartExtension to true if options contains that string
                 $RestartExtension = $Options -contains "RestartExtension"
-                Invoke-CICDStressTests -VerboseLogs $false -RestartExtension $RestartExtension
+                Invoke-CICDStressTests `
+                    -VerboseLogs $VerboseLogs `
+                    -RestartExtension $RestartExtension `
+                    2>&1 | Write-Log
             }
             "performance" {
-                Write-Log "Running performance tests"
+                # Set CaptureProfle to true if options contains that string
                 $CaptureProfile = $Options -contains "CaptureProfile"
-                Invoke-CICDPerformanceTests -VerboseLogs $false -CaptureProfile $CaptureProfile
+                Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
             }
             default {
                 throw "Invalid test mode: $TestMode"
             }
         }
     }
-    $argList = @($script:WorkingDirectory, $script:VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
+    $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
