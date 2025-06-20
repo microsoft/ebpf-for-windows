@@ -281,10 +281,8 @@ function Invoke-Test
         ThrowWithErrorMessage -ErrorMessage "*** ERROR *** Test file $TestFilePath not found."
     }
     if ($ArgumentsList) {
-        Write-Host "Executing: Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile"
         $TestProcess = Start-Process -FilePath $TestFilePath -ArgumentList $ArgumentsList -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
     } else {
-        Write-Host "Executing: Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile"
         $TestProcess = Start-Process -FilePath $TestFilePath -PassThru -NoNewWindow -RedirectStandardOutput $TempOutputFile -RedirectStandardError $TempErrorFile -ErrorAction Stop
     }
     # Cache the process handle to ensure subsequent access of the process is accurate.

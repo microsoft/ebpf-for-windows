@@ -107,7 +107,7 @@ function Remove-eBPFProgram {
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
-function Start-Process {
+function Start-ProcessHelper {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName,
         [string] $Parameters
@@ -121,7 +121,7 @@ function Start-Process {
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
-function Stop-Process {
+function Stop-ProcessHelper {
     param (
         [Parameter(Mandatory = $true)] [string] $ProgramName
     )
@@ -327,7 +327,7 @@ function Invoke-ConnectRedirectTests
     # Start TCP and UDP listeners on both the VMs.
     foreach ($param in $ParamaterArray)
     {
-        Start-Process -ProgramName $ProgramName -Parameters $param
+        Start-ProcessHelper -ProgramName $ProgramName -Parameters $param
     }
 
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($script:StandardUserPassword))
@@ -358,7 +358,7 @@ function Invoke-ConnectRedirectTests
     $argList = @($VM1V4Address, $VM1V6Address, $VM2V4Address, $VM2V6Address, $VipV4Address, $VipV6Address, $DestinationPort, $ProxyPort, $script:StandardUser, $InsecurePassword, $UserType, $script:WorkingDirectory, $LogFileName, $script:TestHangTimeout, $script:UserModeDumpFolder)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 
-    Stop-Process -ProgramName $ProgramName
+    Stop-ProcessHelper -ProgramName $ProgramName
 
     # Remove standard user on VM1.
     Remove-StandardUser -UserName $script:StandardUser
