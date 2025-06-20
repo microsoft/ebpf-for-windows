@@ -19,14 +19,15 @@ Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogF
 # Detects the current system architecture and returns whether PSExec is compatible.
 function Test-PSExecCompatibility
 {
-    $Architecture = $env:PROCESSOR_ARCHITECTURE
-    if ($Architecture -eq "ARM64") {
-        Write-Log "Detected ARM64 architecture - PSExec64.exe is not compatible" -ForegroundColor Yellow
-        return $false
-    } else {
-        Write-Log "Detected $Architecture architecture - PSExec64.exe is compatible" -ForegroundColor Green
-        return $true
-    }
+    return $true
+    # $Architecture = $env:PROCESSOR_ARCHITECTURE
+    # if ($Architecture -eq "ARM64") {
+    #     Write-Log "Detected ARM64 architecture - PSExec64.exe is not compatible" -ForegroundColor Yellow
+    #     return $false
+    # } else {
+    #     Write-Log "Detected $Architecture architecture - PSExec64.exe is compatible" -ForegroundColor Green
+    #     return $true
+    # }
 }
 
 # Finds and returns the specified tool's location under the current directory. If not found, throws an exception.
