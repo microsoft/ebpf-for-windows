@@ -246,8 +246,13 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
                                         "                     Key  Value      Max\n"
                                         "          Map Type  Size   Size  Entries  Name\n"
                                         "==================  ====  =====  =======  ========\n";
+    bool output_matches = output == std::vformat(expected_output, std::make_format_args(code_size));
+    if (!output_matches) {
+        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Actual output:\n" << output << "\n";
+    }
 
-    REQUIRE(output == std::vformat(expected_output, std::make_format_args(code_size)));
+    REQUIRE(output_matches);
 }
 
 // Test a DLL with multiple maps in the map section.
@@ -270,7 +275,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int code_size = 316;
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 1020;
+    const int code_size = 1124;
     const int old_code_size = 1076;
 #else
 #error "Unsupported architecture"
@@ -289,9 +294,16 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
                                         "             array     4      4        1  port_map\n"
                                         "             array     4      4        1  inner_map\n";
 
-    REQUIRE(
+    bool output_matches =
         (output == std::vformat(expected_output, std::make_format_args(code_size)) ||
-         output == std::vformat(expected_output, std::make_format_args(old_code_size))));
+         output == std::vformat(expected_output, std::make_format_args(old_code_size)));
+
+    if (!output_matches) {
+        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Actual output:\n" << output << "\n";
+    }
+
+    REQUIRE(output_matches);
 }
 
 // Test a .dll file with multiple programs.
@@ -316,7 +328,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     const int code_size_new[] = {116, 8, 112};
 #elif defined(_M_ARM64) && !defined(NDEBUG)
     const int code_size_old[] = {400, 184, 400};
-    const int code_size_new[] = {424, 188, 424};
+    const int code_size_new[] = {472, 236, 472};
 #else
 #error "Unsupported architecture"
 #endif
@@ -335,12 +347,18 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
                                         "          Map Type  Size   Size  Entries  Name\n"
                                         "==================  ====  =====  =======  ========\n"
                                         "        prog_array     4      4       10  map\n";
-
-    REQUIRE(
+    bool output_matches =
         (output == std::vformat(
                        expected_output, std::make_format_args(code_size_old[0], code_size_old[1], code_size_old[2])) ||
          output == std::vformat(
-                       expected_output, std::make_format_args(code_size_new[0], code_size_new[1], code_size_new[2]))));
+                       expected_output, std::make_format_args(code_size_new[0], code_size_new[1], code_size_new[2])));
+
+    if (!output_matches) {
+        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Actual output:\n" << output << "\n";
+    }
+
+    REQUIRE(output_matches);
 }
 
 // Test a .sys file with multiple programs, including ones with long names.
@@ -381,9 +399,17 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
                                         "              hash    56      4        1  egress_connection_policy_map\n"
                                         "              hash    56      4        1  ingress_connection_policy_map\n"
                                         "              hash    56      8     1000  socket_cookie_map\n";
-    REQUIRE(
-        output ==
-        std::vformat(expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])));
+
+    bool output_matches =
+        (output ==
+         std::vformat(expected_output, std::make_format_args(code_size[0], code_size[1], code_size[2], code_size[3])));
+
+    if (!output_matches) {
+        std::cerr << "Expected output:\n" << expected_output << "\n";
+        std::cerr << "Actual output:\n" << output << "\n";
+    }
+
+    REQUIRE(output_matches);
 }
 
 TEST_CASE("show verification nosuchfile.o", "[netsh][verification]")

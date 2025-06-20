@@ -36,13 +36,15 @@
 
 #if !defined(NDEBUG)
 void
-_assert(const char* message, const char* file, unsigned line)
+ubpf_assert(const char* message, const char* file, unsigned line)
 {
     UNREFERENCED_PARAMETER(message);
     UNREFERENCED_PARAMETER(file);
     UNREFERENCED_PARAMETER(line);
     __fastfail(0);
 }
+#undef _assert
+#define _assert ubpf_assert
 #endif
 
 inline int

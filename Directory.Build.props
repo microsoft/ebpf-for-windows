@@ -66,15 +66,15 @@
   </PropertyGroup>
   <!-- Libsancov.lib not supported on arm64 -->
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyRelease|x64'">
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MD-x86_64.lib</FuzzerLibs>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MT-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64' Or '$(Configuration)|$(Platform)'=='FuzzerDebug|x64' Or '$(Configuration)|$(Platform)'=='NativeOnlyDebug|x64'">
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MTd-x86_64.lib</FuzzerLibs>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Fuzzer)'=='True' OR '$(Configuration)'=='FuzzerDebug'">
     <EnableASAN>true</EnableASAN>
     <EnableFuzzer>true</EnableFuzzer>
-    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MDd-x86_64.lib</FuzzerLibs>
+    <FuzzerLibs>libsancov.lib;clang_rt.fuzzer_MTd-x86_64.lib</FuzzerLibs>
     <ClCompile>
       <AdditionalOptions>/fsanitize-coverage=inline-bool-flag /fsanitize-coverage=edge /fsanitize-coverage=trace-cmp /fsanitize-coverage=trace-div /DFUZZER_BUILD %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -131,13 +131,13 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' Or '$(Configuration)'=='NativeOnlyRelease'">
     <ClCompile>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <WholeProgramOptimization Condition="'$(EnableAsan)' != 'true'">true</WholeProgramOptimization>
       <!-- /Ob3 enable hinting to link time code generation that a function should be inlined -->
       <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/spgo $(AllPDataOption) %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib /spgo $(AllPDataOption) %(AdditionalOptions)</AdditionalOptions>
       <LinkTimeCodeGeneration Condition="'$(EnableAsan)' != 'true'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
   </ItemDefinitionGroup>
@@ -145,8 +145,11 @@
     <ClCompile>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
+    <Link>
+      <AdditionalOptions Condition="'$(EnableASAN)' != 'true'">/NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib %(AdditionalOptions)</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
   <!-- Add the resource to applications, dlls, and drivers except if the resource file doesn't exist-->
   <ItemGroup Condition="('$(ConfigurationType)'=='Application' Or '$(ConfigurationType)'=='DynamicLibrary' Or '$(ConfigurationType)'=='Driver') And Exists('$(SolutionDir)resource\ebpf_resource.rc')">
