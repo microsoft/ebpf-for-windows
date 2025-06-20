@@ -63,7 +63,7 @@ SPDX-License-Identifier: MIT
 
 			<!--Uninstall sequence-->
 			<!-- Stop eBPF service very early to prevent file-in-use detection -->
-			<Custom Action="eBPFSvc_EarlyStop" Before="InstallValidate">REMOVE="ALL"</Custom>
+			<Custom Action="eBPFSvc_EarlyStop" After="InstallInitialize">REMOVE="ALL"</Custom>
 
 			<Custom Action="eBPF_netsh_helper_uninstall" After="InstallInitialize">REMOVE="ALL"</Custom>
 
@@ -230,9 +230,9 @@ SPDX-License-Identifier: MIT
 			</Component>
 		</ComponentGroup>
 
-		<!-- Custom action to stop eBPF service very early in uninstall process -->
-		<Property Id="eBPFSvc_EarlyStop" Value='"sc.exe" stop eBPFSvc' />
-		<CustomAction Id="eBPFSvc_EarlyStop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="immediate" Return="ignore" Impersonate="no"/>
+		<!-- Custom action to aggressively stop eBPF service and related processes very early in uninstall process -->
+		<Property Id="eBPFSvc_EarlyStop" Value='"cmd.exe" /c "sc.exe config eBPFSvc start= disabled &amp; sc.exe stop eBPFSvc &amp; timeout /t 3 &amp; taskkill.exe /f /im ebpfsvc.exe /t"' />
+		<CustomAction Id="eBPFSvc_EarlyStop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
 		<!--Install/Uninstall the eBPFCore Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
