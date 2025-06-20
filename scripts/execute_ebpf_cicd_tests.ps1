@@ -21,49 +21,64 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-if ($SelfHostedRunnerName -eq "1ESRunner") {
-    $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
-    $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
+if (-not $ExecuteOnHost) {
+    if ($SelfHostedRunnerName -eq "1ESRunner") {
+        $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
+        $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
+    } else {
+        $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
+        $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+    }
 } else {
-    $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
-    $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
+    # Empty credentials - unused when executing on host.
+    $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+    $AdminTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
+    $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
 }
 
 $Job = Start-Job -ScriptBlock {
     param (
-        [Parameter(Mandatory = $False)] [PSCredential] $AdminTestVMCredential,
-        [Parameter(Mandatory = $False)] [PSCredential] $StandardUserTestVMCredential,
+        [Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
+        [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
+        [Parameter(Mandatory = $True)] [PSCredential] $AdminTestVMCredential,
+        [Parameter(Mandatory = $True)] [PSCredential] $StandardUserTestVMCredential,
         [Parameter(Mandatory = $True)] [PSCustomObject] $Config,
-        [Parameter(Mandatory = $False)] [string] $SelfHostedRunnerName,
+        [Parameter(Mandatory = $True)] [string] $SelfHostedRunnerName,
         [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
         [Parameter(Mandatory = $True)] [string] $LogFileName,
         [Parameter(Mandatory = $True)] [string] $TestMode,
         [Parameter(Mandatory = $True)] [string[]] $Options,
         [Parameter(Mandatory = $True)] [int] $TestHangTimeout,
-        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder,
-        [Parameter(Mandatory = $False)] [switch] $ExecuteOnHost
+        [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder
     )
-    if (-not $ExecuteOnHost) {
-        $ImportArgs = @(
+    Push-Location $WorkingDirectory
+
+    # Load other utility modules.
+    Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+    if ($ExecuteOnVM) {
+        $VMList = $Config.VMMap.$SelfHostedRunnerName
+        $VMName = $VMList[0].Name
+    } else {
+        $VMName = $null
+    }
+    Import-Module $WorkingDirectory\vm_run_tests.psm1 `
+        -Force `
+        -ArgumentList(
+            $ExecuteOnHost,
+            $ExecuteOnVM,
+            $VMName,
             $AdminTestVMCredential.UserName,
             $AdminTestVMCredential.Password,
             $StandardUserTestVMCredential.UserName,
             $StandardUserTestVMCredential.Password,
-            $Config.VMMap.$SelfHostedRunnerName[0].Name,
             $WorkingDirectory,
             $LogFileName,
             $TestMode,
             $Options,
             $TestHangTimeout,
-            $UserModeDumpFolder,
-            $ExecuteOnVM = $true
-        )
-    } else {
-        $ImportArgs = @(
-            $env:USERNAME, $null, $env:USERNAME, $null, $null, $WorkingDirectory, $LogFileName, $TestMode, $Options, $TestHangTimeout, $UserModeDumpFolder, $ExecuteOnHost = $true
-        )
-    }
-    Import-Module $WorkingDirectory\vm_run_tests.psm1 -Force -ArgumentList $ImportArgs -WarningAction SilentlyContinue
+            $UserModeDumpFolder
+        ) `
+        -WarningAction SilentlyContinue
     try {
         Write-Log "Running kernel tests"
         Run-KernelTests -Config $Config
@@ -77,7 +92,20 @@ $Job = Start-Job -ScriptBlock {
         throw $_.Exception.Message
     }
     Pop-Location
-} -ArgumentList $AdminTestVMCredential, $StandardUserTestVMCredential, $Config, $SelfHostedRunnerName, $WorkingDirectory, $LogFileName, $TestMode, $Options, $TestHangTimeout, $UserModeDumpFolder, $ExecuteOnHost
+} -ArgumentList (
+    $ExecuteOnHost,
+    (-not $ExecuteOnHost), # ExecuteOnVM
+    $AdminTestVMCredential,
+    $StandardUserTestVMCredential,
+    $Config,
+    $SelfHostedRunnerName,
+    $WorkingDirectory,
+    $LogFileName,
+    $TestMode,
+    $Options,
+    $TestHangTimeout,
+    $UserModeDumpFolder
+)
 
 # Keep track of the last received output count
 $JobTimedOut = `

@@ -2,19 +2,21 @@
 # SPDX-License-Identifier: MIT
 
 param (
-    [Parameter(ParameterSetName = 'VM', Mandatory = $True)] [string] $Admin,
-    [Parameter(ParameterSetName = 'VM', Mandatory = $True)] [SecureString] $AdminPassword,
-    [Parameter(ParameterSetName = 'VM', Mandatory = $True)] [string] $StandardUser,
-    [Parameter(ParameterSetName = 'VM', Mandatory = $True)] [SecureString] $StandardUserPassword,
-    [Parameter(ParameterSetName = 'VM', Mandatory = $True)] [string] $VMName,
+    [Parameter(Mandatory = $True)][bool] $ExecuteOnHost = $false,
+    # The following parameters are only used when ExecuteOnVM is true
+    [Parameter(Mandatory = $True)][bool] $ExecuteOnVM = $false,
+    [Parameter(Mandatory = $True)] [string] $VMName,
+    [Parameter(Mandatory = $True)] [string] $Admin,
+    [Parameter(Mandatory = $True)] [SecureString] $AdminPassword,
+    [Parameter(Mandatory = $True)] [string] $StandardUser,
+    [Parameter(Mandatory = $True)] [SecureString] $StandardUserPassword,
+    # The following are shared parameters for both ExecuteOnHost and ExecuteOnVM
     [Parameter(Mandatory = $True)] [string] $WorkingDirectory,
     [Parameter(Mandatory = $True)] [string] $LogFileName,
     [Parameter(Mandatory = $false)][string] $TestMode = "CI/CD",
     [Parameter(Mandatory = $false)][string[]] $Options = @("None"),
     [Parameter(Mandatory = $false)][int] $TestHangTimeout = (10*60),
-    [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
-    [Parameter(ParameterSetName = 'Host', Mandatory = $true)][switch] $ExecuteOnHost,
-    [Parameter(ParameterSetName = 'VM', Mandatory = $true)][switch] $ExecuteOnVM
+    [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
 )
 
 Push-Location $WorkingDirectory
@@ -296,7 +298,7 @@ function Invoke-ConnectRedirectTests
 {
     param(
         [Parameter(Mandatory = $true)] $Interfaces,
-        [Parameter(Mandatory = $true] $ConnectRedirectTestConfig,
+        [Parameter(Mandatory = $true)] $ConnectRedirectTestConfig,
         [Parameter(Mandatory = $true)][ValidateSet("Administrator", "StandardUser")] $UserType = "Administrator",
         [Parameter(Mandatory = $true)] [string] $LogFileName
     )
@@ -334,8 +336,8 @@ function Invoke-ConnectRedirectTests
 
     $scriptBlock = {
         param($LocalIPv4Address, $LocalIPv6Address, $RemoteIPv4Address, $RemoteIPv6Address, $VirtualIPv4Address, $VirtualIPv6Address, $DestinationPort, $ProxyPort, $StandardUserName, $StandardUserPassword, $UserType, $WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder)
-        Import-Module $script:WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $script:WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($script:WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
 
         Write-Log "Invoking connect redirect tests [Mode=$UserType]"
         Invoke-ConnectRedirectTest `
@@ -370,8 +372,8 @@ function Stop-eBPFComponents {
     Write-Log "Stopping eBPF components"
     $scriptBlock = {
         param($WorkingDirectory, $LogFileName)
-        Import-Module $script:WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $script:WorkingDirectory\install_ebpf.psm1 -ArgumentList ($script:WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\install_ebpf.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Stop-eBPFComponents
     }
     $argList = @($script:WorkingDirectory, $LogFileName)
@@ -380,13 +382,12 @@ function Stop-eBPFComponents {
 
 function Run-KernelTests {
     param(
-        [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
-        [Parameter(Mandatory = $true)] [string] $LogFileName
+        [Parameter(Mandatory = $true)] [PSCustomObject] $Config
     )
     $scriptBlock = {
-        param($VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
-        Import-Module $script:WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
-        Import-Module $script:WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($script:WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
+        param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
@@ -412,11 +413,12 @@ function Run-KernelTests {
             }
         }
     }
-    $argList = @($script:VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $LogFileName)
+    $argList = @($script:WorkingDirectory, $script:VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
-        Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $LogFileName
-        Invoke-ConnectRedirectTests -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $LogFileName
-        Invoke-ConnectRedirectTests -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $LogFileName
+        Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
+        Invoke-ConnectRedirectTests -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
+        Invoke-ConnectRedirectTests -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
     }
 }
