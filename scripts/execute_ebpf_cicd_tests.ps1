@@ -52,6 +52,9 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder
     )
     Push-Location $WorkingDirectory
+    Get-ChildItem -Path $WorkingDirectory | ForEach-Object {
+        Write-Host "File: $($_.FullName)"
+    }
 
     # Load other utility modules.
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
