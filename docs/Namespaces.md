@@ -56,3 +56,14 @@ The pinning namespace is partitioned by namespace. The following APIs are namesp
 ### Namespace APIs
 The following APIs can be used to associate the process with a namespace.
 1) ebpf_set_namespace - Switch to the specified namespace.
+
+### eBPF netsh support
+The eBPF netsh extension will be updated to support switching to a designated namespace. Users will be able to specify
+the desired namespace using new netsh commands, such as `netsh ebpf set namespace <GUID>`, allowing subsequent eBPF
+operations within the session to be performed in the selected namespace. Additional commands and usage examples will be
+provided in the netsh documentation as this feature is implemented.
+
+### eBPF bpftool support
+Support for eBPF namespaces is a Windows-specific feature. However, bpftool is intended to be a cross-platform tool
+and, for consistency, will not support custom namespaces on Windows. It will always interact with the default (zero
+GUID) namespace.
