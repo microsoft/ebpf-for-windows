@@ -237,7 +237,7 @@ On the attacker machine, do the following:
 1. Compile `droppacket.c`:
 
    ```cmd
-   clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o
+   clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
    ```
 
 1. Show eBPF byte code for `droppacket.o`:
@@ -272,7 +272,7 @@ On the attacker machine, do the following:
 1. Compile `droppacket.c`:
 
    ```cmd
-   clang -target bpf -O2 -Werror -c droppacket.c -o droppacket.o
+   clang -target bpf -O2 -g -Werror -c droppacket.c -o droppacket.o
    ```
 
 1. Show that the verifier rejects the code:
