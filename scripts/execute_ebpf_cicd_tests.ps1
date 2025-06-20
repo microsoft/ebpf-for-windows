@@ -29,7 +29,6 @@ if (-not $ExecuteOnHost) {
         $AdminTestVMCredential = Get-StoredCredential -Target $AdminTarget -ErrorAction Stop
         $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
     }
-    $WorkingDirectory = "C:\ebpf"
 } else {
     # Empty credentials - unused when executing on host.
     $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
