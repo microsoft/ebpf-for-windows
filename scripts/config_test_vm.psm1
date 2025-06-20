@@ -688,10 +688,10 @@ function Create-VM {
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
-            throw "Failed to create VM: $VmName"
+            throw "Failed to create VM: $VMName"
         }
 
-        Write-Log "Successfully created VM: $VmName" -ForegroundColor Green
+        Write-Log "Successfully created VM: $VMName" -ForegroundColor Green
     } catch {
         throw "Failed to create VM: $VmName with error: $_"
     }
