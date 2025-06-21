@@ -531,13 +531,21 @@ function Get-RegressionTestArtifacts
 
 # Copied from https://github.com/microsoft/msquic/blob/main/scripts/prepare-machine.ps1
 function Get-CoreNetTools {
+    param(
+        [string] $Architecture = "x64"
+    )
     # Download and extract https://github.com/microsoft/corenet-ci.
     $DownloadPath = "$pwd\corenet-ci"
     mkdir $DownloadPath
     Write-Log "Downloading CoreNet-CI to $DownloadPath"
     Get-ZipFileFromUrl -Url "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -DownloadFilePath "$DownloadPath\corenet-ci.zip" -OutputDir $DownloadPath
-    #DuoNic.
-    Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\duonic\*" -Destination $pwd -Force
+    # DuoNic.
+    if ($Architecture -eq "arm64") {
+        $duoNicPath = "$DownloadPath\corenet-ci-main\vm-setup\duonic\arm64\*"
+    } else {
+        $duoNicPath = "$DownloadPath\corenet-ci-main\vm-setup\duonic\*"
+    }
+    Move-Item -Path $duoNicPath -Destination $pwd -Force
     # Procdump.
     Move-Item -Path "$DownloadPath\corenet-ci-main\vm-setup\procdump64.exe" -Destination $pwd -Force
     # NotMyFault.
