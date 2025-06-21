@@ -61,8 +61,10 @@ $Job = Start-Job -ScriptBlock {
     if ($ExecuteOnVM) {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
         $VMName = $VMList[0].Name
+        $TestWorkingDirectory = "C:\ebpf"
     } else {
         $VMName = $null
+        $TestWorkingDirectory = $WorkingDirectory
     }
     Import-Module $WorkingDirectory\vm_run_tests.psm1 `
         -Force `
@@ -74,7 +76,7 @@ $Job = Start-Job -ScriptBlock {
             $AdminTestVMCredential.Password,
             $StandardUserTestVMCredential.UserName,
             $StandardUserTestVMCredential.Password,
-            $WorkingDirectory,
+            $TestWorkingDirectory,
             $LogFileName,
             $TestMode,
             $Options,

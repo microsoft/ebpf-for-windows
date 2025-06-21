@@ -84,7 +84,7 @@ function Set-eBPFProgram {
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         Write-Log "Setting program $ProgId at interface $Interface."
-        Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=\"$Interface\""
+        Invoke-NetshEbpfCommand -Arguments "set program $ProgId xdp_test interface=""$Interface"""
     }
     $argList = @($ProgId, $Interface, $script:WorkingDirectory, $LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
@@ -385,7 +385,7 @@ function Run-KernelTests {
         [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
         [Parameter(Mandatory = $false)] [bool] $VerboseLogs = $false
     )
-    Write-Log "Execute Run-KernelTets"
+    Write-Log "Execute Run-KernelTests"
     $scriptBlock = {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
         # Log all files in local directory
