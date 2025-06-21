@@ -389,6 +389,9 @@ function Run-KernelTests {
     $scriptBlock = {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
         # Log all files in local directory
+        if (-not (Test-Path -Path $WorkingDirectory)) {
+            throw "Working directory does not exist: $WorkingDirectory"
+        }
         Get-ChildItem -Path $WorkingDirectory | ForEach-Object {
             Write-Host "File: $($_.FullName)"
         }

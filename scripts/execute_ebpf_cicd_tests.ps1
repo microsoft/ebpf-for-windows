@@ -59,10 +59,22 @@ $Job = Start-Job -ScriptBlock {
     # Load other utility modules.
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     if ($ExecuteOnVM) {
+        Write-Log "Executing on VM" -ForegroundColor Cyan
         $VMList = $Config.VMMap.$SelfHostedRunnerName
         $VMName = $VMList[0].Name
-        $TestWorkingDirectory = "C:\ebpf"
+        if (Test-Path -Path "C:\ebpf") {
+            # If the path exists, we assume this is a self-hosted runner VM.
+            $TestWorkingDirectory = "C:\ebpf"
+            Get-ChildItem -Path $TestWorkingDirectory | ForEach-Object {
+                Write-Host "File in VM: $($_.FullName)"
+            }
+        } else {
+            Write-Log "C:\ebpf does not exist on VM $VMName. Using the working directory instead." -ForegroundColor Yellow
+            # Otherwise, we use the working directory.
+            $TestWorkingDirectory = $WorkingDirectory
+        }
     } else {
+        Write-Log "Executing on host" -ForegroundColor Cyan
         $VMName = $null
         $TestWorkingDirectory = $WorkingDirectory
     }
