@@ -4052,6 +4052,19 @@ _hash_of_map_initial_value_test(ebpf_execution_type_t execution_type)
 
     // Verify that the id of the inner map matches the id in the outer map.
     REQUIRE(inner_map_id == info.id);
+
+    // Lookup in the inner map with a non-zero key should fail.
+    uint32_t non_zero_key = 1;
+    uint32_t value = 0;
+    int result = bpf_map_lookup_elem(inner_map_fd, &non_zero_key, &value);
+    REQUIRE(result != 0);
+    REQUIRE(errno == ENOENT);
+
+    // Lookup in the inner map with a clearly nonexistent key should also fail.
+    uint32_t nonexistent_key = 12345;
+    result = bpf_map_lookup_elem(inner_map_fd, &nonexistent_key, &value);
+    REQUIRE(result != 0);
+    REQUIRE(errno == ENOENT);
 }
 
 TEST_CASE("hash_of_map", "[libbpf]")
