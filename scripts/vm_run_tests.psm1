@@ -60,17 +60,14 @@ function Add-eBPFProgram {
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         if ([System.String]::IsNullOrEmpty($Interface)){
-            Write-Log "Loading $Program."
             $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program"
         } else {
-            Write-Log "Loading $Program on interface $Interface."
             $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program interface=\"$Interface\""
         }
-        Write-Log "Loaded $Program with $ProgId" -ForegroundColor Green
         return $ProgId
     }
     $argList = @($Program, $Interface, $script:WorkingDirectory, $LogFileName)
-    return Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    return (Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList)
 }
 
 function Set-eBPFProgram {
@@ -226,8 +223,11 @@ function Invoke-XDPTest2 {
     )
     Write-Log "Running XDP Test2 ..."
     $ProgId = Add-eBPFProgram -Program "reflect_packet.sys" -Interface $VM1Interface1Alias -LogFileName $LogFileName
+    Write-Log "Invoking Set-eBPFProgram for $ProgId interface $VM1Interface2Alias"
     Set-eBPFProgram -ProgId $ProgId -Interface $VM1Interface2Alias -LogFileName $LogFileName
+    Write-Log "Invoking Invoke-XDPTestHelper for $VM1Interface1V4Address and $VM1Interface1V6Address"
     Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface1V4Address -RemoteIPV6Address $VM1Interface1V6Address -LogFileName $LogFileName
+    Write-Log "Invoking Invoke-XDPTestHelper for $VM1Interface2V4Address and $VM1Interface2V6Address"
     Invoke-XDPTestHelper -XDPTestName "xdp_reflect_test" -RemoteIPV4Address $VM1Interface2V4Address -RemoteIPV6Address $VM1Interface2V6Address -LogFileName $LogFileName
     Remove-eBPFProgram $ProgId $LogFileName
     Write-Log "XDP Test2 succeeded." -ForegroundColor Green
