@@ -52,14 +52,15 @@ $Job = Start-Job -ScriptBlock {
         [Parameter(Mandatory = $True)] [string] $UserModeDumpFolder
     )
     Push-Location $WorkingDirectory
-    Get-ChildItem -Path $WorkingDirectory | ForEach-Object {
-        Write-Host "File: $($_.FullName)"
-    }
+    Write-Log "Executing tests in $WorkingDirectory" -ForegroundColor Cyan
+    # Get-ChildItem -Path $WorkingDirectory | ForEach-Object {
+    #     Write-Host "File: $($_.FullName)"
+    # }
 
     # Load other utility modules.
     Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     if ($ExecuteOnVM) {
-        Write-Log "Executing on VM" -ForegroundColor Cyan
+        Write-Log "Tests will be executed on VM" -ForegroundColor Cyan
         $VMList = $Config.VMMap.$SelfHostedRunnerName
         $VMName = $VMList[0].Name
         # if (Test-Path -Path "C:\ebpf") {

@@ -19,9 +19,11 @@ param (
     [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps"
 )
 
-Push-Location $WorkingDirectory
-
+if (-not (Test-Path .\common.psm1)) {
+    throw "common.psm1 module not found in the current directory."
+}
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+
 function Invoke-OnHostOrVM {
     param(
         [Parameter(Mandatory = $true, Position = 0)][ScriptBlock] $ScriptBlock,
@@ -60,10 +62,13 @@ function Add-eBPFProgram {
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName) -Force -WarningAction SilentlyContinue
         if ([System.String]::IsNullOrEmpty($Interface)){
+            Write-Log "Loading $Program on $VM."
             $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program"
         } else {
-            $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program interface=\"$Interface\""
+            Write-Log "Loading $Program on interface $Interface on $VM."
+            $ProgId = Invoke-NetshEbpfCommand -Arguments "add program $WorkingDirectory\$Program interface=""$Interface"""
         }
+        Write-Log "Loaded $Program with $ProgId" -ForegroundColor Green
         return $ProgId
     }
     $argList = @($Program, $Interface, $script:WorkingDirectory, $LogFileName)
@@ -388,8 +393,10 @@ function Run-KernelTests {
     Write-Log "Execute Run-KernelTests"
     $scriptBlock = {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
+        Write-Log "In Run-KernelTests script block"
         # Log all files in local directory
         if (-not (Test-Path -Path $WorkingDirectory)) {
+            Write-Log "Working directory does not exist: $WorkingDirectory" -ForegroundColor Red
             throw "Working directory does not exist: $WorkingDirectory"
         }
         Get-ChildItem -Path $WorkingDirectory | ForEach-Object {
