@@ -393,21 +393,12 @@ function Run-KernelTests {
     Write-Log "Execute Run-KernelTests"
     $scriptBlock = {
         param($WorkingDirectory, $VerboseLogs, $TestMode, $TestHangTimeout, $UserModeDumpFolder, $Options, $LogFileName)
-        Write-Log "In Run-KernelTests script block"
-        # Log all files in local directory
-        if (-not (Test-Path -Path $WorkingDirectory)) {
-            Write-Log "Working directory does not exist: $WorkingDirectory" -ForegroundColor Red
-            throw "Working directory does not exist: $WorkingDirectory"
-        }
-        Get-ChildItem -Path $WorkingDirectory | ForEach-Object {
-            Write-Host "File: $($_.FullName)"
-        }
-
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Import-Module $WorkingDirectory\run_driver_tests.psm1 -ArgumentList ($WorkingDirectory, $LogFileName, $TestHangTimeout, $UserModeDumpFolder) -Force -WarningAction SilentlyContinue
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
+                # TODO - possibly these write-logs are not valid?
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $true `
@@ -439,9 +430,12 @@ function Run-KernelTests {
     }
     $argList = @($script:WorkingDirectory, $VerboseLogs, $script:TestMode, $script:TestHangTimeout, $script:UserModeDumpFolder, $script:Options, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
+    Write-Log "Finished Invoke-OnHostOrVM for Run-KernelTests"
 
     if (($script:TestMode -eq "CI/CD") -or ($script:TestMode -eq "Regression")) {
+        Write-Log "Running XDP tests"
         Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
+        Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
     }
