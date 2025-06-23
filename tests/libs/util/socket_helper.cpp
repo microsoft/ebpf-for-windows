@@ -16,7 +16,23 @@
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
 
+// Define WSA_CMSG_* macros if not already defined
+#ifndef WSA_CMSG_FIRSTHDR
+#define WSA_CMSG_FIRSTHDR(msg) \
+    (((msg)->Control.len >= sizeof(WSACMSGHDR)) ? (WSACMSGHDR*)(msg)->Control.buf : NULL)
 
+#define WSA_CMSG_NXTHDR(msg, cmsg) \
+    (((cmsg) == NULL) ? WSA_CMSG_FIRSTHDR(msg) : \
+     (((PUCHAR)(cmsg) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR)) > \
+       (PUCHAR)((msg)->Control.buf) + (msg)->Control.len) ? NULL : \
+      (WSACMSGHDR*)((PUCHAR)(cmsg) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len))))
+
+#define WSA_CMSG_DATA(cmsg) \
+    ((PUCHAR)(cmsg) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR)))
+
+#define WSA_CMSGHDR_ALIGN(length) \
+    (((length) + sizeof(SIZE_T) - 1) & (~(sizeof(SIZE_T) - 1)))
+#endif
 
 uint64_t
 get_current_pid_tgid()
@@ -577,7 +593,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
             // Found redirect context in ancillary data
             size_t context_size = cmsg->cmsg_len - sizeof(WSACMSGHDR);
-            if (context_size >= buffer_size) {
+            if (context_size + 1 > buffer_size) {
                 return 1; // Buffer too small (need space for null terminator)
             }
             
