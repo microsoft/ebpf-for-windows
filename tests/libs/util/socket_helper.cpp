@@ -508,26 +508,7 @@ _datagram_server_socket::post_async_receive()
     recv_msg.dwFlags = 0;
 
     // Post an asynchronous receive using WSARecvMsg to get ancillary data
-    LPFN_WSARECVMSG WSARecvMsg = nullptr;
-    DWORD bytes_returned = 0;
-    GUID guid = WSAID_WSARECVMSG;
-    
-    error = WSAIoctl(
-        socket,
-        SIO_GET_EXTENSION_FUNCTION_POINTER,
-        &guid,
-        sizeof(guid),
-        &WSARecvMsg,
-        sizeof(WSARecvMsg),
-        &bytes_returned,
-        nullptr,
-        nullptr);
-    
-    if (error != 0) {
-        FAIL("Failed to get WSARecvMsg function pointer: " << WSAGetLastError());
-    }
-
-    error = WSARecvMsg(
+    error = receive_message(
         socket,
         &recv_msg,
         nullptr,
@@ -594,11 +575,13 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
             // Found redirect context in ancillary data
             size_t context_size = cmsg->cmsg_len - sizeof(WSACMSGHDR);
-            if (context_size > buffer_size) {
-                return 1; // Buffer too small
+            if (context_size >= buffer_size) {
+                return 1; // Buffer too small (need space for null terminator)
             }
             
             memcpy(buffer, WSA_CMSG_DATA(cmsg), context_size);
+            // Ensure null termination for string usage
+            ((char*)buffer)[context_size] = '\0';
             return 0; // Success
         }
         cmsg = WSA_CMSG_NXTHDR(&recv_msg, cmsg);
