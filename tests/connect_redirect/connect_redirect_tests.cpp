@@ -401,7 +401,8 @@ update_policy_map_and_test_connection(
         std::string expected_response;
         if (redirected && local_redirect && 
             ((_globals.connection_type == connection_type_t::TCP) || 
-             (_globals.connection_type == connection_type_t::UNCONNECTED_UDP))) {
+             (_globals.connection_type == connection_type_t::UNCONNECTED_UDP) ||
+             (_globals.connection_type == connection_type_t::CONNECTED_UDP))) {
             expected_response = REDIRECT_CONTEXT_MESSAGE + std::to_string(proxy_port);
         } else {
             expected_response = SERVER_MESSAGE + std::to_string(proxy_port);

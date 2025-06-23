@@ -13,8 +13,10 @@
 
 // Define IP_WFP_REDIRECT_CONTEXT if not already defined
 #ifndef IP_WFP_REDIRECT_CONTEXT
-#define IP_WFP_REDIRECT_CONTEXT 112
+#define IP_WFP_REDIRECT_CONTEXT 70
 #endif
+
+
 
 uint64_t
 get_current_pid_tgid()
