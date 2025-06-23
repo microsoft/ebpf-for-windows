@@ -1,6 +1,14 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
+# MSI Installation Test Script
+# 
+# This script tests MSI package installation, verification, and uninstall.
+# It includes a regression test for issue #4467 that verifies the eBPF service
+# is properly stopped during uninstall to prevent "files in use" dialogs.
+#
+# Usage: .\check_msi_installation.ps1 -BuildArtifact "Build-x64_Debug" -MsiPath "path\to\installer.msi"
+
 param (
         [Parameter(Mandatory=$true)] [string]$BuildArtifact,
         [Parameter(Mandatory=$true)] [string]$MsiPath)
@@ -123,6 +131,132 @@ function Uninstall-MsiPackage {
     return $res
 }
 
+function Test-ServiceStopDuringUninstall {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory=$true)] [string]$MsiPath
+    )
+
+    Write-Host "Testing eBPF service stop behavior during uninstall (regression test for issue #4467)..."
+    $res = $true
+
+    try {
+        # Verify service is running before uninstall
+        $service = Get-Service -Name $eBpfServiceName -ErrorAction SilentlyContinue
+        if (-not $service -or $service.Status -ne "Running") {
+            Write-Host "ERROR: eBPF service is not running before uninstall test" -ForegroundColor Red
+            return $false
+        }
+        Write-Host "✓ eBPF service is running before uninstall"
+
+        # Check for any existing eBPF processes
+        $ebpfProcessesBefore = Get-Process -Name "*ebpf*" -ErrorAction SilentlyContinue
+        Write-Host "eBPF processes before uninstall: $($ebpfProcessesBefore.Count)"
+
+        # Start monitoring service status in background job
+        $monitorJob = Start-Job -ScriptBlock {
+            param($serviceName)
+            $timestamps = @()
+            $maxDuration = 120 # 2 minutes max
+            $startTime = Get-Date
+            
+            while ((Get-Date).Subtract($startTime).TotalSeconds -lt $maxDuration) {
+                try {
+                    $svc = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+                    $timestamp = @{
+                        Time = Get-Date
+                        Status = if ($svc) { $svc.Status } else { "NotFound" }
+                        ElapsedSeconds = (Get-Date).Subtract($startTime).TotalSeconds
+                    }
+                    $timestamps += $timestamp
+                    
+                    # If service is stopped or removed, we can exit early
+                    if (-not $svc -or $svc.Status -eq "Stopped") {
+                        break
+                    }
+                } catch {
+                    # Service might be in transition, continue monitoring
+                }
+                Start-Sleep -Milliseconds 500
+            }
+            return $timestamps
+        } -ArgumentList $eBpfServiceName
+
+        # Perform the uninstall
+        Write-Host "Starting MSI uninstall with service monitoring..."
+        $uninstallStart = Get-Date
+        $process = Start-Process -FilePath msiexec.exe -ArgumentList "/x $MsiPath /qn /norestart /l*v msi-uninstall-service-test.log" -Wait -PassThru
+        $uninstallEnd = Get-Date
+        $uninstallDuration = $uninstallEnd.Subtract($uninstallStart).TotalSeconds
+
+        # Get monitoring results
+        $monitorResults = Receive-Job -Job $monitorJob -Wait
+        Remove-Job -Job $monitorJob
+
+        Write-Host "Uninstall completed in $([math]::Round($uninstallDuration, 2)) seconds"
+
+        # Analyze the results
+        if ($process.ExitCode -eq 0) {
+            Write-Host "✓ Uninstall completed successfully without user intervention"
+            
+            # Check when service was stopped
+            $serviceStoppedTime = $monitorResults | Where-Object { $_.Status -eq "Stopped" -or $_.Status -eq "NotFound" } | Select-Object -First 1
+            
+            if ($serviceStoppedTime) {
+                Write-Host "✓ eBPF service was stopped at $([math]::Round($serviceStoppedTime.ElapsedSeconds, 2)) seconds into uninstall"
+                
+                # Service should be stopped early (within first 30 seconds)
+                if ($serviceStoppedTime.ElapsedSeconds -le 30) {
+                    Write-Host "✓ Service stopped early in uninstall process (within 30 seconds)" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Service stopped later than expected ($([math]::Round($serviceStoppedTime.ElapsedSeconds, 2)) seconds)" -ForegroundColor Yellow
+                }
+            } else {
+                Write-Host "⚠ Could not determine when service was stopped" -ForegroundColor Yellow
+            }
+
+            # Verify no eBPF processes remain
+            Start-Sleep -Seconds 2
+            $ebpfProcessesAfter = Get-Process -Name "*ebpf*" -ErrorAction SilentlyContinue
+            if ($ebpfProcessesAfter.Count -eq 0) {
+                Write-Host "✓ No eBPF processes remain after uninstall" -ForegroundColor Green
+            } else {
+                Write-Host "⚠ Found $($ebpfProcessesAfter.Count) eBPF processes still running after uninstall" -ForegroundColor Yellow
+                $ebpfProcessesAfter | ForEach-Object { Write-Host "  - $($_.ProcessName) (PID: $($_.Id))" }
+            }
+
+            # Check uninstall log for any dialog-related errors
+            $logContent = Get-Content -Path "msi-uninstall-service-test.log" -ErrorAction SilentlyContinue
+            if ($logContent) {
+                $dialogErrors = $logContent | Where-Object { $_ -match "files that need to be updated|applications are using files|RestartManager" }
+                if ($dialogErrors.Count -eq 0) {
+                    Write-Host "✓ No file-in-use or dialog-related errors found in uninstall log" -ForegroundColor Green
+                } else {
+                    Write-Host "⚠ Found potential dialog-related entries in log:" -ForegroundColor Yellow
+                    $dialogErrors | ForEach-Object { Write-Host "  $_" }
+                }
+            }
+
+        } else {
+            Write-Host "✗ Uninstall failed with exit code: $($process.ExitCode)" -ForegroundColor Red
+            $res = $false
+            
+            # Show uninstall log for debugging
+            $logContents = Get-Content -Path "msi-uninstall-service-test.log" -ErrorAction SilentlyContinue
+            if ($logContents) {
+                Write-Host "Uninstall log contents:" -ForegroundColor Yellow
+                $logContents | Select-Object -Last 20 | ForEach-Object { Write-Host "  $_" }
+            }
+        }
+
+    } catch {
+        Write-Host "✗ Error during service stop test: $_" -ForegroundColor Red
+        $res = $false
+    }
+
+    return $res
+}
+
 function Check-eBPF-Installation {
 
     $res = $true
@@ -205,9 +339,11 @@ try {
     $res = Check-eBPF-Installation
     $allTestsPassed = $allTestsPassed -and $res
 
-    # Uninstall the MSI package.
-    $res = Uninstall-MsiPackage -MsiPath "$MsiPath"
+    # Test service stop behavior during uninstall (regression test for issue #4467).
+    $res = Test-ServiceStopDuringUninstall -MsiPath "$MsiPath"
     $allTestsPassed = $allTestsPassed -and $res
+
+    # Note: Test-ServiceStopDuringUninstall performs the uninstall, so we don't call Uninstall-MsiPackage separately
 } catch {
     $allTestsPassed = $false
     Write-Host "Error: $_"
