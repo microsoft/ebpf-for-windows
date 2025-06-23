@@ -73,6 +73,9 @@ extern "C"
      *  this operation.
      * @param[out] minimum_reply_size Minimum size of the reply buffer for this
      *  operation.
+     * @param[out] async Indicates whether the operation is asynchronous.
+     * @param[out] privileged Indicates whether the operation requires
+     *  privileged access.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED The operation id is not valid.
      */
@@ -81,7 +84,8 @@ extern "C"
         ebpf_operation_id_t operation_id,
         _Out_ size_t* minimum_request_size,
         _Out_ size_t* minimum_reply_size,
-        _Out_ bool* async);
+        _Out_ bool* async,
+        _Out_ bool* privileged);
 
     /**
      * @brief Cancel an async protocol operation that returned EBPF_PENDING from ebpf_core_invoke_protocol_handler.

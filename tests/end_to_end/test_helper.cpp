@@ -466,6 +466,7 @@ GlueDeviceIoControl(
     size_t minimum_request_size = 0;
     size_t minimum_reply_size = 0;
     bool async = false;
+    bool privileged = false;
     unsigned long sharedBufferSize = (input_buffer_size > output_buffer_size) ? input_buffer_size : output_buffer_size;
     const void* local_input_buffer = nullptr;
     void* local_output_buffer = nullptr;
@@ -488,7 +489,8 @@ GlueDeviceIoControl(
 
     (*sharedBuffer).resize(sharedBufferSize);
 
-    result = ebpf_core_get_protocol_handler_properties(request_id, &minimum_request_size, &minimum_reply_size, &async);
+    result = ebpf_core_get_protocol_handler_properties(
+        request_id, &minimum_request_size, &minimum_reply_size, &async, &privileged);
     if (result != EBPF_SUCCESS) {
         goto Fail;
     }
