@@ -98,6 +98,7 @@ _base_socket::_base_socket(
 
     error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
     if (error != 0) {
+        printf("bind to port %d (htons %d) failed\n", port, htons(port));
         FAIL("Failed to bind socket with error: " << WSAGetLastError());
     }
 
@@ -131,7 +132,8 @@ _base_socket::get_received_message(_Out_ uint32_t& message_size, _Outref_result_
 _client_socket::_client_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : _base_socket{_sock_type, _protocol, _port, _family, _source_address}, overlapped{}, receive_posted(false)
-{}
+{
+}
 
 void
 _client_socket::close()
@@ -266,13 +268,15 @@ _datagram_client_socket::send_message_to_remote_host(
         nullptr);
 
     if (error != 0) {
+        printf("sending to remote host port %d failed\n", remote_port);
         FAIL("Sending message to remote host failed with " << WSAGetLastError());
     }
 }
 
 void
 _datagram_client_socket::cancel_send_message()
-{}
+{
+}
 
 void
 _datagram_client_socket::complete_async_send(int timeout_in_ms, expected_result_t expected_result)

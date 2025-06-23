@@ -365,8 +365,11 @@ function Invoke-ConnectRedirectTestHelper
 
     Stop-ProcessHelper -ProgramName $ProgramName
 
-    # Remove standard user on VM1.
-    Remove-StandardUser -UserName $script:StandardUser
+    # TODO - try with this part removed - we never add the standard user on the VM anyway...
+    # if ($script:ExecuteOnVM) {
+    #     # Remove standard user on VM1.
+    #     Remove-StandardUser -UserName $script:StandardUser
+    # }
 }
 
 function Stop-eBPFComponents {
