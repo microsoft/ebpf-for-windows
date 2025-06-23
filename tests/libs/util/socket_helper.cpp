@@ -11,6 +11,11 @@
 
 #define MAXIMUM_IP_BUFFER_SIZE 65
 
+// Define IP_WFP_REDIRECT_CONTEXT if not already defined
+#ifndef IP_WFP_REDIRECT_CONTEXT
+#define IP_WFP_REDIRECT_CONTEXT 112
+#endif
+
 uint64_t
 get_current_pid_tgid()
 {
@@ -457,12 +462,27 @@ _server_socket::complete_async_receive(bool timeout_expected)
 }
 
 _datagram_server_socket::_datagram_server_socket(int _sock_type, int _protocol, uint16_t _port)
-    : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address))
+    : _server_socket{_sock_type, _protocol, _port}, sender_address{}, sender_address_size(sizeof(sender_address)),
+      control_buffer(1024), recv_msg{}
 {
     if (!(sock_type == SOCK_DGRAM || sock_type == SOCK_RAW) &&
         !(protocol == IPPROTO_UDP || protocol == IPPROTO_IPV4 || protocol == IPPROTO_IPV6))
         FAIL("datagram_client_socket class only supports sockets of type SOCK_DGRAM or SOCK_RAW and protocols of type "
              "IPPROTO_UDP, IPPROTO_IPV4 or IPPROTO_IPV6)");
+
+    // Enable redirect context for UDP sockets
+    if (protocol == IPPROTO_UDP) {
+        DWORD option_value = 1;
+        int result = setsockopt(
+            socket,
+            IPPROTO_IP,
+            IP_WFP_REDIRECT_CONTEXT,
+            reinterpret_cast<const char*>(&option_value),
+            sizeof(option_value));
+        if (result != 0) {
+            printf("Warning: Failed to set IP_WFP_REDIRECT_CONTEXT option: %d\n", WSAGetLastError());
+        }
+    }
 }
 
 void
@@ -471,6 +491,7 @@ _datagram_server_socket::post_async_receive()
     int error = 0;
 
     WSABUF wsa_recv_buffer{static_cast<unsigned long>(recv_buffer.size()), reinterpret_cast<char*>(recv_buffer.data())};
+    WSABUF wsa_control_buffer{static_cast<unsigned long>(control_buffer.size()), reinterpret_cast<char*>(control_buffer.data())};
 
     // Create an event handle and set up the overlapped structure.
     overlapped.hEvent = WSACreateEvent();
@@ -478,21 +499,45 @@ _datagram_server_socket::post_async_receive()
         FAIL("WSACreateEvent failed with error: " << WSAGetLastError());
     }
 
-    // Post an asynchronous receive on the socket.
-    error = WSARecvFrom(
+    // Set up WSAMSG structure for WSARecvMsg
+    recv_msg.name = (LPSOCKADDR)&sender_address;
+    recv_msg.namelen = sender_address_size;
+    recv_msg.lpBuffers = &wsa_recv_buffer;
+    recv_msg.dwBufferCount = 1;
+    recv_msg.Control = wsa_control_buffer;
+    recv_msg.dwFlags = 0;
+
+    // Post an asynchronous receive using WSARecvMsg to get ancillary data
+    LPFN_WSARECVMSG WSARecvMsg = nullptr;
+    DWORD bytes_returned = 0;
+    GUID guid = WSAID_WSARECVMSG;
+    
+    error = WSAIoctl(
         socket,
-        &wsa_recv_buffer,
-        1,
+        SIO_GET_EXTENSION_FUNCTION_POINTER,
+        &guid,
+        sizeof(guid),
+        &WSARecvMsg,
+        sizeof(WSARecvMsg),
+        &bytes_returned,
         nullptr,
-        reinterpret_cast<unsigned long*>(&recv_flags),
-        (PSOCKADDR)&sender_address,
-        &sender_address_size,
+        nullptr);
+    
+    if (error != 0) {
+        FAIL("Failed to get WSARecvMsg function pointer: " << WSAGetLastError());
+    }
+
+    error = WSARecvMsg(
+        socket,
+        &recv_msg,
+        nullptr,
         &overlapped,
         nullptr);
+    
     if (error != 0) {
         int wsaerr = WSAGetLastError();
         if (wsaerr != WSA_IO_PENDING) {
-            FAIL("WSARecvFrom failed with " << wsaerr);
+            FAIL("WSARecvMsg failed with " << wsaerr);
         }
     }
 }
@@ -539,9 +584,27 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 int
 _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
 {
-    UNREFERENCED_PARAMETER(buffer);
-    UNREFERENCED_PARAMETER(buffer_size);
-    return 1;
+    // Extract redirect context from ancillary data received via WSARecvMsg
+    if (recv_msg.Control.len == 0) {
+        return 1; // No control data available
+    }
+
+    WSACMSGHDR* cmsg = WSA_CMSG_FIRSTHDR(&recv_msg);
+    while (cmsg != nullptr) {
+        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
+            // Found redirect context in ancillary data
+            size_t context_size = cmsg->cmsg_len - sizeof(WSACMSGHDR);
+            if (context_size > buffer_size) {
+                return 1; // Buffer too small
+            }
+            
+            memcpy(buffer, WSA_CMSG_DATA(cmsg), context_size);
+            return 0; // Success
+        }
+        cmsg = WSA_CMSG_NXTHDR(&recv_msg, cmsg);
+    }
+    
+    return 1; // Redirect context not found
 }
 
 void

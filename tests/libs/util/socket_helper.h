@@ -224,6 +224,8 @@ typedef class _datagram_server_socket : public _server_socket
   private:
     sockaddr_storage sender_address;
     int sender_address_size;
+    std::vector<char> control_buffer;
+    WSAMSG recv_msg;
 } datagram_server_socket_t;
 
 /**
