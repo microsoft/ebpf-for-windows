@@ -416,48 +416,7 @@ update_policy_map_and_test_connection(
         destination, proxy, destination_port, proxy_port, _globals.connection_type, dual_stack, add_policy);
 }
 
-void
-authorize_connection_test(
-    _In_ client_socket_t* sender_socket,
-    _Inout_ sockaddr_storage& destination,
-    uint16_t destination_port,
-    bool dual_stack)
-{
-    uint64_t authentication_id;
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
 
-    // Update policy in the map to allow the connection.
-    _update_policy_map(
-        destination, destination, destination_port, destination_port, _globals.connection_type, dual_stack, true);
-
-    {
-        impersonation_helper_t helper(_globals.user_type);
-
-        authentication_id = _get_current_thread_authentication_id();
-        SAFE_REQUIRE(authentication_id != 0);
-
-        // Try to send and receive message to destination. It should succeed.
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, destination_port);
-        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
-
-        sender_socket->post_async_receive();
-        sender_socket->complete_async_receive(2000, false);
-
-        sender_socket->get_received_message(bytes_received, received_message);
-
-        // For authorization tests, we expect the standard server response.
-        std::string expected_response = SERVER_MESSAGE + std::to_string(destination_port);
-        SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-        SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
-    }
-
-    _validate_audit_map_entry(authentication_id);
-
-    // Remove entry from policy map.
-    _update_policy_map(
-        destination, destination, destination_port, destination_port, _globals.connection_type, dual_stack, false);
-}
 
 void
 authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& destination, bool dual_stack)
@@ -482,8 +441,9 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
 
     _validate_audit_map_entry(authentication_id);
 
-    // Now test that the connection can be allowed by updating the policy map.
-    authorize_connection_test(sender_socket, destination, _globals.destination_port, dual_stack);
+    // Now update the policy map to allow the connection and test again.
+    update_policy_map_and_test_connection(
+        sender_socket, destination, destination, _globals.destination_port, _globals.destination_port, dual_stack);
 }
 
 void
