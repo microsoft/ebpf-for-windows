@@ -106,10 +106,16 @@ _base_socket::_base_socket(
     local_addr.ss_family = address_family;
     INETADDR_SET_PORT((PSOCKADDR)&local_addr, htons(port));
 
-    error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
-    if (error != 0) {
-        printf("bind to port %d (htons %d) failed\n", port, htons(port));
-        FAIL("Failed to bind socket with error: " << WSAGetLastError());
+    // Retry bind operation a few times if it fails with WSAENOBUFS (10055) error as it may be transient.
+    for (int i = 0; i < 5; ++i) {
+        error = bind(socket, (PSOCKADDR)&local_addr, sizeof(local_addr));
+        if (error == 0) {
+            break;
+        }
+        if (WSAGetLastError() != WSAENOBUFS) {
+            FAIL("Failed to bind socket with error: " << WSAGetLastError());
+        }
+        Sleep(100); // Wait for a short duration before retrying.
     }
 
     error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
