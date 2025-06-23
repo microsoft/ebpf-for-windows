@@ -115,7 +115,7 @@ _base_socket::_base_socket(
         if (WSAGetLastError() != WSAENOBUFS) {
             FAIL("Failed to bind socket with error: " << WSAGetLastError());
         }
-        Sleep(100); // Wait for a short duration before retrying.
+        Sleep(1000); // Wait for a short duration before retrying.
     }
 
     error = getsockname(socket, (PSOCKADDR)&local_address, &local_address_size);
