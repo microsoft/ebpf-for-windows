@@ -2216,42 +2216,56 @@ TEST_CASE("create_map_name", "[end_to_end]")
     Platform::_close(map_fd);
 }
 
-TEST_CASE("array_map_large_index_test", "[end_to_end]")
+TEST_CASE("array_of_maps_large_index_test", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
     test_helper.initialize();
 
-    fd_t map_fd;
-    uint32_t key;
-    uint64_t value;
-    const char* map_name = "large_array_map";
-    const uint32_t max_entries = 1000;
+    // Create an inner map that we'll use as a template and values
+    int inner_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd > 0);
 
-    // Create an array map with 1000 entries to test indices > 255
-    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, map_name, sizeof(uint32_t), sizeof(uint64_t), max_entries, nullptr);
-    REQUIRE(map_fd > 0);
+    // Create additional inner maps to use as values for testing
+    int inner_map_fd2 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map2", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
 
-    // Test updating and reading at various indices including ones > 255
+    int inner_map_fd3 = bpf_map_create(BPF_MAP_TYPE_ARRAY, "inner_map3", sizeof(uint32_t), sizeof(uint32_t), 1, nullptr);
+    REQUIRE(inner_map_fd3 > 0);
+
+    // Create an array-of-maps with 1000 entries to test indices > 255
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd};
+    int outer_map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY_OF_MAPS, "large_array_of_maps", 
+                                      sizeof(uint32_t), sizeof(fd_t), 1000, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Test updating at various indices including ones > 255
     uint32_t test_indices[] = {0, 255, 256, 300, 500, 999};
-    uint64_t test_values[] = {100, 255, 256, 300, 500, 999};
+    fd_t test_map_fds[] = {inner_map_fd, inner_map_fd2, inner_map_fd3, inner_map_fd, inner_map_fd2, inner_map_fd3};
     size_t test_count = sizeof(test_indices) / sizeof(test_indices[0]);
 
-    // Update entries at test indices
+    // Update entries at test indices - this exercises _update_array_map_entry_with_handle
     for (size_t i = 0; i < test_count; i++) {
-        key = test_indices[i];
-        value = test_values[i];
-        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+        uint32_t key = test_indices[i];
+        fd_t value_fd = test_map_fds[i];
+        REQUIRE(bpf_map_update_elem(outer_map_fd, &key, &value_fd, 0) == 0);
     }
 
     // Verify entries were stored correctly
     for (size_t i = 0; i < test_count; i++) {
-        key = test_indices[i];
-        uint64_t read_value;
-        REQUIRE(bpf_map_lookup_elem(map_fd, &key, &read_value) == EBPF_SUCCESS);
-        REQUIRE(read_value == test_values[i]);
+        uint32_t key = test_indices[i];
+        ebpf_id_t stored_map_id;
+        REQUIRE(bpf_map_lookup_elem(outer_map_fd, &key, &stored_map_id) == 0);
+
+        // Verify we can get the map FD from the stored ID
+        int retrieved_fd = bpf_map_get_fd_by_id(stored_map_id);
+        REQUIRE(retrieved_fd > 0);
+        Platform::_close(retrieved_fd);
     }
 
-    Platform::_close(map_fd);
+    Platform::_close(inner_map_fd);
+    Platform::_close(inner_map_fd2); 
+    Platform::_close(inner_map_fd3);
+    Platform::_close(outer_map_fd);
 }
 
 static void
