@@ -223,7 +223,7 @@ ebpf_rpc_load_program(
 #endif
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_rpc_authorize_native_module(_In_ GUID* module_id, _In_z_ const char* image_path)
+ebpf_rpc_authorize_native_module(_In_ const GUID* module_id, _In_z_ const char* image_path)
 {
     ebpf_result_t result = EBPF_SUCCESS;
     HANDLE image_handle = INVALID_HANDLE_VALUE;

@@ -19,4 +19,4 @@ ebpf_rpc_load_program(
 #endif // !defined(CONFIG_BPF_JIT_DISABLED) || !defined(CONFIG_BPF_INTERPRETER_DISABLED)
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_rpc_authorize_native_module(_In_ GUID* module_id, _In_z_ const char* image_path) noexcept;
+ebpf_rpc_authorize_native_module(_In_ const GUID* module_id, _In_z_ const char* image_path) noexcept;

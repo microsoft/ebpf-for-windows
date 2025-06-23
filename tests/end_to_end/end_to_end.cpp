@@ -347,7 +347,7 @@ typedef class _ip_in_ip_packet : public ip_packet_t
 #define TEST_IFINDEX 17
 
 static ebpf_result_t
-ebpf_authorize_native_module_wrapper(_In_ GUID* module_id, _In_z_ const char* filename)
+ebpf_authorize_native_module_wrapper(_In_ const GUID* module_id, _In_z_ const char* filename)
 {
     HANDLE file_handle = INVALID_HANDLE_VALUE;
     ebpf_result_t result = ebpf_verify_signature_and_open_file(filename, &file_handle);

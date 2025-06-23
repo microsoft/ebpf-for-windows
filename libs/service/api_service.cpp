@@ -481,7 +481,7 @@ ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* 
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_authorize_native_module(_In_ GUID* module_id, _In_ HANDLE native_image_handle) noexcept
+ebpf_authorize_native_module(_In_ const GUID* module_id, _In_ HANDLE native_image_handle) noexcept
 {
     EBPF_LOG_ENTRY();
 
