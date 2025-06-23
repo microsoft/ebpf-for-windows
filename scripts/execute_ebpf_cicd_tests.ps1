@@ -30,10 +30,9 @@ if (-not $ExecuteOnHost) {
         $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
     }
 } else {
-    # Empty credentials - unused when executing on host.
     $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
     $AdminTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
-    $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
+    $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential("StandardUser", $EmptySecureString)
 }
 
 $Job = Start-Job -ScriptBlock {

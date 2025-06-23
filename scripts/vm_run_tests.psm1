@@ -143,6 +143,11 @@ function Add-StandardUser {
     )
     $scriptBlock = {
         param($UserName, $Password)
+        $standardUser = Get-LocalUser -Name $UserName -ErrorAction SilentlyContinue
+        if ($standardUser) {
+            Write-Log "User $UserName already exists. Skipping creation." -ForegroundColor Yellow
+            return
+        }
         $SecurePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
         New-LocalUser -Name $UserName -Password $SecurePassword
     }
@@ -440,6 +445,7 @@ function Run-KernelTests {
         Invoke-XDPTests -Interfaces $Config.Interfaces -LogFileName $script:LogFileName
         Write-Log "Running Connect Redirect tests"
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "Administrator" -LogFileName $script:LogFileName
+        Add-StandardUser -UserName $script:StandardUser -Password $script:StandardUserPassword
         Invoke-ConnectRedirectTestHelper -Interfaces $Config.Interfaces -ConnectRedirectTestConfig $Config.ConnectRedirectTest -UserType "StandardUser" -LogFileName $script:LogFileName
     }
 }
