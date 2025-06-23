@@ -23,15 +23,15 @@
 
 #define WSA_CMSG_NXTHDR(msg, cmsg) \
     (((cmsg) == NULL) ? WSA_CMSG_FIRSTHDR(msg) : \
-     (((PUCHAR)(cmsg) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR)) > \
-       (PUCHAR)((msg)->Control.buf) + (msg)->Control.len) ? NULL : \
-      (WSACMSGHDR*)((PUCHAR)(cmsg) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len))))
+     ((unsigned char*)((cmsg)) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len) + sizeof(WSACMSGHDR) > \
+      (unsigned char*)((msg)->Control.buf) + (msg)->Control.len) ? NULL : \
+     (WSACMSGHDR*)((unsigned char*)((cmsg)) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len)))
 
 #define WSA_CMSG_DATA(cmsg) \
-    ((PUCHAR)(cmsg) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR)))
+    ((unsigned char*)(cmsg) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR)))
 
 #define WSA_CMSGHDR_ALIGN(length) \
-    (((length) + sizeof(SIZE_T) - 1) & (~(sizeof(SIZE_T) - 1)))
+    (((length) + sizeof(size_t) - 1) & (~(sizeof(size_t) - 1)))
 #endif
 
 uint64_t
