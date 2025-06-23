@@ -68,6 +68,16 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
     return std::string(ip_string);
 }
 
+void
+cleanup_socket(_Inout_ SOCKET& socket)
+{
+    if (socket != INVALID_SOCKET) {
+        shutdown(socket, SD_BOTH);
+        closesocket(socket);
+        socket = INVALID_SOCKET;
+    }
+}
+
 _base_socket::_base_socket(
     int _sock_type, int _protocol, uint16_t _port, socket_family_t _family, const sockaddr_storage& _source_address)
     : socket(INVALID_SOCKET), family(_family), sock_type(_sock_type), protocol(_protocol), port(_port), local_address{},
@@ -108,12 +118,7 @@ _base_socket::_base_socket(
     }
 }
 
-_base_socket::~_base_socket()
-{
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-}
+_base_socket::~_base_socket() { cleanup_socket(socket); }
 
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
@@ -138,10 +143,7 @@ _client_socket::_client_socket(
 void
 _client_socket::close()
 {
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-    socket = INVALID_SOCKET;
+    cleanup_socket(socket);
 }
 
 void
@@ -551,10 +553,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
 void
 _datagram_server_socket::close()
 {
-    if (socket != INVALID_SOCKET) {
-        closesocket(socket);
-    }
-    socket = INVALID_SOCKET;
+    cleanup_socket(socket);
 }
 
 _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -593,10 +592,7 @@ void
 _stream_server_socket::initialize_accept_socket()
 {
     // Close a previous accept socket, if present.
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-        accept_socket = INVALID_SOCKET;
-    }
+    cleanup_socket(accept_socket);
 
     // Create accept socket.
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -608,12 +604,7 @@ _stream_server_socket::initialize_accept_socket()
     }
 }
 
-_stream_server_socket::~_stream_server_socket()
-{
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-    }
-}
+_stream_server_socket::~_stream_server_socket() { cleanup_socket(accept_socket); }
 
 void
 _stream_server_socket::post_async_receive()
@@ -695,10 +686,7 @@ _stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from
 void
 _stream_server_socket::close()
 {
-    if (accept_socket != INVALID_SOCKET) {
-        closesocket(accept_socket);
-    }
-    accept_socket = INVALID_SOCKET;
+    cleanup_socket(accept_socket);
 }
 
 int
