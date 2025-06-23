@@ -2216,6 +2216,44 @@ TEST_CASE("create_map_name", "[end_to_end]")
     Platform::_close(map_fd);
 }
 
+TEST_CASE("array_map_large_index_test", "[end_to_end]")
+{
+    _test_helper_end_to_end test_helper;
+    test_helper.initialize();
+
+    fd_t map_fd;
+    uint32_t key;
+    uint64_t value;
+    const char* map_name = "large_array_map";
+    const uint32_t max_entries = 1000;
+
+    // Create an array map with 1000 entries to test indices > 255
+    map_fd = bpf_map_create(BPF_MAP_TYPE_ARRAY, map_name, sizeof(uint32_t), sizeof(uint64_t), max_entries, nullptr);
+    REQUIRE(map_fd > 0);
+
+    // Test updating and reading at various indices including ones > 255
+    uint32_t test_indices[] = {0, 255, 256, 300, 500, 999};
+    uint64_t test_values[] = {100, 255, 256, 300, 500, 999};
+    size_t test_count = sizeof(test_indices) / sizeof(test_indices[0]);
+
+    // Update entries at test indices
+    for (size_t i = 0; i < test_count; i++) {
+        key = test_indices[i];
+        value = test_values[i];
+        REQUIRE(bpf_map_update_elem(map_fd, &key, &value, EBPF_ANY) == EBPF_SUCCESS);
+    }
+
+    // Verify entries were stored correctly
+    for (size_t i = 0; i < test_count; i++) {
+        key = test_indices[i];
+        uint64_t read_value;
+        REQUIRE(bpf_map_lookup_elem(map_fd, &key, &read_value) == EBPF_SUCCESS);
+        REQUIRE(read_value == test_values[i]);
+    }
+
+    Platform::_close(map_fd);
+}
+
 static void
 _xdp_reflect_packet_test(ebpf_execution_type_t execution_type, ADDRESS_FAMILY address_family)
 {
