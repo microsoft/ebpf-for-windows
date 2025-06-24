@@ -142,15 +142,24 @@ function Add-StandardUser {
         [Parameter(Mandatory = $true)] [string] $Password
     )
     $scriptBlock = {
-        param($UserName, $Password)
+        param($UserName, $Password, $WorkingDirectory, $LogFileName)
+        Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
+        Write-Log "Adding standard user $UserName and password $Password"
         # Check if the user already exists, suppressing all output
         net user $UserName *> $null
         if ($LASTEXITCODE -eq 0) {
+            Write-Log "User $UserName already exists. Skipping creation."
             return
         }
-        net user $UserName $Password /add
+        net user $UserName $Password /add *> $null
+        if ($LASTEXITCODE -eq 0) {
+            Write-Log "User $UserName created successfully."
+        } else {
+            Write-Log "Failed to create user $UserName"
+            throw "Failed to create user $UserName Please check the logs for more details."
+        }
     }
-    $argList = @($UserName, $Password)
+    $argList = @($UserName, $Password, $script:WorkingDirectory, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
