@@ -14,6 +14,8 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
 
+$ExecuteOnVM = -not $ExecuteOnHost
+
 Push-Location $WorkingDirectory
 
 Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) -ErrorAction Stop
@@ -21,7 +23,7 @@ Import-Module $WorkingDirectory\common.psm1 -Force -ArgumentList ($LogFileName) 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-if (-not $ExecuteOnHost) {
+if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
         $AdminTestVMCredential = Retrieve-StoredCredential -Target $AdminTarget
         $StandardUserTestVMCredential = Retrieve-StoredCredential -Target $StandardUserTarget
@@ -95,7 +97,7 @@ $Job = Start-Job -ScriptBlock {
     Pop-Location
 } -ArgumentList (
     $ExecuteOnHost,
-    (-not $ExecuteOnHost), # ExecuteOnVM
+    $ExecuteOnVM,
     $AdminTestVMCredential,
     $StandardUserTestVMCredential,
     $Config,
