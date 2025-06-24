@@ -155,7 +155,7 @@ function Add-StandardUser {
         if ($LASTEXITCODE -eq 0) {
             Write-Log "User $UserName created successfully."
         } else {
-            Write-Log "Failed to create user $UserName"
+            Write-Log "Failed to create user $UserName with error $LASTEXITCODE"
             throw "Failed to create user $UserName Please check the logs for more details."
         }
     }
