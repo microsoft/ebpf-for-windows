@@ -143,19 +143,12 @@ function Add-StandardUser {
     )
     $scriptBlock = {
         param($UserName, $Password)
-        # Check if the user already exists
-        net user $UserName
+        # Check if the user already exists, suppressing all output
+        net user $UserName *> $null
         if ($LASTEXITCODE -eq 0) {
             return
         }
         net user $UserName $Password /add
-        # Import-Module Microsoft.PowerShell.LocalAccounts -Force -WarningAction SilentlyContinue
-        # $standardUser = Get-LocalUser -Name $UserName -ErrorAction SilentlyContinue
-        # if ($standardUser) {
-        #     return
-        # }
-        # $SecurePassword = ConvertTo-SecureString -String $Password -AsPlainText -Force
-        # New-LocalUser -Name $UserName -Password $SecurePassword
     }
     $argList = @($UserName, $Password)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
