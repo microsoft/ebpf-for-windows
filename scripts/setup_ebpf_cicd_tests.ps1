@@ -72,17 +72,17 @@ Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
 $Job = Start-Job -ScriptBlock {
-    param ([Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
-            [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
-            [Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
-            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
-            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
-            [parameter(Mandatory = $true)] [string] $TestMode,
-            [parameter(Mandatory = $true)] [string] $LogFileName,
-            [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
-            [parameter(Mandatory = $true)] [bool] $KmTracing,
-            [parameter(Mandatory = $true)] [string] $KmTraceType,
-            [parameter(Mandatory = $true)] [string] $EnableHVCI
+    param ([Parameter(Mandatory = $true)] [bool] $ExecuteOnHost,
+           [Parameter(Mandatory = $true)] [bool] $ExecuteOnVM,
+           [Parameter(Mandatory = $true)] [PSCredential] $TestVMCredential,
+           [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
+           [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
+           [parameter(Mandatory = $true)] [string] $TestMode,
+           [parameter(Mandatory = $true)] [string] $LogFileName,
+           [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
+           [parameter(Mandatory = $true)] [bool] $KmTracing,
+           [parameter(Mandatory = $true)] [string] $KmTraceType,
+           [parameter(Mandatory = $true)] [string] $EnableHVCI
     )
     Push-Location $WorkingDirectory
 
@@ -95,7 +95,7 @@ $Job = Start-Job -ScriptBlock {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
 
         # Get all VMs to ready state.
-        Initialize-AllVMs -VMList $VMList -ErrorAction Stop
+        Initialize-AllVMs -VMMap $VMList -ErrorAction Stop
 
         # Export build artifacts to the test VMs. Attempt with a few retries.
         $MaxRetryCount = 5
@@ -111,7 +111,8 @@ $Job = Start-Job -ScriptBlock {
                 Write-Log "Export-BuildArtifactsToVMs failed. Retrying..."
             }
         }
-
+    } else {
+        $VMList = @()
     }
 
     # Configure network adapters.
