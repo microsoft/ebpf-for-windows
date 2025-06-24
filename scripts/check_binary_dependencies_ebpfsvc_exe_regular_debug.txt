@@ -30,7 +30,9 @@ api-ms-win-service-management-l1-1-0.dll
 api-ms-win-service-management-l2-1-0.dll
 api-ms-win-service-winsvc-l1-1-0.dll
 bcrypt.dll
+crypt32.dll
 dbghelp.dll
 kernel32.dll
 RPCRT4.dll
 ucrtbased.dll
+wintrust.dll
