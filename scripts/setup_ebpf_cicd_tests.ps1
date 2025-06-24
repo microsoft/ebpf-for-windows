@@ -92,10 +92,11 @@ $Job = Start-Job -ScriptBlock {
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
     if ($ExecuteOnVM) {
+        Write-Log "Executing setup for testing on VM"
         $VMList = $Config.VMMap.$SelfHostedRunnerName
 
         # Get all VMs to ready state.
-        Initialize-AllVMs -VMMap $VMList -ErrorAction Stop
+        Initialize-AllVMs -VMList $VMList -ErrorAction Stop
 
         # Export build artifacts to the test VMs. Attempt with a few retries.
         $MaxRetryCount = 5
@@ -112,6 +113,7 @@ $Job = Start-Job -ScriptBlock {
             }
         }
     } else {
+        Write-Log "Executing setup for testing on host"
         $VMList = @()
     }
 

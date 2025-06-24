@@ -570,7 +570,7 @@ function Initialize-NetworkInterfaces {
         [Parameter(Mandatory=$true)][bool] $ExecuteOnHost,
         # Initialize network interfaces on VMs.
         [Parameter(Mandatory=$true)][bool] $ExecuteOnVM = $false,
-        [Parameter(Mandatory=$false)] $VMMap = @()
+        [Parameter(Mandatory=$false)] $VMList = @()
     )
 
     $commandScriptBlock = {
@@ -588,7 +588,7 @@ function Initialize-NetworkInterfaces {
         Write-Log "Initializing network interfaces on host"
         & $commandScriptBlock $script:WorkingDirectory $script:LogFileName
     } elseif ($ExecuteOnVM) {
-        foreach ($VM in $VMMap) {
+        foreach ($VM in $VMList) {
             $VMName = $VM.Name
             Write-Log "Initializing network interfaces on $VMName"
             $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
