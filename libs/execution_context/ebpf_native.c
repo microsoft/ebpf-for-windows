@@ -1041,7 +1041,7 @@ ebpf_native_initiate()
         &_ebpf_native_authorized_module_table,
         &(const ebpf_hash_table_creation_options_t){
             .key_size = sizeof(GUID),
-            .value_size = EBPF_SHA256_HASH_LENGTH,
+            .value_size = sizeof(ebpf_native_authorized_module_entry_t),
             .allocate = ebpf_allocate,
             .free = ebpf_free,
         });
@@ -2444,7 +2444,7 @@ ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* mod
  * @param[in] context Unused context pointer.
  */
 static void
-_ebpf_native_authorized_module_cleanup_work_item_callback(_In_opt_ void* context)
+_ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* context)
 {
     UNREFERENCED_PARAMETER(context);
     EBPF_LOG_ENTRY();
