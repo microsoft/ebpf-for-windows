@@ -57,7 +57,7 @@ function CopyPackages {
     $PackagesDir = "$BinDir\packages"
     if (-not (Test-Path -Path $PackagesDir)) {
         New-Item -ItemType Directory -Path $PackagesDir
-    }    
+    }
 
     xcopy /y ".\$Arch\$Config\*.nupkg" $PackagesDir
     xcopy /y ".\$Arch\$Config\*.msi" $BinDir
