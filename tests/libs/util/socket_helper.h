@@ -15,7 +15,6 @@
 #include <netiodef.h>
 #include <string>
 #include <vector>
-#include <cstring>
 
 #define CLIENT_MESSAGE "request from client"
 #define SERVER_MESSAGE "response from server"

@@ -8,6 +8,7 @@
 
 #include "catch_wrapper.hpp"
 #include "socket_helper.h"
+#include <cstring>
 
 #define MAXIMUM_IP_BUFFER_SIZE 65
 
@@ -15,9 +16,6 @@
 #ifndef IP_WFP_REDIRECT_CONTEXT
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
-
-// Simple alignment for control message headers - align to pointer boundary
-#define ALIGN_TO_PTR(size) (((size) + sizeof(void*) - 1) & ~(sizeof(void*) - 1))
 
 uint64_t
 get_current_pid_tgid()
@@ -569,41 +567,40 @@ int
 _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
 {
     // Extract redirect context from the received control messages
-    if (recv_msg.Control.len < sizeof(WSACMSGHDR)) {
+    if (recv_msg.Control.len == 0 || recv_msg.Control.buf == nullptr) {
         return 1; // No control messages
     }
     
-    // Manually iterate through control messages
-    char* control_buf = reinterpret_cast<char*>(recv_msg.Control.buf);
-    ULONG control_len = recv_msg.Control.len;
-    ULONG offset = 0;
+    // Use WSACMSGHDR to iterate through control messages
+    WSACMSGHDR* cmsg = nullptr;
     
-    while (offset + sizeof(WSACMSGHDR) <= control_len) {
-        WSACMSGHDR* cmsg = reinterpret_cast<WSACMSGHDR*>(control_buf + offset);
-        
-        // Validate control message length
-        if (cmsg->cmsg_len < sizeof(WSACMSGHDR) || 
-            offset + cmsg->cmsg_len > control_len) {
-            break; // Invalid control message
+    // Check if we have enough data for at least one control message header
+    if (recv_msg.Control.len < sizeof(WSACMSGHDR)) {
+        return 1; // Not enough data for control message
+    }
+    
+    // Start with the first control message
+    cmsg = reinterpret_cast<WSACMSGHDR*>(recv_msg.Control.buf);
+    
+    // Validate the first message
+    if (cmsg->cmsg_len < sizeof(WSACMSGHDR) || cmsg->cmsg_len > recv_msg.Control.len) {
+        return 1; // Invalid control message
+    }
+    
+    // Check if this is the redirect context message we're looking for
+    if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
+        // Found redirect context in ancillary data
+        ULONG data_len = cmsg->cmsg_len - sizeof(WSACMSGHDR);
+        if (data_len >= buffer_size) {
+            return 1; // Buffer too small
         }
         
-        if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
-            // Found redirect context in ancillary data
-            ULONG data_len = cmsg->cmsg_len - sizeof(WSACMSGHDR);
-            if (data_len + 1 > buffer_size) {
-                return 1; // Buffer too small (need space for null terminator)
-            }
-            
-            // Data starts immediately after the header - no complex alignment needed
-            char* data_ptr = reinterpret_cast<char*>(cmsg) + sizeof(WSACMSGHDR);
-            memcpy(buffer, data_ptr, data_len);
-            // Ensure null termination for string usage
-            static_cast<char*>(buffer)[data_len] = '\0';
-            return 0; // Success
-        }
-        
-        // Move to next control message using simple alignment
-        offset += ALIGN_TO_PTR(cmsg->cmsg_len);
+        // Data starts immediately after the header
+        const char* data_ptr = reinterpret_cast<const char*>(cmsg) + sizeof(WSACMSGHDR);
+        memcpy(buffer, data_ptr, data_len);
+        // Ensure null termination for string usage
+        static_cast<char*>(buffer)[data_len] = '\0';
+        return 0; // Success
     }
     
     return 1; // Redirect context not found
