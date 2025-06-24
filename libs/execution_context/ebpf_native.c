@@ -97,6 +97,12 @@ typedef struct _ebpf_native_module_instance
     size_t global_variable_count;
 } ebpf_native_module_instance_t;
 
+typedef struct _ebpf_native_authorized_module_entry
+{
+    uint8_t expected_module_hash[EBPF_SHA256_HASH_LENGTH]; // SHA256 hash of the module.
+    uint64_t insertion_time;                               // Time when the module was inserted into the table.
+} ebpf_native_authorized_module_entry_t;
+
 static const GUID _ebpf_native_npi_id = {/* c847aac8-a6f2-4b53-aea3-f4a94b9a80cb */
                                          0xc847aac8,
                                          0xa6f2,
@@ -142,11 +148,18 @@ static _Guarded_by_(_ebpf_native_client_table_lock) ebpf_hash_table_t* _ebpf_nat
 static ebpf_lock_t _ebpf_native_authorized_module_table_lock = {0};
 static _Guarded_by_(_ebpf_native_authorized_module_table_lock)
     ebpf_hash_table_t* _ebpf_native_authorized_module_table = NULL;
+static ebpf_timer_work_item_t* _ebpf_native_authorized_module_cleanup_work_item = NULL;
+static bool _ebpf_native_authorized_module_cleanup_work_item_scheduled = false;
+
+#define EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS (1000ull * 1000ull * 10000ull) // 10 seconds
 
 _Must_inspect_result_ ebpf_result_t
 ebpf_native_load_driver(_In_z_ const wchar_t* service_name);
 void
 ebpf_native_unload_driver(_In_z_ const wchar_t* service_name);
+
+static void
+_ebpf_native_authorized_module_cleanup_work_item_callback(_Inout_opt_ void* work_item_context);
 
 // Free native program context only if the program is not loaded.
 // If the program is loaded, it will be freed when the ebpf program object is freed.
@@ -638,6 +651,10 @@ ebpf_native_terminate()
         _ebpf_native_nmr_provider_handle = NULL;
     }
 
+    ebpf_free_timer_work_item(_ebpf_native_authorized_module_cleanup_work_item);
+    _ebpf_native_authorized_module_cleanup_work_item = NULL;
+    _ebpf_native_authorized_module_cleanup_work_item_scheduled = false;
+
     ebpf_hash_table_destroy(_ebpf_native_authorized_module_table);
     _ebpf_native_authorized_module_table = NULL;
     ebpf_lock_destroy(&_ebpf_native_authorized_module_table_lock);
@@ -806,7 +823,7 @@ _ebpf_native_provider_attach_client_callback(
     ebpf_native_module_t* client_context = NULL;
     cxplat_utf8_string_t hash_algorithm = {.value = (uint8_t*)"SHA256", .length = 6};
     size_t hash_length = 0;
-    uint8_t* expected_module_hash = NULL;
+    ebpf_native_authorized_module_entry_t* expected_module_hash = NULL;
 
     const metadata_table_t* table = (const metadata_table_t*)client_dispatch;
     if (table == NULL) {
@@ -878,7 +895,7 @@ _ebpf_native_provider_attach_client_callback(
     // If the module is found in the authorized module table, check if the hash matches.
     if (result == EBPF_SUCCESS) {
         if (hash_length != EBPF_SHA256_HASH_LENGTH ||
-            memcmp(expected_module_hash, client_context->module_hash, hash_length) != 0) {
+            memcmp(expected_module_hash->expected_module_hash, client_context->module_hash, hash_length) != 0) {
             // Module is not authorized.
             EBPF_LOG_MESSAGE_GUID(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -1001,6 +1018,8 @@ ebpf_native_initiate()
     EBPF_LOG_ENTRY();
     ebpf_result_t return_value;
     bool hash_table_created = false;
+    bool authorized_module_table_created = false;
+    bool authorized_module_cleanup_work_item_created = false;
 
     ebpf_lock_create(&_ebpf_native_client_table_lock);
 
@@ -1029,6 +1048,16 @@ ebpf_native_initiate()
     if (return_value != EBPF_SUCCESS) {
         goto Done;
     }
+    authorized_module_table_created = true;
+
+    return_value = ebpf_allocate_timer_work_item(
+        &_ebpf_native_authorized_module_cleanup_work_item,
+        _ebpf_native_authorized_module_cleanup_work_item_callback,
+        NULL);
+    if (return_value != EBPF_SUCCESS) {
+        goto Done;
+    }
+    authorized_module_cleanup_work_item_created = true;
 
     NTSTATUS status =
         NmrRegisterProvider(&_ebpf_native_provider_characteristics, NULL, &_ebpf_native_nmr_provider_handle);
@@ -1044,9 +1073,13 @@ Done:
             _ebpf_native_client_table = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_client_table_lock);
-        if (_ebpf_native_authorized_module_table) {
+        if (authorized_module_table_created) {
             ebpf_hash_table_destroy(_ebpf_native_authorized_module_table);
             _ebpf_native_authorized_module_table = NULL;
+        }
+        if (authorized_module_cleanup_work_item_created) {
+            ebpf_free_timer_work_item(_ebpf_native_authorized_module_cleanup_work_item);
+            _ebpf_native_authorized_module_cleanup_work_item = NULL;
         }
         ebpf_lock_destroy(&_ebpf_native_authorized_module_table_lock);
     }
@@ -2379,12 +2412,92 @@ ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* mod
     EBPF_LOG_ENTRY();
     ebpf_result_t result = EBPF_SUCCESS;
 
+    ebpf_native_authorized_module_entry_t entry = {0};
+
+    memcpy(entry.expected_module_hash, module_hash, sizeof(entry.expected_module_hash));
+    entry.insertion_time = cxplat_query_time_since_boot_approximate(false) * EBPF_NS_PER_FILETIME;
+
     ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
     result = ebpf_hash_table_update(
         _ebpf_native_authorized_module_table,
         (const uint8_t*)module_id,
-        (const uint8_t*)module_hash,
+        (const uint8_t*)&entry,
         EBPF_HASH_TABLE_OPERATION_ANY);
+
+    // Arm the cleanup timer if needed.
+    if (!_ebpf_native_authorized_module_cleanup_work_item_scheduled) {
+        _ebpf_native_authorized_module_cleanup_work_item_scheduled = true;
+        ebpf_schedule_timer_work_item(
+            _ebpf_native_authorized_module_cleanup_work_item,
+            EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS / 1000);
+    }
+
     ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
     EBPF_RETURN_RESULT(result);
+}
+
+/**
+ * @brief Callback function for the authorized module cleanup work item.
+ * Authorized modules that have not been used for more than EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS
+ * will be removed from the authorized module table.
+ *
+ * @param[in] context Unused context pointer.
+ */
+static void
+_ebpf_native_authorized_module_cleanup_work_item_callback(_In_opt_ void* context)
+{
+    UNREFERENCED_PARAMETER(context);
+    EBPF_LOG_ENTRY();
+
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_lock_state_t state = ebpf_lock_lock(&_ebpf_native_authorized_module_table_lock);
+
+    uint64_t current_time = cxplat_query_time_since_boot_approximate(false) * EBPF_NS_PER_FILETIME;
+
+    // Iterate through the authorized module table and remove entries that have not been used for more than
+    // EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS.
+    GUID previous_key = {0};
+    GUID next_key = {0};
+    uint8_t* next_value = NULL;
+    bool reschedule_cleanup = false;
+
+    // Get the first entry in the hash table.
+    result = ebpf_hash_table_next_key_and_value(
+        _ebpf_native_authorized_module_table, NULL, (uint8_t*)&next_key, &next_value);
+
+    while (result == EBPF_SUCCESS) {
+        ebpf_native_authorized_module_entry_t* authorized_entry = (ebpf_native_authorized_module_entry_t*)next_value;
+
+        // Advance to the next entry.
+        // If the delete operation is performed first, then the previous_key will be invalid for the next iteration.
+        previous_key = next_key;
+        result = ebpf_hash_table_next_key_and_value(
+            _ebpf_native_authorized_module_table, (uint8_t*)&previous_key, (uint8_t*)&next_key, &next_value);
+
+        // Check if the entry has not been used for more than EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS.
+        if (current_time - authorized_entry->insertion_time > EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS) {
+            // Delete the entry from the authorized module table.
+            ebpf_result_t delete_result =
+                ebpf_hash_table_delete(_ebpf_native_authorized_module_table, (uint8_t*)&previous_key);
+            if (delete_result != EBPF_SUCCESS) {
+                EBPF_LOG_MESSAGE_GUID(
+                    EBPF_TRACELOG_LEVEL_ERROR,
+                    EBPF_TRACELOG_KEYWORD_NATIVE,
+                    "Failed to delete authorized module entry",
+                    &previous_key);
+            }
+        } else {
+            // If the entry is still valid, we need to reschedule the cleanup work item.
+            reschedule_cleanup = true;
+        }
+    }
+    if (reschedule_cleanup) {
+        // Reschedule the cleanup work item if there are still entries in the table.
+        ebpf_schedule_timer_work_item(
+            _ebpf_native_authorized_module_cleanup_work_item,
+            EBPF_NATIVE_AUTHORIZE_MODULE_ENTRY_TIMEOUT_NANOSECONDS / 1000);
+        _ebpf_native_authorized_module_cleanup_work_item_scheduled = true;
+    }
+
+    ebpf_lock_unlock(&_ebpf_native_authorized_module_table_lock, state);
 }
