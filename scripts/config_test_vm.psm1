@@ -529,15 +529,6 @@ function Import-ResultsFromHost {
         Copy-Item "$WorkingDirectory\dumps\*" "$TestLogsDir" -Recurse -Force -ErrorAction Ignore | Out-Null
     }
 
-    # Copy log file.
-    if (Test-Path "$WorkingDirectory\$LogFileName") {
-        $LogsDir = Join-Path $TestLogsDir 'Logs'
-        if (!(Test-Path $LogsDir)) {
-            New-Item -ItemType Directory -Path $LogsDir | Out-Null
-        }
-        Copy-Item "$WorkingDirectory\$LogFileName" $LogsDir -Force -ErrorAction Ignore | Out-Null
-    }
-
     # Stop and collect ETL trace if enabled.
     if ($KmTracing) {
         $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
