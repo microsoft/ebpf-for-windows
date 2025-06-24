@@ -417,49 +417,6 @@ update_policy_map_and_test_connection(
 }
 
 void
-authorize_connection_test(
-    _In_ client_socket_t* sender_socket,
-    _Inout_ sockaddr_storage& destination,
-    uint16_t destination_port,
-    bool dual_stack)
-{
-    uint64_t authentication_id;
-    uint32_t bytes_received = 0;
-    char* received_message = nullptr;
-
-    // Update policy in the map to allow the connection.
-    _update_policy_map(
-        destination, destination, destination_port, destination_port, _globals.connection_type, dual_stack, true);
-
-    {
-        impersonation_helper_t helper(_globals.user_type);
-
-        authentication_id = _get_current_thread_authentication_id();
-        SAFE_REQUIRE(authentication_id != 0);
-
-        // Try to send and receive message to destination. It should succeed.
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, destination_port);
-        sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
-
-        sender_socket->post_async_receive();
-        sender_socket->complete_async_receive(2000, false);
-
-        sender_socket->get_received_message(bytes_received, received_message);
-
-        // For authorization tests, we expect the standard server response.
-        std::string expected_response = SERVER_MESSAGE + std::to_string(destination_port);
-        SAFE_REQUIRE(strlen(received_message) == strlen(expected_response.c_str()));
-        SAFE_REQUIRE(memcmp(received_message, expected_response.c_str(), strlen(received_message)) == 0);
-    }
-
-    _validate_audit_map_entry(authentication_id);
-
-    // Remove entry from policy map.
-    _update_policy_map(
-        destination, destination, destination_port, destination_port, _globals.connection_type, dual_stack, false);
-}
-
-void
 authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& destination, bool dual_stack)
 {
     uint64_t authentication_id;
@@ -482,8 +439,9 @@ authorize_test(_In_ client_socket_t* sender_socket, _Inout_ sockaddr_storage& de
 
     _validate_audit_map_entry(authentication_id);
 
-    // Now test that the connection can be allowed by updating the policy map.
-    authorize_connection_test(sender_socket, destination, _globals.destination_port, dual_stack);
+    // Now update the policy map to allow the connection and test again.
+    update_policy_map_and_test_connection(
+        sender_socket, destination, destination, _globals.destination_port, _globals.destination_port, dual_stack);
 }
 
 void
@@ -524,26 +482,17 @@ connect_redirect_test_wrapper(
     _In_ const sockaddr_storage& source_address,
     _Inout_ sockaddr_storage& destination,
     _In_ const sockaddr_storage& proxy,
-    bool dual_stack)
+    bool dual_stack,
+    bool implicit_bind)
 {
     client_socket_t* sender_socket = nullptr;
 
-    get_client_socket(dual_stack, &sender_socket, source_address);
-    update_policy_map_and_test_connection(
-        sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
-    delete sender_socket;
-}
-
-void
-connect_redirect_test_with_implicit_bind_wrapper(
-    _Inout_ sockaddr_storage& destination,
-    _In_ const sockaddr_storage& proxy,
-    bool dual_stack)
-{
-    client_socket_t* sender_socket = nullptr;
-
-    // Use implicit bind (no source_address specified)
-    get_client_socket(dual_stack, &sender_socket);
+    if (implicit_bind) {
+        // Use implicit bind (no source_address specified)
+        get_client_socket(dual_stack, &sender_socket);
+    } else {
+        get_client_socket(dual_stack, &sender_socket, source_address);
+    }
     update_policy_map_and_test_connection(
         sender_socket, destination, proxy, _globals.destination_port, _globals.proxy_port, dual_stack);
     delete sender_socket;
@@ -676,13 +625,19 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
             family_string,                                                                                           \
             dual_stack_string);                                                                                      \
         /* Test with explicit bind (bind to specific source address) */                                              \
-        printf("  Testing with explicit bind to source address...\n");                                              \
+        printf("  Testing with explicit bind to source address...\n");                                               \
+        bool implicit_bind = false;                                                                                  \
         connect_redirect_test_wrapper(                                                                               \
-            addresses.##source##, addresses.##original_destination##, addresses.##new_destination##, dual_stack);    \
+            addresses.##source##,                                                                                    \
+            addresses.##original_destination##,                                                                      \
+            addresses.##new_destination##,                                                                           \
+            dual_stack,                                                                                              \
+            implicit_bind);                                                                                          \
         /* Test with implicit bind (bind to wildcard address) */                                                     \
-        printf("  Testing with implicit bind (wildcard address)...\n");                                             \
-        connect_redirect_test_with_implicit_bind_wrapper(                                                            \
-            addresses.##original_destination##, addresses.##new_destination##, dual_stack);                          \
+        printf("  Testing with implicit bind (wildcard address)...\n");                                              \
+        implicit_bind = true;                                                                                        \
+        connect_redirect_test_wrapper(                                                                               \
+            addresses.##original_destination##, addresses.##new_destination##, dual_stack, implicit_bind);           \
     }
 
 // Declare connection_redirection_* test functions.
