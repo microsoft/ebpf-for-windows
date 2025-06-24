@@ -488,7 +488,7 @@ connect_redirect_test_wrapper(
     client_socket_t* sender_socket = nullptr;
 
     if (implicit_bind) {
-        // Use implicit bind (no source_address specified)
+        // Use implicit bind (no source_address specified).
         get_client_socket(dual_stack, &sender_socket);
     } else {
         get_client_socket(dual_stack, &sender_socket, source_address);
