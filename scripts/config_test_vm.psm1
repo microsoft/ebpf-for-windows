@@ -514,6 +514,62 @@ function Import-ResultsFromVM
     Move-Item "$env:TEMP\$LogFileName" -Destination ".\TestLogs" -Force -ErrorAction Ignore 2>&1 | Write-Log
 }
 
+function Import-ResultsFromHost {
+    param(
+        [Parameter(Mandatory = $true)][bool] $KmTracing
+    )
+    Write-Log "Importing results from host..."
+    $TestLogsDir = Join-Path $WorkingDirectory 'TestLogs'
+    if (!(Test-Path $TestLogsDir)) {
+        New-Item -ItemType Directory -Path $TestLogsDir | Out-Null
+    }
+
+    # Copy user mode crash dumps if any.
+    if (Test-Path "$WorkingDirectory\dumps") {
+        Copy-Item "$WorkingDirectory\dumps\*" "$TestLogsDir" -Recurse -Force -ErrorAction Ignore | Out-Null
+    }
+
+    # Copy log file.
+    if (Test-Path "$WorkingDirectory\$LogFileName") {
+        $LogsDir = Join-Path $TestLogsDir 'Logs'
+        if (!(Test-Path $LogsDir)) {
+            New-Item -ItemType Directory -Path $LogsDir | Out-Null
+        }
+        Copy-Item "$WorkingDirectory\$LogFileName" $LogsDir -Force -ErrorAction Ignore | Out-Null
+    }
+
+    # Stop and collect ETL trace if enabled.
+    if ($KmTracing) {
+        $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
+        Write-Log "Query KM ETL tracing status before trace stop (host)"
+        $ProcInfo = Start-Process -FilePath "wpr.exe" -ArgumentList "-status profiles collectors -details" -NoNewWindow -Wait -PassThru -RedirectStandardOut "$WorkingDirectory\StdOut.txt" -RedirectStandardError "$WorkingDirectory\StdErr.txt"
+        if ($ProcInfo.ExitCode -ne 0) {
+            Write-Log ("wpr.exe query ETL trace status failed. Exit code: " + $ProcInfo.ExitCode)
+            Write-Log "wpr.exe (query) error output: "
+            foreach ($line in Get-Content -Path "$WorkingDirectory\StdErr.txt") {
+                Write-Log ( "\t" + $line)
+            }
+        } else {
+            Write-Log "wpr.exe (query) results: "
+            foreach ($line in Get-Content -Path "$WorkingDirectory\StdOut.txt") {
+                Write-Log ( "  \t" + $line)
+            }
+        }
+        Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
+        Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
+        wpr.exe -stop "$WorkingDirectory\$EtlFile"
+        $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
+        Write-Log "ETL file Size: $EtlFileSize MB"
+        Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
+        Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
+        $LogsDir = Join-Path $TestLogsDir 'Logs'
+        if (!(Test-Path $LogsDir)) {
+            New-Item -ItemType Directory -Path $LogsDir | Out-Null
+        }
+        Copy-Item "$WorkingDirectory\$EtlFile.zip" $LogsDir -Force -ErrorAction Ignore | Out-Null
+    }
+}
+
 #
 # Configure network adapters on VMs.
 #
@@ -922,82 +978,4 @@ function Enable-HVCIOnVM {
     Wait-AllVMsToInitialize -VMList @(@{ Name = $VmName }) -UserName $Admin -AdminPassword $AdminPassword
 
     Write-Log "HVCI enabled successfully on VM: $VmName" -ForegroundColor Green
-}
-
-function Import-ResultsFromHost {
-    param(
-        [Parameter(Mandatory = $true)][bool] $KmTracing,
-        [Parameter(Mandatory = $true)][string] $LogFileName,
-        [Parameter(Mandatory = $true)][string] $WorkingDirectory
-    )
-    Write-Log "Importing results from host..."
-    $TestLogsDir = Join-Path $WorkingDirectory 'TestLogs'
-    if (!(Test-Path $TestLogsDir)) {
-        New-Item -ItemType Directory -Path $TestLogsDir | Out-Null
-    }
-
-    # Copy user mode crash dumps if any.
-    if (Test-Path "$WorkingDirectory\dumps") {
-        Copy-Item "$WorkingDirectory\dumps\*" "$TestLogsDir" -Recurse -Force -ErrorAction Ignore | Out-Null
-    }
-
-    # Copy log file.
-    if (Test-Path "$WorkingDirectory\$LogFileName") {
-        $LogsDir = Join-Path $TestLogsDir 'Logs'
-        if (!(Test-Path $LogsDir)) {
-            New-Item -ItemType Directory -Path $LogsDir | Out-Null
-        }
-        Copy-Item "$WorkingDirectory\$LogFileName" $LogsDir -Force -ErrorAction Ignore | Out-Null
-    }
-
-    # Stop and collect ETL trace if enabled.
-    if ($KmTracing) {
-        $EtlFile = $LogFileName.Substring(0, $LogFileName.IndexOf('.')) + ".etl"
-        Write-Log "Query KM ETL tracing status before trace stop (host)"
-        $ProcInfo = Start-Process -FilePath "wpr.exe" -ArgumentList "-status profiles collectors -details" -NoNewWindow -Wait -PassThru -RedirectStandardOut "$WorkingDirectory\StdOut.txt" -RedirectStandardError "$WorkingDirectory\StdErr.txt"
-        if ($ProcInfo.ExitCode -ne 0) {
-            Write-Log ("wpr.exe query ETL trace status failed. Exit code: " + $ProcInfo.ExitCode)
-            Write-Log "wpr.exe (query) error output: "
-            foreach ($line in Get-Content -Path "$WorkingDirectory\StdErr.txt") {
-                Write-Log ( "\t" + $line)
-            }
-        } else {
-            Write-Log "wpr.exe (query) results: "
-            foreach ($line in Get-Content -Path "$WorkingDirectory\StdOut.txt") {
-                Write-Log ( "  \t" + $line)
-            }
-        }
-        Write-Log ("Query ETL trace status success. wpr.exe exit code: " + $ProcInfo.ExitCode + "`n" )
-        Write-Log "Stop KM ETW tracing, create ETL file: $WorkingDirectory\$EtlFile"
-        wpr.exe -stop "$WorkingDirectory\$EtlFile"
-        $EtlFileSize = (Get-ChildItem "$WorkingDirectory\$EtlFile").Length/1MB
-        Write-Log "ETL file Size: $EtlFileSize MB"
-        Write-Log "Compressing $WorkingDirectory\$EtlFile ..."
-        $CompressSuccess = $false
-        $CompressAttempts = 0
-        while (-not $CompressSuccess -and $CompressAttempts -lt 5) {
-            try {
-                Compress-File -SourcePath "$WorkingDirectory\$EtlFile" -DestinationPath "$WorkingDirectory\$EtlFile.zip"
-                if (Test-Path "$WorkingDirectory\$EtlFile.zip") {
-                    $CompressSuccess = $true
-                } else {
-                    throw "Compression did not produce a .zip file."
-                }
-            } catch {
-                Write-Log "Compression attempt $($CompressAttempts+1) failed: $_"
-                Start-Sleep -Seconds 2
-            }
-            $CompressAttempts++
-        }
-        $LogsDir = Join-Path $TestLogsDir 'Logs'
-        if (!(Test-Path $LogsDir)) {
-            New-Item -ItemType Directory -Path $LogsDir | Out-Null
-        }
-        if ($CompressSuccess) {
-            Copy-Item "$WorkingDirectory\$EtlFile.zip" $LogsDir -Force -ErrorAction Ignore | Out-Null
-        } else {
-            Write-Log "Compression failed after 5 attempts. Copying raw ETL file instead."
-            Copy-Item "$WorkingDirectory\$EtlFile" $LogsDir -Force -ErrorAction Ignore | Out-Null
-        }
-    }
 }
