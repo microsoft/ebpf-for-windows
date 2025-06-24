@@ -39,16 +39,6 @@ $EbpfDrivers = @{
 
 # eBPF Debug Runtime DLLs.
 $VCDebugRuntime = @(
-    "concrt140d.dll",
-    "msvcp140d.dll",
-    "msvcp140d_atomic_wait.dll",
-    "msvcp140d_codecvt_ids.dll",
-    "msvcp140_1d.dll",
-    "msvcp140_2d.dll",
-    "vccorlib140d.dll",
-    "vcruntime140d.dll",
-    "vcruntime140_1d.dll",
-    "vcruntime140_threadsd.dll",
     "ucrtbased.dll"
 )
 

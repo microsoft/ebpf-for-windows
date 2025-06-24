@@ -483,7 +483,9 @@ jobs:
   #   with:
   #     name: unit_tests
   #     # Exclude [processes] test that ASAN can't work with.
-  #     test_command: .\unit_tests.exe -d yes ~[processes]
+  #     # Exclude ~printk, ~recursive_tail_call, and ~sequential_tail_call tests as they don't work with ASAN due to
+  #     # as usersim is linked with static CRT libraries which breaks stdout redirection.
+  #     test_command: .\unit_tests.exe -d yes ~[processes] ~printk ~recursive_tail_call ~sequential_tail_call
   #     build_artifact: Build-x64-Sanitize
   #     environment: '["windows-2022"]'
   #     code_coverage: false
