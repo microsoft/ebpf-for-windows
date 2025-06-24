@@ -46,6 +46,26 @@ ebpf_authorize_native_module(_In_ const GUID* module_id, _In_ HANDLE native_imag
 _Must_inspect_result_ ebpf_result_t
 ebpf_verify_signature_and_open_file(_In_z_ const char* file_path, _Out_ HANDLE* file_handle) noexcept;
 
+/**
+ * @brief Verify the signature of a system file.
+ *
+ * @param file_name The name of the file to verify.
+ * @param issuer_name The name of the issuer to check against.
+ * @param eku_count The number of EKUs to check.
+ * @param eku_list The list of EKUs to check against.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_OBJECT_NOT_FOUND The file does not have the expected signature.
+ * @retval EBPF_INVALID_ARGUMENT The file name or issuer name is invalid.
+ * @retval EBPF_NO_MEMORY Out of memory.
+ * @retval EBPF_FAILED A failure occurred during the verification process.
+ */
+_Must_inspect_result_ ebpf_result_t
+ebpf_verify_sys_file_signature(
+    _In_z_ const wchar_t* file_name,
+    _In_z_ const char* issuer_name,
+    _In_ size_t eku_count,
+    _In_reads_(eku_count) const char** eku_list);
+
 uint32_t
 ebpf_service_initialize() noexcept;
 

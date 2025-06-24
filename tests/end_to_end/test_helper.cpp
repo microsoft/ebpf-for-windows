@@ -3,6 +3,7 @@
 
 #include "api_common.hpp"
 #include "api_internal.h"
+#include "api_service.h"
 #include "bpf/bpf.h"
 #include "bpf2c.h"
 #include "cxplat_fault_injection.h"
@@ -727,6 +728,7 @@ _test_helper_end_to_end::initialize()
     ec_initialized = true;
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
     api_initialized = true;
+    REQUIRE(ebpf_service_initialize() == EBPF_SUCCESS);
 }
 
 _test_handle_helper::~_test_handle_helper()
@@ -759,6 +761,8 @@ clear_program_info_cache();
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
+        ebpf_service_cleanup();
+
         _rundown_osfhandles();
 
         // Run down duplicate handles, if any.
