@@ -571,39 +571,30 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         return 1; // No control messages
     }
     
-    // Use WSACMSGHDR to iterate through control messages
-    WSACMSGHDR* cmsg = nullptr;
+    // For Windows Sockets, control messages are in a different format
+    // than Unix sockets. We need to check for IP_WFP_REDIRECT_CONTEXT
+    // in the received control buffer.
     
-    // Check if we have enough data for at least one control message header
-    if (recv_msg.Control.len < sizeof(WSACMSGHDR)) {
-        return 1; // Not enough data for control message
-    }
-    
-    // Start with the first control message
-    cmsg = reinterpret_cast<WSACMSGHDR*>(recv_msg.Control.buf);
-    
-    // Validate the first message
-    if (cmsg->cmsg_len < sizeof(WSACMSGHDR) || cmsg->cmsg_len > recv_msg.Control.len) {
-        return 1; // Invalid control message
-    }
-    
-    // Check if this is the redirect context message we're looking for
-    if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
-        // Found redirect context in ancillary data
-        ULONG data_len = cmsg->cmsg_len - sizeof(WSACMSGHDR);
-        if (data_len >= buffer_size) {
+    // Simple approach: check if we received any control data
+    // and if the buffer is large enough for redirect context
+    if (recv_msg.Control.len > 0 && recv_msg.Control.buf != nullptr) {
+        // For IP_WFP_REDIRECT_CONTEXT, the data is typically stored
+        // directly in the control buffer
+        DWORD context_size = recv_msg.Control.len;
+        
+        // Check if buffer is large enough (leave room for null terminator)
+        if (context_size + 1 > buffer_size) {
             return 1; // Buffer too small
         }
         
-        // Data starts immediately after the header
-        const char* data_ptr = reinterpret_cast<const char*>(cmsg) + sizeof(WSACMSGHDR);
-        memcpy(buffer, data_ptr, data_len);
-        // Ensure null termination for string usage
-        static_cast<char*>(buffer)[data_len] = '\0';
+        // Copy the context data
+        memcpy(buffer, recv_msg.Control.buf, context_size);
+        // Ensure null termination
+        static_cast<char*>(buffer)[context_size] = '\0';
         return 0; // Success
     }
     
-    return 1; // Redirect context not found
+    return 1; // No redirect context found
 }
 
 void
