@@ -637,7 +637,11 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
         printf("  Testing with implicit bind (wildcard address)...\n");                                              \
         implicit_bind = true;                                                                                        \
         connect_redirect_test_wrapper(                                                                               \
-            addresses.##original_destination##, addresses.##new_destination##, dual_stack, implicit_bind);           \
+            addresses.##source##,                                                                                    \
+            addresses.##original_destination##,                                                                      \
+            addresses.##new_destination##,                                                                           \
+            dual_stack,                                                                                              \
+            implicit_bind);                                                                                          \
     }
 
 // Declare connection_redirection_* test functions.
