@@ -160,7 +160,7 @@ jobs:
       test_command: .\unit_tests.exe -d yes ~[processes]
       build_artifact: Build-ARM64-native-only
       environment: '["windows-11-arm"]'
-      code_coverage: false # No code coverage on ARM64.
+      code_coverage: false  # No code coverage on ARM64.
       gather_dumps: true
       capture_etw: true
       leak_detection: true
