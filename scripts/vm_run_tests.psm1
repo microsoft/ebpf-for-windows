@@ -166,7 +166,7 @@ function Add-StandardUser {
     [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
     # Invoke the script block
-    $argList = @($UserName, $PlainPassword, $script:WorkingDirectory, script:LogFileName)
+    $argList = @($UserName, $PlainPassword, $script:WorkingDirectory, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
