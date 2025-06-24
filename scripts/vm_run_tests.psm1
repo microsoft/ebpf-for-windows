@@ -139,7 +139,7 @@ function Stop-ProcessHelper {
 function Add-StandardUser {
     param (
         [Parameter(Mandatory = $true)] [string] $UserName,
-        [Parameter(Mandatory = $true)] [string] $Password
+        [Parameter(Mandatory = $true)] [SecureString] $Password
     )
     $scriptBlock = {
         param($UserName, $Password, $WorkingDirectory, $LogFileName)
@@ -156,10 +156,17 @@ function Add-StandardUser {
             Write-Log "User $UserName created successfully."
         } else {
             Write-Log "Failed to create user $UserName with error $LASTEXITCODE"
-            throw "Failed to create user $UserName Please check the logs for more details."
+            throw "Failed to create user $UserName"
         }
     }
-    $argList = @($UserName, $Password, $script:WorkingDirectory, $script:LogFileName)
+
+    # Convert SecureString to plain text before passing to script block
+    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
+    $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+    [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+
+    # Invoke the script block
+    $argList = @($UserName, $PlainPassword, $script:WorkingDirectory, script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
 
