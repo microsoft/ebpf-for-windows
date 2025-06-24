@@ -3285,7 +3285,7 @@ TEST_CASE("load_native_program_negative7", "[end-to-end]")
     // Wait for authorization to expire.
     std::this_thread::sleep_for(std::chrono::seconds(20));
 
-    // Load native module. It should succeed.
+    // Load native module. It should fail as the authorization has expired.
     service_path = service_path + NATIVE_DRIVER_SERVICE_NAME;
     REQUIRE(
         test_ioctl_load_native_module(
