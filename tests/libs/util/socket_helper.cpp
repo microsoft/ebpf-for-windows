@@ -16,22 +16,9 @@
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
 
-// Define WSA_CMSG_* macros if not already defined
-#ifndef WSA_CMSG_FIRSTHDR
-#define WSA_CMSG_FIRSTHDR(msg) \
-    (((msg)->Control.len >= sizeof(WSACMSGHDR)) ? (WSACMSGHDR*)(msg)->Control.buf : NULL)
-
-#define WSA_CMSG_NXTHDR(msg, cmsg) \
-    (((cmsg) == NULL) ? WSA_CMSG_FIRSTHDR(msg) : \
-     ((unsigned char*)((cmsg)) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len) + sizeof(WSACMSGHDR) > \
-      (unsigned char*)((msg)->Control.buf) + (msg)->Control.len) ? NULL : \
-     (WSACMSGHDR*)((unsigned char*)((cmsg)) + WSA_CMSGHDR_ALIGN((cmsg)->cmsg_len)))
-
-#define WSA_CMSG_DATA(cmsg) \
-    ((unsigned char*)(cmsg) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR)))
-
-#define WSA_CMSGHDR_ALIGN(length) \
-    (((length) + sizeof(size_t) - 1) & (~(sizeof(size_t) - 1)))
+// Define alignment macro for control message headers
+#ifndef WSA_CMSGHDR_ALIGN
+#define WSA_CMSGHDR_ALIGN(length) (((length) + sizeof(ULONG_PTR) - 1) & (~(sizeof(ULONG_PTR) - 1)))
 #endif
 
 uint64_t
@@ -583,26 +570,41 @@ _datagram_server_socket::complete_async_send(int timeout_in_ms)
 int
 _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t buffer_size)
 {
-    // Extract redirect context from ancillary data received via WSARecvMsg
-    if (recv_msg.Control.len == 0) {
-        return 1; // No control data available
+    // Extract redirect context from the received control messages
+    if (recv_msg.Control.len < sizeof(WSACMSGHDR)) {
+        return 1; // No control messages
     }
-
-    WSACMSGHDR* cmsg = WSA_CMSG_FIRSTHDR(&recv_msg);
-    while (cmsg != nullptr) {
+    
+    // Manually iterate through control messages to avoid complex macro issues
+    char* control_buf = reinterpret_cast<char*>(recv_msg.Control.buf);
+    ULONG control_len = recv_msg.Control.len;
+    ULONG offset = 0;
+    
+    while (offset + sizeof(WSACMSGHDR) <= control_len) {
+        WSACMSGHDR* cmsg = reinterpret_cast<WSACMSGHDR*>(control_buf + offset);
+        
+        // Validate control message length
+        if (cmsg->cmsg_len < sizeof(WSACMSGHDR) || 
+            offset + cmsg->cmsg_len > control_len) {
+            break; // Invalid control message
+        }
+        
         if (cmsg->cmsg_level == IPPROTO_IP && cmsg->cmsg_type == IP_WFP_REDIRECT_CONTEXT) {
             // Found redirect context in ancillary data
-            size_t context_size = cmsg->cmsg_len - sizeof(WSACMSGHDR);
-            if (context_size + 1 > buffer_size) {
+            ULONG data_len = cmsg->cmsg_len - sizeof(WSACMSGHDR);
+            if (data_len + 1 > buffer_size) {
                 return 1; // Buffer too small (need space for null terminator)
             }
             
-            memcpy(buffer, WSA_CMSG_DATA(cmsg), context_size);
+            char* data_ptr = reinterpret_cast<char*>(cmsg) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR));
+            memcpy(buffer, data_ptr, data_len);
             // Ensure null termination for string usage
-            ((char*)buffer)[context_size] = '\0';
+            static_cast<char*>(buffer)[data_len] = '\0';
             return 0; // Success
         }
-        cmsg = WSA_CMSG_NXTHDR(&recv_msg, cmsg);
+        
+        // Move to next control message
+        offset += WSA_CMSGHDR_ALIGN(cmsg->cmsg_len);
     }
     
     return 1; // Redirect context not found
