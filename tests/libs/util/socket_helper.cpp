@@ -16,10 +16,8 @@
 #define IP_WFP_REDIRECT_CONTEXT 70
 #endif
 
-// Define alignment macro for control message headers
-#ifndef WSA_CMSGHDR_ALIGN
-#define WSA_CMSGHDR_ALIGN(length) (((length) + sizeof(ULONG_PTR) - 1) & (~(sizeof(ULONG_PTR) - 1)))
-#endif
+// Simple alignment for control message headers - align to pointer boundary
+#define ALIGN_TO_PTR(size) (((size) + sizeof(void*) - 1) & ~(sizeof(void*) - 1))
 
 uint64_t
 get_current_pid_tgid()
@@ -575,7 +573,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
         return 1; // No control messages
     }
     
-    // Manually iterate through control messages to avoid complex macro issues
+    // Manually iterate through control messages
     char* control_buf = reinterpret_cast<char*>(recv_msg.Control.buf);
     ULONG control_len = recv_msg.Control.len;
     ULONG offset = 0;
@@ -596,15 +594,16 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
                 return 1; // Buffer too small (need space for null terminator)
             }
             
-            char* data_ptr = reinterpret_cast<char*>(cmsg) + WSA_CMSGHDR_ALIGN(sizeof(WSACMSGHDR));
+            // Data starts immediately after the header - no complex alignment needed
+            char* data_ptr = reinterpret_cast<char*>(cmsg) + sizeof(WSACMSGHDR);
             memcpy(buffer, data_ptr, data_len);
             // Ensure null termination for string usage
             static_cast<char*>(buffer)[data_len] = '\0';
             return 0; // Success
         }
         
-        // Move to next control message
-        offset += WSA_CMSGHDR_ALIGN(cmsg->cmsg_len);
+        // Move to next control message using simple alignment
+        offset += ALIGN_TO_PTR(cmsg->cmsg_len);
     }
     
     return 1; // Redirect context not found
