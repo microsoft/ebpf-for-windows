@@ -197,9 +197,9 @@ typedef class _server_socket : public _base_socket
 
   protected:
     WSAOVERLAPPED overlapped;
+    LPFN_WSARECVMSG receive_message;
 
   private:
-    LPFN_WSARECVMSG receive_message;
 } receiver_socket_t;
 
 /**
