@@ -16,29 +16,34 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64")
 
+$ExecuteOnVM = -not $ExecuteOnHost
+
 Push-Location $WorkingDirectory
 
 # Load other utility modules.
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-if (-not $ExecuteOnHost) {
+if ($ExecuteOnVM) {
     if ($SelfHostedRunnerName -eq "1ESRunner") {
         $TestVMCredential = Retrieve-StoredCredential -Target $Target
     } else {
         $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
     }
 
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    $UserName = $TestVMCredential.UserName
+    $Password = $TestVMCredential.Password
 } else {
-    $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($env:USERNAME, $EmptySecureString, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-    Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    # Username and password are not used when running on host - use default values.
+    $UserName = $env:USERNAME
+    $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
 }
+
+Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($UserName, $Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-if (-not $ExecuteOnHost) {
+if ($ExecuteOnVM) {
     $VMList = $Config.VMMap.$SelfHostedRunnerName
 
     # Delete old log files if any.
@@ -47,18 +52,18 @@ if (-not $ExecuteOnHost) {
         $VMName = $VM.Name
         Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
     }
-} else {
-    Write-Log "ExecuteOnHost enabled - skipping VM-related setup" -ForegroundColor Yellow
 }
 
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
+
     # Download the release artifacts for regression tests.
     Get-RegressionTestArtifacts -ArtifactVersion $RegressionArtifactsVersion -Configuration $RegressionArtifactsConfiguration
 }
 
 if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
+
     # Download the release artifacts for legacy regression tests.
     Get-LegacyRegressionTestArtifacts
 }
@@ -66,26 +71,27 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
-if (-not $ExecuteOnHost) {
-    # Only run VM setup when not executing on host
-    $Job = Start-Job -ScriptBlock {
-        param ([Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
-               [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
-               [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
-               [parameter(Mandatory = $true)] [string] $TestMode,
-               [parameter(Mandatory = $true)] [string] $LogFileName,
-               [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
-               [parameter(Mandatory = $true)] [bool] $KmTracing,
-               [parameter(Mandatory = $true)] [string] $KmTraceType,
-               [parameter(Mandatory = $true)] [string] $EnableHVCI
-        )
-        Push-Location $WorkingDirectory
+$Job = Start-Job -ScriptBlock {
+    param ([Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
+            [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
+            [Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
+            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
+            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
+            [parameter(Mandatory = $true)] [string] $TestMode,
+            [parameter(Mandatory = $true)] [string] $LogFileName,
+            [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
+            [parameter(Mandatory = $true)] [bool] $KmTracing,
+            [parameter(Mandatory = $true)] [string] $KmTraceType,
+            [parameter(Mandatory = $true)] [string] $EnableHVCI
+    )
+    Push-Location $WorkingDirectory
 
-        # Load other utility modules.
-        Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+    # Load other utility modules.
+    Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-        Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-
+    if ($ExecuteOnVM) {
         $VMList = $Config.VMMap.$SelfHostedRunnerName
 
         # Get all VMs to ready state.
@@ -106,9 +112,16 @@ if (-not $ExecuteOnHost) {
             }
         }
 
-        # Configure network adapters on VMs.
-        Initialize-NetworkInterfacesOnVMs $VMList -ErrorAction Stop
+    }
 
+    # Configure network adapters.
+    Initialize-NetworkInterfaces `
+        -ExecuteOnHost $ExecuteOnHost `
+        -ExecuteOnVM $ExecuteOnVM `
+        -VMList $VMList `
+        -ErrorAction Stop
+
+    if ($ExecuteOnVM) {
         # Enable HVCI on the test VMs if specified.
         Write-Log "EnableHVCI: $EnableHVCI"
 
@@ -134,40 +147,38 @@ if (-not $ExecuteOnHost) {
             $VMName = $VM.Name
             Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
         }
-
-        Pop-Location
-    }  -ArgumentList (
-        $TestVMCredential,
-        $Config,
-        $SelfHostedRunnerName,
-        $TestMode,
-        $LogFileName,
-        $WorkingDirectory,
-        $KmTracing,
-        $KmTraceType,
-        $EnableHVCI)
-
-    # wait for the job to complete
-    $JobTimedOut = `
-        Wait-TestJobToComplete -Job $Job `
-        -Config $Config `
-        -SelfHostedRunnerName $SelfHostedRunnerName `
-        -TestJobTimeout $TestJobTimeout `
-        -CheckpointPrefix "Setup"
-
-    # Clean up
-    Remove-Job -Job $Job -Force
-
-    if ($JobTimedOut) {
-        exit 1
+    } else {
+        # Install eBPF components but skip anything that requires reboot.
+        Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
     }
-} else {
-    # When executing on host, install necessary components directly on the host.
-    Write-Log "Setting up eBPF components on host (skipping reboot-required operations)" -ForegroundColor Yellow
 
-    Initialize-NetworkInterfacesOnHost -WorkingDirectory $WorkingDirectory -LogFileName $LogFileName
+    Pop-Location
+}  -ArgumentList (
+    $ExecuteOnHost,
+    $ExecuteOnVM,
+    $TestVMCredential,
+    $Config,
+    $SelfHostedRunnerName,
+    $TestMode,
+    $LogFileName,
+    $WorkingDirectory,
+    $KmTracing,
+    $KmTraceType,
+    $EnableHVCI)
 
-    # Install eBPF components but skip anything that requires reboot.
-    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
-}
+# wait for the job to complete
+$JobTimedOut = `
+    Wait-TestJobToComplete -Job $Job `
+    -Config $Config `
+    -SelfHostedRunnerName $SelfHostedRunnerName `
+    -TestJobTimeout $TestJobTimeout `
+    -CheckpointPrefix "Setup"
+
+# Clean up
+Remove-Job -Job $Job -Force
+
 Pop-Location
+
+if ($JobTimedOut) {
+    exit 1
+}
