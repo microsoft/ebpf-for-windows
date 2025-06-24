@@ -387,7 +387,7 @@ update_policy_map_and_test_connection(
         SAFE_REQUIRE(authentication_id != 0);
 
         // Try to send and receive message to "destination". It should succeed.
-        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, destination_port);
+        sender_socket->send_message_to_remote_host(CLIENT_MESSAGE, destination, _globals.destination_port);
         sender_socket->complete_async_send(1000, expected_result_t::SUCCESS);
 
         sender_socket->post_async_receive();
@@ -680,10 +680,9 @@ DECLARE_CONNECTION_AUTHORIZATION_V6_TEST_GROUP(
         connect_redirect_test_wrapper(                                                                               \
             addresses.##source##, addresses.##original_destination##, addresses.##new_destination##, dual_stack);    \
         /* Test with implicit bind (bind to wildcard address) */                                                     \
-        printf("  Testing with implicit bind (wildcard address)...\n");\
-        /* Temporarily disabled for debugging */\
-        /*connect_redirect_test_with_implicit_bind_wrapper(                                                            \
-            addresses.##original_destination##, addresses.##new_destination##, dual_stack);*/                          \
+        printf("  Testing with implicit bind (wildcard address)...\n");                                             \
+        connect_redirect_test_with_implicit_bind_wrapper(                                                            \
+            addresses.##original_destination##, addresses.##new_destination##, dual_stack);                          \
     }
 
 // Declare connection_redirection_* test functions.
