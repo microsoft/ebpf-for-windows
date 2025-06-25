@@ -80,7 +80,11 @@ $Job = Start-Job -ScriptBlock {
         # Stop the VMs.
         Stop-AllVMs -VMList $VMList
     } else {
-        Import-ResultsFromHost -KmTracing $KmTracing
+        try {
+            Import-ResultsFromHost -KmTracing $KmTracing
+        } catch {
+            Write-Log "Failed to obtain results. Treating as non-fatal error. Error: $_"
+        }
     }
 
     Pop-Location

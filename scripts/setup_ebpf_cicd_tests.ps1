@@ -187,6 +187,7 @@ if ($ExecuteOnVM) {
 
     # Install eBPF components but skip anything that requires reboot.
     # Note that installing ebpf components requires psexec which does not run in a powershell job
+    Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
     Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
 
     Pop-Location
