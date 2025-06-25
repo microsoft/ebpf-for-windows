@@ -584,15 +584,17 @@ function Initialize-NetworkInterfaces {
         Pop-Location
     }
 
+    $argumentList = @($WorkingDirectory, $LogFileName)
+
     if ($ExecuteOnHost) {
         Write-Log "Initializing network interfaces on host"
-        & $commandScriptBlock $script:WorkingDirectory $script:LogFileName
+        & $commandScriptBlock @argumentList
     } elseif ($ExecuteOnVM) {
+        $TestCredential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
         foreach ($VM in $VMList) {
             $VMName = $VM.Name
             Write-Log "Initializing network interfaces on $VMName"
-            $TestCredential = New-Credential -Username $Admin -AdminPassword $AdminPassword
-            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock $commandScriptBlock -ArgumentList $script:WorkingDirectory, $script:LogFileName -ErrorAction Stop
+            Invoke-Command -VMName $VMName -Credential $TestCredential -ScriptBlock $commandScriptBlock -ArgumentList $argumentList -ErrorAction Stop
         }
     } else {
         throw "Either ExecuteOnHost or ExecuteOnVM must be set."

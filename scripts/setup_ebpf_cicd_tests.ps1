@@ -88,7 +88,12 @@ $Job = Start-Job -ScriptBlock {
 
     # Load other utility modules.
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    if ($ExecuteOnHost) {
+        $TestWorkingDirectory = $WorkingDirectory
+    } else {
+        $TestWorkingDirectory = "C:\ebpf"
+    }
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $TestWorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
     if ($ExecuteOnVM) {
@@ -112,19 +117,7 @@ $Job = Start-Job -ScriptBlock {
                 Write-Log "Export-BuildArtifactsToVMs failed. Retrying..."
             }
         }
-    } else {
-        Write-Log "Executing setup for testing on host"
-        $VMList = @()
-    }
 
-    # Configure network adapters.
-    Initialize-NetworkInterfaces `
-        -ExecuteOnHost $ExecuteOnHost `
-        -ExecuteOnVM $ExecuteOnVM `
-        -VMList $VMList `
-        -ErrorAction Stop
-
-    if ($ExecuteOnVM) {
         # Enable HVCI on the test VMs if specified.
         Write-Log "EnableHVCI: $EnableHVCI"
 
@@ -151,9 +144,19 @@ $Job = Start-Job -ScriptBlock {
             Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
         }
     } else {
+        Write-Log "Executing setup for testing on host"
+        $VMList = @()
+
         # Install eBPF components but skip anything that requires reboot.
         Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
     }
+
+    # Configure network adapters.
+    Initialize-NetworkInterfaces `
+        -ExecuteOnHost $ExecuteOnHost `
+        -ExecuteOnVM $ExecuteOnVM `
+        -VMList $VMList `
+        -ErrorAction Stop
 
     Pop-Location
 }  -ArgumentList (
