@@ -10,8 +10,6 @@
 # Modifying $args directly can cause issues, so copy it to a new variable.
 $arguments = $args
 
-Write-Output "Running test with arguments: $($arguments -join ' ')"
-
 # Check that the correct number of arguments have been provided.
 if ($arguments.Count -eq 0) {
     Write-Output "Usage: Run-Test.ps1 <output folder> <timeout in seconds> <test command> <test arguments>"
@@ -31,12 +29,7 @@ $processInfo.UseShellExecute = $false
 $processInfo.FileName = $arguments[0]
 $processInfo.Arguments = $arguments[1..($arguments.Length - 1)] -join ' '
 
-Write-Output "Starting test: $($processInfo.FileName) $($processInfo.Arguments)"
 $process = New-Object System.Diagnostics.Process
-if ($process -eq $null) {
-    Write-Output "Failed to create process object."
-    exit 1
-}
 $process.StartInfo = $processInfo
 $process.Start() | Out-Null
 

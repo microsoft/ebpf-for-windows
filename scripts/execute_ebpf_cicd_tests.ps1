@@ -33,6 +33,7 @@ if ($ExecuteOnVM) {
         $StandardUserTestVMCredential = Get-StoredCredential -Target $StandardUserTarget -ErrorAction Stop
     }
 } else {
+    # Username and password are not used when running on host - use empty but non-null values.
     $EmptySecureString = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
     $AdminTestVMCredential = New-Object System.Management.Automation.PSCredential($env:USERNAME, $EmptySecureString)
     $StandardUserTestVMCredential = New-Object System.Management.Automation.PSCredential("TestStandardUser", $EmptySecureString)
@@ -117,7 +118,6 @@ $JobTimedOut = `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
     -CheckpointPrefix "Execute" `
-    -ExecuteOnHost $ExecuteOnHost `
     -ExecuteOnVM $ExecuteOnVM
 
 # Clean up

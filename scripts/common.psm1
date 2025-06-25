@@ -81,8 +81,7 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $true)] [int] $TestJobTimeout,
            [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
-           [Parameter(Mandatory = $true)] [bool] $ExecuteOnHost,
-           [Parameter(Mandatory = $true)] [bool] $ExecuteOnVM)
+           [Parameter(Mandatory = $false)] [bool] $ExecuteOnVM=$true)
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time
     while ($Job.State -eq 'Running') {

@@ -34,7 +34,7 @@ if ($ExecuteOnVM) {
     $UserName = $TestVMCredential.UserName
     $Password = $TestVMCredential.Password
 } else {
-    # Username and password are not used when running on host - use default values.
+    # Username and password are not used when running on host - use empty but non-null values.
     $UserName = $env:USERNAME
     $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
     $TestVMCredential = New-Object System.Management.Automation.PSCredential($UserName, $Password)
@@ -166,7 +166,6 @@ if ($ExecuteOnVM) {
         -SelfHostedRunnerName $SelfHostedRunnerName `
         -TestJobTimeout $TestJobTimeout `
         -CheckpointPrefix "Setup" `
-        -ExecuteOnHost $false `
         -ExecuteOnVM $true
 
     # Clean up

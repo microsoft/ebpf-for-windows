@@ -276,7 +276,6 @@ _datagram_client_socket::send_message_to_remote_host(
         nullptr);
 
     if (error != 0) {
-        printf("sending to remote host port %d failed\n", remote_port);
         FAIL("Sending message to remote host failed with " << WSAGetLastError());
     }
 }

@@ -567,9 +567,9 @@ function Import-ResultsFromHost {
 function Initialize-NetworkInterfaces {
     param(
         # Initialize network interfaces directly on the host
-        [Parameter(Mandatory=$true)][bool] $ExecuteOnHost,
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnHost = $false,
         # Initialize network interfaces on VMs.
-        [Parameter(Mandatory=$true)][bool] $ExecuteOnVM = $false,
+        [Parameter(Mandatory=$false)][bool] $ExecuteOnVM = $true,
         [Parameter(Mandatory=$false)] $VMList = @(),
         [Parameter(Mandatory=$true)][string] $TestWorkingDirectory
     )
@@ -732,10 +732,10 @@ function Create-VM {
         Set-VMMemory -VMName $VmName -DynamicMemoryEnabled $false -StartupBytes $VMMemory
 
         if ((Get-VM -VMName $vmName) -eq $null) {
-            throw "Failed to create VM: $VmName"
+            throw "Failed to create VM: $VMName"
         }
 
-        Write-Log "Successfully created VM: $VmName" -ForegroundColor Green
+        Write-Log "Successfully created VM: $VMName" -ForegroundColor Green
     } catch {
         throw "Failed to create VM: $VmName with error: $_"
     }
