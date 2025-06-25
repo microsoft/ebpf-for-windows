@@ -145,7 +145,7 @@ typedef struct _SYSTEM_CODEINTEGRITY_INFORMATION
     unsigned long Length;
     unsigned long CodeIntegrityOptions;
 } SYSTEM_CODEINTEGRITY_INFORMATION, *PSYSTEM_CODEINTEGRITY_INFORMATION;
-#define CODEINTEGRITY_OPTION_TESTSIGN 0x02
+#define CODEINTEGRITY_OPTION_TEST_SIGN 0x02
 #define CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED 0x400
 NTSTATUS
 NtQuerySystemInformation(
@@ -165,7 +165,7 @@ ebpf_get_code_integrity_state(_Out_ bool* test_signing_enabled, _Out_ bool* hype
     status = NtQuerySystemInformation(
         SystemCodeIntegrityInformation, &code_integrity_information, system_information_length, &returned_length);
     if (NT_SUCCESS(status)) {
-        if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_TESTSIGN) != 0) {
+        if ((code_integrity_information.CodeIntegrityOptions & CODEINTEGRITY_OPTION_TEST_SIGN) != 0) {
             EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Test signing enabled");
             *test_signing_enabled = true;
         } else {

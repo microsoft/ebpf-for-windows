@@ -178,10 +178,10 @@ extern "C"
 
     /**
      * @brief Get the code integrity state from the platform.
-     * @param[out] test_signing_enabled Pointer to a boolean that will be set to
-     * true if test signing is enabled, false otherwise.
-     * @param[out] hypervisor_kernel_mode_enabled Pointer to a boolean that will be set
-     * true if hypervisor kernel mode is enabled, false otherwise.
+     * @param[out] test_signing_enabled Pointer to a boolean that will be set to true if test signing is enabled, to
+     * false otherwise.
+     * @param[out] hypervisor_kernel_mode_enabled Pointer to a boolean that will be set to true if hypervisor kernel
+     * mode is enabled, to false otherwise.
      * @retval EBPF_SUCCESS The operation was successful.
      * @retval EBPF_NOT_SUPPORTED Unable to obtain state from platform.
      */

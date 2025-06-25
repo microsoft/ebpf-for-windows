@@ -468,17 +468,18 @@ class WinVerifyTrustHelper
         DWORD error = WinVerifyTrust(nullptr, &generic_action_code, &win_trust_data);
         if (error != ERROR_SUCCESS) {
             EBPF_LOG_WIN32_API_FAILURE(EBPF_TRACELOG_KEYWORD_API, WinVerifyTrust);
-            cleanup_win_verify_trust();
+            clean_up_win_verify_trust();
             throw std::runtime_error("WinVerifyTrust failed");
         }
     }
 
-    ~WinVerifyTrustHelper() { cleanup_win_verify_trust(); }
+    ~WinVerifyTrustHelper() { clean_up_win_verify_trust(); }
 
     DWORD
     cert_count()
     {
-        // The number of signatures is stored in the dwIndex field.
+        // The number of signatures is stored in signature_settings.cSecondarySigs.
+        // The primary signature is always present, so we add 1 to the count.
         return signature_settings.cSecondarySigs + 1;
     }
 
@@ -487,7 +488,7 @@ class WinVerifyTrustHelper
     {
         // Check if the context currently points to the correct index.
         if (signature_settings.dwIndex != index) {
-            cleanup_win_verify_trust();
+            clean_up_win_verify_trust();
 
             win_trust_data.dwStateAction = WTD_STATEACTION_VERIFY;
             win_trust_data.pSignatureSettings->dwIndex = index;
@@ -512,7 +513,7 @@ class WinVerifyTrustHelper
 
   private:
     void
-    cleanup_win_verify_trust()
+    clean_up_win_verify_trust()
     {
         if (win_trust_data.hWVTStateData) {
             win_trust_data.dwStateAction = WTD_STATEACTION_CLOSE;
@@ -548,7 +549,7 @@ _ebpf_extract_eku(_In_ CRYPT_PROVIDER_CERT* cert)
 }
 
 static std::string
-_ebpf_extract_issuer(_In_ CRYPT_PROVIDER_CERT* cert)
+_ebpf_extract_issuer(_In_ const CRYPT_PROVIDER_CERT* cert)
 {
     DWORD name_cb =
         CertGetNameStringA(cert->pCert, CERT_KEY_PROV_INFO_PROP_ID, CERT_NAME_ISSUER_FLAG, nullptr, nullptr, 0);
@@ -565,7 +566,7 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_verify_sys_file_signature(
     _In_z_ const wchar_t* file_name,
     _In_z_ const char* issuer_name,
-    _In_ size_t eku_count,
+    size_t eku_count,
     _In_reads_(eku_count) const char** eku_list)
 {
     ebpf_result_t result = EBPF_OBJECT_NOT_FOUND;
@@ -635,11 +636,10 @@ ebpf_verify_sys_file_signature(
     EBPF_RETURN_RESULT(result);
 }
 
-static const char* _ebpf_required_issuer =
-    "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification";
+static const char* _ebpf_required_issuer = EBPF_REQUIRED_ISSUER;
 static const char* _ebpf_required_eku_list[] = {
-    "1.3.6.1.5.5.7.3.3",     // Code Signing
-    "1.3.6.1.4.1.311.133.1", // eBPF Verification
+    EBPF_CODE_SIGNING_EKU,
+    EBPF_VERIFICATION_EKU,
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -767,9 +767,9 @@ Done:
 /**
  * @brief Initialize the test signing state.
  *
- * @retval EBPF_SUCCESS on success, or an error code on failure.
- * @retval EBPF_INVALID_ARGUMENT if the operation ID in the reply is not as expected.
- * @retval EBPF_NO_MEMORY if memory allocation fails.
+ * @retval EBPF_SUCCESS The operation was successful.
+ * @retval EBPF_INVALID_ARGUMENT The reply from the driver was invalid.
+ * @retval EBPF_NO_MEMORY Insufficient memory to complete the operation.
  */
 static _Must_inspect_result_ ebpf_result_t
 _initialize_test_signing_state()

@@ -4255,8 +4255,8 @@ TEST_CASE("signature_checking", "[end_to_end]")
     _ebpf_platform_code_integrity_test_signing_enabled = true;
 
     const char* eku_list[] = {
-        "1.3.6.1.5.5.7.3.3",      // Code signing
-        "1.3.6.1.4.1.311.10.3.6", // Windows System Component Verification
+        EBPF_CODE_SIGNING_EKU,
+        EBPF_WINDOWS_COMPONENT_EKU,
     };
     const char* issuer_production =
         "US, Washington, Redmond, Microsoft Corporation, Microsoft Windows Production PCA 2011";
@@ -4285,10 +4285,10 @@ TEST_CASE("signature_checking_negative", "[end_to_end]")
     _ebpf_platform_code_integrity_test_signing_enabled = true;
 
     const char* eku_list[] = {
-        "1.3.6.1.5.5.7.3.3",     // Code signing
-        "1.3.6.1.4.1.311.133.1", // eBPF Verification
+        EBPF_CODE_SIGNING_EKU,
+        EBPF_VERIFICATION_EKU,
     };
-    const char* issuer = "US, Washington, Redmond, Microsoft Corporation, Microsoft Corporation eBPF Verification";
+    const char* issuer = EBPF_REQUIRED_ISSUER;
 
     std::wstring test_file = L"%windir%\\system32\\drivers\\tcpip.sys";
 
