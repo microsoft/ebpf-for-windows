@@ -570,7 +570,8 @@ function Initialize-NetworkInterfaces {
         [Parameter(Mandatory=$true)][bool] $ExecuteOnHost,
         # Initialize network interfaces on VMs.
         [Parameter(Mandatory=$true)][bool] $ExecuteOnVM = $false,
-        [Parameter(Mandatory=$false)] $VMList = @()
+        [Parameter(Mandatory=$false)] $VMList = @(),
+        [Parameter(Mandatory=$true)][string] $TestWorkingDirectory
     )
 
     $commandScriptBlock = {
@@ -584,7 +585,7 @@ function Initialize-NetworkInterfaces {
         Pop-Location
     }
 
-    $argumentList = @($WorkingDirectory, $LogFileName)
+    $argumentList = @($TestWorkingDirectory, $LogFileName)
 
     if ($ExecuteOnHost) {
         Write-Log "Initializing network interfaces on host"

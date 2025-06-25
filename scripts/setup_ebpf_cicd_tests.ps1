@@ -88,12 +88,7 @@ $Job = Start-Job -ScriptBlock {
 
     # Load other utility modules.
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-    if ($ExecuteOnHost) {
-        $TestWorkingDirectory = $WorkingDirectory
-    } else {
-        $TestWorkingDirectory = "C:\ebpf"
-    }
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $TestWorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
     Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
     if ($ExecuteOnVM) {
@@ -152,10 +147,16 @@ $Job = Start-Job -ScriptBlock {
     }
 
     # Configure network adapters.
+    if ($ExecuteOnHost) {
+        $TestWorkingDirectory = $WorkingDirectory
+    } else {
+        $TestWorkingDirectory = "C:\ebpf"
+    }
     Initialize-NetworkInterfaces `
         -ExecuteOnHost $ExecuteOnHost `
         -ExecuteOnVM $ExecuteOnVM `
         -VMList $VMList `
+        -TestWorkingDirectory $TestWorkingDirectory `
         -ErrorAction Stop
 
     Pop-Location
@@ -172,6 +173,7 @@ $Job = Start-Job -ScriptBlock {
     $KmTraceType,
     $EnableHVCI)
 
+Write-Log "Waiting for setup job to complete..."
 # wait for the job to complete
 $JobTimedOut = `
     Wait-TestJobToComplete -Job $Job `
@@ -179,6 +181,8 @@ $JobTimedOut = `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
     -CheckpointPrefix "Setup"
+
+Write-Log "Setup job completed."
 
 # Clean up
 Remove-Job -Job $Job -Force
