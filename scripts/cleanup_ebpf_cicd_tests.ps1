@@ -23,6 +23,11 @@ if ($ExecuteOnVM) {
     } else {
         $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
     }
+} else {
+    # Username and password are not used when running on host - use default values.
+    $UserName = $env:USERNAME
+    $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+    $TestVMCredential = New-Object System.Management.Automation.PSCredential($UserName, $Password)
 }
 
 # Read the test execution json.

@@ -37,6 +37,7 @@ if ($ExecuteOnVM) {
     # Username and password are not used when running on host - use default values.
     $UserName = $env:USERNAME
     $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+    $TestVMCredential = New-Object System.Management.Automation.PSCredential($UserName, $Password)
 }
 
 Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($UserName, $Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
