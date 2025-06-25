@@ -73,28 +73,26 @@ if ($TestMode -eq "CI/CD" -or $TestMode -eq "Regression") {
 Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
-$Job = Start-Job -ScriptBlock {
-    param ([Parameter(Mandatory = $true)] [bool] $ExecuteOnHost,
-           [Parameter(Mandatory = $true)] [bool] $ExecuteOnVM,
-           [Parameter(Mandatory = $true)] [PSCredential] $TestVMCredential,
-           [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
-           [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
-           [parameter(Mandatory = $true)] [string] $TestMode,
-           [parameter(Mandatory = $true)] [string] $LogFileName,
-           [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
-           [parameter(Mandatory = $true)] [bool] $KmTracing,
-           [parameter(Mandatory = $true)] [string] $KmTraceType,
-           [parameter(Mandatory = $true)] [string] $EnableHVCI
-    )
-    Push-Location $WorkingDirectory
+if ($ExecuteOnVM) {
+    $Job = Start-Job -ScriptBlock {
+        param (
+            [Parameter(Mandatory = $true)] [PSCredential] $TestVMCredential,
+            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
+            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
+            [parameter(Mandatory = $true)] [string] $TestMode,
+            [parameter(Mandatory = $true)] [string] $LogFileName,
+            [parameter(Mandatory = $true)] [string] $WorkingDirectory = $pwd.ToString(),
+            [parameter(Mandatory = $true)] [bool] $KmTracing,
+            [parameter(Mandatory = $true)] [string] $KmTraceType,
+            [parameter(Mandatory = $true)] [string] $EnableHVCI
+        )
+        Push-Location $WorkingDirectory
 
-    # Load other utility modules.
-    Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-    Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
-    Import-Module .\install_ebpf.psm1 -Force -ArgumentList ($WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+        # Load other utility modules.
+        Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
 
-    if ($ExecuteOnVM) {
-        Write-Log "Executing setup for testing on VM"
+        Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
+
         $VMList = $Config.VMMap.$SelfHostedRunnerName
 
         # Get all VMs to ready state.
@@ -114,6 +112,14 @@ $Job = Start-Job -ScriptBlock {
                 Write-Log "Export-BuildArtifactsToVMs failed. Retrying..."
             }
         }
+
+        # Configure network adapters.
+        Initialize-NetworkInterfaces `
+            -ExecuteOnHost $false `
+            -ExecuteOnVM $true `
+            -VMList $VMList `
+            -TestWorkingDirectory "C:\ebpf" `
+            -ErrorAction Stop
 
         # Enable HVCI on the test VMs if specified.
         Write-Log "EnableHVCI: $EnableHVCI"
@@ -140,59 +146,48 @@ $Job = Start-Job -ScriptBlock {
             $VMName = $VM.Name
             Log-OSBuildInformationOnVM -VMName $VMName -ErrorAction Stop
         }
-    } else {
-        Write-Log "Executing setup for testing on host"
-        $VMList = @()
 
-        # Install eBPF components but skip anything that requires reboot.
-        Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
-    }
+        Pop-Location
+    }  -ArgumentList (
+        $TestVMCredential,
+        $Config,
+        $SelfHostedRunnerName,
+        $TestMode,
+        $LogFileName,
+        $WorkingDirectory,
+        $KmTracing,
+        $KmTraceType,
+        $EnableHVCI)
 
-    # Configure network adapters.
-    if ($ExecuteOnHost) {
-        $TestWorkingDirectory = $WorkingDirectory
-    } else {
-        $TestWorkingDirectory = "C:\ebpf"
-    }
-    Initialize-NetworkInterfaces `
-        -ExecuteOnHost $ExecuteOnHost `
-        -ExecuteOnVM $ExecuteOnVM `
-        -VMList $VMList `
-        -TestWorkingDirectory $TestWorkingDirectory `
-        -ErrorAction Stop
+    # wait for the job to complete
+    $JobTimedOut = `
+        Wait-TestJobToComplete -Job $Job `
+        -Config $Config `
+        -SelfHostedRunnerName $SelfHostedRunnerName `
+        -TestJobTimeout $TestJobTimeout `
+        -CheckpointPrefix "Setup" `
+        -ExecuteOnHost $false `
+        -ExecuteOnVM $true
+
+    # Clean up
+    Remove-Job -Job $Job -Force
 
     Pop-Location
-}  -ArgumentList (
-    $ExecuteOnHost,
-    $ExecuteOnVM,
-    $TestVMCredential,
-    $Config,
-    $SelfHostedRunnerName,
-    $TestMode,
-    $LogFileName,
-    $WorkingDirectory,
-    $KmTracing,
-    $KmTraceType,
-    $EnableHVCI)
 
-Write-Log "Waiting for setup job to complete..."
-# wait for the job to complete
-$JobTimedOut = `
-    Wait-TestJobToComplete -Job $Job `
-    -Config $Config `
-    -SelfHostedRunnerName $SelfHostedRunnerName `
-    -TestJobTimeout $TestJobTimeout `
-    -CheckpointPrefix "Setup" `
-    -ExecuteOnHost $ExecuteOnHost `
-    -ExecuteOnVM $ExecuteOnVM
+    if ($JobTimedOut) {
+        exit 1
+    }
+} else {
+    Initialize-NetworkInterfaces `
+        -ExecuteOnHost $true `
+        -ExecuteOnVM $false `
+        -VMList @() `
+        -TestWorkingDirectory $WorkingDirectory `
+        -ErrorAction Stop
 
-Write-Log "Setup job completed."
+    # Install eBPF components but skip anything that requires reboot.
+    # Note that installing ebpf components requires psexec which does not run in a powershell job
+    Install-eBPFComponents -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -SkipRebootOperations
 
-# Clean up
-Remove-Job -Job $Job -Force
-
-Pop-Location
-
-if ($JobTimedOut) {
-    exit 1
+    Pop-Location
 }
