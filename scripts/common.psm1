@@ -80,7 +80,9 @@ function Wait-TestJobToComplete
            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [Parameter(Mandatory = $true)] [int] $TestJobTimeout,
-           [Parameter(Mandatory = $true)] [string] $CheckpointPrefix)
+           [Parameter(Mandatory = $true)] [string] $CheckpointPrefix,
+           [Parameter(Mandatory = $true)] [bool] $ExecuteOnHost,
+           [Parameter(Mandatory = $true)] [bool] $ExecuteOnVM)
     $TimeElapsed = 0
     # Loop to fetch and print job output in near real-time
     while ($Job.State -eq 'Running') {
@@ -92,14 +94,16 @@ function Wait-TestJobToComplete
 
         if ($TimeElapsed -gt $TestJobTimeout) {
             if ($Job.State -eq "Running") {
-                $VMList = $Config.VMMap.$SelfHostedRunnerName
-                # currently one VM runs per runner.
-                $TestVMName = $VMList[0].Name
-                Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
-                $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
-                $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
-                Write-Log "Taking snapshot $CheckpointName of $TestVMName"
-                Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
+                if ($ExecuteOnVM) {
+                    $VMList = $Config.VMMap.$SelfHostedRunnerName
+                    # currently one VM runs per runner.
+                    $TestVMName = $VMList[0].Name
+                    Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
+                    $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
+                    $CheckpointName = "$CheckpointPrefix-$TestVMName-Checkpoint-$Timestamp"
+                    Write-Log "Taking snapshot $CheckpointName of $TestVMName"
+                    Checkpoint-VM -Name $TestVMName -SnapshotName $CheckpointName
+                }
                 $JobTimedOut = $true
                 break
             }

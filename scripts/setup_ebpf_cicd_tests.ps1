@@ -16,7 +16,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
        [Parameter(Mandatory = $false)][string] $Architecture = "x64")
 
-$ExecuteOnVM = -not $ExecuteOnHost
+$ExecuteOnHost = [bool]$ExecuteOnHost
+$ExecuteOnVM = (-not $ExecuteOnHost)
 
 Push-Location $WorkingDirectory
 
@@ -180,7 +181,9 @@ $JobTimedOut = `
     -Config $Config `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
-    -CheckpointPrefix "Setup"
+    -CheckpointPrefix "Setup" `
+    -ExecuteOnHost $ExecuteOnHost `
+    -ExecuteOnVM $ExecuteOnVM
 
 Write-Log "Setup job completed."
 

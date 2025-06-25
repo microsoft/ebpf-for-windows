@@ -10,7 +10,8 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
 
-$ExecuteOnVM = -not $ExecuteOnHost
+$ExecuteOnHost = [bool]$ExecuteOnHost
+$ExecuteOnVM = (-not $ExecuteOnHost)
 
 Push-Location $WorkingDirectory
 
@@ -96,7 +97,9 @@ $JobTimedOut = `
     -Config $Config `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
-    -CheckpointPrefix "Cleanup"
+    -CheckpointPrefix "Cleanup" `
+    -ExecuteOnHost $ExecuteOnHost `
+    -ExecuteOnVM $ExecuteOnVM
 
 # Clean up
 Remove-Job -Job $Job -Force
