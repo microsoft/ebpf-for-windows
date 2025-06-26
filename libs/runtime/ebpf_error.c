@@ -55,5 +55,11 @@ static const NTSTATUS _ebpf_result_mapping[] = {
 NTSTATUS
 ebpf_result_to_ntstatus(ebpf_result_t result)
 {
-    return (result < EBPF_RESULT_COUNT) ? _ebpf_result_mapping[result] : STATUS_UNSUCCESSFUL;
+    if (result < 0) {
+        return STATUS_UNSUCCESSFUL;
+    }
+    if (result > ARRAYSIZE(_ebpf_result_mapping)) {
+        return STATUS_UNSUCCESSFUL;
+    }
+    return _ebpf_result_mapping[result];
 }
