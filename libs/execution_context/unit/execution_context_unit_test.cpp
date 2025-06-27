@@ -1601,11 +1601,30 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
     uint32_t ring_count = ebpf_get_cpu_count();
     std::vector<perf_event_array_test_async_context_t> completions(ring_count);
 
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
+        [&](void*) {
+            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            // Counters
+            size_t cancel_count = 0;
+
+            for (auto& completion : completions) {
+                if (completion.buffer_size > 0) { // If buffer_size not set yet then we never started this query.
+                    // We try cancelling each op, but only ones that haven't completed will actually cancel.
+                    bool cancel_result = ebpf_async_cancel(&completion);
+                    if (cancel_result == true) {
+                        cancel_count++;
+                    }
+                    CHECK(cancel_result == false);
+                }
+            }
+            REQUIRE(cancel_count == 0);
+        });
+
     // Map each ring and set up completion callbacks.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         auto& completion = completions[cpu_id];
         completion.cpu_id = cpu_id;
-        completion.buffer_size = buffer_size;
 
         // Map the ring buffer for the current CPU.
         REQUIRE(
@@ -1616,6 +1635,9 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
 
         // Set up the completion callback.
         REQUIRE(ebpf_async_set_completion_callback(&completion, perf_event_array_test_async_complete) == EBPF_SUCCESS);
+
+        completion.buffer_size =
+            buffer_size; // After this point this completion callback will be cleaned up on failure.
 
         // Start the async query.
         ebpf_result_t result = ebpf_map_async_query(map.get(), cpu_id, &completion.async_query_result, &completion);
