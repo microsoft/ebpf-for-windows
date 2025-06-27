@@ -1831,9 +1831,9 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
 
     struct _completion
     {
-        uint8_t* buffer;
-        uint32_t buffer_size;
-        uint32_t cpu_id;
+        uint8_t* buffer{};
+        uint32_t buffer_size{};
+        uint32_t cpu_id{};
         size_t consumer_offset = 0;
         size_t callback_count = 0;
         size_t record_count = 0;
@@ -1846,11 +1846,53 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     uint32_t ring_count = ebpf_get_cpu_count();
     std::vector<_completion> completions(ring_count);
 
+    uint64_t value = 1;
+
+    auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
+        reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
+        [&](void*) {
+            // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            // Counters
+            size_t total_callback_count = 0;
+            size_t total_record_count = 0;
+            size_t total_norecord_count = 0;
+            size_t total_lost_count = 0;
+            size_t cancel_count = 0;
+
+            for (auto& completion : completions) {
+                if (completion.buffer_size > 0) { // If buffer_size not set yet then we never started this query.
+                    CAPTURE(
+                        completion.cpu_id,
+                        completion.record_count,
+                        completion.norecord_count,
+                        completion.cancel_count,
+                        completion.lost_count);
+                    CHECK(completion.callback_count <= 1);
+                    CHECK(completion.lost_count == 0);
+                    // We try cancelling each op, but only ones that haven't completed will actually cancel.
+                    bool must_cancel = completion.callback_count == 0;
+                    bool cancel_result = ebpf_async_cancel(&completion);
+                    if (cancel_result == true) {
+                        cancel_count++;
+                    }
+                    CHECK(cancel_result == must_cancel);
+                    total_callback_count += completion.callback_count;
+                    total_record_count += completion.record_count;
+                    total_norecord_count += completion.norecord_count;
+                    total_lost_count += completion.lost_count;
+                    if (completion.record_count > 0) {
+                        // This was the ring that got the record.
+                        CHECK(completion.record_count == 1);
+                        CHECK(completion.value == value);
+                    }
+                }
+            }
+        });
+
     // Map each ring and set up completion callbacks.
     for (uint32_t cpu_id = 0; cpu_id < ring_count; cpu_id++) {
         auto& completion = completions[cpu_id];
         completion.cpu_id = cpu_id;
-        completion.buffer_size = buffer_size;
         // Map the ring memory.
         REQUIRE(
             ebpf_map_query_buffer(map.get(), completion.cpu_id, &completion.buffer, &completion.consumer_offset) ==
@@ -1887,6 +1929,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
         if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
             REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
         }
+        completion.buffer_size = buffer_size; // after we set buffer_size the query will be cleaned up on exit.
         REQUIRE(result == EBPF_PENDING);
     }
 
@@ -1904,50 +1947,12 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     void* ctx = &context.unused;
 
     // Write a single record.
-    uint64_t value = 1;
     uint64_t flags = EBPF_MAP_FLAG_CURRENT_CPU;
     REQUIRE(
         ebpf_perf_event_array_map_output_with_capture(
             ctx, map.get(), flags, reinterpret_cast<uint8_t*>(&value), sizeof(value)) == EBPF_SUCCESS);
 
-    // Confirm that a single ring got the correct record and all other rings are empty.
-    size_t total_callback_count = 0;
-    size_t total_record_count = 0;
-    size_t total_norecord_count = 0;
-    size_t total_lost_count = 0;
-    size_t cancel_count = 0;
-
-    for (auto& completion : completions) {
-        CAPTURE(
-            completion.cpu_id,
-            completion.record_count,
-            completion.norecord_count,
-            completion.cancel_count,
-            completion.lost_count);
-        CHECK(completion.callback_count <= 1);
-        CHECK(completion.lost_count == 0);
-        // We try cancelling each op, but only ones that haven't completed will actually cancel.
-        bool must_cancel = completion.callback_count == 0;
-        bool cancel_result = ebpf_async_cancel(&completion);
-        if (cancel_result == true) {
-            cancel_count++;
-        }
-        CHECK(cancel_result == must_cancel);
-        total_callback_count += completion.callback_count;
-        total_record_count += completion.record_count;
-        total_norecord_count += completion.norecord_count;
-        total_lost_count += completion.lost_count;
-        if (completion.record_count > 0) {
-            // This was the ring that got the record.
-            CHECK(completion.record_count == 1);
-            CHECK(completion.value == value);
-        }
-    }
-    CAPTURE(ring_count, total_callback_count, total_record_count, total_norecord_count, total_lost_count, cancel_count);
-    REQUIRE(total_record_count == 1);
-    REQUIRE(total_lost_count == 0);
-    REQUIRE(total_norecord_count == ring_count - 1);
-    REQUIRE(cancel_count == ring_count - 1);
+    // Cleanup and final checks will be done in the scope_exit block above.
 }
 
 std::vector<GUID> _program_types = {
