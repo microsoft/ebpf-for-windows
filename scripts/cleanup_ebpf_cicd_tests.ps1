@@ -7,22 +7,36 @@ param ([parameter(Mandatory=$false)][string] $Target = "TEST_VM",
        [parameter(Mandatory=$false)][string] $WorkingDirectory = $pwd.ToString(),
        [parameter(Mandatory=$false)][string] $TestExecutionJsonFileName = "test_execution.json",
        [parameter(Mandatory=$false)][string] $SelfHostedRunnerName = [System.Net.Dns]::GetHostName(),
-       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60))
+       [Parameter(Mandatory = $false)][int] $TestJobTimeout = (30*60),
+       [Parameter(Mandatory = $false)][switch] $ExecuteOnHost)
+
+$ExecuteOnHost = [bool]$ExecuteOnHost
+$ExecuteOnVM = (-not $ExecuteOnHost)
 
 Push-Location $WorkingDirectory
 
 Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
-if ($SelfHostedRunnerName -eq "1ESRunner") {
-    $TestVMCredential = Retrieve-StoredCredential -Target $Target
+
+if ($ExecuteOnVM) {
+    if ($SelfHostedRunnerName -eq "1ESRunner") {
+        $TestVMCredential = Retrieve-StoredCredential -Target $Target
+    } else {
+        $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+    }
 } else {
-    $TestVMCredential = Get-StoredCredential -Target $Target -ErrorAction Stop
+    # Username and password are not used when running on host - use empty but non-null values.
+    $UserName = $env:USERNAME
+    $Password = ConvertTo-SecureString -String 'empty' -AsPlainText -Force
+    $TestVMCredential = New-Object System.Management.Automation.PSCredential($UserName, $Password)
 }
 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
 $Job = Start-Job -ScriptBlock {
-    param ([Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
+    param ([Parameter(Mandatory = $True)] [bool] $ExecuteOnHost,
+           [Parameter(Mandatory = $True)] [bool] $ExecuteOnVM,
+           [Parameter(Mandatory = $True)] [PSCredential] $TestVMCredential,
            [Parameter(Mandatory = $true)] [PSCustomObject] $Config,
            [Parameter(Mandatory = $true)] [string] $SelfHostedRunnerName,
            [parameter(Mandatory = $true)] [string] $LogFileName,
@@ -35,39 +49,49 @@ $Job = Start-Job -ScriptBlock {
     Import-Module .\common.psm1 -Force -ArgumentList ($LogFileName) -WarningAction SilentlyContinue
     Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($TestVMCredential.UserName, $TestVMCredential.Password, $WorkingDirectory, $LogFileName) -WarningAction SilentlyContinue
 
-    $VMList = $Config.VMMap.$SelfHostedRunnerName
-    # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
-    Wait-AllVMsToInitialize `
-        -VMList $VMList `
-        -UserName $TestVMCredential.UserName `
-        -AdminPassword $TestVMCredential.Password
+    if ($ExecuteOnVM) {
+        $VMList = $Config.VMMap.$SelfHostedRunnerName
+        # Wait for all VMs to be in ready state, in case the test run caused any VM to crash.
+        Wait-AllVMsToInitialize `
+            -VMList $VMList `
+            -UserName $TestVMCredential.UserName `
+            -AdminPassword $TestVMCredential.Password
 
-    # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
-    # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
-    # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
-    foreach ($VM in $VMList) {
-        $VMName = $VM.Name
-        $DumpFound = Invoke-Command `
-            -VMName $VMName `
-            -Credential $TestVMCredential `
-            -ScriptBlock {
-                Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
+        # Check if we're here after a crash (we are if c:\windows\memory.dmp exists on the VM).  If so,
+        # we need to skip the stopping of the drivers as they may be in a wedged state as a result of the
+        # crash.  We will be restoring the VM's 'baseline' snapshot next, so the step is redundant anyway.
+        foreach ($VM in $VMList) {
+            $VMName = $VM.Name
+            $DumpFound = Invoke-Command `
+                -VMName $VMName `
+                -Credential $TestVMCredential `
+                -ScriptBlock {
+                    Test-Path -Path "c:\windows\memory.dmp" -PathType leaf
+                }
+
+            if ($DumpFound -eq $True) {
+                Write-Log "Post-crash reboot detected on VM $VMName"
             }
+        }
 
-        if ($DumpFound -eq $True) {
-            Write-Log "Post-crash reboot detected on VM $VMName"
+        # Import logs from VMs.
+        Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
+
+        # Stop the VMs.
+        Stop-AllVMs -VMList $VMList
+    } else {
+        try {
+            Import-ResultsFromHost -KmTracing $KmTracing
+        } catch {
+            Write-Log "Failed to obtain results. Treating as non-fatal error. Error: $_"
         }
     }
-
-    # Import logs from VMs.
-    Import-ResultsFromVM -VMList $VMList -KmTracing $KmTracing
-
-    # Stop the VMs.
-    Stop-AllVMs -VMList $VMList
 
     Pop-Location
 
 }  -ArgumentList (
+    $ExecuteOnHost,
+    $ExecuteOnVM,
     $TestVMCredential,
     $Config,
     $SelfHostedRunnerName,
@@ -82,7 +106,8 @@ $JobTimedOut = `
     -Config $Config `
     -SelfHostedRunnerName $SelfHostedRunnerName `
     -TestJobTimeout $TestJobTimeout `
-    -CheckpointPrefix "Cleanup"
+    -CheckpointPrefix "Cleanup" `
+    -ExecuteOnVM $ExecuteOnVM
 
 # Clean up
 Remove-Job -Job $Job -Force
