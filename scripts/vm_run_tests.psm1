@@ -34,6 +34,8 @@ function Invoke-OnHostOrVM {
     } elseif ($script:ExecuteOnVM) {
         $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
         Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
+    } else {
+        throw "Either ExecuteOnHost or ExecuteOnVM must be true."
     }
 }
 

@@ -45,17 +45,8 @@ Import-Module .\config_test_vm.psm1 -Force -ArgumentList ($UserName, $Password, 
 # Read the test execution json.
 $Config = Get-Content ("{0}\{1}" -f $PSScriptRoot, $TestExecutionJsonFileName) | ConvertFrom-Json
 
-if ($ExecuteOnVM) {
-    $VMList = $Config.VMMap.$SelfHostedRunnerName
-
-    # Delete old log files if any.
-    Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
-    foreach($VM in $VMList) {
-        $VMName = $VM.Name
-        Remove-Item $env:TEMP\$LogFileName -ErrorAction SilentlyContinue
-    }
-}
-
+# Delete old log files if any.
+Remove-Item "$env:TEMP\$LogFileName" -ErrorAction SilentlyContinue
 Remove-Item ".\TestLogs" -Recurse -Confirm:$false -ErrorAction SilentlyContinue
 
 if ($TestMode -eq "Regression") {
