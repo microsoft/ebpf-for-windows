@@ -69,7 +69,7 @@ get_string_from_address(_In_ const SOCKADDR* sockaddr)
 }
 
 void
-cleanup_socket(_Inout_ SOCKET& socket)
+clean_up_socket(_Inout_ SOCKET& socket)
 {
     if (socket != INVALID_SOCKET) {
         shutdown(socket, SD_BOTH);
@@ -124,7 +124,7 @@ _base_socket::_base_socket(
     }
 }
 
-_base_socket::~_base_socket() { cleanup_socket(socket); }
+_base_socket::~_base_socket() { clean_up_socket(socket); }
 
 void
 _base_socket::get_local_address(_Out_ PSOCKADDR& address, _Out_ int& address_length) const
@@ -149,7 +149,7 @@ _client_socket::_client_socket(
 void
 _client_socket::close()
 {
-    cleanup_socket(socket);
+    clean_up_socket(socket);
 }
 
 void
@@ -558,7 +558,7 @@ _datagram_server_socket::query_redirect_context(_Inout_ void* buffer, uint32_t b
 void
 _datagram_server_socket::close()
 {
-    cleanup_socket(socket);
+    clean_up_socket(socket);
 }
 
 _stream_server_socket::_stream_server_socket(int _sock_type, int _protocol, uint16_t _port)
@@ -597,7 +597,7 @@ void
 _stream_server_socket::initialize_accept_socket()
 {
     // Close a previous accept socket, if present.
-    cleanup_socket(accept_socket);
+    clean_up_socket(accept_socket);
 
     // Create accept socket.
     accept_socket = WSASocket(AF_INET6, sock_type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
@@ -609,7 +609,7 @@ _stream_server_socket::initialize_accept_socket()
     }
 }
 
-_stream_server_socket::~_stream_server_socket() { cleanup_socket(accept_socket); }
+_stream_server_socket::~_stream_server_socket() { clean_up_socket(accept_socket); }
 
 void
 _stream_server_socket::post_async_receive()
@@ -691,7 +691,7 @@ _stream_server_socket::get_sender_address(_Out_ PSOCKADDR& from, _Out_ int& from
 void
 _stream_server_socket::close()
 {
-    cleanup_socket(accept_socket);
+    clean_up_socket(accept_socket);
 }
 
 int

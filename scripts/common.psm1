@@ -95,7 +95,7 @@ function Wait-TestJobToComplete
             if ($Job.State -eq "Running") {
                 if ($ExecuteOnVM) {
                     $VMList = $Config.VMMap.$SelfHostedRunnerName
-                    # currently one VM runs per runner.
+                    # Currently one VM runs per runner.
                     $TestVMName = $VMList[0].Name
                     Write-Host "Running kernel tests on $TestVMName has timed out after one hour" -ForegroundColor Yellow
                     $Timestamp = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
