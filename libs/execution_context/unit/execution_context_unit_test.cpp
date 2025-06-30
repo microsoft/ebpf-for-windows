@@ -1605,12 +1605,13 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
         reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
         [&](void*) {
             // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            // Note: in the success case all the operations will be completed, this handles fault injection cases.
             // Counters
             size_t cancel_count = 0;
 
             for (auto& completion : completions) {
                 if (completion.buffer_size > 0) { // If buffer_size not set yet then we never started this query.
-                    // We try cancelling each op, but only ones that haven't completed will actually cancel.
+                    // We try canceling each operation, but only ones that haven't completed will actually cancel.
                     bool cancel_result = ebpf_async_cancel(&completion);
                     if (cancel_result == true) {
                         cancel_count++;
@@ -1874,6 +1875,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
         reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
         [&](void*) {
             // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
+            // This guard ensures cleanup on fault injection and also verifies the callback counters.
             // Counters
             size_t total_callback_count = 0;
             size_t total_record_count = 0;
@@ -1891,7 +1893,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
                         completion.lost_count);
                     CHECK(completion.callback_count <= 1);
                     CHECK(completion.lost_count == 0);
-                    // We try cancelling each op, but only ones that haven't completed will actually cancel.
+                    // We try canceling each operation, but only ones that haven't completed will actually cancel.
                     bool must_cancel = completion.callback_count == 0;
                     bool cancel_result = ebpf_async_cancel(&completion);
                     if (cancel_result == true) {
@@ -1951,7 +1953,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
         if (result != EBPF_PENDING) { // If async query failed synchronously, reset the completion callback.
             REQUIRE(ebpf_async_reset_completion_callback(&completion) == EBPF_SUCCESS);
         }
-        completion.buffer_size = buffer_size; // after we set buffer_size the query will be cleaned up on exit.
+        completion.buffer_size = buffer_size; // After we set buffer_size the query will be cleaned up on exit.
         REQUIRE(result == EBPF_PENDING);
     }
 
