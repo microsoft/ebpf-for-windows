@@ -1602,7 +1602,7 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
     std::vector<perf_event_array_test_async_context_t> completions(ring_count);
 
     auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
-        reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
         [&](void*) {
             // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
             // Note: In the success case all the operations will be completed, this handles fault injection cases.
@@ -1872,7 +1872,7 @@ TEST_CASE("perf_event_array_async_query", "[execution_context][perf_event_array]
     uint64_t value = 1;
 
     auto cleanup = std::unique_ptr<void, std::function<void(void*)>>(
-        reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
+        reinterpret_cast<void*>(1), // Dummy pointer, we only care about the deleter.
         [&](void*) {
             // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
             // This guard ensures cleanup on fault injection and also verifies the callback counters.
