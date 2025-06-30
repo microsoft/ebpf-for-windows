@@ -1605,7 +1605,7 @@ TEST_CASE("perf_event_array_output_percpu", "[execution_context][perf_event_arra
         reinterpret_cast<void*>(1), // dummy pointer, we only care about the deleter
         [&](void*) {
             // Cleanup - in unique_ptr scope guard to ensure cleanup on failure.
-            // Note: in the success case all the operations will be completed, this handles fault injection cases.
+            // Note: In the success case all the operations will be completed, this handles fault injection cases.
             // Counters
             size_t cancel_count = 0;
 
