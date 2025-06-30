@@ -147,7 +147,7 @@ function Add-StandardUser {
         param($UserName, $Password, $WorkingDirectory, $LogFileName)
         Import-Module $WorkingDirectory\common.psm1 -ArgumentList ($LogFileName) -Force -WarningAction SilentlyContinue
         Write-Log "Adding standard user $UserName and password $Password"
-        # Check if the user already exists, suppressing all output
+        # Check if the user already exists, suppressing all output.
         net user $UserName *> $null
         if ($LASTEXITCODE -eq 0) {
             Write-Log "User $UserName already exists. Skipping creation."
@@ -162,12 +162,12 @@ function Add-StandardUser {
         }
     }
 
-    # Convert SecureString to plain text before passing to script block
+    # Convert SecureString to plain text before passing to script block.
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
     $PlainPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
     [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
-    # Invoke the script block
+    # Invoke the script block.
     $argList = @($UserName, $PlainPassword, $script:WorkingDirectory, $script:LogFileName)
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 }
@@ -348,13 +348,13 @@ function Invoke-ConnectRedirectTestHelper
     $UdpServerParameters = "--protocol udp --local-port $DestinationPort"
     $UdpProxyParameters = "--protocol udp --local-port $ProxyPort"
 
-    $ParamaterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
+    $ParameterArray = @($TcpServerParameters, $TcpProxyParameters, $UdpServerParameters, $UdpProxyParameters)
     Add-FirewallRule -RuleName "Redirect_Test" -ProgramName $ProgramName -LogFileName $LogFileName
 
     # Start TCP and UDP listeners on both the VMs.
-    foreach ($param in $ParamaterArray)
+    foreach ($parameter in $ParameterArray)
     {
-        Start-ProcessHelper -ProgramName $ProgramName -Parameters $param
+        Start-ProcessHelper -ProgramName $ProgramName -Parameters $parameter
     }
 
     $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($($script:StandardUserPassword))
@@ -386,12 +386,6 @@ function Invoke-ConnectRedirectTestHelper
     Invoke-OnHostOrVM -ScriptBlock $scriptBlock -ArgumentList $argList
 
     Stop-ProcessHelper -ProgramName $ProgramName
-
-    # TODO - try with this part removed - we never add the standard user on the VM anyway...
-    # if ($script:ExecuteOnVM) {
-    #     # Remove standard user on VM1.
-    #     Remove-StandardUser -UserName $script:StandardUser
-    # }
 }
 
 function Stop-eBPFComponents {
@@ -423,7 +417,6 @@ function Run-KernelTests {
         $TestMode = $TestMode.ToLower()
         switch ($TestMode) {
             "ci/cd" {
-                # TODO - possibly these write-logs are not valid?
                 Invoke-CICDTests `
                     -VerboseLogs $VerboseLogs `
                     -ExecuteSystemTests $true `
@@ -436,7 +429,7 @@ function Run-KernelTests {
                     2>&1 | Write-Log
             }
             "stress" {
-                # Set RestartExtension to true if options contains that string
+                # Set RestartExtension to true if options contains that string.
                 $RestartExtension = $Options -contains "RestartExtension"
                 Invoke-CICDStressTests `
                     -VerboseLogs $VerboseLogs `
@@ -444,7 +437,7 @@ function Run-KernelTests {
                     2>&1 | Write-Log
             }
             "performance" {
-                # Set CaptureProfle to true if options contains that string
+                # Set CaptureProfle to true if options contains that string.
                 $CaptureProfile = $Options -contains "CaptureProfile"
                 Invoke-CICDPerformanceTests -VerboseLogs $VerboseLogs -CaptureProfile $CaptureProfile 2>&1 | Write-Log
             }

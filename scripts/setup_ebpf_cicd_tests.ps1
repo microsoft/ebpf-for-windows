@@ -150,7 +150,7 @@ if ($ExecuteOnVM) {
         $KmTraceType,
         $EnableHVCI)
 
-    # wait for the job to complete
+    # Wait for the job to complete.
     $JobTimedOut = `
         Wait-TestJobToComplete -Job $Job `
         -Config $Config `
@@ -159,7 +159,7 @@ if ($ExecuteOnVM) {
         -CheckpointPrefix "Setup" `
         -ExecuteOnVM $true
 
-    # Clean up
+    # Clean up.
     Remove-Job -Job $Job -Force
 
     Pop-Location

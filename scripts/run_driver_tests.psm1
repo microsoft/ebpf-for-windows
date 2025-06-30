@@ -273,7 +273,6 @@ function Invoke-Test
 
     # Execute Test.
     Write-Log "Executing $TestName $TestArgs"
-
     $TestFilePath = "$pwd\$TestName"
     $TempOutputFile = "$env:TEMP\app_output.log"  # Log for standard output
     $TempErrorFile = "$env:TEMP\app_error.log"    # Log for standard error
