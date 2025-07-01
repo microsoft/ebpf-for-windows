@@ -729,6 +729,7 @@ _test_helper_end_to_end::initialize()
     REQUIRE(ebpf_api_initiate() == EBPF_SUCCESS);
     api_initialized = true;
     REQUIRE(ebpf_service_initialize() == EBPF_SUCCESS);
+    service_initialized = true;
 }
 
 _test_handle_helper::~_test_handle_helper()
@@ -761,7 +762,9 @@ clear_program_info_cache();
 _test_helper_end_to_end::~_test_helper_end_to_end()
 {
     try {
-        ebpf_service_cleanup();
+        if (service_initialized) {
+            ebpf_service_cleanup();
+        }
 
         _rundown_osfhandles();
 
