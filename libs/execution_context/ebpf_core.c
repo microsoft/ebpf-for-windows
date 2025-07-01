@@ -37,7 +37,7 @@ const NPI_MODULEID ebpf_general_helper_function_module_id = {
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 // Assume enabled until we can query it.
-static bool _ebpf_platform_hyper_visor_code_integrity_enabled = true;
+static bool _ebpf_platform_hypervisor_code_integrity_enabled = true;
 static bool _ebpf_platform_test_signing_enabled = true;
 
 static void*
@@ -301,7 +301,7 @@ ebpf_core_initiate()
     }
 
     return_value = ebpf_get_code_integrity_state(
-        &_ebpf_platform_test_signing_enabled, &_ebpf_platform_hyper_visor_code_integrity_enabled);
+        &_ebpf_platform_test_signing_enabled, &_ebpf_platform_hypervisor_code_integrity_enabled);
 
 Done:
     if (return_value != EBPF_SUCCESS) {
@@ -404,7 +404,7 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     }
 
     if (request->code_type == EBPF_CODE_JIT) {
-        if (_ebpf_platform_hyper_visor_code_integrity_enabled) {
+        if (_ebpf_platform_hypervisor_code_integrity_enabled) {
             retval = EBPF_BLOCKED_BY_POLICY;
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
@@ -2299,7 +2299,7 @@ _ebpf_core_protocol_get_code_integrity_state(
     EBPF_LOG_ENTRY();
     UNREFERENCED_PARAMETER(request);
     ebpf_result_t result = EBPF_SUCCESS;
-    reply->hypervisor_code_integrity_enabled = _ebpf_platform_hyper_visor_code_integrity_enabled;
+    reply->hypervisor_code_integrity_enabled = _ebpf_platform_hypervisor_code_integrity_enabled;
     reply->test_signing_enabled = _ebpf_platform_test_signing_enabled;
     EBPF_RETURN_RESULT(result);
 }
@@ -2898,7 +2898,7 @@ ebpf_core_get_protocol_handler_properties(
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     // JIT is permitted only if HVCI is off.
-    bool jit_permitted = !_ebpf_platform_hyper_visor_code_integrity_enabled;
+    bool jit_permitted = !_ebpf_platform_hypervisor_code_integrity_enabled;
 #endif
 
     // Interpret is only permitted if CONFIG_BPF_INTERPRETER_DISABLED is not set.
