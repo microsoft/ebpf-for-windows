@@ -4276,7 +4276,6 @@ TEST_CASE("signature_checking", "[end_to_end]")
     REQUIRE(result == EBPF_SUCCESS);
 }
 
-extern bool _ebpf_platform_code_integrity_test_signing_enabled;
 TEST_CASE("signature_checking_negative", "[end_to_end]")
 {
     _test_helper_end_to_end test_helper;
