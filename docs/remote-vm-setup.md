@@ -1,4 +1,4 @@
-# Running CI/CD Scripts on a Remote VM
+# Running Scripts on a Remote VM
 
 This guide explains how to set up and run eBPF for Windows CI/CD scripts on a remote VM.
 
@@ -115,4 +115,12 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
    .\execute_ebpf_cicd_tests.ps1 -IsVMRemote
    ```
 
+---
+## Additional Notes
+
+- The credentials stored in step 3 will be used for authentication to the VM during test execution.
+- If your goal is simply to deploy pre-built binaries to a remote virtual machine, you can use the deploy-ebpf.ps1 script instead. This script will prompt you for credentials during execution.:
+  ```powershell
+  .\deploy-ebpf.ps1 --dir="c:\some\path" --remote_vm=<remote-vm-ip>
+  ```
 ---
