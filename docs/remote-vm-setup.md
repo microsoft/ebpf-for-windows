@@ -37,7 +37,19 @@ This guide explains how to set up and run eBPF for Windows CI/CD scripts on a re
 
 ---
 
-## 2. Store VM Credentials on the Host
+## 2. Ensure Remote VM is Reachable
+
+On your host machine, verify that the remote VM is reachable and that WinRM is running by executing:
+
+```powershell
+Test-WSMan <remote-vm-ip>
+```
+
+If this command fails, ensure the VM is powered on, network connectivity is working, and WinRM is enabled. Running `winrm quickconfig` on the remote VM can help identify and fix common WinRM setup issues.
+
+---
+
+## 3. Store VM Credentials on the Host
 
 On your host machine, save the VM administrator and standard user credentials using the `CredentialManager` module:
 
@@ -53,7 +65,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 
 ---
 
-## 3. Prepare the Build Artifacts
+## 4. Prepare the Build Artifacts
 
 1. **Navigate to the Build Directory**
 
@@ -74,7 +86,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
        "VMMap": {
            "<host name>": [
                {
-                   "Name": "<test-vm-name>"
+                   "Name": "<test-vm-ip>"
                }
            ]
        }
@@ -83,7 +95,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 
 ---
 
-## 4. Run the CI/CD Setup Script
+## 5. Run the CI/CD Setup Script
 
 1. **Set Execution Policy**
 
@@ -97,12 +109,10 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
    .\setup_ebpf_cicd_tests.ps1 -IsVMRemote
    ```
 
----
+3. **Run the Test Execution Script**
 
-## Additional Notes
-
-- Ensure that PowerShell Remoting is enabled and accessible between the host and the VM.
-- The credentials stored in step 2 will be used for authentication to the VM during test execution.
-- If you encounter issues, verify network connectivity and firewall settings between the host and the VM.
+   ```powershell
+   .\execute_ebpf_cicd_tests.ps1 -IsVMRemote
+   ```
 
 ---
