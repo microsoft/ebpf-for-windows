@@ -30,6 +30,72 @@ powershell scripts\Convert-BpfToNative.ps1 -FileName my_program
 Where my_program is the name of your BPF program without the extension. This will produce a native image in x64\Release
 with name of my_program.sys.
 
+## Parameters
+
+### -FileName
+Specifies the name of the ELF file containing the BPF program (without the .o extension).
+
+### -Type
+Specifies the type of the BPF program. Valid values include "xdp", "bind", "sockops", and other BPF program types.
+
+### -IncludeDir
+Specifies the directory containing the bpf2c include files. Defaults to the include directory relative to the script location.
+
+### -BinDir
+Specifies the directory containing the bpf2c binaries. Defaults to the script directory.
+
+### -OutDir
+Specifies the directory where the generated driver will be placed. Defaults to the current working directory.
+
+### -Platform
+Specifies the target platform. Valid values include "x64" and "ARM64". Defaults to "x64".
+
+### -Configuration
+Specifies the build configuration. Valid values include "Release", "NativeOnlyRelease", "FuzzerDebug", "Debug", and "NativeOnlyDebug". Defaults to "Release".
+
+### -KernelMode
+Specifies whether to generate a kernel-mode driver. If this parameter is false, a user DLL will be generated. Defaults to true.
+
+### -ResourceFile
+Specifies the path to a resource file to embed in the generated driver.
+
+### -Packages
+Specifies the directory containing classic NuGet packages (packages.config style). This parameter is optional when using PackageReference style NuGet packages, as they are automatically located by MSBuild using package reference properties. When not specified, the script will attempt to use a packages directory relative to the script location if it exists.
+
+## NuGet Package Support
+
+The BPF2C tool supports both classic packages.config style NuGet packages and modern PackageReference style packages:
+
+- **Classic packages.config**: Use the `-Packages` parameter to specify the directory containing packages with the `Name.Version` directory structure.
+- **PackageReference**: No additional parameters needed. MSBuild automatically locates packages using package reference properties like `$(PkgMicrosoft_Windows_WDK_x64)`.
+
+## Examples
+
+### Basic usage
+```
+.\Convert-BpfToNative.ps1 -FileName bindmonitor
+```
+
+### Specify program type
+```
+.\Convert-BpfToNative.ps1 -FileName bindmonitor -Type bind
+```
+
+### Debug configuration
+```
+.\Convert-BpfToNative.ps1 -FileName bindmonitor -Type bind -Configuration Debug
+```
+
+### User-mode DLL
+```
+.\Convert-BpfToNative.ps1 -FileName bindmonitor -Type bind -Configuration Debug -KernelMode $false
+```
+
+### With classic NuGet packages
+```
+.\Convert-BpfToNative.ps1 -FileName bindmonitor -Packages "C:\MyProject\packages"
+```
+
 # Native Code Generation Pipeline
 
 The following diagram shows the steps in the pipeline:
