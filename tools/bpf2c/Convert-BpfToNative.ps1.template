@@ -21,6 +21,10 @@
 .PARAMETER BinDir
     Specifies the directory containing the bpf2c binaries.
 
+.PARAMETER Packages
+    Specifies the directory containing the classic NuGet packages. This parameter is optional when using
+    PackageReference style NuGet packages, as they are automatically located by MSBuild.
+
 .PARAMETER OutDir
     Specifies the directory where the generated driver will be placed.
 
@@ -71,7 +75,7 @@ param([parameter(Mandatory = $true)] [string] $FileName,
     [parameter(Mandatory = $false)] [string] $BinDir = "$PSScriptRoot",
     [parameter(Mandatory = $false)] [string] $OutDir = "$PWD",
     [parameter(Mandatory = $false)] [string] $Platform = "x64",
-    [parameter(Mandatory = $false)] [string] $Packages = "$PSScriptRoot\..\packages",
+    [parameter(Mandatory = $false)] [string] $Packages = "",
     [ValidateSet("Release", "NativeOnlyRelease", "FuzzerDebug", "Debug", "NativeOnlyDebug")][parameter(Mandatory = $false)] [string] $Configuration = "Release",
     [parameter(Mandatory = $false)] [bool] $KernelMode = $true,
     [parameter(Mandatory = $false)] [string] $ResourceFile = "")
@@ -126,7 +130,25 @@ if ($VerbosePreference -eq "Continue") {
     $AdditionalOptions += " --verbose"
 }
 
-msbuild /p:BinDir="$BinDir\" /p:OutDir="$OutDir\" /p:IncludeDir="$IncludeDir" /p:Configuration="$Configuration" /p:Platform="$Platform" /p:FileName="$FileName" /p:AdditionalOptions="$AdditionalOptions" /p:ResourceFile="$ResourceFile" /p:Packages="$Packages" $ProjectFile
+# Set default packages path if not specified and the default location exists
+if ([string]::IsNullOrWhiteSpace($Packages)) {
+    $DefaultPackagesPath = "$PSScriptRoot\..\packages"
+    if (Test-Path $DefaultPackagesPath) {
+        $Packages = $DefaultPackagesPath
+    }
+}
+
+# Build MSBuild command with conditional Packages parameter
+$MsBuildCommand = "msbuild /p:BinDir=`"$BinDir\`" /p:OutDir=`"$OutDir\`" /p:IncludeDir=`"$IncludeDir`" /p:Configuration=`"$Configuration`" /p:Platform=`"$Platform`" /p:FileName=`"$FileName`" /p:AdditionalOptions=`"$AdditionalOptions`" /p:ResourceFile=`"$ResourceFile`""
+
+if (![string]::IsNullOrWhiteSpace($Packages)) {
+    $MsBuildCommand += " /p:Packages=`"$Packages`""
+}
+
+$MsBuildCommand += " `"$ProjectFile`""
+
+# Execute the MSBuild command
+Invoke-Expression $MsBuildCommand
 
 if ($LASTEXITCODE -ne 0) {
     throw "Build failed for $FileName.o"
