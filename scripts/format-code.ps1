@@ -126,7 +126,7 @@ OPTIONS:
     -w, --whatif            Run the script without actually modifying the files
                             and display the diff of expected changes, if any.
     --exclude-dirs          Subdirectories to exclude. If unspecified, then
-                            ./external, ./packages and ./x64 are excluded.
+                            ./external and ./x64 are excluded.
                             All subdirectories are relative to the current path.
     --include-exts          File extensions to include for formatting. If
                             unspecified, then *.h, *.hpp, *.c, *.cpp, *idl, and
@@ -163,7 +163,7 @@ To run only against a specified set of comma separated files in the current dire
 ##==============================================================================
 function get_find_args()
 {
-    $defaultExcludeDirs=@( ".git", "external", "packages", "x64" );
+    $defaultExcludeDirs=@( ".git", "external", "x64" );
     $defaultIncludeExts=@( "h", "hpp", "c", "cpp", "idl", "acf" )
 
     $findargs='get-childitem -Recurse -Name "*" -Path "." '
