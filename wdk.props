@@ -19,19 +19,23 @@
     <Message Importance="high" Text="PROCESSOR_ARCHITEW6432 is $(PROCESSOR_ARCHITEW6432)" />
   </Target>
 
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" />
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" />
-  <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" />
+  <Import Project="$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.props" Condition="Exists('$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.props')" />
+  <Import Project="$(PkgMicrosoft_Windows_WDK_x64)\build\native\Microsoft.Windows.WDK.x64.props" Condition="'$(Platform)' == 'x64' And Exists('$(PkgMicrosoft_Windows_WDK_x64)\build\native\Microsoft.Windows.WDK.x64.props')" />
+  <Import Project="$(PkgMicrosoft_Windows_WDK_ARM64)\build\native\Microsoft.Windows.WDK.ARM64.props" Condition="'$(Platform)' == 'ARM64' And Exists('$(PkgMicrosoft_Windows_WDK_ARM64)\build\native\Microsoft.Windows.WDK.ARM64.props')" />
+  <Import Project="$(PkgMicrosoft_Windows_SDK_CPP_x64)\build\native\Microsoft.Windows.SDK.cpp.x64.props" Condition="'$(Platform)' == 'x64' And Exists('$(PkgMicrosoft_Windows_SDK_CPP_x64)\build\native\Microsoft.Windows.SDK.cpp.x64.props')" />
+  <Import Project="$(PkgMicrosoft_Windows_SDK_CPP_arm64)\build\native\Microsoft.Windows.SDK.cpp.arm64.props" Condition="'$(Platform)' == 'ARM64' And Exists('$(PkgMicrosoft_Windows_SDK_CPP_arm64)\build\native\Microsoft.Windows.SDK.cpp.arm64.props')" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets" Condition="Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" />
+    <Import Project="$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.targets" Condition="Exists('$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
     </PropertyGroup>
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.targets'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.SDK.CPP.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.SDK.cpp.$(Platform).props'))" />
-    <Error Condition="!Exists('$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props')" Text="$([System.String]::Format('$(ErrorText)', '$(SolutionDir)packages\Microsoft.Windows.WDK.$(Platform).$(WDKVersion)\build\native\Microsoft.Windows.WDK.$(Platform).props'))" />
+    <Error Condition="!Exists('$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.props')" Text="$([System.String]::Format('$(ErrorText)', '$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.props'))" />
+    <Error Condition="!Exists('$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.targets')" Text="$([System.String]::Format('$(ErrorText)', '$(PkgMicrosoft_Windows_SDK_CPP)\build\native\Microsoft.Windows.SDK.cpp.targets'))" />
+    <Error Condition="'$(Platform)' == 'x64' And !Exists('$(PkgMicrosoft_Windows_SDK_CPP_x64)\build\native\Microsoft.Windows.SDK.cpp.x64.props')" Text="$([System.String]::Format('$(ErrorText)', '$(PkgMicrosoft_Windows_SDK_CPP_x64)\build\native\Microsoft.Windows.SDK.cpp.x64.props'))" />
+    <Error Condition="'$(Platform)' == 'ARM64' And !Exists('$(PkgMicrosoft_Windows_SDK_CPP_arm64)\build\native\Microsoft.Windows.SDK.cpp.arm64.props')" Text="$([System.String]::Format('$(ErrorText)', '$(PkgMicrosoft_Windows_SDK_CPP_arm64)\build\native\Microsoft.Windows.SDK.cpp.arm64.props'))" />
+    <Error Condition="'$(Platform)' == 'x64' And !Exists('$(PkgMicrosoft_Windows_WDK_x64)\build\native\Microsoft.Windows.WDK.x64.props')" Text="$([System.String]::Format('$(ErrorText)', '$(PkgMicrosoft_Windows_WDK_x64)\build\native\Microsoft.Windows.WDK.x64.props'))" />
+    <Error Condition="'$(Platform)' == 'ARM64' And !Exists('$(PkgMicrosoft_Windows_WDK_ARM64)\build\native\Microsoft.Windows.WDK.ARM64.props')" Text="$([System.String]::Format('$(ErrorText)', '$(PkgMicrosoft_Windows_WDK_ARM64)\build\native\Microsoft.Windows.WDK.ARM64.props'))" />
   </Target>
 </Project>
