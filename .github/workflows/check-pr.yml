@@ -1,24 +1,58 @@
 # Copyright (c) eBPF for Windows contributors
 # SPDX-License-Identifier: MIT
 
-# This is the top-level workflow that runs on each pull request and push to main.
-# It invokes other jobs to perform builds and run tests.
-# All jobs run in parallel, using build artifacts to synchronize jobs.
-#
-# If you add or remove any tests that use reusable-test.yml on a pull request,
-# you must update codecov.yml to match.
+# This workflow checks if a pull request is linked to an issue.
+# It is designed to be called from other workflows, allowing for conditional execution based on whether the PR is from a fork or not.
+# The workflow will only run if the PR is from a fork when configured to do so, or if it is from the main repository when configured otherwise.
+# It checks the PR title and body for issue references and comments on the PR if no valid issue is found.
 ---
 name: Ensure PR linked to issue
 
 on:
-  pull_request_target:
-
-permissions:
-  contents: read
-  pull-requests: write
+  workflow_call:
+    inputs:
+      run_on_fork:
+        required: true
+        type: boolean
 
 jobs:
+  conditional-check:
+    runs-on: ubuntu-latest
+    outputs:
+      run_checks: ${{ steps.compatibility.outputs.run_checks }}
+    steps:
+      - name: Detect if PR is from a fork
+        id: check-fork
+        run: |
+          echo "Base repo: ${{ github.repository }}"
+          echo "Head repo: ${{ github.event.pull_request.head.repo.full_name }}"
+
+          if [ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]; then
+            echo "is_fork=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_fork=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check run compatibility
+        id: compatibility
+        run: |
+          IS_FORK="${{ steps.check-fork.outputs.is_fork }}"
+          RUN_ON_FORK="${{ inputs.run_on_fork }}"
+
+          echo "This PR is from a fork: $IS_FORK"
+          echo "This job is configured to run on fork: $RUN_ON_FORK"
+
+          if [ "$IS_FORK" != "$RUN_ON_FORK" ]; then
+            echo "run_checks=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping: context does not match configuration."
+            exit 0
+          fi
+
+          echo "run_checks=true" >> "$GITHUB_OUTPUT"
+
   ensure-issue-linked:
+    needs: conditional-check
+    if: needs.conditional-check.outputs.run_checks == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout base branch safely

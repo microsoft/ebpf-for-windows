@@ -1,0 +1,14 @@
+# Copyright (c) eBPF for Windows contributors
+# SPDX-License-Identifier: MIT
+
+# This workflow checks if a pull request from the local repository is linked to an issue.
+---
+name: Local PR Checks
+on:
+  pull_request:
+
+jobs:
+  call-common:
+    uses: ./.github/workflows/check_pr.yml
+    with:
+      run_on_fork: false

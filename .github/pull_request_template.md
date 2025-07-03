@@ -1,7 +1,7 @@
 ## Description
 
 _Describe the purpose of and changes within this Pull Request._
-_Please reference an issue with a keyword such as Fixes #123, Closes #456, etc., so the work can be tracked._
+_Please reference an issue with a keyword such as Fixes #abc, Closes #xyz, etc., so the work can be tracked._
 
 ## Testing
 
