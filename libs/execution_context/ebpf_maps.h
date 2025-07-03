@@ -207,6 +207,22 @@ extern "C"
         _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset);
 
     /**
+     * @brief Map the shared data for a map to user space.
+     *
+     * @param[in] map Map to query.
+     * @param[in] index index of buffer to query.
+     * @param[out] buffer Pointer to the data.
+     * @param[in] offset Offset into the ring buffer to start mapping.
+     * @param[in] size Size of the mapped data buffer.
+     * @param[in] page_protection Page protection for the mapping.
+     * @retval EBPF_SUCCESS Successfully mapped the buffer.
+     * @retval EBPF_INVALID_ARGUMENT Unable to map the buffer.
+     */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_map_user(
+        _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, uint32_t offset, uint32_t size, uint32_t page_protection);
+
+    /**
      * @brief Set the wait handle for a map.
      *
      * @param[in] map Map to set the wait handle for.
@@ -217,8 +233,7 @@ extern "C"
      * @retval EBPF_INVALID_ARGUMENT Unable to set the wait handle.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_map_set_wait_handle(
-        _In_ const ebpf_map_t* map, uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags);
+    ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, uint64_t index, ebpf_handle_t wait_handle, uint64_t flags);
 
     /**
      * @brief Issue asynchronous query to map.

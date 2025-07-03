@@ -1044,7 +1044,7 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
     size_t total_record_size = (data.size() + EBPF_OFFSET_OF(ebpf_ring_buffer_record_t, data) + 7) & ~7;
 
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, size) == EBPF_SUCCESS);
-    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_user(ring_buffer, &buffer, 0, 0, PAGE_READWRITE) == EBPF_SUCCESS);
 
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
 
@@ -1060,11 +1060,12 @@ TEST_CASE("ring_buffer_output", "[platform][ring_buffer]")
     REQUIRE(producer == total_record_size);
     REQUIRE(consumer == 0);
 
-    auto record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
+    size_t next_consumer_offset;
+    auto record = ebpf_ring_buffer_next_consumer_record(ring_buffer, buffer, &next_consumer_offset);
     REQUIRE(record != nullptr);
     REQUIRE(record->header.length == data.size());
 
-    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, total_record_size) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_return_buffer(ring_buffer, next_consumer_offset) == EBPF_SUCCESS);
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
 
     record = ebpf_ring_buffer_next_record(buffer, size, consumer, producer);
@@ -1102,7 +1103,7 @@ TEST_CASE("ring_buffer_reserve_submit_discard", "[platform][ring_buffer]")
     size_t size = 64 * 1024;
 
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, size) == EBPF_SUCCESS);
-    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_user(ring_buffer, &buffer, 0, 0, PAGE_READWRITE) == EBPF_SUCCESS);
 
     ebpf_ring_buffer_query(ring_buffer, &consumer, &producer);
 
@@ -1603,7 +1604,7 @@ TEST_CASE("ring_buffer_stress_test", "[platform][ring_buffer]")
     ebpf_ring_buffer_t* ring_buffer;
     uint8_t* buffer;
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
-    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_user(ring_buffer, &buffer, 0, 0, PAGE_READWRITE) == EBPF_SUCCESS);
 
     for (auto& test_params : tests_params) {
         std::string test_name = test_params.test_name;
@@ -1622,7 +1623,7 @@ TEST_CASE("ring_buffer_notify", "[platform][ring_buffer]")
     ebpf_ring_buffer_t* ring_buffer;
     uint8_t* buffer;
     REQUIRE(ebpf_ring_buffer_create(&ring_buffer, 64 * 1024) == EBPF_SUCCESS);
-    REQUIRE(ebpf_ring_buffer_map_buffer(ring_buffer, &buffer) == EBPF_SUCCESS);
+    REQUIRE(ebpf_ring_buffer_map_user(ring_buffer, &buffer, 0, 0, PAGE_READWRITE) == EBPF_SUCCESS);
 
     KEVENT event;
     KeInitializeEvent(&event, SynchronizationEvent, FALSE);

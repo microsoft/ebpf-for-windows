@@ -8,6 +8,8 @@
 
 CXPLAT_EXTERN_C_BEGIN
 
+#define EBPF_RING_BUFFER_HEADER_PAGES 3
+
 enum ebpf_ringbuf_wait_flags
 {
     EBPF_RINGBUF_FLAG_NO_WAKEUP = (1ULL << 0),
@@ -19,17 +21,31 @@ typedef struct _ebpf_ring_buffer_consumer_page
     volatile size_t consumer_offset; ///< Consumer has read up to this offset.
 } ebpf_ring_buffer_consumer_page_t;
 
+static_assert(sizeof(ebpf_ring_buffer_consumer_page_t) <= PAGE_SIZE, "ebpf_ring_buffer_consumer_page_t is larger than PAGE_SIZE");
+
 typedef struct _ebpf_ring_buffer_producer_page
 {
     volatile size_t producer_offset; ///< Producer(s) have reserved up to this offset.
-    uint64_t reserved[15];           // Remainder of first two cache lines reserved for internal use.
 } ebpf_ring_buffer_producer_page_t;
+
+static_assert(sizeof(ebpf_ring_buffer_producer_page_t) <= PAGE_SIZE, "ebpf_ring_buffer_producer_page_t is larger than PAGE_SIZE");
+
+typedef struct _ebpf_ring_buffer_kernel_page
+{
+    PKEVENT wait_event;                     ///< Event to signal the producer thread.
+    volatile size_t producer_reserve_offset; ///< Next record to be reserved.
+} ebpf_ring_buffer_kernel_page_t;
+
+static_assert(sizeof(ebpf_ring_buffer_kernel_page_t) <= PAGE_SIZE, "ebpf_ring_buffer_kernel_page_t is larger than PAGE_SIZE");
 
 // ebpf_ring_buffer_t should be made opaque instead of being in ebpf_ring_buffer.h (#4144).
 typedef struct _ebpf_ring_buffer
 {
     size_t length;
-    uint8_t* shared_buffer;                  ///< Shared double-mapped buffer with consumer+producer page header.
+    ebpf_ring_buffer_kernel_page_t* kernel_page;
+    ebpf_ring_buffer_consumer_page_t* consumer_page;
+    ebpf_ring_buffer_producer_page_t* producer_page;
+    uint8_t* data;                  ///< Double mapped buffer containing data.
     ebpf_ring_descriptor_t* ring_descriptor; ///< Memory ring descriptor.
 } ebpf_ring_buffer_t;
 
@@ -207,15 +223,18 @@ _Must_inspect_result_ ebpf_result_t
 ebpf_ring_buffer_return_buffer(_Inout_ ebpf_ring_buffer_t* ring_buffer, size_t consumer_offset);
 
 /**
- * @brief Get pointer to the ring buffer shared data.
+ * @brief Get a user space pointer to the ring buffer shared data.
  *
  * @param[in] ring_buffer Ring buffer to query.
  * @param[out] buffer Pointer to ring buffer data.
+ * @param[in] offset Offset into the ring buffer to start mapping.
+ * @param[in] size Size of the mapping.
+ * @param[in] page_protection Page protection for the mapping.
  * @retval EBPF_SUCCESS Successfully mapped the ring buffer.
  * @retval EBPF_INVALID_ARGUMENT Unable to map the ring buffer.
  */
 _Must_inspect_result_ ebpf_result_t
-ebpf_ring_buffer_map_buffer(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** buffer);
+ebpf_ring_buffer_map_user(_In_ const ebpf_ring_buffer_t* ring_buffer, _Outptr_ uint8_t** buffer, uint32_t offset, uint32_t size, uint32_t page_protection);
 
 /**
  * @brief Get the next record in the ring buffer's data buffer, skipping any discarded records.

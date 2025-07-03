@@ -5096,3 +5096,67 @@ ebpf_program_set_flags(fd_t program_fd, uint64_t flags) noexcept
 
     return win32_error_code_to_ebpf_result(invoke_ioctl(request));
 }
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_map_buffer(
+    fd_t map_fd,
+    _Outptr_result_buffer_(size) const uint8_t** data,
+    uint32_t offset,
+    uint32_t size,
+    uint32_t page_protection) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+
+    if (!data) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    ebpf_operation_map_map_buffer_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_MAP_MAP_BUFFER, map_handle, offset, size, page_protection};
+    ebpf_operation_map_map_buffer_reply_t reply{};
+
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request, reply));
+    if (result != EBPF_SUCCESS) {
+        EBPF_RETURN_RESULT(result);
+    }
+
+    *data = reinterpret_cast<const uint8_t*>(static_cast<uintptr_t>(reply.base_address));
+
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) NO_EXCEPT_TRY
+{
+    EBPF_LOG_ENTRY();
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_handle_t map_handle = ebpf_handle_invalid;
+
+    if (index != 0) {
+        result = EBPF_INVALID_ARGUMENT;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    map_handle = _get_handle_from_file_descriptor(map_fd);
+    if (map_handle == ebpf_handle_invalid) {
+        result = EBPF_INVALID_FD;
+        EBPF_RETURN_RESULT(result);
+    }
+
+    ebpf_operation_map_set_wait_handle_request_t request{
+        sizeof(request), ebpf_operation_id_t::EBPF_OPERATION_MAP_SET_WAIT_HANDLE, map_handle, handle, index, 0};
+
+    result = win32_error_code_to_ebpf_result(invoke_ioctl(request));
+    EBPF_RETURN_RESULT(result);
+}
+CATCH_NO_MEMORY_EBPF_RESULT

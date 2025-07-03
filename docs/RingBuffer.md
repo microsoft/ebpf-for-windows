@@ -27,7 +27,7 @@ Synchronous callback consumer:
 
 Mapped memory consumer:
 
-1. Call `ebpf_ring_buffer_map_map_buffer` to get pointers to the mapped producer/consumer pages.
+1. Call `ebpf_map_map_buffer` to get pointers to the mapped producer/consumer pages.
 2. Call `ebpf_map_set_wait_handle` to set the wait handle.
 3. Directly read records from the producer pages (and update consumer offset as we read).
     - Use acquire and release semantics as described below for accessing record headers and ring offsets.
@@ -239,7 +239,7 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  *
  * Calling this multiple times will map the ring into user-space multiple times.
  *
- * Note: This is a wrapper around ebpf_map_map_buffer.
+ * Note: This is a wrapper around ebpf_map_map_user.
  *
  * @param[in] map_fd File descriptor to ring buffer map.
  * @param[out] producer_page Pointer to start of read-only mapped producer page.
@@ -249,7 +249,7 @@ ebpf_result_t ebpf_ring_buffer_get_buffer(
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
  */
-ebpf_result_t ebpf_ring_buffer_map_map_buffer(
+ebpf_result_t ebpf_map_map_buffer(
     fd_t map_fd,
     _Out_ ebpf_ring_buffer_consumer_page_t **consumer_page,
     _Out_ const ebpf_ring_buffer_producer_page_t **producer_page,
@@ -271,7 +271,7 @@ ebpf_result_t ebpf_ring_buffer_map_map_buffer(
  * @retval EBPF_SUCCESS The operation was successful.
  * @retval other An error occurred.
  */
-ebpf_result_t ebpf_map_map_buffer(
+ebpf_result_t ebpf_map_map_user(
     fd_t map_fd,
     uint64_t index,
     _Outptr_result_buffer_(*size) const uint8_t **data,
@@ -329,7 +329,7 @@ const ebpf_ring_buffer_producer_page_t *rb_producer_page; // Read-only producer 
 const uint8_t* data; // Data region for records.
 
 // Get pointers to the 3 regions.
-result = ebpf_ring_buffer_map_map_buffer(map_fd, &rb_producer_page, &rb_consumer_page, &data);
+result = ebpf_map_map_buffer(map_fd, &rb_producer_page, &rb_consumer_page, &data);
 if (result != EBPF_SUCCESS) {
     // … log error …
     goto Exit;

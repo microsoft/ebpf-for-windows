@@ -243,86 +243,23 @@ typedef struct _ebpf_core_ring_buffer_map
     ebpf_core_map_async_contexts_t async;
 } ebpf_core_ring_buffer_map_t;
 
-typedef struct _ebpf_core_perf_ring
+#pragma warning(disable : 4324) // Structure was padded due to alignment specifier.
+
+__declspec(align(EBPF_CACHE_LINE_SIZE)) typedef struct _ebpf_core_perf_ring
 {
     ebpf_ring_buffer_t ring;
     volatile size_t lost_records;
     ebpf_core_map_async_contexts_t async;
-    uint32_t pad1;
-    uint64_t pad2[7];
 } ebpf_core_perf_ring_t;
 
-typedef struct _ebpf_core_perf_event_array_map
+__declspec(align(EBPF_CACHE_LINE_SIZE))  typedef struct _ebpf_core_perf_event_array_map
 {
     ebpf_core_map_t core_map;
     uint32_t ring_count;
-    uint32_t pad1;
-    uint64_t pad2[3];
     ebpf_core_perf_ring_t rings[1];
 } ebpf_core_perf_event_array_map_t;
 
-// TODO: Delete these size-specific static asserts once the code is stable (useful for debugging while updating
-// structs).
-// - Or is there a better way to report (size % EBPF_CACHE_LINE_SIZE) when the assert fails?
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 7, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 7).");
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 6, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 6).");
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 5, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 5).");
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 4, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 4).");
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 3, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 3).");
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 2, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 2).");
-static_assert(sizeof(ebpf_core_perf_ring_t) / 8 != 1, "ebpf_core_perf_ring_t is not cache aligned (size / 8 = 1).");
-
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 7, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 7).");
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 6, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 6).");
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 5, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 5).");
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 4, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 4).");
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 3, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 3).");
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 2, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 2).");
-static_assert(sizeof(ebpf_core_perf_ring_t) % 8 != 1, "ebpf_core_perf_ring_t is not 8-byte aligned (size mod 8 = 1).");
-
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 7,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 7).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 6,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 6).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 5,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 5).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 4,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 4).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 3,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 3).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 2,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 2).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) / 8 != 1,
-    "ebpf_core_perf_event_array_map_t is not cache aligned (size / 8 = 1).");
-
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 7,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 7).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 6,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 6).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 5,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 5).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 4,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 4).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 3,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 3).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 2,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 2).");
-static_assert(
-    sizeof(ebpf_core_perf_event_array_map_t) % 8 < 1,
-    "ebpf_core_perf_event_array_map_t is not 8-byte aligned (size mod 8 = 1).");
+#pragma warning(pop)
 
 // Validate cache-alignment of the per-cpu perf event array rings so there isn't any false sharing.
 static_assert(sizeof(ebpf_core_perf_ring_t) % EBPF_CACHE_LINE_SIZE == 0, "ebpf_core_perf_ring_t is not cache aligned.");
@@ -489,6 +426,8 @@ typedef struct _ebpf_map_metadata_table
         _Inout_opt_ uint8_t** next_value);
     ebpf_result_t (*query_buffer)(
         _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** data, _Out_ uint64_t* consumer_offset);
+    ebpf_result_t (*map_user)(
+        _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** data, uint32_t offset, uint32_t size, uint32_t page_protection);
     ebpf_result_t (*return_buffer)(_In_ const ebpf_core_map_t* map, uint64_t index, uint64_t consumer_offset);
     ebpf_result_t (*write_data)(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ uint8_t* data, size_t data_size);
     ebpf_result_t (*async_query)(
@@ -2318,7 +2257,9 @@ static ebpf_result_t
 _set_wait_handle_ring_buffer_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags)
 {
-    UNREFERENCED_PARAMETER(index);
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
     return ebpf_ring_buffer_set_wait_handle((ebpf_ring_buffer_t*)map->data, wait_handle, flags);
 }
 
@@ -2420,13 +2361,31 @@ _ebpf_perf_event_array_map_signal_async_query_complete(
 }
 
 static ebpf_result_t
+_map_user_ring_buffer_map(
+    _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, uint32_t offset, uint32_t size, uint32_t page_protection)
+{
+    if (index != 0) {
+        return EBPF_INVALID_ARGUMENT;
+    }
+
+    ebpf_ring_buffer_t* ring_buffer = (ebpf_ring_buffer_t*)map->data;
+
+    return ebpf_ring_buffer_map_user(ring_buffer, buffer, offset, size, page_protection);
+}
+
+static ebpf_result_t
 _query_buffer_ring_buffer_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
     UNREFERENCED_PARAMETER(index);
     size_t producer_offset;
     ebpf_ring_buffer_query((ebpf_ring_buffer_t*)map->data, consumer_offset, &producer_offset);
-    return ebpf_ring_buffer_map_buffer((ebpf_ring_buffer_t*)map->data, buffer);
+    // TODO: Figure out size and so on.
+    ebpf_result_t result = ebpf_ring_buffer_map_user((ebpf_ring_buffer_t*)map->data, buffer, PAGE_SIZE, 0, PAGE_READONLY);
+    if (result == EBPF_SUCCESS) {
+        *buffer += PAGE_SIZE;
+    }
+    return result;
 }
 
 static ebpf_result_t
@@ -2465,6 +2424,19 @@ _write_data_ring_buffer_map(_Inout_ ebpf_core_map_t* map, uint64_t flags, _In_ u
 }
 
 static ebpf_result_t
+_map_user_perf_event_array_map(
+    _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, uint32_t offset, uint32_t size, uint32_t page_protection)
+{
+    ebpf_core_perf_event_array_map_t* perf_event_array_map =
+        EBPF_FROM_FIELD(ebpf_core_perf_event_array_map_t, core_map, map);
+    uint32_t cpu_id = (uint32_t)index;
+    ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
+
+    // TODO: Get this from ring buffer?
+    return ebpf_ring_buffer_map_user(&ring->ring, buffer, offset, size, page_protection);
+}
+
+static ebpf_result_t
 _query_buffer_perf_event_array_map(
     _In_ const ebpf_core_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, _Out_ size_t* consumer_offset)
 {
@@ -2473,8 +2445,10 @@ _query_buffer_perf_event_array_map(
     uint32_t cpu_id = (uint32_t)index;
     ebpf_core_perf_ring_t* ring = &perf_event_array_map->rings[cpu_id];
 
-    ebpf_result_t result = ebpf_ring_buffer_map_buffer(&ring->ring, buffer);
+    // TODO: Figure out size and so on.
+    ebpf_result_t result = ebpf_ring_buffer_map_user(&ring->ring, buffer, PAGE_SIZE, 0, PAGE_READONLY);
     if (result == EBPF_SUCCESS) {
+        *buffer += PAGE_SIZE;
         size_t producer_offset;
         ebpf_ring_buffer_query(&ring->ring, consumer_offset, &producer_offset);
     }
@@ -2638,8 +2612,24 @@ ebpf_map_query_buffer(
 }
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_map_set_wait_handle(
-    _In_ const ebpf_map_t* map, _In_ uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags)
+ebpf_map_map_user(
+    _In_ const ebpf_map_t* map, uint64_t index, _Outptr_ uint8_t** buffer, uint32_t offset, uint32_t size, uint32_t page_protection)
+{
+    const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
+
+    if (table->map_user == NULL) {
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR,
+            EBPF_TRACELOG_KEYWORD_MAP,
+            "ebpf_map_map_user not supported on map",
+            map->ebpf_map_definition.type);
+        return EBPF_OPERATION_NOT_SUPPORTED;
+    }
+    return table->map_user(map, index, buffer, offset, size, page_protection);
+}
+
+_Must_inspect_result_ ebpf_result_t
+ebpf_map_set_wait_handle(_In_ const ebpf_map_t* map, uint64_t index, _In_ ebpf_handle_t wait_handle, uint64_t flags)
 {
     const ebpf_map_metadata_table_t* table = ebpf_map_get_table(map->ebpf_map_definition.type);
 
@@ -3053,6 +3043,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_ring_buffer_map,
         .delete_map = _delete_ring_buffer_map,
         .query_buffer = _query_buffer_ring_buffer_map,
+        .map_user = _map_user_ring_buffer_map,
         .async_query = _async_query_ring_buffer_map,
         .query_ring_buffer = _query_ring_buffer_map,
         .set_wait_handle = _set_wait_handle_ring_buffer_map,
@@ -3066,6 +3057,7 @@ const ebpf_map_metadata_table_t ebpf_map_metadata_tables[] = {
         .create_map = _create_perf_event_array_map,
         .delete_map = _delete_perf_event_array_map,
         .query_buffer = _query_buffer_perf_event_array_map,
+        .map_user = _map_user_perf_event_array_map,
         .async_query = _async_query_perf_event_array_map,
         .query_ring_buffer = _query_perf_event_array_map,
         .set_wait_handle = _set_wait_handle_perf_event_array_map,

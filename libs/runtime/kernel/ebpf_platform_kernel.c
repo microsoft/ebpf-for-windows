@@ -3,15 +3,19 @@
 
 #include "ebpf_platform.h"
 #include "ebpf_tracelog.h"
+#include "ebpf_ring_buffer.h"
 
 extern _Ret_notnull_ DEVICE_OBJECT*
 ebpf_driver_get_device_object();
 
 struct _ebpf_ring_descriptor
 {
-    MDL* memory_descriptor_list;
+    MDL* kernel_mdl;
+    MDL* user_mdl_consumer;
+    MDL* user_mdl_producer;
     MDL* memory;
     void* base_address;
+    size_t length; //< Length of the ring buffer in bytes, excluding the header.
 };
 typedef struct _ebpf_ring_descriptor ebpf_ring_descriptor_t;
 
@@ -19,21 +23,21 @@ static KDEFERRED_ROUTINE _ebpf_deferred_routine;
 static KDEFERRED_ROUTINE _ebpf_timer_routine;
 
 _Ret_maybenull_ ebpf_ring_descriptor_t*
-ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
+ebpf_allocate_ring_buffer_memory(size_t length)
 {
     EBPF_LOG_ENTRY();
     NTSTATUS status;
 
     ebpf_ring_descriptor_t* ring_descriptor = ebpf_allocate(sizeof(ebpf_ring_descriptor_t));
     MDL* source_mdl = NULL;
-    MDL* new_mdl = NULL;
+    MDL* kernel_mdl = NULL;
 
     if (!ring_descriptor) {
         status = STATUS_NO_MEMORY;
         goto Done;
     }
 
-    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 - header_length) / 2 || (header_length % PAGE_SIZE) != 0) {
+    if (length % PAGE_SIZE != 0 || length > (MAXUINT32 / 2 - 2 * PAGE_SIZE)) {
         status = STATUS_NO_MEMORY;
         EBPF_LOG_MESSAGE_UINT64(
             EBPF_TRACELOG_LEVEL_ERROR,
@@ -42,11 +46,19 @@ ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
             length);
         goto Done;
     }
+    ring_descriptor->length = length;
 
-    size_t header_pages = header_length / PAGE_SIZE;
+    const size_t kernel_pages = 1;
+    const size_t user_pages = 2; // consumer, producer
     size_t data_pages = length / PAGE_SIZE;
-    size_t requested_page_count = header_pages + data_pages;
-    uint32_t total_mapped_size = (uint32_t)(header_length + length * 2);
+    size_t requested_page_count = kernel_pages + user_pages + data_pages;
+
+    if (requested_page_count < data_pages) {
+        status = STATUS_NO_MEMORY;
+        EBPF_LOG_MESSAGE_UINT64(
+            EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "Ring buffer length is too large", length);
+        goto Done;
+    }
 
     // Allocate pages using ebpf_map_memory.
     ring_descriptor->memory = ebpf_map_memory(requested_page_count * PAGE_SIZE);
@@ -57,31 +69,64 @@ ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
     source_mdl = ring_descriptor->memory;
 
     // Create a MDL big enough to include the header and double-mapped pages
-    ring_descriptor->memory_descriptor_list = IoAllocateMdl(NULL, total_mapped_size, FALSE, FALSE, NULL);
-    if (!ring_descriptor->memory_descriptor_list) {
+    uint32_t total_mapped_size = (uint32_t)((kernel_pages + user_pages) * PAGE_SIZE + length * 2);
+    ring_descriptor->kernel_mdl = IoAllocateMdl(NULL, total_mapped_size, FALSE, FALSE, NULL);
+    if (!ring_descriptor->kernel_mdl) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
-    new_mdl = ring_descriptor->memory_descriptor_list;
+    kernel_mdl = ring_descriptor->kernel_mdl;
 
-    // Copy header + first mapping to new mdl, then mirror the data pages.
-    memcpy(MmGetMdlPfnArray(new_mdl), MmGetMdlPfnArray(source_mdl), sizeof(PFN_NUMBER) * requested_page_count);
+    ring_descriptor->user_mdl_consumer = IoAllocateMdl(NULL, PAGE_SIZE, FALSE, FALSE, NULL);
+    if (!ring_descriptor->user_mdl_consumer) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
+    ring_descriptor->user_mdl_producer = IoAllocateMdl(NULL, PAGE_SIZE + ((ULONG)length * 2), FALSE, FALSE, NULL);
+    if (!ring_descriptor->user_mdl_producer) {
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, IoAllocateMdl, STATUS_NO_MEMORY);
+        status = STATUS_NO_MEMORY;
+        goto Done;
+    }
+
+    // Black magic to create a MDL where the data pages are mapped twice.
+    // We set MDL_PAGES_LOCKED here, but crucially never unlock the MDL.
+    // Instead this happens via ebpf_unmap_memory.
+    memcpy(MmGetMdlPfnArray(kernel_mdl), MmGetMdlPfnArray(source_mdl), sizeof(PFN_NUMBER) * requested_page_count);
+
+    // Double map the data pages.
     memcpy(
-        MmGetMdlPfnArray(new_mdl) + requested_page_count,
-        MmGetMdlPfnArray(source_mdl) + header_pages,
+        MmGetMdlPfnArray(kernel_mdl) + requested_page_count,
+        MmGetMdlPfnArray(kernel_mdl) + user_pages,
         sizeof(PFN_NUMBER) * data_pages);
 
-#pragma warning(push)
-#pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
-                                    MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL. */
-    new_mdl->MdlFlags |= MDL_PAGES_LOCKED;
-#pragma warning(pop)
+    #pragma warning(push)
+    #pragma warning(disable : 28145) /* The opaque MDL structure should not be modified by a driver except for \
+                                        MDL_PAGES_LOCKED and MDL_MAPPING_CAN_FAIL. */
+        kernel_mdl->MdlFlags |= MDL_PAGES_LOCKED;
+    #pragma warning(pop)
 
-    ring_descriptor->base_address = MmMapLockedPagesSpecifyCache(
-        new_mdl, KernelMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoExecute);
+    // Create separate user mappings to allow different protection settings.
+    IoBuildPartialMdl(
+        kernel_mdl,
+        ring_descriptor->user_mdl_consumer,
+        (PVOID)((ULONG_PTR)MmGetMdlVirtualAddress(kernel_mdl) + PAGE_SIZE),
+        PAGE_SIZE);
+
+    IoBuildPartialMdl(
+        kernel_mdl,
+        ring_descriptor->user_mdl_producer,
+        (PVOID)((ULONG_PTR)MmGetMdlVirtualAddress(kernel_mdl) + 2*PAGE_SIZE),
+        (ULONG)(PAGE_SIZE + length * 2));
+
+    // Map the kernel MDL to system memory.
+    ring_descriptor->base_address = MmGetSystemAddressForMdlSafe(
+        kernel_mdl, NormalPagePriority | MdlMappingNoExecute);
     if (!ring_descriptor->base_address) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
+        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmGetSystemAddressForMdlSafe, STATUS_NO_MEMORY);
         status = STATUS_NO_MEMORY;
         goto Done;
     }
@@ -91,8 +136,14 @@ ebpf_allocate_ring_buffer_memory(size_t header_length, size_t length)
 Done:
     if (!NT_SUCCESS(status)) {
         if (ring_descriptor) {
-            if (ring_descriptor->memory_descriptor_list) {
-                IoFreeMdl(ring_descriptor->memory_descriptor_list);
+            if (ring_descriptor->kernel_mdl) {
+                IoFreeMdl(ring_descriptor->kernel_mdl);
+            }
+            if (ring_descriptor->user_mdl_consumer) {
+                IoFreeMdl(ring_descriptor->user_mdl_consumer);
+            }
+            if (ring_descriptor->user_mdl_producer) {
+                IoFreeMdl(ring_descriptor->user_mdl_producer);
             }
             if (ring_descriptor->memory) {
                 ebpf_unmap_memory(ring_descriptor->memory);
@@ -113,9 +164,11 @@ ebpf_free_ring_buffer_memory(_Frees_ptr_opt_ ebpf_ring_descriptor_t* ring)
         EBPF_RETURN_VOID();
     }
 
-    MmUnmapLockedPages(ring->base_address, ring->memory_descriptor_list);
+    IoFreeMdl(ring->user_mdl_consumer);
+    IoFreeMdl(ring->user_mdl_producer);
 
-    IoFreeMdl(ring->memory_descriptor_list);
+    MmUnmapLockedPages(ring->base_address, ring->kernel_mdl);
+    IoFreeMdl(ring->kernel_mdl);
     ebpf_unmap_memory(ring->memory);
     ebpf_free(ring);
     EBPF_RETURN_VOID();
@@ -127,55 +180,60 @@ ebpf_ring_descriptor_get_base_address(_In_ const ebpf_ring_descriptor_t* memory_
     return memory_descriptor->base_address;
 }
 
-_Ret_maybenull_ void*
-ebpf_ring_map_readonly_user(_In_ const ebpf_ring_descriptor_t* ring)
+static MDL* _get_user_mdl(ebpf_ring_descriptor_t* ring, uint32_t offset)
 {
-    __try {
-        return MmMapLockedPagesSpecifyCache(
-            ring->memory_descriptor_list, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
-    } __except (EXCEPTION_EXECUTE_HANDLER) {
-        EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
-        return NULL;
+    switch (offset) {
+        case 0:
+            return ring->user_mdl_consumer;
+        case PAGE_SIZE:
+            return ring->user_mdl_producer;
+        default:
+            return NULL;
     }
 }
 
 _Ret_maybenull_ void*
-ebpf_ring_map_user(_In_ const ebpf_ring_descriptor_t* ring, size_t writable_pages)
+ebpf_ring_map_user(ebpf_ring_descriptor_t* ring, uint32_t offset, uint32_t size, uint32_t page_protection)
 {
-    void* base_address = NULL;
-    size_t header_length = PAGE_SIZE + 2; // Assuming header length is defined elsewhere
-    size_t header_pages = header_length / PAGE_SIZE;
-
-    // Validate that the number of writable pages is less than the header length
-    if (writable_pages >= header_pages) {
-        EBPF_LOG_MESSAGE_UINT64(
-            EBPF_TRACELOG_LEVEL_ERROR,
-            EBPF_TRACELOG_KEYWORD_BASE,
-            "Number of writable pages exceeds header length",
-            writable_pages);
+    MDL* user_mdl = _get_user_mdl(ring, offset);
+    if (!user_mdl) {
         return NULL;
     }
 
-    __try {
-        base_address = MmMapLockedPagesSpecifyCache(
-            ring->memory_descriptor_list, UserMode, MmCached, NULL, FALSE, NormalPagePriority | MdlMappingNoWrite);
-        if (base_address) {
-            // Change the protection of the specified number of pages to read/write.
-            for (size_t i = 0; i < writable_pages; i++) {
-                NTSTATUS status = MmProtectMdlSystemAddress(ring->memory_descriptor_list, PAGE_READWRITE);
-                if (!NT_SUCCESS(status)) {
-                    EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmProtectMdlSystemAddress, status);
-                    MmUnmapLockedPages(base_address, ring->memory_descriptor_list);
-                    base_address = NULL;
-                    break;
-                }
-            }
+    if (size == 0) {
+        size = MmGetMdlByteCount(user_mdl);
+    } else if (size != MmGetMdlByteCount(user_mdl)) {
+        return NULL;
+    }
+
+    if (offset < PAGE_SIZE) {
+        if (page_protection != PAGE_READWRITE) {
+            return NULL;
         }
+    } else {
+        if (page_protection != PAGE_READONLY) {
+            return NULL;
+        }
+    }
+
+    ULONG priority = NormalPagePriority;
+    if (page_protection == PAGE_READONLY) {
+        priority |= MdlMappingNoWrite;
+    }
+
+    __try {
+        void *user = MmMapLockedPagesSpecifyCache(
+            user_mdl, UserMode, MmCached, NULL, FALSE, priority);
+        if (!user) {
+            EBPF_LOG_MESSAGE(
+                EBPF_TRACELOG_LEVEL_ERROR, EBPF_TRACELOG_KEYWORD_BASE, "MmMapLockedPagesSpecifyCache failed");
+            return NULL;
+        }
+        return user;
     } __except (EXCEPTION_EXECUTE_HANDLER) {
         EBPF_LOG_NTSTATUS_API_FAILURE(EBPF_TRACELOG_KEYWORD_BASE, MmMapLockedPagesSpecifyCache, STATUS_NO_MEMORY);
-        base_address = NULL;
+        return NULL;
     }
-    return base_address;
 }
 
 // There isn't an official API to query this information from kernel.

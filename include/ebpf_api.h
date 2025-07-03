@@ -691,6 +691,45 @@ extern "C"
         fd_t ring_buffer_map_fd, _In_reads_bytes_(data_length) const void* data, size_t data_length) EBPF_NO_EXCEPT;
 
     /**
+    * Map the memory of a map.
+    *
+    * Calling this multiple times will create distinct mappings.
+    *
+    * @param[in] map_fd File descriptor to map.
+    * @param[out] data Pointer to the mapped data buffer.
+    * @param[in] offset Offset into the mapped data buffer.
+    * @param[in] size Size of the mapping.
+    * @param[in] page_protection Page protection for the mapping (PAGE_READONLY, PAGE_READWRITE).
+    *
+    * @retval EBPF_SUCCESS The operation was successful.
+    * @retval other An error occurred.
+    * @sa ebpf_map_unmap_buffer
+    */
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_map_map_buffer(
+        fd_t map_fd,
+        _Outptr_result_buffer_(size) const uint8_t **data,
+        uint32_t offset,
+        uint32_t size,
+        uint32_t page_protection) EBPF_NO_EXCEPT;
+    /**
+    * Set the wait handle that will be signaled for new data.
+    *
+    * For ring buffer maps the index must be zero.
+    *
+    * @note Overwrites the wait handle currently stored in the map.
+    *
+    * @param[in] map_fd File descriptor to ring buffer or perf event array map.
+    * @param[in] index Map-specific index of wait handle to set.
+    * @param[in] handle Wait handle to signal events on.
+    *
+    * @returns Wait handle
+    */
+    // TODO: clashes with internal api
+    _Must_inspect_result_ ebpf_result_t
+    ebpf_ring_buffer_map_set_wait_handle(fd_t map_fd, uint64_t index, ebpf_handle_t handle) EBPF_NO_EXCEPT;
+
+    /**
      * @brief Get eBPF program type for the specified BPF program type.
      *
      * @param[in] program_type BPF program type.

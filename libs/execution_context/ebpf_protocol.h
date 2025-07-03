@@ -49,6 +49,7 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_PROGRAM_SET_FLAGS,
     EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH,
     EBPF_OPERATION_MAP_SET_WAIT_HANDLE,
+    EBPF_OPERATION_MAP_MAP_BUFFER,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -562,3 +563,18 @@ typedef struct _ebpf_operation_map_set_wait_handle_request
     uint64_t index;
     uint64_t flags;
 } ebpf_operation_map_set_wait_handle_request_t;
+
+typedef struct _ebpf_operation_ring_buffer_map_map_buffer_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint32_t offset;
+    uint32_t size;
+    uint32_t page_protection;
+} ebpf_operation_map_map_buffer_request_t;
+
+typedef struct _ebpf_operation_ring_buffer_map_map_buffer_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t base_address;
+} ebpf_operation_map_map_buffer_reply_t;

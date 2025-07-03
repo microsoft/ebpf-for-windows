@@ -2594,6 +2594,32 @@ _ebpf_core_ring_buffer_output(
     return -ebpf_ring_buffer_map_output(map, data, length);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_map_map_buffer(
+    _In_ const ebpf_operation_map_map_buffer_request_t* request, _Inout_ ebpf_operation_map_map_buffer_reply_t* reply)
+{
+    ebpf_result_t result = EBPF_SUCCESS;
+    ebpf_map_t* map = NULL;
+    uint8_t* base = NULL;
+
+    result = EBPF_OBJECT_REFERENCE_BY_HANDLE(request->map_handle, EBPF_OBJECT_MAP, (ebpf_core_object_t**)&map);
+    if (result != EBPF_SUCCESS) {
+        return result;
+    }
+
+    // Get the base pointer to the mapped ring buffer memory.
+    result = ebpf_map_map_user(map, 0, &base, request->offset, request->size, request->page_protection);
+    if (result != EBPF_SUCCESS) {
+        EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+        return result;
+    }
+
+    reply->base_address = (uint64_t)base;
+
+    EBPF_OBJECT_RELEASE_REFERENCE((ebpf_core_object_t*)map);
+    return EBPF_SUCCESS;
+}
+
 static int
 _ebpf_core_perf_event_output(
     _In_ void* ctx, _Inout_ ebpf_map_t* map, uint64_t flags, _In_reads_bytes_(length) uint8_t* data, size_t length)
@@ -2870,6 +2896,7 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
     DECLARE_PROTOCOL_HANDLER_VARIABLE_REQUEST_VARIABLE_REPLY(
         get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(map_set_wait_handle, PROTOCOL_ALL_MODES),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(map_map_buffer, PROTOCOL_ALL_MODES),
 };
 
 _Must_inspect_result_ ebpf_result_t
