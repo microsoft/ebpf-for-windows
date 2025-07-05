@@ -2622,13 +2622,28 @@ TEST_CASE("libbpf link type names", "[libbpf]")
 {
     REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_PLAIN), "plain") == 0);
     REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_CGROUP), "cgroup") == 0);
+    REQUIRE(strcmp(libbpf_bpf_link_type_str(BPF_LINK_TYPE_XDP), "xdp") == 0);
     REQUIRE(libbpf_bpf_link_type_str((bpf_link_type)123) == nullptr);
 }
 
 TEST_CASE("libbpf map type names", "[libbpf]")
 {
-    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY), "array") == 0);
     REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_UNSPEC), "unspec") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_HASH), "hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY), "array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PROG_ARRAY), "prog_array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PERCPU_HASH), "percpu_hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PERCPU_ARRAY), "percpu_array") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_HASH_OF_MAPS), "hash_of_maps") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_ARRAY_OF_MAPS), "array_of_maps") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_LRU_HASH), "lru_hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_LPM_TRIE), "lpm_trie") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_QUEUE), "queue") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_LRU_PERCPU_HASH), "lru_percpu_hash") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_STACK), "stack") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_RINGBUF), "ringbuf") == 0);
+    REQUIRE(strcmp(libbpf_bpf_map_type_str(BPF_MAP_TYPE_PERF_EVENT_ARRAY), "perf_event_array") == 0);
     REQUIRE(libbpf_bpf_map_type_str((bpf_map_type)123) == nullptr);
 }
 
