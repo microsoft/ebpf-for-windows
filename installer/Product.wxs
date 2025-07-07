@@ -57,6 +57,9 @@ SPDX-License-Identifier: MIT
 			<Custom Action="NetEbpfExt_Driver_start" After="NetEbpfExt_Driver_install">NOT Installed</Custom>
 
 			<!--Uninstall sequence-->
+			<!-- Stop eBPF service very early to prevent file-in-use detection -->
+			<Custom Action="eBPFSvc_EarlyStop" After="InstallInitialize">REMOVE="ALL"</Custom>
+
 			<Custom Action="eBPF_netsh_helper_uninstall" After="InstallInitialize">REMOVE="ALL"</Custom>
 
 			<Custom Action="eBPFCore_Driver_stop" After="InstallInitialize">REMOVE="ALL"</Custom>
@@ -189,6 +192,10 @@ SPDX-License-Identifier: MIT
 								Wait="yes" />
 			</Component>
 		</ComponentGroup>
+
+		<!-- Custom action to aggressively stop eBPF service and related processes very early in uninstall process -->
+		<Property Id="eBPFSvc_EarlyStop" Value='"cmd.exe" /c "sc.exe config eBPFSvc start= disabled &amp; sc.exe stop eBPFSvc &amp; timeout /t 3 &amp; taskkill.exe /f /im ebpfsvc.exe /t"' />
+		<CustomAction Id="eBPFSvc_EarlyStop" BinaryKey="WixCA" DllEntry="WixQuietExec64" Execute="deferred" Return="ignore" Impersonate="no"/>
 
 		<!--Install/Uninstall the eBPFCore Driver-->
 		<!--A kernel driver service is not currently supported by the Windows Installer (Wix v3 - https://wixtoolset.org/docs/v3/xsd/wix/serviceinstall/).-->
