@@ -3,7 +3,7 @@
 ## 1 Overview
 An "eBPF extension" is a Windows kernel driver or component that implements eBPF hooks or helper functions. The design
 of eBPF for Windows is such that an extension providing an implementation for hooks and helper functions can be
-developed and deployed without the need to modify either the eBPF execution context or the eBPF verifier.
+developed and deployed without the need to modify either the eBPF Execution Context or the eBPF verifier.
 
 ## 1.1 Windows Network Module Registrar
 The eBPF for Windows project uses the

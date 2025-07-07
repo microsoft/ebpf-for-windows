@@ -1,8 +1,8 @@
 # Load Multiple Instances of Native Module
 
 When using native mode on Windows, the programs are loaded from a native driver instead of an ELF file. As part of the
-load operation, the native driver is loaded in the kernel and the eBPF execution context orchestrates the creation of
-maps and loading the programs from the native driver. The execution context fetches the map properties from the native
+load operation, the native driver is loaded in the kernel and the eBPF Execution Context orchestrates the creation of
+maps and loading the programs from the native driver. The Execution Context fetches the map properties from the native
 module (using functions exported by the native driver via NMR) and creates the required maps.
 But when trying to load the same native driver again, we hit a restriction that a driver cannot be loaded multiple
 times. This restriction creates a limitation where the same program(s) cannot be loaded multiple times when using

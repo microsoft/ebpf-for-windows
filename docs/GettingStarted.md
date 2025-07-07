@@ -129,13 +129,13 @@ To build with the specific compile time options for disabling JIT compiler and/o
 
 This will build the following binaries:
 
-- `ebpfcore.sys`: The kernel-mode execution context in which eBPF programs run.
+- `ebpfcore.sys`: The kernel-mode Execution Context in which eBPF programs run.
 - `netebpfext.sys`: The kernel-mode extension for WFP hooks.
 - `ebpfapi.dll`: A user-mode shared library exposing APIs for apps to call to perform operations such as
                loading eBPF programs.
 - `ebpfnetsh.dll`: A plugin for the Windows netsh.exe command line tool that provides eBPF command line
                  utility functionality.
-- `ebpfsvc.exe`: A user-mode service that loads an eBPF program in the execution context. It can also verify,
+- `ebpfsvc.exe`: A user-mode service that loads an eBPF program in the Execution Context. It can also verify,
                  and JIT-compile eBPF byte code.
 - `unit_tests.exe`: A collection of tests using the Catch framework.  These tests are also run as part
                   of the Github CI/CD so should always pass.
@@ -302,7 +302,7 @@ by having the mocked extensions emit events.
 
 This test exercises various eBPF user mode eBPF APIs, including those to load programs,
 enumerate maps and programs etc. This test requires the eBPF user mode service (EbpfSvc), and the
-kernel execution context (`EbpfCore.sys`) and the Network Extension (`NetEbpfExt.sys`) to be running.
+kernel Execution Context (`EbpfCore.sys`) and the Network Extension (`NetEbpfExt.sys`) to be running.
 There is a group of tests in this suite with tag "*regression-tests*". These tests are used to ensure
 any release of the eBPF framework is backwards compatible, so that a program from
 a previous release can run against the latest release. If this test suite is run manually, then the corresponding
@@ -434,7 +434,7 @@ To capture a trace in a file use the following commands:
    wpr.exe -start "%ProgramFiles%\ebpf-for-windows\ebpfforwindows.wprp" -filemode
    ```
 
-   This will capture traces from eBPF execution context and the network eBPF extension drivers.
+   This will capture traces from eBPF Execution Context and the network eBPF extension drivers.
     >**Note**: The path `%ProgramFiles%\ebpf-for-windows` assumes you installed eBPF for Windows via the MSI file, using the default installation folder.
          If you installed it in another folder or via some other method, [ebpfforwindows.wprp](../scripts/ebpfforwindows.wprp) may be in some other location.
 1. Run the scenario to be traced.
