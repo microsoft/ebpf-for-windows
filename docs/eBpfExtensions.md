@@ -432,7 +432,7 @@ When registering itself to the NMR, the Hook NPI provider should have the
 [`NPI_REGISTRATION_INSTANCE`](https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/netioddk/ns-netioddk-_npi_registration_instance)
 initialized as follows:
 * `NpiId`: This should be set to `EBPF_HOOK_EXTENSION_IID` defined in `ebpf_extension_uuids.h`.
-* `ModuleId`: This should be set to the attach type GUID. (See [ebpf_attach_provider_data struct section](eBpfExtensions.md#ebpf_attach_provider_data_t-struct))
+* `ModuleId`: This should be set to the attach type GUID. (See [ebpf_attach_provider_data_t Struct](eBpfExtensions.md#ebpf_attach_provider_data_t-struct))
 * `NpiSpecificCharacteristics`: Pointer to structure of type `ebpf_attach_provider_data_t`.
 
 #### `ebpf_attach_provider_data_t` Struct
@@ -443,7 +443,7 @@ contains the following fields:
 * `link_type`
 
 The `supported_program_type` field of the struct should be filled with the `ebpf_program_type_t` (GUID) of the
-supported program type. This must be the same as the value of `ModuleId` field in `NPI_REGISTRATION_INSTANCE`.
+supported program type. This must be the same as the value of the `ModuleId` field in `NPI_REGISTRATION_INSTANCE`.
 While attaching an eBPF program to a hook instance, the execution context enforces that the
 requested attach type is supported by the Hook NPI provider. If not, the eBPF program fails to attach to the hook.
 
@@ -451,7 +451,7 @@ The `bpf_attach_type` field should contain the equivalent bpf attach type intege
 `bpf_attach_type_t` enum (defined in `ebpf_structs.h`) and assign it here or this field should be set to `0 (BPF_ATTACH_TYPE_UNSPEC)`.
 
 The `link_type` field should be set to a suitable value in `bpf_link_type` enum (defined in `ebpf_structs.h`). Depending on the hook,
-some optional attach parameters may be provided when an eBPF program attaches to the hook. For example. XDP hook expends network interface index
+some optional attach parameters may be provided when an eBPF program attaches to the hook. For example, the XDP hook expects a network interface index
 passed in the attach parameters. This attach data is stored in the `bpf_link_info` struct. The `link_type` fields is used to determine
 which attach parameter is present in the link info.
 
