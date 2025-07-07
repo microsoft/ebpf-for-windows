@@ -276,7 +276,7 @@ address of the start of the map data into the address_of_map_value field.
 
 ## Loading an eBPF program from a PE .sys file
 
-The process of loading an eBPF program is a series of interactions between the eBPF Execution Context and the generated
+The process of loading an eBPF program is a series of interactions between the eBPF execution context and the generated
 .sys file, and is summarized in the following diagram:
 
 ![Native Driver Architecture](ArchitectureDiagram.svg)
