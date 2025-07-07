@@ -141,7 +141,7 @@ typedef struct _program_entry
 ```
 The program_entry t contains the hash, hash length and the hash algorithm type [(CNG)](https://learn.microsoft.com/en-us/windows/win32/seccng/cng-algorithm-identifiers) used to generate the hash.
 
-The skeleton framework then uses NMR to publish this information to the eBPF execution context.
+The skeleton framework then uses NMR to publish this information to the eBPF Execution Context.
 
 The `program` above takes 2 arguments as input. First is a point to the program context. The second argument is a pointer to the program runtime context, which is defined as below:
 ```c
@@ -271,7 +271,7 @@ Each global section (.rodata, .data, or .bss) that is referenced by the program 
     } global_variable_section_info_t;
 ```
 
-The execution context creates an array map for each section, loads any initial data into the map, and stores the
+The Execution Context creates an array map for each section, loads any initial data into the map, and stores the
 address of the start of the map data into the address_of_map_value field.
 
 ## Loading an eBPF program from a PE .sys file
@@ -296,12 +296,12 @@ The process of loading an eBPF program is a series of interactions between the e
    the eBPF core looks up the corresponding module and uses the metadata information to resolve helper function addresses, map
    addresses, etc. as outlined in [Exported Program Entry](NativeCodeGeneration.md#exported-program-entry) section.
 
-1) At this point, the eBPF execution context is free to invoke the eBPF programs.
+1) At this point, the eBPF Execution Context is free to invoke the eBPF programs.
 
 1) In response to an NPI client detach notification, the eBPF core clears up the state created for the native module.
 
 1) When the OS calls unload on the driver, the driver unregisters as an NPI client and waits for the
-notification that the eBPF execution context has detached before completing unloading.
+notification that the eBPF Execution Context has detached before completing unloading.
 
 ### Note about native code generation samples shipped with ebpf-for-windows.
 The ```ebpf-for-windows\test\bpf2c_tests\expected``` directory contains the native source files generated
