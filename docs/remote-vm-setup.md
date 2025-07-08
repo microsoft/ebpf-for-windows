@@ -119,6 +119,7 @@ New-StoredCredential -Target TEST_VM_STANDARD -Username <VM Standard User Name> 
 ## Additional Notes
 
 - The credentials stored in step 3 will be used for authentication to the VM during test execution.
+- When running `setup_ebpf_cicd_tests.ps1` on a Hyper-V VM, the script automatically reverts the VM to a baseline checkpoint before setting up the machine. However, when running the script on a remote VM, you must manually take a snapshot before running the setup script and revert to it after running `execute_ebpf_cicd_tests.ps1`.
 - If your goal is simply to deploy pre-built binaries to a remote virtual machine, you can use the deploy-ebpf.ps1 script instead. This script will prompt you for credentials during execution.:
   ```powershell
   .\deploy-ebpf.ps1 --dir="c:\some\path" --remote_vm=<remote-vm-ip>
