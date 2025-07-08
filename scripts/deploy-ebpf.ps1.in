@@ -112,7 +112,7 @@ OPTIONS:
 
 if ($null -ne $remote_vm) {
     ##
-    ## Copy files to a remote VM using PowerShell Remoting (WSMan)
+    ## Copy files to a remote VM using PowerShell Remoting (WSMan).
     ##
     Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`" on remote VM $remote_vm using PowerShell Remoting (WSMan)..."
     $credential = Get-Credential -Message "Enter credentials for $remote_vm"

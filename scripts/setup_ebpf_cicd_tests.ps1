@@ -68,13 +68,13 @@ Get-CoreNetTools -Architecture $Architecture
 Get-PSExec
 
 if ($ExecuteOnVM -and $IsVMRemote) {
-    # Setup for remote machine execution
+    # Setup for remote machine execution.
     $VMList = $Config.VMMap.$SelfHostedRunnerName
 
-    # Export build artifacts to the remote machine(s)
+    # Export build artifacts to the remote machine(s).
     Export-BuildArtifactsToVMs -VMList $VMList -IsVMRemote:$IsVMRemote -ErrorAction Stop
 
-    # Configure network adapters on remote machine(s)
+    # Configure network adapters on remote machine(s).
     Initialize-NetworkInterfaces `
         -ExecuteOnHost $false `
         -ExecuteOnVM $true `
@@ -83,7 +83,7 @@ if ($ExecuteOnVM -and $IsVMRemote) {
         -IsVMRemote:$IsVMRemote `
         -ErrorAction Stop
 
-    # Install eBPF Components on the remote machine(s)
+    # Install eBPF Components on the remote machine(s).
     foreach($VM in $VMList) {
         $VMName = $VM.Name
         Install-eBPFComponentsOnVM -VMName $VMName -TestMode $TestMode -KmTracing $KmTracing -KmTraceType $KmTraceType -IsVMRemote:$IsVMRemote -ErrorAction Stop

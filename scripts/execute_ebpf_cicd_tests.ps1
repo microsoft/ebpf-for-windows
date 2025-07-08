@@ -13,7 +13,7 @@ param ([Parameter(Mandatory = $false)][string] $AdminTarget = "TEST_VM",
        [Parameter(Mandatory = $false)][string] $UserModeDumpFolder = "C:\Dumps",
        [Parameter(Mandatory = $false)][int] $TestJobTimeout = (60*60),
        [Parameter(Mandatory = $false)][switch] $ExecuteOnHost,
-        # This parameter is only used when ExecuteOnHost is false
+        # This parameter is only used when ExecuteOnHost is false.
        [Parameter(Mandatory = $false)][switch] $IsVMRemote)
 
 $ExecuteOnHost = [bool]$ExecuteOnHost

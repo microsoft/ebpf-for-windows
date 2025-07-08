@@ -34,10 +34,9 @@ function Invoke-OnHostOrVM {
         & $ScriptBlock @ArgumentList
     } elseif ($script:ExecuteOnVM) {
         $Credential = New-Credential -Username $script:Admin -AdminPassword $script:AdminPassword
-        if($script:IsVMRemote) {
+        if ($script:IsVMRemote) {
             Invoke-Command -ComputerName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
-        }
-        else {
+        } else {
             Invoke-Command -VMName $script:VMName -Credential $Credential -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList -ErrorAction Stop
         }
     } else {
