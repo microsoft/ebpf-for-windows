@@ -555,6 +555,79 @@ _test_nested_maps(bpf_map_type type)
 TEST_CASE("array_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_ARRAY_OF_MAPS); }
 TEST_CASE("hash_map_of_maps", "[map_in_map]") { _test_nested_maps(BPF_MAP_TYPE_HASH_OF_MAPS); }
 
+// Test API with different inner map types for nested maps
+static void
+_test_nested_maps_with_inner_type(bpf_map_type outer_map_type, bpf_map_type inner_map_type)
+{
+    // Create first inner map of specified type
+    int key_size = sizeof(uint32_t);
+    int value_size = sizeof(uint32_t);
+    int max_entries = 1;
+    
+    // Adjust parameters for different map types
+    if (inner_map_type == BPF_MAP_TYPE_LPM_TRIE) {
+        key_size = sizeof(uint64_t);
+        max_entries = 10;
+    } else if (inner_map_type == BPF_MAP_TYPE_QUEUE || inner_map_type == BPF_MAP_TYPE_STACK) {
+        key_size = 0;
+        max_entries = 10;
+    }
+
+    fd_t inner_map_fd1 = bpf_map_create(inner_map_type, "inner_map1", key_size, value_size, max_entries, nullptr);
+    REQUIRE(inner_map_fd1 > 0);
+
+    // Create outer map
+    bpf_map_create_opts opts = {.inner_map_fd = (uint32_t)inner_map_fd1};
+    fd_t outer_map_fd = bpf_map_create(outer_map_type, "outer_map", sizeof(uint32_t), sizeof(fd_t), 10, &opts);
+    REQUIRE(outer_map_fd > 0);
+
+    // Create second inner map of same type
+    fd_t inner_map_fd2 = bpf_map_create(inner_map_type, "inner_map2", key_size, value_size, max_entries, nullptr);
+    REQUIRE(inner_map_fd2 > 0);
+
+    // Insert both inner maps in outer map
+    uint32_t key = 1;
+    uint32_t result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd1, 0);
+    REQUIRE(result == 0);
+
+    key = 2;
+    result = bpf_map_update_elem(outer_map_fd, &key, &inner_map_fd2, 0);
+    REQUIRE(result == 0);
+
+    // Remove the inner maps from outer map
+    key = 1;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == 0);
+
+    key = 2;
+    result = bpf_map_delete_elem(outer_map_fd, &key);
+    REQUIRE(result == 0);
+
+    _close(inner_map_fd2);
+    _close(inner_map_fd1);
+    _close(outer_map_fd);
+}
+
+// Test cases for Hash of Maps with different inner map types
+TEST_CASE("hash_of_maps_with_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_HASH); }
+TEST_CASE("hash_of_maps_with_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_ARRAY); }
+TEST_CASE("hash_of_maps_with_percpu_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_PERCPU_HASH); }
+TEST_CASE("hash_of_maps_with_percpu_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_PERCPU_ARRAY); }
+TEST_CASE("hash_of_maps_with_lru_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_LRU_HASH); }
+TEST_CASE("hash_of_maps_with_queue_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_QUEUE); }
+TEST_CASE("hash_of_maps_with_stack_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_STACK); }
+TEST_CASE("hash_of_maps_with_ringbuf_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_HASH_OF_MAPS, BPF_MAP_TYPE_RINGBUF); }
+
+// Test cases for Array of Maps with different inner map types
+TEST_CASE("array_of_maps_with_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_HASH); }
+TEST_CASE("array_of_maps_with_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_ARRAY); }
+TEST_CASE("array_of_maps_with_percpu_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_PERCPU_HASH); }
+TEST_CASE("array_of_maps_with_percpu_array_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_PERCPU_ARRAY); }
+TEST_CASE("array_of_maps_with_lru_hash_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_LRU_HASH); }
+TEST_CASE("array_of_maps_with_queue_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_QUEUE); }
+TEST_CASE("array_of_maps_with_stack_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_STACK); }
+TEST_CASE("array_of_maps_with_ringbuf_inner_api", "[map_in_map]") { _test_nested_maps_with_inner_type(BPF_MAP_TYPE_ARRAY_OF_MAPS, BPF_MAP_TYPE_RINGBUF); }
+
 TEST_CASE("duplicate_fd", "")
 {
     _disable_crt_report_hook disable_hook;
