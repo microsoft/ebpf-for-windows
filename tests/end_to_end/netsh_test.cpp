@@ -272,11 +272,11 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int code_size = 1152;
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
-    const int code_size = 316;
+    const int code_size = 312;
     const int old_code_size = 316;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
-    const int code_size = 1124;
-    const int old_code_size = 1076;
+    const int code_size = 1116;
+    const int old_code_size = 1124;
 #else
 #error "Unsupported architecture"
 #endif

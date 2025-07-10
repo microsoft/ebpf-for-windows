@@ -147,6 +147,29 @@ jobs:
         with:
           msbuild-architecture: x64
 
+      - name: Cache chocolatey packages
+        if: steps.skip_check.outputs.should_skip != 'true'
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684
+        env:
+          cache-name: cache-choco-packages
+        with:
+          path: C:\ProgramData\chocolatey
+          key: ${{ runner.os }}-choco-llvm-18.1.8
+
+      - name: Install LLVM 18.1.8
+        if: steps.skip_check.outputs.should_skip != 'true'
+        run: |
+          # Install LLVM 18.1.8 to ensure consistent version across runners
+          try {
+            choco install llvm --version=18.1.8 --allow-downgrade -y --force
+            # Add installed LLVM to PATH first so it takes precedence
+            echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+            Write-Host "Successfully installed LLVM 18.1.8"
+          } catch {
+            Write-Warning "Failed to install LLVM 18.1.8 via chocolatey: $($_.Exception.Message)"
+            Write-Host "Continuing with pre-installed LLVM version"
+          }
+
       - name: Add Visual Studio LLVM to path
         if: steps.skip_check.outputs.should_skip != 'true'
         run: |
@@ -161,7 +184,7 @@ jobs:
         if: steps.skip_check.outputs.should_skip != 'true'
         shell: cmd
         run:
-          '"c:\Program Files\llvm\bin\clang.exe" --version'
+          '"C:\Program Files\LLVM\bin\clang.exe" --version'
 
       - name: Cache nuget packages
         if: steps.skip_check.outputs.should_skip != 'true'
