@@ -251,8 +251,8 @@
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c %(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(KernelConfiguration) -KernelMode $true
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(Configuration) -KernelMode $false
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
@@ -303,8 +303,8 @@
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -I. -I../../undocked/tests/sample/ext/inc -c undocked\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(OutDir)
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(KernelConfiguration) -KernelMode $true -Verbose
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(Configuration) -KernelMode $false
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(KernelConfiguration) -KernelMode $true -Verbose
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\Convert-BpfToNative.ps1 -FileName %(Filename) -IncludeDir $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelMode $false
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
@@ -383,7 +383,7 @@
       <Command>
         $(ClangExec) $(ClangFlags) -I../xdp -I../socket -I./ext/inc -I../../netebpfext -c custom_program_type\%(Filename).c -o $(OutputPath)%(Filename).o
         pushd $(SolutionDir)\scripts
-        powershell -NonInteractive -ExecutionPolicy Unrestricted .\build_custom_sample_programs.ps1 -FileName %(Filename) -FilePath $(OutDir) -IncludePath $(SolutionDir)\include -Platform $(Platform) -Packages $(SolutionDir)\packages -Configuration $(Configuration) -KernelConfiguration $(KernelConfiguration)
+        powershell -NonInteractive -ExecutionPolicy Unrestricted .\build_custom_sample_programs.ps1 -FileName %(Filename) -FilePath $(OutDir) -IncludePath $(SolutionDir)\include -Platform $(Platform) -Configuration $(Configuration) -KernelConfiguration $(KernelConfiguration)
         popd
       </Command>
       <Outputs>$(OutputPath)%(Filename).o;$(OutputPath)%(Filename)_um.dll;$(OutputPath)%(Filename).sys</Outputs>
