@@ -100,11 +100,11 @@ TEST_CASE("show disassembly bpf_call.o", "[netsh][disassembly]")
     REQUIRE(
         output == "; ./tests/sample/undocked/bpf_call.c:25\n"
                   "; SEC(\"sample_ext\") int func(sample_program_context_t* ctx)\n"
-                  "       0:	r1 = 0\n"
+                  "       0:	w1 = 0\n"
                   "; ./tests/sample/undocked/bpf_call.c:27\n"
                   ";     uint32_t key = 0;\n"
                   "       1:	*(u32 *)(r10 - 4) = r1\n"
-                  "       2:	r1 = 42\n"
+                  "       2:	w1 = 42\n"
                   "; ./tests/sample/undocked/bpf_call.c:28\n"
                   ";     uint32_t value = 42;\n"
                   "       3:	*(u32 *)(r10 - 8) = r1\n"
@@ -192,8 +192,8 @@ TEST_CASE("show sections bpf.o .text", "[netsh][sections]")
                   "Size         : 16 bytes\n"
                   "Instructions : 2\n"
                   "arith        : 0\n"
-                  "arith32      : 0\n"
-                  "arith64      : 1\n"
+                  "arith32      : 1\n"
+                  "arith64      : 0\n"
                   "assign       : 1\n"
                   "call_1       : 0\n"
                   "call_mem     : 0\n"
@@ -227,7 +227,7 @@ TEST_CASE("show sections bpf.sys", "[netsh][sections]")
 #if defined(_M_X64) && defined(NDEBUG)
     const int code_size = 1064;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1784;
+    const int code_size = 1800;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 1120;
 #elif defined(_M_ARM64) && !defined(NDEBUG)
@@ -269,7 +269,7 @@ TEST_CASE("show sections map_reuse_um.dll", "[netsh][sections]")
     const int code_size = 312;
     const int old_code_size = 311;
 #elif defined(_M_X64) && !defined(NDEBUG)
-    const int code_size = 1152;
+    const int code_size = 1243;
     const int old_code_size = 1114;
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size = 312;
@@ -322,7 +322,7 @@ TEST_CASE("show sections tail_call_multiple_um.dll", "[netsh][sections]")
     const int code_size_new[] = {90, 6, 100};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int code_size_old[] = {413, 190, 413};
-    const int code_size_new[] = {448, 195, 448};
+    const int code_size_new[] = {502, 222, 502};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int code_size_old[] = {116, 8, 112};
     const int code_size_new[] = {116, 8, 112};
@@ -380,7 +380,7 @@ TEST_CASE("show sections cgroup_sock_addr.sys", "[netsh][sections]")
     const int code_size[] = {333, 353, 333, 353};
 #elif defined(_M_X64) && !defined(NDEBUG)
     const int old_code_size[] = {961, 1036, 961, 1036};
-    const int code_size[] = {961, 1036, 961, 1036};
+    const int code_size[] = {982, 1057, 982, 1057};
 #elif defined(_M_ARM64) && defined(NDEBUG)
     const int old_code_size[] = {328, 344, 328, 344};
     const int code_size[] = {328, 344, 328, 344};
@@ -493,7 +493,7 @@ TEST_CASE("show verification xdp_adjust_head_unsafe.o", "[netsh][verification]")
                   "; ./tests/sample/unsafe/xdp_adjust_head_unsafe.c:43\n"
                   ";     ethernet_header->Type = 0x0800;\n"
                   "\n"
-                  "17: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
+                  "14: Upper bound must be at most packet_size (valid_access(r1.offset+12, width=2) for write)\n"
                   "\n"
                   "1 errors\n"
                   "\n");

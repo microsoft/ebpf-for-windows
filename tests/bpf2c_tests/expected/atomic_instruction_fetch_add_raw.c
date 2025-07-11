@@ -95,9 +95,11 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #line 25 "sample/undocked/atomic_instruction_fetch_add.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
 #line 25 "sample/undocked/atomic_instruction_fetch_add.c"
     r1 = IMMEDIATE(0);
+#line 25 "sample/undocked/atomic_instruction_fetch_add.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
 #line 27 "sample/undocked/atomic_instruction_fetch_add.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r1;
@@ -129,9 +131,9 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_MOV64_IMM pc=8 dst=r1 src=r0 offset=0 imm=1
 #line 29 "sample/undocked/atomic_instruction_fetch_add.c"
     r1 = IMMEDIATE(1);
-    // EBPF_OP_ATOMIC64_ADD pc=9 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_ATOMIC64_ADD_FETCH pc=9 dst=r0 src=r1 offset=0 imm=1
 #line 30 "sample/undocked/atomic_instruction_fetch_add.c"
-    InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r0 + OFFSET(0)), (uint64_t)r1);
+    r1 = (uint64_t)InterlockedExchangeAdd64((volatile int64_t*)(uintptr_t)(r0 + OFFSET(0)), (uint64_t)r1);
 label_1:
     // EBPF_OP_MOV64_IMM pc=10 dst=r0 src=r0 offset=0 imm=0
 #line 32 "sample/undocked/atomic_instruction_fetch_add.c"

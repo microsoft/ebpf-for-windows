@@ -209,14 +209,14 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_LDXDW pc=17 dst=r2 src=r6 offset=8 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
     r2 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_JGE_REG pc=18 dst=r1 src=r2 offset=15 imm=0
+    // EBPF_OP_JLE_REG pc=18 dst=r2 src=r1 offset=14 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
-    if (r1 >= r2) {
+    if (r2 <= r1) {
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
         goto label_1;
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_JEQ_IMM pc=19 dst=r8 src=r0 offset=14 imm=0
+    // EBPF_OP_JEQ_IMM pc=19 dst=r8 src=r0 offset=13 imm=0
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
     if (r8 == IMMEDIATE(0)) {
 #line 50 "sample/undocked/test_sample_implicit_helpers.c"
@@ -241,7 +241,7 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
         return 0;
 #line 54 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_JEQ_IMM pc=24 dst=r7 src=r0 offset=9 imm=0
+    // EBPF_OP_JEQ_IMM pc=24 dst=r7 src=r0 offset=8 imm=0
 #line 56 "sample/undocked/test_sample_implicit_helpers.c"
     if (r7 == IMMEDIATE(0)) {
 #line 56 "sample/undocked/test_sample_implicit_helpers.c"
@@ -275,18 +275,15 @@ test_program_entry(void* context, const program_runtime_context_t* runtime_conte
         return 0;
 #line 57 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_MOV64_IMM pc=32 dst=r1 src=r0 offset=0 imm=0
-#line 57 "sample/undocked/test_sample_implicit_helpers.c"
-    r1 = IMMEDIATE(0);
-    // EBPF_OP_JSGT_REG pc=33 dst=r1 src=r0 offset=18 imm=0
+    // EBPF_OP_JSLT_IMM pc=32 dst=r0 src=r0 offset=17 imm=0
 #line 59 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((int64_t)r1 > (int64_t)r0) {
+    if ((int64_t)r0 < IMMEDIATE(0)) {
 #line 59 "sample/undocked/test_sample_implicit_helpers.c"
         goto label_2;
 #line 59 "sample/undocked/test_sample_implicit_helpers.c"
     }
 label_1:
-    // EBPF_OP_CALL pc=34 dst=r0 src=r0 offset=0 imm=65539
+    // EBPF_OP_CALL pc=33 dst=r0 src=r0 offset=0 imm=65539
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
@@ -295,13 +292,15 @@ label_1:
         return 0;
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_STXDW pc=35 dst=r10 src=r0 offset=-24 imm=0
+    // EBPF_OP_STXDW pc=34 dst=r10 src=r0 offset=-24 imm=0
 #line 68 "sample/undocked/test_sample_implicit_helpers.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r0;
-    // EBPF_OP_MOV64_IMM pc=36 dst=r1 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV_IMM pc=35 dst=r1 src=r0 offset=0 imm=10
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r1 = IMMEDIATE(10);
-    // EBPF_OP_CALL pc=37 dst=r0 src=r0 offset=0 imm=65540
+#line 69 "sample/undocked/test_sample_implicit_helpers.c"
+    r1 &= UINT32_MAX;
+    // EBPF_OP_CALL pc=36 dst=r0 src=r0 offset=0 imm=65540
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
@@ -310,31 +309,28 @@ label_1:
         return 0;
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_STXDW pc=38 dst=r10 src=r0 offset=-16 imm=0
+    // EBPF_OP_STXDW pc=37 dst=r10 src=r0 offset=-16 imm=0
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint64_t)r0;
-    // EBPF_OP_MOV64_REG pc=39 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=38 dst=r2 src=r10 offset=0 imm=0
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=40 dst=r2 src=r0 offset=0 imm=-8
+    // EBPF_OP_ADD64_IMM pc=39 dst=r2 src=r0 offset=0 imm=-8
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_MOV64_REG pc=41 dst=r3 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=40 dst=r3 src=r10 offset=0 imm=0
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=42 dst=r3 src=r0 offset=0 imm=-24
+    // EBPF_OP_ADD64_IMM pc=41 dst=r3 src=r0 offset=0 imm=-24
 #line 69 "sample/undocked/test_sample_implicit_helpers.c"
     r3 += IMMEDIATE(-24);
-    // EBPF_OP_MOV64_IMM pc=43 dst=r7 src=r0 offset=0 imm=0
-#line 69 "sample/undocked/test_sample_implicit_helpers.c"
-    r7 = IMMEDIATE(0);
-    // EBPF_OP_LDDW pc=44 dst=r1 src=r1 offset=0 imm=2
+    // EBPF_OP_LDDW pc=42 dst=r1 src=r1 offset=0 imm=2
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_MOV64_IMM pc=46 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=44 dst=r4 src=r0 offset=0 imm=0
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=47 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=2
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
@@ -343,10 +339,10 @@ label_1:
         return 0;
 #line 72 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_MOV64_REG pc=48 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=46 dst=r1 src=r6 offset=0 imm=0
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
     r1 = r6;
-    // EBPF_OP_CALL pc=49 dst=r0 src=r0 offset=0 imm=65536
+    // EBPF_OP_CALL pc=47 dst=r0 src=r0 offset=0 imm=65536
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = runtime_context->helper_data[6].address(r1, r2, r3, r4, r5, context);
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
@@ -355,18 +351,18 @@ label_1:
         return 0;
 #line 74 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_JSGT_REG pc=50 dst=r7 src=r0 offset=1 imm=0
+    // EBPF_OP_JSLT_IMM pc=48 dst=r0 src=r0 offset=1 imm=0
 #line 75 "sample/undocked/test_sample_implicit_helpers.c"
-    if ((int64_t)r7 > (int64_t)r0) {
+    if ((int64_t)r0 < IMMEDIATE(0)) {
 #line 75 "sample/undocked/test_sample_implicit_helpers.c"
         goto label_2;
 #line 75 "sample/undocked/test_sample_implicit_helpers.c"
     }
-    // EBPF_OP_MOV64_IMM pc=51 dst=r0 src=r0 offset=0 imm=42
+    // EBPF_OP_MOV64_IMM pc=49 dst=r0 src=r0 offset=0 imm=42
 #line 75 "sample/undocked/test_sample_implicit_helpers.c"
     r0 = IMMEDIATE(42);
 label_2:
-    // EBPF_OP_EXIT pc=52 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_EXIT pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 84 "sample/undocked/test_sample_implicit_helpers.c"
     return r0;
 #line 41 "sample/undocked/test_sample_implicit_helpers.c"
@@ -387,7 +383,7 @@ static program_entry_t _programs[] = {
         2,
         test_program_entry_helpers,
         7,
-        53,
+        51,
         &test_program_entry_program_type_guid,
         &test_program_entry_attach_type_guid,
     },

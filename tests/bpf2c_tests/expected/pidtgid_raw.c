@@ -136,30 +136,27 @@ func(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_LDXB pc=0 dst=r2 src=r1 offset=40 imm=0
 #line 46 "sample/pidtgid.c"
     r2 = *(uint8_t*)(uintptr_t)(r1 + OFFSET(40));
-    // EBPF_OP_MOV64_IMM pc=1 dst=r3 src=r0 offset=0 imm=16
+    //  pc=1 dst=r2 src=r0 offset=19 imm=16
 #line 46 "sample/pidtgid.c"
-    r3 = IMMEDIATE(16);
-    // EBPF_OP_JGT_REG pc=2 dst=r3 src=r2 offset=19 imm=0
-#line 46 "sample/pidtgid.c"
-    if (r3 > r2) {
+    if ((uint32_t)r2 < IMMEDIATE(16)) {
 #line 46 "sample/pidtgid.c"
         goto label_1;
 #line 46 "sample/pidtgid.c"
     }
-    // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=26 imm=0
+    // EBPF_OP_LDXH pc=2 dst=r2 src=r1 offset=26 imm=0
 #line 46 "sample/pidtgid.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(26));
-    // EBPF_OP_JNE_IMM pc=4 dst=r2 src=r0 offset=17 imm=15295
+    //  pc=3 dst=r2 src=r0 offset=17 imm=15295
 #line 46 "sample/pidtgid.c"
-    if (r2 != IMMEDIATE(15295)) {
+    if ((uint32_t)r2 != IMMEDIATE(15295)) {
 #line 46 "sample/pidtgid.c"
         goto label_1;
 #line 46 "sample/pidtgid.c"
     }
-    // EBPF_OP_MOV64_REG pc=5 dst=r6 src=r1 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=4 dst=r6 src=r1 offset=0 imm=0
 #line 46 "sample/pidtgid.c"
     r6 = r1;
-    // EBPF_OP_CALL pc=6 dst=r0 src=r0 offset=0 imm=19
+    // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=19
 #line 47 "sample/pidtgid.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
 #line 47 "sample/pidtgid.c"
@@ -168,46 +165,48 @@ func(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 47 "sample/pidtgid.c"
     }
-    // EBPF_OP_LDXDW pc=7 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=6 dst=r1 src=r6 offset=16 imm=0
 #line 49 "sample/pidtgid.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
-    // EBPF_OP_STXW pc=8 dst=r10 src=r0 offset=-4 imm=0
+    // EBPF_OP_STXW pc=7 dst=r10 src=r0 offset=-4 imm=0
 #line 48 "sample/pidtgid.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r0;
-    // EBPF_OP_RSH64_IMM pc=9 dst=r0 src=r0 offset=0 imm=32
+    // EBPF_OP_RSH64_IMM pc=8 dst=r0 src=r0 offset=0 imm=32
 #line 49 "sample/pidtgid.c"
     r0 >>= (IMMEDIATE(32) & 63);
-    // EBPF_OP_STXW pc=10 dst=r10 src=r0 offset=-8 imm=0
+    // EBPF_OP_STXW pc=9 dst=r10 src=r0 offset=-8 imm=0
 #line 48 "sample/pidtgid.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r0;
-    // EBPF_OP_STXW pc=11 dst=r10 src=r1 offset=-12 imm=0
+    // EBPF_OP_STXW pc=10 dst=r10 src=r1 offset=-12 imm=0
 #line 48 "sample/pidtgid.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-12)) = (uint32_t)r1;
-    // EBPF_OP_MOV64_IMM pc=12 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=11 dst=r1 src=r0 offset=0 imm=0
 #line 48 "sample/pidtgid.c"
     r1 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=13 dst=r10 src=r1 offset=-16 imm=0
+#line 48 "sample/pidtgid.c"
+    r1 &= UINT32_MAX;
+    // EBPF_OP_STXW pc=12 dst=r10 src=r1 offset=-16 imm=0
 #line 50 "sample/pidtgid.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
-    // EBPF_OP_MOV64_REG pc=14 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=13 dst=r2 src=r10 offset=0 imm=0
 #line 50 "sample/pidtgid.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=15 dst=r2 src=r0 offset=0 imm=-16
-#line 47 "sample/pidtgid.c"
+    // EBPF_OP_ADD64_IMM pc=14 dst=r2 src=r0 offset=0 imm=-16
+#line 50 "sample/pidtgid.c"
     r2 += IMMEDIATE(-16);
-    // EBPF_OP_MOV64_REG pc=16 dst=r3 src=r10 offset=0 imm=0
-#line 47 "sample/pidtgid.c"
+    // EBPF_OP_MOV64_REG pc=15 dst=r3 src=r10 offset=0 imm=0
+#line 50 "sample/pidtgid.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=17 dst=r3 src=r0 offset=0 imm=-12
-#line 47 "sample/pidtgid.c"
+    // EBPF_OP_ADD64_IMM pc=16 dst=r3 src=r0 offset=0 imm=-12
+#line 50 "sample/pidtgid.c"
     r3 += IMMEDIATE(-12);
-    // EBPF_OP_LDDW pc=18 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=17 dst=r1 src=r1 offset=0 imm=1
 #line 51 "sample/pidtgid.c"
     r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=20 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=19 dst=r4 src=r0 offset=0 imm=0
 #line 51 "sample/pidtgid.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=21 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=2
 #line 51 "sample/pidtgid.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 51 "sample/pidtgid.c"
@@ -217,10 +216,12 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #line 51 "sample/pidtgid.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=22 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=21 dst=r0 src=r0 offset=0 imm=0
 #line 54 "sample/pidtgid.c"
     r0 = IMMEDIATE(0);
-    // EBPF_OP_EXIT pc=23 dst=r0 src=r0 offset=0 imm=0
+#line 54 "sample/pidtgid.c"
+    r0 &= UINT32_MAX;
+    // EBPF_OP_EXIT pc=22 dst=r0 src=r0 offset=0 imm=0
 #line 54 "sample/pidtgid.c"
     return r0;
 #line 46 "sample/pidtgid.c"
@@ -241,7 +242,7 @@ static program_entry_t _programs[] = {
         1,
         func_helpers,
         2,
-        24,
+        23,
         &func_program_type_guid,
         &func_attach_type_guid,
     },

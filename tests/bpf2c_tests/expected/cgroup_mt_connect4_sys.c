@@ -220,12 +220,14 @@ tcp_mt_connect4(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_LDXW pc=0 dst=r2 src=r1 offset=44 imm=0
 #line 27 "sample/cgroup_mt_connect4.c"
     r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
-    // EBPF_OP_MOV64_IMM pc=1 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=1 dst=r0 src=r0 offset=0 imm=1
 #line 27 "sample/cgroup_mt_connect4.c"
     r0 = IMMEDIATE(1);
-    // EBPF_OP_JNE_IMM pc=2 dst=r2 src=r0 offset=14 imm=6
 #line 27 "sample/cgroup_mt_connect4.c"
-    if (r2 != IMMEDIATE(6)) {
+    r0 &= UINT32_MAX;
+    //  pc=2 dst=r2 src=r0 offset=14 imm=6
+#line 27 "sample/cgroup_mt_connect4.c"
+    if ((uint32_t)r2 != IMMEDIATE(6)) {
 #line 27 "sample/cgroup_mt_connect4.c"
         goto label_1;
 #line 27 "sample/cgroup_mt_connect4.c"
@@ -233,56 +235,70 @@ tcp_mt_connect4(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_LDXH pc=3 dst=r2 src=r1 offset=40 imm=0
 #line 33 "sample/cgroup_mt_connect4.c"
     r2 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
-    // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=7459
+    //  pc=4 dst=r2 src=r0 offset=12 imm=7459
 #line 33 "sample/cgroup_mt_connect4.c"
-    r3 = IMMEDIATE(7459);
-    // EBPF_OP_JGT_REG pc=5 dst=r3 src=r2 offset=11 imm=0
-#line 33 "sample/cgroup_mt_connect4.c"
-    if (r3 > r2) {
+    if ((uint32_t)r2 < IMMEDIATE(7459)) {
 #line 33 "sample/cgroup_mt_connect4.c"
         goto label_1;
 #line 33 "sample/cgroup_mt_connect4.c"
     }
-    // EBPF_OP_MOV64_IMM pc=6 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=5 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/cgroup_mt_connect4.c"
     r0 = IMMEDIATE(0);
-    // EBPF_OP_MOV64_REG pc=7 dst=r3 src=r2 offset=0 imm=0
+#line 33 "sample/cgroup_mt_connect4.c"
+    r0 &= UINT32_MAX;
+    // EBPF_OP_MOV64_REG pc=6 dst=r3 src=r2 offset=0 imm=0
 #line 41 "sample/cgroup_mt_connect4.c"
     r3 = r2;
-    // EBPF_OP_BE pc=8 dst=r3 src=r0 offset=0 imm=16
+    // EBPF_OP_BE pc=7 dst=r3 src=r0 offset=0 imm=16
 #line 41 "sample/cgroup_mt_connect4.c"
     r3 = htobe16((uint16_t)r3);
 #line 41 "sample/cgroup_mt_connect4.c"
     r3 &= UINT32_MAX;
-    // EBPF_OP_MOV64_REG pc=9 dst=r4 src=r3 offset=0 imm=0
+    // EBPF_OP_MOV_REG pc=8 dst=r4 src=r3 offset=0 imm=0
 #line 41 "sample/cgroup_mt_connect4.c"
     r4 = r3;
-    // EBPF_OP_MOD64_IMM pc=10 dst=r4 src=r0 offset=0 imm=3
 #line 41 "sample/cgroup_mt_connect4.c"
-    r4 = IMMEDIATE(3) ? (r4 % IMMEDIATE(3)) : r4;
-    // EBPF_OP_JEQ_IMM pc=11 dst=r4 src=r0 offset=5 imm=0
+    r4 &= UINT32_MAX;
+    // EBPF_OP_MUL_IMM pc=9 dst=r4 src=r0 offset=0 imm=-21845
 #line 41 "sample/cgroup_mt_connect4.c"
-    if (r4 == IMMEDIATE(0)) {
+    r4 *= IMMEDIATE(-21845);
+#line 41 "sample/cgroup_mt_connect4.c"
+    r4 &= UINT32_MAX;
+    // EBPF_OP_AND_IMM pc=10 dst=r4 src=r0 offset=0 imm=65535
+#line 41 "sample/cgroup_mt_connect4.c"
+    r4 &= IMMEDIATE(65535);
+#line 41 "sample/cgroup_mt_connect4.c"
+    r4 &= UINT32_MAX;
+    //  pc=11 dst=r4 src=r0 offset=5 imm=21846
+#line 41 "sample/cgroup_mt_connect4.c"
+    if ((uint32_t)r4 < IMMEDIATE(21846)) {
 #line 41 "sample/cgroup_mt_connect4.c"
         goto label_1;
 #line 41 "sample/cgroup_mt_connect4.c"
     }
-    // EBPF_OP_AND64_IMM pc=12 dst=r3 src=r0 offset=0 imm=1
-#line 41 "sample/cgroup_mt_connect4.c"
+    // EBPF_OP_AND_IMM pc=12 dst=r3 src=r0 offset=0 imm=1
+#line 46 "sample/cgroup_mt_connect4.c"
     r3 &= IMMEDIATE(1);
-    // EBPF_OP_MOV64_IMM pc=13 dst=r0 src=r0 offset=0 imm=1
-#line 41 "sample/cgroup_mt_connect4.c"
-    r0 = IMMEDIATE(1);
-    // EBPF_OP_JEQ_IMM pc=14 dst=r3 src=r0 offset=2 imm=0
 #line 46 "sample/cgroup_mt_connect4.c"
-    if (r3 == IMMEDIATE(0)) {
+    r3 &= UINT32_MAX;
+    // EBPF_OP_MOV_IMM pc=13 dst=r0 src=r0 offset=0 imm=1
+#line 46 "sample/cgroup_mt_connect4.c"
+    r0 = IMMEDIATE(1);
+#line 46 "sample/cgroup_mt_connect4.c"
+    r0 &= UINT32_MAX;
+    //  pc=14 dst=r3 src=r0 offset=2 imm=0
+#line 46 "sample/cgroup_mt_connect4.c"
+    if ((uint32_t)r3 == IMMEDIATE(0)) {
 #line 46 "sample/cgroup_mt_connect4.c"
         goto label_1;
 #line 46 "sample/cgroup_mt_connect4.c"
     }
-    // EBPF_OP_ADD64_IMM pc=15 dst=r2 src=r0 offset=0 imm=-6141
+    // EBPF_OP_ADD_IMM pc=15 dst=r2 src=r0 offset=0 imm=-6141
 #line 54 "sample/cgroup_mt_connect4.c"
     r2 += IMMEDIATE(-6141);
+#line 54 "sample/cgroup_mt_connect4.c"
+    r2 &= UINT32_MAX;
     // EBPF_OP_STXH pc=16 dst=r1 src=r2 offset=40 imm=0
 #line 54 "sample/cgroup_mt_connect4.c"
     *(uint16_t*)(uintptr_t)(r1 + OFFSET(40)) = (uint16_t)r2;

@@ -351,7 +351,7 @@ EBPF_HELPER(int32_t, bpf_is_current_admin, (const void* ctx));
  * @retval 0 The operation was successful.
  * @retval -EINVAL One or more parameters are invalid.
  */
-EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+EBPF_HELPER(long, bpf_memcpy, (void* destination, size_t destination_size, const void* source, size_t source_size));
 #ifndef __doxygen
 #define bpf_memcpy ((bpf_memcpy_t)BPF_FUNC_memcpy)
 #endif
@@ -368,7 +368,7 @@ EBPF_HELPER(long, bpf_memcpy, (void* destination, uint32_t destination_size, con
  * contents memory2, or a positive value if the contents memory1 is greater than the contents memory2.
  */
 
-EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const void* memory2, uint32_t memory2_size));
+EBPF_HELPER(int, bpf_memcmp, (const void* memory1, size_t memory1_size, const void* memory2, size_t memory2_size));
 #ifndef __doxygen
 #define bpf_memcmp ((bpf_memcmp_t)BPF_FUNC_memcmp)
 #endif
@@ -383,7 +383,7 @@ EBPF_HELPER(int, bpf_memcmp, (const void* memory1, uint32_t memory1_size, const 
  * @returns Pointer to the memory region, or a negative error in case of failure.
  */
 
-EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
+EBPF_HELPER(long, bpf_memset, (void* memory, size_t size, int value));
 #ifndef __doxygen
 #define bpf_memset ((bpf_memset_t)BPF_FUNC_memset)
 #endif
@@ -400,8 +400,7 @@ EBPF_HELPER(long, bpf_memset, (void* memory, uint32_t size, int value));
  * @retval -EINVAL One or more parameters are invalid.
  */
 
-EBPF_HELPER(
-    long, bpf_memmove, (void* destination, uint32_t destination_size, const void* source, uint32_t source_size));
+EBPF_HELPER(long, bpf_memmove, (void* destination, size_t destination_size, const void* source, size_t source_size));
 #ifndef __doxygen
 #define bpf_memmove ((bpf_memmove_t)BPF_FUNC_memmove)
 #endif

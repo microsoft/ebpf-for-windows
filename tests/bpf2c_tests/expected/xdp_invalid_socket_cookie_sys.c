@@ -239,15 +239,19 @@ xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtim
         return 0;
 #line 21 "sample/xdp_invalid_socket_cookie.c"
     }
-    // EBPF_OP_MOV64_IMM pc=1 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=1 dst=r1 src=r0 offset=0 imm=0
 #line 21 "sample/xdp_invalid_socket_cookie.c"
     r1 = IMMEDIATE(0);
+#line 21 "sample/xdp_invalid_socket_cookie.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXB pc=2 dst=r10 src=r1 offset=-4 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     *(uint8_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint8_t)r1;
-    // EBPF_OP_MOV64_IMM pc=3 dst=r1 src=r0 offset=0 imm=175664236
+    // EBPF_OP_MOV_IMM pc=3 dst=r1 src=r0 offset=0 imm=175664236
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r1 = IMMEDIATE(175664236);
+#line 23 "sample/xdp_invalid_socket_cookie.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXW pc=4 dst=r10 src=r1 offset=-8 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint32_t)r1;
@@ -269,9 +273,11 @@ xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtim
     // EBPF_OP_ADD64_IMM pc=12 dst=r1 src=r0 offset=0 imm=-24
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r1 += IMMEDIATE(-24);
-    // EBPF_OP_MOV64_IMM pc=13 dst=r2 src=r0 offset=0 imm=21
+    // EBPF_OP_MOV_IMM pc=13 dst=r2 src=r0 offset=0 imm=21
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r2 = IMMEDIATE(21);
+#line 23 "sample/xdp_invalid_socket_cookie.c"
+    r2 &= UINT32_MAX;
     // EBPF_OP_MOV64_REG pc=14 dst=r3 src=r0 offset=0 imm=0
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     r3 = r0;
@@ -284,9 +290,11 @@ xdp_invalid_socket_cookie(void* context, const program_runtime_context_t* runtim
         return 0;
 #line 23 "sample/xdp_invalid_socket_cookie.c"
     }
-    // EBPF_OP_MOV64_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=16 dst=r0 src=r0 offset=0 imm=1
 #line 26 "sample/xdp_invalid_socket_cookie.c"
     r0 = IMMEDIATE(1);
+#line 26 "sample/xdp_invalid_socket_cookie.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 26 "sample/xdp_invalid_socket_cookie.c"
     return r0;

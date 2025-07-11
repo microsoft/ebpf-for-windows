@@ -1285,7 +1285,7 @@ TEST_CASE("enum programs", "[end_to_end]")
     for (auto current_program = program_data; current_program != nullptr; current_program = current_program->next) {
         ebpf_stat_t* stat = current_program->stats;
         REQUIRE(strcmp(stat->key, "Instructions") == 0);
-        REQUIRE(stat->value == 40);
+        REQUIRE(stat->value == 38);
     }
     ebpf_free_programs(program_data);
     ebpf_free_string(error_message);
