@@ -130,7 +130,7 @@ extern "C"
      * @retval EBPF_NO_MEMORY Unable to allocate resources for this operation.
      */
     _Must_inspect_result_ ebpf_result_t
-    ebpf_native_authorize_module(_In_ const uint8_t* module_hash);
+    ebpf_native_authorize_module(_In_ const GUID* module_id, _In_ const uint8_t* module_hash);
 
 #ifdef __cplusplus
 }
