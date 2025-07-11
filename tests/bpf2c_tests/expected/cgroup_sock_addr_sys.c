@@ -403,9 +403,11 @@ authorize_connect4(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r0 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=30 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
+#line 60 "sample/cgroup_sock_addr.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_JEQ_IMM pc=31 dst=r1 src=r0 offset=1 imm=0
 #line 62 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
@@ -603,9 +605,11 @@ authorize_connect6(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
+#line 76 "sample/cgroup_sock_addr.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_JEQ_IMM pc=37 dst=r1 src=r0 offset=1 imm=0
 #line 78 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
@@ -785,9 +789,11 @@ authorize_recv_accept4(void* context, const program_runtime_context_t* runtime_c
     // EBPF_OP_MOV64_REG pc=29 dst=r1 src=r0 offset=0 imm=0
 #line 60 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=30 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=30 dst=r0 src=r0 offset=0 imm=1
 #line 60 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
+#line 60 "sample/cgroup_sock_addr.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_JEQ_IMM pc=31 dst=r1 src=r0 offset=1 imm=0
 #line 62 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {
@@ -985,9 +991,11 @@ authorize_recv_accept6(void* context, const program_runtime_context_t* runtime_c
     // EBPF_OP_MOV64_REG pc=35 dst=r1 src=r0 offset=0 imm=0
 #line 76 "sample/cgroup_sock_addr.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/cgroup_sock_addr.c"
     r0 = IMMEDIATE(1);
+#line 76 "sample/cgroup_sock_addr.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_JEQ_IMM pc=37 dst=r1 src=r0 offset=1 imm=0
 #line 78 "sample/cgroup_sock_addr.c"
     if (r1 == IMMEDIATE(0)) {

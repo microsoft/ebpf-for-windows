@@ -54,9 +54,11 @@ func(void* context, const program_runtime_context_t* runtime_context)
 #line 17 "sample/custom_program_type/bpf.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
+    // EBPF_OP_MOV_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
 #line 17 "sample/custom_program_type/bpf.c"
     r0 = IMMEDIATE(42);
+#line 17 "sample/custom_program_type/bpf.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 17 "sample/custom_program_type/bpf.c"
     return r0;

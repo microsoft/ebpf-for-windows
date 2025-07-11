@@ -154,19 +154,19 @@ jobs:
           cache-name: cache-choco-packages
         with:
           path: C:\ProgramData\chocolatey
-          key: ${{ runner.os }}-choco-llvm-20.1.8
+          key: ${{ runner.os }}-choco-llvm-20.1.7
 
-      - name: Install LLVM 20.1.8
+      - name: Install LLVM 20.1.7
         if: steps.skip_check.outputs.should_skip != 'true'
         run: |
-          # Install LLVM 20.1.8 to ensure consistent version across runners
+          # Install LLVM 20.1.7 to ensure consistent version across runners
           try {
-            choco install llvm --version=20.1.8 --allow-downgrade -y --force
+            choco install llvm --version=20.1.7 --allow-downgrade -y --force
             # Add installed LLVM to PATH first so it takes precedence
             echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-            Write-Host "Successfully installed LLVM 20.1.8"
+            Write-Host "Successfully installed LLVM 20.1.7"
           } catch {
-            Write-Warning "Failed to install LLVM 20.1.8 via chocolatey: $($_.Exception.Message)"
+            Write-Warning "Failed to install LLVM 20.1.7 via chocolatey: $($_.Exception.Message)"
             Write-Host "Continuing with pre-installed LLVM version"
           }
 

@@ -128,9 +128,11 @@ callee0(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_LDDW pc=0 dst=r2 src=r1 offset=0 imm=1
 #line 41 "sample/undocked/tail_call_multiple.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=9
+    // EBPF_OP_MOV_IMM pc=2 dst=r3 src=r0 offset=0 imm=9
 #line 41 "sample/undocked/tail_call_multiple.c"
     r3 = IMMEDIATE(9);
+#line 41 "sample/undocked/tail_call_multiple.c"
+    r3 &= UINT32_MAX;
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
 #line 41 "sample/undocked/tail_call_multiple.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
@@ -140,9 +142,11 @@ callee0(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 41 "sample/undocked/tail_call_multiple.c"
     }
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_MOV_IMM pc=4 dst=r0 src=r0 offset=0 imm=2
 #line 44 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(2);
+#line 44 "sample/undocked/tail_call_multiple.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
 #line 44 "sample/undocked/tail_call_multiple.c"
     return r0;
@@ -176,9 +180,11 @@ callee1(void* context, const program_runtime_context_t* runtime_context)
 #line 47 "sample/undocked/tail_call_multiple.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
+    // EBPF_OP_MOV_IMM pc=0 dst=r0 src=r0 offset=0 imm=3
 #line 47 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(3);
+#line 47 "sample/undocked/tail_call_multiple.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 47 "sample/undocked/tail_call_multiple.c"
     return r0;
@@ -233,9 +239,11 @@ caller(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_LDDW pc=0 dst=r2 src=r1 offset=0 imm=1
 #line 30 "sample/undocked/tail_call_multiple.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=2 dst=r3 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=2 dst=r3 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/tail_call_multiple.c"
     r3 = IMMEDIATE(0);
+#line 30 "sample/undocked/tail_call_multiple.c"
+    r3 &= UINT32_MAX;
     // EBPF_OP_CALL pc=3 dst=r0 src=r0 offset=0 imm=5
 #line 30 "sample/undocked/tail_call_multiple.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
@@ -245,9 +253,11 @@ caller(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 30 "sample/undocked/tail_call_multiple.c"
     }
-    // EBPF_OP_MOV64_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=4 dst=r0 src=r0 offset=0 imm=1
 #line 33 "sample/undocked/tail_call_multiple.c"
     r0 = IMMEDIATE(1);
+#line 33 "sample/undocked/tail_call_multiple.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=5 dst=r0 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/tail_call_multiple.c"
     return r0;

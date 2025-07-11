@@ -289,9 +289,11 @@ GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime
 #line 40 "sample/undocked/global_vars_and_map.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=0 dst=r1 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/global_vars_and_map.c"
     r1 = IMMEDIATE(0);
+#line 40 "sample/undocked/global_vars_and_map.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXW pc=1 dst=r10 src=r1 offset=-4 imm=0
 #line 43 "sample/undocked/global_vars_and_map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r1;
@@ -313,9 +315,11 @@ GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime
         return 0;
 #line 44 "sample/undocked/global_vars_and_map.c"
     }
-    // EBPF_OP_MOV64_IMM pc=7 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=7 dst=r1 src=r0 offset=0 imm=1
 #line 44 "sample/undocked/global_vars_and_map.c"
     r1 = IMMEDIATE(1);
+#line 44 "sample/undocked/global_vars_and_map.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_JEQ_IMM pc=8 dst=r0 src=r0 offset=7 imm=0
 #line 45 "sample/undocked/global_vars_and_map.c"
     if (r0 == IMMEDIATE(0)) {
@@ -344,13 +348,17 @@ GlobalVariableAndMapTest(void* context, const program_runtime_context_t* runtime
         return 0;
 #line 50 "sample/undocked/global_vars_and_map.c"
     }
-    // EBPF_OP_MOV64_IMM pc=15 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=15 dst=r1 src=r0 offset=0 imm=0
 #line 50 "sample/undocked/global_vars_and_map.c"
     r1 = IMMEDIATE(0);
+#line 50 "sample/undocked/global_vars_and_map.c"
+    r1 &= UINT32_MAX;
 label_1:
-    // EBPF_OP_MOV64_REG pc=16 dst=r0 src=r1 offset=0 imm=0
+    // EBPF_OP_MOV_REG pc=16 dst=r0 src=r1 offset=0 imm=0
 #line 53 "sample/undocked/global_vars_and_map.c"
     r0 = r1;
+#line 53 "sample/undocked/global_vars_and_map.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
 #line 53 "sample/undocked/global_vars_and_map.c"
     return r0;

@@ -329,9 +329,11 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_MOV64_REG pc=0 dst=r6 src=r1 offset=0 imm=0
 #line 112 "sample/bindmonitor.c"
     r6 = r1;
-    // EBPF_OP_MOV64_IMM pc=1 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=1 dst=r7 src=r0 offset=0 imm=0
 #line 112 "sample/bindmonitor.c"
     r7 = IMMEDIATE(0);
+#line 112 "sample/bindmonitor.c"
+    r7 &= UINT32_MAX;
     // EBPF_OP_STXW pc=2 dst=r10 src=r7 offset=-84 imm=0
 #line 114 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-84)) = (uint32_t)r7;
@@ -347,13 +349,16 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_STXDW pc=4 dst=r10 src=r0 offset=-8 imm=0
 #line 61 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r0;
-    // EBPF_OP_STXDW pc=5 dst=r10 src=r7 offset=-72 imm=0
+    // EBPF_OP_MOV64_IMM pc=5 dst=r1 src=r0 offset=0 imm=0
+#line 61 "sample/bindmonitor.c"
+    r1 = IMMEDIATE(0);
+    // EBPF_OP_STXDW pc=6 dst=r10 src=r1 offset=-72 imm=0
 #line 62 "sample/bindmonitor.c"
-    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-72)) = (uint64_t)r7;
-    // EBPF_OP_MOV64_REG pc=6 dst=r1 src=r6 offset=0 imm=0
+    *(uint64_t*)(uintptr_t)(r10 + OFFSET(-72)) = (uint64_t)r1;
+    // EBPF_OP_MOV64_REG pc=7 dst=r1 src=r6 offset=0 imm=0
 #line 64 "sample/bindmonitor.c"
     r1 = r6;
-    // EBPF_OP_CALL pc=7 dst=r0 src=r0 offset=0 imm=20
+    // EBPF_OP_CALL pc=8 dst=r0 src=r0 offset=0 imm=20
 #line 64 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[1].address(r1, r2, r3, r4, r5, context);
 #line 64 "sample/bindmonitor.c"
@@ -362,13 +367,13 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 64 "sample/bindmonitor.c"
     }
-    // EBPF_OP_STXDW pc=8 dst=r10 src=r0 offset=-80 imm=0
+    // EBPF_OP_STXDW pc=9 dst=r10 src=r0 offset=-80 imm=0
 #line 64 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-80)) = (uint64_t)r0;
-    // EBPF_OP_MOV64_REG pc=9 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=10 dst=r1 src=r6 offset=0 imm=0
 #line 65 "sample/bindmonitor.c"
     r1 = r6;
-    // EBPF_OP_CALL pc=10 dst=r0 src=r0 offset=0 imm=21
+    // EBPF_OP_CALL pc=11 dst=r0 src=r0 offset=0 imm=21
 #line 65 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[2].address(r1, r2, r3, r4, r5, context);
 #line 65 "sample/bindmonitor.c"
@@ -377,28 +382,28 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 65 "sample/bindmonitor.c"
     }
-    // EBPF_OP_STXW pc=11 dst=r10 src=r0 offset=-72 imm=0
+    // EBPF_OP_STXW pc=12 dst=r10 src=r0 offset=-72 imm=0
 #line 65 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-72)) = (uint32_t)r0;
-    // EBPF_OP_MOV64_REG pc=12 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=13 dst=r2 src=r10 offset=0 imm=0
 #line 65 "sample/bindmonitor.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=13 dst=r2 src=r0 offset=0 imm=-8
+    // EBPF_OP_ADD64_IMM pc=14 dst=r2 src=r0 offset=0 imm=-8
 #line 65 "sample/bindmonitor.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_MOV64_REG pc=14 dst=r3 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=15 dst=r3 src=r10 offset=0 imm=0
 #line 65 "sample/bindmonitor.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=15 dst=r3 src=r0 offset=0 imm=-80
+    // EBPF_OP_ADD64_IMM pc=16 dst=r3 src=r0 offset=0 imm=-80
 #line 65 "sample/bindmonitor.c"
     r3 += IMMEDIATE(-80);
-    // EBPF_OP_LDDW pc=16 dst=r1 src=r1 offset=0 imm=3
+    // EBPF_OP_LDDW pc=17 dst=r1 src=r1 offset=0 imm=3
 #line 67 "sample/bindmonitor.c"
     r1 = POINTER(runtime_context->map_data[2].address);
-    // EBPF_OP_MOV64_IMM pc=18 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=19 dst=r4 src=r0 offset=0 imm=0
 #line 67 "sample/bindmonitor.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=19 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_CALL pc=20 dst=r0 src=r0 offset=0 imm=2
 #line 67 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 67 "sample/bindmonitor.c"
@@ -407,16 +412,16 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 67 "sample/bindmonitor.c"
     }
-    // EBPF_OP_MOV64_REG pc=20 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=21 dst=r2 src=r10 offset=0 imm=0
 #line 67 "sample/bindmonitor.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=21 dst=r2 src=r0 offset=0 imm=-84
+    // EBPF_OP_ADD64_IMM pc=22 dst=r2 src=r0 offset=0 imm=-84
 #line 67 "sample/bindmonitor.c"
     r2 += IMMEDIATE(-84);
-    // EBPF_OP_LDDW pc=22 dst=r1 src=r1 offset=0 imm=1
+    // EBPF_OP_LDDW pc=23 dst=r1 src=r1 offset=0 imm=1
 #line 119 "sample/bindmonitor.c"
     r1 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_CALL pc=24 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_CALL pc=25 dst=r0 src=r0 offset=0 imm=1
 #line 119 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
 #line 119 "sample/bindmonitor.c"
@@ -425,72 +430,77 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 119 "sample/bindmonitor.c"
     }
-    // EBPF_OP_JEQ_IMM pc=25 dst=r0 src=r0 offset=75 imm=0
+    // EBPF_OP_JEQ_IMM pc=26 dst=r0 src=r0 offset=74 imm=0
 #line 120 "sample/bindmonitor.c"
     if (r0 == IMMEDIATE(0)) {
 #line 120 "sample/bindmonitor.c"
         goto label_6;
 #line 120 "sample/bindmonitor.c"
     }
-    // EBPF_OP_LDXW pc=26 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=27 dst=r1 src=r0 offset=0 imm=0
 #line 120 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-    // EBPF_OP_JEQ_IMM pc=27 dst=r1 src=r0 offset=73 imm=0
+    //  pc=28 dst=r1 src=r0 offset=72 imm=0
 #line 120 "sample/bindmonitor.c"
-    if (r1 == IMMEDIATE(0)) {
+    if ((uint32_t)r1 == IMMEDIATE(0)) {
 #line 120 "sample/bindmonitor.c"
         goto label_6;
 #line 120 "sample/bindmonitor.c"
     }
-    // EBPF_OP_MOV64_REG pc=28 dst=r8 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=29 dst=r8 src=r0 offset=0 imm=0
 #line 120 "sample/bindmonitor.c"
     r8 = r0;
-    // EBPF_OP_LDXDW pc=29 dst=r1 src=r6 offset=16 imm=0
+    // EBPF_OP_LDXDW pc=30 dst=r1 src=r6 offset=16 imm=0
 #line 73 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(16));
-    // EBPF_OP_STXDW pc=30 dst=r10 src=r1 offset=-8 imm=0
+    // EBPF_OP_STXDW pc=31 dst=r10 src=r1 offset=-8 imm=0
 #line 73 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-8)) = (uint64_t)r1;
-    // EBPF_OP_MOV64_IMM pc=31 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=32 dst=r1 src=r0 offset=0 imm=0
 #line 73 "sample/bindmonitor.c"
     r1 = IMMEDIATE(0);
-    // EBPF_OP_STXW pc=32 dst=r10 src=r1 offset=-16 imm=0
+#line 73 "sample/bindmonitor.c"
+    r1 &= UINT32_MAX;
+    // EBPF_OP_STXW pc=33 dst=r10 src=r1 offset=-16 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
-    // EBPF_OP_STXDW pc=33 dst=r10 src=r1 offset=-24 imm=0
+    // EBPF_OP_MOV64_IMM pc=34 dst=r1 src=r0 offset=0 imm=0
+#line 75 "sample/bindmonitor.c"
+    r1 = IMMEDIATE(0);
+    // EBPF_OP_STXDW pc=35 dst=r10 src=r1 offset=-24 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-24)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=34 dst=r10 src=r1 offset=-32 imm=0
+    // EBPF_OP_STXDW pc=36 dst=r10 src=r1 offset=-32 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-32)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=35 dst=r10 src=r1 offset=-40 imm=0
+    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-40 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-40)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=36 dst=r10 src=r1 offset=-48 imm=0
+    // EBPF_OP_STXDW pc=38 dst=r10 src=r1 offset=-48 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-48)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=37 dst=r10 src=r1 offset=-56 imm=0
+    // EBPF_OP_STXDW pc=39 dst=r10 src=r1 offset=-56 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-56)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=38 dst=r10 src=r1 offset=-64 imm=0
+    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-64 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-64)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=39 dst=r10 src=r1 offset=-72 imm=0
+    // EBPF_OP_STXDW pc=41 dst=r10 src=r1 offset=-72 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-72)) = (uint64_t)r1;
-    // EBPF_OP_STXDW pc=40 dst=r10 src=r1 offset=-80 imm=0
+    // EBPF_OP_STXDW pc=42 dst=r10 src=r1 offset=-80 imm=0
 #line 75 "sample/bindmonitor.c"
     *(uint64_t*)(uintptr_t)(r10 + OFFSET(-80)) = (uint64_t)r1;
-    // EBPF_OP_MOV64_REG pc=41 dst=r2 src=r10 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=43 dst=r2 src=r10 offset=0 imm=0
 #line 75 "sample/bindmonitor.c"
     r2 = r10;
-    // EBPF_OP_ADD64_IMM pc=42 dst=r2 src=r0 offset=0 imm=-8
+    // EBPF_OP_ADD64_IMM pc=44 dst=r2 src=r0 offset=0 imm=-8
 #line 75 "sample/bindmonitor.c"
     r2 += IMMEDIATE(-8);
-    // EBPF_OP_LDDW pc=43 dst=r1 src=r1 offset=0 imm=2
+    // EBPF_OP_LDDW pc=45 dst=r1 src=r1 offset=0 imm=2
 #line 78 "sample/bindmonitor.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_CALL pc=45 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_CALL pc=47 dst=r0 src=r0 offset=0 imm=1
 #line 78 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
 #line 78 "sample/bindmonitor.c"
@@ -499,36 +509,26 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 78 "sample/bindmonitor.c"
     }
-    // EBPF_OP_JNE_IMM pc=46 dst=r0 src=r0 offset=29 imm=0
+    // EBPF_OP_JNE_IMM pc=48 dst=r0 src=r0 offset=29 imm=0
 #line 79 "sample/bindmonitor.c"
     if (r0 != IMMEDIATE(0)) {
 #line 79 "sample/bindmonitor.c"
         goto label_1;
 #line 79 "sample/bindmonitor.c"
     }
-    // EBPF_OP_LDXW pc=47 dst=r1 src=r6 offset=44 imm=0
+    // EBPF_OP_LDXW pc=49 dst=r1 src=r6 offset=44 imm=0
 #line 83 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
-    // EBPF_OP_JNE_IMM pc=48 dst=r1 src=r0 offset=51 imm=0
+    //  pc=50 dst=r1 src=r0 offset=49 imm=0
 #line 83 "sample/bindmonitor.c"
-    if (r1 != IMMEDIATE(0)) {
+    if ((uint32_t)r1 != IMMEDIATE(0)) {
 #line 83 "sample/bindmonitor.c"
         goto label_5;
 #line 83 "sample/bindmonitor.c"
     }
-    // EBPF_OP_LDXDW pc=49 dst=r1 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=51 dst=r1 src=r6 offset=0 imm=0
 #line 87 "sample/bindmonitor.c"
     r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_JEQ_IMM pc=50 dst=r1 src=r0 offset=49 imm=0
-#line 87 "sample/bindmonitor.c"
-    if (r1 == IMMEDIATE(0)) {
-#line 87 "sample/bindmonitor.c"
-        goto label_5;
-#line 87 "sample/bindmonitor.c"
-    }
-    // EBPF_OP_LDXDW pc=51 dst=r1 src=r6 offset=8 imm=0
-#line 87 "sample/bindmonitor.c"
-    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
     // EBPF_OP_JEQ_IMM pc=52 dst=r1 src=r0 offset=47 imm=0
 #line 87 "sample/bindmonitor.c"
     if (r1 == IMMEDIATE(0)) {
@@ -536,28 +536,38 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         goto label_5;
 #line 87 "sample/bindmonitor.c"
     }
-    // EBPF_OP_MOV64_REG pc=53 dst=r7 src=r10 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=53 dst=r1 src=r6 offset=8 imm=0
+#line 87 "sample/bindmonitor.c"
+    r1 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
+    // EBPF_OP_JEQ_IMM pc=54 dst=r1 src=r0 offset=45 imm=0
+#line 87 "sample/bindmonitor.c"
+    if (r1 == IMMEDIATE(0)) {
+#line 87 "sample/bindmonitor.c"
+        goto label_5;
+#line 87 "sample/bindmonitor.c"
+    }
+    // EBPF_OP_MOV64_REG pc=55 dst=r7 src=r10 offset=0 imm=0
 #line 87 "sample/bindmonitor.c"
     r7 = r10;
-    // EBPF_OP_ADD64_IMM pc=54 dst=r7 src=r0 offset=0 imm=-8
-#line 91 "sample/bindmonitor.c"
+    // EBPF_OP_ADD64_IMM pc=56 dst=r7 src=r0 offset=0 imm=-8
+#line 87 "sample/bindmonitor.c"
     r7 += IMMEDIATE(-8);
-    // EBPF_OP_MOV64_REG pc=55 dst=r3 src=r10 offset=0 imm=0
-#line 91 "sample/bindmonitor.c"
+    // EBPF_OP_MOV64_REG pc=57 dst=r3 src=r10 offset=0 imm=0
+#line 87 "sample/bindmonitor.c"
     r3 = r10;
-    // EBPF_OP_ADD64_IMM pc=56 dst=r3 src=r0 offset=0 imm=-80
-#line 91 "sample/bindmonitor.c"
+    // EBPF_OP_ADD64_IMM pc=58 dst=r3 src=r0 offset=0 imm=-80
+#line 87 "sample/bindmonitor.c"
     r3 += IMMEDIATE(-80);
-    // EBPF_OP_LDDW pc=57 dst=r1 src=r1 offset=0 imm=2
+    // EBPF_OP_LDDW pc=59 dst=r1 src=r1 offset=0 imm=2
 #line 91 "sample/bindmonitor.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_MOV64_REG pc=59 dst=r2 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=61 dst=r2 src=r7 offset=0 imm=0
 #line 91 "sample/bindmonitor.c"
     r2 = r7;
-    // EBPF_OP_MOV64_IMM pc=60 dst=r4 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_IMM pc=62 dst=r4 src=r0 offset=0 imm=0
 #line 91 "sample/bindmonitor.c"
     r4 = IMMEDIATE(0);
-    // EBPF_OP_CALL pc=61 dst=r0 src=r0 offset=0 imm=2
+    // EBPF_OP_CALL pc=63 dst=r0 src=r0 offset=0 imm=2
 #line 91 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[3].address(r1, r2, r3, r4, r5, context);
 #line 91 "sample/bindmonitor.c"
@@ -566,13 +576,13 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 91 "sample/bindmonitor.c"
     }
-    // EBPF_OP_LDDW pc=62 dst=r1 src=r1 offset=0 imm=2
+    // EBPF_OP_LDDW pc=64 dst=r1 src=r1 offset=0 imm=2
 #line 92 "sample/bindmonitor.c"
     r1 = POINTER(runtime_context->map_data[1].address);
-    // EBPF_OP_MOV64_REG pc=64 dst=r2 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=66 dst=r2 src=r7 offset=0 imm=0
 #line 92 "sample/bindmonitor.c"
     r2 = r7;
-    // EBPF_OP_CALL pc=65 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_CALL pc=67 dst=r0 src=r0 offset=0 imm=1
 #line 92 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[4].address(r1, r2, r3, r4, r5, context);
 #line 92 "sample/bindmonitor.c"
@@ -581,35 +591,35 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 92 "sample/bindmonitor.c"
     }
-    // EBPF_OP_JEQ_IMM pc=66 dst=r0 src=r0 offset=33 imm=0
+    // EBPF_OP_JEQ_IMM pc=68 dst=r0 src=r0 offset=31 imm=0
 #line 93 "sample/bindmonitor.c"
     if (r0 == IMMEDIATE(0)) {
 #line 93 "sample/bindmonitor.c"
         goto label_5;
 #line 93 "sample/bindmonitor.c"
     }
-    // EBPF_OP_LDXDW pc=67 dst=r3 src=r6 offset=0 imm=0
+    // EBPF_OP_LDXDW pc=69 dst=r3 src=r6 offset=0 imm=0
 #line 97 "sample/bindmonitor.c"
     r3 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(0));
-    // EBPF_OP_LDXDW pc=68 dst=r4 src=r6 offset=8 imm=0
+    // EBPF_OP_LDXDW pc=70 dst=r4 src=r6 offset=8 imm=0
 #line 97 "sample/bindmonitor.c"
     r4 = *(uint64_t*)(uintptr_t)(r6 + OFFSET(8));
-    // EBPF_OP_SUB64_REG pc=69 dst=r4 src=r3 offset=0 imm=0
+    // EBPF_OP_SUB64_REG pc=71 dst=r4 src=r3 offset=0 imm=0
 #line 97 "sample/bindmonitor.c"
     r4 -= r3;
-    // EBPF_OP_MOV64_REG pc=70 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=72 dst=r1 src=r0 offset=0 imm=0
 #line 97 "sample/bindmonitor.c"
     r1 = r0;
-    // EBPF_OP_ADD64_IMM pc=71 dst=r1 src=r0 offset=0 imm=4
+    // EBPF_OP_ADD64_IMM pc=73 dst=r1 src=r0 offset=0 imm=4
 #line 97 "sample/bindmonitor.c"
     r1 += IMMEDIATE(4);
-    // EBPF_OP_MOV64_IMM pc=72 dst=r2 src=r0 offset=0 imm=64
+    // EBPF_OP_MOV64_IMM pc=74 dst=r2 src=r0 offset=0 imm=64
 #line 97 "sample/bindmonitor.c"
     r2 = IMMEDIATE(64);
-    // EBPF_OP_MOV64_REG pc=73 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=75 dst=r7 src=r0 offset=0 imm=0
 #line 97 "sample/bindmonitor.c"
     r7 = r0;
-    // EBPF_OP_CALL pc=74 dst=r0 src=r0 offset=0 imm=22
+    // EBPF_OP_CALL pc=76 dst=r0 src=r0 offset=0 imm=22
 #line 97 "sample/bindmonitor.c"
     r0 = runtime_context->helper_data[5].address(r1, r2, r3, r4, r5, context);
 #line 97 "sample/bindmonitor.c"
@@ -618,79 +628,81 @@ BindMonitor(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 97 "sample/bindmonitor.c"
     }
-    // EBPF_OP_MOV64_REG pc=75 dst=r0 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV64_REG pc=77 dst=r0 src=r7 offset=0 imm=0
 #line 97 "sample/bindmonitor.c"
     r0 = r7;
 label_1:
-    // EBPF_OP_LDXW pc=76 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=78 dst=r1 src=r0 offset=0 imm=0
 #line 97 "sample/bindmonitor.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-    // EBPF_OP_LDXW pc=77 dst=r2 src=r6 offset=44 imm=0
+    // EBPF_OP_LDXW pc=79 dst=r2 src=r6 offset=44 imm=0
 #line 130 "sample/bindmonitor.c"
     r2 = *(uint32_t*)(uintptr_t)(r6 + OFFSET(44));
-    // EBPF_OP_JEQ_IMM pc=78 dst=r2 src=r0 offset=7 imm=2
+    //  pc=80 dst=r2 src=r0 offset=7 imm=2
 #line 130 "sample/bindmonitor.c"
-    if (r2 == IMMEDIATE(2)) {
+    if ((uint32_t)r2 == IMMEDIATE(2)) {
 #line 130 "sample/bindmonitor.c"
         goto label_2;
 #line 130 "sample/bindmonitor.c"
     }
-    // EBPF_OP_JNE_IMM pc=79 dst=r2 src=r0 offset=9 imm=0
+    //  pc=81 dst=r2 src=r0 offset=9 imm=0
 #line 130 "sample/bindmonitor.c"
-    if (r2 != IMMEDIATE(0)) {
+    if ((uint32_t)r2 != IMMEDIATE(0)) {
 #line 130 "sample/bindmonitor.c"
         goto label_3;
 #line 130 "sample/bindmonitor.c"
     }
-    // EBPF_OP_MOV64_IMM pc=80 dst=r7 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=82 dst=r7 src=r0 offset=0 imm=1
 #line 130 "sample/bindmonitor.c"
     r7 = IMMEDIATE(1);
-    // EBPF_OP_LDXW pc=81 dst=r2 src=r8 offset=0 imm=0
+#line 130 "sample/bindmonitor.c"
+    r7 &= UINT32_MAX;
+    // EBPF_OP_LDXW pc=83 dst=r2 src=r8 offset=0 imm=0
 #line 132 "sample/bindmonitor.c"
     r2 = *(uint32_t*)(uintptr_t)(r8 + OFFSET(0));
-    // EBPF_OP_JGE_REG pc=82 dst=r1 src=r2 offset=18 imm=0
+    //  pc=84 dst=r1 src=r2 offset=16 imm=0
 #line 132 "sample/bindmonitor.c"
-    if (r1 >= r2) {
+    if ((uint32_t)r1 >= (uint32_t)r2) {
 #line 132 "sample/bindmonitor.c"
         goto label_6;
 #line 132 "sample/bindmonitor.c"
     }
-    // EBPF_OP_ADD64_IMM pc=83 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_ADD_IMM pc=85 dst=r1 src=r0 offset=0 imm=1
 #line 136 "sample/bindmonitor.c"
     r1 += IMMEDIATE(1);
-    // EBPF_OP_STXW pc=84 dst=r0 src=r1 offset=0 imm=0
+#line 136 "sample/bindmonitor.c"
+    r1 &= UINT32_MAX;
+    // EBPF_OP_STXW pc=86 dst=r0 src=r1 offset=0 imm=0
 #line 136 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
-    // EBPF_OP_JA pc=85 dst=r0 src=r0 offset=14 imm=0
+    // EBPF_OP_JA pc=87 dst=r0 src=r0 offset=12 imm=0
 #line 136 "sample/bindmonitor.c"
     goto label_5;
 label_2:
-    // EBPF_OP_JEQ_IMM pc=86 dst=r1 src=r0 offset=6 imm=0
+    //  pc=88 dst=r1 src=r0 offset=4 imm=0
 #line 139 "sample/bindmonitor.c"
-    if (r1 == IMMEDIATE(0)) {
+    if ((uint32_t)r1 == IMMEDIATE(0)) {
 #line 139 "sample/bindmonitor.c"
         goto label_4;
 #line 139 "sample/bindmonitor.c"
     }
-    // EBPF_OP_ADD64_IMM pc=87 dst=r1 src=r0 offset=0 imm=-1
+    // EBPF_OP_ADD_IMM pc=89 dst=r1 src=r0 offset=0 imm=-1
 #line 140 "sample/bindmonitor.c"
     r1 += IMMEDIATE(-1);
-    // EBPF_OP_STXW pc=88 dst=r0 src=r1 offset=0 imm=0
+#line 140 "sample/bindmonitor.c"
+    r1 &= UINT32_MAX;
+    // EBPF_OP_STXW pc=90 dst=r0 src=r1 offset=0 imm=0
 #line 140 "sample/bindmonitor.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
 label_3:
-    // EBPF_OP_MOV64_IMM pc=89 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=91 dst=r7 src=r0 offset=0 imm=0
 #line 140 "sample/bindmonitor.c"
     r7 = IMMEDIATE(0);
-    // EBPF_OP_LSH64_IMM pc=90 dst=r1 src=r0 offset=0 imm=32
+#line 140 "sample/bindmonitor.c"
+    r7 &= UINT32_MAX;
+    //  pc=92 dst=r1 src=r0 offset=8 imm=0
 #line 147 "sample/bindmonitor.c"
-    r1 <<= (IMMEDIATE(32) & 63);
-    // EBPF_OP_RSH64_IMM pc=91 dst=r1 src=r0 offset=0 imm=32
-#line 147 "sample/bindmonitor.c"
-    r1 >>= (IMMEDIATE(32) & 63);
-    // EBPF_OP_JNE_IMM pc=92 dst=r1 src=r0 offset=8 imm=0
-#line 147 "sample/bindmonitor.c"
-    if (r1 != IMMEDIATE(0)) {
+    if ((uint32_t)r1 != IMMEDIATE(0)) {
 #line 147 "sample/bindmonitor.c"
         goto label_6;
 #line 147 "sample/bindmonitor.c"
@@ -721,13 +733,17 @@ label_4:
 #line 149 "sample/bindmonitor.c"
     }
 label_5:
-    // EBPF_OP_MOV64_IMM pc=100 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=100 dst=r7 src=r0 offset=0 imm=0
 #line 149 "sample/bindmonitor.c"
     r7 = IMMEDIATE(0);
+#line 149 "sample/bindmonitor.c"
+    r7 &= UINT32_MAX;
 label_6:
-    // EBPF_OP_MOV64_REG pc=101 dst=r0 src=r7 offset=0 imm=0
+    // EBPF_OP_MOV_REG pc=101 dst=r0 src=r7 offset=0 imm=0
 #line 153 "sample/bindmonitor.c"
     r0 = r7;
+#line 153 "sample/bindmonitor.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=102 dst=r0 src=r0 offset=0 imm=0
 #line 153 "sample/bindmonitor.c"
     return r0;

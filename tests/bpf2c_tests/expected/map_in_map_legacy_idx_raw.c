@@ -115,9 +115,11 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
 #line 30 "sample/undocked/map_in_map_legacy_idx.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
 #line 30 "sample/undocked/map_in_map_legacy_idx.c"
     r6 = IMMEDIATE(0);
+#line 30 "sample/undocked/map_in_map_legacy_idx.c"
+    r6 &= UINT32_MAX;
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
 #line 32 "sample/undocked/map_in_map_legacy_idx.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r6;
@@ -139,11 +141,11 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 33 "sample/undocked/map_in_map_legacy_idx.c"
     }
-    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=8 imm=0
+    // EBPF_OP_JEQ_IMM pc=7 dst=r0 src=r0 offset=7 imm=0
 #line 34 "sample/undocked/map_in_map_legacy_idx.c"
     if (r0 == IMMEDIATE(0)) {
 #line 34 "sample/undocked/map_in_map_legacy_idx.c"
-        goto label_2;
+        goto label_1;
 #line 34 "sample/undocked/map_in_map_legacy_idx.c"
     }
     // EBPF_OP_STXW pc=8 dst=r10 src=r6 offset=-8 imm=0
@@ -167,25 +169,23 @@ lookup(void* context, const program_runtime_context_t* runtime_context)
         return 0;
 #line 36 "sample/undocked/map_in_map_legacy_idx.c"
     }
-    // EBPF_OP_JNE_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
+    // EBPF_OP_JEQ_IMM pc=13 dst=r0 src=r0 offset=1 imm=0
 #line 37 "sample/undocked/map_in_map_legacy_idx.c"
-    if (r0 != IMMEDIATE(0)) {
+    if (r0 == IMMEDIATE(0)) {
 #line 37 "sample/undocked/map_in_map_legacy_idx.c"
         goto label_1;
 #line 37 "sample/undocked/map_in_map_legacy_idx.c"
     }
-    // EBPF_OP_JA pc=14 dst=r0 src=r0 offset=1 imm=0
-#line 37 "sample/undocked/map_in_map_legacy_idx.c"
-    goto label_2;
-label_1:
-    // EBPF_OP_LDXW pc=15 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_LDXW pc=14 dst=r6 src=r0 offset=0 imm=0
 #line 38 "sample/undocked/map_in_map_legacy_idx.c"
     r6 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-label_2:
-    // EBPF_OP_MOV64_REG pc=16 dst=r0 src=r6 offset=0 imm=0
+label_1:
+    // EBPF_OP_MOV_REG pc=15 dst=r0 src=r6 offset=0 imm=0
 #line 42 "sample/undocked/map_in_map_legacy_idx.c"
     r0 = r6;
-    // EBPF_OP_EXIT pc=17 dst=r0 src=r0 offset=0 imm=0
+#line 42 "sample/undocked/map_in_map_legacy_idx.c"
+    r0 &= UINT32_MAX;
+    // EBPF_OP_EXIT pc=16 dst=r0 src=r0 offset=0 imm=0
 #line 42 "sample/undocked/map_in_map_legacy_idx.c"
     return r0;
 #line 30 "sample/undocked/map_in_map_legacy_idx.c"
@@ -206,7 +206,7 @@ static program_entry_t _programs[] = {
         1,
         lookup_helpers,
         1,
-        18,
+        17,
         &lookup_program_type_guid,
         &lookup_attach_type_guid,
     },

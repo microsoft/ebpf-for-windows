@@ -311,9 +311,11 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
 #line 52 "sample/undocked/inner_map.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r7 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=0 dst=r7 src=r0 offset=0 imm=0
 #line 52 "sample/undocked/inner_map.c"
     r7 = IMMEDIATE(0);
+#line 52 "sample/undocked/inner_map.c"
+    r7 &= UINT32_MAX;
     // EBPF_OP_STXW pc=1 dst=r10 src=r7 offset=-4 imm=0
 #line 54 "sample/undocked/inner_map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r7;
@@ -377,15 +379,19 @@ lookup_update(void* context, const program_runtime_context_t* runtime_context)
 #line 64 "sample/undocked/inner_map.c"
     }
 label_1:
-    // EBPF_OP_MOV64_IMM pc=16 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=16 dst=r1 src=r0 offset=0 imm=1
 #line 64 "sample/undocked/inner_map.c"
     r1 = IMMEDIATE(1);
+#line 64 "sample/undocked/inner_map.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXW pc=17 dst=r0 src=r1 offset=0 imm=0
 #line 64 "sample/undocked/inner_map.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
-    // EBPF_OP_MOV64_IMM pc=18 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=18 dst=r0 src=r0 offset=0 imm=0
 #line 64 "sample/undocked/inner_map.c"
     r0 = IMMEDIATE(0);
+#line 64 "sample/undocked/inner_map.c"
+    r0 &= UINT32_MAX;
 label_2:
     // EBPF_OP_EXIT pc=19 dst=r0 src=r0 offset=0 imm=0
 #line 84 "sample/undocked/inner_map.c"
@@ -395,7 +401,7 @@ label_3:
 #line 84 "sample/undocked/inner_map.c"
     r2 = r10;
     // EBPF_OP_ADD64_IMM pc=21 dst=r2 src=r0 offset=0 imm=-6
-#line 72 "sample/undocked/inner_map.c"
+#line 84 "sample/undocked/inner_map.c"
     r2 += IMMEDIATE(-6);
     // EBPF_OP_LDDW pc=22 dst=r1 src=r1 offset=0 imm=4
 #line 72 "sample/undocked/inner_map.c"
@@ -412,9 +418,11 @@ label_3:
     // EBPF_OP_MOV64_REG pc=25 dst=r1 src=r0 offset=0 imm=0
 #line 72 "sample/undocked/inner_map.c"
     r1 = r0;
-    // EBPF_OP_MOV64_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=26 dst=r0 src=r0 offset=0 imm=1
 #line 72 "sample/undocked/inner_map.c"
     r0 = IMMEDIATE(1);
+#line 72 "sample/undocked/inner_map.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_JEQ_IMM pc=27 dst=r1 src=r0 offset=-9 imm=0
 #line 73 "sample/undocked/inner_map.c"
     if (r1 == IMMEDIATE(0)) {
@@ -422,9 +430,11 @@ label_3:
         goto label_2;
 #line 73 "sample/undocked/inner_map.c"
     }
-    // EBPF_OP_MOV64_IMM pc=28 dst=r1 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=28 dst=r1 src=r0 offset=0 imm=0
 #line 73 "sample/undocked/inner_map.c"
     r1 = IMMEDIATE(0);
+#line 73 "sample/undocked/inner_map.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXW pc=29 dst=r10 src=r1 offset=-16 imm=0
 #line 74 "sample/undocked/inner_map.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-16)) = (uint32_t)r1;
@@ -457,9 +467,11 @@ label_3:
 #line 76 "sample/undocked/inner_map.c"
     goto label_1;
 label_4:
-    // EBPF_OP_MOV64_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=36 dst=r0 src=r0 offset=0 imm=1
 #line 76 "sample/undocked/inner_map.c"
     r0 = IMMEDIATE(1);
+#line 76 "sample/undocked/inner_map.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_JA pc=37 dst=r0 src=r0 offset=-19 imm=0
 #line 76 "sample/undocked/inner_map.c"
     goto label_2;

@@ -520,9 +520,11 @@ test_utility_helpers(void* context, const program_runtime_context_t* runtime_con
         return 0;
 #line 63 "sample/./sample_common_routines.h"
     }
-    // EBPF_OP_MOV64_IMM pc=50 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=50 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/undocked/test_utility_helpers.c"
     r0 = IMMEDIATE(0);
+#line 35 "sample/undocked/test_utility_helpers.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=51 dst=r0 src=r0 offset=0 imm=0
 #line 35 "sample/undocked/test_utility_helpers.c"
     return r0;

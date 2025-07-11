@@ -95,9 +95,11 @@ callee(void* context, const program_runtime_context_t* runtime_context)
 #line 49 "sample/undocked/tail_call_bad.c"
     UNREFERENCED_PARAMETER(runtime_context);
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
+    // EBPF_OP_MOV_IMM pc=0 dst=r0 src=r0 offset=0 imm=42
 #line 49 "sample/undocked/tail_call_bad.c"
     r0 = IMMEDIATE(42);
+#line 49 "sample/undocked/tail_call_bad.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=1 dst=r0 src=r0 offset=0 imm=0
 #line 49 "sample/undocked/tail_call_bad.c"
     return r0;
@@ -157,18 +159,22 @@ caller(void* context, const program_runtime_context_t* runtime_context)
 #line 33 "sample/undocked/tail_call_bad.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=0 dst=r2 src=r0 offset=0 imm=0
 #line 33 "sample/undocked/tail_call_bad.c"
     r2 = IMMEDIATE(0);
+#line 33 "sample/undocked/tail_call_bad.c"
+    r2 &= UINT32_MAX;
     // EBPF_OP_STXW pc=1 dst=r10 src=r2 offset=-4 imm=0
 #line 35 "sample/undocked/tail_call_bad.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r2;
     // EBPF_OP_LDDW pc=2 dst=r2 src=r1 offset=0 imm=1
 #line 39 "sample/undocked/tail_call_bad.c"
     r2 = POINTER(runtime_context->map_data[0].address);
-    // EBPF_OP_MOV64_IMM pc=4 dst=r3 src=r0 offset=0 imm=10
+    // EBPF_OP_MOV_IMM pc=4 dst=r3 src=r0 offset=0 imm=10
 #line 39 "sample/undocked/tail_call_bad.c"
     r3 = IMMEDIATE(10);
+#line 39 "sample/undocked/tail_call_bad.c"
+    r3 &= UINT32_MAX;
     // EBPF_OP_CALL pc=5 dst=r0 src=r0 offset=0 imm=5
 #line 39 "sample/undocked/tail_call_bad.c"
     r0 = runtime_context->helper_data[0].address(r1, r2, r3, r4, r5, context);
@@ -206,16 +212,20 @@ caller(void* context, const program_runtime_context_t* runtime_context)
         goto label_1;
 #line 42 "sample/undocked/tail_call_bad.c"
     }
-    // EBPF_OP_MOV64_IMM pc=13 dst=r1 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=13 dst=r1 src=r0 offset=0 imm=1
 #line 42 "sample/undocked/tail_call_bad.c"
     r1 = IMMEDIATE(1);
+#line 42 "sample/undocked/tail_call_bad.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXW pc=14 dst=r0 src=r1 offset=0 imm=0
 #line 43 "sample/undocked/tail_call_bad.c"
     *(uint32_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint32_t)r1;
 label_1:
-    // EBPF_OP_MOV64_REG pc=15 dst=r0 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV_REG pc=15 dst=r0 src=r6 offset=0 imm=0
 #line 46 "sample/undocked/tail_call_bad.c"
     r0 = r6;
+#line 46 "sample/undocked/tail_call_bad.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=16 dst=r0 src=r0 offset=0 imm=0
 #line 46 "sample/undocked/tail_call_bad.c"
     return r0;

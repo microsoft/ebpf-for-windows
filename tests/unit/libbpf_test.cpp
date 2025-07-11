@@ -498,11 +498,11 @@ TEST_CASE("libbpf program", "[libbpf]")
     REQUIRE(fd2 != ebpf_fd_invalid);
 
     size_t size = bpf_program__insn_cnt(program);
-    REQUIRE(size == 40);
+    REQUIRE(size == 38);
 
 #pragma warning(suppress : 4996) // deprecated
     size = bpf_program__size(program);
-    REQUIRE(size == 320);
+    REQUIRE(size == 304);
 
     REQUIRE(bpf_object__next_program(object, program) == nullptr);
     REQUIRE(bpf_object__prev_program(object, program) == nullptr);

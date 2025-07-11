@@ -257,15 +257,17 @@ count_tcp_connect4(void* context, const program_runtime_context_t* runtime_conte
 #line 31 "sample/cgroup_count_connect4.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
+    // EBPF_OP_MOV_IMM pc=0 dst=r0 src=r0 offset=0 imm=1
 #line 31 "sample/cgroup_count_connect4.c"
     r0 = IMMEDIATE(1);
+#line 31 "sample/cgroup_count_connect4.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_LDXW pc=1 dst=r2 src=r1 offset=44 imm=0
 #line 34 "sample/cgroup_count_connect4.c"
     r2 = *(uint32_t*)(uintptr_t)(r1 + OFFSET(44));
-    // EBPF_OP_JNE_IMM pc=2 dst=r2 src=r0 offset=25 imm=6
+    //  pc=2 dst=r2 src=r0 offset=25 imm=6
 #line 34 "sample/cgroup_count_connect4.c"
-    if (r2 != IMMEDIATE(6)) {
+    if ((uint32_t)r2 != IMMEDIATE(6)) {
 #line 34 "sample/cgroup_count_connect4.c"
         goto label_3;
 #line 34 "sample/cgroup_count_connect4.c"
@@ -273,16 +275,18 @@ count_tcp_connect4(void* context, const program_runtime_context_t* runtime_conte
     // EBPF_OP_LDXH pc=3 dst=r1 src=r1 offset=40 imm=0
 #line 40 "sample/cgroup_count_connect4.c"
     r1 = *(uint16_t*)(uintptr_t)(r1 + OFFSET(40));
-    // EBPF_OP_JNE_IMM pc=4 dst=r1 src=r0 offset=23 imm=7459
+    //  pc=4 dst=r1 src=r0 offset=23 imm=7459
 #line 40 "sample/cgroup_count_connect4.c"
-    if (r1 != IMMEDIATE(7459)) {
+    if ((uint32_t)r1 != IMMEDIATE(7459)) {
 #line 40 "sample/cgroup_count_connect4.c"
         goto label_3;
 #line 40 "sample/cgroup_count_connect4.c"
     }
-    // EBPF_OP_MOV64_IMM pc=5 dst=r1 src=r0 offset=0 imm=8989
+    // EBPF_OP_MOV_IMM pc=5 dst=r1 src=r0 offset=0 imm=8989
 #line 40 "sample/cgroup_count_connect4.c"
     r1 = IMMEDIATE(8989);
+#line 40 "sample/cgroup_count_connect4.c"
+    r1 &= UINT32_MAX;
     // EBPF_OP_STXH pc=6 dst=r10 src=r1 offset=-2 imm=0
 #line 46 "sample/cgroup_count_connect4.c"
     *(uint16_t*)(uintptr_t)(r10 + OFFSET(-2)) = (uint16_t)r1;
@@ -358,9 +362,11 @@ label_1:
 #line 53 "sample/cgroup_count_connect4.c"
     *(uint64_t*)(uintptr_t)(r0 + OFFSET(0)) = (uint64_t)r1;
 label_2:
-    // EBPF_OP_MOV64_IMM pc=27 dst=r0 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=27 dst=r0 src=r0 offset=0 imm=0
 #line 53 "sample/cgroup_count_connect4.c"
     r0 = IMMEDIATE(0);
+#line 53 "sample/cgroup_count_connect4.c"
+    r0 &= UINT32_MAX;
 label_3:
     // EBPF_OP_EXIT pc=28 dst=r0 src=r0 offset=0 imm=0
 #line 62 "sample/cgroup_count_connect4.c"

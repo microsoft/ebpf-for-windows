@@ -129,9 +129,11 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
 #line 32 "sample/undocked/divide_by_zero.c"
     r10 = (uintptr_t)((uint8_t*)stack + sizeof(stack));
 
-    // EBPF_OP_MOV64_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
+    // EBPF_OP_MOV_IMM pc=0 dst=r6 src=r0 offset=0 imm=0
 #line 32 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(0);
+#line 32 "sample/undocked/divide_by_zero.c"
+    r6 &= UINT32_MAX;
     // EBPF_OP_STXW pc=1 dst=r10 src=r6 offset=-4 imm=0
 #line 34 "sample/undocked/divide_by_zero.c"
     *(uint32_t*)(uintptr_t)(r10 + OFFSET(-4)) = (uint32_t)r6;
@@ -163,16 +165,22 @@ divide_by_zero(void* context, const program_runtime_context_t* runtime_context)
     // EBPF_OP_LDXW pc=8 dst=r1 src=r0 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
     r1 = *(uint32_t*)(uintptr_t)(r0 + OFFSET(0));
-    // EBPF_OP_MOV64_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
+    // EBPF_OP_MOV_IMM pc=9 dst=r6 src=r0 offset=0 imm=100000
 #line 37 "sample/undocked/divide_by_zero.c"
     r6 = IMMEDIATE(100000);
-    // EBPF_OP_DIV64_REG pc=10 dst=r6 src=r1 offset=0 imm=0
 #line 37 "sample/undocked/divide_by_zero.c"
-    r6 = r1 ? (r6 / r1) : 0;
+    r6 &= UINT32_MAX;
+    // EBPF_OP_DIV_REG pc=10 dst=r6 src=r1 offset=0 imm=0
+#line 37 "sample/undocked/divide_by_zero.c"
+    r6 = (uint32_t)r1 ? ((uint32_t)r6 / (uint32_t)r1) : 0;
+#line 37 "sample/undocked/divide_by_zero.c"
+    r6 &= UINT32_MAX;
 label_1:
-    // EBPF_OP_MOV64_REG pc=11 dst=r0 src=r6 offset=0 imm=0
+    // EBPF_OP_MOV_REG pc=11 dst=r0 src=r6 offset=0 imm=0
 #line 40 "sample/undocked/divide_by_zero.c"
     r0 = r6;
+#line 40 "sample/undocked/divide_by_zero.c"
+    r0 &= UINT32_MAX;
     // EBPF_OP_EXIT pc=12 dst=r0 src=r0 offset=0 imm=0
 #line 40 "sample/undocked/divide_by_zero.c"
     return r0;
