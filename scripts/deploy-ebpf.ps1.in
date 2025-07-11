@@ -141,27 +141,9 @@ if ($null -ne $remote_vm) {
     }
     Remove-PSSession $session
 }
-elseif ($null -eq $vm) {
-   ##
-   ## Copy files to a local directory
-   ##
-   Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
-   foreach ($filePattern in $copy_file_list) {
-        $files = Get-ChildItem -Path $source_directory -Filter $filePattern -File
-        foreach ($file in $files) {
-            # Check if the file should be excluded
-            if ($exclude_files -notcontains $file.Name) {
-                $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
-                Copy-Item -Path $file.FullName -Destination $destinationPath -Force
-                Write-Host "Copied $($file.FullName) to $($destinationPath)."
-            } else {
-                Write-Host "Excluded $($file.FullName) from copying."
-            }
-        }
-   }
-} else {
+elseif ($null -ne $vm) {
     ##
-    ## Copy files to a VM
+    ## Copy files to a VM.
     ##
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal $identity
@@ -190,6 +172,27 @@ elseif ($null -eq $vm) {
             }
         }
     }
+} else {
+   ##
+   ## Copy files to a local directory.
+   ##
+   Write-Host "Copying files from `"$source_directory`" to `"$destination_directory`""
+   foreach ($filePattern in $copy_file_list) {
+        $files = Get-ChildItem -Path $source_directory -Filter $filePattern -File
+        foreach ($file in $files) {
+            # Check if the file should be excluded
+            if ($exclude_files -notcontains $file.Name) {
+                $destinationPath = Join-Path -Path $destination_directory -ChildPath $file.Name
+                Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+                Write-Host "Copied $($file.FullName) to $($destinationPath)."
+            } else {
+                Write-Host "Excluded $($file.FullName) from copying."
+            }
+        }
+   }
+
+
+
 }
 
 exit 0
