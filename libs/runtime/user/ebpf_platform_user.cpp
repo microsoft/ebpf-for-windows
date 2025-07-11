@@ -20,21 +20,29 @@
 #include <vector>
 
 // Global variables used to override behavior for testing.
-// Permit the test to simulate both Hyper-V Code Integrity.
+// Permit the test to simulate both Hyper-V Code Integrity and Test Signing
+// being enabled or disabled.
 bool _ebpf_platform_code_integrity_enabled = false;
+bool _ebpf_platform_code_integrity_test_signing_enabled = true;
 
 extern "C" size_t ebpf_fuzzing_memory_limit = MAXSIZE_T;
 
 _Must_inspect_result_ ebpf_result_t
-ebpf_get_code_integrity_state(_Out_ ebpf_code_integrity_state_t* state)
+ebpf_get_code_integrity_state(_Out_ bool* test_signing_enabled, _Out_ bool* hypervisor_kernel_mode_enabled)
 {
     EBPF_LOG_ENTRY();
+    if (_ebpf_platform_code_integrity_test_signing_enabled) {
+        EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Test signing enabled");
+        *test_signing_enabled = true;
+    } else {
+        *test_signing_enabled = false;
+    }
     if (_ebpf_platform_code_integrity_enabled) {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity enabled");
-        *state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
+        *hypervisor_kernel_mode_enabled = true;
     } else {
         EBPF_LOG_MESSAGE(EBPF_TRACELOG_LEVEL_INFO, EBPF_TRACELOG_KEYWORD_BASE, "Code integrity disabled");
-        *state = EBPF_CODE_INTEGRITY_DEFAULT;
+        *hypervisor_kernel_mode_enabled = false;
     }
     EBPF_RETURN_RESULT(EBPF_SUCCESS);
 }

@@ -37,7 +37,8 @@ const NPI_MODULEID ebpf_general_helper_function_module_id = {
 static ebpf_pinning_table_t* _ebpf_core_map_pinning_table = NULL;
 
 // Assume enabled until we can query it.
-static ebpf_code_integrity_state_t _ebpf_core_code_integrity_state = EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE;
+static bool _ebpf_platform_hypervisor_code_integrity_enabled = true;
+static bool _ebpf_platform_test_signing_enabled = true;
 
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key);
@@ -299,7 +300,8 @@ ebpf_core_initiate()
         goto Done;
     }
 
-    return_value = ebpf_get_code_integrity_state(&_ebpf_core_code_integrity_state);
+    return_value = ebpf_get_code_integrity_state(
+        &_ebpf_platform_test_signing_enabled, &_ebpf_platform_hypervisor_code_integrity_enabled);
 
 Done:
     if (return_value != EBPF_SUCCESS) {
@@ -402,12 +404,12 @@ _ebpf_core_protocol_load_code(_In_ const ebpf_operation_load_code_request_t* req
     }
 
     if (request->code_type == EBPF_CODE_JIT) {
-        if (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE) {
+        if (_ebpf_platform_hypervisor_code_integrity_enabled) {
             retval = EBPF_BLOCKED_BY_POLICY;
             EBPF_LOG_MESSAGE(
                 EBPF_TRACELOG_LEVEL_ERROR,
                 EBPF_TRACELOG_KEYWORD_CORE,
-                "code_type == EBPF_CODE_JIT blocked by EBPF_CODE_INTEGRITY_HYPERVISOR_KERNEL_MODE");
+                "code_type == EBPF_CODE_JIT blocked by Hyper-V Code Integrity policy");
             goto Done;
         }
     }
@@ -2289,6 +2291,19 @@ _ebpf_core_protocol_authorize_native_module(_In_ const ebpf_operation_authorize_
     EBPF_RETURN_RESULT(result);
 }
 
+static ebpf_result_t
+_ebpf_core_protocol_get_code_integrity_state(
+    _In_ const ebpf_operation_get_code_integrity_state_request_t* request,
+    _Out_ ebpf_operation_get_code_integrity_state_reply_t* reply)
+{
+    EBPF_LOG_ENTRY();
+    UNREFERENCED_PARAMETER(request);
+    ebpf_result_t result = EBPF_SUCCESS;
+    reply->hypervisor_code_integrity_enabled = _ebpf_platform_hypervisor_code_integrity_enabled;
+    reply->test_signing_enabled = _ebpf_platform_test_signing_enabled;
+    EBPF_RETURN_RESULT(result);
+}
+
 static void*
 _ebpf_core_map_find_element(ebpf_map_t* map, const uint8_t* key)
 {
@@ -2866,6 +2881,8 @@ static ebpf_protocol_handler_t _ebpf_protocol_handlers[] = {
         get_next_pinned_object_path, start_path, next_path, PROTOCOL_ALL_MODES),
     DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_NO_REPLY(
         authorize_native_module, PROTOCOL_NATIVE_MODE | PROTOCOL_PRIVILEGED_OPERATION),
+    DECLARE_PROTOCOL_HANDLER_FIXED_REQUEST_FIXED_REPLY(
+        get_code_integrity_state, PROTOCOL_ALL_MODES | PROTOCOL_PRIVILEGED_OPERATION),
 };
 
 _Must_inspect_result_ ebpf_result_t
@@ -2881,7 +2898,7 @@ ebpf_core_get_protocol_handler_properties(
 
 #if !defined(CONFIG_BPF_JIT_DISABLED)
     // JIT is permitted only if HVCI is off.
-    bool jit_permitted = (_ebpf_core_code_integrity_state == EBPF_CODE_INTEGRITY_DEFAULT) ? true : false;
+    bool jit_permitted = !_ebpf_platform_hypervisor_code_integrity_enabled;
 #endif
 
     // Interpret is only permitted if CONFIG_BPF_INTERPRETER_DISABLED is not set.

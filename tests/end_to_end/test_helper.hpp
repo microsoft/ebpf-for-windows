@@ -13,6 +13,7 @@ class _test_helper_end_to_end
   private:
     bool ec_initialized = false;
     bool api_initialized = false;
+    bool service_initialized = false;
 };
 
 class _program_info_provider;
