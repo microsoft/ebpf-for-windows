@@ -137,8 +137,9 @@ EBPF_HELPER(int, bpf_sock_addr_set_redirect_context, (bpf_sock_addr_t * ctx, voi
  * @param[in] context \ref bpf_sock_addr_t
  * @retval BPF_SOCK_ADDR_VERDICT_PROCEED Block the socket operation.
  * @retval BPF_SOCK_ADDR_VERDICT_REJECT Allow the socket operation.
+ * @retval BPF_SOCK_ADDR_VERDICT_CONTINUE Pass the decision of the socket operation.
  *
- * Any other return value other than the two mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
+ * Any other return value other than the ones mentioned above is treated as BPF_SOCK_ADDR_VERDICT_REJECT.
  */
 typedef int
 sock_addr_hook_t(bpf_sock_addr_t* context);
