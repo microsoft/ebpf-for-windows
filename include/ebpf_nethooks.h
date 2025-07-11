@@ -56,6 +56,7 @@ bind_hook_t(bind_md_t* context);
 
 #define BPF_SOCK_ADDR_VERDICT_REJECT 0
 #define BPF_SOCK_ADDR_VERDICT_PROCEED 1
+#define BPF_SOCK_ADDR_VERDICT_CONTINUE 2
 
 #ifdef _MSC_VER
 #pragma warning(push)

@@ -148,7 +148,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Connect eBPF Callout v4",
         L"ALE Authorize Connect callout for eBPF",
-        FWP_ACTION_CALLOUT_TERMINATING,
+        FWP_ACTION_CALLOUT_UNKNOWN,
     },
     // EBPF_HOOK_ALE_AUTH_CONNECT_V6
     {
@@ -159,7 +159,7 @@ static net_ebpf_ext_wfp_callout_state_t _net_ebpf_ext_wfp_callout_states[] = {
         _net_ebpf_ext_flow_delete,
         L"ALE Authorize Connect eBPF Callout v6",
         L"ALE Authorize Connect callout for eBPF",
-        FWP_ACTION_CALLOUT_TERMINATING,
+        FWP_ACTION_CALLOUT_UNKNOWN,
     },
     // EBPF_HOOK_ALE_AUTH_RECV_ACCEPT_V4
     {
