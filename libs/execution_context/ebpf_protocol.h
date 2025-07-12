@@ -49,6 +49,9 @@ typedef enum _ebpf_operation_id
     EBPF_OPERATION_PROGRAM_SET_FLAGS,
     EBPF_OPERATION_GET_NEXT_PINNED_OBJECT_PATH,
     EBPF_OPERATION_AUTHORIZE_NATIVE_MODULE,
+    EBPF_OPERATION_MAP_SET_WAIT_HANDLE,
+    EBPF_OPERATION_RING_BUFFER_MAP_MAP_BUFFER,
+    EBPF_OPERATION_RING_BUFFER_MAP_UNMAP_BUFFER,
 } ebpf_operation_id_t;
 
 typedef enum _ebpf_code_type
@@ -559,3 +562,36 @@ typedef struct _ebpf_operation_authorize_native_module_request
     struct _ebpf_operation_header header;
     uint8_t module_hash[32]; // SHA256 hash of the native module.
 } ebpf_operation_authorize_native_module_request_t;
+
+typedef struct _ebpf_operation_map_set_wait_handle_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    ebpf_handle_t wait_handle;
+    uint64_t index;
+    uint64_t flags;
+} ebpf_operation_map_set_wait_handle_request_t;
+
+typedef struct _ebpf_operation_ring_buffer_map_map_buffer_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+} ebpf_operation_ring_buffer_map_map_buffer_request_t;
+
+typedef struct _ebpf_operation_ring_buffer_map_map_buffer_reply
+{
+    struct _ebpf_operation_header header;
+    uint64_t consumer_address;
+    uint64_t producer_address;
+    uint64_t data_address;
+    size_t data_size;
+} ebpf_operation_ring_buffer_map_map_buffer_reply_t;
+
+typedef struct _ebpf_operation_ring_buffer_map_unmap_buffer_request
+{
+    struct _ebpf_operation_header header;
+    ebpf_handle_t map_handle;
+    uint64_t consumer;
+    uint64_t producer;
+    uint64_t data;
+} ebpf_operation_ring_buffer_map_unmap_buffer_request_t;
